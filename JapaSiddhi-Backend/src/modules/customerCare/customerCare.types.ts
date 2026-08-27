@@ -12,6 +12,8 @@ export interface CreateTicketRequest {
 
   message: string;
 
+  orderService?: string;
+
 }
 
 export interface ReplyTicketRequest {

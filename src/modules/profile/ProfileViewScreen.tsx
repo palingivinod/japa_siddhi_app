@@ -81,20 +81,16 @@ const ProfileViewScreen = () => {
       </View>
       <Text style={styles.name}>{profile?.fullName || 'Devotee Name'}</Text>
       <MenuCard
-        title="Personal Details"
+        title="Personal Profile"
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
-      />
-      <MenuCard
-        title="Spiritual Details"
-        onPress={() => navigation.navigate('SpiritualDetails', {profile})}
-      />
-      <MenuCard
-        title="Order History"
-        onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
         title="Notifications"
         onPress={() => navigation.navigate('Notifications')}
+      />
+      <MenuCard
+        title="Order History"
+        onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
         title="Feedback"
@@ -103,6 +99,12 @@ const ProfileViewScreen = () => {
       <MenuCard
         title="Settings"
         onPress={() => navigation.navigate('Settings')}
+      />
+      <MenuCard
+        title="Language"
+        onPress={() =>
+          navigation.navigate('LanguageSelect', {fromSettings: true})
+        }
       />
       <MenuCard title="Logout" onPress={logout} />
     </ScreenLayout>

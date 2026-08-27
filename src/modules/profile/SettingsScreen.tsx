@@ -112,6 +112,18 @@ const SettingsScreen = () => {
         <Text style={styles.label}>Help & Support</Text>
         <Text style={styles.value}>Open</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => navigation.navigate('SpiritualDetails')}>
+        <Text style={styles.label}>Spiritual details</Text>
+        <Text style={styles.value}>Edit</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => navigation.navigate('AnalyticsHub')}>
+        <Text style={styles.label}>Japa analytics</Text>
+        <Text style={styles.value}>Open</Text>
+      </TouchableOpacity>
       <TouchableOpacity style={styles.delete} onPress={deleteAccount}>
         <Text style={styles.deleteText}>Delete account</Text>
       </TouchableOpacity>

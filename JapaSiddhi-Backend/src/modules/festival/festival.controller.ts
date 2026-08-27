@@ -42,6 +42,25 @@ class FestivalController {
 
 
 
+  async panchang(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const raw = req.query.date;
+      const date = typeof raw === 'string' ? raw : undefined;
+      const result = await festivalService.getPanchang(date);
+      return apiResponse.success(
+        res,
+        'Panchang fetched successfully',
+        result,
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async today(
     req: Request,
     res: Response,

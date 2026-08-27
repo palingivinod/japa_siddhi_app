@@ -56,17 +56,30 @@ const JapaHubScreen = () => {
             <Text style={styles.sub}>Take a spiritual challenge.</Text>
           </View>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.card}
+          onPress={() => navigation.navigate('AnalyticsHub')}>
+          <View style={styles.dot} />
+          <View style={styles.copy}>
+            <Text style={styles.title}>Japa Analytics</Text>
+            <Text style={styles.sub}>Weekly, monthly and streak reports.</Text>
+          </View>
+        </TouchableOpacity>
 
         <Text style={styles.recent}>Recent progress</Text>
         <View style={styles.stats}>
-          <View style={styles.statCard}>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate('JapaProgress')}>
             <Text style={styles.statLabel}>TODAY</Text>
             <Text style={styles.statValue}>{today.toLocaleString()}</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.statCard}
+            onPress={() => navigation.navigate('StreakAnalytics')}>
             <Text style={styles.statLabel}>STREAK</Text>
             <Text style={styles.statValue}>{streak} days</Text>
-          </View>
+          </TouchableOpacity>
         </View>
       </View>
       <BottomTabs active="JapaHub" />

@@ -10,6 +10,7 @@ interface Props {
   title: string;
   children: React.ReactNode;
   showBack?: boolean;
+  showBell?: boolean;
   tab?: TabKey;
   scroll?: boolean;
 }
@@ -18,6 +19,7 @@ const ScreenLayout: React.FC<Props> = ({
   title,
   children,
   showBack,
+  showBell,
   tab,
   scroll = true,
 }) => {
@@ -26,7 +28,7 @@ const ScreenLayout: React.FC<Props> = ({
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
-        <AppHeader title={title} showBack={back} />
+        <AppHeader title={title} showBack={back} showBell={showBell} />
         {scroll ? (
           <ScrollView
             style={styles.scroll}

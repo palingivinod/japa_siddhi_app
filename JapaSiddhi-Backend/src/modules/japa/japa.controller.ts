@@ -241,6 +241,40 @@ class JapaController {
     }
   }
 
+  async getAnalytics(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getAnalytics(userId);
+      return apiResponse.success(res, 'Japa analytics fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getMilestones(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getMilestones(userId);
+      return apiResponse.success(res, 'Japa milestones fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async getReference(
     req: Request,
     res: Response,

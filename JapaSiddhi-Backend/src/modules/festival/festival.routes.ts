@@ -11,6 +11,10 @@ router.get(
   festivalController.upcoming,
 );
 
+router.get(
+  '/panchang',
+  festivalController.panchang,
+);
 
 router.get(
   '/today',

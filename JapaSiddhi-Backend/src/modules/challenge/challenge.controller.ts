@@ -190,6 +190,7 @@ class ChallengeController {
       const result =
         await challengeService.leaderboard(
           Number(req.params.id),
+          req.user?.id,
         );
 
       return apiResponse.success(
@@ -204,6 +205,48 @@ class ChallengeController {
 
     }
 
+  }
+
+  async getProgress(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await challengeService.getProgress(
+        Number(req.params.id),
+        userId,
+      );
+      return apiResponse.success(res, 'Challenge progress fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async rate(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await challengeService.rate(
+        Number(req.params.id),
+        userId,
+        Number(req.body?.rating),
+        req.body?.feedback,
+      );
+      return apiResponse.success(res, 'Challenge rating saved', result);
+    } catch (error) {
+      next(error);
+    }
   }
 
 }

@@ -1,8 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import OutlineButton from '../common/OutlineButton';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const weekday = (value: string) => {
@@ -14,20 +17,26 @@ const weekday = (value: string) => {
 };
 
 const JapaProgressScreen = () => {
+  const navigation = useNavigation<any>();
   const [today, setToday] = useState(0);
   const [goal, setGoal] = useState(2000);
   const [percent, setPercent] = useState(0);
+  const [lifetime, setLifetime] = useState(0);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
 
   useEffect(() => {
-    apiService
-      .get('/japa/progress')
-      .then(response => {
-        const data = response.data.data ?? {};
+    Promise.all([
+      apiService.get('/japa/progress'),
+      apiService.get('/japa/summary'),
+    ])
+      .then(([progress, summary]) => {
+        const data = progress.data.data ?? {};
+        const totals = summary.data.data ?? {};
         setToday(Number(data.todayCount ?? 0));
         setGoal(Number(data.goal ?? 2000));
         setPercent(Number(data.progressPercent ?? 0));
         setWeekly(data.weekly ?? []);
+        setLifetime(Number(totals.totalJapaCount ?? totals.lifetimeCount ?? 0));
       })
       .catch(() => undefined);
   }, []);
@@ -77,6 +86,18 @@ const JapaProgressScreen = () => {
           </View>
         ))}
       </View>
+      <View style={styles.gap} />
+      <PrimaryButton
+        title="VIEW ANALYTICS"
+        onPress={() => navigation.navigate('AnalyticsHub')}
+      />
+      <View style={styles.gap} />
+      <OutlineButton
+        title={lifetime >= 10000 ? 'DONATE NOW' : 'RESUME JAPA'}
+        onPress={() =>
+          navigation.navigate(lifetime >= 10000 ? 'JapaAnnadanam' : 'JapaHub')
+        }
+      />
     </ScreenLayout>
   );
 };
@@ -130,4 +151,5 @@ const styles = StyleSheet.create({
   col: {alignItems: 'center', flex: 1},
   bar: {width: 12, backgroundColor: Colors.templeGold, borderRadius: 6},
   axis: {marginTop: 6, fontSize: 11, color: Colors.textSecondary},
+  gap: {height: 12},
 });

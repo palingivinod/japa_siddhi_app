@@ -1,46 +1,69 @@
-import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useRoute} from '@react-navigation/native';
+import React, {useEffect, useState} from 'react';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
+import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import ApiErrorPanel from '../common/ApiErrorPanel';
+import MenuCard from '../common/MenuCard';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
-const STEPS = ['Confirmed', 'Processing', 'Shipped', 'Delivered'];
-
 const OrderDetailsScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const order = route.params?.order ?? {};
-  const status = String(order.orderStatus || order.status || 'Processing');
+  const [item, setItem] = useState<any>(route.params?.order || null);
+  const [error, setError] = useState('');
+  const [rawError, setRawError] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const id = route.params?.id || route.params?.order?.id || route.params?.order?.orderId;
+
+  const load = () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    apiService
+      .get(`/orders/${id}/tracking`)
+      .then(response => setItem(response.data.data))
+      .catch(err => {
+        setRawError(err);
+        setError(getApiError(err, 'Could not load order details.'));
+      })
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    load();
+  }, [id]);
 
   return (
     <ScreenLayout title="Order Details" showBack tab="Orders">
-      <View style={styles.card}>
-        <Text style={styles.name}>
-          {order.orderNumber || `Order #${order.id || ''}`}
-        </Text>
-        <Text style={styles.meta}>
-          {order.productName || order.donationType || 'Seva item'}
-        </Text>
-        <Text style={styles.meta}>Status: {status}</Text>
-        {order.paymentStatus ? (
-          <Text style={styles.meta}>Payment: {order.paymentStatus}</Text>
-        ) : null}
-        {order.amount ? (
-          <Text style={styles.meta}>Amount: ₹{order.amount}</Text>
-        ) : null}
-      </View>
-      <Text style={styles.track}>Tracking</Text>
-      {STEPS.map((step, index) => (
-        <View key={step} style={styles.step}>
-          <View
-            style={[
-              styles.bullet,
-              index === 0 && styles.bulletActive,
-            ]}
-          />
-          <Text style={styles.stepText}>{step}</Text>
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
+      {error ? (
+        <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
+      ) : null}
+      <Text style={styles.order}>
+        Order #{item?.orderNumber || item?.confirmationId || id || 'JS10028'}
+      </Text>
+      <MenuCard
+        title={item?.itemName || item?.productName || 'Baanalingam'}
+        subtitle={`Quantity: ${item?.quantity || 1}`}
+      />
+      <Text style={styles.section}>Status</Text>
+      {(item?.steps || []).map((step: any) => (
+        <View key={step.key} style={styles.step}>
+          <View style={[styles.dot, step.done && styles.dotOn]} />
+          <Text style={styles.stepText}>{step.label}</Text>
         </View>
       ))}
+      <View style={styles.gap} />
+      <PrimaryButton
+        title="TRACK ORDER"
+        onPress={() => navigation.navigate('OrderTracking', {id, order: item})}
+      />
     </ScreenLayout>
   );
 };
@@ -48,30 +71,22 @@ const OrderDetailsScreen = () => {
 export default OrderDetailsScreen;
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 18,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    marginBottom: 18,
-  },
-  name: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
-  meta: {marginTop: 8, color: Colors.textSecondary},
-  track: {
-    fontSize: 18,
+  order: {
+    fontSize: 22,
     fontWeight: '800',
-    color: Colors.leafGreen,
-    marginBottom: 10,
+    color: Colors.sacredBrown,
+    marginBottom: 14,
   },
-  step: {flexDirection: 'row', alignItems: 'center', marginBottom: 12},
-  bullet: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+  section: {color: Colors.leafGreen, fontWeight: '800', marginBottom: 10},
+  step: {flexDirection: 'row', alignItems: 'center', marginBottom: 16},
+  dot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     backgroundColor: Colors.lightGold,
-    marginRight: 10,
+    marginRight: 12,
   },
-  bulletActive: {backgroundColor: Colors.templeGold},
+  dotOn: {backgroundColor: Colors.templeGold},
   stepText: {color: Colors.sacredBrown, fontWeight: '700'},
+  gap: {height: 16},
 });

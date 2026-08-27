@@ -71,13 +71,15 @@ const OrdersScreen = () => {
               {item.orderNumber || `Order #${item.id}`}
             </Text>
             <Text style={styles.meta}>
-              {item.productName || item.donationType || 'Seva'} •{' '}
+              {item.itemName || item.productName || item.donationType || 'Seva'} •{' '}
               {item.orderStatus || item.status || 'Processing'}
             </Text>
           </View>
           <TouchableOpacity
             style={styles.view}
-            onPress={() => navigation.navigate('OrderDetails', {order: item})}>
+            onPress={() =>
+              navigation.navigate('OrderDetails', {id: item.id, order: item})
+            }>
             <Text style={styles.viewText}>VIEW</Text>
           </TouchableOpacity>
         </View>

@@ -7,10 +7,15 @@ import Colors from '../../theme/colors';
 interface Props {
   title: string;
   showBack?: boolean;
+  showBell?: boolean;
 }
 
-const AppHeader: React.FC<Props> = ({title, showBack = false}) => {
-  const navigation = useNavigation();
+const AppHeader: React.FC<Props> = ({
+  title,
+  showBack = false,
+  showBell = false,
+}) => {
+  const navigation = useNavigation<any>();
 
   return (
     <View style={styles.row}>
@@ -18,17 +23,35 @@ const AppHeader: React.FC<Props> = ({title, showBack = false}) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
+      ) : showBell ? (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Notifications')}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications">
+          <Text style={styles.bell}>●</Text>
+        </TouchableOpacity>
       ) : (
         <View style={styles.back} />
       )}
       <Text style={styles.title} numberOfLines={1}>
         {title}
       </Text>
-      <Image
-        source={require('../../assets/images/login_logo.webp')}
-        style={styles.logo}
-        resizeMode="contain"
-      />
+      <TouchableOpacity
+        onPress={() => {
+          if (showBell) {
+            navigation.navigate('Profile');
+          }
+        }}
+        disabled={!showBell}
+        accessibilityRole="button"
+        accessibilityLabel="Profile">
+        <Image
+          source={require('../../assets/images/login_logo.webp')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -51,6 +74,11 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: Colors.sacredBrown,
     lineHeight: 34,
+  },
+  bell: {
+    fontSize: 22,
+    color: Colors.templeGold,
+    fontWeight: '800',
   },
   title: {
     flex: 1,

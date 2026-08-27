@@ -27,23 +27,54 @@ import SevaHubScreen from '../modules/seva/SevaHubScreen';
 import ChantScreen from '../modules/chant/ChantScreen';
 import ChallengesScreen from '../modules/challenges/ChallengesScreen';
 import ChallengeDetailsScreen from '../modules/challenges/ChallengeDetailsScreen';
+import ChallengeProgressScreen from '../modules/challenges/ChallengeProgressScreen';
+import ChallengeLeaderboardScreen from '../modules/challenges/ChallengeLeaderboardScreen';
+import ChallengeCompleteScreen from '../modules/challenges/ChallengeCompleteScreen';
 import FamilyJapaScreen from '../modules/family/FamilyJapaScreen';
 import DonateScreen from '../modules/donate/DonateScreen';
+import JapaAnnadanamScreen from '../modules/donate/JapaAnnadanamScreen';
+import MilestoneNotificationsScreen from '../modules/donate/MilestoneNotificationsScreen';
+import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
+import DonationFormScreen from '../modules/donate/DonationFormScreen';
 import FestivalsScreen from '../modules/festivals/FestivalsScreen';
 import ProgressScreen from '../modules/progress/ProgressScreen';
+import AnalyticsHubScreen from '../modules/analytics/AnalyticsHubScreen';
+import JapaOverviewScreen from '../modules/analytics/JapaOverviewScreen';
+import DailyAnalyticsScreen from '../modules/analytics/DailyAnalyticsScreen';
+import WeeklyAnalyticsScreen from '../modules/analytics/WeeklyAnalyticsScreen';
+import MonthlyAnalyticsScreen from '../modules/analytics/MonthlyAnalyticsScreen';
+import LifetimeAnalyticsScreen from '../modules/analytics/LifetimeAnalyticsScreen';
+import GoalAnalyticsScreen from '../modules/analytics/GoalAnalyticsScreen';
+import StreakAnalyticsScreen from '../modules/analytics/StreakAnalyticsScreen';
 import ProfileViewScreen from '../modules/profile/ProfileViewScreen';
 import PersonalDetailsScreen from '../modules/profile/PersonalDetailsScreen';
 import SpiritualDetailsScreen from '../modules/profile/SpiritualDetailsScreen';
 import SettingsScreen from '../modules/profile/SettingsScreen';
 import BanaLingamScreen from '../modules/banaLingam/BanaLingamScreen';
 import NithyaHomamScreen from '../modules/homam/NithyaHomamScreen';
+import HomamEnrollScreen from '../modules/homam/HomamEnrollScreen';
+import HomamConfirmationScreen from '../modules/homam/HomamConfirmationScreen';
+import CheckoutScreen from '../modules/payments/CheckoutScreen';
+import PaymentConfirmationScreen from '../modules/payments/PaymentConfirmationScreen';
 import OrdersScreen from '../modules/orders/OrdersScreen';
 import OrderDetailsScreen from '../modules/orders/OrderDetailsScreen';
+import OrderTrackingScreen from '../modules/orders/OrderTrackingScreen';
+import DeliveryStatusScreen from '../modules/orders/DeliveryStatusScreen';
 import CustomerCareScreen from '../modules/customerCare/CustomerCareScreen';
+import RaiseTicketScreen from '../modules/customerCare/RaiseTicketScreen';
+import WhatsAppSupportScreen from '../modules/customerCare/WhatsAppSupportScreen';
+import CallSupportScreen from '../modules/customerCare/CallSupportScreen';
 import FaqScreen from '../modules/customerCare/FaqScreen';
 import NotificationsScreen from '../modules/notifications/NotificationsScreen';
 import FeedbackScreen from '../modules/feedback/FeedbackScreen';
+import StarRatingScreen from '../modules/feedback/StarRatingScreen';
+import FeedbackConfirmationScreen from '../modules/feedback/FeedbackConfirmationScreen';
 import PrivacyPolicyScreen from '../modules/legal/PrivacyPolicyScreen';
+import DesignSystemScreen from '../modules/screens/DesignSystemScreen';
+import ScreenIndexScreen from '../modules/screens/ScreenIndexScreen';
+import BanaLingamReviewScreen from '../modules/banaLingam/BanaLingamReviewScreen';
+import DonationConfirmationScreen from '../modules/donate/DonationConfirmationScreen';
+import WelcomeGiftScreen from '../modules/auth/WelcomeGiftScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -62,6 +93,7 @@ export type RootStackParamList = {
   SignupSpiritual: any;
   SignupPhoto: any;
   RegistrationComplete: undefined;
+  WelcomeGift: undefined;
   CompleteProfile: {
     phoneNumber?: string;
     email?: string;
@@ -81,23 +113,55 @@ export type RootStackParamList = {
   Chant: {mode?: 'community' | 'private'; mantraId?: number; goal?: number} | undefined;
   Challenges: undefined;
   ChallengeDetails: {id?: number} | undefined;
+  ChallengeProgress: {id?: number} | undefined;
+  ChallengeLeaderboard: {id?: number} | undefined;
+  ChallengeComplete: {id?: number} | undefined;
   FamilyJapa: undefined;
   Donate: undefined;
+  JapaAnnadanam: undefined;
+  MilestoneNotifications: undefined;
+  GeneralAnnadanam: undefined;
+  DonationForm: any;
+  DonationPayment: any;
   Festivals: undefined;
   Progress: undefined;
+  AnalyticsHub: undefined;
+  JapaOverview: undefined;
+  DailyAnalytics: undefined;
+  WeeklyAnalytics: undefined;
+  MonthlyAnalytics: undefined;
+  LifetimeAnalytics: undefined;
+  GoalAnalytics: undefined;
+  StreakAnalytics: undefined;
   Profile: undefined;
   PersonalDetails: {profile?: any} | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   BanaLingam: undefined;
+  BanaLingamPayment: any;
+  PaymentConfirmation: any;
   NithyaHomam: undefined;
+  HomamEnroll: undefined;
+  HomamPayment: any;
+  HomamConfirmation: any;
   Orders: undefined;
-  OrderDetails: {order?: any} | undefined;
+  OrderDetails: {id?: number; order?: any} | undefined;
+  OrderTracking: {id?: number; order?: any} | undefined;
+  DeliveryStatus: {id?: number; order?: any} | undefined;
   CustomerCare: undefined;
+  RaiseTicket: undefined;
+  WhatsAppSupport: undefined;
+  CallSupport: undefined;
   Faq: undefined;
   Notifications: undefined;
   Feedback: undefined;
+  StarRating: {message?: string} | undefined;
+  FeedbackConfirmation: undefined;
   PrivacyPolicy: undefined;
+  DesignSystem: undefined;
+  ScreenIndex: undefined;
+  BanaLingamReview: any;
+  DonationConfirmation: any;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -115,22 +179,53 @@ const ProtectedSevaHub = withAuth(SevaHubScreen);
 const ProtectedChant = withAuth(ChantScreen);
 const ProtectedChallenges = withAuth(ChallengesScreen);
 const ProtectedChallengeDetails = withAuth(ChallengeDetailsScreen);
+const ProtectedChallengeProgress = withAuth(ChallengeProgressScreen);
+const ProtectedChallengeLeaderboard = withAuth(ChallengeLeaderboardScreen);
+const ProtectedChallengeComplete = withAuth(ChallengeCompleteScreen);
 const ProtectedFamily = withAuth(FamilyJapaScreen);
 const ProtectedDonate = withAuth(DonateScreen);
+const ProtectedJapaAnnadanam = withAuth(JapaAnnadanamScreen);
+const ProtectedMilestoneNotes = withAuth(MilestoneNotificationsScreen);
+const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
+const ProtectedDonationForm = withAuth(DonationFormScreen);
+const ProtectedCheckout = withAuth(CheckoutScreen);
+const ProtectedPaymentConfirmation = withAuth(PaymentConfirmationScreen);
 const ProtectedFestivals = withAuth(FestivalsScreen);
 const ProtectedProgress = withAuth(ProgressScreen);
+const ProtectedAnalyticsHub = withAuth(AnalyticsHubScreen);
+const ProtectedJapaOverview = withAuth(JapaOverviewScreen);
+const ProtectedDailyAnalytics = withAuth(DailyAnalyticsScreen);
+const ProtectedWeeklyAnalytics = withAuth(WeeklyAnalyticsScreen);
+const ProtectedMonthlyAnalytics = withAuth(MonthlyAnalyticsScreen);
+const ProtectedLifetimeAnalytics = withAuth(LifetimeAnalyticsScreen);
+const ProtectedGoalAnalytics = withAuth(GoalAnalyticsScreen);
+const ProtectedStreakAnalytics = withAuth(StreakAnalyticsScreen);
 const ProtectedProfile = withAuth(ProfileViewScreen);
 const ProtectedPersonal = withAuth(PersonalDetailsScreen);
 const ProtectedSpiritual = withAuth(SpiritualDetailsScreen);
 const ProtectedSettings = withAuth(SettingsScreen);
 const ProtectedBanaLingam = withAuth(BanaLingamScreen);
 const ProtectedHomam = withAuth(NithyaHomamScreen);
+const ProtectedHomamEnroll = withAuth(HomamEnrollScreen);
+const ProtectedHomamConfirmation = withAuth(HomamConfirmationScreen);
 const ProtectedOrders = withAuth(OrdersScreen);
 const ProtectedOrderDetails = withAuth(OrderDetailsScreen);
+const ProtectedOrderTracking = withAuth(OrderTrackingScreen);
+const ProtectedDeliveryStatus = withAuth(DeliveryStatusScreen);
 const ProtectedCare = withAuth(CustomerCareScreen);
+const ProtectedRaiseTicket = withAuth(RaiseTicketScreen);
+const ProtectedWhatsApp = withAuth(WhatsAppSupportScreen);
+const ProtectedCallSupport = withAuth(CallSupportScreen);
 const ProtectedFaq = withAuth(FaqScreen);
 const ProtectedNotifications = withAuth(NotificationsScreen);
 const ProtectedFeedback = withAuth(FeedbackScreen);
+const ProtectedStarRating = withAuth(StarRatingScreen);
+const ProtectedFeedbackConfirmation = withAuth(FeedbackConfirmationScreen);
+const ProtectedDesignSystem = withAuth(DesignSystemScreen);
+const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
+const ProtectedBanaReview = withAuth(BanaLingamReviewScreen);
+const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
+const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
 
 const AppNavigator = () => {
   return (
@@ -141,6 +236,8 @@ const AppNavigator = () => {
           headerShown: false,
           animation: 'slide_from_right',
         }}>
+        <Stack.Screen name="DesignSystem" component={ProtectedDesignSystem} />
+        <Stack.Screen name="ScreenIndex" component={ProtectedScreenIndex} />
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
@@ -153,6 +250,7 @@ const AppNavigator = () => {
           name="RegistrationComplete"
           component={RegistrationCompleteScreen}
         />
+        <Stack.Screen name="WelcomeGift" component={ProtectedWelcomeGift} />
         <Stack.Screen
           name="CompleteProfile"
           component={CompleteProfileScreen}
@@ -174,22 +272,91 @@ const AppNavigator = () => {
           name="ChallengeDetails"
           component={ProtectedChallengeDetails}
         />
+        <Stack.Screen
+          name="ChallengeProgress"
+          component={ProtectedChallengeProgress}
+        />
+        <Stack.Screen
+          name="ChallengeLeaderboard"
+          component={ProtectedChallengeLeaderboard}
+        />
+        <Stack.Screen
+          name="ChallengeComplete"
+          component={ProtectedChallengeComplete}
+        />
         <Stack.Screen name="FamilyJapa" component={ProtectedFamily} />
         <Stack.Screen name="Donate" component={ProtectedDonate} />
+        <Stack.Screen name="JapaAnnadanam" component={ProtectedJapaAnnadanam} />
+        <Stack.Screen
+          name="MilestoneNotifications"
+          component={ProtectedMilestoneNotes}
+        />
+        <Stack.Screen
+          name="GeneralAnnadanam"
+          component={ProtectedGeneralAnnadanam}
+        />
+        <Stack.Screen name="DonationForm" component={ProtectedDonationForm} />
+        <Stack.Screen name="DonationPayment" component={ProtectedCheckout} />
+        <Stack.Screen
+          name="DonationConfirmation"
+          component={ProtectedDonationConfirmation}
+        />
         <Stack.Screen name="Festivals" component={ProtectedFestivals} />
         <Stack.Screen name="Progress" component={ProtectedProgress} />
+        <Stack.Screen name="AnalyticsHub" component={ProtectedAnalyticsHub} />
+        <Stack.Screen name="JapaOverview" component={ProtectedJapaOverview} />
+        <Stack.Screen name="DailyAnalytics" component={ProtectedDailyAnalytics} />
+        <Stack.Screen
+          name="WeeklyAnalytics"
+          component={ProtectedWeeklyAnalytics}
+        />
+        <Stack.Screen
+          name="MonthlyAnalytics"
+          component={ProtectedMonthlyAnalytics}
+        />
+        <Stack.Screen
+          name="LifetimeAnalytics"
+          component={ProtectedLifetimeAnalytics}
+        />
+        <Stack.Screen name="GoalAnalytics" component={ProtectedGoalAnalytics} />
+        <Stack.Screen
+          name="StreakAnalytics"
+          component={ProtectedStreakAnalytics}
+        />
         <Stack.Screen name="Profile" component={ProtectedProfile} />
         <Stack.Screen name="PersonalDetails" component={ProtectedPersonal} />
         <Stack.Screen name="SpiritualDetails" component={ProtectedSpiritual} />
         <Stack.Screen name="Settings" component={ProtectedSettings} />
         <Stack.Screen name="BanaLingam" component={ProtectedBanaLingam} />
+        <Stack.Screen name="BanaLingamReview" component={ProtectedBanaReview} />
+        <Stack.Screen name="BanaLingamPayment" component={ProtectedCheckout} />
+        <Stack.Screen
+          name="PaymentConfirmation"
+          component={ProtectedPaymentConfirmation}
+        />
         <Stack.Screen name="NithyaHomam" component={ProtectedHomam} />
+        <Stack.Screen name="HomamEnroll" component={ProtectedHomamEnroll} />
+        <Stack.Screen name="HomamPayment" component={ProtectedCheckout} />
+        <Stack.Screen
+          name="HomamConfirmation"
+          component={ProtectedHomamConfirmation}
+        />
         <Stack.Screen name="Orders" component={ProtectedOrders} />
         <Stack.Screen name="OrderDetails" component={ProtectedOrderDetails} />
+        <Stack.Screen name="OrderTracking" component={ProtectedOrderTracking} />
+        <Stack.Screen name="DeliveryStatus" component={ProtectedDeliveryStatus} />
         <Stack.Screen name="CustomerCare" component={ProtectedCare} />
+        <Stack.Screen name="RaiseTicket" component={ProtectedRaiseTicket} />
+        <Stack.Screen name="WhatsAppSupport" component={ProtectedWhatsApp} />
+        <Stack.Screen name="CallSupport" component={ProtectedCallSupport} />
         <Stack.Screen name="Faq" component={ProtectedFaq} />
         <Stack.Screen name="Notifications" component={ProtectedNotifications} />
         <Stack.Screen name="Feedback" component={ProtectedFeedback} />
+        <Stack.Screen name="StarRating" component={ProtectedStarRating} />
+        <Stack.Screen
+          name="FeedbackConfirmation"
+          component={ProtectedFeedbackConfirmation}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

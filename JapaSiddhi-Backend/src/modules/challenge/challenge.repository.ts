@@ -251,6 +251,22 @@ class ChallengeRepository {
 
   }
 
+  async saveRating(
+    challengeId: number,
+    userId: number,
+    rating: number,
+    feedback?: string,
+  ) {
+    const result = await mysql.query<ResultSetHeader>(
+      `
+      INSERT INTO challenge_ratings (challenge_id, user_id, rating, feedback)
+      VALUES (?, ?, ?, ?)
+      `,
+      [challengeId, userId, rating, feedback ?? null],
+    );
+    return result.insertId;
+  }
+
   async leaderboard(
     challengeId: number,
   ) {

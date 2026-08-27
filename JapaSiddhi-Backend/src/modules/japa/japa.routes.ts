@@ -53,6 +53,18 @@ router.get(
   japaController.getProgress,
 );
 
+router.get(
+  '/analytics',
+  authenticate,
+  japaController.getAnalytics,
+);
+
+router.get(
+  '/milestones',
+  authenticate,
+  japaController.getMilestones,
+);
+
 router.post(
   '/reference',
   authenticate,

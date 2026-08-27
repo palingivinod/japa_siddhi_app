@@ -10,6 +10,7 @@ export type RootStackParamList = {
     email?: string;
     sentTo?: string;
   };
+  WelcomeGift: undefined;
   CompleteProfile: {
     phoneNumber?: string;
     email?: string;

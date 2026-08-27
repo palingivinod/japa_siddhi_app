@@ -1,8 +1,10 @@
+import {resetAuthGate} from '../modules/common/AuthGate';
 import {resetToLogin} from '../navigation/navigationRef';
 import {clearSession} from './session';
 
 export const logoutToLogin = async (navigation?: any) => {
   try {
+    resetAuthGate();
     await clearSession();
   } catch (error) {
     console.log('Logout session clear failed', error);

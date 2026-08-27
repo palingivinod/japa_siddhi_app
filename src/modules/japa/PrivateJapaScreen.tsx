@@ -8,6 +8,7 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const PrivateJapaScreen = () => {
   const navigation = useNavigation<any>();
+  const [mantra, setMantra] = useState('');
   const [goal, setGoal] = useState('1008');
 
   return (
@@ -20,6 +21,15 @@ const PrivateJapaScreen = () => {
           <Text style={styles.meta}>Your mantra is hidden and securely stored.</Text>
         </View>
       </View>
+      <Text style={styles.label}>Enter your mantra</Text>
+      <TextInput
+        style={styles.input}
+        value={mantra}
+        onChangeText={setMantra}
+        placeholder="Kept private. Reports show only Private Japa."
+        placeholderTextColor={Colors.placeholder}
+        secureTextEntry
+      />
       <Text style={styles.label}>Set Goal</Text>
       <TextInput
         style={styles.input}
@@ -32,6 +42,7 @@ const PrivateJapaScreen = () => {
         onPress={() =>
           navigation.navigate('GoalSelect', {
             mode: 'private',
+            privateMantra: mantra.trim() || 'Private Japa',
             goal: Number(String(goal).replace(/,/g, '')) || 1008,
           })
         }

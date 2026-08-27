@@ -209,6 +209,19 @@ class OrderController {
 
   }
 
+  async getTracking(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await orderService.getTracking(Number(req.params.id));
+      return apiResponse.success(res, 'Order tracking fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default new OrderController();

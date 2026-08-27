@@ -1,5 +1,5 @@
 import React, {useRef, useState} from 'react';
-import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
+import {useEffect, useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -61,16 +61,14 @@ const ChantScreen = () => {
       .finally(() => setLoading(false));
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      load();
-      return () => {
-        if (idleTimer.current) {
-          clearTimeout(idleTimer.current);
-        }
-      };
-    }, []),
-  );
+  useEffect(() => {
+    load();
+    return () => {
+      if (idleTimer.current) {
+        clearTimeout(idleTimer.current);
+      }
+    };
+  }, []);
 
   const armIdlePause = () => {
     if (idleTimer.current) {
@@ -78,7 +76,10 @@ const ChantScreen = () => {
     }
     idleTimer.current = setTimeout(() => {
       setPaused(true);
-      setMessage('Japa paused after a short pause. Tap Resume to continue.');
+      navigation.navigate('JapaPaused', {
+        count: savedTotal + count,
+        goal,
+      });
     }, 12000);
   };
 
@@ -89,14 +90,15 @@ const ChantScreen = () => {
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
-      if (intervals.current.length >= 3) {
-        const average =
-          intervals.current.reduce((sum, item) => sum + item, 0) /
-          intervals.current.length;
-        if (delta < average * 0.55) {
-          setMessage('Too fast. Chant at your reference pace.');
-          return;
-        }
+      const reference = Number(route.params?.durationMs || 0);
+      const average =
+        intervals.current.length >= 3
+          ? intervals.current.reduce((sum, item) => sum + item, 0) /
+            intervals.current.length
+          : reference;
+      if (average && delta < average * 0.55) {
+        setMessage('Count not accepted. Chant at your reference pace.');
+        return;
       }
       if (intervals.current.length < 8 && delta < 8000) {
         intervals.current = [...intervals.current, delta];
@@ -126,8 +128,12 @@ const ChantScreen = () => {
         response.data.data?.userTotal ?? savedTotal + count,
       );
       setSavedTotal(userTotal);
-      setMessage(`Saved ${count} chants. Your total is now ${userTotal}.`);
       setCount(0);
+      if (userTotal >= 10000) {
+        navigation.navigate('MilestoneNotifications');
+        return;
+      }
+      navigation.navigate('JapaProgress', {count: userTotal, goal});
     } catch (err: any) {
       setMessage(err?.response?.data?.message ?? 'Could not save the session.');
     } finally {
@@ -208,6 +214,11 @@ const ChantScreen = () => {
         <Text style={styles.saveText}>
           {saving ? 'Saving...' : 'Save Session'}
         </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.save}
+        onPress={() => navigation.navigate('JapaProgress', {count: total, goal})}>
+        <Text style={styles.saveText}>View Progress</Text>
       </TouchableOpacity>
       {message ? (
         <Text style={[styles.message, {color: formMessageColor(message)}]}>

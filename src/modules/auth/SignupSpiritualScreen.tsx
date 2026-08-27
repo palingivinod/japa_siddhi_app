@@ -18,7 +18,6 @@ const SignupSpiritualScreen = () => {
   const route = useRoute<any>();
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
-  const [maritalStatus, setMaritalStatus] = useState('Bachelor');
   const [prefs, setPrefs] = useState<string[]>([]);
 
   const toggle = (item: string) => {
@@ -31,7 +30,7 @@ const SignupSpiritualScreen = () => {
 
   return (
     <ScreenLayout title="Spiritual Details" showBack>
-      <Text style={styles.step}>Step 2 of 2</Text>
+      <Text style={styles.step}>Step 2 of 3</Text>
       <View style={styles.track}>
         <View style={styles.fill} />
       </View>
@@ -44,13 +43,6 @@ const SignupSpiritualScreen = () => {
         placeholder="Optional"
         value={nakshatram}
         onChangeText={setNakshatram}
-      />
-      <Text style={styles.label}>Marital Status</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Select"
-        value={maritalStatus}
-        onChangeText={setMaritalStatus}
       />
       <Text style={styles.label}>Spiritual preferences</Text>
       {PREFS.map(item => (
@@ -66,7 +58,7 @@ const SignupSpiritualScreen = () => {
             ...route.params,
             gothram,
             nakshatram,
-            maritalStatus,
+            maritalStatus: route.params?.maritalStatus || 'Bachelor',
             prefs,
           })
         }
@@ -85,7 +77,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGold,
     overflow: 'hidden',
   },
-  fill: {width: '100%', height: 10, backgroundColor: Colors.templeGold},
+  fill: {width: '66%', height: 10, backgroundColor: Colors.templeGold},
   percent: {
     alignSelf: 'flex-end',
     marginTop: 4,

@@ -225,8 +225,25 @@ class SqliteEngine {
         duration_ms INTEGER NOT NULL DEFAULT 2500,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS challenge_ratings (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        challenge_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        rating INTEGER NOT NULL,
+        feedback TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS support_faqs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        display_order INTEGER NOT NULL DEFAULT 0
+      );
     `);
     this.seedChallenges();
+    this.seedFaqs();
     this.persist();
   }
 
@@ -247,6 +264,27 @@ class SqliteEngine {
         ('108 Japa Daily', '7 day challenge', 'JAPA_COUNT', 756, 'CERTIFICATE', 'Daily Discipline Certificate', 1, '2026-01-01', '2027-12-31', 1),
         ('10,000 Japa', '30 day challenge', 'JAPA_COUNT', 10000, 'CERTIFICATE', '10,000 Japa Certificate', 1, '2026-01-01', '2027-12-31', 1),
         ('Mahashivaratri Japa', 'Festival challenge', 'SPECIAL', 25000, 'RUDRAKSHA', 'Shivaratri Rudraksha', 1, '2026-01-01', '2027-12-31', 1)
+      `,
+    );
+  }
+
+  private seedFaqs(): void {
+    if (!this.db) {
+      return;
+    }
+    const rows = this.db.exec('SELECT COUNT(*) AS total FROM support_faqs');
+    const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
+    if (total > 0) {
+      return;
+    }
+    this.db.run(
+      `
+      INSERT INTO support_faqs (question, answer, display_order) VALUES
+        ('How does Smart Japa work?', 'Smart Japa counts each valid tap or voice chant against your selected mantra and daily goal.', 1),
+        ('How are Japa counts protected?', 'Each session is saved to your account with a timestamp so your progress stays with you across devices.', 2),
+        ('How do I donate Annadanam?', 'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.', 3),
+        ('How do I track my order?', 'Open Orders, tap VIEW on an order, then use Track Order to see delivery status.', 4),
+        ('How do I change language?', 'Go to Profile > Settings > Language and choose your preferred language.', 5)
       `,
     );
   }

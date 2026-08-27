@@ -1,8 +1,9 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {useRoute} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const Row = ({label, value}: {label: string; value?: string}) =>
@@ -14,6 +15,7 @@ const Row = ({label, value}: {label: string; value?: string}) =>
   ) : null;
 
 const PersonalDetailsScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const profile = route.params?.profile ?? {};
   const location = [profile.cityName, profile.stateName, profile.countryName]
@@ -28,6 +30,10 @@ const PersonalDetailsScreen = () => {
       <Row label="Location" value={location} />
       <Row label="Language" value={profile.preferredLanguageName} />
       <Row label="Marital status" value={profile.maritalStatus} />
+      <PrimaryButton
+        title="SPIRITUAL DETAILS"
+        onPress={() => navigation.navigate('SpiritualDetails', {profile})}
+      />
     </ScreenLayout>
   );
 };

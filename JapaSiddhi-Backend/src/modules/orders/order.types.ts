@@ -1,6 +1,8 @@
 export type OrderType =
   | 'BANA_LINGAM'
-  | 'SPIRITUAL_PRODUCT';
+  | 'SPIRITUAL_PRODUCT'
+  | 'ANNADANAM'
+  | 'NITHYA_HOMAM';
 
 export type OrderSource =
   | 'PURCHASE'

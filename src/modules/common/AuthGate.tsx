@@ -5,9 +5,15 @@ import {CommonActions, useNavigation} from '@react-navigation/native';
 import {hydrateSession} from '../../services/session';
 import Colors from '../../theme/colors';
 
+let cachedAllowed = false;
+
+export const resetAuthGate = () => {
+  cachedAllowed = false;
+};
+
 const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
   const navigation = useNavigation<any>();
-  const [allowed, setAllowed] = useState(false);
+  const [allowed, setAllowed] = useState(cachedAllowed);
 
   useEffect(() => {
     let active = true;
@@ -18,6 +24,7 @@ const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
       }
 
       if (!session.token) {
+        cachedAllowed = false;
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
@@ -27,13 +34,14 @@ const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
         return;
       }
 
+      cachedAllowed = true;
       setAllowed(true);
     });
 
     return () => {
       active = false;
     };
-  }, [navigation]);
+  }, []);
 
   if (!allowed) {
     return (

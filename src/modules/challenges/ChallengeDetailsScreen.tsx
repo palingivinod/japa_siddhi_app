@@ -76,9 +76,37 @@ const ChallengeDetailsScreen = () => {
       ))}
       <View style={styles.gap} />
       <PrimaryButton
-        title={item.joined ? 'CONTINUE JAPA' : 'JOIN CHALLENGE'}
-        onPress={join}
+        title={item.joined ? 'VIEW PROGRESS' : 'JOIN CHALLENGE'}
+        onPress={() => {
+          if (item.joined) {
+            navigation.navigate('ChallengeProgress', {id: item.id});
+            return;
+          }
+          join();
+        }}
       />
+      {item.joined ? (
+        <>
+          <View style={styles.gap} />
+          <PrimaryButton
+            title="LEADERBOARD"
+            onPress={() =>
+              navigation.navigate('ChallengeLeaderboard', {id: item.id})
+            }
+          />
+          {Number(item.progressPercent || 0) >= 100 ? (
+            <>
+              <View style={styles.gap} />
+              <PrimaryButton
+                title="RATE CHALLENGE"
+                onPress={() =>
+                  navigation.navigate('ChallengeComplete', {id: item.id})
+                }
+              />
+            </>
+          ) : null}
+        </>
+      ) : null}
     </ScreenLayout>
   );
 };

@@ -107,6 +107,8 @@ export interface JapaSummary {
 
   globalJapaCount: number;
 
+  streakDays?: number;
+
 }
 
 

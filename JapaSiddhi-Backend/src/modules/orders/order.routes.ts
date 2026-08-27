@@ -19,6 +19,12 @@ router.get(
 );
 
 router.get(
+  '/:id/tracking',
+  authenticate,
+  orderController.getTracking,
+);
+
+router.get(
   '/:id',
   authenticate,
   orderController.getById,

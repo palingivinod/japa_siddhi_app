@@ -95,6 +95,9 @@ const OtpScreen = ({route, navigation}: any) => {
         ) : (
           <ContinueButton title="VERIFY & CONTINUE" onPress={verifyOTP} />
         )}
+        <Text style={styles.change} onPress={() => navigation.goBack()}>
+          Change mobile number
+        </Text>
       </View>
     </SafeAreaView>
   );
@@ -121,5 +124,11 @@ const styles = StyleSheet.create({
   },
   action: {
     marginTop: 32,
+  },
+  change: {
+    marginTop: 18,
+    textAlign: 'center',
+    color: Colors.templeGold,
+    fontWeight: '800',
   },
 });

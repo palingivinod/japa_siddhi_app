@@ -35,5 +35,17 @@ router.get(
   donationController.paymentDetails,
 );
 
+router.get(
+  '/catalog',
+  authenticate,
+  donationController.catalog,
+);
+
+router.post(
+  '/checkout',
+  authenticate,
+  donationController.checkout,
+);
+
 
 export default router;

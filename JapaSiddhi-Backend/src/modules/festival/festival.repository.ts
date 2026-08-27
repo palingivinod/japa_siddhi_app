@@ -74,6 +74,44 @@ class FestivalRepository {
 
   }
 
+  async getFestivalOnDate(date: string) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        festival_name AS festivalName,
+        description,
+        festival_date AS festivalDate,
+        festival_type AS festivalType
+      FROM festivals
+      WHERE festival_date = ?
+      AND is_active = 1
+      LIMIT 1
+      `,
+      [date],
+    );
+    return rows[0] || null;
+  }
+
+  async getNextFestival(date: string) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        festival_name AS festivalName,
+        description,
+        festival_date AS festivalDate,
+        festival_type AS festivalType
+      FROM festivals
+      WHERE festival_date >= ?
+      AND is_active = 1
+      ORDER BY festival_date ASC
+      LIMIT 1
+      `,
+      [date],
+    );
+    return rows[0] || null;
+  }
 
 }
 

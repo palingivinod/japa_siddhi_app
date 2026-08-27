@@ -177,12 +177,50 @@ class ChallengeService {
 
   async leaderboard(
     challengeId: number,
+    userId?: number,
   ) {
+    const rows = await challengeRepository.leaderboard(challengeId);
+    return (rows || []).map((row: any, index: number) => ({
+      ...row,
+      rank: index + 1,
+      isYou: userId ? Number(row.userId) === Number(userId) : false,
+      displayName:
+        userId && Number(row.userId) === Number(userId)
+          ? 'You'
+          : row.fullName || 'Devotee',
+    }));
+  }
 
-    return challengeRepository.leaderboard(
+  async getProgress(challengeId: number, userId: number) {
+    const [challenge, board] = await Promise.all([
+      this.getById(challengeId, userId),
+      this.leaderboard(challengeId, userId),
+    ]);
+    const you = board.find((item: any) => item.isYou);
+    return {
+      ...challenge,
+      rank: you?.rank || board.length + 1,
+      streakDays: challenge.joined ? 1 : 0,
+    };
+  }
+
+  async rate(
+    challengeId: number,
+    userId: number,
+    rating: number,
+    feedback?: string,
+  ) {
+    const challenge = await challengeRepository.getById(challengeId);
+    if (!challenge) {
+      throw new Error('Challenge not found');
+    }
+    const id = await challengeRepository.saveRating(
       challengeId,
+      userId,
+      Math.min(5, Math.max(1, Number(rating) || 5)),
+      feedback,
     );
-
+    return {id, rating, feedback: feedback || ''};
   }
 
 }

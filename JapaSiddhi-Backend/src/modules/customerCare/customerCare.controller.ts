@@ -37,6 +37,8 @@ class CustomerCareController {
 
         message,
 
+        orderService,
+
       } = req.body;
 
       const result =
@@ -44,7 +46,10 @@ class CustomerCareController {
           {
             userId,
             subject,
-            message,
+            message: orderService
+              ? `${message}\n\nOrder / Service: ${orderService}`
+              : message,
+            orderService,
           },
         );
 
@@ -164,6 +169,32 @@ class CustomerCareController {
 
     }
 
+  }
+
+  async getConfig(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await customerCareService.getConfig();
+      return apiResponse.success(res, 'Support config fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getFaqs(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await customerCareService.getFaqs();
+      return apiResponse.success(res, 'FAQ fetched', result);
+    } catch (error) {
+      next(error);
+    }
   }
 
 }

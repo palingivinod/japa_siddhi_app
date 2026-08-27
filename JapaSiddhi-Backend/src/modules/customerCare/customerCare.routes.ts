@@ -21,6 +21,18 @@ router.get(
 );
 
 router.get(
+  '/config',
+  authenticate,
+  customerCareController.getConfig,
+);
+
+router.get(
+  '/faq',
+  authenticate,
+  customerCareController.getFaqs,
+);
+
+router.get(
   '/:id',
   authenticate,
   customerCareController.getById,

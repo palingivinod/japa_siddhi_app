@@ -44,4 +44,16 @@ router.get(
   challengeController.leaderboard,
 );
 
+router.get(
+  '/:id/progress',
+  authenticate,
+  challengeController.getProgress,
+);
+
+router.post(
+  '/:id/rate',
+  authenticate,
+  challengeController.rate,
+);
+
 export default router;

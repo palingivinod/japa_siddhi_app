@@ -6,6 +6,8 @@ import {
 
 import donationRepository from './donation.repository';
 import emailOtpService from '../../services/emailOtp.service';
+import orderService from '../orders/order.service';
+import banaLingamService from '../banaLingam/banaLingam.service';
 
 
 
@@ -205,6 +207,129 @@ class DonationService {
 
   }
 
+  getCatalog() {
+    return {
+      offerings: [501, 1008, 2001],
+      homamAmount: 1008,
+      methods: ['UPI'],
+      services: [
+        {
+          key: 'JAPA_ANNADANAM',
+          title: 'Japa Annadanam',
+          subtitle: 'Sponsor food after your Japa milestone.',
+        },
+        {
+          key: 'GENERAL',
+          title: 'General Annadanam',
+          subtitle: 'Offer food service for an occasion.',
+        },
+      ],
+    };
+  }
+
+  async checkout(
+    userId: number,
+    data: {
+      kind?: string;
+      amount?: number;
+      fullName?: string;
+      mobile?: string;
+      address?: string;
+      occasion?: string;
+      nakshatram?: string;
+      gothram?: string;
+      remarks?: string;
+    },
+  ) {
+    const kind = String(data.kind || 'ANNADANAM').toUpperCase();
+    const amount = Number(data.amount || 1008);
+    const remarks = [
+      data.occasion ? `Occasion: ${data.occasion}` : '',
+      data.remarks || '',
+    ]
+      .filter(Boolean)
+      .join(' | ');
+
+    let donationId: number | null = null;
+    let requestId: number | null = null;
+    let itemName = 'Annadanam';
+    let orderType: 'BANA_LINGAM' | 'ANNADANAM' | 'NITHYA_HOMAM' =
+      'ANNADANAM';
+    let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
+
+    if (kind === 'BANA_LINGAM') {
+      itemName = 'Baanalingam';
+      orderType = 'BANA_LINGAM';
+    } else if (kind === 'NITHYA_HOMAM') {
+      itemName = 'Nithya Homam';
+      orderType = 'NITHYA_HOMAM';
+      donationType = 'NITHYA_HOMAM';
+    } else if (kind === 'GENERAL' || kind === 'GENERAL_ANNADANAM') {
+      itemName = 'General Annadanam';
+      donationType = 'GENERAL';
+    } else {
+      itemName = 'Japa Annadanam';
+      donationType = 'ANNADANAM';
+    }
+
+    if (kind !== 'BANA_LINGAM') {
+      const donation = await this.create(userId, {
+        donationType,
+        amount,
+        paymentMethod: 'UPI',
+        transactionId: `UPI-${Date.now()}`,
+        paymentReference: 'UPI QR',
+        remarks,
+      });
+      donationId = donation.id;
+    }
+
+    const order = await orderService.create({
+      userId,
+      orderType,
+      orderSource: 'PURCHASE',
+      itemName,
+      quantity: 1,
+      remarks: remarks || `Paid ₹${amount} via UPI QR`,
+    });
+
+    if (kind === 'BANA_LINGAM') {
+      const request = await banaLingamService.create({
+        userId,
+        orderId: order.id,
+        fullName: data.fullName || 'Devotee',
+        mobile: data.mobile || '',
+        address: data.address || 'Temple delivery',
+        cityId: 1,
+        stateId: 1,
+        countryId: 1,
+        postalCode: '000000',
+        nakshatram: data.nakshatram,
+        gothram: data.gothram,
+        quantity: 1,
+        remarks,
+      });
+      requestId = request.id;
+    }
+
+    const prefix =
+      kind === 'NITHYA_HOMAM'
+        ? 'NH'
+        : kind === 'BANA_LINGAM'
+          ? 'JS'
+          : 'ANN';
+    return {
+      donationId,
+      requestId,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      confirmationId: `${prefix}${order.id}${String(Date.now()).slice(-3)}`,
+      itemName,
+      amount,
+      method: 'Razorpay',
+      kind,
+    };
+  }
 
 }
 

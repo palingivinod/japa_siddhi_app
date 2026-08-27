@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   ScrollView,
@@ -18,6 +18,8 @@ import PhoneNumberField from './components/PhoneNumberField';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
+import {hydrateSession} from '../../services/session';
+import PrimaryButton from '../common/PrimaryButton';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -29,6 +31,13 @@ const LoginScreen = () => {
   const [selectedCountry, setSelectedCountry] = useState<CountryItem>(
     countries.find(c => c.code === 'IN') ?? countries[0],
   );
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    hydrateSession().then(session => {
+      setHasSession(Boolean(session.token));
+    });
+  }, []);
 
   const handleContinue = async () => {
     const mobileNumber = phoneNumber.replace(/\D/g, '');
@@ -87,6 +96,15 @@ const LoginScreen = () => {
         contentContainerStyle={styles.content}>
         <AppHeader title="Welcome to Japa Siddhi" showBack />
         <Text style={styles.heading}>Begin your spiritual journey</Text>
+        {hasSession ? (
+          <>
+            <PrimaryButton
+              title="CONTINUE TO HOME"
+              onPress={() => navigation.replace('Home')}
+            />
+            <Text style={styles.or}>OR LOGIN AGAIN</Text>
+          </>
+        ) : null}
 
         <Text style={styles.label}>Mobile Number</Text>
         <CountryPickerField

@@ -139,6 +139,36 @@ class DonationController {
   }
 
 
+  async catalog(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = donationService.getCatalog();
+      return apiResponse.success(res, 'Donation catalog fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async checkout(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await donationService.checkout(userId, req.body || {});
+      return apiResponse.success(res, 'Payment confirmed', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 

@@ -25,9 +25,11 @@ const RegistrationCompleteScreen = () => {
         </View>
       </View>
       <PrimaryButton
-        title="GO TO HOME"
-        onPress={() => navigation.replace('Home')}
+        title="CLAIM WELCOME GIFT"
+        onPress={() => navigation.replace('WelcomeGift')}
       />
+      <View style={styles.gap} />
+      <PrimaryButton title="GO TO HOME" onPress={() => navigation.replace('Home')} />
     </ScreenLayout>
   );
 };
@@ -77,4 +79,5 @@ const styles = StyleSheet.create({
   },
   cardTitle: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
   meta: {marginTop: 4, color: Colors.textSecondary},
+  gap: {height: 12},
 });
