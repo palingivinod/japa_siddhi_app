@@ -4,6 +4,7 @@ import {
 } from './banaLingam.types';
 
 import banaLingamRepository from './banaLingam.repository';
+import emailOtpService from '../../services/emailOtp.service';
 
 class BanaLingamService {
 
@@ -15,6 +16,19 @@ class BanaLingamService {
       await banaLingamRepository.create(
         data,
       );
+
+    await emailOtpService.notifyAdmin(
+      'New Baanalingam application',
+      [
+        'A new Baanalingam application was submitted.',
+        `Name: ${data.fullName}`,
+        `Mobile: ${data.mobile}`,
+        `Address: ${data.address}`,
+        `Gothram: ${data.gothram || '-'}`,
+        `Nakshatram: ${data.nakshatram || '-'}`,
+        `Request ID: ${id}`,
+      ].join('\n'),
+    );
 
     return {
 

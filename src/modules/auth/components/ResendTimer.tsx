@@ -46,7 +46,7 @@ const ResendTimer: React.FC<Props> = ({
     return(
 
       <Text style={styles.timer}>
-        Resend OTP in {timeLeft}s
+        Resend OTP in 00:{String(timeLeft).padStart(2, '0')}
       </Text>
 
     );
@@ -74,7 +74,7 @@ const styles=StyleSheet.create({
 timer:{
     marginTop:25,
     textAlign:'center',
-    color:Colors.textSecondary,
+    color:Colors.leafGreen,
     fontSize:15,
 },
 

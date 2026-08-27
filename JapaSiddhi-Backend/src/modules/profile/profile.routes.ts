@@ -26,4 +26,16 @@ router.put(
   profileController.updateProfile,
 );
 
+router.get(
+  '/settings',
+  authenticate,
+  profileController.getSettings,
+);
+
+router.put(
+  '/settings',
+  authenticate,
+  profileController.updateSettings,
+);
+
 export default router;

@@ -10,6 +10,7 @@ import {
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -92,7 +93,11 @@ const BanaLingamScreen = () => {
       <TouchableOpacity style={styles.button} onPress={submit} disabled={saving}>
         <Text style={styles.buttonText}>{saving ? 'Submitting...' : 'Submit Application'}</Text>
       </TouchableOpacity>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {message ? (
+        <Text style={[styles.message, {color: formMessageColor(message)}]}>
+          {message}
+        </Text>
+      ) : null}
       {items.map(item => (
         <View key={item.id} style={styles.card}>
           <Text style={styles.name}>{item.fullName}</Text>
@@ -123,7 +128,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   buttonText: {color: Colors.white, fontWeight: '700'},
-  message: {color: Colors.textSecondary, marginBottom: 12},
+  message: {marginBottom: 12, fontWeight: '600'},
   card: {
     backgroundColor: Colors.cream,
     borderRadius: 16,

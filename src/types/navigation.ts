@@ -1,5 +1,6 @@
 export type RootStackParamList = {
   Splash: undefined;
+  LanguageSelect: {fromSettings?: boolean} | undefined;
   Login: undefined;
   OtpScreen: {
     phoneNumber: string;
@@ -16,16 +17,25 @@ export type RootStackParamList = {
     mobileNumber?: string;
   };
   Home: undefined;
-  Chant: undefined;
+  JapaHub: undefined;
+  SevaHub: undefined;
+  Chant: {mode?: 'community' | 'private'} | undefined;
+  Challenges: undefined;
   FamilyJapa: undefined;
   Donate: undefined;
   Festivals: undefined;
   Progress: undefined;
   Profile: undefined;
+  PersonalDetails: {profile?: any} | undefined;
+  SpiritualDetails: {profile?: any} | undefined;
+  Settings: undefined;
   BanaLingam: undefined;
   NithyaHomam: undefined;
   Orders: undefined;
+  OrderDetails: {order?: any} | undefined;
   CustomerCare: undefined;
+  Faq: undefined;
   Notifications: undefined;
   Feedback: undefined;
+  PrivacyPolicy: undefined;
 };

@@ -48,8 +48,8 @@ export const otpVerifyValidation = [
   ...otpSendValidation,
   body('otp')
     .trim()
-    .isLength({min: 6, max: 6})
-    .withMessage('Enter the 6-digit OTP.'),
+    .isLength({min: 4, max: 4})
+    .withMessage('Enter the 4-digit OTP.'),
 ];
 
 export const registerValidation = [

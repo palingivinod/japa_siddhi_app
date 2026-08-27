@@ -7,15 +7,18 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const FeedbackScreen = () => {
-  const [rating, setRating] = useState('5');
-  const [title, setTitle] = useState('');
+  const navigation = useNavigation<any>();
+  const [rating, setRating] = useState(4);
   const [message, setMessage] = useState('');
   const [items, setItems] = useState<any[]>([]);
   const [status, setStatus] = useState('');
@@ -43,20 +46,18 @@ const FeedbackScreen = () => {
   }, []);
 
   const submit = async () => {
-    const stars = Number(rating);
-    if (!title.trim() || !message.trim() || stars < 1 || stars > 5) {
-      setStatus('Enter a title, comment, and rating from 1 to 5.');
+    if (!message.trim()) {
+      setStatus('Tell us more about your experience.');
       return;
     }
     setSaving(true);
     try {
       await apiService.post('/feedback', {
-        rating: stars,
-        title: title.trim(),
+        rating,
+        title: `${rating} star feedback`,
         message: message.trim(),
       });
       setStatus('Feedback submitted.');
-      setTitle('');
       setMessage('');
       load();
     } catch (err: any) {
@@ -67,27 +68,47 @@ const FeedbackScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Feedback">
-      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+    <ScreenLayout title="Share Feedback" showBack tab="Profile">
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
-      <TextInput style={styles.input} placeholder="Rating 1-5 *" value={rating} onChangeText={setRating} keyboardType="numeric" />
-      <TextInput style={styles.input} placeholder="Title *" value={title} onChangeText={setTitle} />
+      <Text style={styles.question}>How was your experience?</Text>
+      <View style={styles.stars}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <TouchableOpacity key={star} onPress={() => setRating(star)}>
+            <Text style={[styles.star, star <= rating && styles.starOn]}>
+              {star <= rating ? '★' : '☆'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.label}>Comments</Text>
       <TextInput
         style={[styles.input, styles.area]}
-        placeholder="Feedback comments *"
+        placeholder="Tell us more"
+        placeholderTextColor={Colors.placeholder}
         value={message}
         onChangeText={setMessage}
         multiline
       />
-      <TouchableOpacity style={styles.button} onPress={submit} disabled={saving}>
-        <Text style={styles.buttonText}>{saving ? 'Saving...' : 'Submit Feedback'}</Text>
-      </TouchableOpacity>
-      {status ? <Text style={styles.meta}>{status}</Text> : null}
+      <PrimaryButton
+        title={saving ? 'SUBMITTING...' : 'SUBMIT FEEDBACK'}
+        onPress={submit}
+        disabled={saving}
+      />
+      <View style={styles.spacer} />
+      <PrimaryButton title="Skip" onPress={() => navigation.goBack()} />
+      {status ? (
+        <Text style={[styles.status, {color: formMessageColor(status)}]}>
+          {status}
+        </Text>
+      ) : null}
       {items.map(item => (
         <View key={item.id} style={styles.card}>
-          <Text style={styles.name}>{item.title} · {item.rating}★</Text>
+          <Text style={styles.name}>
+            {item.title} · {item.rating}★
+          </Text>
           <Text style={styles.meta}>{item.message}</Text>
         </View>
       ))}
@@ -98,31 +119,49 @@ const FeedbackScreen = () => {
 export default FeedbackScreen;
 
 const styles = StyleSheet.create({
+  question: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
+  },
+  stars: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 18,
+  },
+  star: {
+    fontSize: 34,
+    color: Colors.templeGold,
+  },
+  starOn: {
+    color: Colors.templeGold,
+  },
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
   input: {
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
-    marginBottom: 10,
+    marginBottom: 16,
     fontSize: 16,
+    backgroundColor: Colors.white,
   },
   area: {minHeight: 90, textAlignVertical: 'top'},
-  button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  buttonText: {color: Colors.white, fontWeight: '700'},
+  spacer: {height: 10},
+  status: {marginTop: 12, fontWeight: '600'},
   meta: {marginTop: 6, color: Colors.textSecondary},
   card: {
-    backgroundColor: Colors.cream,
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginTop: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  name: {fontSize: 16, fontWeight: '700', color: Colors.textPrimary},
+  name: {fontSize: 16, fontWeight: '700', color: Colors.sacredBrown},
 });

@@ -11,10 +11,14 @@ import {
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
+import MenuCard from '../common/MenuCard';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const DonateScreen = () => {
+  const [service, setService] = useState<'JAPA' | 'GENERAL' | null>(null);
   const [amount, setAmount] = useState('200');
   const [details, setDetails] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -25,8 +29,6 @@ const DonateScreen = () => {
   const [saving, setSaving] = useState(false);
 
   const load = async () => {
-    setError('');
-    setRawError(null);
     const [payment, donations] = await Promise.all([
       apiService.get('/donations/payment-details'),
       apiService.get('/donations/history'),
@@ -37,6 +39,8 @@ const DonateScreen = () => {
 
   const reload = () => {
     setLoading(true);
+    setError('');
+    setRawError(null);
     load()
       .catch(err => {
         setRawError(err);
@@ -61,23 +65,49 @@ const DonateScreen = () => {
         donationType: 'ANNADANAM',
         amount: value,
         paymentMethod: 'UPI',
-        remarks: 'App donation',
+        remarks: service === 'JAPA' ? 'Japa Annadanam' : 'General Annadanam',
       });
       setMessage(`Donation of ₹${value} saved.`);
       await load();
-    } catch (error: any) {
-      setMessage(error?.response?.data?.message ?? 'Donation failed.');
+    } catch (err: any) {
+      setMessage(err?.response?.data?.message ?? 'Donation failed.');
     } finally {
       setSaving(false);
     }
   };
 
+  if (!service) {
+    return (
+      <ScreenLayout title="Annadanam" showBack tab="SevaHub">
+        <Text style={styles.heading}>Offer Annadanam</Text>
+        <MenuCard
+          title="Japa Annadanam"
+          subtitle="Sponsor food after your Japa milestone."
+          onPress={() => setService('JAPA')}
+        />
+        <MenuCard
+          title="General Annadanam"
+          subtitle="Offer food service for an occasion."
+          tone="green"
+          onPress={() => setService('GENERAL')}
+        />
+        <PrimaryButton
+          title="CHOOSE SERVICE"
+          onPress={() => setService('GENERAL')}
+        />
+      </ScreenLayout>
+    );
+  }
+
   return (
-    <ScreenLayout title="Annadanam">
-      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+    <ScreenLayout title="Annadanam" showBack tab="SevaHub">
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={reload} />
       ) : null}
+      <Text style={styles.heading}>
+        {service === 'JAPA' ? 'Japa Annadanam' : 'General Annadanam'}
+      </Text>
       <View style={styles.card}>
         <Text style={styles.scanTitle}>Scan to pay</Text>
         <Text style={styles.trustName}>Bilva Patra Trust</Text>
@@ -93,25 +123,9 @@ const DonateScreen = () => {
           <View style={styles.details}>
             <Text style={styles.label}>UPI ID</Text>
             <Text style={styles.value}>{details.upiId}</Text>
-            {details.accountHolderName || details.bankName ? (
-              <>
-                <Text style={styles.label}>Account</Text>
-                <Text style={styles.value}>
-                  {[details.accountHolderName, details.bankName]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </Text>
-              </>
-            ) : null}
-            {details.accountNumber && details.ifscCode ? (
-              <Text style={styles.value}>
-                {details.accountNumber} · {details.ifscCode}
-              </Text>
-            ) : null}
           </View>
         ) : null}
       </View>
-
       <TextInput
         style={styles.input}
         keyboardType="numeric"
@@ -124,8 +138,11 @@ const DonateScreen = () => {
           {saving ? 'Saving...' : 'Donate Now'}
         </Text>
       </TouchableOpacity>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
-
+      {message ? (
+        <Text style={[styles.message, {color: formMessageColor(message)}]}>
+          {message}
+        </Text>
+      ) : null}
       <Text style={styles.section}>History</Text>
       {history.map(item => (
         <View key={item.id} style={styles.historyCard}>
@@ -144,8 +161,14 @@ const DonateScreen = () => {
 export default DonateScreen;
 
 const styles = StyleSheet.create({
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
+  },
   card: {
-    backgroundColor: Colors.cream,
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
@@ -156,11 +179,11 @@ const styles = StyleSheet.create({
   scanTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    color: Colors.sacredBrown,
   },
   trustName: {
     marginTop: 6,
-    color: Colors.secondary,
+    color: Colors.leafGreen,
     fontWeight: '700',
   },
   qr: {
@@ -174,54 +197,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 20,
   },
-  details: {
-    width: '100%',
-    marginTop: 8,
-  },
-  label: {
-    color: Colors.textSecondary,
-    marginTop: 8,
-  },
-  value: {
-    color: Colors.textPrimary,
-    fontWeight: '700',
-    fontSize: 16,
-  },
+  details: {width: '100%', marginTop: 8},
+  label: {color: Colors.leafGreen, marginTop: 8, fontWeight: '700'},
+  value: {color: Colors.sacredBrown, fontWeight: '700', fontSize: 16},
   input: {
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 12,
     fontSize: 16,
+    backgroundColor: Colors.white,
   },
   button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
+    backgroundColor: Colors.templeGold,
+    borderRadius: 30,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  buttonText: {
-    color: Colors.white,
-    fontWeight: '700',
-  },
-  message: {
-    marginTop: 12,
-    color: Colors.textSecondary,
-  },
+  buttonText: {color: Colors.white, fontWeight: '800'},
+  message: {marginTop: 12, fontWeight: '600'},
   section: {
     marginTop: 24,
     marginBottom: 8,
     fontSize: 18,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: Colors.leafGreen,
   },
   historyCard: {
     paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: Colors.divider,
   },
-  meta: {
-    color: Colors.textSecondary,
-    marginTop: 4,
-  },
+  meta: {color: Colors.textSecondary, marginTop: 4},
 });

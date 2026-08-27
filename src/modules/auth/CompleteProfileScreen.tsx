@@ -17,6 +17,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 
 import Colors from '../../theme/colors';
 
+import AppHeader from '../common/AppHeader';
 import CountryPickerField from './components/CountryPickerField';
 import StateSelector from './components/StateSelector';
 import CitySelector from './components/CitySelector';
@@ -241,6 +242,12 @@ const CompleteProfileScreen = ({
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}>
+        <AppHeader title="Create Your Profile" showBack />
+        <Text style={styles.stepLabel}>Step 1 of 2</Text>
+        <View style={styles.stepTrack}>
+          <View style={styles.stepFill} />
+        </View>
+        <Text style={styles.stepPercent}>50%</Text>
 
         <TouchableOpacity
           style={styles.profileContainer}
@@ -265,12 +272,9 @@ const CompleteProfileScreen = ({
 
         </TouchableOpacity>
 
-        <Text style={styles.heading}>
-          Signup
-        </Text>
-
+        <Text style={styles.heading}>Personal details</Text>
         <Text style={styles.subHeading}>
-          Personal, marital, and spiritual details as per Japa Siddhi.
+          Then add spiritual details and create your profile.
         </Text>
 
         <Text style={styles.label}>
@@ -594,10 +598,10 @@ const CompleteProfileScreen = ({
         ) : (
 
           <ContinueButton
-  title="Continue"
-  onPress={submitProfile}
-  disabled={false}
-/>
+            title="CREATE PROFILE"
+            onPress={submitProfile}
+            disabled={false}
+          />
 
         )}
 
@@ -655,10 +659,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  heading: {
-    fontSize: 28,
+  stepLabel: {
+    color: Colors.leafGreen,
     fontWeight: '700',
-    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  stepTrack: {
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: Colors.lightGold,
+    overflow: 'hidden',
+  },
+  stepFill: {
+    width: '50%',
+    height: 10,
+    backgroundColor: Colors.templeGold,
+  },
+  stepPercent: {
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    marginBottom: 8,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  heading: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
   },
 
   subHeading: {

@@ -35,5 +35,35 @@ router.get(
   japaController.getSummary,
 );
 
+router.get(
+  '/community',
+  authenticate,
+  japaController.getCommunity,
+);
+
+router.post(
+  '/community/join',
+  authenticate,
+  japaController.joinCommunity,
+);
+
+router.get(
+  '/progress',
+  authenticate,
+  japaController.getProgress,
+);
+
+router.post(
+  '/reference',
+  authenticate,
+  japaController.saveReference,
+);
+
+router.get(
+  '/reference',
+  authenticate,
+  japaController.getReference,
+);
+
 
 export default router;

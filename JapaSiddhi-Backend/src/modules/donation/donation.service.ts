@@ -5,6 +5,7 @@ import {
 } from './donation.types';
 
 import donationRepository from './donation.repository';
+import emailOtpService from '../../services/emailOtp.service';
 
 
 
@@ -42,6 +43,18 @@ class DonationService {
 
       });
 
+
+    await emailOtpService.notifyAdmin(
+      `New ${data.donationType} donation`,
+      [
+        'A new donation or seva was recorded.',
+        `Type: ${data.donationType}`,
+        `Amount: ₹${data.amount}`,
+        `Method: ${data.paymentMethod}`,
+        `Remarks: ${data.remarks || '-'}`,
+        `Donation ID: ${id}`,
+      ].join('\n'),
+    );
 
     return {
 

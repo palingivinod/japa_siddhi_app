@@ -8,13 +8,19 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
+import MenuCard from '../common/MenuCard';
+import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const CustomerCareScreen = () => {
+  const navigation = useNavigation<any>();
+  const [mode, setMode] = useState<'hub' | 'ticket'>('hub');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [tickets, setTickets] = useState<any[]>([]);
@@ -64,13 +70,51 @@ const CustomerCareScreen = () => {
     }
   };
 
+  if (mode === 'hub') {
+    return (
+      <ScreenLayout title="Customer Care" showBack>
+        <MenuCard
+          title="Raise Ticket"
+          subtitle="Report an issue"
+          onPress={() => setMode('ticket')}
+        />
+        <MenuCard
+          title="WhatsApp Support"
+          subtitle="Chat with support"
+          onPress={() => Linking.openURL('https://wa.me/917349483937')}
+        />
+        <MenuCard
+          title="Call Support"
+          subtitle="Speak to us"
+          tone="green"
+          onPress={() => Linking.openURL('tel:+917349483937')}
+        />
+        <MenuCard
+          title="FAQ"
+          subtitle="Find quick answers"
+          tone="green"
+          onPress={() => navigation.navigate('Faq')}
+        />
+        <PrimaryButton
+          title="FEEDBACK FORM"
+          onPress={() => navigation.navigate('Feedback')}
+        />
+      </ScreenLayout>
+    );
+  }
+
   return (
-    <ScreenLayout title="Customer Care">
-      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+    <ScreenLayout title="Raise Ticket" showBack>
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
-      <TextInput style={styles.input} placeholder="Subject *" value={subject} onChangeText={setSubject} />
+      <TextInput
+        style={styles.input}
+        placeholder="Subject *"
+        value={subject}
+        onChangeText={setSubject}
+      />
       <TextInput
         style={[styles.input, styles.area]}
         placeholder="Message *"
@@ -79,23 +123,21 @@ const CustomerCareScreen = () => {
         multiline
       />
       <TouchableOpacity style={styles.button} onPress={submit} disabled={saving}>
-        <Text style={styles.buttonText}>{saving ? 'Sending...' : 'Raise Ticket'}</Text>
+        <Text style={styles.buttonText}>
+          {saving ? 'Sending...' : 'Raise Ticket'}
+        </Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.link}
-        onPress={() => Linking.openURL('https://wa.me/917349483937')}>
-        <Text style={styles.linkText}>WhatsApp Support</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.link}
-        onPress={() => Linking.openURL('tel:+917349483937')}>
-        <Text style={styles.linkText}>Call Support</Text>
-      </TouchableOpacity>
-      {status ? <Text style={styles.meta}>{status}</Text> : null}
+      {status ? (
+        <Text style={[styles.status, {color: formMessageColor(status)}]}>
+          {status}
+        </Text>
+      ) : null}
       {tickets.map(item => (
         <View key={item.id} style={styles.card}>
           <Text style={styles.name}>{item.subject}</Text>
-          <Text style={styles.meta}>{item.status} · {item.message}</Text>
+          <Text style={styles.meta}>
+            {item.status} · {item.message}
+          </Text>
         </View>
       ))}
     </ScreenLayout>
@@ -108,30 +150,30 @@ const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 10,
     fontSize: 16,
+    backgroundColor: Colors.white,
   },
   area: {minHeight: 90, textAlignVertical: 'top'},
   button: {
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
+    backgroundColor: Colors.templeGold,
+    borderRadius: 30,
     paddingVertical: 14,
     alignItems: 'center',
     marginBottom: 12,
   },
-  buttonText: {color: Colors.white, fontWeight: '700'},
-  link: {paddingVertical: 8},
-  linkText: {color: Colors.primary, fontWeight: '700'},
+  buttonText: {color: Colors.white, fontWeight: '800'},
+  status: {marginTop: 8, marginBottom: 8, fontWeight: '600'},
   meta: {marginTop: 6, color: Colors.textSecondary},
   card: {
-    backgroundColor: Colors.cream,
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
     marginTop: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  name: {fontSize: 16, fontWeight: '700', color: Colors.textPrimary},
+  name: {fontSize: 16, fontWeight: '700', color: Colors.sacredBrown},
 });

@@ -181,8 +181,74 @@ class SqliteEngine {
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS challenges (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        description TEXT,
+        challenge_type TEXT NOT NULL DEFAULT 'JAPA_COUNT',
+        target_value INTEGER NOT NULL DEFAULT 0,
+        reward_type TEXT NOT NULL DEFAULT 'CERTIFICATE',
+        reward_name TEXT NOT NULL DEFAULT 'Certificate',
+        reward_quantity INTEGER NOT NULL DEFAULT 1,
+        start_date TEXT NOT NULL,
+        end_date TEXT NOT NULL,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS challenge_participants (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        challenge_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        current_value INTEGER NOT NULL DEFAULT 0,
+        is_completed INTEGER NOT NULL DEFAULT 0,
+        completed_at TEXT,
+        reward_given INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS user_settings (
+        user_id INTEGER PRIMARY KEY,
+        language_code TEXT NOT NULL DEFAULT 'en',
+        notifications_on INTEGER NOT NULL DEFAULT 1,
+        auto_lock_on INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS japa_references (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        mantra_id INTEGER,
+        duration_ms INTEGER NOT NULL DEFAULT 2500,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
+    this.seedChallenges();
     this.persist();
+  }
+
+  private seedChallenges(): void {
+    if (!this.db) {
+      return;
+    }
+    const rows = this.db.exec('SELECT COUNT(*) AS total FROM challenges');
+    const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
+    if (total > 0) {
+      return;
+    }
+    this.db.run(
+      `
+      INSERT INTO challenges
+        (title, description, challenge_type, target_value, reward_type, reward_name, reward_quantity, start_date, end_date, is_active)
+      VALUES
+        ('108 Japa Daily', '7 day challenge', 'JAPA_COUNT', 756, 'CERTIFICATE', 'Daily Discipline Certificate', 1, '2026-01-01', '2027-12-31', 1),
+        ('10,000 Japa', '30 day challenge', 'JAPA_COUNT', 10000, 'CERTIFICATE', '10,000 Japa Certificate', 1, '2026-01-01', '2027-12-31', 1),
+        ('Mahashivaratri Japa', 'Festival challenge', 'SPECIAL', 25000, 'RUDRAKSHA', 'Shivaratri Rudraksha', 1, '2026-01-01', '2027-12-31', 1)
+      `,
+    );
   }
 
   private persist(): void {

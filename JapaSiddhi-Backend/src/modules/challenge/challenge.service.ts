@@ -25,6 +25,7 @@ class ChallengeService {
 
   async getById(
     id: number,
+    userId?: number,
   ) {
 
     const challenge =
@@ -40,7 +41,32 @@ class ChallengeService {
 
     }
 
-    return challenge;
+    const participant = userId
+      ? await challengeRepository.getParticipant(id, userId)
+      : null;
+    const currentValue = Number(participant?.current_value ?? participant?.currentValue ?? 0);
+    const target = Number(challenge.targetValue || 1);
+    const start = new Date(challenge.startDate);
+    const end = new Date(challenge.endDate);
+    const durationDays = Math.max(
+      1,
+      Math.round((end.getTime() - start.getTime()) / 86400000),
+    );
+
+    return {
+      ...challenge,
+      durationDays: durationDays > 400 ? 30 : durationDays,
+      typeLabel: challenge.challengeType === 'SPECIAL' ? 'Festival' : 'Community',
+      dailyMinimum: Math.ceil(target / 30),
+      joined: Boolean(participant),
+      currentValue,
+      progressPercent: Math.min(100, Math.round((currentValue / target) * 100)),
+      rules: [
+        `Daily minimum: ${Math.ceil(target / 30)} Japas`,
+        'Keep your streak active',
+        'Leaderboard updates daily',
+      ],
+    };
 
   }
 

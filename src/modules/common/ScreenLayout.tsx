@@ -1,33 +1,45 @@
 import React from 'react';
-import {ScrollView, StyleSheet, Text, TouchableOpacity} from 'react-native';
+import {ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import AppHeader from './AppHeader';
+import BottomTabs, {TabKey} from './BottomTabs';
 
 interface Props {
   title: string;
   children: React.ReactNode;
+  showBack?: boolean;
+  tab?: TabKey;
+  scroll?: boolean;
 }
 
-const ScreenLayout: React.FC<Props> = ({title, children}) => {
-  const navigation = useNavigation();
+const ScreenLayout: React.FC<Props> = ({
+  title,
+  children,
+  showBack,
+  tab,
+  scroll = true,
+}) => {
+  const back = showBack ?? !tab;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>‹ Back</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>{title}</Text>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always">
-        {children}
-      </ScrollView>
+      <View style={styles.body}>
+        <AppHeader title={title} showBack={back} />
+        {scroll ? (
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="always">
+            {children}
+          </ScrollView>
+        ) : (
+          <View style={styles.fill}>{children}</View>
+        )}
+      </View>
+      {tab ? <BottomTabs active={tab} /> : null}
     </SafeAreaView>
   );
 };
@@ -38,29 +50,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  body: {
+    flex: 1,
     paddingHorizontal: 20,
   },
   scroll: {
     flex: 1,
   },
-  backButton: {
-    marginTop: 4,
-    marginBottom: 8,
-    alignSelf: 'flex-start',
-  },
-  backText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  title: {
-    fontSize: 28,
-    lineHeight: 36,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 16,
+  fill: {
+    flex: 1,
   },
   content: {
-    paddingBottom: 48,
+    paddingBottom: 32,
   },
 });

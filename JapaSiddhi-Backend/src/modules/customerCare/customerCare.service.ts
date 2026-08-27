@@ -4,6 +4,7 @@ import {
 } from './customerCare.types';
 
 import customerCareRepository from './customerCare.repository';
+import emailOtpService from '../../services/emailOtp.service';
 
 class CustomerCareService {
 
@@ -15,6 +16,16 @@ class CustomerCareService {
       await customerCareRepository.create(
         data,
       );
+
+    await emailOtpService.notifyAdmin(
+      'New customer care ticket',
+      [
+        'A new support ticket was raised.',
+        `Subject: ${data.subject}`,
+        `Message: ${data.message}`,
+        `Ticket ID: ${id}`,
+      ].join('\n'),
+    );
 
     return {
 

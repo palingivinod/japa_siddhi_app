@@ -64,6 +64,11 @@ router.post(
 );
 
 router.post(
+  '/social',
+  authController.social,
+);
+
+router.post(
   '/otp/send',
   otpSendLimiter,
   otpSendValidation,

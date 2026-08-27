@@ -3,6 +3,7 @@ import {
 } from './feedback.types';
 
 import feedbackRepository from './feedback.repository';
+import emailOtpService from '../../services/emailOtp.service';
 
 class FeedbackService {
 
@@ -14,6 +15,17 @@ class FeedbackService {
       await feedbackRepository.create(
         data,
       );
+
+    await emailOtpService.notifyAdmin(
+      'New app feedback',
+      [
+        'A devotee submitted feedback.',
+        `Title: ${data.title}`,
+        `Rating: ${data.rating}`,
+        `Message: ${data.message}`,
+        `Feedback ID: ${id}`,
+      ].join('\n'),
+    );
 
     return {
 

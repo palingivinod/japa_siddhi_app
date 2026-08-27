@@ -16,7 +16,7 @@ interface OTPInputProps {
 const OTPInput: React.FC<OTPInputProps> = ({
   value,
   onChange,
-  length = 6,
+  length = 4,
 }) => {
   const inputs = useRef<RNTextInput[]>([]);
 
@@ -88,14 +88,14 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    width: 48,
-    height: 56,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    width: 64,
+    height: 64,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
     backgroundColor: Colors.white,
-    fontSize: 22,
-    color: Colors.textPrimary,
-    fontWeight: '700',
+    fontSize: 24,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
   },
 });

@@ -233,6 +233,25 @@ class AuthController {
 
   }
 
+  async social(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      return apiResponse.success(
+        res,
+        'Use mobile number and email OTP to continue.',
+        {
+          provider: req.body?.provider || 'email',
+          available: false,
+        },
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deleteAccount(
     req: Request,
     res: Response,

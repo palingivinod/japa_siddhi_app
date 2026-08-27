@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import ProfileApi from '../auth/services/profileApi';
@@ -9,6 +9,7 @@ import {getApiError, isAuthError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
+import MenuCard from '../common/MenuCard';
 
 const ProfileViewScreen = () => {
   const navigation = useNavigation<any>();
@@ -19,31 +20,6 @@ const ProfileViewScreen = () => {
 
   const logout = async () => {
     await logoutToLogin(navigation);
-  };
-
-  const deleteAccount = () => {
-    Alert.alert(
-      'Delete account',
-      'This removes your login and personal profile. You cannot undo this.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ProfileApi.deleteAccount();
-              await logoutToLogin(navigation);
-            } catch (err: any) {
-              Alert.alert(
-                'Delete failed',
-                getApiError(err, 'Could not delete your account.'),
-              );
-            }
-          },
-        },
-      ],
-    );
   };
 
   const loadProfile = async () => {
@@ -83,9 +59,7 @@ const ProfileViewScreen = () => {
         return;
       }
       if (!stored) {
-        setProfile({
-          fullName: 'Devotee',
-        });
+        setProfile({fullName: 'Devotee'});
       }
     } finally {
       setLoading(false);
@@ -96,80 +70,41 @@ const ProfileViewScreen = () => {
     loadProfile();
   }, []);
 
-  const location = [profile?.cityName, profile?.stateName, profile?.countryName]
-    .filter(Boolean)
-    .join(', ');
-
   return (
-    <ScreenLayout title="Profile">
-      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+    <ScreenLayout title="My Profile" tab="Profile">
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={loadProfile} />
       ) : null}
-      {profile ? (
-        <>
-          <View style={styles.card}>
-            <Text style={styles.name}>{profile.fullName}</Text>
-            {profile.mobileNumber ? (
-              <Text style={styles.meta}>{profile.mobileNumber}</Text>
-            ) : null}
-            {profile.email ? <Text style={styles.meta}>{profile.email}</Text> : null}
-            {location ? <Text style={styles.meta}>{location}</Text> : null}
-            {profile.preferredLanguageName ? (
-              <Text style={styles.meta}>
-                Language: {profile.preferredLanguageName}
-              </Text>
-            ) : null}
-            {profile.maritalStatus ? (
-              <Text style={styles.meta}>Marital Status: {profile.maritalStatus}</Text>
-            ) : null}
-            {profile.gothram ? (
-              <Text style={styles.meta}>Gothram: {profile.gothram}</Text>
-            ) : null}
-            {profile.nakshatram ? (
-              <Text style={styles.meta}>Nakshatram: {profile.nakshatram}</Text>
-            ) : null}
-          </View>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.navigate('Notifications')}>
-            <Text style={styles.logoutText}>Notifications</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.navigate('Orders')}>
-            <Text style={styles.logoutText}>Order History</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.navigate('Feedback')}>
-            <Text style={styles.logoutText}>Feedback</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.navigate('Progress')}>
-            <Text style={styles.logoutText}>My Progress</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuButton}
-            onPress={() => navigation.navigate('PrivacyPolicy')}>
-            <Text style={styles.logoutText}>Privacy Policy</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={deleteAccount}>
-            <Text style={styles.logoutText}>Delete account</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.logoutButton}
-            activeOpacity={0.7}
-            onPress={() => {
-              logout();
-            }}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </>
-      ) : null}
+      <View style={styles.avatar}>
+        <Text style={styles.face}>☺</Text>
+      </View>
+      <Text style={styles.name}>{profile?.fullName || 'Devotee Name'}</Text>
+      <MenuCard
+        title="Personal Details"
+        onPress={() => navigation.navigate('PersonalDetails', {profile})}
+      />
+      <MenuCard
+        title="Spiritual Details"
+        onPress={() => navigation.navigate('SpiritualDetails', {profile})}
+      />
+      <MenuCard
+        title="Order History"
+        onPress={() => navigation.navigate('Orders')}
+      />
+      <MenuCard
+        title="Notifications"
+        onPress={() => navigation.navigate('Notifications')}
+      />
+      <MenuCard
+        title="Feedback"
+        onPress={() => navigation.navigate('Feedback')}
+      />
+      <MenuCard
+        title="Settings"
+        onPress={() => navigation.navigate('Settings')}
+      />
+      <MenuCard title="Logout" onPress={logout} />
     </ScreenLayout>
   );
 };
@@ -177,52 +112,26 @@ const ProfileViewScreen = () => {
 export default ProfileViewScreen;
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.cream,
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+  avatar: {
+    alignSelf: 'center',
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    borderWidth: 2,
+    borderColor: Colors.sacredBrown,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  face: {
+    fontSize: 42,
+    color: Colors.sacredBrown,
   },
   name: {
+    textAlign: 'center',
     fontSize: 22,
-    lineHeight: 30,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginBottom: 8,
-  },
-  meta: {
-    color: Colors.textSecondary,
-    marginTop: 6,
-    fontSize: 15,
-  },
-  error: {
-    color: Colors.error,
-    marginBottom: 12,
-  },
-  menuButton: {
-    marginTop: 12,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  deleteButton: {
-    marginTop: 12,
-    backgroundColor: Colors.error,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  logoutButton: {
-    marginTop: 20,
-    backgroundColor: Colors.primary,
-    borderRadius: 12,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  logoutText: {
-    color: Colors.white,
-    fontWeight: '700',
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 18,
   },
 });

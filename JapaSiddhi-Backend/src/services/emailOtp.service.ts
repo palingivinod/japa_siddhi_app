@@ -32,7 +32,15 @@ class EmailOtpService {
     return `${visible}***@${domain}`;
   }
 
-  async sendOtp(email: string, otp: string): Promise<void> {
+  adminInbox(): string {
+    return (
+      process.env.NOTIFY_EMAIL ||
+      environment.SMTP_USER ||
+      ''
+    ).trim();
+  }
+
+  async sendMail(to: string, subject: string, text: string): Promise<void> {
     if (!this.isConfigured()) {
       throw new AppError(
         'Email OTP is not configured. Add a Gmail address and App Password to SMTP_USER and SMTP_PASS in JapaSiddhi-Backend/.env. This stays free for production.',
@@ -42,10 +50,10 @@ class EmailOtpService {
 
     const mail = {
       from: `"Japa Siddhi" <${environment.SMTP_USER}>`,
-      to: email,
-      subject: 'Your Japa Siddhi verification code',
-      text: `Your Japa Siddhi OTP is ${otp}. It expires in ${environment.OTP_EXPIRES_SECONDS / 60} minutes. Do not share this code.`,
-      html: `<p>Your Japa Siddhi OTP is <strong>${otp}</strong>.</p><p>It expires in ${environment.OTP_EXPIRES_SECONDS / 60} minutes. Do not share this code.</p>`,
+      to,
+      subject,
+      text,
+      html: `<p>${text.replace(/\n/g, '<br/>')}</p>`,
     };
 
     const attempts = [
@@ -79,7 +87,7 @@ class EmailOtpService {
       } catch (error: any) {
         lastError = error;
         console.error(
-          'OTP email send failed:',
+          'Email send failed:',
           attempt.port,
           error?.code,
           error?.message,
@@ -98,6 +106,28 @@ class EmailOtpService {
       'The live server could not reach Gmail SMTP. Render free plans often block mail ports. Upgrade the Render instance or use a mail API.',
       502,
     );
+  }
+
+  async sendOtp(email: string, otp: string): Promise<void> {
+    await this.sendMail(
+      email,
+      'Your Japa Siddhi verification code',
+      `Your Japa Siddhi 4-digit OTP is ${otp}. It expires in ${environment.OTP_EXPIRES_SECONDS / 60} minutes. Do not share this code.`,
+    );
+  }
+
+  async notifyAdmin(subject: string, text: string): Promise<void> {
+    const inbox = this.adminInbox();
+    if (!this.isConfigured() || !inbox) {
+      console.warn('Admin notification skipped: SMTP is not configured.');
+      return;
+    }
+
+    try {
+      await this.sendMail(inbox, subject, text);
+    } catch (error: any) {
+      console.error('Admin notification failed:', error?.message || error);
+    }
   }
 }
 

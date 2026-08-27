@@ -1,61 +1,64 @@
 const Colors = {
-  primary: '#C9A227',
-  primaryDark: '#A67C00',
-  secondary: '#8B5E3C',
+  primary: '#B87316',
+  primaryDark: '#56350F',
+  secondary: '#4E6B21',
 
-  background: '#FFFFFF',
-  surface: '#F8F8F8',
+  background: '#FFF8EA',
+  surface: '#FFFFFF',
 
   white: '#FFFFFF',
   black: '#000000',
   transparent: 'transparent',
 
-  textPrimary: '#222222',
-  textSecondary: '#666666',
-  textLight: '#999999',
+  textPrimary: '#56350F',
+  textSecondary: '#8B6A3F',
+  textLight: '#A89070',
   textWhite: '#FFFFFF',
 
-  success: '#2E7D32',
-  warning: '#F9A825',
+  success: '#4E6B21',
+  warning: '#D69A2B',
   error: '#D32F2F',
   info: '#1976D2',
 
-  divider: '#E0E0E0',
-  border: '#DDDDDD',
+  divider: '#E8D9B8',
+  border: '#E0D0B0',
 
   card: '#FFFFFF',
-  shadow: '#00000020',
+  shadow: '#56350F20',
 
   inputBackground: '#FFFFFF',
-  inputBorder: '#DDDDDD',
-  inputFocusedBorder: '#C9A227',
-  placeholder: '#999999',
+  inputBorder: '#E0D0B0',
+  inputFocusedBorder: '#B87316',
+  placeholder: '#A89070',
 
-  buttonPrimary: '#C9A227',
+  buttonPrimary: '#B87316',
   buttonPrimaryText: '#FFFFFF',
-  buttonDisabled: '#D6D6D6',
+  buttonDisabled: '#D6C4A3',
 
-  otpBorder: '#DDDDDD',
-  otpFocusedBorder: '#C9A227',
+  otpBorder: '#D6C4A3',
+  otpFocusedBorder: '#B87316',
 
-  bannerBackground: '#FFF8E1',
+  bannerBackground: '#FFF8EA',
   cardBackground: '#FFFFFF',
 
-  donationGreen: '#2E7D32',
+  donationGreen: '#4E6B21',
   donationRed: '#D32F2F',
 
-  japaCompleted: '#2E7D32',
-  japaPending: '#F9A825',
+  japaCompleted: '#4E6B21',
+  japaPending: '#D69A2B',
 
-  bottomTabActive: '#C9A227',
-  bottomTabInactive: '#888888',
+  bottomTabActive: '#56350F',
+  bottomTabInactive: '#4E6B21',
 
-  gold: '#C9A227',
-  cream: '#FFF8E1',
-  lightGold: '#F7E7A9',
-  brown: '#8B5E3C',
-  cardBorder: '#EFE4BE',
-  iconBackground: '#FFF3CD',
+  gold: '#D69A2B',
+  cream: '#FFF8EA',
+  lightGold: '#F3E2B8',
+  brown: '#56350F',
+  cardBorder: '#E8D9B8',
+  iconBackground: '#F7E7C4',
+  templeGold: '#B87316',
+  leafGreen: '#4E6B21',
+  sacredBrown: '#56350F',
 };
 
 export default Colors;

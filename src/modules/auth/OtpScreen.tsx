@@ -1,31 +1,18 @@
 import React, {useState} from 'react';
-
-import {
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  View,
-  Alert,
-  ActivityIndicator,
-} from 'react-native';
+import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import OTPInput from './components/OTPInput';
 import ResendTimer from './components/ResendTimer';
 import ContinueButton from './components/ContinueButton';
+import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
 import {saveSession} from '../../services/session';
-
 import Colors from '../../theme/colors';
 
 const OtpScreen = ({route, navigation}: any) => {
-  const {
-    phoneNumber,
-    mobileCountryCode,
-    mobileNumber,
-    email,
-    sentTo,
-  } = route.params;
-
+  const {phoneNumber, mobileCountryCode, mobileNumber, email, sentTo} =
+    route.params;
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -35,14 +22,13 @@ const OtpScreen = ({route, navigation}: any) => {
       const profileCompleted = [1, '1', true, 'true'].includes(
         data.user?.profileCompleted ?? data.user?.profile_completed,
       );
-
       if (profileCompleted) {
         navigation.replace('Home');
         return;
       }
     }
 
-    navigation.replace('CompleteProfile', {
+    navigation.replace('SignupPersonal', {
       phoneNumber,
       mobileCountryCode,
       mobileNumber,
@@ -51,8 +37,8 @@ const OtpScreen = ({route, navigation}: any) => {
   };
 
   const verifyOTP = async () => {
-    if (otp.length !== 6) {
-      Alert.alert('Invalid OTP', 'Please enter a valid 6-digit OTP.');
+    if (otp.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP.');
       return;
     }
 
@@ -84,7 +70,7 @@ const OtpScreen = ({route, navigation}: any) => {
       setOtp('');
       Alert.alert(
         'OTP Sent',
-        `A new verification code was sent to ${response.data?.data?.sentTo || email}.`,
+        `A new 4-digit code was sent to ${response.data?.data?.sentTo || email}.`,
       );
     } catch (error: any) {
       Alert.alert(
@@ -95,21 +81,19 @@ const OtpScreen = ({route, navigation}: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Verify OTP</Text>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <AppHeader title="Verify Mobile Number" showBack />
       <Text style={styles.subtitle}>
-        Enter the verification code sent to
+        Enter the 4-digit OTP sent to your email
       </Text>
       <Text style={styles.mobile}>{sentTo || email || phoneNumber}</Text>
-
-      <OTPInput value={otp} onChange={setOtp} />
+      <OTPInput value={otp} onChange={setOtp} length={4} />
       <ResendTimer onResend={resendOTP} />
-
-      <View style={{marginTop: 40}}>
+      <View style={styles.action}>
         {loading ? (
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={Colors.templeGold} />
         ) : (
-          <ContinueButton title="Verify OTP" onPress={verifyOTP} />
+          <ContinueButton title="VERIFY & CONTINUE" onPress={verifyOTP} />
         )}
       </View>
     </SafeAreaView>
@@ -121,24 +105,21 @@ export default OtpScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 25,
+    paddingHorizontal: 20,
     backgroundColor: Colors.background,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-    marginTop: 35,
-  },
   subtitle: {
-    fontSize: 15,
-    marginTop: 15,
-    color: Colors.textSecondary,
+    fontSize: 16,
+    color: Colors.sacredBrown,
+    marginBottom: 8,
   },
   mobile: {
     fontSize: 18,
     fontWeight: '700',
-    marginTop: 8,
-    color: Colors.primary,
+    color: Colors.templeGold,
+    marginBottom: 8,
+  },
+  action: {
+    marginTop: 32,
   },
 });

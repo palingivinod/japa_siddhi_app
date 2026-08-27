@@ -21,6 +21,7 @@ import feedbackRoutes from './modules/feedback/feedback.routes';
 import challengeRoutes from './modules/challenge/challenge.routes';
 import reportRoutes from './modules/report/report.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
+import screensRoutes from './modules/screens/screens.routes';
 import database from './database/mysql';
 const app = express();
 
@@ -147,6 +148,10 @@ app.use(
 app.use(
   '/api/v1/reports',
   reportRoutes,
+);
+app.use(
+  '/api/v1/screens',
+  screensRoutes,
 );
 
 app.use((error: any, _req: any, res: any, _next: any) => {

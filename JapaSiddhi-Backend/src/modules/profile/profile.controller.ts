@@ -5,6 +5,7 @@ import {
 } from 'express';
 
 import profileService from './profile.service';
+import japaRepository from '../japa/japa.repository';
 
 import apiResponse from '../../utils/apiResponse';
 
@@ -99,6 +100,58 @@ class ProfileController {
 
     }
 
+  }
+
+  async getSettings(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaRepository.getSettings(userId);
+      return apiResponse.success(res, 'Settings fetched', {
+        languageCode: result.languageCode,
+        notificationsOn: Number(result.notificationsOn) === 1,
+        autoLockOn: Number(result.autoLockOn) === 1,
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async updateSettings(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaRepository.saveSettings(userId, {
+        languageCode: req.body?.languageCode,
+        notificationsOn:
+          req.body?.notificationsOn === undefined
+            ? undefined
+            : req.body.notificationsOn ? 1 : 0,
+        autoLockOn:
+          req.body?.autoLockOn === undefined
+            ? undefined
+            : req.body.autoLockOn ? 1 : 0,
+      });
+      return apiResponse.success(res, 'Settings updated', {
+        languageCode: result.languageCode,
+        notificationsOn: Number(result.notificationsOn) === 1,
+        autoLockOn: Number(result.autoLockOn) === 1,
+      });
+    } catch (error) {
+      next(error);
+    }
   }
 
 }

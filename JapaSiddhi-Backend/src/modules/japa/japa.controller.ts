@@ -169,6 +169,95 @@ class JapaController {
   }
 
 
+  async getCommunity(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getCommunity(userId);
+      return apiResponse.success(res, 'Community japa fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async joinCommunity(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.joinCommunity(userId, req.body?.mantraId);
+      return apiResponse.success(res, 'Joined community japa', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getProgress(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getProgress(userId);
+      return apiResponse.success(res, 'Japa progress fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async saveReference(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.saveReference(
+        userId,
+        req.body?.mantraId ?? null,
+        Number(req.body?.durationMs ?? 2500),
+      );
+      return apiResponse.success(res, 'Reference chant saved', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getReference(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getReference(userId);
+      return apiResponse.success(res, 'Reference chant fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 

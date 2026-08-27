@@ -479,7 +479,7 @@ class AuthService {
       );
     }
 
-    const otp = String(Math.floor(100000 + Math.random() * 900000));
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
     await emailOtpService.sendOtp(destinationEmail, otp);
     await otpRepository.save({
       mobileCountryCode,

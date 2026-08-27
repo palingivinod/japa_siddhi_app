@@ -3,6 +3,7 @@ import {StyleSheet, Text, TextInput, TouchableOpacity} from 'react-native';
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {formMessageColor} from '../../theme/formMessage';
 import ScreenLayout from '../common/ScreenLayout';
 
 const NithyaHomamScreen = () => {
@@ -50,7 +51,11 @@ const NithyaHomamScreen = () => {
       <TouchableOpacity style={styles.button} onPress={submit} disabled={saving}>
         <Text style={styles.buttonText}>{saving ? 'Saving...' : 'Enroll Now'}</Text>
       </TouchableOpacity>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {message ? (
+        <Text style={[styles.message, {color: formMessageColor(message)}]}>
+          {message}
+        </Text>
+      ) : null}
     </ScreenLayout>
   );
 };
@@ -74,5 +79,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {color: Colors.white, fontWeight: '700'},
-  message: {marginTop: 12, color: Colors.textSecondary},
+  message: {marginTop: 12, fontWeight: '600'},
 });

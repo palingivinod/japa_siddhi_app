@@ -73,6 +73,7 @@ class ChallengeController {
       const result =
         await challengeService.getById(
           Number(req.params.id),
+          req.user?.id,
         );
 
       return apiResponse.success(
