@@ -1,5 +1,5 @@
-import React, {useRef, useState} from 'react';
-import {useEffect, useNavigation, useRoute} from '@react-navigation/native';
+import React, {useEffect, useRef, useState} from 'react';
+import {useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
   StyleSheet,
