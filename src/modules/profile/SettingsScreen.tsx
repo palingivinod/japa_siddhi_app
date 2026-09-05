@@ -3,6 +3,7 @@ import {Alert, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import ScreenLayout from '../common/ScreenLayout';
@@ -12,15 +13,20 @@ import apiService, {getApiError} from '../../services/apiService';
 
 const SettingsScreen = () => {
   const navigation = useNavigation<any>();
-  const [language, setLanguage] = useState('English');
+  const {t, language} = useLanguage();
+  const [languageLabel, setLanguageLabel] = useState('English');
   const [notifications, setNotifications] = useState('On');
   const [autoLock, setAutoLock] = useState('On');
 
   useFocusEffect(
     React.useCallback(() => {
+      const match = APP_LANGUAGES.find(item => item.code === language);
+      setLanguageLabel(match?.nativeName || match?.name || 'English');
       getLanguage().then(code => {
-        const match = APP_LANGUAGES.find(item => item.code === code);
-        setLanguage(match?.name || 'English');
+        const stored = APP_LANGUAGES.find(item => item.code === code);
+        if (stored) {
+          setLanguageLabel(stored.nativeName || stored.name);
+        }
       });
       AsyncStorage.getItem('notify_on').then(value => {
         if (value) {
@@ -32,8 +38,10 @@ const SettingsScreen = () => {
           setAutoLock(value === '1' ? 'On' : 'Off');
         }
       });
-    }, []),
+    }, [language]),
   );
+
+  const onLabel = (value: string) => (value === 'On' ? t('on') : t('off'));
 
   const toggle = async (
     key: string,
@@ -45,7 +53,8 @@ const SettingsScreen = () => {
     await AsyncStorage.setItem(key, next === 'On' ? '1' : '0');
     try {
       await apiService.put('/profile/settings', {
-        notificationsOn: key === 'notify_on' ? next === 'On' : notifications === 'On',
+        notificationsOn:
+          key === 'notify_on' ? next === 'On' : notifications === 'On',
         autoLockOn: key === 'japa_autolock' ? next === 'On' : autoLock === 'On',
       });
     } catch {
@@ -54,28 +63,24 @@ const SettingsScreen = () => {
   };
 
   const deleteAccount = () => {
-    Alert.alert(
-      'Delete account',
-      'This removes your login and personal profile. You cannot undo this.',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await ProfileApi.deleteAccount();
-              await logoutToLogin(navigation);
-            } catch (err: any) {
-              Alert.alert(
-                'Delete failed',
-                getApiError(err, 'Could not delete your account.'),
-              );
-            }
-          },
+    Alert.alert(t('deleteAccount'), t('deleteAccountMsg'), [
+      {text: t('cancel'), style: 'cancel'},
+      {
+        text: t('delete'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await ProfileApi.deleteAccount();
+            await logoutToLogin(navigation);
+          } catch (err: any) {
+            Alert.alert(
+              t('deleteFailed'),
+              getApiError(err, t('couldNotDelete')),
+            );
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   return (
@@ -85,47 +90,47 @@ const SettingsScreen = () => {
         onPress={() =>
           navigation.navigate('LanguageSelect', {fromSettings: true})
         }>
-        <Text style={styles.label}>Language</Text>
-        <Text style={styles.value}>{language}</Text>
+        <Text style={styles.label}>{t('language')}</Text>
+        <Text style={styles.value}>{languageLabel}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => toggle('notify_on', notifications, setNotifications)}>
-        <Text style={styles.label}>Notifications</Text>
-        <Text style={styles.value}>{notifications}</Text>
+        <Text style={styles.label}>{t('notifications')}</Text>
+        <Text style={styles.value}>{onLabel(notifications)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => toggle('japa_autolock', autoLock, setAutoLock)}>
-        <Text style={styles.label}>Auto-lock during Japa</Text>
-        <Text style={styles.value}>{autoLock}</Text>
+        <Text style={styles.label}>{t('autoLockJapa')}</Text>
+        <Text style={styles.value}>{onLabel(autoLock)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('PrivacyPolicy')}>
-        <Text style={styles.label}>Privacy</Text>
-        <Text style={styles.value}>Manage</Text>
+        <Text style={styles.label}>{t('privacy')}</Text>
+        <Text style={styles.value}>{t('manage')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('CustomerCare')}>
-        <Text style={styles.label}>Help & Support</Text>
-        <Text style={styles.value}>Open</Text>
+        <Text style={styles.label}>{t('helpSupport')}</Text>
+        <Text style={styles.value}>{t('open')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('SpiritualDetails')}>
-        <Text style={styles.label}>Spiritual details</Text>
-        <Text style={styles.value}>Edit</Text>
+        <Text style={styles.label}>{t('spiritualDetails')}</Text>
+        <Text style={styles.value}>{t('edit')}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('AnalyticsHub')}>
-        <Text style={styles.label}>Japa analytics</Text>
-        <Text style={styles.value}>Open</Text>
+        <Text style={styles.label}>{t('japaAnalyticsLabel')}</Text>
+        <Text style={styles.value}>{t('open')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.delete} onPress={deleteAccount}>
-        <Text style={styles.deleteText}>Delete account</Text>
+        <Text style={styles.deleteText}>{t('deleteAccount')}</Text>
       </TouchableOpacity>
     </ScreenLayout>
   );

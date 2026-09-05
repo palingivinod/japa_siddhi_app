@@ -3,64 +3,41 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
 
-export const FEATURE_PAGES: Record<
+const FEATURE_KEYS: Record<
   string,
-  {title: string; description: string}
+  {titleKey: TranslationKey; descKey: TranslationKey}
 > = {
-  Chant: {
-    title: 'Chant Japa',
-    description:
-      'Repeat sacred mantras, count your japa, and stay consistent in your daily sadhana.',
-  },
-  FamilyJapa: {
-    title: 'Family Japa',
-    description:
-      'Invite family members, chant together, and grow your shared spiritual count.',
-  },
-  Donate: {
-    title: 'Donate',
-    description:
-      'Support Bilva Patra Trust and contribute to seva, temples, and spiritual activities.',
-  },
-  Festivals: {
-    title: 'Festivals',
-    description:
-      'See upcoming Hindu festivals and special japa events you can join.',
-  },
-  Progress: {
-    title: 'My Progress',
-    description:
-      'Track your japa goals, daily targets, and how far you have come.',
-  },
-  Profile: {
-    title: 'Profile',
-    description:
-      'View and update your personal details, language, and account settings.',
-  },
+  Chant: {titleKey: 'chantJapa', descKey: 'chantJapaDesc'},
+  FamilyJapa: {titleKey: 'familyJapa', descKey: 'familyJapaDesc'},
+  Donate: {titleKey: 'donate', descKey: 'donateDesc'},
+  Festivals: {titleKey: 'festivals', descKey: 'festivalsDesc'},
+  Progress: {titleKey: 'myProgress', descKey: 'myProgressDesc'},
+  Profile: {titleKey: 'tabProfile', descKey: 'profileDesc'},
 };
 
 const FeatureScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const content =
-    FEATURE_PAGES[route.name] ?? {
-      title: route.name,
-      description: 'This page is ready for the next feature build.',
-    };
+  const {t} = useLanguage();
+  const keys = FEATURE_KEYS[route.name];
+  const title = keys ? t(keys.titleKey) : route.name;
+  const description = keys ? t(keys.descKey) : t('featureReady');
 
   return (
     <SafeAreaView style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
         onPress={() => navigation.goBack()}>
-        <Text style={styles.backText}>‹ Back</Text>
+        <Text style={styles.backText}>‹ {t('back')}</Text>
       </TouchableOpacity>
 
       <View style={styles.card}>
-        <Text style={styles.title}>{content.title}</Text>
-        <Text style={styles.description}>{content.description}</Text>
+        <Text style={styles.title}>{title}</Text>
+        <Text style={styles.description}>{description}</Text>
       </View>
     </SafeAreaView>
   );

@@ -2,6 +2,8 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
 
 export type TabKey = 'Home' | 'JapaHub' | 'SevaHub' | 'Orders' | 'Profile';
@@ -10,16 +12,17 @@ interface Props {
   active: TabKey;
 }
 
-const TABS: Array<{key: TabKey; label: string; icon: string}> = [
-  {key: 'Home', label: 'Home', icon: '⌂'},
-  {key: 'JapaHub', label: 'Japa', icon: '◎'},
-  {key: 'SevaHub', label: 'Seva', icon: '♡'},
-  {key: 'Orders', label: 'Orders', icon: '▣'},
-  {key: 'Profile', label: 'Profile', icon: '☺'},
+const TABS: Array<{key: TabKey; labelKey: TranslationKey; icon: string}> = [
+  {key: 'Home', labelKey: 'tabHome', icon: '⌂'},
+  {key: 'JapaHub', labelKey: 'tabJapa', icon: '◎'},
+  {key: 'SevaHub', labelKey: 'tabSeva', icon: '♡'},
+  {key: 'Orders', labelKey: 'tabOrders', icon: '▣'},
+  {key: 'Profile', labelKey: 'tabProfile', icon: '☺'},
 ];
 
 const BottomTabs: React.FC<Props> = ({active}) => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
 
   return (
     <View style={styles.bar}>
@@ -34,7 +37,7 @@ const BottomTabs: React.FC<Props> = ({active}) => {
               {tab.icon}
             </Text>
             <Text style={[styles.label, isActive && styles.active]}>
-              {tab.label}
+              {t(tab.labelKey)}
             </Text>
           </TouchableOpacity>
         );

@@ -57,6 +57,22 @@ const environment = {
 
   UPLOAD_PATH:
     process.env.UPLOAD_PATH || 'uploads',
+
+  VEDICORBIT_API_KEY:
+    process.env.VEDICORBIT_API_KEY || '',
+
+  VEDICORBIT_API_BASE_URL:
+    process.env.VEDICORBIT_API_BASE_URL ||
+    'https://vedicorbit-website.vercel.app/api/panchangam',
+
+  VEDICORBIT_LAT: Number(process.env.VEDICORBIT_LAT || 17.385),
+
+  VEDICORBIT_LON: Number(process.env.VEDICORBIT_LON || 78.4867),
+
+  VEDICORBIT_TIMEZONE:
+    process.env.VEDICORBIT_TIMEZONE || 'Asia/Kolkata',
+
+  VEDICORBIT_LANG: process.env.VEDICORBIT_LANG || 'en',
 };
 
 export default environment;

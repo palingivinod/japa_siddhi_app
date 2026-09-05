@@ -1,39 +1,44 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
 import BottomTabs from '../common/BottomTabs';
 
-const ITEMS = [
-  {
-    title: 'Baanalingam',
-    sub: 'Apply / order',
-    route: 'BanaLingam',
-  },
-  {
-    title: 'Annadanam',
-    sub: 'Offer food service',
-    route: 'Donate',
-  },
-  {
-    title: 'Nithya Homam',
-    sub: 'Enroll now',
-    route: 'NithyaHomam',
-  },
-];
-
 const SevaHubScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
+
+  const items = useMemo(
+    () => [
+      {
+        title: t('tileBaanalingam'),
+        sub: t('tileBaanalingamSub'),
+        route: 'BanaLingam',
+      },
+      {
+        title: t('tileAnnadanam'),
+        sub: t('tileAnnadanamSub'),
+        route: 'Donate',
+      },
+      {
+        title: t('tileNithyaHomam'),
+        sub: t('tileNithyaHomamSub'),
+        route: 'NithyaHomam',
+      },
+    ],
+    [t],
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
         <AppHeader title="Seva" />
-        <Text style={styles.heading}>Spiritual services</Text>
-        {ITEMS.map(item => (
+        <Text style={styles.heading}>{t('spiritualServices')}</Text>
+        {items.map(item => (
           <TouchableOpacity
             key={item.route}
             style={styles.card}

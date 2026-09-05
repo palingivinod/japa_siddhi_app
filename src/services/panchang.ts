@@ -21,6 +21,15 @@ export type PanchangPayload = {
   karana: string;
   moonRashi: string;
   sunRashi: string;
+  source?: string;
+  locationName?: string;
+  sunrise?: string;
+  sunset?: string;
+  moonrise?: string;
+  moonset?: string;
+  rahuKalam?: string;
+  yamagandam?: string;
+  gulikaKalam?: string;
   festival?: FestivalSummary | null;
   nextFestival?: FestivalSummary | null;
 };

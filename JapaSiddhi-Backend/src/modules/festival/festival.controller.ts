@@ -48,9 +48,11 @@ class FestivalController {
     next: NextFunction,
   ) {
     try {
-      const raw = req.query.date;
-      const date = typeof raw === 'string' ? raw : undefined;
-      const result = await festivalService.getPanchang(date);
+      const rawDate = req.query.date;
+      const rawLang = req.query.lang;
+      const date = typeof rawDate === 'string' ? rawDate : undefined;
+      const lang = typeof rawLang === 'string' ? rawLang : undefined;
+      const result = await festivalService.getPanchang(date, lang);
       return apiResponse.success(
         res,
         'Panchang fetched successfully',

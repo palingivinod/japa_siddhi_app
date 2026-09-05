@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import {PanchangPayload} from '../../services/panchang';
 import Colors from '../../theme/colors';
 
@@ -12,35 +13,54 @@ type Props = {
 const value = (text?: string) => text || '—';
 
 const PanchangDetails = ({panchang, compact}: Props) => {
+  const {t} = useLanguage();
+
   const items = [
     [
-      'NAKSHATRA',
+      t('labelNakshatra'),
       panchang.pada
-        ? `${value(panchang.nakshatra)} · Pada ${panchang.pada}`
+        ? `${value(panchang.nakshatra)} · ${t('padaLabel', {n: panchang.pada})}`
         : value(panchang.nakshatra),
     ],
-    ['TITHI', value(panchang.tithi)],
-    ['VARA', panchang.vara ? `${panchang.weekday} · ${panchang.vara}` : '—'],
-    ['PAKSHA', value(panchang.paksha)],
-    ['YOGA', value(panchang.yoga)],
-    ['KARANA', value(panchang.karana)],
+    [t('labelTithi'), value(panchang.tithi)],
+    [
+      t('labelVara'),
+      panchang.vara ? `${panchang.weekday} · ${panchang.vara}` : '—',
+    ],
+    [t('labelPaksha'), value(panchang.paksha)],
+    [t('labelYoga'), value(panchang.yoga)],
+    [t('labelKarana'), value(panchang.karana)],
   ];
 
   if (!compact) {
     items.push(
-      ['MOON RASHI', value(panchang.moonRashi)],
-      ['SUN RASHI', value(panchang.sunRashi)],
+      [t('labelMoonRashi'), value(panchang.moonRashi)],
+      [t('labelSunRashi'), value(panchang.sunRashi)],
+      [t('labelSunrise'), value(panchang.sunrise)],
+      [t('labelSunset'), value(panchang.sunset)],
+      [t('labelRahuKalam'), value(panchang.rahuKalam)],
+      [t('labelYamagandam'), value(panchang.yamagandam)],
+    );
+  } else if (panchang.sunrise || panchang.rahuKalam) {
+    items.push(
+      [t('labelSunrise'), value(panchang.sunrise)],
+      [t('labelRahuKalam'), value(panchang.rahuKalam)],
     );
   }
 
   return (
-    <View style={styles.row}>
-      {items.map(([label, text]) => (
-        <View key={label} style={styles.item}>
-          <Text style={styles.label}>{label}</Text>
-          <Text style={styles.value}>{text}</Text>
-        </View>
-      ))}
+    <View style={styles.wrap}>
+      {panchang.locationName ? (
+        <Text style={styles.meta}>{panchang.locationName}</Text>
+      ) : null}
+      <View style={styles.row}>
+        {items.map(([label, text]) => (
+          <View key={label} style={styles.item}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.value}>{text}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 };
@@ -48,11 +68,19 @@ const PanchangDetails = ({panchang, compact}: Props) => {
 export default PanchangDetails;
 
 const styles = StyleSheet.create({
+  wrap: {
+    marginTop: 14,
+  },
+  meta: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 8,
+  },
   row: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginTop: 14,
   },
   item: {
     width: '48%',

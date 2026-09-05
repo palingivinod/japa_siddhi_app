@@ -2,6 +2,7 @@ import React from 'react';
 import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 
 interface Props {
@@ -16,6 +17,7 @@ const AppHeader: React.FC<Props> = ({
   showBell = false,
 }) => {
   const navigation = useNavigation<any>();
+  const {t, tt} = useLanguage();
 
   return (
     <View style={styles.row}>
@@ -28,14 +30,14 @@ const AppHeader: React.FC<Props> = ({
           onPress={() => navigation.navigate('Notifications')}
           style={styles.back}
           accessibilityRole="button"
-          accessibilityLabel="Notifications">
+          accessibilityLabel={t('notifications')}>
           <Text style={styles.bell}>●</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.back} />
       )}
       <Text style={styles.title} numberOfLines={1}>
-        {title}
+        {tt(title)}
       </Text>
       <TouchableOpacity
         onPress={() => {
@@ -45,7 +47,7 @@ const AppHeader: React.FC<Props> = ({
         }}
         disabled={!showBell}
         accessibilityRole="button"
-        accessibilityLabel="Profile">
+        accessibilityLabel={t('tabProfile')}>
         <Image
           source={require('../../assets/images/login_logo.webp')}
           style={styles.logo}

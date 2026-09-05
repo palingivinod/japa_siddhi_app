@@ -12,6 +12,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import countries, {CountryItem} from '../../constants/countries';
 import CountryPickerField from './components/CountryPickerField';
 import PhoneNumberField from './components/PhoneNumberField';
@@ -25,6 +26,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -45,12 +47,12 @@ const LoginScreen = () => {
     const trimmedEmail = email.trim().toLowerCase();
 
     if (mobileNumber.length < 6) {
-      Alert.alert('Required', 'Please enter a valid mobile number.');
+      Alert.alert(t('required'), t('validMobile'));
       return;
     }
 
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      Alert.alert('Required', 'Enter a valid email. The 4-digit OTP is sent there.');
+      Alert.alert(t('required'), t('validEmailOtp'));
       return;
     }
 
@@ -74,11 +76,9 @@ const LoginScreen = () => {
         error?.code === 'ECONNABORTED' ||
         String(error?.message || '').toLowerCase().includes('timeout');
       Alert.alert(
-        'OTP Failed',
+        t('otpFailed'),
         error?.response?.data?.message ||
-          (timedOut
-            ? 'The server is waking up. Wait 10 seconds and tap SEND OTP again.'
-            : 'Unable to send OTP.'),
+          (timedOut ? t('serverWaking') : t('unableSendOtp')),
       );
     } finally {
       setSubmitting(false);
@@ -95,18 +95,18 @@ const LoginScreen = () => {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={styles.content}>
         <AppHeader title="Welcome to Japa Siddhi" showBack />
-        <Text style={styles.heading}>Begin your spiritual journey</Text>
+        <Text style={styles.heading}>{t('beginSpiritualJourney')}</Text>
         {hasSession ? (
           <>
             <PrimaryButton
-              title="CONTINUE TO HOME"
+              title={t('continueToHome')}
               onPress={() => navigation.replace('Home')}
             />
-            <Text style={styles.or}>OR LOGIN AGAIN</Text>
+            <Text style={styles.or}>{t('orLoginAgain')}</Text>
           </>
         ) : null}
 
-        <Text style={styles.label}>Mobile Number</Text>
+        <Text style={styles.label}>{t('mobileNumber')}</Text>
         <CountryPickerField
           value={selectedCountry}
           onChange={setSelectedCountry}
@@ -114,16 +114,16 @@ const LoginScreen = () => {
         <PhoneNumberField
           value={phoneNumber}
           onChangeText={setPhoneNumber}
-          placeholder="Enter mobile number"
+          placeholder={t('enterMobileNumber')}
         />
-        <Text style={styles.helper}>We will send a 4-digit OTP to your email.</Text>
+        <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>{t('email')}</Text>
         <TextInput
           style={styles.emailInput}
           value={email}
           onChangeText={setEmail}
-          placeholder="Enter email address"
+          placeholder={t('enterEmailAddress')}
           placeholderTextColor={Colors.placeholder}
           keyboardType="email-address"
           autoCapitalize="none"
@@ -131,7 +131,7 @@ const LoginScreen = () => {
         />
 
         <ContinueButton
-          title={submitting ? 'SENDING OTP...' : 'SEND OTP'}
+          title={submitting ? t('sendingOtp') : t('sendOtp')}
           onPress={handleContinue}
           disabled={
             phoneNumber.replace(/\D/g, '').length < 6 ||
@@ -142,7 +142,7 @@ const LoginScreen = () => {
 
         {__DEV__ ? (
           <>
-            <Text style={styles.or}>OR CONTINUE WITH</Text>
+            <Text style={styles.or}>{t('orContinueWith')}</Text>
             {['Google', 'Facebook', 'Email'].map(item => (
               <TouchableOpacity
                 key={item}
@@ -155,12 +155,12 @@ const LoginScreen = () => {
         ) : null}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>New to Japa Siddhi?</Text>
+          <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
           <TouchableOpacity onPress={handleContinue}>
-            <Text style={styles.linkText}>Create an account</Text>
+            <Text style={styles.linkText}>{t('createAnAccount')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-            <Text style={styles.privacy}>Terms & Privacy Policy</Text>
+            <Text style={styles.privacy}>{t('termsPrivacy')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

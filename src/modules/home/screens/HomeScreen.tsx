@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   RefreshControl,
   ScrollView,
@@ -10,6 +10,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../../i18n/LanguageContext';
 import apiService from '../../../services/apiService';
 import {
   emptyPanchang,
@@ -24,17 +25,9 @@ import BottomTabs from '../../common/BottomTabs';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
 
-const TILES = [
-  {title: 'Japa Chanting', sub: 'Start or resume', route: 'JapaHub'},
-  {title: 'Baanalingam', sub: 'Apply / order', route: 'BanaLingam'},
-  {title: 'Annadanam', sub: 'Offer food service', route: 'Donate'},
-  {title: 'Nithya Homam', sub: 'Enroll now', route: 'NithyaHomam'},
-  {title: 'Orders & Tracking', sub: 'View orders', route: 'Orders'},
-  {title: 'Customer Care', sub: 'Need help?', route: 'CustomerCare'},
-];
-
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, language} = useLanguage();
   const [name, setName] = useState('Devotee');
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
@@ -44,18 +37,42 @@ const HomeScreen = () => {
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [refreshing, setRefreshing] = useState(false);
 
+  const tiles = useMemo(
+    () => [
+      {title: t('tileJapaChanting'), sub: t('tileJapaSub'), route: 'JapaHub'},
+      {
+        title: t('tileBaanalingam'),
+        sub: t('tileBaanalingamSub'),
+        route: 'BanaLingam',
+      },
+      {title: t('tileAnnadanam'), sub: t('tileAnnadanamSub'), route: 'Donate'},
+      {
+        title: t('tileNithyaHomam'),
+        sub: t('tileNithyaHomamSub'),
+        route: 'NithyaHomam',
+      },
+      {title: t('tileOrders'), sub: t('tileOrdersSub'), route: 'Orders'},
+      {
+        title: t('tileCustomerCare'),
+        sub: t('tileCustomerCareSub'),
+        route: 'CustomerCare',
+      },
+    ],
+    [t],
+  );
+
   const load = async () => {
     const user = await getStoredUser();
     const display =
-      user?.fullName || user?.full_name || user?.firstName || 'Devotee';
-    setName(String(display).split(' ')[0] || 'Devotee');
+      user?.fullName || user?.full_name || user?.firstName || t('devotee');
+    setName(String(display).split(' ')[0] || t('devotee'));
 
     try {
       const [summary, goals, challenges, panchangRes] = await Promise.allSettled([
         apiService.get('/japa/summary'),
         apiService.get('/japa-goals'),
         apiService.get('/challenges'),
-        apiService.get('/festivals/panchang'),
+        apiService.get('/festivals/panchang', {params: {lang: language}}),
       ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
@@ -84,7 +101,7 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       load();
-    }, []),
+    }, [t, language]),
   );
 
   const onRefresh = async () => {
@@ -109,17 +126,16 @@ const HomeScreen = () => {
               colors={[Colors.templeGold]}
             />
           }>
-          <Text style={styles.greet}>Namaste, {name}</Text>
-          <Text style={styles.wish}>May your day be peaceful</Text>
+          <Text style={styles.greet}>{t('namaste', {name})}</Text>
+          <Text style={styles.wish}>{t('peacefulDay')}</Text>
 
           <HomeBanner
             banner={{
               id: 1,
-              title: 'Begin your Japa',
-              subtitle:
-                'A digital space for Japa, Annadanam and spiritual participation.',
+              title: t('beginYourJapa'),
+              subtitle: t('bannerSubtitle'),
               imageUrl: '',
-              buttonText: 'Start Chanting',
+              buttonText: t('startChanting'),
             }}
             onPress={() => navigation.navigate('JapaHub')}
           />
@@ -128,21 +144,20 @@ const HomeScreen = () => {
             style={styles.festival}
             onPress={() => navigation.navigate('Festivals')}>
             <Text style={styles.kicker}>
-              {panchang.festival ? 'TODAY · FESTIVAL' : 'TODAY · PANCHANGAM'}
+              {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
             </Text>
             <Text style={styles.dateLine}>
-              {panchang.displayDate || 'Loading today...'}
+              {panchang.displayDate || t('loadingToday')}
             </Text>
             <Text style={styles.cardTitle}>
-              {festivalName(panchang.festival) || "Today's Panchangam"}
+              {festivalName(panchang.festival) || t('todaysPanchangam')}
             </Text>
             <Text style={styles.cardMeta}>
-              {panchang.festival?.description ||
-                'Nakshatra, tithi and panchangam for today.'}
+              {panchang.festival?.description || t('panchangMeta')}
             </Text>
             {panchang.nextFestival && !panchang.festival ? (
               <Text style={styles.nextFestival}>
-                Next: {festivalName(panchang.nextFestival)} ·{' '}
+                {t('next')}: {festivalName(panchang.nextFestival)} ·{' '}
                 {festivalDateLabel(panchang.nextFestival.festivalDate)}
               </Text>
             ) : null}
@@ -152,14 +167,14 @@ const HomeScreen = () => {
           <TouchableOpacity
             style={styles.progressCard}
             onPress={() => navigation.navigate('JapaHub')}>
-            <Text style={styles.progressTitle}>Continue Japa</Text>
+            <Text style={styles.progressTitle}>{t('continueJapa')}</Text>
             <Text style={styles.progressMeta}>
-              {today.toLocaleString()} chants today
+              {t('chantsToday', {count: today.toLocaleString()})}
             </Text>
             <Text style={styles.progressMeta}>
-              Goal: {goal.toLocaleString()} chants
+              {t('goalChants', {count: goal.toLocaleString()})}
             </Text>
-            <Text style={styles.todayLabel}>Today's progress</Text>
+            <Text style={styles.todayLabel}>{t('todaysProgress')}</Text>
             <View style={styles.barRow}>
               <View style={styles.barTrack}>
                 <View style={[styles.barFill, {width: `${progress}%`}]} />
@@ -172,9 +187,11 @@ const HomeScreen = () => {
             <TouchableOpacity
               style={styles.half}
               onPress={() => navigation.navigate('StreakAnalytics')}>
-              <Text style={styles.kicker}>STREAK</Text>
-              <Text style={styles.big}>{streak} days</Text>
-              <Text style={styles.cardMeta}>Keep your daily Japa</Text>
+              <Text style={styles.kicker}>{t('streak')}</Text>
+              <Text style={styles.big}>
+                {streak} {t('days')}
+              </Text>
+              <Text style={styles.cardMeta}>{t('keepDailyJapa')}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.half}
@@ -183,14 +200,16 @@ const HomeScreen = () => {
                   ? navigation.navigate('ChallengeDetails', {id: challenge.id})
                   : navigation.navigate('Challenges')
               }>
-              <Text style={styles.kicker}>CHALLENGE</Text>
+              <Text style={styles.kicker}>{t('challenge')}</Text>
               <Text style={styles.big} numberOfLines={2}>
-                {challenge?.title || 'Join a challenge'}
+                {challenge?.title || t('joinChallenge')}
               </Text>
               <Text style={styles.cardMeta}>
                 {challenge
-                  ? `${Number(challenge.progressPercent || 0)}% complete`
-                  : 'Spiritual challenges'}
+                  ? t('percentComplete', {
+                      percent: Number(challenge.progressPercent || 0),
+                    })
+                  : t('spiritualChallenges')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -199,42 +218,36 @@ const HomeScreen = () => {
             <TouchableOpacity
               style={styles.promo}
               onPress={() => navigation.navigate('JapaAnnadanam')}>
-              <Text style={styles.kicker}>ANNADANAM</Text>
+              <Text style={styles.kicker}>{t('annadanam')}</Text>
               <Text style={styles.cardTitle}>
-                You have completed {lifetime.toLocaleString()} Japas
+                {t('completedJapas', {count: lifetime.toLocaleString()})}
               </Text>
-              <Text style={styles.cardMeta}>
-                Consider sponsoring Annadanam for greater spiritual benefit.
-              </Text>
-              <Text style={styles.link}>Donate Now →</Text>
+              <Text style={styles.cardMeta}>{t('considerAnnadanam')}</Text>
+              <Text style={styles.link}>{t('donateNow')}</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               style={styles.promo}
               onPress={() => navigation.navigate('Donate')}>
-              <Text style={styles.kicker}>ANNADANAM</Text>
-              <Text style={styles.cardTitle}>Offer food seva</Text>
-              <Text style={styles.cardMeta}>
-                Support Annadanam for devotees and festivals.
-              </Text>
-              <Text style={styles.link}>Donate Now →</Text>
+              <Text style={styles.kicker}>{t('annadanam')}</Text>
+              <Text style={styles.cardTitle}>{t('offerFoodSeva')}</Text>
+              <Text style={styles.cardMeta}>{t('supportAnnadanam')}</Text>
+              <Text style={styles.link}>{t('donateNow')}</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={styles.promo}
             onPress={() => navigation.navigate('NithyaHomam')}>
-            <Text style={styles.kicker}>NITHYA HOMAM</Text>
-            <Text style={styles.cardTitle}>Enroll for daily homam</Text>
-            <Text style={styles.cardMeta}>
-              Participate in Nithya Homam with your name and gothram.
-            </Text>
-            <Text style={styles.link}>Enroll Now →</Text>
+            <Text style={styles.kicker}>{t('nithyaHomam')}</Text>
+            <Text style={styles.cardTitle}>{t('enrollDailyHomam')}</Text>
+            <Text style={styles.cardMeta}>{t('participateHomam')}</Text>
+            <Text style={styles.link}>{t('enrollNow')}</Text>
           </TouchableOpacity>
 
-          <Text style={styles.section}>Quick actions</Text>
+          <Text style={styles.section}>{t('quickActions')}</Text>
           <View style={styles.grid}>
-            {TILES.map(item => (
+            {tiles.map(item => (
               <TouchableOpacity
                 key={item.route}
                 style={styles.tile}

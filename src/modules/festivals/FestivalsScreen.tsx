@@ -1,7 +1,8 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import {
   emptyPanchang,
@@ -25,19 +26,20 @@ interface Festival {
 
 const FestivalsScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, language} = useLanguage();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
 
-  const load = () => {
+  const load = useCallback(() => {
     setLoading(true);
     setError('');
     setRawError(null);
     Promise.allSettled([
       apiService.get('/festivals'),
-      apiService.get('/festivals/panchang'),
+      apiService.get('/festivals/panchang', {params: {lang: language}}),
     ])
       .then(([response, panchangRes]) => {
         if (response.status === 'fulfilled') {
@@ -45,7 +47,10 @@ const FestivalsScreen = () => {
         }
         if (panchangRes.status === 'fulfilled' && panchangRes.value.data.data) {
           setPanchang(panchangRes.value.data.data);
-        } else if (panchangRes.status === 'rejected' && response.status === 'rejected') {
+        } else if (
+          panchangRes.status === 'rejected' &&
+          response.status === 'rejected'
+        ) {
           setRawError(panchangRes.reason);
           setError(
             getApiError(
@@ -56,11 +61,11 @@ const FestivalsScreen = () => {
         }
       })
       .finally(() => setLoading(false));
-  };
+  }, [language]);
 
   useEffect(() => {
     load();
-  }, []);
+  }, [load]);
 
   return (
     <ScreenLayout title="Festivals">
@@ -69,19 +74,19 @@ const FestivalsScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <View style={styles.card}>
-        <Text style={styles.kicker}>TODAY · PANCHANGAM</Text>
+        <Text style={styles.kicker}>{t('todayPanchangam')}</Text>
         <Text style={styles.date}>
-          {panchang.displayDate || 'Loading today...'}
+          {panchang.displayDate || t('loadingToday')}
         </Text>
         <Text style={styles.name}>
-          {festivalName(panchang.festival) || "Today's Panchangam"}
+          {festivalName(panchang.festival) || t('todaysPanchangam')}
         </Text>
         {panchang.festival?.description ? (
           <Text style={styles.description}>{panchang.festival.description}</Text>
         ) : null}
         {panchang.nextFestival && !panchang.festival ? (
           <Text style={styles.description}>
-            Next festival: {festivalName(panchang.nextFestival)} on{' '}
+            {t('next')}: {festivalName(panchang.nextFestival)} ·{' '}
             {festivalDateLabel(panchang.nextFestival.festivalDate)}
           </Text>
         ) : null}
@@ -107,34 +112,36 @@ export default FestivalsScreen;
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.cream,
-    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderRadius: 18,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.border,
   },
   kicker: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    fontSize: 12,
     letterSpacing: 0.6,
+    fontSize: 12,
   },
   date: {
     marginTop: 6,
-    color: Colors.templeGold,
-    fontWeight: '800',
+    color: Colors.mutedText,
+    fontStyle: 'italic',
   },
   name: {
-    marginTop: 6,
-    fontSize: 18,
-    fontWeight: '700',
-    color: Colors.textPrimary,
+    marginTop: 4,
+    color: Colors.sacredBrown,
+    fontSize: 20,
+    fontWeight: '800',
   },
   description: {
-    marginTop: 6,
-    color: Colors.textSecondary,
+    marginTop: 8,
+    color: Colors.mutedText,
     lineHeight: 20,
   },
-  gap: {height: 12},
+  gap: {
+    height: 12,
+  },
 });

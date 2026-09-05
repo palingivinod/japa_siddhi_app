@@ -1,6 +1,11 @@
 import festivalRepository from './festival.repository';
 import {getPanchang} from './panchang';
 import {PanchangResponse} from './festival.types';
+import {
+  fetchVedicOrbitPanchang,
+  isVedicOrbitConfigured,
+  toVedicOrbitLang,
+} from './vedicOrbitPanchang';
 
 const nextCalendarDay = (date: string) => {
   const [year, month, day] = date.split('-').map(Number);
@@ -18,8 +23,25 @@ class FestivalService {
     return festivalRepository.getFestivalOnDate(today);
   }
 
-  async getPanchang(date?: string): Promise<PanchangResponse> {
-    const panchang = getPanchang(date);
+  async getPanchang(date?: string, lang?: string): Promise<PanchangResponse> {
+    let panchang = getPanchang(date);
+    const orbitLang = toVedicOrbitLang(lang);
+
+    if (isVedicOrbitConfigured()) {
+      try {
+        panchang = await fetchVedicOrbitPanchang({
+          date: date || panchang.date,
+          lang: orbitLang,
+          mode: 'summary',
+        });
+      } catch (error) {
+        console.error(
+          '[festival] VedicOrbit panchang failed, using local fallback:',
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+
     const festival = await festivalRepository.getFestivalOnDate(panchang.date);
     const nextFrom = festival
       ? nextCalendarDay(panchang.date)

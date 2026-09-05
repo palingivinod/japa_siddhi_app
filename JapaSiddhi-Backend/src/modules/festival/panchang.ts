@@ -142,6 +142,15 @@ export type PanchangResult = {
   sunRashi: string;
   timezone: typeof IST;
   computedAt: string;
+  source?: string;
+  locationName?: string;
+  sunrise?: string;
+  sunset?: string;
+  moonrise?: string;
+  moonset?: string;
+  rahuKalam?: string;
+  yamagandam?: string;
+  gulikaKalam?: string;
 };
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;
@@ -292,5 +301,6 @@ export const getPanchang = (dateInput?: string | Date): PanchangResult => {
     sunRashi: RASHIS[Math.floor(sun / 30) % 12],
     timezone: IST,
     computedAt: instant.toISOString(),
+    source: 'local',
   };
 };

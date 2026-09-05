@@ -3,8 +3,9 @@ import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
-import {APP_LANGUAGES, getLanguage, saveLanguage} from '../../services/language';
+import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import apiService from '../../services/apiService';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
@@ -13,7 +14,8 @@ const LanguageSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const fromSettings = route.params?.fromSettings;
-  const [selected, setSelected] = useState('en');
+  const {t, language, setAppLanguage} = useLanguage();
+  const [selected, setSelected] = useState(language || 'en');
 
   useEffect(() => {
     getLanguage().then(code => {
@@ -23,8 +25,14 @@ const LanguageSelectScreen = () => {
     });
   }, []);
 
+  useEffect(() => {
+    if (language) {
+      setSelected(language);
+    }
+  }, [language]);
+
   const continueNext = async () => {
-    await saveLanguage(selected);
+    await setAppLanguage(selected);
     try {
       await apiService.put('/profile/settings', {languageCode: selected});
     } catch {
@@ -40,7 +48,7 @@ const LanguageSelectScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <AppHeader title="Choose Language" showBack={fromSettings} />
-      <Text style={styles.hint}>Select your preferred language</Text>
+      <Text style={styles.hint}>{t('selectPreferredLanguage')}</Text>
       <ScrollView showsVerticalScrollIndicator={false}>
         {APP_LANGUAGES.map(item => {
           const active = item.code === selected;
@@ -60,7 +68,7 @@ const LanguageSelectScreen = () => {
           );
         })}
       </ScrollView>
-      <PrimaryButton title="CONTINUE" onPress={continueNext} />
+      <PrimaryButton title={t('continue')} onPress={continueNext} />
     </SafeAreaView>
   );
 };

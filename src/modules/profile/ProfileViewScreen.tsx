@@ -3,6 +3,7 @@ import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import ProfileApi from '../auth/services/profileApi';
+import {useLanguage} from '../../i18n/LanguageContext';
 import {getStoredUser} from '../../services/session';
 import {logoutToLogin} from '../../services/logout';
 import {getApiError, isAuthError} from '../../services/apiService';
@@ -13,6 +14,7 @@ import MenuCard from '../common/MenuCard';
 
 const ProfileViewScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ const ProfileViewScreen = () => {
     const stored = await getStoredUser();
     if (stored) {
       setProfile({
-        fullName: stored.fullName || stored.full_name || 'Devotee',
+        fullName: stored.fullName || stored.full_name || t('devotee'),
         mobileNumber: stored.mobileNumber || stored.mobile_number || '',
         email: stored.email || '',
         cityName: stored.cityName || stored.city_name || '',
@@ -55,11 +57,11 @@ const ProfileViewScreen = () => {
     } catch (err: any) {
       if (isAuthError(err)) {
         setRawError(err);
-        setError(getApiError(err, 'Please login again to load this page.'));
+        setError(getApiError(err, t('pleaseLoginAgain')));
         return;
       }
       if (!stored) {
-        setProfile({fullName: 'Devotee'});
+        setProfile({fullName: t('devotee')});
       }
     } finally {
       setLoading(false);
@@ -79,34 +81,34 @@ const ProfileViewScreen = () => {
       <View style={styles.avatar}>
         <Text style={styles.face}>☺</Text>
       </View>
-      <Text style={styles.name}>{profile?.fullName || 'Devotee Name'}</Text>
+      <Text style={styles.name}>{profile?.fullName || t('devoteeName')}</Text>
       <MenuCard
-        title="Personal Profile"
+        title={t('personalProfile')}
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
       />
       <MenuCard
-        title="Notifications"
+        title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
       />
       <MenuCard
-        title="Order History"
+        title={t('orderHistory')}
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
-        title="Feedback"
+        title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}
       />
       <MenuCard
-        title="Settings"
+        title={t('settings')}
         onPress={() => navigation.navigate('Settings')}
       />
       <MenuCard
-        title="Language"
+        title={t('language')}
         onPress={() =>
           navigation.navigate('LanguageSelect', {fromSettings: true})
         }
       />
-      <MenuCard title="Logout" onPress={logout} />
+      <MenuCard title={t('logout')} onPress={logout} />
     </ScreenLayout>
   );
 };

@@ -3,6 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
@@ -10,6 +11,7 @@ import BottomTabs from '../common/BottomTabs';
 
 const JapaHubScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [today, setToday] = useState(0);
   const [streak, setStreak] = useState(0);
 
@@ -28,14 +30,14 @@ const JapaHubScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
         <AppHeader title="Japa Chanting" />
-        <Text style={styles.heading}>Choose your Japa</Text>
+        <Text style={styles.heading}>{t('chooseYourJapa')}</Text>
         <TouchableOpacity
           style={styles.card}
           onPress={() => navigation.navigate('CommunityJapa')}>
           <View style={styles.dot} />
           <View style={styles.copy}>
-            <Text style={styles.title}>Community Japa</Text>
-            <Text style={styles.sub}>Join collective chanting.</Text>
+            <Text style={styles.title}>{t('communityJapa')}</Text>
+            <Text style={styles.sub}>{t('communityJapaSub')}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -43,8 +45,8 @@ const JapaHubScreen = () => {
           onPress={() => navigation.navigate('PrivateJapa')}>
           <View style={[styles.dot, styles.dotGreen]} />
           <View style={styles.copy}>
-            <Text style={styles.title}>My Japa</Text>
-            <Text style={styles.sub}>Private mantra.</Text>
+            <Text style={styles.title}>{t('myJapa')}</Text>
+            <Text style={styles.sub}>{t('myJapaSub')}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -52,8 +54,8 @@ const JapaHubScreen = () => {
           onPress={() => navigation.navigate('Challenges')}>
           <View style={[styles.dot, styles.dotGreen]} />
           <View style={styles.copy}>
-            <Text style={styles.title}>Challenge Japa</Text>
-            <Text style={styles.sub}>Take a spiritual challenge.</Text>
+            <Text style={styles.title}>{t('challengeJapa')}</Text>
+            <Text style={styles.sub}>{t('challengeJapaSub')}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity
@@ -61,24 +63,26 @@ const JapaHubScreen = () => {
           onPress={() => navigation.navigate('AnalyticsHub')}>
           <View style={styles.dot} />
           <View style={styles.copy}>
-            <Text style={styles.title}>Japa Analytics</Text>
-            <Text style={styles.sub}>Weekly, monthly and streak reports.</Text>
+            <Text style={styles.title}>{t('japaAnalytics')}</Text>
+            <Text style={styles.sub}>{t('japaAnalyticsSub')}</Text>
           </View>
         </TouchableOpacity>
 
-        <Text style={styles.recent}>Recent progress</Text>
+        <Text style={styles.recent}>{t('recentProgress')}</Text>
         <View style={styles.stats}>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('JapaProgress')}>
-            <Text style={styles.statLabel}>TODAY</Text>
+            <Text style={styles.statLabel}>{t('today')}</Text>
             <Text style={styles.statValue}>{today.toLocaleString()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('StreakAnalytics')}>
-            <Text style={styles.statLabel}>STREAK</Text>
-            <Text style={styles.statValue}>{streak} days</Text>
+            <Text style={styles.statLabel}>{t('streak')}</Text>
+            <Text style={styles.statValue}>
+              {streak} {t('days')}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -101,8 +105,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
+    padding: 18,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
@@ -117,12 +121,12 @@ const styles = StyleSheet.create({
   },
   dotGreen: {backgroundColor: Colors.leafGreen},
   copy: {flex: 1},
-  title: {fontSize: 17, fontWeight: '800', color: Colors.sacredBrown},
+  title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
   sub: {marginTop: 4, color: Colors.textSecondary},
   recent: {
-    marginTop: 16,
+    marginTop: 8,
     marginBottom: 10,
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '800',
     color: Colors.leafGreen,
   },
@@ -135,10 +139,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  statLabel: {color: Colors.leafGreen, fontWeight: '700'},
+  statLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   statValue: {
     marginTop: 8,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
