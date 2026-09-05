@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
@@ -14,6 +14,44 @@ const JapaHubScreen = () => {
   const {t} = useLanguage();
   const [today, setToday] = useState(0);
   const [streak, setStreak] = useState(0);
+
+  const items = useMemo(
+    () => [
+      {
+        key: 'community',
+        emoji: '🕉️',
+        title: t('communityJapa'),
+        sub: t('communityJapaSub'),
+        route: 'CommunityJapa',
+        tone: 'gold' as const,
+      },
+      {
+        key: 'private',
+        emoji: '📿',
+        title: t('myJapa'),
+        sub: t('myJapaSub'),
+        route: 'PrivateJapa',
+        tone: 'green' as const,
+      },
+      {
+        key: 'challenge',
+        emoji: '🏆',
+        title: t('challengeJapa'),
+        sub: t('challengeJapaSub'),
+        route: 'Challenges',
+        tone: 'green' as const,
+      },
+      {
+        key: 'analytics',
+        emoji: '📊',
+        title: t('japaAnalytics'),
+        sub: t('japaAnalyticsSub'),
+        route: 'AnalyticsHub',
+        tone: 'gold' as const,
+      },
+    ],
+    [t],
+  );
 
   useEffect(() => {
     apiService
@@ -31,54 +69,40 @@ const JapaHubScreen = () => {
       <View style={styles.body}>
         <AppHeader title="Japa Chanting" />
         <Text style={styles.heading}>{t('chooseYourJapa')}</Text>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('CommunityJapa')}>
-          <View style={styles.dot} />
-          <View style={styles.copy}>
-            <Text style={styles.title}>{t('communityJapa')}</Text>
-            <Text style={styles.sub}>{t('communityJapaSub')}</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('PrivateJapa')}>
-          <View style={[styles.dot, styles.dotGreen]} />
-          <View style={styles.copy}>
-            <Text style={styles.title}>{t('myJapa')}</Text>
-            <Text style={styles.sub}>{t('myJapaSub')}</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('Challenges')}>
-          <View style={[styles.dot, styles.dotGreen]} />
-          <View style={styles.copy}>
-            <Text style={styles.title}>{t('challengeJapa')}</Text>
-            <Text style={styles.sub}>{t('challengeJapaSub')}</Text>
-          </View>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.card}
-          onPress={() => navigation.navigate('AnalyticsHub')}>
-          <View style={styles.dot} />
-          <View style={styles.copy}>
-            <Text style={styles.title}>{t('japaAnalytics')}</Text>
-            <Text style={styles.sub}>{t('japaAnalyticsSub')}</Text>
-          </View>
-        </TouchableOpacity>
+        {items.map(item => (
+          <TouchableOpacity
+            key={item.key}
+            style={styles.card}
+            activeOpacity={0.85}
+            onPress={() => navigation.navigate(item.route)}>
+            <View
+              style={[
+                styles.iconWrap,
+                item.tone === 'green' ? styles.iconGreen : styles.iconGold,
+              ]}>
+              <Text style={styles.emoji}>{item.emoji}</Text>
+            </View>
+            <View style={styles.copy}>
+              <Text style={styles.title}>{item.title}</Text>
+              <Text style={styles.sub}>{item.sub}</Text>
+            </View>
+            <Text style={styles.chevron}>›</Text>
+          </TouchableOpacity>
+        ))}
 
         <Text style={styles.recent}>{t('recentProgress')}</Text>
         <View style={styles.stats}>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('JapaProgress')}>
+            <Text style={styles.statEmoji}>🙏</Text>
             <Text style={styles.statLabel}>{t('today')}</Text>
             <Text style={styles.statValue}>{today.toLocaleString()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('StreakAnalytics')}>
+            <Text style={styles.statEmoji}>🔥</Text>
             <Text style={styles.statLabel}>{t('streak')}</Text>
             <Text style={styles.statValue}>
               {streak} {t('days')}
@@ -105,24 +129,41 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  dot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.templeGold,
+  iconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
   },
-  dotGreen: {backgroundColor: Colors.leafGreen},
+  iconGold: {
+    backgroundColor: '#F3E2C6',
+  },
+  iconGreen: {
+    backgroundColor: '#E4EFDF',
+  },
+  emoji: {
+    fontSize: 24,
+  },
   copy: {flex: 1},
   title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
   sub: {marginTop: 4, color: Colors.textSecondary},
+  chevron: {
+    fontSize: 28,
+    color: Colors.lightGold,
+    fontWeight: '300',
+    marginLeft: 6,
+    marginTop: -2,
+  },
   recent: {
     marginTop: 8,
     marginBottom: 10,
@@ -138,6 +179,10 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+  },
+  statEmoji: {
+    fontSize: 18,
+    marginBottom: 6,
   },
   statLabel: {
     color: Colors.leafGreen,

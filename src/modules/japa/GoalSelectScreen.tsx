@@ -50,6 +50,7 @@ const GoalSelectScreen = () => {
     navigation.navigate('ReferenceChant', {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
+      privateMantra: route.params?.privateMantra,
       goal,
       goalType,
       endDate,

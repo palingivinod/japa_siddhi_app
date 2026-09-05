@@ -18,6 +18,7 @@ const ReferenceChantScreen = () => {
     navigation.navigate('Chant', {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
+      privateMantra: route.params?.privateMantra,
       goal: route.params?.goal || 2000,
       durationMs,
     });
@@ -49,7 +50,9 @@ const ReferenceChantScreen = () => {
       </View>
       <Text style={styles.title}>Record a short reference chant</Text>
       <Text style={styles.copy}>
-        This helps smart counting recognize your rhythm.
+        Start and stop once while you chant aloud. This only captures your
+        rhythm timing — counting happens on the next screen by tapping once
+        per japa toward your goal.
       </Text>
       <PrimaryButton
         title={recording ? 'STOP RECORDING' : 'START RECORDING'}

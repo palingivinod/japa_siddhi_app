@@ -39,23 +39,47 @@ const HomeScreen = () => {
 
   const tiles = useMemo(
     () => [
-      {title: t('tileJapaChanting'), sub: t('tileJapaSub'), route: 'JapaHub'},
+      {
+        title: t('tileJapaChanting'),
+        sub: t('tileJapaSub'),
+        route: 'JapaHub',
+        emoji: '🕉️',
+        tone: 'gold' as const,
+      },
       {
         title: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
+        emoji: '🪨',
+        tone: 'green' as const,
       },
-      {title: t('tileAnnadanam'), sub: t('tileAnnadanamSub'), route: 'Donate'},
+      {
+        title: t('tileAnnadanam'),
+        sub: t('tileAnnadanamSub'),
+        route: 'Donate',
+        emoji: '🍲',
+        tone: 'gold' as const,
+      },
       {
         title: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
+        emoji: '🔥',
+        tone: 'green' as const,
       },
-      {title: t('tileOrders'), sub: t('tileOrdersSub'), route: 'Orders'},
+      {
+        title: t('tileOrders'),
+        sub: t('tileOrdersSub'),
+        route: 'Orders',
+        emoji: '📦',
+        tone: 'gold' as const,
+      },
       {
         title: t('tileCustomerCare'),
         sub: t('tileCustomerCareSub'),
         route: 'CustomerCare',
+        emoji: '💬',
+        tone: 'green' as const,
       },
     ],
     [t],
@@ -251,8 +275,17 @@ const HomeScreen = () => {
               <TouchableOpacity
                 key={item.route}
                 style={styles.tile}
+                activeOpacity={0.85}
                 onPress={() => navigation.navigate(item.route)}>
-                <View style={styles.tileDot} />
+                <View
+                  style={[
+                    styles.tileIcon,
+                    item.tone === 'green'
+                      ? styles.tileIconGreen
+                      : styles.tileIconGold,
+                  ]}>
+                  <Text style={styles.tileEmoji}>{item.emoji}</Text>
+                </View>
                 <Text style={styles.tileTitle}>{item.title}</Text>
                 <Text style={styles.tileSub}>{item.sub}</Text>
               </TouchableOpacity>
@@ -408,12 +441,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  tileDot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.templeGold,
+  tileIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
+  },
+  tileIconGold: {
+    backgroundColor: '#F3E2C6',
+  },
+  tileIconGreen: {
+    backgroundColor: '#E4EFDF',
+  },
+  tileEmoji: {
+    fontSize: 20,
   },
   tileTitle: {
     fontSize: 15,

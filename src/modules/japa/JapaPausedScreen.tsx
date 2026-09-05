@@ -25,7 +25,10 @@ const JapaPausedScreen = () => {
           <Text style={styles.meta}>Screen lock prevents accidental counts.</Text>
         </View>
       </View>
-      <PrimaryButton title="RESUME JAPA" onPress={() => navigation.goBack()} />
+      <PrimaryButton
+        title="RESUME JAPA"
+        onPress={() => navigation.goBack()}
+      />
       <View style={styles.gap} />
       <OutlineButton
         title="END SESSION"

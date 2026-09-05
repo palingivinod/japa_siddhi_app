@@ -1,3 +1,6 @@
+import https from 'https';
+import {URL} from 'url';
+
 import environment from '../../config/environment';
 import {PanchangResult} from './panchang';
 
@@ -86,8 +89,13 @@ type FetchOptions = {
   mode?: 'summary' | 'full';
 };
 
-const cache = new Map<string, {expiresAt: number; value: ExternalPanchangResult}>();
+const cache = new Map<
+  string,
+  {expiresAt: number; value: ExternalPanchangResult}
+>();
 const CACHE_TTL_MS = 30 * 60 * 1000;
+const REQUEST_TIMEOUT_MS = 20000;
+const MAX_ATTEMPTS = 3;
 
 const VEDICORBIT_LANGS = new Set(['en', 'te', 'hi', 'ta', 'kn']);
 
@@ -102,6 +110,11 @@ const LOCALE_BY_LANG: Record<string, string> = {
   bn: 'bn-IN',
   or: 'or-IN',
 };
+
+const FALLBACK_BASE_URLS = [
+  'https://vedicorbit-website.vercel.app/api/panchangam',
+  'https://www.vedicorbit.in/api/panchangam',
+];
 
 /** Map app language codes to VedicOrbit-supported langs. */
 export const toVedicOrbitLang = (lang?: string | null) => {
@@ -224,6 +237,82 @@ const mapResponse = (
 export const isVedicOrbitConfigured = () =>
   Boolean(environment.VEDICORBIT_API_KEY?.trim());
 
+const baseUrls = () => {
+  const preferred = environment.VEDICORBIT_API_BASE_URL?.trim();
+  const list = preferred
+    ? [preferred, ...FALLBACK_BASE_URLS.filter(item => item !== preferred)]
+    : FALLBACK_BASE_URLS;
+  return list;
+};
+
+const httpsGetJson = (url: string, apiKey: string) =>
+  new Promise<VedicOrbitResponse>((resolve, reject) => {
+    const parsed = new URL(url);
+    const req = https.request(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || 443,
+        path: `${parsed.pathname}${parsed.search}`,
+        method: 'GET',
+        headers: {
+          'x-api-key': apiKey,
+          Accept: 'application/json',
+          Connection: 'close',
+        },
+        timeout: REQUEST_TIMEOUT_MS,
+        servername: parsed.hostname,
+        family: 4,
+      },
+      res => {
+        const chunks: Buffer[] = [];
+        res.on('data', chunk => chunks.push(Buffer.from(chunk)));
+        res.on('end', () => {
+          const body = Buffer.concat(chunks).toString('utf8');
+          let payload: VedicOrbitResponse = {};
+          try {
+            payload = body ? (JSON.parse(body) as VedicOrbitResponse) : {};
+          } catch {
+            reject(new Error('VedicOrbit returned invalid JSON'));
+            return;
+          }
+          if ((res.statusCode || 500) >= 400 || payload.success === false) {
+            reject(
+              new Error(
+                payload.error ||
+                  `VedicOrbit request failed (${res.statusCode || 0})`,
+              ),
+            );
+            return;
+          }
+          resolve(payload);
+        });
+      },
+    );
+    req.on('timeout', () => {
+      req.destroy(new Error('VedicOrbit request timed out'));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+
+const fetchWithRetry = async (url: string, apiKey: string) => {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await httpsGetJson(url, apiKey);
+    } catch (error) {
+      lastError = error;
+      if (attempt < MAX_ATTEMPTS) {
+        await new Promise(resolve => setTimeout(resolve, 400 * attempt));
+      }
+    }
+  }
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('VedicOrbit request failed');
+};
+
 export const fetchVedicOrbitPanchang = async (
   options: FetchOptions = {},
 ): Promise<ExternalPanchangResult> => {
@@ -256,27 +345,31 @@ export const fetchVedicOrbitPanchang = async (
     return cached.value;
   }
 
-  const url = new URL(environment.VEDICORBIT_API_BASE_URL);
-  url.searchParams.set('mode', mode);
-  url.searchParams.set('date', date);
-  url.searchParams.set('lat', String(environment.VEDICORBIT_LAT));
-  url.searchParams.set('lon', String(environment.VEDICORBIT_LON));
-  url.searchParams.set('timezone', environment.VEDICORBIT_TIMEZONE);
-  url.searchParams.set('lang', lang);
-
-  const response = await fetch(url.toString(), {
-    method: 'GET',
-    headers: {
-      'x-api-key': environment.VEDICORBIT_API_KEY,
-      Accept: 'application/json',
-    },
+  const params = new URLSearchParams({
+    mode,
+    date,
+    lat: String(environment.VEDICORBIT_LAT),
+    lon: String(environment.VEDICORBIT_LON),
+    timezone: environment.VEDICORBIT_TIMEZONE,
+    lang,
   });
 
-  const payload = (await response.json()) as VedicOrbitResponse;
-  if (!response.ok || payload.success === false) {
-    throw new Error(
-      payload.error || `VedicOrbit request failed (${response.status})`,
-    );
+  let payload: VedicOrbitResponse | null = null;
+  let lastError: unknown;
+  for (const base of baseUrls()) {
+    const url = `${base}?${params.toString()}`;
+    try {
+      payload = await fetchWithRetry(url, environment.VEDICORBIT_API_KEY);
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (!payload) {
+    const detail =
+      lastError instanceof Error ? lastError.message : String(lastError);
+    throw new Error(`VedicOrbit unavailable: ${detail}`);
   }
 
   const mapped = mapResponse(payload, lang);

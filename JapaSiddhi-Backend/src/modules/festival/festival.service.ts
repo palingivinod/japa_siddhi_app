@@ -35,9 +35,17 @@ class FestivalService {
           mode: 'summary',
         });
       } catch (error) {
+        const detail =
+          error instanceof Error
+            ? `${error.message}${
+                (error as Error & {cause?: {code?: string}}).cause?.code
+                  ? ` [${(error as Error & {cause?: {code?: string}}).cause?.code}]`
+                  : ''
+              }`
+            : String(error);
         console.error(
           '[festival] VedicOrbit panchang failed, using local fallback:',
-          error instanceof Error ? error.message : error,
+          detail,
         );
       }
     }

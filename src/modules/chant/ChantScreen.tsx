@@ -1,5 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -30,7 +30,7 @@ const ChantScreen = () => {
   const [selected, setSelected] = useState<Mantra | null>(null);
   const [savedTotal, setSavedTotal] = useState(0);
   const [count, setCount] = useState(0);
-  const [goal, setGoal] = useState(2000);
+  const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
   const [paused, setPaused] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -40,6 +40,18 @@ const ChantScreen = () => {
   const lastTap = useRef(0);
   const intervals = useRef<number[]>([]);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const countRef = useRef(0);
+  const goalRef = useRef(goal);
+
+  countRef.current = count;
+  goalRef.current = goal;
+
+  const clearIdleTimer = () => {
+    if (idleTimer.current) {
+      clearTimeout(idleTimer.current);
+      idleTimer.current = null;
+    }
+  };
 
   const load = () => {
     setLoading(true);
@@ -47,9 +59,14 @@ const ChantScreen = () => {
     setRawError(null);
     Promise.all([apiService.get('/mantras'), apiService.get('/japa/summary')])
       .then(([mantraResponse, summaryResponse]) => {
-        const items = mantraResponse.data.data ?? [];
+        const items: Mantra[] = mantraResponse.data.data ?? [];
         setMantras(items);
-        setSelected(current => current ?? items[0] ?? null);
+        const preferredId = Number(route.params?.mantraId || 0);
+        const preferred =
+          (preferredId && items.find(item => item.id === preferredId)) ||
+          items[0] ||
+          null;
+        setSelected(current => current ?? preferred);
         const data = summaryResponse.data.data ?? {};
         setSavedTotal(Number(data.totalJapaCount ?? 0) || 0);
         setGoal(Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000);
@@ -63,44 +80,58 @@ const ChantScreen = () => {
 
   useEffect(() => {
     load();
-    return () => {
-      if (idleTimer.current) {
-        clearTimeout(idleTimer.current);
-      }
-    };
+    return () => clearIdleTimer();
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      // Returning from JapaPaused must unlock tapping again.
+      setPaused(false);
+      setMessage('');
+      return () => clearIdleTimer();
+    }, []),
+  );
+
   const armIdlePause = () => {
-    if (idleTimer.current) {
-      clearTimeout(idleTimer.current);
-    }
+    clearIdleTimer();
     idleTimer.current = setTimeout(() => {
       setPaused(true);
       navigation.navigate('JapaPaused', {
-        count: savedTotal + count,
-        goal,
+        count: countRef.current,
+        goal: goalRef.current,
+        sessionCount: countRef.current,
       });
-    }, 12000);
+    }, 45000);
   };
 
   const tapChant = () => {
     if (paused) {
-      return;
+      setPaused(false);
     }
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
+      // Ignore accidental double-taps under 250ms; otherwise accept.
+      if (delta < 250) {
+        return;
+      }
       const reference = Number(route.params?.durationMs || 0);
       const average =
         intervals.current.length >= 3
           ? intervals.current.reduce((sum, item) => sum + item, 0) /
             intervals.current.length
           : reference;
-      if (average && delta < average * 0.55) {
-        setMessage('Count not accepted. Chant at your reference pace.');
+      // Soft pace hint only after we have a stable average; never hard-block early taps.
+      if (
+        intervals.current.length >= 5 &&
+        average > 0 &&
+        delta < average * 0.35
+      ) {
+        setMessage('Slow down a little to match your chanting pace.');
+        lastTap.current = now;
         return;
       }
-      if (intervals.current.length < 8 && delta < 8000) {
+      if (intervals.current.length < 12 && delta < 10000) {
         intervals.current = [...intervals.current, delta];
       }
     }
@@ -111,11 +142,16 @@ const ChantScreen = () => {
   };
 
   const saveSession = async () => {
-    if (!selected || count < 1) {
-      setMessage('Tap to chant at least once before saving.');
+    if (count < 1) {
+      setMessage('Tap the circle for each chant before saving.');
+      return;
+    }
+    if (!selected) {
+      setMessage('Select a mantra, then save your session.');
       return;
     }
     setSaving(true);
+    setMessage('');
     try {
       const response = await apiService.post('/japa/session', {
         mantraType: 'DEFAULT',
@@ -123,26 +159,40 @@ const ChantScreen = () => {
         chantMode: 'TAP',
         sessionCount: count,
         durationSeconds: Math.max(count * 2, 1),
+        japaGoalId: route.params?.japaGoalId,
+        remarks:
+          mode === 'private'
+            ? `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`
+            : undefined,
       });
       const userTotal = Number(
         response.data.data?.userTotal ?? savedTotal + count,
       );
+      const savedCount = Number(response.data.data?.count ?? count);
       setSavedTotal(userTotal);
       setCount(0);
+      countRef.current = 0;
+      setMessage(`Saved ${savedCount.toLocaleString()} japas to your account.`);
       if (userTotal >= 10000) {
         navigation.navigate('MilestoneNotifications');
         return;
       }
-      navigation.navigate('JapaProgress', {count: userTotal, goal});
+      navigation.navigate('JapaProgress', {
+        count: userTotal,
+        goal,
+        sessionCount: savedCount,
+      });
     } catch (err: any) {
-      setMessage(err?.response?.data?.message ?? 'Could not save the session.');
+      setMessage(
+        err?.response?.data?.message ??
+          'Could not save the session. Check your connection and try again.',
+      );
     } finally {
       setSaving(false);
     }
   };
 
-  const total = savedTotal + count;
-  const progress = Math.min(100, Math.round((total / Math.max(goal, 1)) * 100));
+  const progress = Math.min(100, Math.round((count / Math.max(goal, 1)) * 100));
 
   if (loading) {
     return (
@@ -177,47 +227,74 @@ const ChantScreen = () => {
         ))}
       </View>
       <Text style={styles.mantra}>
-        {selected?.transliteration || 'Om Namah Shivaya'}
+        {mode === 'private'
+          ? route.params?.privateMantra || 'Private Japa'
+          : selected?.transliteration || 'Om Namah Shivaya'}
       </Text>
       <TouchableOpacity
-        activeOpacity={0.9}
-        style={styles.ring}
-        onPress={tapChant}
-        disabled={paused}>
+        activeOpacity={0.85}
+        style={[styles.ring, paused && styles.ringPaused]}
+        onPress={tapChant}>
         <View style={styles.innerRing}>
-          <Text style={styles.count}>{total.toLocaleString()}</Text>
+          <Text style={styles.count}>{count.toLocaleString()}</Text>
           <Text style={styles.japas}>JAPAS</Text>
         </View>
       </TouchableOpacity>
-      <Text style={styles.goal}>Goal {goal.toLocaleString()}</Text>
+      <Text style={styles.goal}>
+        Goal {goal.toLocaleString()}
+        {savedTotal > 0 ? ` · Lifetime ${savedTotal.toLocaleString()}` : ''}
+      </Text>
       <View style={styles.barRow}>
         <View style={styles.barTrack}>
           <View style={[styles.barFill, {width: `${progress}%`}]} />
         </View>
         <Text style={styles.percent}>{progress}%</Text>
       </View>
-      <Text style={styles.hint}>Tap to chant</Text>
-      <TouchableOpacity style={styles.tapCircle} onPress={tapChant} disabled={paused} />
+      <Text style={styles.hint}>
+        {paused
+          ? 'Paused — tap the circle to continue counting'
+          : 'Tap the circle once for each chant'}
+      </Text>
+      <TouchableOpacity
+        activeOpacity={0.85}
+        style={[styles.tapCircle, paused && styles.tapCirclePaused]}
+        onPress={tapChant}
+      />
       <TouchableOpacity
         onPress={() => {
           if (paused) {
             setPaused(false);
             setMessage('');
+            armIdlePause();
             return;
           }
+          clearIdleTimer();
           setPaused(true);
-          navigation.navigate('JapaPaused', {count: total, goal});
+          navigation.navigate('JapaPaused', {
+            count,
+            goal,
+            sessionCount: count,
+          });
         }}>
         <Text style={styles.pause}>{paused ? 'Resume' : 'Pause'}</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.save} onPress={saveSession} disabled={saving}>
+      <TouchableOpacity
+        style={styles.save}
+        onPress={saveSession}
+        disabled={saving}>
         <Text style={styles.saveText}>
           {saving ? 'Saving...' : 'Save Session'}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.save}
-        onPress={() => navigation.navigate('JapaProgress', {count: total, goal})}>
+        onPress={() =>
+          navigation.navigate('JapaProgress', {
+            count: savedTotal + count,
+            goal,
+            sessionCount: count,
+          })
+        }>
         <Text style={styles.saveText}>View Progress</Text>
       </TouchableOpacity>
       {message ? (
@@ -273,6 +350,9 @@ const styles = StyleSheet.create({
     borderColor: Colors.templeGold,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  ringPaused: {
+    opacity: 0.75,
   },
   innerRing: {
     width: 190,
@@ -330,6 +410,9 @@ const styles = StyleSheet.create({
     borderRadius: 36,
     backgroundColor: Colors.templeGold,
     marginTop: 12,
+  },
+  tapCirclePaused: {
+    opacity: 0.7,
   },
   pause: {
     textAlign: 'center',
