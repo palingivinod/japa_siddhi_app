@@ -236,8 +236,18 @@ const AppNavigator = () => {
           headerShown: false,
           animation: 'slide_from_right',
         }}>
-        <Stack.Screen name="DesignSystem" component={ProtectedDesignSystem} />
-        <Stack.Screen name="ScreenIndex" component={ProtectedScreenIndex} />
+        {__DEV__ ? (
+          <>
+            <Stack.Screen
+              name="DesignSystem"
+              component={ProtectedDesignSystem}
+            />
+            <Stack.Screen
+              name="ScreenIndex"
+              component={ProtectedScreenIndex}
+            />
+          </>
+        ) : null}
         <Stack.Screen name="Splash" component={SplashScreen} />
         <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />

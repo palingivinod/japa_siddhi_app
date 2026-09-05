@@ -24,7 +24,9 @@ const PrivacyPolicyScreen = () => {
       <Text style={styles.body}>
         We use this information to create your account, send a login OTP to your
         email, save your japa progress, process seva requests, and contact you
-        about your account. We do not sell your personal data.
+        about your account. Seva payments are completed in your UPI app as a
+        donation to Bilva Patra Trust and are not Google Play purchases. We do
+        not sell your personal data and we do not use advertising IDs.
       </Text>
       <Text style={styles.heading}>Account deletion</Text>
       <Text style={styles.body}>

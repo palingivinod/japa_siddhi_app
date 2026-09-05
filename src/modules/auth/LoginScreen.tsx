@@ -140,15 +140,19 @@ const LoginScreen = () => {
           }
         />
 
-        <Text style={styles.or}>OR CONTINUE WITH</Text>
-        {['Google', 'Facebook', 'Email'].map(item => (
-          <TouchableOpacity
-            key={item}
-            style={styles.social}
-            onPress={() => socialSoon(item)}>
-            <Text style={styles.socialText}>{item}</Text>
-          </TouchableOpacity>
-        ))}
+        {__DEV__ ? (
+          <>
+            <Text style={styles.or}>OR CONTINUE WITH</Text>
+            {['Google', 'Facebook', 'Email'].map(item => (
+              <TouchableOpacity
+                key={item}
+                style={styles.social}
+                onPress={() => socialSoon(item)}>
+                <Text style={styles.socialText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
+          </>
+        ) : null}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>New to Japa Siddhi?</Text>

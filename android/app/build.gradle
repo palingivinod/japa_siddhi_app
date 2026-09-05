@@ -89,7 +89,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
     }
     signingConfigs {
         debug {
@@ -99,12 +99,15 @@ android {
             keyPassword 'android'
         }
         release {
-            if (keystorePropertiesFile.exists()) {
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
+            if (!keystorePropertiesFile.exists()) {
+                throw new GradleException(
+                    "Missing android/keystore.properties. Play Store builds must use the release keystore."
+                )
             }
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
         }
     }
     buildTypes {
@@ -112,11 +115,18 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig keystorePropertiesFile.exists()
-                ? signingConfigs.release
-                : signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
+            shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            ndk {
+                abiFilters "armeabi-v7a", "arm64-v8a"
+            }
+        }
+    }
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
         }
     }
 }

@@ -1,0 +1,41 @@
+App name:
+Japa Siddhi
+
+Short description:
+Daily japa, today’s panchangam, Annadanam and temple seva with Bilva Patra Trust.
+
+Full description:
+Japa Siddhi is a spiritual companion from Bilva Patra Trust, Visakhapatnam. It helps devotees chant daily japa, follow today’s panchangam, and take part in Annadanam, Baanalingam, and Nithya Homam seva.
+
+Japa
+• Start community or private japa with a mantra and a daily goal
+• Track today’s count, streak, and lifetime progress
+• Join japa challenges and view your analytics
+
+Panchangam
+• See today’s nakshatra, tithi, vara, paksha, yoga, and karana
+• Follow upcoming festivals such as Janmashtami and Navaratri
+
+Seva
+• Offer Annadanam, apply for Baanalingam, or enroll in Nithya Homam
+• Voluntary offerings are paid in your UPI app (PhonePe, GPay, Paytm, or any UPI). They are donations to Bilva Patra Trust, not Google Play purchases
+• Track orders and delivery from the Orders tab
+
+Account
+• Sign in with your mobile number and email. A 4-digit OTP is sent to your email
+• Choose your language and keep spiritual details such as gothram and nakshatram
+• Get help from Customer Care, or delete your account from Settings
+
+Japa Siddhi is operated by Bilva Patra Trust. Support: kailaasavaasi@gmail.com
+
+Privacy policy:
+https://cdn.jsdelivr.net/gh/sriurjith/JapaSiddhi@main/docs/privacy.html
+
+Upload files in this folder:
+- app-icon-512.png
+- feature-graphic-1024x500.png
+- screenshot-welcome.png
+- screenshot-login.png
+- screenshot-home.png
+- screenshot-seva.png
+- screenshot-festivals.png

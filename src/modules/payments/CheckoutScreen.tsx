@@ -69,8 +69,9 @@ const CheckoutScreen = () => {
         />
       </View>
       <Text style={styles.hint}>
-        Open PhonePe, GPay, Paytm or any UPI app and scan this QR to pay Bilva
-        Patra Trust.
+        This is a voluntary offering to Bilva Patra Trust, not a Google Play
+        purchase. Open PhonePe, GPay, Paytm or any UPI app, scan this QR, then
+        tap I HAVE PAID after the UPI app confirms success.
       </Text>
       <PrimaryButton
         title={saving ? 'RECORDING...' : params.button || 'I HAVE PAID'}
