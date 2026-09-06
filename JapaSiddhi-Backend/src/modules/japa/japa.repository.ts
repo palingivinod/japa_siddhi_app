@@ -146,13 +146,29 @@ class JapaRepository {
     return this.toCount(rows[0]?.totalJapaCount);
   }
 
+  async getSessionRows(userId: number) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT created_at AS createdAt, session_count AS sessionCount
+      FROM japa_sessions
+      WHERE user_id = ?
+      ORDER BY created_at ASC
+      `,
+      [userId],
+    );
+    return (rows || []).map(item => ({
+      createdAt: String(item.createdAt || item.created_at || ''),
+      sessionCount: this.toCount(item.sessionCount ?? item.session_count),
+    }));
+  }
+
   async getRangeJapa(userId: number, fromSql: string) {
     const rows = await mysql.query<any[]>(
       `
       SELECT COALESCE(SUM(session_count), 0) AS total
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at) >= ${fromSql}
+      AND DATE(created_at, '+5 hours', '30 minutes') >= ${fromSql}
       `,
       [userId],
     );
@@ -165,7 +181,8 @@ class JapaRepository {
       SELECT COALESCE(SUM(session_count), 0) AS todayJapaCount
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at) = CURDATE()
+      AND DATE(created_at, '+5 hours', '30 minutes') =
+          DATE('now', '+5 hours', '30 minutes')
       `,
       [userId],
     );
@@ -173,7 +190,10 @@ class JapaRepository {
   }
 
   async getWeekJapa(userId: number) {
-    return this.getRangeJapa(userId, "DATE('now', '-6 days')");
+    return this.getRangeJapa(
+      userId,
+      "DATE('now', '+5 hours', '30 minutes', '-6 days')",
+    );
   }
 
   async getMonthJapa(userId: number) {
@@ -182,7 +202,8 @@ class JapaRepository {
       SELECT COALESCE(SUM(session_count), 0) AS total
       FROM japa_sessions
       WHERE user_id = ?
-      AND strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')
+      AND strftime('%Y-%m', created_at, '+5 hours', '30 minutes') =
+          strftime('%Y-%m', 'now', '+5 hours', '30 minutes')
       `,
       [userId],
     );
@@ -207,13 +228,14 @@ class JapaRepository {
     const rows = await mysql.query<any[]>(
       `
       SELECT
-        DATE(created_at) AS day,
+        DATE(created_at, '+5 hours', '30 minutes') AS day,
         COALESCE(SUM(session_count), 0) AS count
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at) >= DATE('now', '-6 days')
-      GROUP BY DATE(created_at)
-      ORDER BY DATE(created_at) ASC
+      AND DATE(created_at, '+5 hours', '30 minutes') >=
+          DATE('now', '+5 hours', '30 minutes', '-6 days')
+      GROUP BY DATE(created_at, '+5 hours', '30 minutes')
+      ORDER BY DATE(created_at, '+5 hours', '30 minutes') ASC
       `,
       [userId],
     );

@@ -83,32 +83,38 @@ const ProfileViewScreen = () => {
       </View>
       <Text style={styles.name}>{profile?.fullName || t('devoteeName')}</Text>
       <MenuCard
+        emoji="🕉️"
         title={t('personalProfile')}
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
       />
       <MenuCard
+        emoji="🔔"
         title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
       />
       <MenuCard
+        emoji="📦"
         title={t('orderHistory')}
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
+        emoji="🙏"
         title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}
       />
       <MenuCard
+        emoji="⚙️"
         title={t('settings')}
         onPress={() => navigation.navigate('Settings')}
       />
       <MenuCard
+        emoji="🌐"
         title={t('language')}
         onPress={() =>
           navigation.navigate('LanguageSelect', {fromSettings: true})
         }
       />
-      <MenuCard title={t('logout')} onPress={logout} />
+      <MenuCard emoji="🚪" title={t('logout')} onPress={logout} />
     </ScreenLayout>
   );
 };

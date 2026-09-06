@@ -7,6 +7,7 @@ interface Props {
   title: string;
   subtitle?: string;
   value?: string;
+  emoji?: string;
   onPress?: () => void;
   tone?: 'gold' | 'green';
 }
@@ -15,6 +16,7 @@ const MenuCard: React.FC<Props> = ({
   title,
   subtitle,
   value,
+  emoji,
   onPress,
   tone = 'gold',
 }) => {
@@ -24,7 +26,14 @@ const MenuCard: React.FC<Props> = ({
       onPress={onPress}
       disabled={!onPress}
       activeOpacity={0.8}>
-      <View style={[styles.dot, tone === 'green' && styles.dotGreen]} />
+      <View
+        style={[
+          styles.dot,
+          tone === 'green' && styles.dotGreen,
+          emoji ? styles.dotEmoji : null,
+        ]}>
+        {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
+      </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
@@ -54,9 +63,22 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: Colors.templeGold,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dotGreen: {
     backgroundColor: Colors.leafGreen,
+  },
+  dotEmoji: {
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  emoji: {
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   copy: {
     flex: 1,

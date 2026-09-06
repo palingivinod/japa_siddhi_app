@@ -1,7 +1,7 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
@@ -53,16 +53,18 @@ const JapaHubScreen = () => {
     [t],
   );
 
-  useEffect(() => {
-    apiService
-      .get('/japa/summary')
-      .then(response => {
-        const data = response.data.data ?? {};
-        setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
-        setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
-      })
-      .catch(() => undefined);
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      apiService
+        .get('/japa/summary')
+        .then(response => {
+          const data = response.data.data ?? {};
+          setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
+          setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
+        })
+        .catch(() => undefined);
+    }, []),
+  );
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

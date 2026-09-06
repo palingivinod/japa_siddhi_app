@@ -212,6 +212,57 @@ class AuthRepository {
     return result.insertId;
   }
 
+  async ensureDevUser(data: {
+    email: string;
+    fullName: string;
+  }): Promise<AuthUser> {
+    const existing =
+      (await this.findUserByEmail(data.email)) ||
+      (await this.findUserByMobile('91', '9999999999')) ||
+      (await this.findUserById(1));
+
+    if (existing) {
+      await this.markDevProfileComplete(existing.id, data);
+      return (await this.findUserById(existing.id)) as AuthUser;
+    }
+
+    const id = await this.createUser({
+      firebaseUid: 'dev-user-test',
+      mobileCountryCode: '91',
+      mobileNumber: '9999999999',
+      email: data.email,
+      fullName: data.fullName,
+      deviceType: 'ANDROID',
+    });
+    await this.markDevProfileComplete(id, data);
+    return (await this.findUserById(id)) as AuthUser;
+  }
+
+  async markDevProfileComplete(
+    userId: number,
+    data: {email: string; fullName: string},
+  ): Promise<void> {
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET
+        full_name = ?,
+        email = ?,
+        gender = 'Male',
+        date_of_birth = '1990-01-01',
+        country_id = 1,
+        state_id = 1,
+        city_id = 1,
+        preferred_language_id = 1,
+        profile_completed = 1,
+        terms_accepted = 1,
+        privacy_policy_accepted = 1
+      WHERE id = ?
+      `,
+      [data.fullName, data.email.toLowerCase(), userId],
+    );
+  }
+
   async updateLastLogin(
     userId: number,
     firebaseToken?: string,

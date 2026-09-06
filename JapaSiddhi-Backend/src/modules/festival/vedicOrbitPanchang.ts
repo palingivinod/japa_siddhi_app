@@ -22,6 +22,7 @@ type NamedField = {
   localizedName?: LocalizedName;
   localizedWeekday?: LocalizedName;
   localizedPaksha?: LocalizedName;
+  sunLongitude?: number;
 };
 
 type TimeWindow = {
@@ -139,15 +140,35 @@ const pickName = (field?: NamedField, lang = 'en') => {
   return localized || field.name || field.teluguName || '';
 };
 
+const RASHI_NAMES = [
+  'Mesha',
+  'Vrishabha',
+  'Mithuna',
+  'Karka',
+  'Simha',
+  'Kanya',
+  'Tula',
+  'Vrischika',
+  'Dhanu',
+  'Makara',
+  'Kumbha',
+  'Meena',
+];
+
 const pickPaksha = (field?: NamedField, lang = 'en') => {
   if (!field) {
     return '';
   }
   const localized = field.localizedPaksha?.[lang as keyof LocalizedName];
-  if (localized) {
-    return localized;
+  return normalizePaksha(localized || field.paksha);
+};
+
+const rashiFromLongitude = (longitude?: number) => {
+  if (!Number.isFinite(longitude)) {
+    return '';
   }
-  return normalizePaksha(field.paksha);
+  const index = Math.floor((((longitude as number) % 360) + 360) % 360 / 30);
+  return RASHI_NAMES[index] || '';
 };
 
 const pickWeekday = (field?: NamedField, lang = 'en') => {
@@ -219,7 +240,9 @@ const mapResponse = (
     yoga: pickName(astro.yoga, lang) || '',
     karana: pickName(astro.karana, lang) || '',
     moonRashi: pickName(astro.rasi, lang) || '',
-    sunRashi: pickName(astro.suryaRasi, lang) || '',
+    sunRashi:
+      pickName(astro.suryaRasi, lang) ||
+      rashiFromLongitude(astro.tithi?.sunLongitude),
     timezone: 'Asia/Kolkata',
     computedAt: new Date().toISOString(),
     source: payload.source || 'VedicOrbit Panchangam API',

@@ -15,16 +15,19 @@ const SevaHubScreen = () => {
   const items = useMemo(
     () => [
       {
+        emoji: '🕉️',
         title: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
       },
       {
+        emoji: '🍲',
         title: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
       },
       {
+        emoji: '🔥',
         title: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
@@ -43,8 +46,10 @@ const SevaHubScreen = () => {
             key={item.route}
             style={styles.card}
             onPress={() => navigation.navigate(item.route)}>
-            <View style={styles.dot} />
-            <View>
+            <View style={styles.dot}>
+              <Text style={styles.emoji}>{item.emoji}</Text>
+            </View>
+            <View style={styles.copy}>
               <Text style={styles.title}>{item.title}</Text>
               <Text style={styles.sub}>{item.sub}</Text>
             </View>
@@ -78,12 +83,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
   },
   dot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: Colors.templeGold,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  emoji: {
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  copy: {flex: 1},
   title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
   sub: {marginTop: 4, color: Colors.textSecondary},
 });

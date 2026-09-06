@@ -181,52 +181,126 @@ class JapaService {
 
   }
 
-  private isoDay(value: Date) {
-    return value.toISOString().slice(0, 10);
-  }
-
-  private fillDays(days: number, counts: Record<string, number>) {
-    const trend: number[] = [];
-    for (let i = days - 1; i >= 0; i -= 1) {
-      const date = new Date();
-      date.setHours(0, 0, 0, 0);
-      date.setDate(date.getDate() - i);
-      trend.push(Number(counts[this.isoDay(date)] ?? 0));
+  private istDay(value: Date | string) {
+    const instant =
+      value instanceof Date ? value : new Date(String(value).replace(' ', 'T'));
+    if (Number.isNaN(instant.getTime())) {
+      return String(value).slice(0, 10);
     }
-    return trend;
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(instant);
   }
 
-  private insightFor(total: number, streak: number) {
+  private shiftIsoDay(day: string, offset: number) {
+    const [year, month, date] = day.split('-').map(Number);
+    const next = new Date(Date.UTC(year, month - 1, date + offset));
+    return next.toISOString().slice(0, 10);
+  }
+
+  private weekdayLabel(day: string) {
+    const [year, month, date] = day.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, date)).toLocaleDateString(
+      'en-IN',
+      {weekday: 'short', timeZone: 'UTC'},
+    );
+  }
+
+  private monthLabel(monthKey: string) {
+    const [year, month] = monthKey.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-IN', {
+      month: 'short',
+      timeZone: 'UTC',
+    });
+  }
+
+  private fillCurrentMonthWeeks(counts: Record<string, number>) {
+    const today = this.istDay(new Date());
+    const [year, month] = today.split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const points: Array<{label: string; value: number}> = [];
+    for (let start = 1; start <= lastDay; start += 7) {
+      const end = Math.min(start + 6, lastDay);
+      let value = 0;
+      for (let day = start; day <= end; day += 1) {
+        const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        value += Number(counts[key] ?? 0);
+      }
+      points.push({label: `${start}-${end}`, value});
+    }
+    return points;
+  }
+
+  private dailyCounts(rows: {createdAt: string; sessionCount: number}[]) {
+    const counts: Record<string, number> = {};
+    rows.forEach(item => {
+      const day = this.istDay(item.createdAt);
+      if (!day) {
+        return;
+      }
+      counts[day] = (counts[day] || 0) + Number(item.sessionCount || 0);
+    });
+    return counts;
+  }
+
+  private fillDays(
+    days: number,
+    counts: Record<string, number>,
+    withLabels = false,
+  ) {
+    const today = this.istDay(new Date());
+    const points: Array<{label: string; value: number}> = [];
+    for (let i = days - 1; i >= 0; i -= 1) {
+      const day = this.shiftIsoDay(today, -i);
+      points.push({
+        label: this.weekdayLabel(day),
+        value: Number(counts[day] ?? 0),
+      });
+    }
+    return withLabels ? points : points.map(item => item.value);
+  }
+
+  private fillMonths(months: number, counts: Record<string, number>) {
+    const today = this.istDay(new Date());
+    const [year, month] = today.split('-').map(Number);
+    const points: Array<{label: string; value: number}> = [];
+    for (let i = months - 1; i >= 0; i -= 1) {
+      const date = new Date(Date.UTC(year, month - 1 - i, 1));
+      const key = date.toISOString().slice(0, 7);
+      const value = Object.entries(counts).reduce((sum, [day, count]) => {
+        return day.startsWith(key) ? sum + count : sum;
+      }, 0);
+      points.push({label: this.monthLabel(key), value});
+    }
+    return points;
+  }
+
+  private insightFor(total: number, streak: number, today: number) {
     if (total <= 0) {
-      return 'Begin your daily Japa to grow this chart.';
+      return 'Begin your daily Japa and save a session. Streaks and graphs will grow from your saved counts.';
+    }
+    if (today <= 0) {
+      return 'You have saved Japa before. Chant today to keep your streak alive.';
     }
     if (streak >= 7) {
-      return 'A strong streak is forming. Protect your daily rhythm.';
+      return `A ${streak}-day streak is forming. Protect your daily rhythm.`;
     }
-    return 'Consistency is growing. Keep your daily Japa rhythm.';
+    return `Today's saved Japa is updating your charts. Current streak: ${streak} day${streak === 1 ? '' : 's'}.`;
   }
 
   async getStreakStats(userId: number) {
-    const rows = await mysql.query<any[]>(
-      `
-      SELECT DISTINCT DATE(created_at) AS day
-      FROM japa_sessions
-      WHERE user_id = ?
-      ORDER BY DATE(created_at) ASC
-      `,
-      [userId],
-    );
-    const days = (rows || [])
-      .map(item => String(item.day || '').slice(0, 10))
-      .filter(Boolean);
+    const rows = await japaRepository.getSessionRows(userId);
+    const counts = this.dailyCounts(rows);
+    const days = Object.keys(counts).sort();
     const daySet = new Set(days);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = this.istDay(new Date());
     let current = 0;
     for (let i = 0; i < 400; i += 1) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      if (daySet.has(this.isoDay(date))) {
+      const day = this.shiftIsoDay(today, -i);
+      if (daySet.has(day)) {
         current += 1;
       } else if (i === 0) {
         continue;
@@ -241,16 +315,12 @@ class JapaService {
       if (!previous) {
         run = 1;
       } else {
-        const diff =
-          (new Date(`${day}T00:00:00`).getTime() -
-            new Date(`${previous}T00:00:00`).getTime()) /
-          86400000;
-        run = diff === 1 ? run + 1 : 1;
+        run = this.shiftIsoDay(previous, 1) === day ? run + 1 : 1;
       }
       best = Math.max(best, run);
       previous = day;
     });
-    const year = String(new Date().getFullYear());
+    const year = today.slice(0, 4);
     return {
       current,
       best,
@@ -260,40 +330,37 @@ class JapaService {
   }
 
   async getAnalytics(userId: number) {
-    const [summary, weekly, goals, dailyRows, streak] = await Promise.all([
+    const [summary, weekly, goals, sessionRows, streak] = await Promise.all([
       this.getSummary(userId),
       japaRepository.getWeeklyBreakdown(userId),
       japaGoalRepository.getUserGoals(userId),
-      mysql.query<any[]>(
-        `
-        SELECT DATE(created_at) AS day, COALESCE(SUM(session_count), 0) AS count
-        FROM japa_sessions
-        WHERE user_id = ?
-        GROUP BY DATE(created_at)
-        `,
-        [userId],
-      ),
+      japaRepository.getSessionRows(userId),
       this.getStreakStats(userId),
     ]);
 
-    const counts: Record<string, number> = {};
-    (dailyRows || []).forEach(item => {
-      counts[String(item.day || '').slice(0, 10)] = Number(item.count ?? 0);
-    });
-    const weekTrend = this.fillDays(7, counts);
-    const monthTrend = this.fillDays(30, counts);
-    const lifeTrend = this.fillDays(12, counts);
-    const weekTotal = weekTrend.reduce((sum, value) => sum + value, 0);
-    const monthTotal = monthTrend.reduce((sum, value) => sum + value, 0);
+    const counts = this.dailyCounts(sessionRows);
+    const weekTrend = this.fillDays(7, counts, true) as Array<{
+      label: string;
+      value: number;
+    }>;
+    const monthTrend = this.fillCurrentMonthWeeks(counts);
+    const lifeTrend = this.fillMonths(12, counts);
+    const weekValues = weekTrend.map(item => item.value);
+    const monthValues = monthTrend.map(item => item.value);
+    const weekTotal = weekValues.reduce((sum, value) => sum + value, 0);
+    const monthTotal = monthValues.reduce((sum, value) => sum + value, 0);
     const goalList = goals || [];
     const completedGoals = goalList.filter((item: any) =>
       ['COMPLETED', 'completed', 1, '1'].includes(item.status),
     ).length;
-    const insight = this.insightFor(summary.totalJapaCount, streak.current);
-    const milestones = [
-      108, 1008, 10000, 21000, 108000,
-    ].filter(value => summary.totalJapaCount >= value).length;
-
+    const insight = this.insightFor(
+      summary.totalJapaCount,
+      streak.current,
+      summary.todayJapaCount,
+    );
+    const milestones = [108, 1008, 10000, 21000, 108000].filter(
+      value => summary.totalJapaCount >= value,
+    ).length;
     return {
       overview: {
         stats: [
@@ -301,7 +368,7 @@ class JapaService {
           {label: 'ACTIVE DAYS', value: String(streak.activeDays)},
           {label: 'STREAK', value: String(streak.current)},
         ],
-        trend: monthTrend.slice(-8),
+        trend: lifeTrend,
         insight,
       },
       daily: {
@@ -311,30 +378,51 @@ class JapaService {
             label: 'AVG / DAY',
             value: String(Math.round(weekTotal / 7) || 0),
           },
-          {label: 'BEST', value: String(Math.max(...weekTrend, 0))},
+          {label: 'BEST', value: String(Math.max(...weekValues, 0))},
         ],
         trend: weekTrend,
         insight,
       },
       weekly: {
         stats: [
-          {label: 'THIS WEEK', value: (summary.weeklyJapaCount || weekTotal).toLocaleString()},
-          {label: 'AVG / DAY', value: String(Math.round((summary.weeklyJapaCount || weekTotal) / 7) || 0)},
-          {label: 'BEST DAY', value: String(Math.max(...weekTrend, 0))},
+          {
+            label: 'THIS WEEK',
+            value: (summary.weeklyJapaCount || weekTotal).toLocaleString(),
+          },
+          {
+            label: 'AVG / DAY',
+            value: String(
+              Math.round((summary.weeklyJapaCount || weekTotal) / 7) || 0,
+            ),
+          },
+          {label: 'BEST DAY', value: String(Math.max(...weekValues, 0))},
         ],
         trend: weekTrend,
         insight,
       },
       monthly: {
         stats: [
-          {label: 'THIS MONTH', value: (summary.monthlyJapaCount || monthTotal).toLocaleString()},
-          {label: 'AVG / DAY', value: String(Math.round((summary.monthlyJapaCount || monthTotal) / 30) || 0)},
+          {
+            label: 'THIS MONTH',
+            value: (summary.monthlyJapaCount || monthTotal).toLocaleString(),
+          },
+          {
+            label: 'AVG / DAY',
+            value: String(
+              Math.round((summary.monthlyJapaCount || monthTotal) / 30) || 0,
+            ),
+          },
           {
             label: 'GOAL RATE',
-            value: `${Math.min(100, Math.round(((summary.monthlyJapaCount || monthTotal) / 10800) * 100))}%`,
+            value: `${Math.min(
+              100,
+              Math.round(
+                ((summary.monthlyJapaCount || monthTotal) / 10800) * 100,
+              ),
+            )}%`,
           },
         ],
-        trend: monthTrend.filter((_, index) => index % 4 === 0),
+        trend: monthTrend,
         insight,
       },
       lifetime: {
@@ -352,7 +440,11 @@ class JapaService {
           {label: 'COMPLETED', value: String(completedGoals)},
           {
             label: 'SUCCESS',
-            value: `${goalList.length ? Math.round((completedGoals / goalList.length) * 100) : 0}%`,
+            value: `${
+              goalList.length
+                ? Math.round((completedGoals / goalList.length) * 100)
+                : 0
+            }%`,
           },
         ],
         trend: weekTrend,
@@ -364,7 +456,7 @@ class JapaService {
           {label: 'BEST', value: `${streak.best} days`},
           {label: 'THIS YEAR', value: String(streak.thisYear)},
         ],
-        trend: monthTrend.filter((_, index) => index % 4 === 0),
+        trend: weekTrend,
         insight,
       },
       weeklyRaw: weekly,

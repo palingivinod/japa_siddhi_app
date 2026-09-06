@@ -50,8 +50,10 @@ const PanchangDetails = ({panchang, compact}: Props) => {
 
   return (
     <View style={styles.wrap}>
-      {panchang.locationName ? (
-        <Text style={styles.meta}>{panchang.locationName}</Text>
+      {panchang.locationName || panchang.source ? (
+        <Text style={styles.meta}>
+          {[panchang.locationName, panchang.source].filter(Boolean).join(' · ')}
+        </Text>
       ) : null}
       <View style={styles.row}>
         {items.map(([label, text]) => (

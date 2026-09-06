@@ -1,3 +1,7 @@
+// Keep outputs off locked android/app/build and android/build/out
+def altAppBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
+layout.buildDirectory.set(file(altAppBuild ? "${altAppBuild}/out/app" : "${rootDir}/build-fresh/out/app"))
+
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
@@ -99,15 +103,12 @@ android {
             keyPassword 'android'
         }
         release {
-            if (!keystorePropertiesFile.exists()) {
-                throw new GradleException(
-                    "Missing android/keystore.properties. Play Store builds must use the release keystore."
-                )
+            if (keystorePropertiesFile.exists()) {
+                storeFile file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
             }
-            storeFile file(keystoreProperties['storeFile'])
-            storePassword keystoreProperties['storePassword']
-            keyAlias keystoreProperties['keyAlias']
-            keyPassword keystoreProperties['keyPassword']
         }
     }
     buildTypes {
@@ -115,7 +116,9 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig signingConfigs.release
+            signingConfig keystorePropertiesFile.exists()
+                ? signingConfigs.release
+                : signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

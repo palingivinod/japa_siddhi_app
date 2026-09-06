@@ -103,7 +103,7 @@ class AuthController {
     next: NextFunction,
   ) {
     try {
-      const result = await authService.devLogin();
+      const result = await authService.devLogin(req.body);
       return apiResponse.success(
         res,
         'Development login successful',

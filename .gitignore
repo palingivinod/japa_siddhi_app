@@ -34,6 +34,7 @@ local.properties
 *.keystore
 !debug.keystore
 android/keystore.properties
+android/build-*/
 JapaSiddhi-Backend/.env
 .kotlin/
 

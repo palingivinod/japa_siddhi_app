@@ -390,16 +390,30 @@ class AuthService {
     return this.register(data);
   }
 
-  async devLogin(): Promise<LoginResponse> {
+  async devLogin(data?: {
+    email?: string;
+    password?: string;
+  }): Promise<LoginResponse> {
     if (environment.NODE_ENV === 'production') {
       throw new AppError('Not found', 404);
     }
 
-    const user = await authRepository.findUserById(1);
+    const expectedEmail = environment.DEV_LOGIN_EMAIL.trim().toLowerCase();
+    const expectedPassword = environment.DEV_LOGIN_PASSWORD;
+    const email = String(data?.email || '').trim().toLowerCase();
+    const password = String(data?.password || '');
 
-    if (!user) {
-      throw new AppError('Demo user is missing from the database', 500);
+    if (
+      (email || password) &&
+      (email !== expectedEmail || password !== expectedPassword)
+    ) {
+      throw new AppError('Invalid test credentials', 401);
     }
+
+    const user = await authRepository.ensureDevUser({
+      email: expectedEmail,
+      fullName: 'Vinod',
+    });
 
     return {token: issueToken(user), user};
   }

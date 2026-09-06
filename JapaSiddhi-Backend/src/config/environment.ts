@@ -73,6 +73,12 @@ const environment = {
     process.env.VEDICORBIT_TIMEZONE || 'Asia/Kolkata',
 
   VEDICORBIT_LANG: process.env.VEDICORBIT_LANG || 'en',
+
+  DEV_LOGIN_EMAIL:
+    process.env.DEV_LOGIN_EMAIL || 'test@japasiddhi.local',
+
+  DEV_LOGIN_PASSWORD:
+    process.env.DEV_LOGIN_PASSWORD || 'test1234',
 };
 
 export default environment;
