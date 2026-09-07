@@ -9,6 +9,7 @@ import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
+import {sessionGoalForChallenge} from './challengeGoal';
 
 const ChallengeProgressScreen = () => {
   const navigation = useNavigation<any>();
@@ -69,7 +70,8 @@ const ChallengeProgressScreen = () => {
             onPress={() =>
               navigation.navigate('GoalSelect', {
                 mode: 'community',
-                goal: target,
+                goal: sessionGoalForChallenge(item),
+                challengeId: route.params?.id,
               })
             }
           />

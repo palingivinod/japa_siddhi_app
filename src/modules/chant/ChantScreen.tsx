@@ -2,12 +2,14 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
@@ -25,6 +27,7 @@ interface Mantra {
 const ChantScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const mode = route.params?.mode === 'private' ? 'private' : 'community';
   const [mantras, setMantras] = useState<Mantra[]>([]);
   const [selected, setSelected] = useState<Mantra | null>(null);
@@ -42,9 +45,12 @@ const ChantScreen = () => {
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countRef = useRef(0);
   const goalRef = useRef(goal);
+  const completingRef = useRef(false);
+  const challengeId = Number(route.params?.challengeId || 0);
 
   countRef.current = count;
   goalRef.current = goal;
+  const goalReached = count >= goal && goal > 0;
 
   const clearIdleTimer = () => {
     if (idleTimer.current) {
@@ -104,7 +110,95 @@ const ChantScreen = () => {
     }, 45000);
   };
 
+  const afterSessionSaved = (
+    data: any,
+    fallbackCount: number,
+    options?: {completed?: boolean; resetCount?: boolean},
+  ) => {
+    const userTotal = Number(data?.userTotal ?? savedTotal + fallbackCount);
+    const savedCount = Number(data?.count ?? fallbackCount);
+    const reached = (data?.milestonesReached || []).filter(
+      (level: unknown) => Number(level) > 0,
+    );
+    setSavedTotal(userTotal);
+    if (options?.resetCount) {
+      setCount(0);
+      countRef.current = 0;
+    }
+    setMessage(`Saved ${savedCount.toLocaleString()} japas to your account.`);
+    const goProgress = () =>
+      navigation.navigate('JapaProgress', {
+        count: userTotal,
+        goal,
+        sessionCount: savedCount,
+        completed: options?.completed,
+      });
+    if (challengeId) {
+      navigation.replace('ChallengeComplete', {id: challengeId});
+      return;
+    }
+    if (reached.length) {
+      const highest = Math.max(...reached.map((level: number) => Number(level)));
+      Alert.alert(
+        t('milestoneReachedTitle'),
+        t('milestoneReachedBody', {count: highest.toLocaleString()}),
+        [
+          {text: t('ok'), style: 'cancel', onPress: goProgress},
+          {
+            text: t('viewMilestone'),
+            onPress: () => navigation.navigate('MilestoneNotifications'),
+          },
+        ],
+      );
+      return;
+    }
+    goProgress();
+  };
+
+  const finishGoal = async (sessionCount: number) => {
+    if (completingRef.current || sessionCount < 1) {
+      return;
+    }
+    completingRef.current = true;
+    clearIdleTimer();
+    setPaused(true);
+    setSaving(true);
+    setMessage('Goal reached. Saving your session...');
+    try {
+      if (!selected) {
+        setMessage('Select a mantra, then save your completed goal.');
+        completingRef.current = false;
+        return;
+      }
+      const response = await apiService.post('/japa/session', {
+        mantraType: 'DEFAULT',
+        mantraId: selected.id,
+        chantMode: 'TAP',
+        sessionCount,
+        durationSeconds: Math.max(sessionCount * 2, 1),
+        japaGoalId: route.params?.japaGoalId,
+        remarks:
+          mode === 'private'
+            ? `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`
+            : undefined,
+      });
+      afterSessionSaved(response.data.data, sessionCount, {completed: true});
+    } catch (err: any) {
+      completingRef.current = false;
+      setPaused(false);
+      setMessage(
+        err?.response?.data?.message ??
+          'Could not save the completed session. Try Save Session again.',
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const tapChant = () => {
+    if (completingRef.current || goalReached) {
+      return;
+    }
     if (paused) {
       setPaused(false);
     }
@@ -136,14 +230,24 @@ const ChantScreen = () => {
       }
     }
     lastTap.current = now;
-    setCount(value => value + 1);
+    const next = countRef.current + 1;
+    countRef.current = next;
+    setCount(next);
     setMessage('');
+    if (next >= goalRef.current) {
+      void finishGoal(next);
+      return;
+    }
     armIdlePause();
   };
 
   const saveSession = async () => {
     if (count < 1) {
       setMessage('Tap the circle for each chant before saving.');
+      return;
+    }
+    if (count >= goal) {
+      await finishGoal(count);
       return;
     }
     if (!selected) {
@@ -165,23 +269,7 @@ const ChantScreen = () => {
             ? `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`
             : undefined,
       });
-      const userTotal = Number(
-        response.data.data?.userTotal ?? savedTotal + count,
-      );
-      const savedCount = Number(response.data.data?.count ?? count);
-      setSavedTotal(userTotal);
-      setCount(0);
-      countRef.current = 0;
-      setMessage(`Saved ${savedCount.toLocaleString()} japas to your account.`);
-      if (userTotal >= 10000) {
-        navigation.navigate('MilestoneNotifications');
-        return;
-      }
-      navigation.navigate('JapaProgress', {
-        count: userTotal,
-        goal,
-        sessionCount: savedCount,
-      });
+      afterSessionSaved(response.data.data, count, {resetCount: true});
     } catch (err: any) {
       setMessage(
         err?.response?.data?.message ??
@@ -233,8 +321,9 @@ const ChantScreen = () => {
       </Text>
       <TouchableOpacity
         activeOpacity={0.85}
-        style={[styles.ring, paused && styles.ringPaused]}
-        onPress={tapChant}>
+        style={[styles.ring, (paused || goalReached) && styles.ringPaused]}
+        onPress={tapChant}
+        disabled={goalReached || saving}>
         <View style={styles.innerRing}>
           <Text style={styles.count}>{count.toLocaleString()}</Text>
           <Text style={styles.japas}>JAPAS</Text>
@@ -251,14 +340,20 @@ const ChantScreen = () => {
         <Text style={styles.percent}>{progress}%</Text>
       </View>
       <Text style={styles.hint}>
-        {paused
+        {goalReached
+          ? `Goal of ${goal.toLocaleString()} japas reached`
+          : paused
           ? 'Paused — tap the circle to continue counting'
           : 'Tap the circle once for each chant'}
       </Text>
       <TouchableOpacity
         activeOpacity={0.85}
-        style={[styles.tapCircle, paused && styles.tapCirclePaused]}
+        style={[
+          styles.tapCircle,
+          (paused || goalReached) && styles.tapCirclePaused,
+        ]}
         onPress={tapChant}
+        disabled={goalReached || saving}
       />
       <TouchableOpacity
         onPress={() => {

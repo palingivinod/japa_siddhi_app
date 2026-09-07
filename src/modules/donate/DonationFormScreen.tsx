@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
@@ -9,6 +10,7 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const DonationFormScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const route = useRoute<any>();
   const params = route.params || {};
   const [fullName, setFullName] = useState(params.fullName || '');
@@ -19,58 +21,58 @@ const DonationFormScreen = () => {
   const pay = () => {
     const value = Number(String(amount).replace(/[^\d.]/g, '')) || 0;
     if (!fullName.trim() || !mobile.trim() || value < 1) {
-      Alert.alert('Donation', 'Name, mobile and amount are required.');
+      Alert.alert(t('donate'), t('nameMobileAmountRequired'));
       return;
     }
     navigation.navigate('DonationPayment', {
       ...params,
       kind: params.kind || 'ANNADANAM',
-      title: 'Scan to Pay',
-      heading: 'Scan the UPI QR',
-      itemName: params.itemName || 'Annadanam Donation',
+      title: t('proceedToPay'),
+      heading: t('proceedToPay'),
+      itemName: params.itemName || t('japaAnnadanam'),
       subtitle: occasion,
       amount: value,
       fullName,
       mobile,
       occasion,
       showSummary: false,
-      button: 'I HAVE PAID',
+      button: t('proceedToPay'),
     });
   };
 
   return (
-    <ScreenLayout title="Donation Form" showBack tab="SevaHub">
+    <ScreenLayout title={t('donationForm')} showBack tab="SevaHub">
       <MenuCard
-        title="Donation details"
-        subtitle={params.itemName || 'General Annadanam'}
+        title={t('donationDetails')}
+        subtitle={params.itemName || t('generalAnnadanam')}
       />
       <FormField
-        label="Name"
-        placeholder="Full name"
+        label={t('nameLabel')}
+        placeholder={t('fullName')}
         value={fullName}
         onChangeText={setFullName}
       />
       <FormField
-        label="Mobile"
-        placeholder="Mobile number"
+        label={t('mobileNumber')}
+        placeholder={t('enterMobileNumber')}
         keyboardType="phone-pad"
         value={mobile}
         onChangeText={setMobile}
       />
       <FormField
-        label="Occasion"
-        placeholder="Birthday, festival, thanksgiving"
+        label={t('occasionLabel')}
+        placeholder={t('occasionPlaceholder')}
         value={occasion}
         onChangeText={setOccasion}
       />
       <FormField
-        label="Donation amount"
+        label={t('donationAmount')}
         placeholder="1008"
         keyboardType="numeric"
         value={amount}
         onChangeText={setAmount}
       />
-      <PrimaryButton title="SCAN TO PAY" onPress={pay} />
+      <PrimaryButton title={t('proceedToPay')} onPress={pay} />
     </ScreenLayout>
   );
 };

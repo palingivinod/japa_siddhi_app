@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
@@ -12,6 +13,7 @@ const AMOUNTS = [501, 1008, 2001];
 
 const JapaAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [amount, setAmount] = useState(1008);
   const [completed, setCompleted] = useState(0);
 
@@ -23,15 +25,15 @@ const JapaAnnadanamScreen = () => {
   }, []);
 
   return (
-    <ScreenLayout title="Japa Annadanam" showBack tab="SevaHub">
-      <Text style={styles.section}>Your Japa milestone</Text>
+    <ScreenLayout title={t('japaAnnadanam')} showBack tab="SevaHub">
+      <Text style={styles.section}>{t('yourJapaMilestone')}</Text>
       <StatCards
         items={[
-          {label: 'COMPLETED', value: completed.toLocaleString()},
-          {label: 'OFFER', value: 'Annadanam'},
+          {label: t('completedLabel'), value: completed.toLocaleString()},
+          {label: t('offerLabel'), value: t('tileAnnadanam')},
         ]}
       />
-      <Text style={styles.section}>Suggested offering</Text>
+      <Text style={styles.section}>{t('suggestedOffering')}</Text>
       <View style={styles.grid}>
         {AMOUNTS.map(value => (
           <TouchableOpacity
@@ -44,16 +46,16 @@ const JapaAnnadanamScreen = () => {
         <TouchableOpacity
           style={[styles.chip, amount === 0 && styles.chipOn]}
           onPress={() => setAmount(0)}>
-          <Text style={styles.chipText}>Custom</Text>
+          <Text style={styles.chipText}>{t('customAmount')}</Text>
         </TouchableOpacity>
       </View>
       <PrimaryButton
-        title="DONATE NOW"
+        title={t('donateNowAction')}
         onPress={() =>
           navigation.navigate('DonationForm', {
             kind: 'JAPA_ANNADANAM',
             amount: amount || 1008,
-            itemName: 'Japa Annadanam',
+            itemName: t('japaAnnadanam'),
           })
         }
       />

@@ -1,96 +1,207 @@
-import React, {useEffect, useState} from 'react';
-import {StyleSheet, Switch, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
-import apiService from '../../services/apiService';
+import {useLanguage} from '../../i18n/LanguageContext';
+import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
+
+type MilestoneItem = {
+  target: number;
+  title?: string;
+  subtitle?: string;
+};
+
+const formatWhen = (value: string | null, justNow: string) => {
+  if (!value) {
+    return justNow;
+  }
+  const then = new Date(value).getTime();
+  if (!then || Date.now() - then < 10 * 60 * 1000) {
+    return justNow;
+  }
+  return new Date(value).toLocaleString();
+};
 
 const MilestoneNotificationsScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [enabled, setEnabled] = useState(true);
   const [total, setTotal] = useState(0);
-  const [upcoming, setUpcoming] = useState<any[]>([]);
+  const [latest, setLatest] = useState(0);
+  const [next, setNext] = useState(500);
+  const [upcoming, setUpcoming] = useState<MilestoneItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [latestAt, setLatestAt] = useState<string | null>(null);
+  const [eligible, setEligible] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [rawError, setRawError] = useState<any>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setLoading(true);
+    setError('');
+    setRawError(null);
     apiService
       .get('/japa/milestones')
       .then(response => {
         const data = response.data.data || {};
-        setTotal(Number(data.total || 0));
-        setUpcoming(data.upcoming || []);
+        const count = Number(data.total || 0);
+        const latestReached = Number(data.latest || 0);
+        const nextTarget = Number(data.next || data.progressTarget || 500);
+        setTotal(count);
+        setLatest(latestReached);
+        setNext(nextTarget);
+        setUpcoming(Array.isArray(data.upcoming) ? data.upcoming : []);
+        setUnreadCount(Number(data.unreadCount || 0));
+        setLatestAt(data.latestAt || null);
+        setEligible(Boolean(data.eligibleForAnnadanam));
+        setEnabled(data.notificationsOn !== false);
+        if (Number(data.unreadCount || 0) > 0) {
+          apiService.put('/notifications/milestones/read').catch(() => undefined);
+        }
       })
-      .catch(() => undefined);
-  }, []);
+      .catch(err => {
+        setRawError(err);
+        setError(getApiError(err, t('couldNotLoadMilestones')));
+      })
+      .finally(() => setLoading(false));
+  }, [t]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const toggleNotifications = async (value: boolean) => {
+    setEnabled(value);
+    await AsyncStorage.setItem('notify_on', value ? '1' : '0');
+    try {
+      await apiService.put('/profile/settings', {notificationsOn: value});
+    } catch {
+      undefined;
+    }
+  };
+
+  const milestoneTitle = (target: number) =>
+    t('japasCountLabel', {count: target.toLocaleString()});
+  const milestoneSub = (target: number) =>
+    target === 500 ? t('keepGoingHalfway') : t('newSpiritualAwaits');
+  const achieved = latest > 0;
+  const headlineCount = achieved ? latest : total;
 
   return (
-    <ScreenLayout title="Notifications" showBack tab="SevaHub">
-      <View style={styles.head}>
-        <View style={styles.copy}>
-          <Text style={styles.title}>Japa Milestones</Text>
-          <Text style={styles.sub}>
-            Celebrate your spiritual progress and seva milestones.
-          </Text>
-        </View>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>1 New</Text>
-        </View>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.meta}>JAPA MILESTONE  ·  Just now</Text>
-        <Text style={styles.headline}>
-          {Math.max(total, 10000).toLocaleString()} Japas Completed!
-        </Text>
-        <Text style={styles.body}>
-          You have completed {Math.max(total, 10000).toLocaleString()} Japas.
-          Consider sponsoring Annadanam for greater spiritual benefit.
-        </Text>
-        <View style={styles.actions}>
-          <View style={styles.ghost}>
-            <Text style={styles.ghostText}>1,000 / 1,000</Text>
+    <ScreenLayout title={t('notifications')} showBack tab="SevaHub">
+      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+      {error ? (
+        <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
+      ) : null}
+      {!loading && !error ? (
+        <>
+          <View style={styles.head}>
+            <View style={styles.copy}>
+              <Text style={styles.title}>{t('japaMilestones')}</Text>
+              <Text style={styles.sub}>{t('celebrateProgress')}</Text>
+            </View>
+            {unreadCount > 0 ? (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {t('nNew', {count: unreadCount})}
+                </Text>
+              </View>
+            ) : null}
           </View>
-          <TouchableOpacity
-            style={styles.cta}
-            onPress={() => navigation.navigate('JapaAnnadanam')}>
-            <Text style={styles.ctaText}>PERFORM ANNADHANAM</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={styles.foot}>Milestone notification</Text>
-      </View>
-      <Text style={styles.title}>Upcoming Milestones</Text>
-      {(upcoming.length
-        ? upcoming
-        : [
-            {target: 500, title: '500 Japas', subtitle: 'Keep going — you are halfway there.'},
-            {target: 2000, title: '2,000 Japas', subtitle: 'A new spiritual milestone awaits you.'},
-          ]
-      ).map(item => (
-        <View key={item.target} style={styles.row}>
-          <View style={styles.circle}>
-            <Text style={styles.circleText}>
-              {item.target >= 1000 ? `${item.target / 1000}K` : item.target}
+          <View style={styles.card}>
+            <Text style={styles.meta}>
+              {t('japaMilestoneMeta')}
+              {achieved
+                ? `  ·  ${formatWhen(latestAt, t('justNow'))}`
+                : `  ·  ${t('yourProgress')}`}
             </Text>
+            <Text style={styles.headline}>
+              {achieved
+                ? t('japasCompleted', {
+                    count: headlineCount.toLocaleString(),
+                  })
+                : t('noMilestoneYet')}
+            </Text>
+            <Text style={styles.body}>
+              {achieved
+                ? t('youHaveCompletedJapas', {
+                    count: total.toLocaleString(),
+                  })
+                : t('nextMilestoneHint', {
+                    count: total.toLocaleString(),
+                    next: next.toLocaleString(),
+                  })}
+            </Text>
+            <View style={styles.actions}>
+              <View style={styles.ghost}>
+                <Text style={styles.ghostText}>
+                  {achieved
+                    ? `${latest.toLocaleString()} / ${latest.toLocaleString()}`
+                    : `${total.toLocaleString()} / ${next.toLocaleString()}`}
+                </Text>
+              </View>
+              {eligible ? (
+                <TouchableOpacity
+                  style={styles.cta}
+                  onPress={() => navigation.navigate('JapaAnnadanam')}>
+                  <Text style={styles.ctaText}>{t('performAnnadhanam')}</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <Text style={styles.foot}>{t('milestoneNotification')}</Text>
           </View>
-          <View style={styles.copy}>
-            <Text style={styles.rowTitle}>{item.title}</Text>
-            <Text style={styles.sub}>{item.subtitle}</Text>
+          <Text style={styles.title}>{t('upcomingMilestones')}</Text>
+          {upcoming.length === 0 ? (
+            <Text style={styles.empty}>{t('allMilestonesComplete')}</Text>
+          ) : (
+            upcoming.map(item => (
+              <View key={item.target} style={styles.row}>
+                <View style={styles.circle}>
+                  <Text style={styles.circleText}>
+                    {item.target >= 1000
+                      ? `${item.target / 1000}K`
+                      : item.target}
+                  </Text>
+                </View>
+                <View style={styles.copy}>
+                  <Text style={styles.rowTitle}>
+                    {milestoneTitle(item.target)}
+                  </Text>
+                  <Text style={styles.sub}>{milestoneSub(item.target)}</Text>
+                </View>
+                <Text style={styles.chevron}>›</Text>
+              </View>
+            ))
+          )}
+          <View style={styles.toggle}>
+            <View style={styles.copy}>
+              <Text style={styles.rowTitle}>
+                {t('milestoneNotificationsTitle')}
+              </Text>
+              <Text style={styles.sub}>{t('getNotifiedMilestones')}</Text>
+            </View>
+            <Switch
+              value={enabled}
+              onValueChange={toggleNotifications}
+              trackColor={{true: Colors.leafGreen}}
+            />
           </View>
-          <Text style={styles.chevron}>›</Text>
-        </View>
-      ))}
-      <View style={styles.toggle}>
-        <View style={styles.copy}>
-          <Text style={styles.rowTitle}>Milestone Notifications</Text>
-          <Text style={styles.sub}>
-            Get notified when you reach important Japa counts.
-          </Text>
-        </View>
-        <Switch
-          value={enabled}
-          onValueChange={setEnabled}
-          trackColor={{true: Colors.leafGreen}}
-        />
-      </View>
+        </>
+      ) : null}
     </ScreenLayout>
   );
 };
@@ -102,6 +213,7 @@ const styles = StyleSheet.create({
   copy: {flex: 1},
   title: {fontSize: 20, fontWeight: '800', color: Colors.sacredBrown},
   sub: {marginTop: 4, color: Colors.textSecondary},
+  empty: {marginTop: 8, marginBottom: 12, color: Colors.textSecondary},
   badge: {
     backgroundColor: Colors.templeGold,
     borderRadius: 16,

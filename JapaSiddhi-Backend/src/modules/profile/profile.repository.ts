@@ -210,7 +210,93 @@ class ProfileRepository {
 
   }
 
+  async listAddresses(userId: number) {
+    const [saved, profile, previous] = await Promise.all([
+      mysql.query<any[]>(
+        `
+        SELECT id, address, created_at AS createdAt
+        FROM user_addresses
+        WHERE user_id = ?
+        ORDER BY id DESC
+        `,
+        [userId],
+      ),
+      mysql.query<any[]>(
+        `
+        SELECT address
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [userId],
+      ),
+      mysql.query<any[]>(
+        `
+        SELECT address, created_at AS createdAt
+        FROM bana_lingam
+        WHERE user_id = ?
+        AND address IS NOT NULL
+        AND TRIM(address) != ''
+        ORDER BY id DESC
+        `,
+        [userId],
+      ),
+    ]);
 
+    const seen = new Set<string>();
+    const addresses: Array<{address: string; createdAt?: string}> = [];
+    const push = (value?: string, createdAt?: string) => {
+      const address = String(value || '').trim();
+      const key = address.toLowerCase();
+      if (!address || seen.has(key)) {
+        return;
+      }
+      seen.add(key);
+      addresses.push({address, createdAt});
+    };
+
+    (saved || []).forEach(item => push(item.address, item.createdAt));
+    push(profile?.[0]?.address);
+    (previous || []).forEach(item => push(item.address, item.createdAt));
+    return addresses;
+  }
+
+  async saveAddress(userId: number, address: string) {
+    const next = String(address || '').trim();
+    if (!next) {
+      return this.listAddresses(userId);
+    }
+
+    const existing = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM user_addresses
+      WHERE user_id = ?
+      AND lower(trim(address)) = lower(trim(?))
+      LIMIT 1
+      `,
+      [userId, next],
+    );
+    if (!existing?.[0]?.id) {
+      await mysql.query(
+        `
+        INSERT INTO user_addresses (user_id, address)
+        VALUES (?, ?)
+        `,
+        [userId, next],
+      );
+    }
+
+    await mysql.query(
+      `
+      UPDATE users
+      SET address = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [next, userId],
+    );
+    return this.listAddresses(userId);
+  }
 
 }
 

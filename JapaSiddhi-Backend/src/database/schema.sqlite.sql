@@ -120,6 +120,13 @@ CREATE TABLE IF NOT EXISTS users (
   deleted_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS user_addresses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  address TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE IF NOT EXISTS mantras (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   mantra_name TEXT NOT NULL,
@@ -454,7 +461,7 @@ INSERT OR IGNORE INTO app_settings (setting_key, setting_value, setting_type, ca
 ('support_email', 'kailaasavaasi@gmail.com', 'EMAIL', 'TRUST', 'Support Email'),
 ('support_phone', '9999999999', 'PHONE', 'TRUST', 'Support Phone'),
 ('monthly_donation_amount', '200', 'NUMBER', 'DONATION', 'Monthly Donation Amount'),
-('upi_id', 'bilvapatra@upi', 'TEXT', 'DONATION', 'UPI ID'),
+('upi_id', 'q007640149@ybl', 'TEXT', 'DONATION', 'UPI ID'),
 ('google_pay_number', '9999999999', 'PHONE', 'DONATION', 'Google Pay Number'),
 ('phonepe_number', '9999999999', 'PHONE', 'DONATION', 'PhonePe Number'),
 ('paytm_number', '9999999999', 'PHONE', 'DONATION', 'Paytm Number'),

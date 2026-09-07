@@ -23,6 +23,13 @@ router.get(
 
 
 router.put(
+  '/milestones/read',
+  authenticate,
+  notificationController.markMilestonesRead,
+);
+
+
+router.put(
   '/:id/read',
   authenticate,
   notificationController.markAsRead,

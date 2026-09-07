@@ -171,6 +171,75 @@ class NotificationRepository {
 
   }
 
+  async existsByAction(
+    userId: number,
+    actionType: string,
+    actionId: number,
+  ) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM notifications
+      WHERE user_id = ?
+        AND action_type = ?
+        AND action_id = ?
+      LIMIT 1
+      `,
+      [userId, actionType, actionId],
+    );
+    return Boolean(rows[0]?.id);
+  }
+
+  async getUnreadCountByAction(userId: number, actionType: string) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT COUNT(*) AS unreadCount
+      FROM notifications
+      WHERE user_id = ?
+        AND action_type = ?
+        AND is_read = 0
+      `,
+      [userId, actionType],
+    );
+    return Number(rows[0]?.unreadCount ?? 0);
+  }
+
+  async getLatestByAction(userId: number, actionType: string) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        title,
+        message,
+        action_id AS actionId,
+        sent_at AS sentAt,
+        is_read AS isRead
+      FROM notifications
+      WHERE user_id = ?
+        AND action_type = ?
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [userId, actionType],
+    );
+    return rows[0] ?? null;
+  }
+
+  async markActionAsRead(userId: number, actionType: string) {
+    await mysql.query(
+      `
+      UPDATE notifications
+      SET
+        is_read = 1,
+        read_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+        AND action_type = ?
+        AND is_read = 0
+      `,
+      [userId, actionType],
+    );
+  }
+
 }
 
 export default new NotificationRepository();

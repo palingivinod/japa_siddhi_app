@@ -212,6 +212,24 @@ class ChallengeRepository {
 
   }
 
+  async getOpenParticipations(userId: number) {
+    return mysql.query<any[]>(
+      `
+      SELECT
+        cp.challenge_id AS challengeId,
+        cp.current_value AS currentValue,
+        c.target_value AS targetValue
+      FROM challenge_participants cp
+      INNER JOIN challenges c
+        ON c.id = cp.challenge_id
+      WHERE cp.user_id = ?
+      AND COALESCE(cp.is_completed, 0) = 0
+      AND c.is_active = 1
+      `,
+      [userId],
+    );
+  }
+
   async updateProgress(
     challengeId: number,
     userId: number,

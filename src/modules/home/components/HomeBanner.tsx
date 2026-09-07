@@ -32,16 +32,6 @@ const HomeBanner: React.FC<Props> = ({
       style={styles.container}>
 
       <View style={styles.overlay}>
-
-        <Text style={styles.title}>
-          {banner?.title || 'Welcome to Japa Siddhi'}
-        </Text>
-
-        <Text style={styles.subtitle}>
-          {banner?.subtitle ||
-            'Begin your spiritual journey with daily mantra chanting and devotion.'}
-        </Text>
-
         <TouchableOpacity
           style={styles.button}
           activeOpacity={0.85}
@@ -52,7 +42,6 @@ const HomeBanner: React.FC<Props> = ({
           </Text>
 
         </TouchableOpacity>
-
       </View>
 
     </ImageBackground>
@@ -77,34 +66,28 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'flex-end',
     padding: 20,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-
-  subtitle: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    marginTop: 8,
-    lineHeight: 22,
   },
 
   button: {
     alignSelf: 'flex-start',
-    marginTop: 18,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 22,
-    paddingVertical: 12,
+    marginTop: 0,
+    backgroundColor: Colors.cream,
+    paddingHorizontal: 24,
+    paddingVertical: 13,
     borderRadius: 30,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    elevation: 6,
+    shadowColor: '#000000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
   },
 
   buttonText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 15,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: 0.3,
   },
 });

@@ -2,7 +2,7 @@ import https from 'https';
 import {URL} from 'url';
 
 import environment from '../../config/environment';
-import {PanchangResult} from './panchang';
+import {ChoghadiyaPeriod, PanchangResult} from './panchang';
 
 type LocalizedName = {
   en?: string;
@@ -46,6 +46,24 @@ type Astronomical = {
   rahuKalam?: TimeWindow;
   yamagandam?: TimeWindow;
   gulikaKalam?: TimeWindow;
+  choghadiya?: {
+    currentChoghadiya?: ChoghadiyaSlot;
+    dayChoghadiya?: ChoghadiyaSlot[];
+    nightChoghadiya?: ChoghadiyaSlot[];
+  };
+};
+
+type ChoghadiyaSlot = {
+  number?: number;
+  period?: string;
+  name?: string;
+  teluguName?: string;
+  localizedName?: LocalizedName;
+  effect?: string;
+  startIso?: string;
+  endIso?: string;
+  startLocal?: string;
+  endLocal?: string;
 };
 
 type VedicOrbitResponse = {
@@ -196,6 +214,60 @@ const formatWindow = (window?: TimeWindow) => {
   return window.local || '';
 };
 
+const mapChoghadiyaSlot = (
+  slot?: ChoghadiyaSlot,
+  lang = 'en',
+): ChoghadiyaPeriod | null => {
+  if (!slot) {
+    return null;
+  }
+  const localized = slot.localizedName?.[lang as keyof LocalizedName];
+  const name = localized || slot.name || slot.teluguName || '';
+  if (!name && !slot.startLocal) {
+    return null;
+  }
+  return {
+    name,
+    period: slot.period === 'night' ? 'night' : 'day',
+    effect: slot.effect || '',
+    startLocal: slot.startLocal || '',
+    endLocal: slot.endLocal || '',
+    startIso: slot.startIso || '',
+    endIso: slot.endIso || '',
+  };
+};
+
+const pickCurrentChoghadiya = (periods: ChoghadiyaPeriod[]) => {
+  const now = Date.now();
+  return (
+    periods.find(item => {
+      const start = new Date(item.startIso).getTime();
+      const end = new Date(item.endIso).getTime();
+      return Number.isFinite(start) && Number.isFinite(end) && start <= now && now < end;
+    }) || null
+  );
+};
+
+const mapChoghadiya = (astro: Astronomical, lang: string) => {
+  const block = astro.choghadiya;
+  if (!block) {
+    return undefined;
+  }
+  const periods = [
+    ...(block.dayChoghadiya || []),
+    ...(block.nightChoghadiya || []),
+  ]
+    .map(item => mapChoghadiyaSlot(item, lang))
+    .filter((item): item is ChoghadiyaPeriod => Boolean(item));
+  const current =
+    pickCurrentChoghadiya(periods) ||
+    mapChoghadiyaSlot(block.currentChoghadiya, lang);
+  return {
+    current,
+    periods,
+  };
+};
+
 const formatDisplayDate = (date: string, lang: string) => {
   const parsed = new Date(`${date}T12:00:00+05:30`);
   if (Number.isNaN(parsed.getTime())) {
@@ -254,6 +326,7 @@ const mapResponse = (
     rahuKalam: formatWindow(astro.rahuKalam),
     yamagandam: formatWindow(astro.yamagandam),
     gulikaKalam: formatWindow(astro.gulikaKalam),
+    choghadiya: mapChoghadiya(astro, lang),
   };
 };
 
@@ -354,7 +427,7 @@ export const fetchVedicOrbitPanchang = async (
   const lang = toVedicOrbitLang(
     options.lang || environment.VEDICORBIT_LANG || 'en',
   );
-  const mode = options.mode || 'summary';
+  const mode = options.mode || 'full';
   const cacheKey = [
     date,
     lang,

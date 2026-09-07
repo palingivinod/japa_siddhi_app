@@ -32,7 +32,7 @@ class FestivalService {
         panchang = await fetchVedicOrbitPanchang({
           date: date || panchang.date,
           lang: orbitLang,
-          mode: 'summary',
+          mode: 'full',
         });
       } catch (error) {
         const detail =

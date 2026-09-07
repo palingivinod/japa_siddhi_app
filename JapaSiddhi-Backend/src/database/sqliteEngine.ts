@@ -89,6 +89,13 @@ class SqliteEngine {
       WHERE setting_key = 'support_email'
       `,
     );
+    this.db.run(
+      `
+      UPDATE app_settings
+      SET setting_value = 'q007640149@ybl'
+      WHERE setting_key = 'upi_id'
+      `,
+    );
     this.persist();
   }
 
@@ -240,6 +247,13 @@ class SqliteEngine {
         question TEXT NOT NULL,
         answer TEXT NOT NULL,
         display_order INTEGER NOT NULL DEFAULT 0
+      );
+
+      CREATE TABLE IF NOT EXISTS user_addresses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        address TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
     this.seedChallenges();

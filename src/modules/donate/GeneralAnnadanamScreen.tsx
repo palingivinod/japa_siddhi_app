@@ -2,12 +2,14 @@ import React, {useState} from 'react';
 import {Alert} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const GeneralAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('+91');
   const [occasion, setOccasion] = useState('');
@@ -15,7 +17,7 @@ const GeneralAnnadanamScreen = () => {
 
   const continuePay = () => {
     if (!fullName.trim()) {
-      Alert.alert('Annadanam', 'Please enter your name.');
+      Alert.alert(t('tileAnnadanam'), t('pleaseEnterName'));
       return;
     }
     navigation.navigate('DonationForm', {
@@ -24,37 +26,37 @@ const GeneralAnnadanamScreen = () => {
       fullName,
       mobile,
       occasion,
-      itemName: 'General Annadanam',
+      itemName: t('generalAnnadanam'),
     });
   };
 
   return (
-    <ScreenLayout title="General Annadanam" showBack tab="SevaHub">
+    <ScreenLayout title={t('generalAnnadanam')} showBack tab="SevaHub">
       <FormField
-        label="Name"
-        placeholder="Full name"
+        label={t('nameLabel')}
+        placeholder={t('fullName')}
         value={fullName}
         onChangeText={setFullName}
       />
       <FormField
-        label="Mobile"
+        label={t('mobileNumber')}
         value={mobile}
         onChangeText={setMobile}
         keyboardType="phone-pad"
       />
       <FormField
-        label="Occasion"
-        placeholder="Birthday / Anniversary / Other"
+        label={t('occasionLabel')}
+        placeholder={t('occasionPlaceholder')}
         value={occasion}
         onChangeText={setOccasion}
       />
       <FormField
-        label="Donation Amount"
+        label={t('donationAmount')}
         value={amount.startsWith('₹') ? amount : `₹ ${amount}`}
         onChangeText={value => setAmount(value.replace(/[^\d]/g, ''))}
         keyboardType="numeric"
       />
-      <PrimaryButton title="CONTINUE TO PAYMENT" onPress={continuePay} />
+      <PrimaryButton title={t('continueToPayment')} onPress={continuePay} />
     </ScreenLayout>
   );
 };

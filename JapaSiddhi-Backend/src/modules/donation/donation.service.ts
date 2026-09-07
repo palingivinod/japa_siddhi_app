@@ -8,6 +8,7 @@ import donationRepository from './donation.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import orderService from '../orders/order.service';
 import banaLingamService from '../banaLingam/banaLingam.service';
+import profileRepository from '../profile/profile.repository';
 
 
 
@@ -163,7 +164,7 @@ class DonationService {
       switch(item.setting_key) {
 
         case 'upi_id':
-          details.upiId = realValue(item.setting_value);
+          details.upiId = realValue(item.setting_value) || 'q007640149@ybl';
           break;
 
         case 'google_pay_number':
@@ -202,6 +203,10 @@ class DonationService {
 
     });
 
+
+    if (!details.upiId) {
+      details.upiId = 'q007640149@ybl';
+    }
 
     return details;
 
@@ -310,6 +315,9 @@ class DonationService {
         remarks,
       });
       requestId = request.id;
+      if (data.address) {
+        await profileRepository.saveAddress(userId, data.address);
+      }
     }
 
     const prefix =

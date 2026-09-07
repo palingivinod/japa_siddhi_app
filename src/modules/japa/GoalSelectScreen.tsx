@@ -55,6 +55,7 @@ const GoalSelectScreen = () => {
       goalType,
       endDate,
       dailyTarget,
+      challengeId: route.params?.challengeId,
     });
   };
 

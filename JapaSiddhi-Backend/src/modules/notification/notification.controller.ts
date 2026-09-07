@@ -89,6 +89,30 @@ class NotificationController {
 
   }
 
+  async markMilestonesRead(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await notificationService.markActionAsRead(
+        userId,
+        'JAPA_MILESTONE',
+      );
+      return apiResponse.success(
+        res,
+        'Milestone notifications marked as read',
+        result,
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async unreadCount(
     req: Request,
     res: Response,

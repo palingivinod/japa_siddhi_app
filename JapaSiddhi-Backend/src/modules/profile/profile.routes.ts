@@ -38,4 +38,16 @@ router.put(
   profileController.updateSettings,
 );
 
+router.get(
+  '/addresses',
+  authenticate,
+  profileController.listAddresses,
+);
+
+router.post(
+  '/addresses',
+  authenticate,
+  profileController.saveAddress,
+);
+
 export default router;

@@ -62,7 +62,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
     route: 'BanaLingamPayment',
     params: {
       kind: 'BANA_LINGAM',
-      title: 'Scan to Pay',
+      title: 'Proceed to Pay',
       heading: 'Scan the UPI QR',
       itemName: 'Baanalingam',
       subtitle: 'Scan this QR to complete your offering.',
@@ -95,7 +95,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
     route: 'DonationPayment',
     params: {
       kind: 'ANNADANAM',
-      title: 'Scan to Pay',
+      title: 'Proceed to Pay',
       heading: 'Scan the UPI QR',
       itemName: 'Annadanam Donation',
       subtitle: 'Scan this QR with any UPI app.',
@@ -117,7 +117,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
     route: 'HomamPayment',
     params: {
       kind: 'NITHYA_HOMAM',
-      title: 'Scan to Pay',
+      title: 'Proceed to Pay',
       heading: 'Scan the UPI QR',
       itemName: 'Nithya Homam Enrollment',
       subtitle: 'Scan this QR to complete enrollment.',

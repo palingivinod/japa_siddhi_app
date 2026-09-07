@@ -75,7 +75,7 @@ VALUES
 
 -- Donation
 ('monthly_donation_amount', '200', 'NUMBER', 'DONATION', 'Monthly Donation Amount'),
-('upi_id', '', 'TEXT', 'DONATION', 'UPI ID'),
+('upi_id', 'q007640149@ybl', 'TEXT', 'DONATION', 'UPI ID'),
 ('google_pay_number', '', 'PHONE', 'DONATION', 'Google Pay Number'),
 ('phonepe_number', '', 'PHONE', 'DONATION', 'PhonePe Number'),
 ('paytm_number', '', 'PHONE', 'DONATION', 'Paytm Number'),

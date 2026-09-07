@@ -105,6 +105,34 @@ class NotificationService {
 
   }
 
+  async existsByAction(
+    userId: number,
+    actionType: string,
+    actionId: number,
+  ) {
+    return notificationRepository.existsByAction(
+      userId,
+      actionType,
+      actionId,
+    );
+  }
+
+  async getUnreadCountByAction(userId: number, actionType: string) {
+    return notificationRepository.getUnreadCountByAction(
+      userId,
+      actionType,
+    );
+  }
+
+  async getLatestByAction(userId: number, actionType: string) {
+    return notificationRepository.getLatestByAction(userId, actionType);
+  }
+
+  async markActionAsRead(userId: number, actionType: string) {
+    await notificationRepository.markActionAsRead(userId, actionType);
+    return {success: true};
+  }
+
 
 }
 

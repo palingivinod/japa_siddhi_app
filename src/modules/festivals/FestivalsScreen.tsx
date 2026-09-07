@@ -12,6 +12,7 @@ import {
 } from '../../services/panchang';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
+import ChaughadiyaCard from '../common/ChaughadiyaCard';
 import PanchangDetails from '../common/PanchangDetails';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -91,6 +92,7 @@ const FestivalsScreen = () => {
           </Text>
         ) : null}
         <PanchangDetails panchang={panchang} />
+        <ChaughadiyaCard choghadiya={panchang.choghadiya} />
       </View>
       {festivals.map(item => (
         <View key={item.id} style={styles.card}>

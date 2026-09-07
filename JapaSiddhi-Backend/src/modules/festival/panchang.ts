@@ -125,6 +125,21 @@ const VARAS = [
 const IST = 'Asia/Kolkata';
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
+export type ChoghadiyaPeriod = {
+  name: string;
+  period: 'day' | 'night';
+  effect: string;
+  startLocal: string;
+  endLocal: string;
+  startIso: string;
+  endIso: string;
+};
+
+export type ChoghadiyaResult = {
+  current: ChoghadiyaPeriod | null;
+  periods: ChoghadiyaPeriod[];
+};
+
 export type PanchangResult = {
   date: string;
   displayDate: string;
@@ -151,6 +166,7 @@ export type PanchangResult = {
   rahuKalam?: string;
   yamagandam?: string;
   gulikaKalam?: string;
+  choghadiya?: ChoghadiyaResult;
 };
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;

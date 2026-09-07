@@ -38,6 +38,14 @@ class ProfileService {
 
   }
 
+  async listAddresses(userId: number) {
+    return profileRepository.listAddresses(userId);
+  }
+
+  async saveAddress(userId: number, address: string) {
+    return profileRepository.saveAddress(userId, address);
+  }
+
 }
 
 export default new ProfileService();

@@ -2,31 +2,33 @@ import React from 'react';
 import {StyleSheet, Text} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import ScreenLayout from '../common/ScreenLayout';
 
 const DonateScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Annadanam" showBack tab="SevaHub">
-      <Text style={styles.heading}>Offer Annadanam</Text>
+    <ScreenLayout title={t('tileAnnadanam')} showBack tab="SevaHub">
+      <Text style={styles.heading}>{t('offerAnnadanam')}</Text>
       <MenuCard
-        title="Japa Annadanam"
-        subtitle="After a Japa milestone, sponsor food seva."
+        title={t('japaAnnadanam')}
+        subtitle={t('japaAnnadanamSub')}
         tone="gold"
         onPress={() => navigation.navigate('JapaAnnadanam')}
       />
       <MenuCard
-        title="General Annadanam"
-        subtitle="Offer food service for an occasion."
+        title={t('generalAnnadanam')}
+        subtitle={t('generalAnnadanamSub')}
         tone="green"
         onPress={() => navigation.navigate('GeneralAnnadanam')}
       />
       <MenuCard
-        title="Milestone reminders"
-        subtitle="See Japa milestone notifications."
+        title={t('milestoneReminders')}
+        subtitle={t('milestoneRemindersSub')}
         onPress={() => navigation.navigate('MilestoneNotifications')}
       />
     </ScreenLayout>

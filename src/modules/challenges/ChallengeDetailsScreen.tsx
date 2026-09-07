@@ -6,6 +6,7 @@ import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {sessionGoalForChallenge} from './challengeGoal';
 
 const ChallengeDetailsScreen = () => {
   const navigation = useNavigation<any>();
@@ -25,7 +26,8 @@ const ChallengeDetailsScreen = () => {
       Alert.alert('Joined', 'You joined this challenge.');
       navigation.navigate('GoalSelect', {
         mode: 'community',
-        goal: item?.targetValue || 2000,
+        goal: sessionGoalForChallenge(item),
+        challengeId: item?.id,
       });
     } catch (error: any) {
       Alert.alert(

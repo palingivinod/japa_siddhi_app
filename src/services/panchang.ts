@@ -1,3 +1,18 @@
+export type ChoghadiyaPeriod = {
+  name: string;
+  period: 'day' | 'night';
+  effect: string;
+  startLocal: string;
+  endLocal: string;
+  startIso: string;
+  endIso: string;
+};
+
+export type ChoghadiyaPayload = {
+  current?: ChoghadiyaPeriod | null;
+  periods?: ChoghadiyaPeriod[];
+};
+
 export type FestivalSummary = {
   id?: number;
   festivalName?: string;
@@ -32,6 +47,7 @@ export type PanchangPayload = {
   gulikaKalam?: string;
   festival?: FestivalSummary | null;
   nextFestival?: FestivalSummary | null;
+  choghadiya?: ChoghadiyaPayload;
 };
 
 export const emptyPanchang = (): PanchangPayload => ({
@@ -50,6 +66,7 @@ export const emptyPanchang = (): PanchangPayload => ({
   sunRashi: '',
   festival: null,
   nextFestival: null,
+  choghadiya: {current: null, periods: []},
 });
 
 export const festivalName = (item?: FestivalSummary | null) =>
@@ -70,4 +87,27 @@ export const festivalDateLabel = (value?: string) => {
     year: 'numeric',
     timeZone: 'Asia/Kolkata',
   }).format(parsed);
+};
+
+export const currentChoghadiya = (
+  payload?: ChoghadiyaPayload | null,
+  nowMs = Date.now(),
+): ChoghadiyaPeriod | null => {
+  const periods = payload?.periods || [];
+  const live = periods.find(item => {
+    const start = new Date(item.startIso).getTime();
+    const end = new Date(item.endIso).getTime();
+    return Number.isFinite(start) && Number.isFinite(end) && start <= nowMs && nowMs < end;
+  });
+  return live || payload?.current || null;
+};
+
+export const choghadiyaWindow = (item?: ChoghadiyaPeriod | null) => {
+  if (!item?.startLocal) {
+    return '';
+  }
+  if (item.endLocal) {
+    return `${item.startLocal} – ${item.endLocal}`;
+  }
+  return item.startLocal;
 };

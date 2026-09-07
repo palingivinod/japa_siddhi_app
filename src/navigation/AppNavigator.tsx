@@ -104,13 +104,13 @@ export type RootStackParamList = {
   JapaHub: undefined;
   CommunityJapa: undefined;
   MantraSelect: {mode?: string; mantraId?: number} | undefined;
-  GoalSelect: {mode?: string; mantraId?: number; goal?: number} | undefined;
-  ReferenceChant: {mode?: string; mantraId?: number; goal?: number} | undefined;
+  GoalSelect: {mode?: string; mantraId?: number; goal?: number; challengeId?: number} | undefined;
+  ReferenceChant: {mode?: string; mantraId?: number; goal?: number; challengeId?: number} | undefined;
   JapaPaused: {count?: number; goal?: number} | undefined;
   JapaProgress: {count?: number; goal?: number} | undefined;
   PrivateJapa: undefined;
   SevaHub: undefined;
-  Chant: {mode?: 'community' | 'private'; mantraId?: number; goal?: number} | undefined;
+  Chant: {mode?: 'community' | 'private'; mantraId?: number; goal?: number; challengeId?: number} | undefined;
   Challenges: undefined;
   ChallengeDetails: {id?: number} | undefined;
   ChallengeProgress: {id?: number} | undefined;

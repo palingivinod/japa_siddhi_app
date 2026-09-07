@@ -154,6 +154,44 @@ class ProfileController {
     }
   }
 
+  async listAddresses(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await profileService.listAddresses(userId);
+      return apiResponse.success(res, 'Addresses fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async saveAddress(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const address = String(req.body?.address || '').trim();
+      if (!address) {
+        return apiResponse.error(res, 'Address is required', 400);
+      }
+      const result = await profileService.saveAddress(userId, address);
+      return apiResponse.success(res, 'Address saved', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default new ProfileController();
