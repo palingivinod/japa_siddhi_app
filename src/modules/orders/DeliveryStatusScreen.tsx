@@ -45,6 +45,7 @@ const DeliveryStatusScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <MenuCard
+        emoji="🚚"
         title={item?.currentStatus || 'Out for delivery'}
         subtitle="Your spiritual item is on the way."
       />

@@ -9,6 +9,29 @@ import ApiErrorPanel from '../common/ApiErrorPanel';
 import MenuCard from '../common/MenuCard';
 import ScreenLayout from '../common/ScreenLayout';
 
+const notificationEmoji = (item: any) => {
+  const text = `${item.actionType || ''} ${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
+  if (item.actionType === 'JAPA_MILESTONE' || text.includes('milestone')) {
+    return '🏅';
+  }
+  if (text.includes('order') || text.includes('gift')) {
+    return '📦';
+  }
+  if (text.includes('challenge')) {
+    return '🏆';
+  }
+  if (text.includes('homam')) {
+    return '🔥';
+  }
+  if (text.includes('annadan') || text.includes('japa')) {
+    return '🙏';
+  }
+  if (text.includes('family')) {
+    return '👨‍👩‍👧';
+  }
+  return '🔔';
+};
+
 const NotificationsScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
@@ -40,6 +63,7 @@ const NotificationsScreen = () => {
   return (
     <ScreenLayout title={t('notifications')} showBack>
       <MenuCard
+        emoji="🏅"
         title={t('japaMilestones')}
         subtitle={t('celebrateProgress')}
         onPress={() => navigation.navigate('MilestoneNotifications')}
@@ -54,6 +78,7 @@ const NotificationsScreen = () => {
       {items.map(item => (
         <MenuCard
           key={item.id}
+          emoji={notificationEmoji(item)}
           title={item.title}
           subtitle={item.message || item.body}
           onPress={() => {

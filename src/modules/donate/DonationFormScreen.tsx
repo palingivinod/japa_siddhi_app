@@ -43,6 +43,7 @@ const DonationFormScreen = () => {
   return (
     <ScreenLayout title={t('donationForm')} showBack tab="SevaHub">
       <MenuCard
+        emoji="🍲"
         title={t('donationDetails')}
         subtitle={params.itemName || t('generalAnnadanam')}
       />

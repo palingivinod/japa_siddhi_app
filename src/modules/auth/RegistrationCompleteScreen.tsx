@@ -17,7 +17,9 @@ const RegistrationCompleteScreen = () => {
       <Text style={styles.title}>Welcome to Japa Siddhi</Text>
       <Text style={styles.copy}>Your spiritual journey begins today.</Text>
       <View style={styles.card}>
-        <View style={styles.dot} />
+        <View style={styles.dot}>
+          <Text style={styles.emoji}>👤</Text>
+        </View>
         <View>
           <Text style={styles.cardTitle}>Your Profile</Text>
           <Text style={styles.meta}>Profile created successfully</Text>
@@ -74,8 +76,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.templeGold,
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   cardTitle: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
   meta: {marginTop: 4, color: Colors.textSecondary},

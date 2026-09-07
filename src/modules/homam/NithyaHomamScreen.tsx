@@ -8,9 +8,9 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const BENEFITS = [
-  'Daily sankalpam',
-  'Spiritual participation',
-  'Personalized reminders',
+  {emoji: '📜', text: 'Daily sankalpam'},
+  {emoji: '🙏', text: 'Spiritual participation'},
+  {emoji: '🔔', text: 'Personalized reminders'},
 ];
 
 const NithyaHomamScreen = () => {
@@ -19,14 +19,15 @@ const NithyaHomamScreen = () => {
   return (
     <ScreenLayout title="Nithya Homam" showBack tab="SevaHub">
       <MenuCard
+        emoji="🔥"
         title="Daily Sacred Homam"
         subtitle="Enroll for Nithya Homam participation."
       />
       <Text style={styles.section}>Benefits</Text>
       {BENEFITS.map(item => (
-        <View key={item} style={styles.row}>
-          <View style={styles.dot} />
-          <Text style={styles.item}>{item}</Text>
+        <View key={item.text} style={styles.row}>
+          <Text style={styles.benefitEmoji}>{item.emoji}</Text>
+          <Text style={styles.item}>{item.text}</Text>
         </View>
       ))}
       <View style={styles.gap} />
@@ -48,12 +49,12 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   row: {flexDirection: 'row', alignItems: 'center', marginBottom: 10},
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Colors.templeGold,
-    marginRight: 10,
+  benefitEmoji: {
+    width: 28,
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+    marginRight: 8,
   },
   item: {color: Colors.sacredBrown, fontWeight: '600'},
   gap: {height: 20},

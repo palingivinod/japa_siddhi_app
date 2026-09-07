@@ -138,7 +138,7 @@ const CheckoutScreen = () => {
   return (
     <ScreenLayout title={title} showBack tab="SevaHub">
       <Text style={styles.heading}>{params.heading || 'Proceed to pay'}</Text>
-      <MenuCard title={itemName} subtitle={subtitle} />
+      <MenuCard title={itemName} subtitle={subtitle} emoji="💳" />
       <StatCards
         items={[
           {label: 'AMOUNT', value: `₹ ${amount.toLocaleString()}`},

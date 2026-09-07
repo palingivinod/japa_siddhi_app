@@ -58,13 +58,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: Colors.templeGold,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'visible',
   },
   dotGreen: {
     backgroundColor: Colors.leafGreen,
@@ -75,8 +76,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
   },
   emoji: {
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 22,
+    lineHeight: 26,
     textAlign: 'center',
     includeFontPadding: false,
   },

@@ -82,6 +82,7 @@ const BanaLingamScreen = () => {
     <ScreenLayout title="Baanalingam" showBack tab="SevaHub">
       <Text style={styles.heading}>Baanalingam Distribution.</Text>
       <MenuCard
+        emoji="🕉️"
         title="Sacred service"
         subtitle="Apply to receive Baanalingam with delivery."
       />

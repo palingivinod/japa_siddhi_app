@@ -15,18 +15,21 @@ const DonateScreen = () => {
     <ScreenLayout title={t('tileAnnadanam')} showBack tab="SevaHub">
       <Text style={styles.heading}>{t('offerAnnadanam')}</Text>
       <MenuCard
+        emoji="🙏"
         title={t('japaAnnadanam')}
         subtitle={t('japaAnnadanamSub')}
         tone="gold"
         onPress={() => navigation.navigate('JapaAnnadanam')}
       />
       <MenuCard
+        emoji="🍲"
         title={t('generalAnnadanam')}
         subtitle={t('generalAnnadanamSub')}
         tone="green"
         onPress={() => navigation.navigate('GeneralAnnadanam')}
       />
       <MenuCard
+        emoji="🔔"
         title={t('milestoneReminders')}
         subtitle={t('milestoneRemindersSub')}
         onPress={() => navigation.navigate('MilestoneNotifications')}

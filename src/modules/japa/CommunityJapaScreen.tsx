@@ -55,6 +55,7 @@ const CommunityJapaScreen = () => {
       {mantras.map(item => (
         <MenuCard
           key={item.id}
+          emoji="🕉️"
           title={item.mantraName || item.transliteration}
           subtitle={selected?.id === item.id ? 'Selected' : 'Tap to select'}
           tone={selected?.id === item.id ? 'green' : 'gold'}

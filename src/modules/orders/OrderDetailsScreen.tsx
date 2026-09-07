@@ -49,6 +49,7 @@ const OrderDetailsScreen = () => {
         Order #{item?.orderNumber || item?.confirmationId || id || 'JS10028'}
       </Text>
       <MenuCard
+        emoji="📦"
         title={item?.itemName || item?.productName || 'Baanalingam'}
         subtitle={`Quantity: ${item?.quantity || 1}`}
       />

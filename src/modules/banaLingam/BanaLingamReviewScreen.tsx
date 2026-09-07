@@ -49,10 +49,12 @@ const BanaLingamReviewScreen = () => {
   return (
     <ScreenLayout title="Review Application" showBack tab="SevaHub">
       <MenuCard
+        emoji="🕉️"
         title="Baanalingam"
         subtitle={`${params.fullName || 'Devotee'} • ${params.mobile || ''}`}
       />
       <MenuCard
+        emoji="🏠"
         title="Address"
         subtitle={hasAddress ? address : 'Add a delivery address to place this order.'}
       />

@@ -18,6 +18,7 @@ const PaymentConfirmationScreen = () => {
         subtitle={`Order #${data.orderNumber || data.confirmationId || 'JS10028'}`}
       />
       <MenuCard
+        emoji="✅"
         title={data.itemName || 'Baanalingam'}
         subtitle="Your order has been created automatically."
       />

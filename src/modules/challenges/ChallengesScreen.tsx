@@ -22,7 +22,9 @@ const ChallengesScreen = () => {
       <Text style={styles.heading}>Choose a challenge</Text>
       {items.map(item => (
         <View key={item.id} style={styles.card}>
-          <View style={styles.dot} />
+          <View style={styles.dot}>
+            <Text style={styles.emoji}>🏆</Text>
+          </View>
           <View style={styles.copy}>
             <Text style={styles.title}>{item.title}</Text>
             <Text style={styles.meta}>{item.description}</Text>
@@ -63,8 +65,18 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: Colors.templeGold,
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 18,
+    lineHeight: 22,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   copy: {flex: 1},
   title: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},

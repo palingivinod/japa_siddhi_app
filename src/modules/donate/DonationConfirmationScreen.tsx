@@ -18,6 +18,7 @@ const DonationConfirmationScreen = () => {
         subtitle={`ID ${data.confirmationId || data.orderNumber || 'ANN10281'}`}
       />
       <MenuCard
+        emoji="🍲"
         title={data.itemName || 'Annadanam'}
         subtitle="Your offering supports food service."
       />

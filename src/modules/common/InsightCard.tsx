@@ -9,7 +9,9 @@ const InsightCard = ({
   text?: string;
 }) => (
   <View style={styles.card}>
-    <View style={styles.dot} />
+    <View style={styles.dot}>
+      <Text style={styles.emoji}>✨</Text>
+    </View>
     <View style={styles.copy}>
       <Text style={styles.title}>Spiritual insight</Text>
       <Text style={styles.text}>{text}</Text>
@@ -33,8 +35,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.templeGold,
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   copy: {flex: 1},
   title: {fontWeight: '800', color: Colors.sacredBrown, marginBottom: 4},

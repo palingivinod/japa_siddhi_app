@@ -52,7 +52,9 @@ const ChallengeDetailsScreen = () => {
         {item.durationDays || 30} days • {item.typeLabel || 'Community'}
       </Text>
       <View style={styles.card}>
-        <View style={styles.dot} />
+        <View style={styles.dot}>
+          <Text style={styles.emoji}>🎯</Text>
+        </View>
         <View>
           <Text style={styles.cardTitle}>Challenge goal</Text>
           <Text style={styles.meta}>
@@ -131,8 +133,18 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: Colors.templeGold,
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
     marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emoji: {
+    fontSize: 16,
+    lineHeight: 20,
+    textAlign: 'center',
+    includeFontPadding: false,
   },
   cardTitle: {fontWeight: '800', color: Colors.sacredBrown},
   meta: {marginTop: 4, color: Colors.textSecondary},
