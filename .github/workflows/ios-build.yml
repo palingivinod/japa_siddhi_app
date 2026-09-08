@@ -31,7 +31,8 @@ jobs:
       - name: Set up Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.4'
+          # 15.4 is no longer on GitHub runners; macos-15 ships 16.x (16.4 default).
+          xcode-version: '16.4'
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
