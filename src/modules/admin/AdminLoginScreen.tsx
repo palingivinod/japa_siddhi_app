@@ -1,0 +1,112 @@
+import React, {useState} from 'react';
+import {
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useNavigation} from '@react-navigation/native';
+
+import Colors from '../../theme/colors';
+import AppHeader from '../common/AppHeader';
+import PrimaryButton from '../common/PrimaryButton';
+import {saveAdminSession} from './adminSession';
+
+const AdminLoginScreen = () => {
+  const navigation = useNavigation<any>();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const signIn = async () => {
+    const trimmed = email.trim();
+    if (!trimmed || !password.trim()) {
+      Alert.alert('Required', 'Enter admin email and password.');
+      return;
+    }
+    setBusy(true);
+    try {
+      // UI-first auth gate; replace with /admin/login when backend is ready.
+      await saveAdminSession(trimmed);
+      navigation.replace('AdminDashboard');
+    } catch (error: any) {
+      Alert.alert('Sign in failed', error?.message || 'Unable to sign in.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <View style={styles.body}>
+        <AppHeader title="Admin Login" showBack />
+        <Text style={styles.heading}>Admin Login</Text>
+        <Text style={styles.sub}>Secure administrator access.</Text>
+
+        <Text style={styles.label}>Email</Text>
+        <TextInput
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          placeholder="Enter here"
+          placeholderTextColor={Colors.placeholder}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+          placeholder="Enter here"
+          placeholderTextColor={Colors.placeholder}
+          secureTextEntry
+        />
+
+        <PrimaryButton
+          title={busy ? 'SIGNING IN...' : 'SIGN IN'}
+          onPress={signIn}
+          disabled={busy}
+        />
+      </View>
+    </SafeAreaView>
+  );
+};
+
+export default AdminLoginScreen;
+
+const styles = StyleSheet.create({
+  container: {flex: 1, backgroundColor: Colors.background},
+  body: {flex: 1, paddingHorizontal: 20},
+  heading: {
+    marginTop: 8,
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  sub: {
+    marginTop: 6,
+    marginBottom: 22,
+    color: Colors.textSecondary,
+  },
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  input: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 16,
+  },
+});

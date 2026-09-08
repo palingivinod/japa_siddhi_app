@@ -75,6 +75,38 @@ import ScreenIndexScreen from '../modules/screens/ScreenIndexScreen';
 import BanaLingamReviewScreen from '../modules/banaLingam/BanaLingamReviewScreen';
 import DonationConfirmationScreen from '../modules/donate/DonationConfirmationScreen';
 import WelcomeGiftScreen from '../modules/auth/WelcomeGiftScreen';
+import AdminHubScreen from '../modules/admin/AdminHubScreen';
+import AdminLoginScreen from '../modules/admin/AdminLoginScreen';
+import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
+import AdminUsersScreen from '../modules/admin/AdminUsersScreen';
+import AdminUserDetailsScreen from '../modules/admin/AdminUserDetailsScreen';
+import AdminJapaScreen from '../modules/admin/AdminJapaScreen';
+import AdminMantrasScreen from '../modules/admin/AdminMantrasScreen';
+import AdminChallengeCreateScreen from '../modules/admin/AdminChallengeCreateScreen';
+import AdminChallengesScreen from '../modules/admin/AdminChallengesScreen';
+import AdminRewardsScreen from '../modules/admin/AdminRewardsScreen';
+import AdminNotificationsScreen from '../modules/admin/AdminNotificationsScreen';
+import AdminOrdersScreen from '../modules/admin/AdminOrdersScreen';
+import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
+import AdminProductsScreen from '../modules/admin/AdminProductsScreen';
+import AdminBannersScreen from '../modules/admin/AdminBannersScreen';
+import AdminPaymentsScreen from '../modules/admin/AdminPaymentsScreen';
+import AdminAnnadanamScreen from '../modules/admin/AdminAnnadanamScreen';
+import AdminBaanalingamScreen from '../modules/admin/AdminBaanalingamScreen';
+import AdminNithyaHomamScreen from '../modules/admin/AdminNithyaHomamScreen';
+import AdminSupportScreen from '../modules/admin/AdminSupportScreen';
+import AdminFeedbackScreen from '../modules/admin/AdminFeedbackScreen';
+import AdminAnalyticsDashboardScreen from '../modules/admin/AdminAnalyticsDashboardScreen';
+import AdminUserDemographicsScreen from '../modules/admin/AdminUserDemographicsScreen';
+import AdminJapaAnalyticsScreen from '../modules/admin/AdminJapaAnalyticsScreen';
+import AdminChallengeAnalyticsScreen from '../modules/admin/AdminChallengeAnalyticsScreen';
+import AdminDonationAnalyticsScreen from '../modules/admin/AdminDonationAnalyticsScreen';
+import AdminFestivalAnalyticsScreen from '../modules/admin/AdminFestivalAnalyticsScreen';
+import AdminNotificationAnalyticsScreen from '../modules/admin/AdminNotificationAnalyticsScreen';
+import AdminLanguagesScreen from '../modules/admin/AdminLanguagesScreen';
+import AdminMultilingualContentScreen from '../modules/admin/AdminMultilingualContentScreen';
+import AdminExportReportsScreen from '../modules/admin/AdminExportReportsScreen';
+import AdminMoreScreen from '../modules/admin/AdminMoreScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -171,6 +203,38 @@ export type RootStackParamList = {
   ScreenIndex: undefined;
   BanaLingamReview: any;
   DonationConfirmation: any;
+  AdminHub: undefined;
+  AdminLogin: undefined;
+  AdminDashboard: undefined;
+  AdminUsers: undefined;
+  AdminUserDetails: {userId?: string} | undefined;
+  AdminJapa: undefined;
+  AdminMantras: undefined;
+  AdminChallengeCreate: undefined;
+  AdminChallenges: undefined;
+  AdminRewards: undefined;
+  AdminNotifications: undefined;
+  AdminOrders: undefined;
+  AdminOrderDetails: {orderId?: string} | undefined;
+  AdminProducts: undefined;
+  AdminBanners: undefined;
+  AdminPayments: undefined;
+  AdminAnnadanam: undefined;
+  AdminBaanalingam: undefined;
+  AdminNithyaHomam: undefined;
+  AdminSupport: undefined;
+  AdminFeedback: undefined;
+  AdminAnalyticsDashboard: undefined;
+  AdminUserDemographics: undefined;
+  AdminJapaAnalytics: undefined;
+  AdminChallengeAnalytics: undefined;
+  AdminDonationAnalytics: undefined;
+  AdminFestivalAnalytics: undefined;
+  AdminNotificationAnalytics: undefined;
+  AdminLanguages: undefined;
+  AdminMultilingualContent: undefined;
+  AdminExportReports: undefined;
+  AdminMore: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -235,6 +299,44 @@ const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
 const ProtectedBanaReview = withAuth(BanaLingamReviewScreen);
 const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
 const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
+const ProtectedAdminHub = withAuth(AdminHubScreen);
+const ProtectedAdminLogin = withAuth(AdminLoginScreen);
+const ProtectedAdminDashboard = withAuth(AdminDashboardScreen);
+const ProtectedAdminUsers = withAuth(AdminUsersScreen);
+const ProtectedAdminUserDetails = withAuth(AdminUserDetailsScreen);
+const ProtectedAdminJapa = withAuth(AdminJapaScreen);
+const ProtectedAdminMantras = withAuth(AdminMantrasScreen);
+const ProtectedAdminChallengeCreate = withAuth(AdminChallengeCreateScreen);
+const ProtectedAdminChallenges = withAuth(AdminChallengesScreen);
+const ProtectedAdminRewards = withAuth(AdminRewardsScreen);
+const ProtectedAdminNotifications = withAuth(AdminNotificationsScreen);
+const ProtectedAdminOrders = withAuth(AdminOrdersScreen);
+const ProtectedAdminOrderDetails = withAuth(AdminOrderDetailsScreen);
+const ProtectedAdminProducts = withAuth(AdminProductsScreen);
+const ProtectedAdminBanners = withAuth(AdminBannersScreen);
+const ProtectedAdminPayments = withAuth(AdminPaymentsScreen);
+const ProtectedAdminAnnadanam = withAuth(AdminAnnadanamScreen);
+const ProtectedAdminBaanalingam = withAuth(AdminBaanalingamScreen);
+const ProtectedAdminNithyaHomam = withAuth(AdminNithyaHomamScreen);
+const ProtectedAdminSupport = withAuth(AdminSupportScreen);
+const ProtectedAdminFeedback = withAuth(AdminFeedbackScreen);
+const ProtectedAdminAnalyticsDashboard = withAuth(AdminAnalyticsDashboardScreen);
+const ProtectedAdminUserDemographics = withAuth(AdminUserDemographicsScreen);
+const ProtectedAdminJapaAnalytics = withAuth(AdminJapaAnalyticsScreen);
+const ProtectedAdminChallengeAnalytics = withAuth(
+  AdminChallengeAnalyticsScreen,
+);
+const ProtectedAdminDonationAnalytics = withAuth(AdminDonationAnalyticsScreen);
+const ProtectedAdminFestivalAnalytics = withAuth(AdminFestivalAnalyticsScreen);
+const ProtectedAdminNotificationAnalytics = withAuth(
+  AdminNotificationAnalyticsScreen,
+);
+const ProtectedAdminLanguages = withAuth(AdminLanguagesScreen);
+const ProtectedAdminMultilingualContent = withAuth(
+  AdminMultilingualContentScreen,
+);
+const ProtectedAdminExportReports = withAuth(AdminExportReportsScreen);
+const ProtectedAdminMore = withAuth(AdminMoreScreen);
 
 const AppNavigator = () => {
   return (
@@ -376,6 +478,95 @@ const AppNavigator = () => {
           name="FeedbackConfirmation"
           component={ProtectedFeedbackConfirmation}
         />
+        <Stack.Screen name="AdminHub" component={ProtectedAdminHub} />
+        <Stack.Screen name="AdminLogin" component={ProtectedAdminLogin} />
+        <Stack.Screen
+          name="AdminDashboard"
+          component={ProtectedAdminDashboard}
+        />
+        <Stack.Screen name="AdminUsers" component={ProtectedAdminUsers} />
+        <Stack.Screen
+          name="AdminUserDetails"
+          component={ProtectedAdminUserDetails}
+        />
+        <Stack.Screen name="AdminJapa" component={ProtectedAdminJapa} />
+        <Stack.Screen name="AdminMantras" component={ProtectedAdminMantras} />
+        <Stack.Screen
+          name="AdminChallengeCreate"
+          component={ProtectedAdminChallengeCreate}
+        />
+        <Stack.Screen
+          name="AdminChallenges"
+          component={ProtectedAdminChallenges}
+        />
+        <Stack.Screen name="AdminRewards" component={ProtectedAdminRewards} />
+        <Stack.Screen
+          name="AdminNotifications"
+          component={ProtectedAdminNotifications}
+        />
+        <Stack.Screen name="AdminOrders" component={ProtectedAdminOrders} />
+        <Stack.Screen
+          name="AdminOrderDetails"
+          component={ProtectedAdminOrderDetails}
+        />
+        <Stack.Screen name="AdminProducts" component={ProtectedAdminProducts} />
+        <Stack.Screen name="AdminBanners" component={ProtectedAdminBanners} />
+        <Stack.Screen name="AdminPayments" component={ProtectedAdminPayments} />
+        <Stack.Screen
+          name="AdminAnnadanam"
+          component={ProtectedAdminAnnadanam}
+        />
+        <Stack.Screen
+          name="AdminBaanalingam"
+          component={ProtectedAdminBaanalingam}
+        />
+        <Stack.Screen
+          name="AdminNithyaHomam"
+          component={ProtectedAdminNithyaHomam}
+        />
+        <Stack.Screen name="AdminSupport" component={ProtectedAdminSupport} />
+        <Stack.Screen name="AdminFeedback" component={ProtectedAdminFeedback} />
+        <Stack.Screen
+          name="AdminAnalyticsDashboard"
+          component={ProtectedAdminAnalyticsDashboard}
+        />
+        <Stack.Screen
+          name="AdminUserDemographics"
+          component={ProtectedAdminUserDemographics}
+        />
+        <Stack.Screen
+          name="AdminJapaAnalytics"
+          component={ProtectedAdminJapaAnalytics}
+        />
+        <Stack.Screen
+          name="AdminChallengeAnalytics"
+          component={ProtectedAdminChallengeAnalytics}
+        />
+        <Stack.Screen
+          name="AdminDonationAnalytics"
+          component={ProtectedAdminDonationAnalytics}
+        />
+        <Stack.Screen
+          name="AdminFestivalAnalytics"
+          component={ProtectedAdminFestivalAnalytics}
+        />
+        <Stack.Screen
+          name="AdminNotificationAnalytics"
+          component={ProtectedAdminNotificationAnalytics}
+        />
+        <Stack.Screen
+          name="AdminLanguages"
+          component={ProtectedAdminLanguages}
+        />
+        <Stack.Screen
+          name="AdminMultilingualContent"
+          component={ProtectedAdminMultilingualContent}
+        />
+        <Stack.Screen
+          name="AdminExportReports"
+          component={ProtectedAdminExportReports}
+        />
+        <Stack.Screen name="AdminMore" component={ProtectedAdminMore} />
       </Stack.Navigator>
     </NavigationContainer>
   );
