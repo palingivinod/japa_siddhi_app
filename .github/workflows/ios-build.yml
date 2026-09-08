@@ -1,0 +1,118 @@
+name: Build iOS IPA
+
+# Builds an unsigned Release .ipa on GitHub-hosted macOS (free for public repos).
+# Trigger: push to main (relevant paths) or Actions → Build iOS IPA → Run workflow.
+#
+# Note: This IPA is NOT Apple-signed. A physical iPhone will not install it until
+# you add signing (free Apple ID on a Mac = ~7 days, or paid Developer Program).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ios/**
+      - src/**
+      - package.json
+      - package-lock.json
+      - Gemfile
+      - Gemfile.lock
+      - .github/workflows/ios-build.yml
+
+jobs:
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Install CocoaPods
+        working-directory: ios
+        run: |
+          gem install cocoapods -N
+          pod install --repo-update
+
+      - name: Ensure GoogleService-Info.plist placeholder
+        run: |
+          PLIST="ios/JapaSiddhi/GoogleService-Info.plist"
+          if [ -f "$PLIST" ]; then
+            echo "Using existing $PLIST"
+            exit 0
+          fi
+          python3 -c '
+          from pathlib import Path
+          Path("ios/JapaSiddhi/GoogleService-Info.plist").write_text("""<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+          <!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">
+          <plist version=\"1.0\"><dict>
+          <key>API_KEY</key><string>placeholder</string>
+          <key>GCM_SENDER_ID</key><string>000000000000</string>
+          <key>PLIST_VERSION</key><string>1</string>
+          <key>BUNDLE_ID</key><string>org.reactjs.native.example.JapaSiddhi</string>
+          <key>PROJECT_ID</key><string>japa-siddhi-placeholder</string>
+          <key>STORAGE_BUCKET</key><string>japa-siddhi-placeholder.appspot.com</string>
+          <key>IS_ADS_ENABLED</key><false/>
+          <key>IS_ANALYTICS_ENABLED</key><false/>
+          <key>IS_APPINVITE_ENABLED</key><false/>
+          <key>IS_GCM_ENABLED</key><false/>
+          <key>IS_SIGNIN_ENABLED</key><false/>
+          <key>GOOGLE_APP_ID</key><string>1:000000000000:ios:0000000000000000000000</string>
+          </dict></plist>
+          """, encoding="utf-8")
+          print("Created placeholder GoogleService-Info.plist")
+          '
+
+      - name: Build iOS app (unsigned Release)
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -workspace ios/JapaSiddhi.xcworkspace \
+            -scheme JapaSiddhi \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath ios/build \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            clean build
+
+      - name: Package as IPA
+        run: |
+          set -euo pipefail
+          APP_PATH="$(find ios/build/Build/Products -name 'JapaSiddhi.app' -type d | head -n 1)"
+          if [ -z "$APP_PATH" ]; then
+            echo "JapaSiddhi.app not found under ios/build"
+            find ios/build -name '*.app' -type d || true
+            exit 1
+          fi
+          echo "Packaging: $APP_PATH"
+          rm -rf Payload JapaSiddhi.ipa
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -qr JapaSiddhi.ipa Payload
+          ls -lh JapaSiddhi.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: japasiddhi-ios-ipa
+          path: JapaSiddhi.ipa
+          if-no-files-found: error
+          retention-days: 14
