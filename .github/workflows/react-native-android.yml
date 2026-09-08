@@ -35,4 +35,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: react-native-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: |
+            android/**/*.apk
