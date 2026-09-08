@@ -22,7 +22,6 @@ import {getStoredUser} from '../../../services/session';
 import Colors from '../../../theme/colors';
 import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
-import ChaughadiyaCard from '../../common/ChaughadiyaCard';
 import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
@@ -190,7 +189,6 @@ const HomeScreen = () => {
               </Text>
             ) : null}
             <PanchangDetails panchang={panchang} compact />
-            <ChaughadiyaCard choghadiya={panchang.choghadiya} />
           </TouchableOpacity>
 
           <TouchableOpacity

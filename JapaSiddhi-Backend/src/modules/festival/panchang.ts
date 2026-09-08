@@ -167,6 +167,9 @@ export type PanchangResult = {
   yamagandam?: string;
   gulikaKalam?: string;
   choghadiya?: ChoghadiyaResult;
+  auspiciousTimings?: {
+    amruthaGadiyalu: Array<{startTime: string; endTime: string}>;
+  };
 };
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;

@@ -38,14 +38,18 @@ const PanchangDetails = ({panchang, compact}: Props) => {
       [t('labelSunRashi'), value(panchang.sunRashi)],
       [t('labelSunrise'), value(panchang.sunrise)],
       [t('labelSunset'), value(panchang.sunset)],
-      [t('labelRahuKalam'), value(panchang.rahuKalam)],
       [t('labelYamagandam'), value(panchang.yamagandam)],
     );
-  } else if (panchang.sunrise || panchang.rahuKalam) {
-    items.push(
-      [t('labelSunrise'), value(panchang.sunrise)],
-      [t('labelRahuKalam'), value(panchang.rahuKalam)],
-    );
+  } else {
+    const amrutha = (panchang.auspiciousTimings?.amruthaGadiyalu || [])
+      .map(slot => `${slot.startTime} – ${slot.endTime}`)
+      .join(', ');
+    if (amrutha) {
+      items.push([t('labelAmruthaGadiyalu'), amrutha]);
+    }
+    if (panchang.sunrise) {
+      items.push([t('labelSunrise'), value(panchang.sunrise)]);
+    }
   }
 
   return (

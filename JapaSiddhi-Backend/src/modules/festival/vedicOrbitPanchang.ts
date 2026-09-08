@@ -29,6 +29,21 @@ type TimeWindow = {
   local?: string;
   startLocal?: string;
   endLocal?: string;
+  startIso?: string;
+  endIso?: string;
+};
+
+type AmritKalamPeriod = TimeWindow & {
+  startLocal?: string;
+  endLocal?: string;
+  startIso?: string;
+  endIso?: string;
+};
+
+type AmritKalam = {
+  activePeriod?: AmritKalamPeriod | null;
+  currentNakshatraPeriod?: AmritKalamPeriod | null;
+  nextNakshatraPeriod?: AmritKalamPeriod | null;
 };
 
 type Astronomical = {
@@ -46,6 +61,7 @@ type Astronomical = {
   rahuKalam?: TimeWindow;
   yamagandam?: TimeWindow;
   gulikaKalam?: TimeWindow;
+  amritKalam?: AmritKalam;
   choghadiya?: {
     currentChoghadiya?: ChoghadiyaSlot;
     dayChoghadiya?: ChoghadiyaSlot[];
@@ -100,6 +116,10 @@ export type ExternalPanchangResult = PanchangResult & {
   rahuKalam?: string;
   yamagandam?: string;
   gulikaKalam?: string;
+  /** Only Amrutha Gadiyalu — other muhurtams intentionally omitted for the app. */
+  auspiciousTimings?: {
+    amruthaGadiyalu: Array<{startTime: string; endTime: string}>;
+  };
 };
 
 type FetchOptions = {
@@ -214,6 +234,75 @@ const formatWindow = (window?: TimeWindow) => {
   return window.local || '';
 };
 
+/** Normalize "08 Sept, 10:40 am" / "04:15 PM" → "10:40 AM". */
+const clockLabel = (local?: string) => {
+  if (!local) {
+    return '';
+  }
+  const match = String(local).match(/(\d{1,2}:\d{2}\s*[AaPp][Mm])/);
+  if (match) {
+    return match[1].replace(/\s+/g, ' ').toUpperCase();
+  }
+  return String(local).trim();
+};
+
+const periodToAmrutha = (period?: AmritKalamPeriod | null) => {
+  if (!period?.startLocal || !period?.endLocal) {
+    return null;
+  }
+  return {
+    startTime: clockLabel(period.startLocal),
+    endTime: clockLabel(period.endLocal),
+  };
+};
+
+/**
+ * Map VedicOrbit amritKalam → amrutha_gadiyalu only.
+ * Abhijit / Brahma / other muhurtams are intentionally not exposed.
+ */
+const mapAmruthaGadiyalu = (amrit?: AmritKalam, date = '') => {
+  if (!amrit) {
+    return [];
+  }
+  const candidates = [
+    amrit.activePeriod,
+    amrit.currentNakshatraPeriod,
+    amrit.nextNakshatraPeriod,
+  ];
+  const slots = candidates
+    .map(period => {
+      const mapped = periodToAmrutha(period);
+      if (!mapped) {
+        return null;
+      }
+      if (date && period?.startIso) {
+        const day = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(new Date(period.startIso));
+        if (day !== date) {
+          return null;
+        }
+      }
+      return mapped;
+    })
+    .filter((item): item is {startTime: string; endTime: string} =>
+      Boolean(item),
+    );
+
+  const seen = new Set<string>();
+  return slots.filter(item => {
+    const key = `${item.startTime}|${item.endTime}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+};
+
 const mapChoghadiyaSlot = (
   slot?: ChoghadiyaSlot,
   lang = 'en',
@@ -326,6 +415,9 @@ const mapResponse = (
     rahuKalam: formatWindow(astro.rahuKalam),
     yamagandam: formatWindow(astro.yamagandam),
     gulikaKalam: formatWindow(astro.gulikaKalam),
+    auspiciousTimings: {
+      amruthaGadiyalu: mapAmruthaGadiyalu(astro.amritKalam, date),
+    },
     choghadiya: mapChoghadiya(astro, lang),
   };
 };

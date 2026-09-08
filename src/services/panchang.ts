@@ -48,6 +48,9 @@ export type PanchangPayload = {
   festival?: FestivalSummary | null;
   nextFestival?: FestivalSummary | null;
   choghadiya?: ChoghadiyaPayload;
+  auspiciousTimings?: {
+    amruthaGadiyalu: Array<{startTime: string; endTime: string}>;
+  };
 };
 
 export const emptyPanchang = (): PanchangPayload => ({

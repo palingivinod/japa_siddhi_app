@@ -84,6 +84,7 @@ const en = {
   labelSunset: 'SUNSET',
   labelRahuKalam: 'RAHU KALAM',
   labelYamagandam: 'YAMAGANDAM',
+  labelAmruthaGadiyalu: 'AMRUTHA GADIYALU',
   labelGulikaKalam: 'GULIKA KALAM',
   currentChaughadiya: 'Current Chaughadiya',
   chaughadiyaDay: 'Day',
