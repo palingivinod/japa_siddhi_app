@@ -43,6 +43,7 @@ const MilestoneNotificationsScreen = () => {
   const [upcoming, setUpcoming] = useState<MilestoneItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestAt, setLatestAt] = useState<string | null>(null);
+  const [nextTitle, setNextTitle] = useState('');
   const [eligible, setEligible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,6 +63,7 @@ const MilestoneNotificationsScreen = () => {
         setTotal(count);
         setLatest(latestReached);
         setNext(nextTarget);
+        setNextTitle(String(data.nextTitle || ''));
         setUpcoming(Array.isArray(data.upcoming) ? data.upcoming : []);
         setUnreadCount(Number(data.unreadCount || 0));
         setLatestAt(data.latestAt || null);
@@ -94,10 +96,10 @@ const MilestoneNotificationsScreen = () => {
     }
   };
 
-  const milestoneTitle = (target: number) =>
-    t('japasCountLabel', {count: target.toLocaleString()});
-  const milestoneSub = (target: number) =>
-    target === 500 ? t('keepGoingHalfway') : t('newSpiritualAwaits');
+  const milestoneTitle = (item: MilestoneItem) =>
+    item.title || t('japasCountLabel', {count: item.target.toLocaleString()});
+  const milestoneSub = (item: MilestoneItem) =>
+    item.subtitle || t('newSpiritualAwaits');
   const achieved = latest > 0;
   const headlineCount = achieved ? latest : total;
 
@@ -143,7 +145,9 @@ const MilestoneNotificationsScreen = () => {
                   })
                 : t('nextMilestoneHint', {
                     count: total.toLocaleString(),
-                    next: next.toLocaleString(),
+                    next: nextTitle
+                      ? `${nextTitle} (${next.toLocaleString()})`
+                      : next.toLocaleString(),
                   })}
             </Text>
             <View style={styles.actions}>
@@ -179,9 +183,9 @@ const MilestoneNotificationsScreen = () => {
                 </View>
                 <View style={styles.copy}>
                   <Text style={styles.rowTitle}>
-                    {milestoneTitle(item.target)}
+                    {milestoneTitle(item)}
                   </Text>
-                  <Text style={styles.sub}>{milestoneSub(item.target)}</Text>
+                  <Text style={styles.sub}>{milestoneSub(item)}</Text>
                 </View>
                 <Text style={styles.chevron}>›</Text>
               </View>

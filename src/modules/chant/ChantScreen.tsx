@@ -11,6 +11,11 @@ import {
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
+import {
+  clearJapaDraft,
+  getJapaDraft,
+  saveJapaDraft,
+} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -32,9 +37,9 @@ const ChantScreen = () => {
   const [mantras, setMantras] = useState<Mantra[]>([]);
   const [selected, setSelected] = useState<Mantra | null>(null);
   const [savedTotal, setSavedTotal] = useState(0);
+  const [mantraTotals, setMantraTotals] = useState<Record<number, number>>({});
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
-  const [paused, setPaused] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -42,72 +47,134 @@ const ChantScreen = () => {
   const [loading, setLoading] = useState(true);
   const lastTap = useRef(0);
   const intervals = useRef<number[]>([]);
-  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const countRef = useRef(0);
   const goalRef = useRef(goal);
+  const postedCountRef = useRef(0);
+  const selectedRef = useRef<Mantra | null>(null);
   const completingRef = useRef(false);
   const challengeId = Number(route.params?.challengeId || 0);
 
   countRef.current = count;
   goalRef.current = goal;
+  selectedRef.current = selected;
   const goalReached = count >= goal && goal > 0;
 
-  const clearIdleTimer = () => {
-    if (idleTimer.current) {
-      clearTimeout(idleTimer.current);
-      idleTimer.current = null;
-    }
+  const applyMantraTotals = (rows: any[]) => {
+    const next: Record<number, number> = {};
+    (rows || []).forEach(item => {
+      next[Number(item.mantraId || 0)] = Number(item.total || 0);
+    });
+    setMantraTotals(next);
+    return next;
   };
 
-  const load = () => {
+  const applyDraftToCount = (draft: {
+    count: number;
+    postedCount: number;
+    goal: number;
+  }) => {
+    setGoal(draft.goal);
+    setCount(draft.count);
+    countRef.current = draft.count;
+    postedCountRef.current = Math.min(draft.postedCount, draft.count);
+  };
+
+  const resetSessionCount = () => {
+    setCount(0);
+    countRef.current = 0;
+    postedCountRef.current = 0;
+  };
+
+  const load = async () => {
     setLoading(true);
     setError('');
     setRawError(null);
-    Promise.all([apiService.get('/mantras'), apiService.get('/japa/summary')])
-      .then(([mantraResponse, summaryResponse]) => {
-        const items: Mantra[] = mantraResponse.data.data ?? [];
-        setMantras(items);
-        const preferredId = Number(route.params?.mantraId || 0);
-        const preferred =
-          (preferredId && items.find(item => item.id === preferredId)) ||
-          items[0] ||
-          null;
-        setSelected(current => current ?? preferred);
-        const data = summaryResponse.data.data ?? {};
-        setSavedTotal(Number(data.totalJapaCount ?? 0) || 0);
+    try {
+      const [mantraResponse, summaryResponse] = await Promise.all([
+        apiService.get('/mantras'),
+        apiService.get('/japa/summary'),
+      ]);
+      const items: Mantra[] = mantraResponse.data.data ?? [];
+      setMantras(items);
+      const preferredId = Number(route.params?.mantraId || 0);
+      const preferred =
+        (preferredId && items.find(item => item.id === preferredId)) ||
+        items[0] ||
+        null;
+      setSelected(current => current ?? preferred);
+      const data = summaryResponse.data.data ?? {};
+      const totals = applyMantraTotals(data.byMantra || []);
+      const resumeDraft = route.params?.resume
+        ? await getJapaDraft()
+        : await getJapaDraft(mode, preferred?.id);
+      const restore =
+        !!resumeDraft &&
+        resumeDraft.count > 0 &&
+        resumeDraft.count < resumeDraft.goal &&
+        (route.params?.resume || resumeDraft.mode === mode);
+      const activeMantraId = restore
+        ? Number(resumeDraft?.mantraId || preferred?.id || 0)
+        : Number(preferred?.id || 0);
+      if (restore && resumeDraft) {
+        if (resumeDraft.mantraId) {
+          const match = items.find(item => item.id === resumeDraft.mantraId);
+          if (match) {
+            setSelected(match);
+          }
+        }
+        applyDraftToCount(resumeDraft);
+      } else {
         setGoal(Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000);
-      })
-      .catch(err => {
-        setRawError(err);
-        setError(getApiError(err, 'Could not load mantras from the API.'));
-      })
-      .finally(() => setLoading(false));
+      }
+      setSavedTotal(
+        totals[activeMantraId] || Number(data.totalJapaCount ?? 0) || 0,
+      );
+    } catch (err: any) {
+      setRawError(err);
+      setError(getApiError(err, 'Could not load mantras from the API.'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     load();
-    return () => clearIdleTimer();
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      // Returning from JapaPaused must unlock tapping again.
-      setPaused(false);
       setMessage('');
-      return () => clearIdleTimer();
     }, []),
   );
 
-  const armIdlePause = () => {
-    clearIdleTimer();
-    idleTimer.current = setTimeout(() => {
-      setPaused(true);
-      navigation.navigate('JapaPaused', {
-        count: countRef.current,
-        goal: goalRef.current,
-        sessionCount: countRef.current,
-      });
-    }, 45000);
+  const persistDraft = async (nextCount: number, postedCount: number) => {
+    await saveJapaDraft({
+      mode,
+      mantraId: selectedRef.current?.id,
+      privateMantra: route.params?.privateMantra,
+      goal: goalRef.current,
+      count: nextCount,
+      postedCount,
+      japaGoalId: route.params?.japaGoalId,
+      challengeId: challengeId || undefined,
+    });
+  };
+
+  const selectMantra = async (item: Mantra) => {
+    if (selectedRef.current?.id === item.id) {
+      return;
+    }
+    if (countRef.current > 0) {
+      await persistDraft(countRef.current, postedCountRef.current);
+    }
+    setSelected(item);
+    setSavedTotal(mantraTotals[item.id] || 0);
+    const draft = await getJapaDraft(mode, item.id);
+    if (draft) {
+      applyDraftToCount(draft);
+    } else {
+      resetSessionCount();
+    }
   };
 
   const afterSessionSaved = (
@@ -120,7 +187,13 @@ const ChantScreen = () => {
     const reached = (data?.milestonesReached || []).filter(
       (level: unknown) => Number(level) > 0,
     );
-    setSavedTotal(userTotal);
+    const mantraId = Number(selectedRef.current?.id || 0);
+    const added = Number(fallbackCount || 0);
+    setMantraTotals(prev => {
+      const nextTotal = Number(prev[mantraId] || savedTotal || 0) + added;
+      setSavedTotal(nextTotal);
+      return mantraId ? {...prev, [mantraId]: nextTotal} : prev;
+    });
     if (options?.resetCount) {
       setCount(0);
       countRef.current = 0;
@@ -155,13 +228,21 @@ const ChantScreen = () => {
     goProgress();
   };
 
+  const sessionRemarks = () => {
+    if (challengeId) {
+      return `Challenge:${challengeId}`;
+    }
+    if (mode === 'private') {
+      return `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`;
+    }
+    return undefined;
+  };
+
   const finishGoal = async (sessionCount: number) => {
     if (completingRef.current || sessionCount < 1) {
       return;
     }
     completingRef.current = true;
-    clearIdleTimer();
-    setPaused(true);
     setSaving(true);
     setMessage('Goal reached. Saving your session...');
     try {
@@ -170,22 +251,31 @@ const ChantScreen = () => {
         completingRef.current = false;
         return;
       }
+      const remaining = Math.max(sessionCount - postedCountRef.current, 0);
+      if (remaining < 1) {
+        await clearJapaDraft(mode, selected.id);
+        afterSessionSaved(
+          {userTotal: savedTotal, count: sessionCount},
+          sessionCount,
+          {completed: true},
+        );
+        return;
+      }
       const response = await apiService.post('/japa/session', {
         mantraType: 'DEFAULT',
         mantraId: selected.id,
         chantMode: 'TAP',
-        sessionCount,
-        durationSeconds: Math.max(sessionCount * 2, 1),
+        sessionCount: remaining,
+        durationSeconds: Math.max(remaining * 2, 1),
         japaGoalId: route.params?.japaGoalId,
-        remarks:
-          mode === 'private'
-            ? `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`
-            : undefined,
+        challengeId: challengeId || undefined,
+        remarks: sessionRemarks(),
       });
-      afterSessionSaved(response.data.data, sessionCount, {completed: true});
+      postedCountRef.current = sessionCount;
+      await clearJapaDraft(mode, selected.id);
+      afterSessionSaved(response.data.data, remaining, {completed: true});
     } catch (err: any) {
       completingRef.current = false;
-      setPaused(false);
       setMessage(
         err?.response?.data?.message ??
           'Could not save the completed session. Try Save Session again.',
@@ -198,9 +288,6 @@ const ChantScreen = () => {
   const tapChant = () => {
     if (completingRef.current || goalReached) {
       return;
-    }
-    if (paused) {
-      setPaused(false);
     }
     const now = Date.now();
     if (lastTap.current) {
@@ -238,12 +325,12 @@ const ChantScreen = () => {
       void finishGoal(next);
       return;
     }
-    armIdlePause();
+    void persistDraft(next, postedCountRef.current);
   };
 
   const saveSession = async () => {
     if (count < 1) {
-      setMessage('Tap the circle for each chant before saving.');
+      setMessage('Tap to count chant before saving.');
       return;
     }
     if (count >= goal) {
@@ -257,19 +344,28 @@ const ChantScreen = () => {
     setSaving(true);
     setMessage('');
     try {
-      const response = await apiService.post('/japa/session', {
-        mantraType: 'DEFAULT',
-        mantraId: selected.id,
-        chantMode: 'TAP',
-        sessionCount: count,
-        durationSeconds: Math.max(count * 2, 1),
-        japaGoalId: route.params?.japaGoalId,
-        remarks:
-          mode === 'private'
-            ? `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`
-            : undefined,
-      });
-      afterSessionSaved(response.data.data, count, {resetCount: true});
+      const delta = Math.max(count - postedCountRef.current, 0);
+      if (delta > 0) {
+        const response = await apiService.post('/japa/session', {
+          mantraType: 'DEFAULT',
+          mantraId: selected.id,
+          chantMode: 'TAP',
+          sessionCount: delta,
+          durationSeconds: Math.max(delta * 2, 1),
+          japaGoalId: route.params?.japaGoalId,
+          challengeId: challengeId || undefined,
+          remarks: sessionRemarks(),
+        });
+        postedCountRef.current = count;
+        await persistDraft(count, count);
+        afterSessionSaved(response.data.data, delta);
+      } else {
+        await persistDraft(count, postedCountRef.current);
+        afterSessionSaved(
+          {userTotal: savedTotal, count},
+          count,
+        );
+      }
     } catch (err: any) {
       setMessage(
         err?.response?.data?.message ??
@@ -296,14 +392,14 @@ const ChantScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <Text style={styles.mode}>
-        {mode === 'private' ? 'My Japa' : 'Community Japa'}
+        {mode === 'private' ? t('myJapa') : t('communityJapa')}
       </Text>
       <View style={styles.chipRow}>
         {mantras.map(item => (
           <TouchableOpacity
             key={item.id}
             style={[styles.chip, selected?.id === item.id && styles.chipActive]}
-            onPress={() => setSelected(item)}>
+            onPress={() => selectMantra(item)}>
             <Text
               style={[
                 styles.chipText,
@@ -315,13 +411,14 @@ const ChantScreen = () => {
         ))}
       </View>
       <Text style={styles.mantra}>
-        {mode === 'private'
-          ? route.params?.privateMantra || 'Private Japa'
-          : selected?.transliteration || 'Om Namah Shivaya'}
+        {selected?.mantraName ||
+          selected?.transliteration ||
+          route.params?.privateMantra ||
+          t('myJapa')}
       </Text>
       <TouchableOpacity
         activeOpacity={0.85}
-        style={[styles.ring, (paused || goalReached) && styles.ringPaused]}
+        style={[styles.ring, goalReached && styles.ringPaused]}
         onPress={tapChant}
         disabled={goalReached || saving}>
         <View style={styles.innerRing}>
@@ -339,39 +436,17 @@ const ChantScreen = () => {
         </View>
         <Text style={styles.percent}>{progress}%</Text>
       </View>
-      <Text style={styles.hint}>
-        {goalReached
-          ? `Goal of ${goal.toLocaleString()} japas reached`
-          : paused
-          ? 'Paused — tap the circle to continue counting'
-          : 'Tap the circle once for each chant'}
-      </Text>
       <TouchableOpacity
         activeOpacity={0.85}
         style={[
           styles.tapCircle,
-          (paused || goalReached) && styles.tapCirclePaused,
+          goalReached && styles.tapCirclePaused,
         ]}
         onPress={tapChant}
-        disabled={goalReached || saving}
-      />
-      <TouchableOpacity
-        onPress={() => {
-          if (paused) {
-            setPaused(false);
-            setMessage('');
-            armIdlePause();
-            return;
-          }
-          clearIdleTimer();
-          setPaused(true);
-          navigation.navigate('JapaPaused', {
-            count,
-            goal,
-            sessionCount: count,
-          });
-        }}>
-        <Text style={styles.pause}>{paused ? 'Resume' : 'Pause'}</Text>
+        disabled={goalReached || saving}>
+        <Text style={styles.tapCircleText}>
+          {goalReached ? 'Goal reached' : 'Click to count chant'}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.save}
@@ -492,29 +567,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.templeGold,
   },
   percent: {fontWeight: '800', color: Colors.sacredBrown},
-  hint: {
-    textAlign: 'center',
-    marginTop: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
   tapCircle: {
     alignSelf: 'center',
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    minWidth: 240,
+    height: 52,
+    borderRadius: 26,
     backgroundColor: Colors.templeGold,
-    marginTop: 12,
+    marginTop: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  tapCircleText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   tapCirclePaused: {
     opacity: 0.7,
-  },
-  pause: {
-    textAlign: 'center',
-    marginTop: 12,
-    color: Colors.leafGreen,
-    fontWeight: '800',
-    fontSize: 16,
   },
   save: {
     marginTop: 18,

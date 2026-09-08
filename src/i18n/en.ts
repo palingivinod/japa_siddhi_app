@@ -129,13 +129,13 @@ const en = {
   // Japa hub
   japaChanting: 'Japa Chanting',
   chooseYourJapa: 'Choose your Japa',
-  communityJapa: 'Community Japa',
+  communityJapa: 'Samuhika Japam',
   communityJapaSub: 'Join collective chanting.',
-  myJapa: 'My Japa',
+  myJapa: 'Antharanga Japam',
   myJapaSub: 'Private mantra.',
-  challengeJapa: 'Challenge Japa',
+  challengeJapa: 'Sankalp Japam',
   challengeJapaSub: 'Take a spiritual challenge.',
-  japaAnalytics: 'Japa Analytics',
+  japaAnalytics: 'Japam Visleshana',
   japaAnalyticsSub: 'Weekly, monthly and streak reports.',
   recentProgress: 'Recent progress',
 
@@ -268,6 +268,16 @@ const en = {
   ok: 'OK',
   couldNotLoadMilestones: 'Could not load milestones.',
   noNotificationsYet: 'No notifications yet.',
+  changePhoto: 'Change photo',
+  photoFromCamera: 'Camera',
+  photoFromGallery: 'Gallery',
+  photoPermissionDenied:
+    'Please allow camera and photo access to update your profile picture.',
+  photoUpdateFailed: 'Could not update your profile photo. Please try again.',
+  cameraUnavailable: 'Camera is not available on this device.',
+  photoPickerNeedsRebuild:
+    'Photo picker needs a fresh app install. Run npm run android once, then try again.',
+  addProfilePicture: 'Add Profile Picture (Optional)',
 } as const;
 
 export type TranslationKey = keyof typeof en;

@@ -23,6 +23,7 @@ import Colors from '../../../theme/colors';
 import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
 import ChaughadiyaCard from '../../common/ChaughadiyaCard';
+import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
 
@@ -35,6 +36,7 @@ const HomeScreen = () => {
   const [goal, setGoal] = useState(2000);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
+  const [milestone, setMilestone] = useState<any>(null);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [refreshing, setRefreshing] = useState(false);
 
@@ -104,6 +106,7 @@ const HomeScreen = () => {
         setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
         setLifetime(Number(data.totalJapaCount ?? data.lifetimeCount ?? 0));
         setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
+        setMilestone(data.milestone || null);
       }
       if (goals.status === 'fulfilled') {
         const firstGoal = (goals.value.data.data ?? [])[0];
@@ -208,6 +211,11 @@ const HomeScreen = () => {
               <Text style={styles.percent}>{progress}%</Text>
             </View>
           </TouchableOpacity>
+
+          <MilestoneProgressCard
+            milestone={milestone}
+            onPress={() => navigation.navigate('MilestoneNotifications')}
+          />
 
           <View style={styles.row}>
             <TouchableOpacity

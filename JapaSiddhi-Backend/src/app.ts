@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
+import {uploadsRoot} from './middleware/upload.middleware';
 import authRoutes from './modules/auth/auth.routes';
 import homeRoutes from './modules/home/home.routes';
 import japaRoutes from './modules/japa/japa.routes';
@@ -50,6 +51,15 @@ app.use(
 
 
 app.use(morgan('dev'));
+
+app.use(
+  '/uploads',
+  express.static(uploadsRoot, {
+    setHeaders: res => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  }),
+);
 
 
 

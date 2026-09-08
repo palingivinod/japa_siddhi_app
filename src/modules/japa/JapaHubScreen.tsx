@@ -3,6 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
@@ -19,7 +20,7 @@ const JapaHubScreen = () => {
     () => [
       {
         key: 'community',
-        emoji: '🕉️',
+        icon: 'om' as AppIconName,
         title: t('communityJapa'),
         sub: t('communityJapaSub'),
         route: 'CommunityJapa',
@@ -27,7 +28,7 @@ const JapaHubScreen = () => {
       },
       {
         key: 'private',
-        emoji: '📿',
+        icon: 'mala' as AppIconName,
         title: t('myJapa'),
         sub: t('myJapaSub'),
         route: 'PrivateJapa',
@@ -35,7 +36,7 @@ const JapaHubScreen = () => {
       },
       {
         key: 'challenge',
-        emoji: '🏆',
+        icon: 'trophy' as AppIconName,
         title: t('challengeJapa'),
         sub: t('challengeJapaSub'),
         route: 'Challenges',
@@ -43,7 +44,7 @@ const JapaHubScreen = () => {
       },
       {
         key: 'analytics',
-        emoji: '📊',
+        icon: 'chart' as AppIconName,
         title: t('japaAnalytics'),
         sub: t('japaAnalyticsSub'),
         route: 'AnalyticsHub',
@@ -82,7 +83,7 @@ const JapaHubScreen = () => {
                 styles.iconWrap,
                 item.tone === 'green' ? styles.iconGreen : styles.iconGold,
               ]}>
-              <Text style={styles.emoji}>{item.emoji}</Text>
+              <AppIcon name={item.icon} size={28} color={Colors.sacredBrown} />
             </View>
             <View style={styles.copy}>
               <Text style={styles.title}>{item.title}</Text>
@@ -97,14 +98,14 @@ const JapaHubScreen = () => {
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('JapaProgress')}>
-            <Text style={styles.statEmoji}>🙏</Text>
+            <AppIcon name="prayer" size={22} color={Colors.sacredBrown} />
             <Text style={styles.statLabel}>{t('today')}</Text>
             <Text style={styles.statValue}>{today.toLocaleString()}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.statCard}
             onPress={() => navigation.navigate('StreakAnalytics')}>
-            <Text style={styles.statEmoji}>🔥</Text>
+            <AppIcon name="flame" size={22} color={Colors.sacredBrown} />
             <Text style={styles.statLabel}>{t('streak')}</Text>
             <Text style={styles.statValue}>
               {streak} {t('days')}
@@ -146,15 +147,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    overflow: 'hidden',
   },
   iconGold: {
     backgroundColor: '#F3E2C6',
   },
   iconGreen: {
     backgroundColor: '#E4EFDF',
-  },
-  emoji: {
-    fontSize: 24,
   },
   copy: {flex: 1},
   title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
@@ -181,10 +180,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-  },
-  statEmoji: {
-    fontSize: 18,
-    marginBottom: 6,
+    gap: 6,
   },
   statLabel: {
     color: Colors.leafGreen,
@@ -192,7 +188,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   statValue: {
-    marginTop: 8,
+    marginTop: 2,
     fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,

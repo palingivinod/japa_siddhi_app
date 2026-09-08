@@ -1,6 +1,6 @@
 // Keep outputs off locked android/app/build and android/build/out
 def altAppBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
-layout.buildDirectory.set(file(altAppBuild ? "${altAppBuild}/out/app" : "${rootDir}/build-fresh/out/app"))
+layout.buildDirectory.set(file(altAppBuild ? "${altAppBuild}/out/app" : "${rootDir}/build-r4/out/app"))
 
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"

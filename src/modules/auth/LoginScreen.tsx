@@ -120,89 +120,89 @@ const LoginScreen = () => {
         <AppHeader title="Welcome to Japa Siddhi" showBack />
         <Text style={styles.heading}>{t('beginSpiritualJourney')}</Text>
         {hasSession ? (
+          <PrimaryButton
+            title={t('continueToHome')}
+            onPress={() => navigation.replace('Home')}
+          />
+        ) : (
           <>
-            <PrimaryButton
-              title={t('continueToHome')}
-              onPress={() => navigation.replace('Home')}
+            <Text style={styles.label}>{t('mobileNumber')}</Text>
+            <CountryPickerField
+              value={selectedCountry}
+              onChange={setSelectedCountry}
             />
-            <Text style={styles.or}>{t('orLoginAgain')}</Text>
-          </>
-        ) : null}
+            <PhoneNumberField
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              placeholder={t('enterMobileNumber')}
+            />
+            <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
 
-        <Text style={styles.label}>{t('mobileNumber')}</Text>
-        <CountryPickerField
-          value={selectedCountry}
-          onChange={setSelectedCountry}
-        />
-        <PhoneNumberField
-          value={phoneNumber}
-          onChangeText={setPhoneNumber}
-          placeholder={t('enterMobileNumber')}
-        />
-        <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
+            <Text style={styles.label}>{t('email')}</Text>
+            <TextInput
+              style={styles.emailInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={t('enterEmailAddress')}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
-        <Text style={styles.label}>{t('email')}</Text>
-        <TextInput
-          style={styles.emailInput}
-          value={email}
-          onChangeText={setEmail}
-          placeholder={t('enterEmailAddress')}
-          placeholderTextColor={Colors.placeholder}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
+            <ContinueButton
+              title={submitting ? t('sendingOtp') : t('sendOtp')}
+              onPress={handleContinue}
+              disabled={
+                phoneNumber.replace(/\D/g, '').length < 6 ||
+                !EMAIL_REGEX.test(email.trim()) ||
+                submitting
+              }
+            />
 
-        <ContinueButton
-          title={submitting ? t('sendingOtp') : t('sendOtp')}
-          onPress={handleContinue}
-          disabled={
-            phoneNumber.replace(/\D/g, '').length < 6 ||
-            !EMAIL_REGEX.test(email.trim()) ||
-            submitting
-          }
-        />
+            {__DEV__ ? (
+              <View style={styles.testBox}>
+                <Text style={styles.testTitle}>Test login (SMTP off)</Text>
+                <Text style={styles.testHint}>
+                  test@japasiddhi.local / test1234
+                </Text>
+                <TouchableOpacity
+                  style={styles.testButton}
+                  onPress={handleTestLogin}
+                  disabled={submitting}>
+                  <Text style={styles.testButtonText}>
+                    {submitting ? 'SIGNING IN...' : 'ENTER AS TEST USER'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
-        {__DEV__ ? (
-          <View style={styles.testBox}>
-            <Text style={styles.testTitle}>Test login (SMTP off)</Text>
-            <Text style={styles.testHint}>
-              test@japasiddhi.local / test1234
-            </Text>
-            <TouchableOpacity
-              style={styles.testButton}
-              onPress={handleTestLogin}
-              disabled={submitting}>
-              <Text style={styles.testButtonText}>
-                {submitting ? 'SIGNING IN...' : 'ENTER AS TEST USER'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+            {__DEV__ ? (
+              <>
+                <Text style={styles.or}>{t('orContinueWith')}</Text>
+                {['Google', 'Facebook', 'Email'].map(item => (
+                  <TouchableOpacity
+                    key={item}
+                    style={styles.social}
+                    onPress={() => socialSoon(item)}>
+                    <Text style={styles.socialText}>{item}</Text>
+                  </TouchableOpacity>
+                ))}
+              </>
+            ) : null}
 
-        {__DEV__ ? (
-          <>
-            <Text style={styles.or}>{t('orContinueWith')}</Text>
-            {['Google', 'Facebook', 'Email'].map(item => (
-              <TouchableOpacity
-                key={item}
-                style={styles.social}
-                onPress={() => socialSoon(item)}>
-                <Text style={styles.socialText}>{item}</Text>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
+              <TouchableOpacity onPress={handleContinue}>
+                <Text style={styles.linkText}>{t('createAnAccount')}</Text>
               </TouchableOpacity>
-            ))}
+              <TouchableOpacity
+                onPress={() => navigation.navigate('PrivacyPolicy')}>
+                <Text style={styles.privacy}>{t('termsPrivacy')}</Text>
+              </TouchableOpacity>
+            </View>
           </>
-        ) : null}
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
-          <TouchableOpacity onPress={handleContinue}>
-            <Text style={styles.linkText}>{t('createAnAccount')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
-            <Text style={styles.privacy}>{t('termsPrivacy')}</Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

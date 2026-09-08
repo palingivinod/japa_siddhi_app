@@ -44,6 +44,13 @@ export const getStoredUser = async () => {
   return memoryUser;
 };
 
+export const updateStoredUser = async (patch: Record<string, unknown>) => {
+  const current = (await getStoredUser()) || {};
+  memoryUser = {...current, ...patch};
+  await AsyncStorage.setItem(USER_KEY, JSON.stringify(memoryUser));
+  return memoryUser;
+};
+
 export const hydrateSession = async () => {
   memoryToken = await AsyncStorage.getItem(TOKEN_KEY);
   const raw = await AsyncStorage.getItem(USER_KEY);

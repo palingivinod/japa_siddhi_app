@@ -110,7 +110,16 @@ export type RootStackParamList = {
   JapaProgress: {count?: number; goal?: number} | undefined;
   PrivateJapa: undefined;
   SevaHub: undefined;
-  Chant: {mode?: 'community' | 'private'; mantraId?: number; goal?: number; challengeId?: number} | undefined;
+  Chant: {
+    mode?: 'community' | 'private';
+    mantraId?: number;
+    goal?: number;
+    challengeId?: number;
+    privateMantra?: string;
+    japaGoalId?: number;
+    durationMs?: number;
+    resume?: boolean;
+  } | undefined;
   Challenges: undefined;
   ChallengeDetails: {id?: number} | undefined;
   ChallengeProgress: {id?: number} | undefined;

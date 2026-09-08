@@ -23,7 +23,7 @@ apply plugin: "com.facebook.react.rootproject"
 
 subprojects { subproject ->
     def altBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
-    def buildRoot = altBuild ?: "${rootProject.projectDir}/build-fresh"
+    def buildRoot = altBuild ?: "${rootProject.projectDir}/build-r4"
     subproject.layout.buildDirectory.set(
         file("${buildRoot}/out/${subproject.name}")
     )

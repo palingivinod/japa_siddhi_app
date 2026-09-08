@@ -1,8 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
+import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
@@ -18,13 +20,14 @@ const weekday = (value: string) => {
 
 const JapaProgressScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [today, setToday] = useState(0);
   const [goal, setGoal] = useState(2000);
   const [percent, setPercent] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     Promise.all([
       apiService.get('/japa/progress'),
       apiService.get('/japa/summary'),
@@ -40,6 +43,33 @@ const JapaProgressScreen = () => {
       })
       .catch(() => undefined);
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const resumeJapa = async () => {
+    if (lifetime >= 10000) {
+      navigation.navigate('JapaAnnadanam');
+      return;
+    }
+    const draft = await getJapaDraft();
+    if (draft) {
+      navigation.navigate('Chant', {
+        mode: draft.mode,
+        mantraId: draft.mantraId,
+        privateMantra: draft.privateMantra,
+        goal: draft.goal,
+        japaGoalId: draft.japaGoalId,
+        challengeId: draft.challengeId,
+        resume: true,
+      });
+      return;
+    }
+    navigation.navigate('JapaHub');
+  };
 
   return (
     <ScreenLayout title="Japa Progress" showBack tab="JapaHub">
@@ -88,15 +118,13 @@ const JapaProgressScreen = () => {
       </View>
       <View style={styles.gap} />
       <PrimaryButton
-        title="VIEW ANALYTICS"
+        title={t('japaAnalytics').toUpperCase()}
         onPress={() => navigation.navigate('AnalyticsHub')}
       />
       <View style={styles.gap} />
       <OutlineButton
         title={lifetime >= 10000 ? 'DONATE NOW' : 'RESUME JAPA'}
-        onPress={() =>
-          navigation.navigate(lifetime >= 10000 ? 'JapaAnnadanam' : 'JapaHub')
-        }
+        onPress={resumeJapa}
       />
     </ScreenLayout>
   );

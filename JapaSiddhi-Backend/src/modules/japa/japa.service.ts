@@ -10,8 +10,11 @@ import challengeRepository from '../challenge/challenge.repository';
 import notificationService from '../notification/notification.service';
 import mysql from '../../database/mysql';
 import AppError from '../../utils/appError';
+import {
+  buildMilestoneProgress,
+  SPIRITUAL_MILESTONES,
+} from './japa.milestones';
 
-const MILESTONE_LEVELS = [500, 1000, 2000, 10000];
 const MILESTONE_ACTION = 'JAPA_MILESTONE';
 
 class JapaService {
@@ -21,9 +24,13 @@ class JapaService {
     data: CreateJapaSessionRequest,
   ) {
 
-    const previousTotal = await japaRepository.getUserTotalJapa(userId);
+    const previousTotal = await japaRepository.getUserMilestoneJapa(userId);
 
     let japaGoalId = data.japaGoalId;
+    const challengeId = Number(data.challengeId || 0) || 0;
+    const remarks = challengeId
+      ? `Challenge:${challengeId}${data.remarks ? ` · ${data.remarks}` : ''}`
+      : data.remarks ?? null;
 
     if (japaGoalId) {
       const ownedGoal = await japaGoalRepository.getGoalById(
@@ -65,8 +72,7 @@ class JapaService {
         durationSeconds:
           data.durationSeconds ?? 0,
 
-        remarks:
-          data.remarks ?? null,
+        remarks,
 
       });
 
@@ -80,36 +86,62 @@ class JapaService {
     }
 
 
-    // Updates database and emits Socket.IO event
-    const [globalCount, userTotal, challengeUpdates] = await Promise.all([
-      japaRepository.updateGlobalJapaCount(data.sessionCount),
-      japaRepository.getUserTotalJapa(userId),
-      this.applySessionToChallenges(userId, data.sessionCount),
-    ]);
+    const [globalCount, userTotal, milestoneTotal, challengeUpdates] =
+      await Promise.all([
+        japaRepository.updateGlobalJapaCount(data.sessionCount),
+        japaRepository.getUserTotalJapa(userId),
+        japaRepository.getUserMilestoneJapa(userId),
+        challengeId
+          ? this.applySessionToChallenge(userId, challengeId, data.sessionCount)
+          : Promise.resolve([]),
+      ]);
 
-    const milestonesReached = await this.notifyMilestonesReached(
-      userId,
-      previousTotal,
-      userTotal,
-    );
+    const milestonesReached = challengeId
+      ? []
+      : await this.notifyMilestonesReached(
+          userId,
+          previousTotal,
+          milestoneTotal,
+        );
 
     return {
-
       sessionId,
-
-      count:
-        data.sessionCount,
-
+      count: data.sessionCount,
       globalCount,
-
       userTotal,
-
+      milestoneTotal,
       challengeUpdates,
-
       milestonesReached,
-
     };
 
+  }
+
+  private async applySessionToChallenge(
+    userId: number,
+    challengeId: number,
+    sessionCount: number,
+  ) {
+    const amount = Number(sessionCount || 0);
+    if (amount <= 0 || !challengeId) {
+      return [];
+    }
+    const rows = await challengeRepository.getOpenParticipations(userId);
+    const row = (rows || []).find(
+      item => Number(item.challengeId || item.challenge_id) === challengeId,
+    );
+    if (!row) {
+      return [];
+    }
+    const next = Number(row.currentValue ?? row.current_value ?? 0) + amount;
+    const target = Number(row.targetValue ?? row.target_value ?? 0);
+    const completed = target > 0 && next >= target;
+    await challengeRepository.updateProgress(
+      challengeId,
+      userId,
+      next,
+      completed,
+    );
+    return [{challengeId, currentValue: next, completed}];
   }
 
   private async applySessionToChallenges(userId: number, sessionCount: number) {
@@ -204,12 +236,16 @@ class JapaService {
       weeklyJapaCount,
       monthlyJapaCount,
       globalJapaCount,
+      byMantra,
+      milestoneTotal,
     ] = await Promise.all([
       japaRepository.getUserTotalJapa(userId),
       japaRepository.getTodayJapa(userId),
       japaRepository.getWeekJapa(userId),
       japaRepository.getMonthJapa(userId),
       japaRepository.getGlobalJapaCount(),
+      japaRepository.getMantraTotals(userId),
+      japaRepository.getUserMilestoneJapa(userId),
     ]);
 
     return {
@@ -219,6 +255,9 @@ class JapaService {
       monthlyJapaCount,
       globalJapaCount,
       streakDays: (await this.getStreakStats(userId)).current,
+      byMantra,
+      milestoneTotal,
+      milestone: buildMilestoneProgress(milestoneTotal),
     };
 
   }
@@ -372,13 +411,29 @@ class JapaService {
   }
 
   async getAnalytics(userId: number) {
-    const [summary, weekly, goals, sessionRows, streak] = await Promise.all([
-      this.getSummary(userId),
-      japaRepository.getWeeklyBreakdown(userId),
-      japaGoalRepository.getUserGoals(userId),
-      japaRepository.getSessionRows(userId),
-      this.getStreakStats(userId),
-    ]);
+    const [summary, weekly, goals, sessionRows, streak, byMantra] =
+      await Promise.all([
+        this.getSummary(userId),
+        japaRepository.getWeeklyBreakdown(userId),
+        japaGoalRepository.getUserGoals(userId),
+        japaRepository.getSessionRows(userId),
+        this.getStreakStats(userId),
+        Promise.all([
+          japaRepository.getMantraTotals(userId, 'all'),
+          japaRepository.getMantraTotals(userId, 'today'),
+          japaRepository.getMantraTotals(userId, 'week'),
+          japaRepository.getMantraTotals(userId, 'month'),
+          japaRepository.getMantraTotals(userId, 'year'),
+        ]),
+      ]);
+
+    const [
+      byMantraAll,
+      byMantraToday,
+      byMantraWeek,
+      byMantraMonth,
+      byMantraYear,
+    ] = byMantra;
 
     const counts = this.dailyCounts(sessionRows);
     const weekTrend = this.fillDays(7, counts, true) as Array<{
@@ -400,8 +455,8 @@ class JapaService {
       streak.current,
       summary.todayJapaCount,
     );
-    const milestones = [108, 1008, 10000, 21000, 108000].filter(
-      value => summary.totalJapaCount >= value,
+    const milestones = SPIRITUAL_MILESTONES.filter(
+      item => Number(summary.milestoneTotal || 0) >= item.target,
     ).length;
     return {
       overview: {
@@ -412,6 +467,7 @@ class JapaService {
         ],
         trend: lifeTrend,
         insight,
+        byMantra: byMantraAll,
       },
       daily: {
         stats: [
@@ -424,6 +480,7 @@ class JapaService {
         ],
         trend: weekTrend,
         insight,
+        byMantra: byMantraToday,
       },
       weekly: {
         stats: [
@@ -441,6 +498,7 @@ class JapaService {
         ],
         trend: weekTrend,
         insight,
+        byMantra: byMantraWeek,
       },
       monthly: {
         stats: [
@@ -466,6 +524,7 @@ class JapaService {
         ],
         trend: monthTrend,
         insight,
+        byMantra: byMantraMonth,
       },
       lifetime: {
         stats: [
@@ -475,6 +534,7 @@ class JapaService {
         ],
         trend: lifeTrend,
         insight,
+        byMantra: byMantraAll,
       },
       goals: {
         stats: [
@@ -491,6 +551,7 @@ class JapaService {
         ],
         trend: weekTrend,
         insight,
+        byMantra: byMantraWeek,
       },
       streak: {
         stats: [
@@ -500,19 +561,23 @@ class JapaService {
         ],
         trend: weekTrend,
         insight,
+        byMantra: byMantraYear,
       },
+      byMantra: byMantraAll,
       weeklyRaw: weekly,
+      milestone: summary.milestone || buildMilestoneProgress(summary.milestoneTotal || 0),
     };
   }
 
   private milestoneItem(level: number) {
+    const match = SPIRITUAL_MILESTONES.find(item => item.target === level);
     return {
       target: level,
-      title: `${level.toLocaleString()} Japas`,
-      subtitle:
-        level === 500
-          ? 'Keep going — you are halfway there.'
-          : 'A new spiritual milestone awaits you.',
+      title: match?.title || `${level.toLocaleString()} Japas`,
+      key: match?.key || `milestone_${level}`,
+      subtitle: match
+        ? `Reach ${level.toLocaleString()} Japas`
+        : 'A new spiritual milestone awaits you.',
     };
   }
 
@@ -521,64 +586,55 @@ class JapaService {
     previousTotal: number,
     userTotal: number,
   ) {
-    const newlyReached = MILESTONE_LEVELS.filter(
-      level => previousTotal < level && userTotal >= level,
+    const newlyReached = SPIRITUAL_MILESTONES.filter(
+      item => previousTotal < item.target && userTotal >= item.target,
     );
     if (!newlyReached.length) {
       return [];
     }
     const settings = await japaRepository.getSettings(userId);
     if (Number(settings.notificationsOn) !== 1) {
-      return newlyReached;
+      return newlyReached.map(item => item.target);
     }
-    for (const level of newlyReached) {
+    for (const item of newlyReached) {
       const exists = await notificationService.existsByAction(
         userId,
         MILESTONE_ACTION,
-        level,
+        item.target,
       );
       if (exists) {
         continue;
       }
       await notificationService.create({
         userId,
-        title: `${level.toLocaleString()} Japas Completed!`,
-        message: `You have completed ${userTotal.toLocaleString()} Japas. Consider sponsoring Annadanam for greater spiritual benefit.`,
+        title: `${item.title} Achieved!`,
+        message: `You have reached ${item.target.toLocaleString()} Japas and unlocked ${item.title}.`,
         notificationType: 'GOAL_COMPLETED',
         actionType: MILESTONE_ACTION,
-        actionId: level,
-        extraData: {milestone: level, total: userTotal},
+        actionId: item.target,
+        extraData: {
+          milestone: item.target,
+          title: item.title,
+          total: userTotal,
+        },
       });
     }
-    return newlyReached;
+    return newlyReached.map(item => item.target);
   }
 
   async getMilestones(userId: number) {
-    const summary = await this.getSummary(userId);
-    const total = Number(summary.totalJapaCount || 0);
-    const settings = await japaRepository.getSettings(userId);
-    const notificationsOn = Number(settings.notificationsOn) === 1;
-    const reached = MILESTONE_LEVELS.filter(level => total >= level);
-    const upcoming = MILESTONE_LEVELS.filter(level => total < level).map(
-      level => this.milestoneItem(level),
-    );
-    const latest = reached[reached.length - 1] || 0;
-    const next =
-      upcoming[0]?.target || MILESTONE_LEVELS[MILESTONE_LEVELS.length - 1];
-    const [unreadCount, latestNote] = await Promise.all([
-      notificationService.getUnreadCountByAction(userId, MILESTONE_ACTION),
-      notificationService.getLatestByAction(userId, MILESTONE_ACTION),
-    ]);
+    const [milestoneTotal, settings, unreadCount, latestNote] =
+      await Promise.all([
+        japaRepository.getUserMilestoneJapa(userId),
+        japaRepository.getSettings(userId),
+        notificationService.getUnreadCountByAction(userId, MILESTONE_ACTION),
+        notificationService.getLatestByAction(userId, MILESTONE_ACTION),
+      ]);
+    const progress = buildMilestoneProgress(milestoneTotal);
     return {
-      total,
-      latest,
-      achieved: reached.map(level => this.milestoneItem(level)),
-      upcoming,
-      eligibleForAnnadanam: total >= 1000,
-      next,
-      progressCurrent: total,
-      progressTarget: total >= next ? latest || total : next,
-      notificationsOn,
+      ...progress,
+      eligibleForAnnadanam: milestoneTotal >= 1000,
+      notificationsOn: Number(settings.notificationsOn) === 1,
       unreadCount,
       latestAt: latestNote?.sentAt || null,
     };

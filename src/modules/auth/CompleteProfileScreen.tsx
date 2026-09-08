@@ -28,6 +28,7 @@ import {CountryItem} from '../../constants/countries';
 import {DEFAULT_LANGUAGE, Language} from '../../constants/languages';
 import ProfileApi, {CompleteProfileRequest} from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
+import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
 
 interface StateModel {
   id: number;
@@ -59,6 +60,7 @@ const CompleteProfileScreen = ({
 
   const [profileImage, setProfileImage] =
     useState<string | null>(null);
+  const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
 
   const [fullName, setFullName] = useState('');
 
@@ -136,11 +138,34 @@ const CompleteProfileScreen = ({
     acceptedTerms,
   ]);
 
-  const choosePhoto = () => {
-    Alert.alert(
-      'Profile Picture',
-      'Profile picture is optional. Image Picker will be connected later.',
-    );
+  const choosePhoto = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Profile Picture',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked) {
+        return;
+      }
+      setPickedPhoto(picked);
+      setProfileImage(picked.uri);
+    } catch (error: any) {
+      const code = String(error?.message || '');
+      if (code === 'permission') {
+        Alert.alert(
+          'Profile Picture',
+          'Please allow camera and photo access to add a profile picture.',
+        );
+        return;
+      }
+      if (code === 'camera_unavailable') {
+        Alert.alert('Profile Picture', 'Camera is not available on this device.');
+        return;
+      }
+      Alert.alert('Profile Picture', 'Could not pick a photo. Please try again.');
+    }
   };
 
   const submitProfile = async () => {
@@ -224,6 +249,14 @@ const CompleteProfileScreen = ({
           throw new Error('Registration token was not created.');
         }
         await saveSession(token, user);
+      }
+
+      if (pickedPhoto) {
+        try {
+          await ProfileApi.uploadPhoto(pickedPhoto);
+        } catch {
+          // Profile is created even if the photo upload fails.
+        }
       }
 
       navigation.replace('Home');
@@ -635,6 +668,7 @@ const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
+    overflow: 'hidden',
   },
 
   profilePlaceholder: {

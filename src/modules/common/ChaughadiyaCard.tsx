@@ -56,7 +56,7 @@ const ChaughadiyaCard = ({choghadiya}: Props) => {
           ) : null}
         </View>
         <View style={styles.chevronWrap}>
-          <Text style={styles.chevron}>{open ? '⌃' : '⌄'}</Text>
+          <Text style={styles.chevron}>{open ? '▲' : '▼'}</Text>
         </View>
       </TouchableOpacity>
       {open
@@ -102,73 +102,78 @@ export default ChaughadiyaCard;
 const styles = StyleSheet.create({
   card: {
     marginTop: 14,
-    backgroundColor: '#1F1812',
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    backgroundColor: Colors.iconBackground,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  copy: {flex: 1},
+  copy: {flex: 1, paddingRight: 10},
   label: {
-    color: '#E8D9B8',
-    fontSize: 13,
-    fontWeight: '700',
+    color: Colors.leafGreen,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   name: {
     marginTop: 6,
-    color: Colors.gold,
-    fontSize: 28,
+    color: Colors.sacredBrown,
+    fontSize: 26,
     fontWeight: '800',
   },
   time: {
     marginTop: 6,
-    color: '#F7E7C4',
+    color: Colors.sacredBrown,
     fontWeight: '700',
     fontSize: 14,
   },
   effect: {
     marginTop: 4,
-    color: '#C8B48A',
+    color: Colors.leafGreen,
     fontSize: 12,
     fontWeight: '700',
   },
   chevronWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#8B6A3F',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   chevron: {
-    color: '#F7E7C4',
-    fontSize: 18,
-    fontWeight: '700',
+    color: Colors.sacredBrown,
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
+    textAlign: 'center',
   },
   row: {
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: '#3A2F24',
+    borderTopColor: Colors.cardBorder,
   },
   rowActive: {
-    borderTopColor: Colors.gold,
+    borderTopColor: Colors.templeGold,
   },
   rowName: {
-    color: '#F7E7C4',
+    color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 15,
   },
   rowNameActive: {
-    color: Colors.gold,
+    color: Colors.templeGold,
   },
   rowMeta: {
     marginTop: 3,
-    color: '#C8B48A',
+    color: Colors.textSecondary,
     fontSize: 12,
   },
 });

@@ -210,6 +210,18 @@ class ProfileRepository {
 
   }
 
+  async updatePhoto(userId: number, profilePhoto: string): Promise<void> {
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET profile_photo = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      AND deleted_at IS NULL
+      `,
+      [profilePhoto, userId],
+    );
+  }
+
   async listAddresses(userId: number) {
     const [saved, profile, previous] = await Promise.all([
       mysql.query<any[]>(

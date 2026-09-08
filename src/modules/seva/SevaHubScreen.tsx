@@ -3,6 +3,7 @@ import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
+import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
@@ -15,19 +16,19 @@ const SevaHubScreen = () => {
   const items = useMemo(
     () => [
       {
-        emoji: '🕉️',
+        icon: 'banalingam' as AppIconName,
         title: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
       },
       {
-        emoji: '🍲',
+        icon: 'bowl' as AppIconName,
         title: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
       },
       {
-        emoji: '🔥',
+        icon: 'flame' as AppIconName,
         title: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
@@ -47,7 +48,7 @@ const SevaHubScreen = () => {
             style={styles.card}
             onPress={() => navigation.navigate(item.route)}>
             <View style={styles.dot}>
-              <Text style={styles.emoji}>{item.emoji}</Text>
+              <AppIcon name={item.icon} size={28} color={Colors.sacredBrown} />
             </View>
             <View style={styles.copy}>
               <Text style={styles.title}>{item.title}</Text>
@@ -83,21 +84,16 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
   },
   dot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#F3E2C6',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  emoji: {
-    fontSize: 20,
-    lineHeight: 24,
-    textAlign: 'center',
-    includeFontPadding: false,
+    overflow: 'hidden',
   },
   copy: {flex: 1},
   title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},

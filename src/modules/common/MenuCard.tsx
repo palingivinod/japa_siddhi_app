@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
+import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import Colors from '../../theme/colors';
 
 interface Props {
@@ -8,6 +9,7 @@ interface Props {
   subtitle?: string;
   value?: string;
   emoji?: string;
+  icon?: AppIconName;
   onPress?: () => void;
   tone?: 'gold' | 'green';
 }
@@ -17,9 +19,11 @@ const MenuCard: React.FC<Props> = ({
   subtitle,
   value,
   emoji,
+  icon,
   onPress,
   tone = 'gold',
 }) => {
+  const showMark = Boolean(icon || emoji);
   return (
     <TouchableOpacity
       style={styles.card}
@@ -30,9 +34,13 @@ const MenuCard: React.FC<Props> = ({
         style={[
           styles.dot,
           tone === 'green' && styles.dotGreen,
-          emoji ? styles.dotEmoji : null,
+          showMark ? styles.dotEmoji : null,
         ]}>
-        {emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}
+        {icon ? (
+          <AppIcon name={icon} size={22} color={Colors.sacredBrown} />
+        ) : emoji ? (
+          <Text style={styles.emoji}>{emoji}</Text>
+        ) : null}
       </View>
       <View style={styles.copy}>
         <Text style={styles.title}>{title}</Text>

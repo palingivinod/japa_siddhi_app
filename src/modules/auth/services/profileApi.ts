@@ -1,4 +1,5 @@
 import apiService from '../../../services/apiService';
+import {PickedPhoto, isRemotePhoto} from '../../../services/profilePhoto';
 
 export interface CompleteProfileRequest {
   fullName: string;
@@ -45,6 +46,8 @@ export const mapProfile = (data: any) => {
     spouseName: data.spouseName ?? data.spouse_name ?? '',
     gothram: data.gothram ?? '',
     nakshatram: data.nakshatram ?? '',
+    profilePhoto: data.profilePhoto ?? data.profile_photo ?? data.profileImage ?? null,
+    profileImage: data.profilePhoto ?? data.profile_photo ?? data.profileImage ?? null,
     profileCompleted: data.profileCompleted ?? data.profile_completed,
   };
 };
@@ -123,8 +126,8 @@ class ProfileApi {
       anniversaryDate: data.anniversaryDate,
       gothram: data.gothram,
       nakshatram: data.nakshatram,
-      profilePhoto: data.profileImage,
-      profileImage: data.profileImage,
+      profilePhoto: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
+      profileImage: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
       deviceType: 'ANDROID',
     });
     return response.data;
@@ -149,10 +152,21 @@ class ProfileApi {
       anniversaryDate: data.anniversaryDate,
       gothram: data.gothram,
       nakshatram: data.nakshatram,
-      profilePhoto: data.profileImage,
-      profileImage: data.profileImage,
+      profilePhoto: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
+      profileImage: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
     });
     return response.data;
+  }
+
+  async uploadPhoto(photo: PickedPhoto) {
+    const formData = new FormData();
+    formData.append('photo', {
+      uri: photo.uri,
+      type: photo.type || 'image/jpeg',
+      name: photo.fileName || 'profile.jpg',
+    } as any);
+    const response = await apiService.post('/profile/photo', formData);
+    return mapProfile(response.data.data);
   }
 
   async deleteAccount() {

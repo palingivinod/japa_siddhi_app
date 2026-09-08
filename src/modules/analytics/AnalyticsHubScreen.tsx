@@ -1,7 +1,11 @@
-import React from 'react';
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback, useState} from 'react';
+import {ActivityIndicator, StyleSheet, View} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import apiService from '../../services/apiService';
+import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
+import MilestoneProgressCard from '../common/MilestoneProgressCard';
 import ScreenLayout from '../common/ScreenLayout';
 
 const ITEMS = [
@@ -16,8 +20,28 @@ const ITEMS = [
 
 const AnalyticsHubScreen = () => {
   const navigation = useNavigation<any>();
+  const [milestone, setMilestone] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      apiService
+        .get('/japa/milestones')
+        .then(response => setMilestone(response.data.data || null))
+        .catch(() => setMilestone(null))
+        .finally(() => setLoading(false));
+    }, []),
+  );
+
   return (
     <ScreenLayout title="Japa Analytics" showBack tab="JapaHub">
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
+      <MilestoneProgressCard
+        milestone={milestone}
+        onPress={() => navigation.navigate('MilestoneNotifications')}
+      />
+      <View style={styles.gap} />
       {ITEMS.map(item => (
         <MenuCard
           key={item.route}
@@ -31,3 +55,7 @@ const AnalyticsHubScreen = () => {
 };
 
 export default AnalyticsHubScreen;
+
+const styles = StyleSheet.create({
+  gap: {height: 4},
+});

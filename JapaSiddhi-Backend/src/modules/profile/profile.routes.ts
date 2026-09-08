@@ -3,6 +3,7 @@ import { Router } from 'express';
 import profileController from './profile.controller';
 
 import authenticate from '../../middleware/auth.middleware';
+import {handleProfilePhotoUpload} from '../../middleware/upload.middleware';
 
 import validateRequest from '../../middleware/validateRequest';
 
@@ -24,6 +25,13 @@ router.put(
   updateProfileValidation,
   validateRequest,
   profileController.updateProfile,
+);
+
+router.post(
+  '/photo',
+  authenticate,
+  handleProfilePhotoUpload,
+  profileController.uploadPhoto,
 );
 
 router.get(

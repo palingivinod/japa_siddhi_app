@@ -22,6 +22,8 @@ export interface CreateJapaSessionRequest {
 
   remarks?: string;
 
+  challengeId?: number;
+
 }
 
 
@@ -108,6 +110,30 @@ export interface JapaSummary {
   globalJapaCount: number;
 
   streakDays?: number;
+
+  byMantra?: Array<{
+    mantraId: number;
+    mantraName: string;
+    total: number;
+  }>;
+
+  milestoneTotal?: number;
+
+  milestone?: {
+    total: number;
+    latest: number;
+    latestTitle: string | null;
+    next: number;
+    nextTitle: string | null;
+    progressCurrent: number;
+    progressTarget: number;
+    progressPercent: number;
+    remaining: number;
+    allComplete: boolean;
+    achieved: Array<{target: number; title: string; key: string; subtitle: string}>;
+    upcoming: Array<{target: number; title: string; key: string; subtitle: string}>;
+    levels: Array<{target: number; title: string; key: string; reached: boolean}>;
+  };
 
 }
 

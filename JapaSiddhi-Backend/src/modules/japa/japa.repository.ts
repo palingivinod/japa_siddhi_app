@@ -146,6 +146,84 @@ class JapaRepository {
     return this.toCount(rows[0]?.totalJapaCount);
   }
 
+  /** Total Japa excluding Sankalp/Challenge sessions (for spiritual milestones). */
+  async getUserMilestoneJapa(userId: number) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT COALESCE(SUM(session_count), 0) AS totalJapaCount
+      FROM japa_sessions
+      WHERE user_id = ?
+      AND (
+        remarks IS NULL
+        OR TRIM(remarks) = ''
+        OR (
+          lower(remarks) NOT LIKE 'challenge%'
+          AND lower(remarks) NOT LIKE '%challenge japa%'
+        )
+      )
+      `,
+      [userId],
+    );
+    return this.toCount(rows[0]?.totalJapaCount);
+  }
+
+  async getMantraTotals(
+    userId: number,
+    period: 'all' | 'today' | 'week' | 'month' | 'year' = 'all',
+  ) {
+    let periodFilter = '';
+    if (period === 'today') {
+      periodFilter = `
+        AND DATE(j.created_at, '+5 hours', '30 minutes') =
+            DATE('now', '+5 hours', '30 minutes')
+      `;
+    } else if (period === 'week') {
+      periodFilter = `
+        AND DATE(j.created_at, '+5 hours', '30 minutes') >=
+            DATE('now', '+5 hours', '30 minutes', '-6 days')
+      `;
+    } else if (period === 'month') {
+      periodFilter = `
+        AND strftime('%Y-%m', j.created_at, '+5 hours', '30 minutes') =
+            strftime('%Y-%m', 'now', '+5 hours', '30 minutes')
+      `;
+    } else if (period === 'year') {
+      periodFilter = `
+        AND strftime('%Y', j.created_at, '+5 hours', '30 minutes') =
+            strftime('%Y', 'now', '+5 hours', '30 minutes')
+      `;
+    }
+
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        j.mantra_id AS mantraId,
+        COALESCE(
+          MAX(m.mantra_name),
+          CASE
+            WHEN j.mantra_type = 'PERSONAL' THEN 'Private Japa'
+            ELSE 'Japa'
+          END
+        ) AS mantraName,
+        COALESCE(SUM(j.session_count), 0) AS total
+      FROM japa_sessions j
+      LEFT JOIN mantras m
+        ON m.id = j.mantra_id
+      WHERE j.user_id = ?
+      ${periodFilter}
+      GROUP BY j.mantra_id, j.mantra_type
+      HAVING COALESCE(SUM(j.session_count), 0) > 0
+      ORDER BY total DESC
+      `,
+      [userId],
+    );
+    return (rows || []).map(item => ({
+      mantraId: Number(item.mantraId || item.mantra_id || 0) || 0,
+      mantraName: String(item.mantraName || item.mantra_name || 'Japa'),
+      total: this.toCount(item.total),
+    }));
+  }
+
   async getSessionRows(userId: number) {
     const rows = await mysql.query<any[]>(
       `

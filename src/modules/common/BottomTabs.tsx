@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
@@ -12,12 +13,16 @@ interface Props {
   active: TabKey;
 }
 
-const TABS: Array<{key: TabKey; labelKey: TranslationKey; icon: string}> = [
-  {key: 'Home', labelKey: 'tabHome', icon: '⌂'},
-  {key: 'JapaHub', labelKey: 'tabJapa', icon: '◎'},
-  {key: 'SevaHub', labelKey: 'tabSeva', icon: '♡'},
-  {key: 'Orders', labelKey: 'tabOrders', icon: '▣'},
-  {key: 'Profile', labelKey: 'tabProfile', icon: '☺'},
+const TABS: Array<{
+  key: TabKey;
+  labelKey: TranslationKey;
+  icon: AppIconName;
+}> = [
+  {key: 'Home', labelKey: 'tabHome', icon: 'home'},
+  {key: 'JapaHub', labelKey: 'tabJapa', icon: 'japa'},
+  {key: 'SevaHub', labelKey: 'tabSeva', icon: 'seva'},
+  {key: 'Orders', labelKey: 'tabOrders', icon: 'orders'},
+  {key: 'Profile', labelKey: 'tabProfile', icon: 'profile'},
 ];
 
 const BottomTabs: React.FC<Props> = ({active}) => {
@@ -28,14 +33,13 @@ const BottomTabs: React.FC<Props> = ({active}) => {
     <View style={styles.bar}>
       {TABS.map(tab => {
         const isActive = tab.key === active;
+        const color = isActive ? Colors.templeGold : Colors.leafGreen;
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.item}
             onPress={() => navigation.navigate(tab.key)}>
-            <Text style={[styles.icon, isActive && styles.active]}>
-              {tab.icon}
-            </Text>
+            <AppIcon name={tab.icon} size={20} color={color} />
             <Text style={[styles.label, isActive && styles.active]}>
               {t(tab.labelKey)}
             </Text>
@@ -60,11 +64,7 @@ const styles = StyleSheet.create({
   item: {
     flex: 1,
     alignItems: 'center',
-  },
-  icon: {
-    fontSize: 18,
-    color: Colors.leafGreen,
-    marginBottom: 2,
+    gap: 2,
   },
   label: {
     fontSize: 12,

@@ -6,6 +6,7 @@ import {
 
 import profileService from './profile.service';
 import japaRepository from '../japa/japa.repository';
+import {publicPhotoPath} from '../../middleware/upload.middleware';
 
 import apiResponse from '../../utils/apiResponse';
 
@@ -100,6 +101,31 @@ class ProfileController {
 
     }
 
+  }
+
+  async uploadPhoto(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      if (!req.file?.filename) {
+        return apiResponse.error(res, 'Photo is required', 400);
+      }
+
+      const result = await profileService.updatePhoto(
+        userId,
+        publicPhotoPath(req.file.filename),
+      );
+
+      return apiResponse.success(res, 'Profile photo updated', result);
+    } catch (error) {
+      next(error);
+    }
   }
 
   async getSettings(
