@@ -28,7 +28,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -51,11 +51,30 @@ jobs:
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
 
+      - name: Locate built APK
+        id: find_apk
+        run: |
+          set -e
+          echo "Searching for release APKs..."
+          find android -type f -name "*.apk" -print || true
+          APK="$(find android -type f -path "*/apk/release/*.apk" | head -n 1 || true)"
+          if [ -z "$APK" ]; then
+            APK="$(find android -type f -name "*release*.apk" | head -n 1 || true)"
+          fi
+          if [ -z "$APK" ]; then
+            echo "No release APK found after assembleRelease"
+            exit 1
+          fi
+          echo "Found APK: $APK"
+          mkdir -p artifacts
+          cp "$APK" artifacts/japasiddhi-release.apk
+          echo "apk=artifacts/japasiddhi-release.apk" >> "$GITHUB_OUTPUT"
+          ls -lh artifacts/japasiddhi-release.apk
+
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: japasiddhi-release-apk
-          path: |
-            android/app/build/outputs/apk/release/*.apk
+          path: artifacts/japasiddhi-release.apk
           if-no-files-found: error
           retention-days: 14
