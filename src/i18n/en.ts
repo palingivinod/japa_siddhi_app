@@ -36,7 +36,8 @@ const en = {
   orLoginAgain: 'OR LOGIN AGAIN',
   mobileNumber: 'Mobile Number',
   enterMobileNumber: 'Enter mobile number',
-  otpEmailHelper: 'We will send a 4-digit OTP to your email.',
+  otpEmailHelper:
+    'OTP is always sent to the email you enter. Each email is a separate login.',
   email: 'Email',
   enterEmailAddress: 'Enter email address',
   sendOtp: 'SEND OTP',

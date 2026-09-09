@@ -38,8 +38,9 @@ export const otpSendValidation = [
     .isLength({min: 6, max: 15})
     .withMessage('Enter a valid mobile number.'),
   body('email')
-    .optional({nullable: true, checkFalsy: true})
     .trim()
+    .notEmpty()
+    .withMessage('Email is required.')
     .isEmail()
     .withMessage('Enter a valid email address.'),
 ];

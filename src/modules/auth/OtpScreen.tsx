@@ -52,6 +52,7 @@ const OtpScreen = ({route, navigation}: any) => {
       const response = await apiService.post('/auth/otp/verify', {
         mobileCountryCode,
         mobileNumber,
+        email,
         otp,
       });
       await goAfterVerify(response.data.data);
@@ -87,7 +88,7 @@ const OtpScreen = ({route, navigation}: any) => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <AppHeader title="Verify Mobile Number" showBack />
+      <AppHeader title="Verify Email OTP" showBack />
       <Text style={styles.subtitle}>
         Enter the 4-digit OTP sent to your email
       </Text>
@@ -101,7 +102,7 @@ const OtpScreen = ({route, navigation}: any) => {
           <ContinueButton title="VERIFY & CONTINUE" onPress={verifyOTP} />
         )}
         <Text style={styles.change} onPress={() => navigation.goBack()}>
-          Change mobile number
+          Change mobile / email
         </Text>
       </View>
     </SafeAreaView>

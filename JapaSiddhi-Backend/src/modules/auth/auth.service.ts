@@ -277,20 +277,18 @@ class AuthService {
       throw new AppError('Full name is required', 400);
     }
 
-    const existingMobile = await authRepository.findUserByMobile(
-      mobileCountryCode,
-      mobileNumber,
-    );
-    if (existingMobile) {
+    const existingEmail = await authRepository.findUserByEmail(email);
+    if (existingEmail) {
+      // Same email → continue/complete that account (email is the login identity).
       await authRepository.completeProfile(
-        existingMobile.id,
+        existingEmail.id,
         profileFields({
           ...data,
-          fullName: fullName || existingMobile.fullName,
-          email: email || existingMobile.email,
+          fullName: fullName || existingEmail.fullName,
+          email,
         }),
       );
-      const existingUser = await authRepository.findUserById(existingMobile.id);
+      const existingUser = await authRepository.findUserById(existingEmail.id);
       if (!existingUser) {
         throw new AppError('User login failed', 500);
       }
@@ -301,10 +299,13 @@ class AuthService {
       };
     }
 
-    const existingEmail = await authRepository.findUserByEmail(email);
-    if (existingEmail) {
+    const existingMobile = await authRepository.findUserByMobile(
+      mobileCountryCode,
+      mobileNumber,
+    );
+    if (existingMobile) {
       throw new AppError(
-        'This email is already registered. Please login.',
+        'This mobile number is already used by another account. Enter a different mobile number.',
         409,
       );
     }
@@ -456,32 +457,20 @@ class AuthService {
   }) {
     const mobileCountryCode = normalizePhone(data.mobileCountryCode);
     const mobileNumber = normalizePhone(data.mobileNumber);
-    const requestedEmail = String(data.email || '').trim().toLowerCase();
+    const destinationEmail = String(data.email || '').trim().toLowerCase();
     if (!mobileCountryCode || mobileNumber.length < 6) {
       throw new AppError('Enter a valid mobile number', 400);
     }
 
-    const existingUser = await authRepository.findUserByMobile(
-      mobileCountryCode,
-      mobileNumber,
-    );
-    const destinationEmail = String(
-      existingUser?.email || requestedEmail || '',
-    )
-      .trim()
-      .toLowerCase();
-
     if (!destinationEmail || !destinationEmail.includes('@')) {
       throw new AppError(
-        'Enter the email address where the free OTP should be sent.',
+        'Enter the email address where the OTP should be sent.',
         400,
       );
     }
 
-    const existing = await otpRepository.findActive(
-      mobileCountryCode,
-      mobileNumber,
-    );
+    // Always send to the email the user typed (independent of any phone account).
+    const existing = await otpRepository.findActiveByEmail(destinationEmail);
     if (
       existing &&
       Date.now() - Number(existing.createdAt) <
@@ -498,7 +487,7 @@ class AuthService {
     await otpRepository.save({
       mobileCountryCode,
       mobileNumber,
-      sessionId: `email-${Date.now()}`,
+      email: destinationEmail,
       codeHash: emailOtpService.hashOtp(otp),
       expiresAt: Date.now() + environment.OTP_EXPIRES_SECONDS * 1000,
     });
@@ -513,22 +502,26 @@ class AuthService {
   async verifyOtp(data: {
     mobileCountryCode: string;
     mobileNumber: string;
+    email?: string;
     otp: string;
   }) {
     const mobileCountryCode = normalizePhone(data.mobileCountryCode);
     const mobileNumber = normalizePhone(data.mobileNumber);
+    const email = String(data.email || '').trim().toLowerCase();
     const otp = String(data.otp || '').trim();
-    const stored = await otpRepository.findActive(
-      mobileCountryCode,
-      mobileNumber,
-    );
+
+    if (!email || !email.includes('@')) {
+      throw new AppError('Email is required to verify OTP.', 400);
+    }
+
+    const stored = await otpRepository.findActiveByEmail(email);
 
     if (!stored || Number(stored.expiresAt) < Date.now()) {
       throw new AppError('Invalid or expired OTP.', 401);
     }
 
     if (Number(stored.attempts) >= environment.OTP_MAX_ATTEMPTS) {
-      await otpRepository.delete(mobileCountryCode, mobileNumber);
+      await otpRepository.deleteByEmail(email);
       throw new AppError('Too many incorrect attempts. Request a new OTP.', 401);
     }
 
@@ -539,12 +532,10 @@ class AuthService {
       throw new AppError('Invalid or expired OTP.', 401);
     }
 
-    await otpRepository.delete(mobileCountryCode, mobileNumber);
+    await otpRepository.deleteByEmail(email);
 
-    const user = await authRepository.findUserByMobile(
-      mobileCountryCode,
-      mobileNumber,
-    );
+    // Login identity is the verified email (not whoever owns the phone number).
+    const user = await authRepository.findUserByEmail(email);
 
     if (!user) {
       return {
@@ -552,6 +543,9 @@ class AuthService {
         isNewUser: true,
         token: null,
         user: null,
+        email,
+        mobileCountryCode,
+        mobileNumber,
       };
     }
 

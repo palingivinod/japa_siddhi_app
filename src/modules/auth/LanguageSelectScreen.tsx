@@ -25,6 +25,23 @@ const LanguageSelectScreen = () => {
   const [options, setOptions] = useState<LangOption[]>(APP_LANGUAGES);
 
   useEffect(() => {
+    // First-run gate only. Returning users should never land here unless Settings.
+    if (fromSettings) {
+      return;
+    }
+    let mounted = true;
+    getLanguage().then(code => {
+      if (!mounted || !code) {
+        return;
+      }
+      navigation.replace('Login');
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [fromSettings, navigation]);
+
+  useEffect(() => {
     getLanguage().then(code => {
       if (code) {
         setSelected(code);
@@ -82,16 +99,18 @@ const LanguageSelectScreen = () => {
 
   const continueNext = async () => {
     await setAppLanguage(selected);
-    try {
-      await apiService.put('/profile/settings', {languageCode: selected});
-    } catch {
-      undefined;
-    }
+    // Sync to profile only when already logged in (Settings / returning session).
     if (fromSettings) {
+      try {
+        await apiService.put('/profile/settings', {languageCode: selected});
+      } catch {
+        undefined;
+      }
       navigation.goBack();
       return;
     }
-    navigation.navigate('Login');
+    // First-time choose language → Login. Do not ask again on later opens.
+    navigation.replace('Login');
   };
 
   return (
