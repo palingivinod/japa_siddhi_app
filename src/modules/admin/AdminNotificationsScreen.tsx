@@ -1,8 +1,17 @@
 import React, {useState} from 'react';
-import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 
 const Field = ({
@@ -64,18 +73,42 @@ const AdminNotificationsScreen = () => {
   const [message, setMessage] = useState('');
   const [target, setTarget] = useState('All users');
   const [schedule, setSchedule] = useState('Now');
+  const [sending, setSending] = useState(false);
 
-  const send = () => {
+  const send = async () => {
     if (!title.trim() || !message.trim()) {
       Alert.alert('Required', 'Enter title and message.');
       return;
     }
-    Alert.alert(
-      'Notification queued',
-      `To: ${target}\nWhen: ${schedule}\n\nBackend send will be wired later.`,
-    );
-    setTitle('');
-    setMessage('');
+    setSending(true);
+    try {
+      const response = await apiService.post('/admin/notifications/send', {
+        title: title.trim(),
+        message: message.trim(),
+        target,
+        schedule,
+      });
+      const data = response.data?.data || {};
+      const detail =
+        response.data?.message ||
+        (data.mode === 'scheduled'
+          ? `Scheduled for ${data.sendAt}`
+          : `Delivered to ${data.recipientCount || 0} users`);
+      Alert.alert(
+        data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
+        `${detail}\n\nTo: ${target}\nWhen: ${schedule}`,
+      );
+      setTitle('');
+      setMessage('');
+      setSchedule('Now');
+    } catch (err) {
+      Alert.alert(
+        'Send failed',
+        getApiError(err, 'Could not send notification.'),
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -84,7 +117,10 @@ const AdminNotificationsScreen = () => {
       tab="AdminDashboard"
       showBack>
       <Text style={styles.heading}>Notification Management</Text>
-      <Text style={styles.sub}>Create, schedule and target notifications.</Text>
+      <Text style={styles.sub}>
+        Sends in-app notifications to users. Push alerts need Firebase configured
+        on the server.
+      </Text>
 
       <Field label="Title" value={title} onChangeText={setTitle} />
       <Field label="Message" value={message} onChangeText={setMessage} />
@@ -100,8 +136,24 @@ const AdminNotificationsScreen = () => {
         options={['Now', 'Later']}
         onChange={setSchedule}
       />
+      {schedule === 'Later' ? (
+        <Text style={styles.hint}>
+          Later queues the message for tomorrow 9:00 AM. It is delivered when
+          users open Notifications after that time.
+        </Text>
+      ) : null}
 
-      <PrimaryButton title="SEND NOTIFICATION" onPress={send} />
+      {sending ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={Colors.templeGold} />
+        </View>
+      ) : null}
+
+      <PrimaryButton
+        title={sending ? 'SENDING...' : 'SEND NOTIFICATION'}
+        onPress={send}
+        disabled={sending}
+      />
     </AdminScreenLayout>
   );
 };
@@ -119,6 +171,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
   },
+  hint: {
+    marginBottom: 12,
+    color: Colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  loading: {alignItems: 'center', marginBottom: 10},
   field: {marginBottom: 14},
   label: {
     color: Colors.leafGreen,
@@ -138,7 +196,6 @@ const styles = StyleSheet.create({
   selectRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
   },
   chip: {
     borderWidth: 1,
@@ -147,6 +204,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingHorizontal: 14,
     paddingVertical: 12,
+    marginRight: 8,
+    marginBottom: 8,
   },
   chipActive: {
     borderColor: Colors.leafGreen,

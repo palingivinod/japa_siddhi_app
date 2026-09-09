@@ -1,10 +1,17 @@
-import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_ORDERS, AdminOrder} from './adminData';
+import {AdminOrder} from './adminData';
 
 const statusTone = (status: AdminOrder['status']) => {
   if (status === 'Delivered') {
@@ -15,13 +22,68 @@ const statusTone = (status: AdminOrder['status']) => {
 
 const AdminOrdersScreen = () => {
   const navigation = useNavigation<any>();
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadOrders = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiService.get('/admin/orders');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setOrders(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          orderNo: row.orderNo || `#${row.id}`,
+          product: row.product || 'Item',
+          customer: row.customer || 'Devotee',
+          status:
+            row.status === 'Delivered'
+              ? 'Delivered'
+              : row.status === 'Shipped'
+                ? 'Shipped'
+                : 'Processing',
+        })),
+      );
+    } catch (err) {
+      setOrders([]);
+      setError(getApiError(err, 'Could not load orders.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadOrders();
+    }, [loadOrders]),
+  );
 
   return (
     <AdminScreenLayout title="Order Management" tab="AdminOrders">
       <Text style={styles.heading}>Order Management</Text>
       <Text style={styles.sub}>Manage customer orders.</Text>
 
-      {ADMIN_ORDERS.map(order => {
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={Colors.templeGold} />
+        </View>
+      ) : null}
+
+      {error ? (
+        <TouchableOpacity onPress={loadOrders}>
+          <Text style={styles.errorText}>{error} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {!loading && !error && orders.length === 0 ? (
+        <Text style={styles.empty}>No orders yet.</Text>
+      ) : null}
+
+      {orders.map(order => {
         const tone = statusTone(order.status);
         return (
           <TouchableOpacity
@@ -62,6 +124,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
   },
+  centerBox: {paddingVertical: 20, alignItems: 'center'},
+  empty: {color: Colors.textSecondary, marginBottom: 12},
+  errorText: {color: Colors.error, marginBottom: 12, fontWeight: '600'},
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,

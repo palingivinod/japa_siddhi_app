@@ -5,17 +5,11 @@ import {
 
 import banaLingamRepository from './banaLingam.repository';
 import emailOtpService from '../../services/emailOtp.service';
+import socketEmitter from '../../socket/socketEmitter';
 
 class BanaLingamService {
-
-  async create(
-    data: CreateBanaLingamRequest,
-  ) {
-
-    const id =
-      await banaLingamRepository.create(
-        data,
-      );
+  async create(data: CreateBanaLingamRequest) {
+    const id = await banaLingamRepository.create(data);
 
     await emailOtpService.notifyAdmin(
       'New Baanalingam application',
@@ -30,43 +24,25 @@ class BanaLingamService {
       ].join('\n'),
     );
 
-    return {
+    socketEmitter.emitBaanalingamUpdated({id, action: 'created'});
 
-      id,
-
-    };
-
+    return {id};
   }
 
-  async getById(
-    id: number,
-  ) {
-
-    const request =
-      await banaLingamRepository.getById(
-        id,
-      );
-
+  async getById(id: number) {
+    const request = await banaLingamRepository.getById(id);
     if (!request) {
-
-      throw new Error(
-        'Bana Lingam request not found',
-      );
-
+      throw new Error('Bana Lingam request not found');
     }
-
     return request;
-
   }
 
-  async getUserRequests(
-    userId: number,
-  ) {
+  async getUserRequests(userId: number) {
+    return banaLingamRepository.getUserRequests(userId);
+  }
 
-    return banaLingamRepository.getUserRequests(
-      userId,
-    );
-
+  async listAll() {
+    return banaLingamRepository.listAll();
   }
 
   async updateStatus(
@@ -74,34 +50,16 @@ class BanaLingamService {
     status: BanaLingamRequestStatus,
     remarks?: string | null,
   ) {
-
-    const request =
-      await banaLingamRepository.getById(
-        id,
-      );
-
+    const request = await banaLingamRepository.getById(id);
     if (!request) {
-
-      throw new Error(
-        'Bana Lingam request not found',
-      );
-
+      throw new Error('Bana Lingam request not found');
     }
 
-    await banaLingamRepository.updateStatus(
-      id,
-      status,
-      remarks,
-    );
+    await banaLingamRepository.updateStatus(id, status, remarks);
+    socketEmitter.emitBaanalingamUpdated({id, status, action: 'updated'});
 
-    return {
-
-      success: true,
-
-    };
-
+    return {success: true};
   }
-
 }
 
 export default new BanaLingamService();

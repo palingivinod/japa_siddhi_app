@@ -1,10 +1,11 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
+import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
 import BottomTabs from '../common/BottomTabs';
@@ -12,9 +13,31 @@ import BottomTabs from '../common/BottomTabs';
 const SevaHubScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
+  const [annadanamEnabled, setAnnadanamEnabled] = useState(true);
 
-  const items = useMemo(
-    () => [
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      apiService
+        .get('/annadanam/visibility')
+        .then(response => {
+          if (active) {
+            setAnnadanamEnabled(response.data?.data?.any !== false);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setAnnadanamEnabled(true);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  const items = useMemo(() => {
+    const all = [
       {
         icon: 'banalingam' as AppIconName,
         title: t('tileBaanalingam'),
@@ -33,9 +56,9 @@ const SevaHubScreen = () => {
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
       },
-    ],
-    [t],
-  );
+    ];
+    return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
+  }, [t, annadanamEnabled]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

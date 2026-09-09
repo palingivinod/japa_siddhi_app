@@ -1,40 +1,103 @@
-import React, {useMemo} from 'react';
-import {Alert, StyleSheet, Text, View} from 'react-native';
-import {useRoute} from '@react-navigation/native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {findAdminUser} from './adminData';
+import {AdminUser} from './adminData';
 
 const AdminUserDetailsScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const user = useMemo(
-    () => findAdminUser(route.params?.userId),
-    [route.params?.userId],
+  const userId = String(route.params?.userId || '');
+  const [user, setUser] = useState<AdminUser | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadUser = useCallback(async () => {
+    if (!userId) {
+      setError('Missing user id.');
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiService.get(`/admin/users/${userId}`);
+      const data = response.data?.data;
+      setUser({
+        id: String(data.id),
+        name: data.name || 'Devotee',
+        japaCount: Number(data.japaCount) || 0,
+        status: data.status === 'Blocked' ? 'Blocked' : 'Active',
+        mobile: data.mobile || '—',
+        email: data.email || '',
+        mobileCountryCode: data.mobileCountryCode || '',
+        mobileNumber: data.mobileNumber || '',
+      });
+    } catch (err) {
+      setUser(null);
+      setError(getApiError(err, 'Could not load user details.'));
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUser();
+    }, [loadUser]),
   );
 
   return (
     <AdminScreenLayout title="User Details" tab="AdminUsers" showBack>
       <Text style={styles.heading}>User Details</Text>
-      <Text style={styles.sub}>
-        {user.name} • {user.status}
-      </Text>
 
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Profile</Text>
-        <Text style={styles.row}>Mobile: {user.mobile}</Text>
-        <Text style={styles.row}>
-          Japa completed: {user.japaCount.toLocaleString('en-IN')}
-        </Text>
-      </View>
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={Colors.templeGold} />
+        </View>
+      ) : null}
 
-      <PrimaryButton
-        title="EDIT USER"
-        onPress={() =>
-          Alert.alert('Edit user', 'Edit form will be added in a later batch.')
-        }
-      />
+      {error ? (
+        <TouchableOpacity onPress={loadUser}>
+          <Text style={styles.errorText}>{error} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {user ? (
+        <>
+          <Text style={styles.sub}>
+            {user.name} • {user.status}
+          </Text>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Profile</Text>
+            <Text style={styles.row}>Mobile: {user.mobile}</Text>
+            {user.email ? (
+              <Text style={styles.row}>Email: {user.email}</Text>
+            ) : null}
+            <Text style={styles.row}>
+              Japa completed: {user.japaCount.toLocaleString('en-IN')}
+            </Text>
+          </View>
+
+          <PrimaryButton
+            title="EDIT USER"
+            onPress={() =>
+              navigation.navigate('AdminUserEdit', {userId: user.id})
+            }
+          />
+        </>
+      ) : null}
     </AdminScreenLayout>
   );
 };
@@ -52,6 +115,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
     fontWeight: '700',
+  },
+  centerBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  errorText: {
+    color: Colors.error,
+    marginBottom: 12,
+    fontWeight: '600',
   },
   card: {
     backgroundColor: Colors.white,

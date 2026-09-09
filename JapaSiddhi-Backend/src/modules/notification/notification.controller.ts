@@ -31,6 +31,10 @@ class NotificationController {
 
       }
 
+      import('../admin/adminNotification.service')
+        .then(mod => mod.flushDueAdminNotifications())
+        .catch(() => undefined);
+
       const result =
         await notificationService.getUserNotifications(
           userId,

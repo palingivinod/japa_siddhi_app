@@ -43,5 +43,5 @@ const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
   body: {flex: 1, paddingHorizontal: 20},
   scroll: {flex: 1},
-  content: {paddingBottom: 24, flexGrow: 1},
+  content: {paddingBottom: 48, flexGrow: 1},
 });

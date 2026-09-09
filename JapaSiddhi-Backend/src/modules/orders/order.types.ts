@@ -21,7 +21,9 @@ export type OrderStatus =
   | 'READY'
   | 'SHIPPED'
   | 'DELIVERED'
-  | 'CANCELLED';
+  | 'CANCELLED'
+  | 'ACTIVE'
+  | 'INACTIVE';
 
 export interface CreateOrderRequest {
 

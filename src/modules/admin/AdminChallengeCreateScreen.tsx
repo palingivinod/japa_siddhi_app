@@ -4,6 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 
 const Field = ({
@@ -34,22 +35,45 @@ const AdminChallengeCreateScreen = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [mantra, setMantra] = useState('');
-  const [target, setTarget] = useState('10,000');
+  const [target, setTarget] = useState('10000');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  const create = () => {
+  const create = async () => {
     if (!name.trim()) {
       Alert.alert('Required', 'Enter a challenge name.');
       return;
     }
-    Alert.alert('Challenge created', 'Saved locally until admin API is ready.', [
-      {
-        text: 'View challenges',
-        onPress: () => navigation.navigate('AdminChallenges'),
-      },
-      {text: 'OK'},
-    ]);
+    setSaving(true);
+    try {
+      await apiService.post('/admin/challenges', {
+        title: name.trim(),
+        description: description.trim(),
+        mantra: mantra.trim(),
+        target,
+        startDate: startDate.trim(),
+        endDate: endDate.trim(),
+      });
+      Alert.alert(
+        'Challenge created',
+        'Saved to the database. Users will see it in Challenges.',
+        [
+          {
+            text: 'View challenges',
+            onPress: () => navigation.navigate('AdminChallenges'),
+          },
+          {text: 'OK', onPress: () => navigation.goBack()},
+        ],
+      );
+    } catch (err) {
+      Alert.alert(
+        'Create failed',
+        getApiError(err, 'Could not create challenge.'),
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -65,10 +89,24 @@ const AdminChallengeCreateScreen = () => {
       />
       <Field label="Mantra" value={mantra} onChangeText={setMantra} />
       <Field label="Target Count" value={target} onChangeText={setTarget} />
-      <Field label="Start Date" value={startDate} onChangeText={setStartDate} />
-      <Field label="End Date" value={endDate} onChangeText={setEndDate} />
+      <Field
+        label="Start Date"
+        value={startDate}
+        onChangeText={setStartDate}
+        placeholder="YYYY-MM-DD or DD/MM/YYYY"
+      />
+      <Field
+        label="End Date"
+        value={endDate}
+        onChangeText={setEndDate}
+        placeholder="YYYY-MM-DD or DD/MM/YYYY"
+      />
 
-      <PrimaryButton title="CREATE CHALLENGE" onPress={create} />
+      <PrimaryButton
+        title={saving ? 'CREATING...' : 'CREATE CHALLENGE'}
+        onPress={create}
+        disabled={saving}
+      />
     </AdminScreenLayout>
   );
 };

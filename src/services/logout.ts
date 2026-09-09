@@ -1,11 +1,15 @@
 import {resetAuthGate} from '../modules/common/AuthGate';
+import {resetAdminAuthGate} from '../modules/admin/AdminAuthGate';
+import {clearAdminSession} from '../modules/admin/adminSession';
 import {resetToLogin} from '../navigation/navigationRef';
 import {clearSession} from './session';
 
 export const logoutToLogin = async (navigation?: any) => {
   try {
     resetAuthGate();
+    resetAdminAuthGate();
     await clearSession();
+    await clearAdminSession();
   } catch (error) {
     console.log('Logout session clear failed', error);
   }
@@ -25,7 +29,7 @@ export const logoutToLogin = async (navigation?: any) => {
   try {
     navigation?.reset?.({
       index: 0,
-      routes: [{name: 'Login'}],
+      routes: [{name: 'Login', params: {forceLoginForm: true}}],
     });
   } catch (error) {
     console.log('Logout navigation reset failed', error);

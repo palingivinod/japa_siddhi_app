@@ -1,6 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
@@ -10,12 +10,26 @@ const ChallengesScreen = () => {
   const navigation = useNavigation<any>();
   const [items, setItems] = useState<any[]>([]);
 
-  useEffect(() => {
-    apiService
-      .get('/challenges')
-      .then(response => setItems(response.data.data ?? []))
-      .catch(() => setItems([]));
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      apiService
+        .get('/challenges')
+        .then(response => {
+          if (active) {
+            setItems(response.data.data ?? []);
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setItems([]);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   return (
     <ScreenLayout title="Japa Challenges" showBack tab="JapaHub">
@@ -81,6 +95,6 @@ const styles = StyleSheet.create({
   copy: {flex: 1},
   title: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
   meta: {marginTop: 4, color: Colors.textSecondary},
-  join: {color: Colors.sacredBrown, fontWeight: '800'},
-  empty: {color: Colors.textSecondary},
+  join: {fontWeight: '800', color: Colors.templeGold},
+  empty: {marginTop: 20, color: Colors.textSecondary, textAlign: 'center'},
 });

@@ -13,6 +13,7 @@ import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 import {saveAdminSession} from './adminSession';
+import {resetAdminAuthGate} from './AdminAuthGate';
 
 const AdminLoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -21,16 +22,19 @@ const AdminLoginScreen = () => {
   const [busy, setBusy] = useState(false);
 
   const signIn = async () => {
-    const trimmed = email.trim();
+    const trimmed = email.trim().toLowerCase();
     if (!trimmed || !password.trim()) {
       Alert.alert('Required', 'Enter admin email and password.');
       return;
     }
     setBusy(true);
     try {
-      // UI-first auth gate; replace with /admin/login when backend is ready.
+      resetAdminAuthGate();
       await saveAdminSession(trimmed);
-      navigation.replace('AdminDashboard');
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'AdminDashboard'}],
+      });
     } catch (error: any) {
       Alert.alert('Sign in failed', error?.message || 'Unable to sign in.');
     } finally {

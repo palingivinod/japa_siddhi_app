@@ -1,17 +1,65 @@
 import React from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import AdminScreenLayout from './AdminScreenLayout';
 import {clearAdminSession} from './adminSession';
+import {resetAdminAuthGate} from './AdminAuthGate';
+
+const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
+  {
+    title: 'Challenge Creation',
+    route: 'AdminChallengeCreate',
+    sub: 'Create a new community challenge',
+  },
+  {
+    title: 'Challenge Management',
+    route: 'AdminChallenges',
+    sub: 'Track active and completed challenges',
+  },
+  {
+    title: 'Reward Management',
+    route: 'AdminRewards',
+    sub: 'Configure challenge rewards and stock',
+  },
+  {
+    title: 'Notification Management',
+    route: 'AdminNotifications',
+    sub: 'Create and send notifications',
+  },
+  {
+    title: 'Banner Management',
+    route: 'AdminBanners',
+    sub: 'Manage banners across app modules',
+  },
+  {
+    title: 'Product Management',
+    route: 'AdminProducts',
+    sub: 'Manage spiritual products and stock',
+  },
+  {
+    title: 'Mantra Management',
+    route: 'AdminMantras',
+    sub: 'Create, edit or delete mantras',
+  },
+  {
+    title: 'User Management',
+    route: 'AdminUsers',
+    sub: 'Manage registered users',
+  },
+];
 
 const AdminMoreScreen = () => {
   const navigation = useNavigation<any>();
 
   const logout = async () => {
+    resetAdminAuthGate();
     await clearAdminSession();
-    navigation.replace('AdminLogin');
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Login', params: {forceLoginForm: true}}],
+    });
   };
 
   return (
@@ -19,13 +67,19 @@ const AdminMoreScreen = () => {
       <Text style={styles.heading}>More</Text>
       <Text style={styles.sub}>Admin tools and account.</Text>
 
-      <TouchableOpacity
-        style={styles.row}
-        onPress={() =>
-          Alert.alert('Coming soon', 'More admin tools in later frame batches.')
-        }>
-        <Text style={styles.rowText}>Admin settings</Text>
-      </TouchableOpacity>
+      {MORE_LINKS.map(item => (
+        <TouchableOpacity
+          key={item.route}
+          style={styles.row}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate(item.route)}>
+          <View style={styles.copy}>
+            <Text style={styles.rowText}>{item.title}</Text>
+            <Text style={styles.rowSub}>{item.sub}</Text>
+          </View>
+          <Text style={styles.open}>Open</Text>
+        </TouchableOpacity>
+      ))}
 
       <TouchableOpacity style={styles.row} onPress={logout}>
         <Text style={[styles.rowText, styles.logout]}>Sign out of admin</Text>
@@ -54,11 +108,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     padding: 16,
     marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
+  copy: {flex: 1, paddingRight: 10},
   rowText: {
     fontSize: 16,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  rowSub: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontSize: 13,
+  },
+  open: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
   },
   logout: {
     color: Colors.error,

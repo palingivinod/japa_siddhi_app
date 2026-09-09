@@ -2,39 +2,39 @@ import React, {useEffect, useState} from 'react';
 import {ActivityIndicator, StyleSheet, View} from 'react-native';
 import {CommonActions, useNavigation} from '@react-navigation/native';
 
-import {getValidSession} from '../../services/session';
 import Colors from '../../theme/colors';
+import {getAdminSession} from '../admin/adminSession';
 
-let cachedAllowed = false;
+let cachedAdminAllowed = false;
 
-export const resetAuthGate = () => {
-  cachedAllowed = false;
+export const resetAdminAuthGate = () => {
+  cachedAdminAllowed = false;
 };
 
-const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
+const AdminAuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
   const navigation = useNavigation<any>();
-  const [allowed, setAllowed] = useState(cachedAllowed);
+  const [allowed, setAllowed] = useState(cachedAdminAllowed);
 
   useEffect(() => {
     let active = true;
 
-    getValidSession().then(session => {
+    getAdminSession().then(session => {
       if (!active) {
         return;
       }
 
-      if (!session.token) {
-        cachedAllowed = false;
+      if (!session?.email) {
+        cachedAdminAllowed = false;
         navigation.dispatch(
           CommonActions.reset({
             index: 0,
-            routes: [{name: 'Login', params: {forceLoginForm: true}}],
+            routes: [{name: 'Login'}],
           }),
         );
         return;
       }
 
-      cachedAllowed = true;
+      cachedAdminAllowed = true;
       setAllowed(true);
     });
 
@@ -54,17 +54,19 @@ const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
   return <>{children}</>;
 };
 
-export const withAuth = <P extends object>(Component: React.ComponentType<P>) => {
-  return function AuthenticatedScreen(props: P) {
+export const withAdminAuth = <P extends object>(
+  Component: React.ComponentType<P>,
+) => {
+  return function AdminAuthenticatedScreen(props: P) {
     return (
-      <AuthGate>
+      <AdminAuthGate>
         <Component {...props} />
-      </AuthGate>
+      </AdminAuthGate>
     );
   };
 };
 
-export default AuthGate;
+export default AdminAuthGate;
 
 const styles = StyleSheet.create({
   loader: {

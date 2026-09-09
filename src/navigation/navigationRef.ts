@@ -8,7 +8,7 @@ export const resetToLogin = () => {
     if (navigationRef.isReady()) {
       navigationRef.reset({
         index: 0,
-        routes: [{name: 'Login'}],
+        routes: [{name: 'Login', params: {forceLoginForm: true}}],
       });
       return true;
     }

@@ -1,71 +1,309 @@
-import React, {useState} from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
+import {io, Socket} from 'socket.io-client';
 
 import Colors from '../../theme/colors';
+import ENV from '../../env';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+
+const socketOrigin = String(ENV.API_URL).replace(/\/api\/v1\/?$/, '');
+const CHART_HEIGHT = 160;
+
+type Metric =
+  | 'overview'
+  | 'japa'
+  | 'users'
+  | 'donations'
+  | 'challenges'
+  | 'festivals';
 
 type Props = {
   title: string;
+  metric?: Metric;
   kpiValue?: string;
   changeValue?: string;
   bars?: number[];
 };
 
-const DEFAULT_BARS = [0.45, 0.72, 0.38, 0.9, 0.55, 0.68];
+type BarPoint = {label: string; value: number};
 
-const AdminAnalyticsPanel = ({
-  title,
-  kpiValue = '1,284',
-  changeValue = '+18%',
-  bars = DEFAULT_BARS,
-}: Props) => {
-  const [dateOn, setDateOn] = useState(false);
-  const [regionOn, setRegionOn] = useState(false);
+type DateRange = '7d' | '30d' | 'today' | 'all';
+type Region = 'all' | 'in';
+
+const DATE_OPTIONS: Array<{id: DateRange; label: string}> = [
+  {id: 'today', label: 'Today'},
+  {id: '7d', label: '7 days'},
+  {id: '30d', label: '30 days'},
+  {id: 'all', label: 'All'},
+];
+
+const REGION_OPTIONS: Array<{id: Region; label: string}> = [
+  {id: 'all', label: 'All'},
+  {id: 'in', label: 'India'},
+];
+
+const METRIC_COPY: Record<
+  string,
+  {sub: string; empty: string; fallbackLabel: string}
+> = {
+  users: {
+    sub: 'Live user counts, gender mix, and date/region filters.',
+    empty: 'No user data for this filter.',
+    fallbackLabel: 'Users',
+  },
+  japa: {
+    sub: 'Live japa counts, date/region filters, and bar totals.',
+    empty: 'No japa data for this filter.',
+    fallbackLabel: 'Japa',
+  },
+  donations: {
+    sub: 'Live donation totals, date/region filters, and daily amounts.',
+    empty: 'No donation data for this filter.',
+    fallbackLabel: 'Donations ₹',
+  },
+  challenges: {
+    sub: 'Live challenge joins, top challenges, and date/region filters.',
+    empty: 'No challenge data for this filter.',
+    fallbackLabel: 'Participants',
+  },
+  festivals: {
+    sub: 'Live festival counts by date window and type.',
+    empty: 'No festival data for this filter.',
+    fallbackLabel: 'Festivals',
+  },
+};
+
+const resolveApiMetric = (metric: Metric) => {
+  if (metric === 'users') {
+    return 'users';
+  }
+  if (metric === 'donations') {
+    return 'donations';
+  }
+  if (metric === 'challenges') {
+    return 'challenges';
+  }
+  if (metric === 'festivals') {
+    return 'festivals';
+  }
+  return 'japa';
+};
+
+const AdminAnalyticsPanel = ({title, metric = 'japa'}: Props) => {
+  const apiMetric = resolveApiMetric(metric);
+  const copy = METRIC_COPY[apiMetric] || METRIC_COPY.japa;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [kpi, setKpi] = useState('0');
+  const [kpiLabel, setKpiLabel] = useState(copy.fallbackLabel);
+  const [change, setChange] = useState('0%');
+  const [bars, setBars] = useState<BarPoint[]>([]);
+  const [range, setRange] = useState<DateRange>('7d');
+  const [region, setRegion] = useState<Region>('all');
+  const [showDateMenu, setShowDateMenu] = useState(false);
+  const [showRegionMenu, setShowRegionMenu] = useState(false);
+
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) {
+        setLoading(true);
+      }
+      setError('');
+      try {
+        const response = await apiService.get('/admin/analytics', {
+          params: {range, region, metric: apiMetric},
+        });
+        const data = response.data?.data || {};
+        const value = Number(data.kpi || 0);
+        const formatted =
+          data.kpiFormat === 'currency' || apiMetric === 'donations'
+            ? `₹${value.toLocaleString('en-IN')}`
+            : value.toLocaleString('en-IN');
+        setKpi(formatted);
+        setKpiLabel(String(data.kpiLabel || copy.fallbackLabel));
+        setChange(String(data.change || '0%'));
+        const points = Array.isArray(data.bars) ? data.bars : [];
+        setBars(
+          points.map((item: any) => ({
+            label: String(item.label || ''),
+            value: Number(item.value || 0),
+          })),
+        );
+      } catch (err) {
+        if (!silent) {
+          setError(getApiError(err, 'Could not load analytics.'));
+          setKpi('0');
+          setChange('0%');
+          setBars([]);
+        }
+      } finally {
+        if (!silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [range, region, apiMetric, copy.fallbackLabel],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      load(false);
+      const poll = setInterval(() => {
+        load(true);
+      }, 15000);
+      return () => clearInterval(poll);
+    }, [load]),
+  );
+
+  useEffect(() => {
+    let socket: Socket | null = null;
+    try {
+      socket = io(socketOrigin, {
+        transports: ['websocket', 'polling'],
+        autoConnect: true,
+        reconnection: true,
+      });
+      socket.on('globalCountUpdated', () => {
+        load(true);
+      });
+    } catch {
+      // keep polling fallback
+    }
+    return () => {
+      socket?.disconnect();
+    };
+  }, [load]);
+
+  const maxValue = Math.max(...bars.map(item => item.value), 1);
 
   return (
     <AdminScreenLayout title={title} tab="AdminDashboard" showBack>
       <Text style={styles.heading}>{title}</Text>
-      <Text style={styles.sub}>KPI cards, filters and graphical analytics.</Text>
+      <Text style={styles.sub}>{copy.sub}</Text>
 
       <View style={styles.kpiRow}>
         <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>KPI</Text>
-          <Text style={styles.kpiValue}>{kpiValue}</Text>
+          <Text style={styles.kpiLabel}>{kpiLabel}</Text>
+          <Text style={styles.kpiValue}>{kpi}</Text>
         </View>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Change</Text>
-          <Text style={styles.kpiValue}>{changeValue}</Text>
+          <Text style={styles.kpiValue}>{change}</Text>
         </View>
       </View>
 
       <Text style={styles.filtersTitle}>Filters</Text>
       <View style={styles.filterRow}>
         <TouchableOpacity
-          style={[styles.filterPill, dateOn && styles.filterPillOn]}
+          style={[styles.filterPill, showDateMenu && styles.filterPillOn]}
           onPress={() => {
-            setDateOn(v => !v);
-            Alert.alert('Date filter', 'Date range picker will be wired next.');
+            setShowDateMenu(v => !v);
+            setShowRegionMenu(false);
           }}>
-          <Text style={styles.filterText}>DATE</Text>
+          <Text style={styles.filterText}>
+            DATE · {DATE_OPTIONS.find(item => item.id === range)?.label}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterPill, regionOn && styles.filterPillOn]}
+          style={[styles.filterPill, showRegionMenu && styles.filterPillOn]}
           onPress={() => {
-            setRegionOn(v => !v);
-            Alert.alert('Region filter', 'Region picker will be wired next.');
+            setShowRegionMenu(v => !v);
+            setShowDateMenu(false);
           }}>
-          <Text style={styles.filterText}>REGION</Text>
+          <Text style={styles.filterText}>
+            REGION · {REGION_OPTIONS.find(item => item.id === region)?.label}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      <View style={styles.chartCard}>
-        <View style={styles.chartRow}>
-          {bars.map((height, index) => (
-            <View key={`${title}-bar-${index}`} style={styles.barTrack}>
-              <View style={[styles.bar, {height: `${Math.round(height * 100)}%`}]} />
-            </View>
-          ))}
+      {showDateMenu ? (
+        <View style={styles.menuRow}>
+          {DATE_OPTIONS.map(option => {
+            const active = option.id === range;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.menuChip, active && styles.menuChipOn]}
+                onPress={() => {
+                  setRange(option.id);
+                  setShowDateMenu(false);
+                }}>
+                <Text
+                  style={[styles.menuChipText, active && styles.menuChipTextOn]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
+      ) : null}
+
+      {showRegionMenu ? (
+        <View style={styles.menuRow}>
+          {REGION_OPTIONS.map(option => {
+            const active = option.id === region;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                style={[styles.menuChip, active && styles.menuChipOn]}
+                onPress={() => {
+                  setRegion(option.id);
+                  setShowRegionMenu(false);
+                }}>
+                <Text
+                  style={[styles.menuChipText, active && styles.menuChipTextOn]}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={Colors.templeGold} />
+        </View>
+      ) : null}
+
+      {error ? (
+        <TouchableOpacity onPress={() => load(false)}>
+          <Text style={styles.errorText}>{error} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      <View style={styles.chartCard}>
+        {!loading && bars.length === 0 ? (
+          <Text style={styles.emptyChart}>{copy.empty}</Text>
+        ) : (
+          <View style={styles.chartRow}>
+            {bars.map((item, index) => {
+              const barHeight = Math.max(
+                8,
+                Math.round((item.value / maxValue) * CHART_HEIGHT),
+              );
+              return (
+                <View key={`${item.label}-${index}`} style={styles.barTrack}>
+                  <Text style={styles.barCount}>
+                    {item.value.toLocaleString('en-IN')}
+                  </Text>
+                  <View style={[styles.bar, {height: barHeight}]} />
+                  <Text style={styles.barLabel} numberOfLines={1}>
+                    {item.label}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
     </AdminScreenLayout>
   );
@@ -86,7 +324,6 @@ const styles = StyleSheet.create({
   },
   kpiRow: {
     flexDirection: 'row',
-    gap: 12,
     marginBottom: 18,
   },
   kpiCard: {
@@ -97,6 +334,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     paddingVertical: 16,
     paddingHorizontal: 14,
+    marginRight: 12,
   },
   kpiLabel: {
     color: Colors.leafGreen,
@@ -117,8 +355,7 @@ const styles = StyleSheet.create({
   },
   filterRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 16,
+    marginBottom: 10,
   },
   filterPill: {
     borderRadius: 22,
@@ -126,6 +363,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.sacredBrown,
     paddingHorizontal: 18,
     paddingVertical: 10,
+    marginRight: 10,
   },
   filterPillOn: {
     backgroundColor: Colors.lightGold,
@@ -136,32 +374,80 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 0.4,
   },
+  menuRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 12,
+  },
+  menuChip: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    marginBottom: 8,
+    backgroundColor: Colors.white,
+  },
+  menuChipOn: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#E4EFDF',
+  },
+  menuChipText: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+  },
+  menuChipTextOn: {
+    color: Colors.leafGreen,
+  },
+  centerBox: {paddingVertical: 12, alignItems: 'center'},
+  errorText: {color: Colors.error, marginBottom: 10, fontWeight: '600'},
   chartCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    paddingHorizontal: 18,
-    paddingVertical: 22,
-    minHeight: 220,
+    paddingHorizontal: 12,
+    paddingVertical: 18,
+    minHeight: 240,
+  },
+  emptyChart: {
+    textAlign: 'center',
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    paddingVertical: 40,
   },
   chartRow: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 10,
-    minHeight: 170,
+    minHeight: CHART_HEIGHT + 40,
   },
   barTrack: {
     flex: 1,
-    height: 170,
+    height: CHART_HEIGHT + 40,
     justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginHorizontal: 3,
+  },
+  barCount: {
+    marginBottom: 4,
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
   },
   bar: {
-    width: '100%',
+    width: '78%',
     borderTopLeftRadius: 10,
     borderTopRightRadius: 10,
     backgroundColor: Colors.gold,
+    minHeight: 8,
+  },
+  barLabel: {
+    marginTop: 6,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

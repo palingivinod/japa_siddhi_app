@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   Alert,
   ScrollView,
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -19,27 +19,60 @@ import PhoneNumberField from './components/PhoneNumberField';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
-import {hydrateSession, saveSession} from '../../services/session';
+import {
+  clearSession,
+  getValidSession,
+  saveSession,
+} from '../../services/session';
+import {resetAuthGate} from '../common/AuthGate';
 import PrimaryButton from '../common/PrimaryButton';
+import {saveAdminSession} from '../admin/adminSession';
+import {resetAdminAuthGate} from '../admin/AdminAuthGate';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type LoginMode = 'otp' | 'password';
+
+const isAdminEmail = (email: string) => {
+  const local = email.trim().toLowerCase().split('@')[0] || '';
+  return local === 'admin' || local.startsWith('admin.');
+};
+
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
   const [submitting, setSubmitting] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [mode, setMode] = useState<LoginMode>('otp');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [selectedCountry, setSelectedCountry] = useState<CountryItem>(
     countries.find(c => c.code === 'IN') ?? countries[0],
   );
-  const [hasSession, setHasSession] = useState(false);
+  const [hasValidSession, setHasValidSession] = useState(false);
 
-  useEffect(() => {
-    hydrateSession().then(session => {
-      setHasSession(Boolean(session.token));
-    });
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let alive = true;
+      const forceForm = Boolean(route.params?.forceLoginForm);
+
+      setCheckingSession(true);
+      getValidSession().then(session => {
+        if (!alive) {
+          return;
+        }
+        const valid = Boolean(session.token) && !forceForm;
+        setHasValidSession(valid);
+        setCheckingSession(false);
+      });
+
+      return () => {
+        alive = false;
+      };
+    }, [route.params?.forceLoginForm]),
+  );
 
   const handleContinue = async () => {
     const mobileNumber = phoneNumber.replace(/\D/g, '');
@@ -85,6 +118,69 @@ const LoginScreen = () => {
     }
   };
 
+  const goHome = async () => {
+    const session = await getValidSession();
+    if (!session.token) {
+      setHasValidSession(false);
+      Alert.alert('Session expired', 'Please login again.');
+      return;
+    }
+    resetAuthGate();
+    navigation.reset({
+      index: 0,
+      routes: [{name: 'Home'}],
+    });
+  };
+
+  const handlePasswordLogin = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      Alert.alert(t('required'), t('validEmailOtp'));
+      return;
+    }
+    if (!password.trim()) {
+      Alert.alert(t('required'), 'Enter your password.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      if (isAdminEmail(trimmedEmail)) {
+        resetAdminAuthGate();
+        await saveAdminSession(trimmedEmail);
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'AdminDashboard'}],
+        });
+        return;
+      }
+
+      const response = await apiService.post('/auth/dev-login', {
+        email: trimmedEmail,
+        password: password.trim(),
+      });
+      const data = response.data?.data;
+      if (!data?.token || !data?.user) {
+        throw new Error('Login did not return a session');
+      }
+      await saveSession(data.token, data.user);
+      resetAuthGate();
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home'}],
+      });
+    } catch (error: any) {
+      Alert.alert(
+        'Login failed',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Use OTP login, or an admin email (admin@...) with password.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleTestLogin = async () => {
     setSubmitting(true);
     try {
@@ -97,7 +193,11 @@ const LoginScreen = () => {
         throw new Error('Test login did not return a session');
       }
       await saveSession(data.token, data.user);
-      navigation.replace('Home');
+      resetAuthGate();
+      navigation.reset({
+        index: 0,
+        routes: [{name: 'Home'}],
+      });
     } catch (error: any) {
       Alert.alert(
         'Test login failed',
@@ -108,6 +208,13 @@ const LoginScreen = () => {
     }
   };
 
+  const loginAgain = async () => {
+    await clearSession();
+    resetAuthGate();
+    setHasValidSession(false);
+    navigation.setParams({forceLoginForm: true});
+  };
+
   const socialSoon = (name: string) => {
     navigation.navigate('SocialAuth', {provider: name});
   };
@@ -116,49 +223,123 @@ const LoginScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={styles.content}>
-        <AppHeader title="Welcome to Japa Siddhi" showBack />
+        contentContainerStyle={[
+          styles.content,
+          hasValidSession && styles.contentSession,
+        ]}>
+        <AppHeader title="Welcome to Japa Siddhi" showBack={false} />
         <Text style={styles.heading}>{t('beginSpiritualJourney')}</Text>
-        {hasSession ? (
-          <PrimaryButton
-            title={t('continueToHome')}
-            onPress={() => navigation.replace('Home')}
-          />
+
+        {checkingSession ? (
+          <Text style={styles.helper}>Checking session...</Text>
+        ) : hasValidSession ? (
+          <View style={styles.sessionCenter}>
+            <PrimaryButton title={t('continueToHome')} onPress={goHome} />
+            <TouchableOpacity style={styles.againBtn} onPress={loginAgain}>
+              <Text style={styles.againText}>{t('orLoginAgain')}</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
-            <Text style={styles.label}>{t('mobileNumber')}</Text>
-            <CountryPickerField
-              value={selectedCountry}
-              onChange={setSelectedCountry}
-            />
-            <PhoneNumberField
-              value={phoneNumber}
-              onChangeText={setPhoneNumber}
-              placeholder={t('enterMobileNumber')}
-            />
-            <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
+            <View style={styles.modeRow}>
+              <TouchableOpacity
+                style={[styles.modeChip, mode === 'otp' && styles.modeChipOn]}
+                onPress={() => setMode('otp')}>
+                <Text
+                  style={[
+                    styles.modeText,
+                    mode === 'otp' && styles.modeTextOn,
+                  ]}>
+                  OTP
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modeChip,
+                  mode === 'password' && styles.modeChipOn,
+                ]}
+                onPress={() => setMode('password')}>
+                <Text
+                  style={[
+                    styles.modeText,
+                    mode === 'password' && styles.modeTextOn,
+                  ]}>
+                  Password
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-            <Text style={styles.label}>{t('email')}</Text>
-            <TextInput
-              style={styles.emailInput}
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t('enterEmailAddress')}
-              placeholderTextColor={Colors.placeholder}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
+            {mode === 'otp' ? (
+              <>
+                <Text style={styles.label}>{t('mobileNumber')}</Text>
+                <CountryPickerField
+                  value={selectedCountry}
+                  onChange={setSelectedCountry}
+                />
+                <PhoneNumberField
+                  value={phoneNumber}
+                  onChangeText={setPhoneNumber}
+                  placeholder={t('enterMobileNumber')}
+                />
+                <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
 
-            <ContinueButton
-              title={submitting ? t('sendingOtp') : t('sendOtp')}
-              onPress={handleContinue}
-              disabled={
-                phoneNumber.replace(/\D/g, '').length < 6 ||
-                !EMAIL_REGEX.test(email.trim()) ||
-                submitting
-              }
-            />
+                <Text style={styles.label}>{t('email')}</Text>
+                <TextInput
+                  style={styles.emailInput}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder={t('enterEmailAddress')}
+                  placeholderTextColor={Colors.placeholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <ContinueButton
+                  title={submitting ? t('sendingOtp') : t('sendOtp')}
+                  onPress={handleContinue}
+                  loading={submitting}
+                  disabled={
+                    phoneNumber.replace(/\D/g, '').length < 6 ||
+                    !EMAIL_REGEX.test(email.trim()) ||
+                    submitting
+                  }
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.helper}>
+                  Devotees can sign in with email and password. Admin emails
+                  (admin@...) open the admin panel.
+                </Text>
+                <Text style={styles.label}>{t('email')}</Text>
+                <TextInput
+                  style={styles.emailInput}
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder={t('enterEmailAddress')}
+                  placeholderTextColor={Colors.placeholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.emailInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter password"
+                  placeholderTextColor={Colors.placeholder}
+                  secureTextEntry
+                />
+                <ContinueButton
+                  title={submitting ? 'SIGNING IN...' : 'SIGN IN'}
+                  onPress={handlePasswordLogin}
+                  loading={submitting}
+                  disabled={submitting}
+                />
+              </>
+            )}
 
             {__DEV__ ? (
               <View style={styles.testBox}>
@@ -193,7 +374,7 @@ const LoginScreen = () => {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
-              <TouchableOpacity onPress={handleContinue}>
+              <TouchableOpacity onPress={() => setMode('otp')}>
                 <Text style={styles.linkText}>{t('createAnAccount')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -220,12 +401,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 30,
   },
+  contentSession: {
+    flexGrow: 1,
+  },
+  sessionCenter: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    minHeight: 280,
+    paddingBottom: 48,
+  },
+  againBtn: {
+    marginTop: 18,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  againText: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+  },
   heading: {
     textAlign: 'center',
     color: Colors.leafGreen,
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 20,
+  },
+  modeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 18,
+  },
+  modeChip: {
+    flex: 1,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeChipOn: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
+  modeText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+  },
+  modeTextOn: {
+    color: Colors.white,
   },
   label: {
     color: Colors.leafGreen,
@@ -237,6 +462,7 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 16,
     fontSize: 13,
+    lineHeight: 18,
   },
   emailInput: {
     height: 55,

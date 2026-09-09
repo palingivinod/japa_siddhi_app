@@ -21,6 +21,9 @@ import customerCareRoutes from './modules/customerCare/customerCare.routes';
 import feedbackRoutes from './modules/feedback/feedback.routes';
 import challengeRoutes from './modules/challenge/challenge.routes';
 import reportRoutes from './modules/report/report.routes';
+import adminRoutes from './modules/admin/admin.routes';
+import bannerRoutes from './modules/banner/banner.routes';
+import annadanamRoutes from './modules/annadanam/annadanam.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
 import screensRoutes from './modules/screens/screens.routes';
 import database from './database/mysql';
@@ -158,6 +161,18 @@ app.use(
 app.use(
   '/api/v1/reports',
   reportRoutes,
+);
+app.use(
+  '/api/v1/admin',
+  adminRoutes,
+);
+app.use(
+  '/api/v1/banners',
+  bannerRoutes,
+);
+app.use(
+  '/api/v1/annadanam',
+  annadanamRoutes,
 );
 app.use(
   '/api/v1/screens',

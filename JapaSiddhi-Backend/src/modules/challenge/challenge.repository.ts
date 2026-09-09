@@ -112,47 +112,63 @@ class ChallengeRepository {
   }
 
   async getActiveChallenges() {
-
-    return mysql.query<any[]>(
+    // Normalize slash dates (DD/MM/YYYY) so they compare with CURDATE()/date('now').
+    const rows = await mysql.query<any[]>(
       `
       SELECT
-
         id,
-
         title,
-
         description,
-
         challenge_type AS challengeType,
-
         target_value AS targetValue,
-
         reward_type AS rewardType,
-
         reward_name AS rewardName,
-
         reward_quantity AS rewardQuantity,
-
         start_date AS startDate,
-
         end_date AS endDate,
-
         is_active AS isActive
-
       FROM challenges
-
-      WHERE
-
-        is_active = 1
-
-      AND
-
-        CURDATE() BETWEEN start_date AND end_date
-
-      ORDER BY start_date ASC
+      WHERE is_active = 1
+      ORDER BY id DESC
       `,
     );
 
+    const toIso = (raw: unknown) => {
+      const value = String(raw || '').trim();
+      if (!value) {
+        return '';
+      }
+      if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        return value;
+      }
+      const parts = value.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+      if (parts) {
+        const day = Number(parts[1]);
+        const month = Number(parts[2]);
+        const year = parts[3];
+        if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+          return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+      }
+      return value;
+    };
+
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    return (rows || [])
+      .map(row => {
+        const startDate = toIso(row.startDate);
+        const endDate = toIso(row.endDate);
+        return {...row, startDate, endDate};
+      })
+      .filter(row => {
+        if (!row.startDate || !row.endDate) {
+          return true;
+        }
+        return row.startDate <= todayIso && todayIso <= row.endDate;
+      })
+      .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)));
   }
 
   async join(

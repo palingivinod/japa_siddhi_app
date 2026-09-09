@@ -10,12 +10,19 @@ import apiService from '../../services/apiService';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 
+type LangOption = {
+  code: string;
+  name: string;
+  nativeName: string;
+};
+
 const LanguageSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const fromSettings = route.params?.fromSettings;
   const {t, language, setAppLanguage} = useLanguage();
   const [selected, setSelected] = useState(language || 'en');
+  const [options, setOptions] = useState<LangOption[]>(APP_LANGUAGES);
 
   useEffect(() => {
     getLanguage().then(code => {
@@ -30,6 +37,48 @@ const LanguageSelectScreen = () => {
       setSelected(language);
     }
   }, [language]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const response = await apiService.get('/master/languages');
+        const rows = Array.isArray(response.data?.data)
+          ? response.data.data
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+        if (!mounted || !rows.length) {
+          return;
+        }
+        const mapped = rows
+          .map((row: any) => {
+            const code = String(row.code || '').toLowerCase();
+            const fallback = APP_LANGUAGES.find(item => item.code === code);
+            return {
+              code,
+              name: String(row.name || fallback?.name || code),
+              nativeName: String(
+                row.nativeName ||
+                  row.native_name ||
+                  fallback?.nativeName ||
+                  row.name ||
+                  code,
+              ),
+            };
+          })
+          .filter((item: LangOption) => item.code);
+        if (mapped.length) {
+          setOptions(mapped);
+        }
+      } catch {
+        // keep APP_LANGUAGES fallback
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const continueNext = async () => {
     await setAppLanguage(selected);
@@ -50,7 +99,7 @@ const LanguageSelectScreen = () => {
       <AppHeader title="Choose Language" showBack={fromSettings} />
       <Text style={styles.hint}>{t('selectPreferredLanguage')}</Text>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {APP_LANGUAGES.map(item => {
+        {options.map(item => {
           const active = item.code === selected;
           return (
             <TouchableOpacity
@@ -100,21 +149,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardActive: {
-    borderColor: Colors.templeGold,
-    borderWidth: 2,
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#F3F7EF',
   },
   name: {
     fontSize: 17,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.sacredBrown,
   },
   native: {
     marginTop: 2,
-    color: Colors.leafGreen,
+    color: Colors.textSecondary,
   },
   mark: {
-    fontSize: 22,
-    color: Colors.templeGold,
+    fontSize: 18,
+    color: Colors.sacredBrown,
     fontWeight: '700',
   },
 });

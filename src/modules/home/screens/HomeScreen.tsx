@@ -38,6 +38,21 @@ const HomeScreen = () => {
   const [milestone, setMilestone] = useState<any>(null);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [refreshing, setRefreshing] = useState(false);
+  const [homeBanners, setHomeBanners] = useState<
+    Array<{
+      id: number;
+      title: string;
+      subtitle: string;
+      imageUrl: string;
+      buttonText?: string;
+    }>
+  >([]);
+  const [annadanamVisibility, setAnnadanamVisibility] = useState({
+    japa: true,
+    general: true,
+    campaigns: true,
+    any: true,
+  });
 
   const tiles = useMemo(
     () => [
@@ -94,12 +109,15 @@ const HomeScreen = () => {
     setName(String(display).split(' ')[0] || t('devotee'));
 
     try {
-      const [summary, goals, challenges, panchangRes] = await Promise.allSettled([
-        apiService.get('/japa/summary'),
-        apiService.get('/japa-goals'),
-        apiService.get('/challenges'),
-        apiService.get('/festivals/panchang', {params: {lang: language}}),
-      ]);
+      const [summary, goals, challenges, panchangRes, bannersRes, annadanamRes] =
+        await Promise.allSettled([
+          apiService.get('/japa/summary'),
+          apiService.get('/japa-goals'),
+          apiService.get('/challenges'),
+          apiService.get('/festivals/panchang', {params: {lang: language}}),
+          apiService.get('/banners/active', {params: {module: 'Home'}}),
+          apiService.get('/annadanam/visibility'),
+        ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
         setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
@@ -120,6 +138,31 @@ const HomeScreen = () => {
       if (panchangRes.status === 'fulfilled' && panchangRes.value.data.data) {
         setPanchang(panchangRes.value.data.data);
       }
+      if (bannersRes.status === 'fulfilled') {
+        const rows = Array.isArray(bannersRes.value.data?.data)
+          ? bannersRes.value.data.data
+          : [];
+        setHomeBanners(
+          rows.map((row: any) => ({
+            id: Number(row.id) || 0,
+            title: String(row.title || ''),
+            subtitle: String(row.subtitle || ''),
+            imageUrl: String(row.imageUrl || ''),
+            buttonText: String(row.buttonText || t('startChanting')),
+          })),
+        );
+      } else {
+        setHomeBanners([]);
+      }
+      if (annadanamRes.status === 'fulfilled') {
+        const data = annadanamRes.value.data?.data || {};
+        setAnnadanamVisibility({
+          japa: data.japa !== false,
+          general: data.general !== false,
+          campaigns: data.campaigns !== false,
+          any: data.any !== false,
+        });
+      }
     } catch (error) {
       console.log('Home summary unavailable', error);
     }
@@ -138,7 +181,14 @@ const HomeScreen = () => {
   };
 
   const progress = Math.min(100, Math.round((today / Math.max(goal, 1)) * 100));
-  const showAnnadanam = lifetime >= 10000;
+  const showJapaAnnadanam =
+    annadanamVisibility.japa && lifetime >= 10000;
+  const visibleTiles = tiles.filter(item => {
+    if (item.route !== 'Donate') {
+      return true;
+    }
+    return annadanamVisibility.any;
+  });
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -166,6 +216,18 @@ const HomeScreen = () => {
             }}
             onPress={() => navigation.navigate('JapaHub')}
           />
+
+          {homeBanners.map(item => (
+            <View key={String(item.id)} style={styles.noticeCard}>
+              <View style={styles.noticeCopy}>
+                <Text style={styles.noticeKicker}>NOTICE</Text>
+                <Text style={styles.noticeTitle}>{item.title}</Text>
+                {item.subtitle ? (
+                  <Text style={styles.noticeSub}>{item.subtitle}</Text>
+                ) : null}
+              </View>
+            </View>
+          ))}
 
           <TouchableOpacity
             style={styles.festival}
@@ -246,7 +308,7 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {showAnnadanam ? (
+          {showJapaAnnadanam ? (
             <TouchableOpacity
               style={styles.promo}
               onPress={() => navigation.navigate('JapaAnnadanam')}>
@@ -257,7 +319,7 @@ const HomeScreen = () => {
               <Text style={styles.cardMeta}>{t('considerAnnadanam')}</Text>
               <Text style={styles.link}>{t('donateNow')}</Text>
             </TouchableOpacity>
-          ) : (
+          ) : annadanamVisibility.general || annadanamVisibility.campaigns ? (
             <TouchableOpacity
               style={styles.promo}
               onPress={() => navigation.navigate('Donate')}>
@@ -266,7 +328,7 @@ const HomeScreen = () => {
               <Text style={styles.cardMeta}>{t('supportAnnadanam')}</Text>
               <Text style={styles.link}>{t('donateNow')}</Text>
             </TouchableOpacity>
-          )}
+          ) : null}
 
           <TouchableOpacity
             style={styles.promo}
@@ -279,7 +341,7 @@ const HomeScreen = () => {
 
           <Text style={styles.section}>{t('quickActions')}</Text>
           <View style={styles.grid}>
-            {tiles.map(item => (
+            {visibleTiles.map(item => (
               <TouchableOpacity
                 key={item.route}
                 style={styles.tile}
@@ -320,6 +382,32 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginBottom: 16,
     color: Colors.sacredBrown,
+  },
+  noticeCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    padding: 14,
+    marginBottom: 14,
+  },
+  noticeCopy: {flex: 1},
+  noticeKicker: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.8,
+  },
+  noticeTitle: {
+    marginTop: 4,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 17,
+  },
+  noticeSub: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontSize: 13,
   },
   festival: {
     backgroundColor: Colors.white,

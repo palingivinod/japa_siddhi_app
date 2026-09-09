@@ -3,6 +3,7 @@ import {NavigationContainer} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {navigationRef} from './navigationRef';
 import {withAuth} from '../modules/common/AuthGate';
+import {withAdminAuth} from '../modules/admin/AdminAuthGate';
 
 import SplashScreen from '../modules/auth/SplashScreen';
 import LanguageSelectScreen from '../modules/auth/LanguageSelectScreen';
@@ -80,8 +81,10 @@ import AdminLoginScreen from '../modules/admin/AdminLoginScreen';
 import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
 import AdminUsersScreen from '../modules/admin/AdminUsersScreen';
 import AdminUserDetailsScreen from '../modules/admin/AdminUserDetailsScreen';
+import AdminUserEditScreen from '../modules/admin/AdminUserEditScreen';
 import AdminJapaScreen from '../modules/admin/AdminJapaScreen';
 import AdminMantrasScreen from '../modules/admin/AdminMantrasScreen';
+import AdminMantraEditScreen from '../modules/admin/AdminMantraEditScreen';
 import AdminChallengeCreateScreen from '../modules/admin/AdminChallengeCreateScreen';
 import AdminChallengesScreen from '../modules/admin/AdminChallengesScreen';
 import AdminRewardsScreen from '../modules/admin/AdminRewardsScreen';
@@ -111,7 +114,7 @@ import AdminMoreScreen from '../modules/admin/AdminMoreScreen';
 export type RootStackParamList = {
   Splash: undefined;
   LanguageSelect: {fromSettings?: boolean} | undefined;
-  Login: undefined;
+  Login: {forceLoginForm?: boolean} | undefined;
   SocialAuth: {provider?: string} | undefined;
   OtpScreen: {
     phoneNumber: string;
@@ -208,8 +211,10 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   AdminUsers: undefined;
   AdminUserDetails: {userId?: string} | undefined;
+  AdminUserEdit: {userId?: string} | undefined;
   AdminJapa: undefined;
   AdminMantras: undefined;
+  AdminMantraEdit: {mantraId?: string} | undefined;
   AdminChallengeCreate: undefined;
   AdminChallenges: undefined;
   AdminRewards: undefined;
@@ -299,44 +304,46 @@ const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
 const ProtectedBanaReview = withAuth(BanaLingamReviewScreen);
 const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
 const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
-const ProtectedAdminHub = withAuth(AdminHubScreen);
-const ProtectedAdminLogin = withAuth(AdminLoginScreen);
-const ProtectedAdminDashboard = withAuth(AdminDashboardScreen);
-const ProtectedAdminUsers = withAuth(AdminUsersScreen);
-const ProtectedAdminUserDetails = withAuth(AdminUserDetailsScreen);
-const ProtectedAdminJapa = withAuth(AdminJapaScreen);
-const ProtectedAdminMantras = withAuth(AdminMantrasScreen);
-const ProtectedAdminChallengeCreate = withAuth(AdminChallengeCreateScreen);
-const ProtectedAdminChallenges = withAuth(AdminChallengesScreen);
-const ProtectedAdminRewards = withAuth(AdminRewardsScreen);
-const ProtectedAdminNotifications = withAuth(AdminNotificationsScreen);
-const ProtectedAdminOrders = withAuth(AdminOrdersScreen);
-const ProtectedAdminOrderDetails = withAuth(AdminOrderDetailsScreen);
-const ProtectedAdminProducts = withAuth(AdminProductsScreen);
-const ProtectedAdminBanners = withAuth(AdminBannersScreen);
-const ProtectedAdminPayments = withAuth(AdminPaymentsScreen);
-const ProtectedAdminAnnadanam = withAuth(AdminAnnadanamScreen);
-const ProtectedAdminBaanalingam = withAuth(AdminBaanalingamScreen);
-const ProtectedAdminNithyaHomam = withAuth(AdminNithyaHomamScreen);
-const ProtectedAdminSupport = withAuth(AdminSupportScreen);
-const ProtectedAdminFeedback = withAuth(AdminFeedbackScreen);
-const ProtectedAdminAnalyticsDashboard = withAuth(AdminAnalyticsDashboardScreen);
-const ProtectedAdminUserDemographics = withAuth(AdminUserDemographicsScreen);
-const ProtectedAdminJapaAnalytics = withAuth(AdminJapaAnalyticsScreen);
-const ProtectedAdminChallengeAnalytics = withAuth(
+const ProtectedAdminHub = AdminHubScreen;
+const ProtectedAdminLogin = AdminLoginScreen;
+const ProtectedAdminDashboard = withAdminAuth(AdminDashboardScreen);
+const ProtectedAdminUsers = withAdminAuth(AdminUsersScreen);
+const ProtectedAdminUserDetails = withAdminAuth(AdminUserDetailsScreen);
+const ProtectedAdminUserEdit = withAdminAuth(AdminUserEditScreen);
+const ProtectedAdminJapa = withAdminAuth(AdminJapaScreen);
+const ProtectedAdminMantras = withAdminAuth(AdminMantrasScreen);
+const ProtectedAdminMantraEdit = withAdminAuth(AdminMantraEditScreen);
+const ProtectedAdminChallengeCreate = withAdminAuth(AdminChallengeCreateScreen);
+const ProtectedAdminChallenges = withAdminAuth(AdminChallengesScreen);
+const ProtectedAdminRewards = withAdminAuth(AdminRewardsScreen);
+const ProtectedAdminNotifications = withAdminAuth(AdminNotificationsScreen);
+const ProtectedAdminOrders = withAdminAuth(AdminOrdersScreen);
+const ProtectedAdminOrderDetails = withAdminAuth(AdminOrderDetailsScreen);
+const ProtectedAdminProducts = withAdminAuth(AdminProductsScreen);
+const ProtectedAdminBanners = withAdminAuth(AdminBannersScreen);
+const ProtectedAdminPayments = withAdminAuth(AdminPaymentsScreen);
+const ProtectedAdminAnnadanam = withAdminAuth(AdminAnnadanamScreen);
+const ProtectedAdminBaanalingam = withAdminAuth(AdminBaanalingamScreen);
+const ProtectedAdminNithyaHomam = withAdminAuth(AdminNithyaHomamScreen);
+const ProtectedAdminSupport = withAdminAuth(AdminSupportScreen);
+const ProtectedAdminFeedback = withAdminAuth(AdminFeedbackScreen);
+const ProtectedAdminAnalyticsDashboard = withAdminAuth(AdminAnalyticsDashboardScreen);
+const ProtectedAdminUserDemographics = withAdminAuth(AdminUserDemographicsScreen);
+const ProtectedAdminJapaAnalytics = withAdminAuth(AdminJapaAnalyticsScreen);
+const ProtectedAdminChallengeAnalytics = withAdminAuth(
   AdminChallengeAnalyticsScreen,
 );
-const ProtectedAdminDonationAnalytics = withAuth(AdminDonationAnalyticsScreen);
-const ProtectedAdminFestivalAnalytics = withAuth(AdminFestivalAnalyticsScreen);
-const ProtectedAdminNotificationAnalytics = withAuth(
+const ProtectedAdminDonationAnalytics = withAdminAuth(AdminDonationAnalyticsScreen);
+const ProtectedAdminFestivalAnalytics = withAdminAuth(AdminFestivalAnalyticsScreen);
+const ProtectedAdminNotificationAnalytics = withAdminAuth(
   AdminNotificationAnalyticsScreen,
 );
-const ProtectedAdminLanguages = withAuth(AdminLanguagesScreen);
-const ProtectedAdminMultilingualContent = withAuth(
+const ProtectedAdminLanguages = withAdminAuth(AdminLanguagesScreen);
+const ProtectedAdminMultilingualContent = withAdminAuth(
   AdminMultilingualContentScreen,
 );
-const ProtectedAdminExportReports = withAuth(AdminExportReportsScreen);
-const ProtectedAdminMore = withAuth(AdminMoreScreen);
+const ProtectedAdminExportReports = withAdminAuth(AdminExportReportsScreen);
+const ProtectedAdminMore = withAdminAuth(AdminMoreScreen);
 
 const AppNavigator = () => {
   return (
@@ -489,8 +496,16 @@ const AppNavigator = () => {
           name="AdminUserDetails"
           component={ProtectedAdminUserDetails}
         />
+        <Stack.Screen
+          name="AdminUserEdit"
+          component={ProtectedAdminUserEdit}
+        />
         <Stack.Screen name="AdminJapa" component={ProtectedAdminJapa} />
         <Stack.Screen name="AdminMantras" component={ProtectedAdminMantras} />
+        <Stack.Screen
+          name="AdminMantraEdit"
+          component={ProtectedAdminMantraEdit}
+        />
         <Stack.Screen
           name="AdminChallengeCreate"
           component={ProtectedAdminChallengeCreate}

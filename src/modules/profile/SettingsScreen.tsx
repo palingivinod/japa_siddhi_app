@@ -129,12 +129,6 @@ const SettingsScreen = () => {
         <Text style={styles.label}>{t('japaAnalyticsLabel')}</Text>
         <Text style={styles.value}>{t('open')}</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.row}
-        onPress={() => navigation.navigate('AdminHub')}>
-        <Text style={styles.label}>Admin</Text>
-        <Text style={styles.value}>{t('open')}</Text>
-      </TouchableOpacity>
       <TouchableOpacity style={styles.delete} onPress={deleteAccount}>
         <Text style={styles.deleteText}>{t('deleteAccount')}</Text>
       </TouchableOpacity>

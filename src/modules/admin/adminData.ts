@@ -6,6 +6,9 @@ export type AdminUser = {
   japaCount: number;
   status: AdminUserStatus;
   mobile: string;
+  email?: string;
+  mobileCountryCode?: string;
+  mobileNumber?: string;
 };
 
 export type AdminMantra = {
@@ -16,13 +19,14 @@ export type AdminMantra = {
   target?: number;
 };
 
-export type AdminChallengeStatus = 'Active' | 'Completed';
+export type AdminChallengeStatus = 'Active' | 'Inactive';
 
 export type AdminChallenge = {
   id: string;
   title: string;
   detail: string;
   status: AdminChallengeStatus;
+  active?: boolean;
 };
 
 export type AdminReward = {
@@ -38,14 +42,6 @@ export type AdminDashboardStats = {
   donationsLabel: string;
 };
 
-/** UI mock data until admin APIs are ready. */
-export const ADMIN_DASHBOARD_STATS: AdminDashboardStats = {
-  users: 1284,
-  japa: 48210,
-  orders: 248,
-  donationsLabel: '₹4.82L',
-};
-
 export const ADMIN_CONTROL_ITEMS: Array<{
   title: string;
   route?: string;
@@ -55,9 +51,9 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
   {title: 'Challenge Management', route: 'AdminChallenges'},
   {title: 'Reward Management', route: 'AdminRewards'},
-  {title: 'Notifications', route: 'AdminNotifications'},
-  {title: 'Banners', route: 'AdminBanners'},
-  {title: 'Products', route: 'AdminProducts'},
+  {title: 'Notification Management', route: 'AdminNotifications'},
+  {title: 'Banner Management', route: 'AdminBanners'},
+  {title: 'Product Management', route: 'AdminProducts'},
   {title: 'Orders', route: 'AdminOrders'},
   {title: 'Payments', route: 'AdminPayments'},
   {title: 'Annadanam', route: 'AdminAnnadanam'},
@@ -156,7 +152,7 @@ export const ADMIN_CHALLENGES: AdminChallenge[] = [
     id: '3',
     title: 'Daily 108',
     detail: 'Completed',
-    status: 'Completed',
+    status: 'Inactive',
   },
 ];
 
@@ -240,10 +236,10 @@ export const ADMIN_ORDERS: AdminOrder[] = [
 ];
 
 export const ADMIN_PAYMENTS: AdminPaymentRow[] = [
-  {id: '1', label: 'Today', amount: '₹28,450', status: 'Sent'},
-  {id: '2', label: 'This week', amount: '₹1,12,840', status: 'Sent'},
-  {id: '3', label: 'This month', amount: '₹4,82,100', status: 'Sent'},
-  {id: '4', label: 'Refunds', amount: '₹12,500', status: 'Pending'},
+  {id: '1', label: 'Today', amount: '₹0', status: 'Pending'},
+  {id: '2', label: 'This week', amount: '₹0', status: 'Pending'},
+  {id: '3', label: 'This month', amount: '₹0', status: 'Pending'},
+  {id: '4', label: 'Refunds', amount: '₹0', status: 'Sent'},
 ];
 
 export type AdminAnnadanamItem = {
@@ -262,7 +258,7 @@ export type AdminBaanalingamItem = {
   status: AdminBaanalingamStatus;
 };
 
-export type AdminHomamStatus = 'Active' | 'Completed';
+export type AdminHomamStatus = 'Active' | 'Inactive';
 
 export type AdminHomamItem = {
   id: string;
@@ -310,35 +306,9 @@ export const ADMIN_ANNADANAM: AdminAnnadanamItem[] = [
   },
 ];
 
-export const ADMIN_BAANALINGAM: AdminBaanalingamItem[] = [
-  {id: '1', code: 'BP10281', name: 'Ananya Rao', status: 'Sent'},
-  {id: '2', code: 'BP10280', name: 'Suresh', status: 'Pending'},
-  {id: '3', code: 'BP10279', name: 'Ravi', status: 'Delivered'},
-];
+export const ADMIN_BAANALINGAM: AdminBaanalingamItem[] = [];
 
-export const ADMIN_NITHYA_HOMAM: AdminHomamItem[] = [
-  {
-    id: '1',
-    code: 'NH1028',
-    name: 'Ananya Rao',
-    stage: 'Enrolled',
-    status: 'Active',
-  },
-  {
-    id: '2',
-    code: 'NH1027',
-    name: 'Suresh',
-    stage: 'Paid',
-    status: 'Active',
-  },
-  {
-    id: '3',
-    code: 'NH1026',
-    name: 'Meera',
-    stage: 'Completed',
-    status: 'Completed',
-  },
-];
+export const ADMIN_NITHYA_HOMAM: AdminHomamItem[] = [];
 
 export const ADMIN_TICKETS: AdminTicket[] = [
   {

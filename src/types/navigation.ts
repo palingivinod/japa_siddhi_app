@@ -1,7 +1,7 @@
 export type RootStackParamList = {
   Splash: undefined;
   LanguageSelect: {fromSettings?: boolean} | undefined;
-  Login: undefined;
+  Login: {forceLoginForm?: boolean} | undefined;
   OtpScreen: {
     phoneNumber: string;
     confirmation?: unknown;

@@ -15,10 +15,7 @@ interface Props {
   onPress?: () => void;
 }
 
-const HomeBanner: React.FC<Props> = ({
-  banner,
-  onPress,
-}) => {
+const HomeBanner: React.FC<Props> = ({banner, onPress}) => {
   const bannerSource =
     banner?.imageUrl && banner.imageUrl.trim() !== ''
       ? {uri: banner.imageUrl}
@@ -26,11 +23,7 @@ const HomeBanner: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <Image
-        source={bannerSource}
-        resizeMode="contain"
-        style={styles.image}
-      />
+      <Image source={bannerSource} resizeMode="contain" style={styles.image} />
       <View style={styles.overlay} pointerEvents="box-none">
         <TouchableOpacity
           style={styles.button}
@@ -55,24 +48,21 @@ const styles = StyleSheet.create({
     minHeight: 200,
     borderRadius: 18,
     overflow: 'hidden',
-    marginBottom: 20,
+    marginBottom: 16,
     backgroundColor: Colors.cream,
     alignItems: 'center',
     justifyContent: 'center',
   },
-
   image: {
     width: '100%',
     height: '100%',
   },
-
   overlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
   },
-
   button: {
     backgroundColor: Colors.cream,
     paddingHorizontal: 16,
@@ -86,7 +76,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
-
   buttonText: {
     color: Colors.sacredBrown,
     fontWeight: '800',

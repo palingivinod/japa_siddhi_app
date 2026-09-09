@@ -298,6 +298,11 @@ class DonationService {
       remarks: remarks || `Paid ₹${amount} via UPI QR`,
     });
 
+    if (kind === 'NITHYA_HOMAM') {
+      await orderService.updatePaymentStatus(order.id, 'SUCCESS');
+      await orderService.updateOrderStatus(order.id, 'ACTIVE');
+    }
+
     if (kind === 'BANA_LINGAM') {
       const request = await banaLingamService.create({
         userId,

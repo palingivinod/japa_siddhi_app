@@ -8,6 +8,7 @@ import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
 import {saveSession} from '../../services/session';
+import {resetAuthGate} from '../common/AuthGate';
 import Colors from '../../theme/colors';
 
 const OtpScreen = ({route, navigation}: any) => {
@@ -19,11 +20,15 @@ const OtpScreen = ({route, navigation}: any) => {
   const goAfterVerify = async (data: any) => {
     if (data?.token && data?.user) {
       await saveSession(data.token, data.user);
+      resetAuthGate();
       const profileCompleted = [1, '1', true, 'true'].includes(
         data.user?.profileCompleted ?? data.user?.profile_completed,
       );
       if (profileCompleted) {
-        navigation.replace('Home');
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Home'}],
+        });
         return;
       }
     }

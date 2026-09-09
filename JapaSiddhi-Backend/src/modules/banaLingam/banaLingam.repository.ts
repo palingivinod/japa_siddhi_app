@@ -168,6 +168,24 @@ class BanaLingamRepository {
 
   }
 
+  async listAll() {
+    return mysql.query<any[]>(
+      `
+      SELECT
+        bl.id,
+        bl.full_name AS fullName,
+        bl.mobile,
+        bl.request_status AS requestStatus,
+        bl.created_at AS createdAt,
+        bl.order_id AS orderId,
+        IFNULL(u.full_name, bl.full_name) AS customerName
+      FROM bana_lingam bl
+      LEFT JOIN users u ON u.id = bl.user_id
+      ORDER BY bl.id DESC
+      `,
+    );
+  }
+
   async updateStatus(
     id: number,
     status: BanaLingamRequestStatus,

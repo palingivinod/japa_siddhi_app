@@ -1,19 +1,23 @@
-import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_USERS, AdminUser} from './adminData';
+import {AdminUser, AdminUserStatus} from './adminData';
 
-const StatusPill = ({status}: {status: AdminUser['status']}) => {
+const StatusPill = ({status}: {status: AdminUserStatus}) => {
   const blocked = status === 'Blocked';
   return (
     <View
-      style={[
-        styles.pill,
-        blocked ? styles.pillBlocked : styles.pillActive,
-      ]}>
+      style={[styles.pill, blocked ? styles.pillBlocked : styles.pillActive]}>
       <Text
         style={[
           styles.pillText,
@@ -27,13 +31,66 @@ const StatusPill = ({status}: {status: AdminUser['status']}) => {
 
 const AdminUsersScreen = () => {
   const navigation = useNavigation<any>();
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiService.get('/admin/users');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setUsers(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          name: row.name || 'Devotee',
+          japaCount: Number(row.japaCount) || 0,
+          status: (row.status === 'Blocked' ? 'Blocked' : 'Active') as AdminUserStatus,
+          mobile: row.mobile || '—',
+          email: row.email || '',
+          mobileCountryCode: row.mobileCountryCode || '',
+          mobileNumber: row.mobileNumber || '',
+        })),
+      );
+    } catch (err) {
+      setUsers([]);
+      setError(getApiError(err, 'Could not load users.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadUsers();
+    }, [loadUsers]),
+  );
 
   return (
     <AdminScreenLayout title="User Management" tab="AdminUsers">
       <Text style={styles.heading}>User Management</Text>
       <Text style={styles.sub}>Manage registered users.</Text>
 
-      {ADMIN_USERS.map(user => (
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={Colors.templeGold} />
+        </View>
+      ) : null}
+
+      {error ? (
+        <TouchableOpacity onPress={loadUsers}>
+          <Text style={styles.errorText}>{error} Tap to retry.</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {!loading && !error && users.length === 0 ? (
+        <Text style={styles.empty}>No registered users yet.</Text>
+      ) : null}
+
+      {users.map(user => (
         <TouchableOpacity
           key={user.id}
           style={styles.card}
@@ -66,6 +123,19 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     color: Colors.textSecondary,
+  },
+  centerBox: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  empty: {
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+  errorText: {
+    color: Colors.error,
+    marginBottom: 12,
+    fontWeight: '600',
   },
   card: {
     backgroundColor: Colors.white,

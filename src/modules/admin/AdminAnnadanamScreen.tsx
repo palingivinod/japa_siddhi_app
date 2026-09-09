@@ -1,19 +1,76 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_ANNADANAM, AdminAnnadanamItem} from './adminData';
+import {AdminAnnadanamItem} from './adminData';
 
 const AdminAnnadanamScreen = () => {
-  const [items, setItems] = useState<AdminAnnadanamItem[]>(ADMIN_ANNADANAM);
+  const [items, setItems] = useState<AdminAnnadanamItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState('');
 
-  const toggle = (id: string) => {
-    setItems(current =>
-      current.map(item =>
-        item.id === id ? {...item, active: !item.active} : item,
-      ),
-    );
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.get('/admin/annadanam-features');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setItems(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          title: row.title || '',
+          subtitle: row.subtitle || '',
+          active: Boolean(row.active),
+        })),
+      );
+    } catch (err) {
+      setItems([]);
+      Alert.alert(
+        'Error',
+        getApiError(err, 'Could not load Annadanam features.'),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  const toggle = async (item: AdminAnnadanamItem) => {
+    const nextActive = !item.active;
+    setBusyId(item.id);
+    try {
+      await apiService.put(`/admin/annadanam-features/${item.id}`, {
+        active: nextActive,
+      });
+      setItems(prev =>
+        prev.map(row =>
+          row.id === item.id ? {...row, active: nextActive} : row,
+        ),
+      );
+    } catch (err) {
+      Alert.alert(
+        'Update failed',
+        getApiError(err, 'Could not update feature status.'),
+      );
+    } finally {
+      setBusyId('');
+    }
   };
 
   return (
@@ -22,27 +79,39 @@ const AdminAnnadanamScreen = () => {
       tab="AdminDashboard"
       showBack>
       <Text style={styles.heading}>Annadanam Management</Text>
-      <Text style={styles.sub}>Manage Japa and General Annadanam.</Text>
+      <Text style={styles.sub}>
+        Active items appear for users. Inactive items are hidden.
+      </Text>
 
-      {items.map(item => (
-        <View key={item.id} style={styles.card}>
-          <View style={styles.copy}>
-            <Text style={styles.name}>{item.title}</Text>
-            <Text style={styles.meta}>{item.subtitle}</Text>
-          </View>
-          <TouchableOpacity
-            style={[styles.pill, item.active ? styles.pillOn : styles.pillOff]}
-            onPress={() => toggle(item.id)}>
-            <Text
-              style={[
-                styles.pillText,
-                item.active ? styles.pillTextOn : styles.pillTextOff,
-              ]}>
-              {item.active ? 'Active' : 'Inactive'}
-            </Text>
-          </TouchableOpacity>
+      {loading ? (
+        <View style={styles.centerBox}>
+          <ActivityIndicator color={Colors.templeGold} />
         </View>
-      ))}
+      ) : null}
+
+      {items.map(item => {
+        const busy = busyId === item.id;
+        return (
+          <View key={item.id} style={styles.card}>
+            <View style={styles.copy}>
+              <Text style={styles.name}>{item.title}</Text>
+              <Text style={styles.meta}>{item.subtitle}</Text>
+            </View>
+            <TouchableOpacity
+              style={[styles.pill, item.active ? styles.pillOn : styles.pillOff]}
+              onPress={() => toggle(item)}
+              disabled={busy}>
+              <Text
+                style={[
+                  styles.pillText,
+                  item.active ? styles.pillTextOn : styles.pillTextOff,
+                ]}>
+                {busy ? '...' : item.active ? 'Active' : 'Inactive'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        );
+      })}
     </AdminScreenLayout>
   );
 };
@@ -60,6 +129,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
   },
+  centerBox: {paddingVertical: 20, alignItems: 'center'},
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -85,6 +155,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 7,
+    minWidth: 88,
+    alignItems: 'center',
   },
   pillOn: {borderColor: Colors.leafGreen},
   pillOff: {borderColor: Colors.error},
