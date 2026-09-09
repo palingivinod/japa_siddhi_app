@@ -1,11 +1,26 @@
 name: Build React Native Android APK
+
+# Builds a Release APK that talks to https://japasiddhi.onrender.com
+# (same as iOS IPA). Debug Metro builds still use local backend.
+#
+# Trigger: push to main, or Actions → Build React Native Android APK → Run workflow.
+
 on:
+  workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [main]
+    paths:
+      - android/**
+      - src/**
+      - package.json
+      - package-lock.json
+      - .github/workflows/react-native-android.yml
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -14,10 +29,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+          cache-dependency-path: package-lock.json
 
-      - name: Install JavaScript Dependencies
-        run: |
-          if [ -f yarn.lock ]; then yarn install; else npm install; fi
+      - name: Install JavaScript dependencies
+        run: npm ci
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -25,15 +41,21 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Build Debug APK with Gradle
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Upload APK Artifact
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Release APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: react-native-debug-apk
+          name: japasiddhi-release-apk
           path: |
-            android/**/*.apk
+            android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          retention-days: 14

@@ -1,6 +1,7 @@
 const IS_PRODUCTION = !__DEV__;
 
-// Debug/USB: local backend (adb reverse). Release: Render.
+// Debug (Metro / USB): local backend via adb reverse.
+// Release (Play Store / GitHub Actions APK-IPA): Render production API.
 const DEV_API_URL = 'http://127.0.0.1:5000/api/v1';
 const PROD_API_URL = 'https://japasiddhi.onrender.com/api/v1';
 
@@ -11,6 +12,7 @@ const ENV = {
 
   IS_PRODUCTION,
 
+  // Release APK from GitHub Actions uses PROD_API_URL automatically (__DEV__=false).
   API_URL: IS_PRODUCTION ? PROD_API_URL : DEV_API_URL,
 
   TIMEOUT: 120000,
