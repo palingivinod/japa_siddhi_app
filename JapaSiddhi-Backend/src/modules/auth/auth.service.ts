@@ -279,7 +279,7 @@ class AuthService {
 
     const existingEmail = await authRepository.findUserByEmail(email);
     if (existingEmail) {
-      // Same email → continue/complete that account (email is the login identity).
+      // Same email → continue/complete THAT account only (never another phone's user).
       await authRepository.completeProfile(
         existingEmail.id,
         profileFields({
@@ -287,6 +287,12 @@ class AuthService {
           fullName: fullName || existingEmail.fullName,
           email,
         }),
+      );
+      // Keep this account's mobile in sync with what they typed (independent of other users).
+      await authRepository.updateMobileIfChanged(
+        existingEmail.id,
+        mobileCountryCode,
+        mobileNumber,
       );
       const existingUser = await authRepository.findUserById(existingEmail.id);
       if (!existingUser) {
@@ -299,17 +305,7 @@ class AuthService {
       };
     }
 
-    const existingMobile = await authRepository.findUserByMobile(
-      mobileCountryCode,
-      mobileNumber,
-    );
-    if (existingMobile) {
-      throw new AppError(
-        'This mobile number is already used by another account. Enter a different mobile number.',
-        409,
-      );
-    }
-
+    // New email = new account, even if the phone number is already used elsewhere.
     const userId = await authRepository.createUser({
       mobileCountryCode,
       mobileNumber,
@@ -354,19 +350,21 @@ class AuthService {
       throw new AppError('Enter a valid email address', 400);
     }
 
-    const user = await authRepository.findUserByCredentials(
-      mobileCountryCode,
-      mobileNumber,
-      email,
-    );
+    // Account identity is email. Phone is stored on the profile but does not select the user.
+    const user = await authRepository.findUserByEmail(email);
 
     if (!user) {
       throw new AppError(
-        'Invalid mobile number or email. Use the same details you registered with.',
+        'No account found for this email. Use OTP login to create one.',
         401,
       );
     }
 
+    await authRepository.updateMobileIfChanged(
+      user.id,
+      mobileCountryCode,
+      mobileNumber,
+    );
     await authRepository.updateLastLogin(user.id);
     const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
 

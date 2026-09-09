@@ -37,6 +37,8 @@ class SqliteEngine {
     this.db = new SQL.Database();
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
     this.db.exec(schema);
+    this.migrateUsers();
+    this.ensureFeatureTables();
     this.clearPlaceholderDonationSettings();
     this.persist();
     console.log(`SQLite database created at ${DB_PATH}`);

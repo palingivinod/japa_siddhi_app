@@ -361,25 +361,50 @@ class JapaRepository {
   }
 
   async getSettings(userId: number) {
-    const rows = await mysql.query<any[]>(
-      `
-      SELECT
-        language_code AS languageCode,
-        notifications_on AS notificationsOn,
-        auto_lock_on AS autoLockOn
-      FROM user_settings
-      WHERE user_id = ?
-      LIMIT 1
-      `,
-      [userId],
-    );
-    return (
-      rows[0] ?? {
-        languageCode: 'en',
-        notificationsOn: 1,
-        autoLockOn: 1,
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT
+          language_code AS languageCode,
+          notifications_on AS notificationsOn,
+          auto_lock_on AS autoLockOn
+        FROM user_settings
+        WHERE user_id = ?
+        LIMIT 1
+        `,
+        [userId],
+      );
+      return (
+        rows[0] ?? {
+          languageCode: 'en',
+          notificationsOn: 1,
+          autoLockOn: 1,
+        }
+      );
+    } catch (error: any) {
+      const message = String(error?.message || '');
+      if (message.toLowerCase().includes('no such table: user_settings')) {
+        try {
+          await mysql.query(`
+            CREATE TABLE IF NOT EXISTS user_settings (
+              user_id INTEGER PRIMARY KEY,
+              language_code TEXT NOT NULL DEFAULT 'en',
+              notifications_on INTEGER NOT NULL DEFAULT 1,
+              auto_lock_on INTEGER NOT NULL DEFAULT 1,
+              updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+          `);
+        } catch {
+          // fall through to defaults
+        }
+        return {
+          languageCode: 'en',
+          notificationsOn: 1,
+          autoLockOn: 1,
+        };
       }
-    );
+      throw error;
+    }
   }
 
   async saveSettings(
@@ -391,20 +416,50 @@ class JapaRepository {
     },
   ) {
     const current = await this.getSettings(userId);
-    await mysql.query(`DELETE FROM user_settings WHERE user_id = ?`, [userId]);
-    await mysql.query(
-      `
-      INSERT INTO user_settings
-        (user_id, language_code, notifications_on, auto_lock_on)
-      VALUES (?, ?, ?, ?)
-      `,
-      [
-        userId,
-        data.languageCode ?? current.languageCode ?? 'en',
-        data.notificationsOn ?? current.notificationsOn ?? 1,
-        data.autoLockOn ?? current.autoLockOn ?? 1,
-      ],
-    );
+    try {
+      await mysql.query(`DELETE FROM user_settings WHERE user_id = ?`, [userId]);
+      await mysql.query(
+        `
+        INSERT INTO user_settings
+          (user_id, language_code, notifications_on, auto_lock_on)
+        VALUES (?, ?, ?, ?)
+        `,
+        [
+          userId,
+          data.languageCode ?? current.languageCode ?? 'en',
+          data.notificationsOn ?? current.notificationsOn ?? 1,
+          data.autoLockOn ?? current.autoLockOn ?? 1,
+        ],
+      );
+    } catch (error: any) {
+      const message = String(error?.message || '');
+      if (message.toLowerCase().includes('no such table: user_settings')) {
+        await mysql.query(`
+          CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            language_code TEXT NOT NULL DEFAULT 'en',
+            notifications_on INTEGER NOT NULL DEFAULT 1,
+            auto_lock_on INTEGER NOT NULL DEFAULT 1,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+          )
+        `);
+        await mysql.query(
+          `
+          INSERT INTO user_settings
+            (user_id, language_code, notifications_on, auto_lock_on)
+          VALUES (?, ?, ?, ?)
+          `,
+          [
+            userId,
+            data.languageCode ?? current.languageCode ?? 'en',
+            data.notificationsOn ?? current.notificationsOn ?? 1,
+            data.autoLockOn ?? current.autoLockOn ?? 1,
+          ],
+        );
+      } else {
+        throw error;
+      }
+    }
     return this.getSettings(userId);
   }
 

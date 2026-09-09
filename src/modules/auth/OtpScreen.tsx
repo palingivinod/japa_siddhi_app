@@ -31,6 +31,15 @@ const OtpScreen = ({route, navigation}: any) => {
         });
         return;
       }
+      // Incomplete profile for THIS email account only — never reuse another phone's name.
+      navigation.replace('CompleteProfile', {
+        phoneNumber,
+        mobileCountryCode,
+        mobileNumber,
+        email: data.user?.email || email,
+        fullName: data.user?.fullName || data.user?.full_name || '',
+      });
+      return;
     }
 
     navigation.replace('SignupPersonal', {
@@ -38,6 +47,7 @@ const OtpScreen = ({route, navigation}: any) => {
       mobileCountryCode,
       mobileNumber,
       email,
+      fullName: '',
     });
   };
 

@@ -291,6 +291,29 @@ class AuthRepository {
     );
   }
 
+  async updateMobileIfChanged(
+    userId: number,
+    mobileCountryCode: string,
+    mobileNumber: string,
+  ): Promise<void> {
+    const country = String(mobileCountryCode || '').replace(/\D/g, '');
+    const mobile = String(mobileNumber || '').replace(/\D/g, '');
+    if (!country || mobile.length < 6) {
+      return;
+    }
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET
+        mobile_country_code = ?,
+        mobile_number = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [country, mobile, userId],
+    );
+  }
+
   async completeProfile(
     userId: number,
     data: {

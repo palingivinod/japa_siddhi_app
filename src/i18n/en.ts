@@ -37,7 +37,7 @@ const en = {
   mobileNumber: 'Mobile Number',
   enterMobileNumber: 'Enter mobile number',
   otpEmailHelper:
-    'OTP is always sent to the email you enter. Each email is a separate login.',
+    'OTP always goes to the email you enter. Each email is its own account — phone numbers do not share names.',
   email: 'Email',
   enterEmailAddress: 'Enter email address',
   sendOtp: 'SEND OTP',
