@@ -35,17 +35,21 @@ const GoalSelectScreen = () => {
   const dailyTarget = Math.ceil(goal / remainingDays);
 
   const start = async () => {
-    try {
-      await apiService.post('/japa-goals', {
-        mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
-        mantraId: route.params?.mantraId,
-        goalName: route.params?.mode === 'private' ? 'Private Japa' : 'Daily Japa',
-        targetCount: goal,
-        days: goalType === 'date' ? remainingDays : 1,
-        startDate: new Date().toISOString().slice(0, 10),
-      });
-    } catch {
-      // Goal is stored locally for the chant session if the API is offline.
+    const challengeId = Number(route.params?.challengeId || 0) || undefined;
+    if (!challengeId) {
+      try {
+        await apiService.post('/japa-goals', {
+          mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
+          mantraId: route.params?.mantraId,
+          goalName:
+            route.params?.mode === 'private' ? 'Private Japa' : 'Daily Japa',
+          targetCount: goal,
+          days: goalType === 'date' ? remainingDays : 1,
+          startDate: new Date().toISOString().slice(0, 10),
+        });
+      } catch {
+        // Goal is stored locally for the chant session if the API is offline.
+      }
     }
     navigation.navigate('ReferenceChant', {
       mode: route.params?.mode || 'community',
@@ -55,7 +59,8 @@ const GoalSelectScreen = () => {
       goalType,
       endDate,
       dailyTarget,
-      challengeId: route.params?.challengeId,
+      challengeId,
+      initialCount: route.params?.initialCount,
     });
   };
 

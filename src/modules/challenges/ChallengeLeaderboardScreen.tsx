@@ -1,5 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
@@ -11,6 +17,7 @@ import ScreenLayout from '../common/ScreenLayout';
 const ChallengeLeaderboardScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const challengeId = Number(route.params?.id || 0);
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -19,7 +26,7 @@ const ChallengeLeaderboardScreen = () => {
   const load = () => {
     setLoading(true);
     apiService
-      .get(`/challenges/${route.params?.id}/leaderboard`)
+      .get(`/challenges/${challengeId}/leaderboard`)
       .then(response => setRows(response.data.data ?? []))
       .catch(err => {
         setRawError(err);
@@ -30,7 +37,16 @@ const ChallengeLeaderboardScreen = () => {
 
   useEffect(() => {
     load();
-  }, [route.params?.id]);
+  }, [challengeId]);
+
+  const openMyRank = (item: any) => {
+    navigation.navigate('ChallengeMyRank', {
+      id: challengeId,
+      rank: item.rank,
+      currentValue: item.currentValue,
+      totalPlayers: rows.length,
+    });
+  };
 
   return (
     <ScreenLayout title="Challenge Leaderboard" showBack tab="JapaHub">
@@ -39,17 +55,32 @@ const ChallengeLeaderboardScreen = () => {
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
-      {rows.map(item => (
-        <View key={`${item.userId}-${item.rank}`} style={styles.card}>
-          <View style={styles.rank}>
-            <Text style={styles.rankText}>{item.rank}</Text>
-          </View>
-          <Text style={styles.name}>{item.displayName || item.fullName}</Text>
-          <Text style={styles.score}>
-            {Number(item.currentValue || 0).toLocaleString()}
-          </Text>
-        </View>
-      ))}
+      {rows.map(item => {
+        const isYou = Boolean(item.isYou);
+        const name = item.displayName || item.fullName || 'Devotee';
+        const Row = isYou ? TouchableOpacity : View;
+        return (
+          <Row
+            key={`${item.userId}-${item.rank}`}
+            style={[styles.card, isYou && styles.cardYou]}
+            {...(isYou
+              ? {
+                  activeOpacity: 0.85,
+                  onPress: () => openMyRank(item),
+                }
+              : {})}>
+            <View style={[styles.rank, isYou && styles.rankYou]}>
+              <Text style={[styles.rankText, isYou && styles.rankTextYou]}>
+                {item.rank}
+              </Text>
+            </View>
+            <Text style={styles.name}>{name}</Text>
+            <Text style={styles.score}>
+              {Number(item.currentValue || 0).toLocaleString()}
+            </Text>
+          </Row>
+        );
+      })}
       <PrimaryButton
         title="BACK TO HOME"
         onPress={() => navigation.navigate('Home')}
@@ -77,6 +108,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+  cardYou: {
+    borderColor: Colors.templeGold,
+    borderWidth: 1.5,
+  },
   rank: {
     width: 32,
     height: 32,
@@ -87,7 +122,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
+  rankYou: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
   rankText: {fontWeight: '800', color: Colors.sacredBrown},
+  rankTextYou: {color: Colors.white},
   name: {flex: 1, fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
   score: {color: Colors.leafGreen, fontWeight: '800'},
 });

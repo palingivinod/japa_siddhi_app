@@ -23,6 +23,7 @@ import GoalSelectScreen from '../modules/japa/GoalSelectScreen';
 import ReferenceChantScreen from '../modules/japa/ReferenceChantScreen';
 import JapaPausedScreen from '../modules/japa/JapaPausedScreen';
 import JapaProgressScreen from '../modules/japa/JapaProgressScreen';
+import JapaGoalCompleteScreen from '../modules/japa/JapaGoalCompleteScreen';
 import PrivateJapaScreen from '../modules/japa/PrivateJapaScreen';
 import SevaHubScreen from '../modules/seva/SevaHubScreen';
 import ChantScreen from '../modules/chant/ChantScreen';
@@ -30,6 +31,14 @@ import ChallengesScreen from '../modules/challenges/ChallengesScreen';
 import ChallengeDetailsScreen from '../modules/challenges/ChallengeDetailsScreen';
 import ChallengeProgressScreen from '../modules/challenges/ChallengeProgressScreen';
 import ChallengeLeaderboardScreen from '../modules/challenges/ChallengeLeaderboardScreen';
+import ChallengeMyRankScreen from '../modules/challenges/ChallengeMyRankScreen';
+import ChallengeRewardSelectScreen from '../modules/challenges/ChallengeRewardSelectScreen';
+import ChallengeRewardConfirmScreen from '../modules/challenges/ChallengeRewardConfirmScreen';
+import ChallengeRewardClaimedScreen from '../modules/challenges/ChallengeRewardClaimedScreen';
+import ChallengeRewardDeliveryScreen from '../modules/challenges/ChallengeRewardDeliveryScreen';
+import ChallengeRewardOrderCreatedScreen from '../modules/challenges/ChallengeRewardOrderCreatedScreen';
+import ChallengeRulesScreen from '../modules/challenges/ChallengeRulesScreen';
+import RewardTermsScreen from '../modules/challenges/RewardTermsScreen';
 import ChallengeCompleteScreen from '../modules/challenges/ChallengeCompleteScreen';
 import FamilyJapaScreen from '../modules/family/FamilyJapaScreen';
 import DonateScreen from '../modules/donate/DonateScreen';
@@ -88,6 +97,7 @@ import AdminMantraEditScreen from '../modules/admin/AdminMantraEditScreen';
 import AdminChallengeCreateScreen from '../modules/admin/AdminChallengeCreateScreen';
 import AdminChallengesScreen from '../modules/admin/AdminChallengesScreen';
 import AdminRewardsScreen from '../modules/admin/AdminRewardsScreen';
+import AdminRewardStockScreen from '../modules/admin/AdminRewardStockScreen';
 import AdminNotificationsScreen from '../modules/admin/AdminNotificationsScreen';
 import AdminOrdersScreen from '../modules/admin/AdminOrdersScreen';
 import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
@@ -140,9 +150,28 @@ export type RootStackParamList = {
   CommunityJapa: undefined;
   MantraSelect: {mode?: string; mantraId?: number} | undefined;
   GoalSelect: {mode?: string; mantraId?: number; goal?: number; challengeId?: number} | undefined;
-  ReferenceChant: {mode?: string; mantraId?: number; goal?: number; challengeId?: number} | undefined;
+  ReferenceChant: {
+    mode?: string;
+    mantraId?: number;
+    goal?: number;
+    challengeId?: number;
+    initialCount?: number;
+    privateMantra?: string;
+    challengeMantra?: string;
+  } | undefined;
   JapaPaused: {count?: number; goal?: number} | undefined;
   JapaProgress: {count?: number; goal?: number} | undefined;
+  JapaGoalComplete:
+    | {
+        count?: number;
+        goal?: number;
+        mode?: string;
+        mantraId?: number;
+        privateMantra?: string;
+        japaGoalId?: number;
+        userTotal?: number;
+      }
+    | undefined;
   PrivateJapa: undefined;
   SevaHub: undefined;
   Chant: {
@@ -154,12 +183,51 @@ export type RootStackParamList = {
     japaGoalId?: number;
     durationMs?: number;
     resume?: boolean;
+    initialCount?: number;
+    challengeMantra?: string;
   } | undefined;
   Challenges: undefined;
   ChallengeDetails: {id?: number} | undefined;
+  ChallengeRules: undefined;
+  RewardTerms: undefined;
   ChallengeProgress: {id?: number} | undefined;
   ChallengeLeaderboard: {id?: number} | undefined;
-  ChallengeComplete: {id?: number} | undefined;
+  ChallengeMyRank:
+    | {
+        id?: number;
+        rank?: number;
+        currentValue?: number;
+        totalPlayers?: number;
+      }
+    | undefined;
+  ChallengeRewardSelect: {id?: number} | undefined;
+  ChallengeRewardConfirm:
+    | {id?: number; rewardId?: number; rewardName?: string}
+    | undefined;
+  ChallengeRewardClaimed:
+    | {id?: number; rewardId?: number; rewardName?: string}
+    | undefined;
+  ChallengeRewardDelivery:
+    | {id?: number; rewardName?: string}
+    | undefined;
+  ChallengeRewardOrderCreated:
+    | {
+        id?: number;
+        rewardName?: string;
+        orderId?: number;
+        orderNumber?: string;
+      }
+    | undefined;
+  ChallengeComplete:
+    | {
+        id?: number;
+        count?: number;
+        goal?: number;
+        mode?: string;
+        mantraId?: number;
+        privateMantra?: string;
+      }
+    | undefined;
   FamilyJapa: undefined;
   Donate: undefined;
   JapaAnnadanam: undefined;
@@ -215,9 +283,28 @@ export type RootStackParamList = {
   AdminJapa: undefined;
   AdminMantras: undefined;
   AdminMantraEdit: {mantraId?: string} | undefined;
-  AdminChallengeCreate: undefined;
+  AdminChallengeCreate:
+    | {
+        id?: string;
+        title?: string;
+        description?: string;
+        detail?: string;
+        targetValue?: number;
+        rewardName?: string;
+        startDate?: string;
+        endDate?: string;
+        mantra?: string;
+      }
+    | undefined;
   AdminChallenges: undefined;
   AdminRewards: undefined;
+  AdminRewardStock:
+    | {
+        id: string;
+        name?: string;
+        stock?: number;
+      }
+    | undefined;
   AdminNotifications: undefined;
   AdminOrders: undefined;
   AdminOrderDetails: {orderId?: string} | undefined;
@@ -252,13 +339,24 @@ const ProtectedGoal = withAuth(GoalSelectScreen);
 const ProtectedReference = withAuth(ReferenceChantScreen);
 const ProtectedPaused = withAuth(JapaPausedScreen);
 const ProtectedJapaProgress = withAuth(JapaProgressScreen);
+const ProtectedJapaGoalComplete = withAuth(JapaGoalCompleteScreen);
 const ProtectedPrivate = withAuth(PrivateJapaScreen);
 const ProtectedSevaHub = withAuth(SevaHubScreen);
 const ProtectedChant = withAuth(ChantScreen);
 const ProtectedChallenges = withAuth(ChallengesScreen);
 const ProtectedChallengeDetails = withAuth(ChallengeDetailsScreen);
+const ProtectedChallengeRules = withAuth(ChallengeRulesScreen);
+const ProtectedRewardTerms = withAuth(RewardTermsScreen);
 const ProtectedChallengeProgress = withAuth(ChallengeProgressScreen);
 const ProtectedChallengeLeaderboard = withAuth(ChallengeLeaderboardScreen);
+const ProtectedChallengeMyRank = withAuth(ChallengeMyRankScreen);
+const ProtectedChallengeRewardSelect = withAuth(ChallengeRewardSelectScreen);
+const ProtectedChallengeRewardConfirm = withAuth(ChallengeRewardConfirmScreen);
+const ProtectedChallengeRewardClaimed = withAuth(ChallengeRewardClaimedScreen);
+const ProtectedChallengeRewardDelivery = withAuth(ChallengeRewardDeliveryScreen);
+const ProtectedChallengeRewardOrderCreated = withAuth(
+  ChallengeRewardOrderCreatedScreen,
+);
 const ProtectedChallengeComplete = withAuth(ChallengeCompleteScreen);
 const ProtectedFamily = withAuth(FamilyJapaScreen);
 const ProtectedDonate = withAuth(DonateScreen);
@@ -316,6 +414,7 @@ const ProtectedAdminMantraEdit = withAdminAuth(AdminMantraEditScreen);
 const ProtectedAdminChallengeCreate = withAdminAuth(AdminChallengeCreateScreen);
 const ProtectedAdminChallenges = withAdminAuth(AdminChallengesScreen);
 const ProtectedAdminRewards = withAdminAuth(AdminRewardsScreen);
+const ProtectedAdminRewardStock = withAdminAuth(AdminRewardStockScreen);
 const ProtectedAdminNotifications = withAdminAuth(AdminNotificationsScreen);
 const ProtectedAdminOrders = withAdminAuth(AdminOrdersScreen);
 const ProtectedAdminOrderDetails = withAdminAuth(AdminOrderDetailsScreen);
@@ -392,6 +491,10 @@ const AppNavigator = () => {
         <Stack.Screen name="ReferenceChant" component={ProtectedReference} />
         <Stack.Screen name="JapaPaused" component={ProtectedPaused} />
         <Stack.Screen name="JapaProgress" component={ProtectedJapaProgress} />
+        <Stack.Screen
+          name="JapaGoalComplete"
+          component={ProtectedJapaGoalComplete}
+        />
         <Stack.Screen name="PrivateJapa" component={ProtectedPrivate} />
         <Stack.Screen name="SevaHub" component={ProtectedSevaHub} />
         <Stack.Screen name="Chant" component={ProtectedChant} />
@@ -401,12 +504,41 @@ const AppNavigator = () => {
           component={ProtectedChallengeDetails}
         />
         <Stack.Screen
+          name="ChallengeRules"
+          component={ProtectedChallengeRules}
+        />
+        <Stack.Screen name="RewardTerms" component={ProtectedRewardTerms} />
+        <Stack.Screen
           name="ChallengeProgress"
           component={ProtectedChallengeProgress}
         />
         <Stack.Screen
           name="ChallengeLeaderboard"
           component={ProtectedChallengeLeaderboard}
+        />
+        <Stack.Screen
+          name="ChallengeMyRank"
+          component={ProtectedChallengeMyRank}
+        />
+        <Stack.Screen
+          name="ChallengeRewardSelect"
+          component={ProtectedChallengeRewardSelect}
+        />
+        <Stack.Screen
+          name="ChallengeRewardConfirm"
+          component={ProtectedChallengeRewardConfirm}
+        />
+        <Stack.Screen
+          name="ChallengeRewardClaimed"
+          component={ProtectedChallengeRewardClaimed}
+        />
+        <Stack.Screen
+          name="ChallengeRewardDelivery"
+          component={ProtectedChallengeRewardDelivery}
+        />
+        <Stack.Screen
+          name="ChallengeRewardOrderCreated"
+          component={ProtectedChallengeRewardOrderCreated}
         />
         <Stack.Screen
           name="ChallengeComplete"
@@ -515,6 +647,10 @@ const AppNavigator = () => {
           component={ProtectedAdminChallenges}
         />
         <Stack.Screen name="AdminRewards" component={ProtectedAdminRewards} />
+        <Stack.Screen
+          name="AdminRewardStock"
+          component={ProtectedAdminRewardStock}
+        />
         <Stack.Screen
           name="AdminNotifications"
           component={ProtectedAdminNotifications}

@@ -38,6 +38,14 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
     const japaSessions = await mysql.query<any[]>(`
       SELECT IFNULL(SUM(session_count), 0) AS totalJapa
       FROM japa_sessions
+      WHERE (
+        remarks IS NULL
+        OR TRIM(remarks) = ''
+        OR (
+          lower(remarks) NOT LIKE 'challenge%'
+          AND lower(remarks) NOT LIKE '%challenge japa%'
+        )
+      )
     `);
 
     const ordersRows = await mysql.query<any[]>(`
@@ -336,27 +344,27 @@ router.get('/analytics', async (req: Request, res: Response) => {
         });
       }
     } else if (metric === 'challenges') {
-      kpiLabel = 'Participants';
+      kpiLabel = 'Challenge japas';
 
       const joinSql =
         engine === 'mysql'
-          ? `SELECT COUNT(*) AS total
+          ? `SELECT IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenge_participants cp
              WHERE cp.created_at >= ${dateGte}
              ${regionFilterCp}`
-          : `SELECT COUNT(*) AS total
+          : `SELECT IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenge_participants cp
              WHERE date(cp.created_at) >= ${dateGte}
              ${regionFilterCp}`;
 
       const prevJoinSql =
         engine === 'mysql'
-          ? `SELECT COUNT(*) AS total
+          ? `SELECT IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenge_participants cp
              WHERE cp.created_at >= ${prevGte}
                AND cp.created_at < ${prevLt}
              ${regionFilterCp}`
-          : `SELECT COUNT(*) AS total
+          : `SELECT IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenge_participants cp
              WHERE date(cp.created_at) >= ${prevGte}
                AND date(cp.created_at) < ${prevLt}
@@ -373,22 +381,20 @@ router.get('/analytics', async (req: Request, res: Response) => {
         engine === 'mysql'
           ? `SELECT
                IFNULL(c.title, 'Challenge') AS label,
-               COUNT(cp.id) AS total
+               IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenges c
              LEFT JOIN challenge_participants cp
                ON cp.challenge_id = c.id
-              AND cp.created_at >= ${dateGte}
               ${regionFilterCp}
              GROUP BY c.id, c.title
              ORDER BY total DESC, c.id DESC
              LIMIT 6`
           : `SELECT
                IFNULL(c.title, 'Challenge') AS label,
-               COUNT(cp.id) AS total
+               IFNULL(SUM(cp.current_value), 0) AS total
              FROM challenges c
              LEFT JOIN challenge_participants cp
                ON cp.challenge_id = c.id
-              AND date(cp.created_at) >= ${dateGte}
               ${regionFilterCp}
              GROUP BY c.id, c.title
              ORDER BY total DESC, c.id DESC
@@ -555,11 +561,27 @@ router.get('/analytics', async (req: Request, res: Response) => {
           ? `SELECT IFNULL(SUM(js.session_count), 0) AS total
              FROM japa_sessions js
              WHERE js.created_at >= ${dateGte}
-             ${regionFilterSessions}`
+             ${regionFilterSessions}
+             AND (
+               js.remarks IS NULL
+               OR TRIM(js.remarks) = ''
+               OR (
+                 LOWER(js.remarks) NOT LIKE 'challenge%'
+                 AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
+               )
+             )`
           : `SELECT IFNULL(SUM(js.session_count), 0) AS total
              FROM japa_sessions js
              WHERE date(js.created_at) >= ${dateGte}
-             ${regionFilterSessions}`;
+             ${regionFilterSessions}
+             AND (
+               js.remarks IS NULL
+               OR TRIM(js.remarks) = ''
+               OR (
+                 lower(js.remarks) NOT LIKE 'challenge%'
+                 AND lower(js.remarks) NOT LIKE '%challenge japa%'
+               )
+             )`;
 
       const prevJapaSql =
         engine === 'mysql'
@@ -567,12 +589,28 @@ router.get('/analytics', async (req: Request, res: Response) => {
              FROM japa_sessions js
              WHERE js.created_at >= ${prevGte}
                AND js.created_at < ${prevLt}
-             ${regionFilterSessions}`
+             ${regionFilterSessions}
+             AND (
+               js.remarks IS NULL
+               OR TRIM(js.remarks) = ''
+               OR (
+                 LOWER(js.remarks) NOT LIKE 'challenge%'
+                 AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
+               )
+             )`
           : `SELECT IFNULL(SUM(js.session_count), 0) AS total
              FROM japa_sessions js
              WHERE date(js.created_at) >= ${prevGte}
                AND date(js.created_at) < ${prevLt}
-             ${regionFilterSessions}`;
+             ${regionFilterSessions}
+             AND (
+               js.remarks IS NULL
+               OR TRIM(js.remarks) = ''
+               OR (
+                 lower(js.remarks) NOT LIKE 'challenge%'
+                 AND lower(js.remarks) NOT LIKE '%challenge japa%'
+               )
+             )`;
 
       const [japaRows, prevRows] = await Promise.all([
         mysql.query<any[]>(japaSql),
@@ -588,11 +626,27 @@ router.get('/analytics', async (req: Request, res: Response) => {
             ? `SELECT IFNULL(SUM(js.session_count), 0) AS total
                FROM japa_sessions js
                WHERE DATE(js.created_at) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
-               ${regionFilterSessions}`
+               ${regionFilterSessions}
+               AND (
+                 js.remarks IS NULL
+                 OR TRIM(js.remarks) = ''
+                 OR (
+                   LOWER(js.remarks) NOT LIKE 'challenge%'
+                   AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
+                 )
+               )`
             : `SELECT IFNULL(SUM(js.session_count), 0) AS total
                FROM japa_sessions js
                WHERE date(js.created_at) = date('now', '-${i} days')
-               ${regionFilterSessions}`;
+               ${regionFilterSessions}
+               AND (
+                 js.remarks IS NULL
+                 OR TRIM(js.remarks) = ''
+                 OR (
+                   lower(js.remarks) NOT LIKE 'challenge%'
+                   AND lower(js.remarks) NOT LIKE '%challenge japa%'
+                 )
+               )`;
         const dayRows = await mysql.query<any[]>(daySql);
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -717,6 +771,14 @@ router.get('/users', async (_req: Request, res: Response) => {
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.user_id = u.id
+            AND (
+              js.remarks IS NULL
+              OR TRIM(js.remarks) = ''
+              OR (
+                lower(js.remarks) NOT LIKE 'challenge%'
+                AND lower(js.remarks) NOT LIKE '%challenge japa%'
+              )
+            )
         ), 0) AS japaCount
       FROM users u
       WHERE u.deleted_at IS NULL
@@ -754,6 +816,14 @@ router.get('/users/:id', async (req: Request, res: Response) => {
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.user_id = u.id
+            AND (
+              js.remarks IS NULL
+              OR TRIM(js.remarks) = ''
+              OR (
+                lower(js.remarks) NOT LIKE 'challenge%'
+                AND lower(js.remarks) NOT LIKE '%challenge japa%'
+              )
+            )
         ), 0) AS japaCount
       FROM users u
       WHERE u.id = ?
@@ -854,6 +924,14 @@ router.put('/users/:id', async (req: Request, res: Response) => {
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.user_id = u.id
+            AND (
+              js.remarks IS NULL
+              OR TRIM(js.remarks) = ''
+              OR (
+                lower(js.remarks) NOT LIKE 'challenge%'
+                AND lower(js.remarks) NOT LIKE '%challenge japa%'
+              )
+            )
         ), 0) AS japaCount
       FROM users u
       WHERE u.id = ?
@@ -1255,13 +1333,108 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
           : 0;
     }
 
+    const title =
+      String(req.body?.title || req.body?.name || '').trim() ||
+      String(current.title || '');
+    const description =
+      req.body?.description !== undefined
+        ? String(req.body.description || '').trim() || null
+        : current.description ?? null;
+
+    let targetValue = Number(current.targetValue || 0) || 0;
+    if (
+      req.body?.targetValue !== undefined ||
+      req.body?.target !== undefined
+    ) {
+      targetValue = Math.max(
+        1,
+        Number(
+          String(req.body?.targetValue ?? req.body?.target ?? targetValue).replace(
+            /,/g,
+            '',
+          ),
+        ) || targetValue || 1,
+      );
+    }
+
+    let startDate = parseChallengeDate(current.startDate) || String(current.startDate || '');
+    let endDate = parseChallengeDate(current.endDate) || String(current.endDate || '');
+    if (String(req.body?.startDate || '').trim()) {
+      const parsedStart = parseChallengeDate(req.body.startDate);
+      if (!parsedStart) {
+        return res.status(400).json({
+          success: false,
+          message: 'Start date must be YYYY-MM-DD or DD/MM/YYYY.',
+        });
+      }
+      startDate = parsedStart;
+    }
+    if (String(req.body?.endDate || '').trim()) {
+      const parsedEnd = parseChallengeDate(req.body.endDate);
+      if (!parsedEnd) {
+        return res.status(400).json({
+          success: false,
+          message: 'End date must be YYYY-MM-DD or DD/MM/YYYY.',
+        });
+      }
+      endDate = parsedEnd;
+    }
+    if (startDate && endDate && endDate < startDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date must be on or after start date.',
+      });
+    }
+
+    const mantraHint = String(req.body?.mantra || '').trim();
+    let rewardName = String(current.rewardName || 'Certificate');
+    if (req.body?.rewardName !== undefined) {
+      rewardName = String(req.body.rewardName || '').trim() || rewardName;
+    } else if (mantraHint) {
+      rewardName = `${mantraHint} Certificate`;
+    }
+
+    const challengeType =
+      String(req.body?.challengeType || current.challengeType || 'JAPA_COUNT').trim() ||
+      'JAPA_COUNT';
+    const rewardType =
+      String(req.body?.rewardType || current.rewardType || 'CERTIFICATE').trim() ||
+      'CERTIFICATE';
+    const rewardQuantity = Math.max(
+      1,
+      Number(req.body?.rewardQuantity ?? current.rewardQuantity ?? 1) || 1,
+    );
+
     await mysql.query(
       `
       UPDATE challenges
-      SET is_active = ?, updated_at = CURRENT_TIMESTAMP
+      SET
+        title = ?,
+        description = ?,
+        challenge_type = ?,
+        target_value = ?,
+        reward_type = ?,
+        reward_name = ?,
+        reward_quantity = ?,
+        start_date = ?,
+        end_date = ?,
+        is_active = ?,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
-      [isActive, id],
+      [
+        title,
+        description,
+        challengeType,
+        targetValue,
+        rewardType,
+        rewardName,
+        rewardQuantity,
+        startDate,
+        endDate,
+        isActive,
+        id,
+      ],
     );
 
     const rows = await mysql.query<any[]>(`
@@ -2403,6 +2576,178 @@ router.get('/reports/export', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to export report.',
+    });
+  }
+});
+
+const mapRewardRow = (row: any) => ({
+  id: String(row.id),
+  name: String(row.name || ''),
+  stock: Number(row.stock || 0),
+  active: Number(row.isActive ?? row.is_active ?? 1) === 1,
+});
+
+const ensureRewardSeed = async () => {
+  try {
+    const countRows = await mysql.query<any[]>(
+      `SELECT COUNT(*) AS total FROM challenge_rewards`,
+    );
+    if (Number(countRows?.[0]?.total || 0) > 0) {
+      return;
+    }
+    const defaults = [
+      ['Rudraksha', 12, 1],
+      ['Spatik mala', 5, 2],
+      ['Pasupu kommuka maa', 0, 3],
+      ['Green agate', 8, 4],
+      ['Yellow agate', 3, 5],
+      ['Tulasi mala', 7, 6],
+    ];
+    for (const [name, stock, order] of defaults) {
+      await mysql.query(
+        `
+        INSERT INTO challenge_rewards (name, stock, is_active, display_order)
+        VALUES (?, ?, 1, ?)
+        `,
+        [name, stock, order],
+      );
+    }
+  } catch {
+    // Table may not exist yet on older MySQL deploys.
+  }
+};
+
+router.get('/rewards', async (_req: Request, res: Response) => {
+  try {
+    await ensureRewardSeed();
+    const rows = await mysql.query<any[]>(`
+      SELECT
+        id,
+        name,
+        stock,
+        is_active AS isActive
+      FROM challenge_rewards
+      ORDER BY display_order ASC, id ASC
+    `);
+    return res.json({
+      success: true,
+      data: (rows || []).map(mapRewardRow),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load rewards.',
+    });
+  }
+});
+
+router.put('/rewards/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid reward id.'});
+    }
+    const stock =
+      req.body?.stock === undefined || req.body?.stock === null
+        ? undefined
+        : Math.max(0, Number(req.body.stock) || 0);
+    const name = String(req.body?.name || '').trim();
+    const active =
+      req.body?.active === undefined
+        ? undefined
+        : req.body.active === true ||
+          req.body.active === 1 ||
+          req.body.active === '1';
+
+    const current = await mysql.query<any[]>(
+      `
+      SELECT id, name, stock, is_active AS isActive
+      FROM challenge_rewards
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+    if (!current?.length) {
+      return res.status(404).json({success: false, message: 'Reward not found.'});
+    }
+
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET
+        name = ?,
+        stock = ?,
+        is_active = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [
+        name || current[0].name,
+        stock === undefined ? Number(current[0].stock || 0) : stock,
+        active === undefined
+          ? Number(current[0].isActive ?? 1)
+          : active
+            ? 1
+            : 0,
+        id,
+      ],
+    );
+
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id, name, stock, is_active AS isActive
+      FROM challenge_rewards
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+    return res.json({
+      success: true,
+      message: 'Reward updated successfully.',
+      data: mapRewardRow(rows[0]),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update reward.',
+    });
+  }
+});
+
+router.post('/rewards', async (req: Request, res: Response) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reward name is required.',
+      });
+    }
+    const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
+    await mysql.query(
+      `
+      INSERT INTO challenge_rewards (name, stock, is_active, display_order)
+      VALUES (?, ?, 1, ?)
+      `,
+      [name, stock, Number(req.body?.displayOrder || 99)],
+    );
+    const rows = await mysql.query<any[]>(`
+      SELECT id, name, stock, is_active AS isActive
+      FROM challenge_rewards
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+    return res.status(201).json({
+      success: true,
+      message: 'Reward created successfully.',
+      data: mapRewardRow(rows[0]),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to create reward.',
     });
   }
 });

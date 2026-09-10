@@ -19,9 +19,9 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     sub: 'Track active and completed challenges',
   },
   {
-    title: 'Reward Management',
+    title: 'Configure Rewards',
     route: 'AdminRewards',
-    sub: 'Configure challenge rewards and stock',
+    sub: 'Reward choices and stock updates',
   },
   {
     title: 'Notification Management',

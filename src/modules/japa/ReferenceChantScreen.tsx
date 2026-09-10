@@ -22,6 +22,8 @@ const ReferenceChantScreen = () => {
       goal: route.params?.goal || 2000,
       durationMs,
       challengeId: route.params?.challengeId,
+      initialCount: route.params?.initialCount,
+      challengeMantra: route.params?.challengeMantra,
     });
   };
 

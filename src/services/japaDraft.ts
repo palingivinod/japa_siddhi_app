@@ -17,8 +17,14 @@ export type JapaDraft = {
 
 type DraftMap = Record<string, JapaDraft>;
 
-const draftKey = (mode: string, mantraId?: number) =>
-  `${mode}:${Number(mantraId || 0)}`;
+export const draftKey = (
+  mode: string,
+  mantraId?: number,
+  challengeId?: number,
+) =>
+  Number(challengeId) > 0
+    ? `challenge:${Number(challengeId)}`
+    : `${mode}:${Number(mantraId || 0)}`;
 
 const isActive = (draft?: JapaDraft | null) => {
   const count = Number(draft?.count || 0);
@@ -32,6 +38,7 @@ const normalize = (draft: JapaDraft): JapaDraft => ({
   goal: Number(draft.goal || 0),
   postedCount: Number(draft.postedCount || 0),
   mantraId: Number(draft.mantraId || 0) || undefined,
+  challengeId: Number(draft.challengeId || 0) || undefined,
 });
 
 const readMap = async (): Promise<DraftMap> => {
@@ -46,7 +53,7 @@ const readMap = async (): Promise<DraftMap> => {
     }
     const draft = normalize(JSON.parse(legacy) as JapaDraft);
     const map = isActive(draft)
-      ? {[draftKey(draft.mode, draft.mantraId)]: draft}
+      ? {[draftKey(draft.mode, draft.mantraId, draft.challengeId)]: draft}
       : {};
     await AsyncStorage.setItem(DRAFTS_KEY, JSON.stringify(map));
     await AsyncStorage.removeItem(LEGACY_KEY);
@@ -63,14 +70,20 @@ const writeMap = async (map: DraftMap) => {
 export const getJapaDraft = async (
   mode?: string,
   mantraId?: number,
+  challengeId?: number,
 ): Promise<JapaDraft | null> => {
   const map = await readMap();
-  if (mode) {
-    const match = map[draftKey(mode, mantraId)];
+  if (Number(challengeId) > 0) {
+    const match = map[draftKey(mode || 'community', mantraId, challengeId)];
     return isActive(match) ? normalize(match) : null;
   }
+  if (mode) {
+    const match = map[draftKey(mode, mantraId)];
+    return isActive(match) && !match.challengeId ? normalize(match) : null;
+  }
+  // Antaranga / normal japa resume only — never mix challenge drafts.
   const latest = Object.values(map)
-    .filter(isActive)
+    .filter(item => isActive(item) && !Number(item.challengeId || 0))
     .sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0))[0];
   return latest ? normalize(latest) : null;
 };
@@ -78,7 +91,7 @@ export const getJapaDraft = async (
 export const saveJapaDraft = async (draft: JapaDraft) => {
   const next = normalize({...draft, updatedAt: Date.now()});
   const map = await readMap();
-  const key = draftKey(next.mode, next.mantraId);
+  const key = draftKey(next.mode, next.mantraId, next.challengeId);
   if (!isActive(next)) {
     delete map[key];
   } else {
@@ -87,13 +100,17 @@ export const saveJapaDraft = async (draft: JapaDraft) => {
   await writeMap(map);
 };
 
-export const clearJapaDraft = async (mode?: string, mantraId?: number) => {
-  if (!mode) {
+export const clearJapaDraft = async (
+  mode?: string,
+  mantraId?: number,
+  challengeId?: number,
+) => {
+  if (!mode && !challengeId) {
     await AsyncStorage.removeItem(DRAFTS_KEY);
     await AsyncStorage.removeItem(LEGACY_KEY);
     return;
   }
   const map = await readMap();
-  delete map[draftKey(mode, mantraId)];
+  delete map[draftKey(mode || 'community', mantraId, challengeId)];
   await writeMap(map);
 };

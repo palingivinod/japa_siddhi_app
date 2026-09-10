@@ -32,7 +32,10 @@ class JapaService {
       ? `Challenge:${challengeId}${data.remarks ? ` · ${data.remarks}` : ''}`
       : data.remarks ?? null;
 
-    if (japaGoalId) {
+    // Challenge japa stays separate from Antharanga / daily japa goals.
+    if (challengeId) {
+      japaGoalId = undefined;
+    } else if (japaGoalId) {
       const ownedGoal = await japaGoalRepository.getGoalById(
         japaGoalId,
         userId,
@@ -77,7 +80,7 @@ class JapaService {
       });
 
 
-    if (japaGoalId) {
+    if (japaGoalId && !challengeId) {
       await japaRepository.updateJapaGoalProgress(
         japaGoalId,
         data.sessionCount,

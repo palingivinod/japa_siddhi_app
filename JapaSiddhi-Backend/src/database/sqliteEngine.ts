@@ -257,10 +257,67 @@ class SqliteEngine {
         address TEXT NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
+
+      CREATE TABLE IF NOT EXISTS challenge_rewards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        stock INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS challenge_reward_claims (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        challenge_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        reward_id INTEGER NOT NULL,
+        reward_name TEXT NOT NULL,
+        full_name TEXT,
+        mobile TEXT,
+        address TEXT,
+        city TEXT,
+        state TEXT,
+        pin_code TEXT,
+        order_id INTEGER,
+        order_number TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(challenge_id, user_id)
+      );
     `);
+    this.ensureRewardClaimColumns();
     this.seedChallenges();
     this.seedFaqs();
+    this.seedRewards();
     this.persist();
+  }
+
+  private ensureRewardClaimColumns(): void {
+    if (!this.db) {
+      return;
+    }
+    const info = this.db.exec('PRAGMA table_info(challenge_reward_claims)');
+    const names = new Set(
+      (info[0]?.values || []).map((row: any[]) => String(row[1] || '')),
+    );
+    const columns: Array<[string, string]> = [
+      ['full_name', 'TEXT'],
+      ['mobile', 'TEXT'],
+      ['address', 'TEXT'],
+      ['city', 'TEXT'],
+      ['state', 'TEXT'],
+      ['pin_code', 'TEXT'],
+      ['order_id', 'INTEGER'],
+      ['order_number', 'TEXT'],
+    ];
+    columns.forEach(([name, definition]) => {
+      if (!names.has(name)) {
+        this.db?.run(
+          `ALTER TABLE challenge_reward_claims ADD COLUMN ${name} ${definition}`,
+        );
+      }
+    });
   }
 
   private seedChallenges(): void {
@@ -301,6 +358,28 @@ class SqliteEngine {
         ('How do I donate Annadanam?', 'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.', 3),
         ('How do I track my order?', 'Open Orders, tap VIEW on an order, then use Track Order to see delivery status.', 4),
         ('How do I change language?', 'Go to Profile > Settings > Language and choose your preferred language.', 5)
+      `,
+    );
+  }
+
+  private seedRewards(): void {
+    if (!this.db) {
+      return;
+    }
+    const rows = this.db.exec('SELECT COUNT(*) AS total FROM challenge_rewards');
+    const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
+    if (total > 0) {
+      return;
+    }
+    this.db.run(
+      `
+      INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES
+        ('Rudraksha', 12, 1, 1),
+        ('Spatik mala', 5, 1, 2),
+        ('Pasupu kommuka maa', 0, 1, 3),
+        ('Green agate', 8, 1, 4),
+        ('Yellow agate', 3, 1, 5),
+        ('Tulasi mala', 7, 1, 6)
       `,
     );
   }

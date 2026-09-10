@@ -50,7 +50,7 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Japa Management', route: 'AdminJapa'},
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
   {title: 'Challenge Management', route: 'AdminChallenges'},
-  {title: 'Reward Management', route: 'AdminRewards'},
+  {title: 'Configure Rewards', route: 'AdminRewards'},
   {title: 'Notification Management', route: 'AdminNotifications'},
   {title: 'Banner Management', route: 'AdminBanners'},
   {title: 'Product Management', route: 'AdminProducts'},

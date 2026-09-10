@@ -1,54 +1,88 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import PrimaryButton from '../common/PrimaryButton';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_REWARDS, AdminReward} from './adminData';
+import {AdminReward} from './adminData';
 
 const AdminRewardsScreen = () => {
-  const [rewards, setRewards] = useState<AdminReward[]>(ADMIN_REWARDS);
+  const navigation = useNavigation<any>();
+  const [rewards, setRewards] = useState<AdminReward[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const toggleStock = (id: string) => {
-    setRewards(current =>
-      current.map(item => {
-        if (item.id !== id) {
-          return item;
-        }
-        return {
-          ...item,
-          stock: item.stock > 0 ? 0 : 5,
-        };
-      }),
-    );
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.get('/admin/rewards');
+      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+      setRewards(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          name: String(row.name || ''),
+          stock: Number(row.stock || 0),
+        })),
+      );
+    } catch (err) {
+      setRewards([]);
+      Alert.alert('Rewards', getApiError(err, 'Could not load rewards.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
-    <AdminScreenLayout title="Reward Management" tab="AdminDashboard" showBack>
-      <Text style={styles.heading}>Reward Management</Text>
-      <Text style={styles.sub}>Configure challenge rewards and stock.</Text>
+    <AdminScreenLayout title="Configure Rewards" tab="AdminDashboard" showBack>
+      <Text style={styles.heading}>Configure Rewards</Text>
+      <Text style={styles.section}>Reward choices.</Text>
 
-      {rewards.map(item => {
-        const inStock = item.stock > 0;
-        return (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.copy}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>{item.stock} in stock</Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.pill, inStock ? styles.pillOn : styles.pillOff]}
-              onPress={() => toggleStock(item.id)}>
-              <Text
-                style={[
-                  styles.pillText,
-                  inStock ? styles.pillTextOn : styles.pillTextOff,
-                ]}>
-                {inStock ? 'In Stock' : 'Out of Stock'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        );
-      })}
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
+
+      {rewards.map(item => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.name}>{item.name}</Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('AdminRewardStock', {
+                id: item.id,
+                name: item.name,
+                stock: item.stock,
+              })
+            }
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+            <Text style={styles.edit}>EDIT</Text>
+          </TouchableOpacity>
+        </View>
+      ))}
+
+      {!loading && rewards.length === 0 ? (
+        <Text style={styles.empty}>No rewards configured yet.</Text>
+      ) : null}
+
+      <View style={styles.gap} />
+      <PrimaryButton
+        title="SAVE REWARD SETTINGS"
+        onPress={() => {
+          Alert.alert('Saved', 'Reward settings are up to date.', [
+            {text: 'OK', onPress: () => navigation.goBack()},
+          ]);
+        }}
+      />
     </AdminScreenLayout>
   );
 };
@@ -60,41 +94,39 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    marginBottom: 18,
   },
-  sub: {
-    marginTop: 6,
-    marginBottom: 16,
-    color: Colors.textSecondary,
+  section: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    marginBottom: 12,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
   },
-  copy: {flex: 1},
   name: {
+    flex: 1,
     fontSize: 17,
-    fontWeight: '800',
+    fontWeight: '700',
     color: Colors.sacredBrown,
   },
-  meta: {
-    marginTop: 4,
+  edit: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.4,
+  },
+  empty: {
     color: Colors.textSecondary,
+    marginBottom: 12,
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-  },
-  pillOn: {borderColor: Colors.leafGreen},
-  pillOff: {borderColor: Colors.error},
-  pillText: {fontWeight: '800', fontSize: 13},
-  pillTextOn: {color: Colors.leafGreen},
-  pillTextOff: {color: Colors.error},
+  gap: {height: 16},
 });

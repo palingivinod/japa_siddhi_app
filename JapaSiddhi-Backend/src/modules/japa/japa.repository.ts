@@ -3,6 +3,40 @@ import { ResultSetHeader } from 'mysql2';
 import mysql from '../../database/mysql';
 import socketEmitter from '../../socket/socketEmitter';
 
+/** Exclude challenge chant sessions from normal / Antharanga japa analytics. */
+const EXCLUDE_CHALLENGE_REMARKS = `
+  AND (
+    remarks IS NULL
+    OR TRIM(remarks) = ''
+    OR (
+      lower(remarks) NOT LIKE 'challenge%'
+      AND lower(remarks) NOT LIKE '%challenge japa%'
+    )
+  )
+`;
+
+const EXCLUDE_CHALLENGE_REMARKS_JS = `
+  AND (
+    js.remarks IS NULL
+    OR TRIM(js.remarks) = ''
+    OR (
+      lower(js.remarks) NOT LIKE 'challenge%'
+      AND lower(js.remarks) NOT LIKE '%challenge japa%'
+    )
+  )
+`;
+
+const EXCLUDE_CHALLENGE_REMARKS_J = `
+  AND (
+    j.remarks IS NULL
+    OR TRIM(j.remarks) = ''
+    OR (
+      lower(j.remarks) NOT LIKE 'challenge%'
+      AND lower(j.remarks) NOT LIKE '%challenge japa%'
+    )
+  )
+`;
+
 class JapaRepository {
 
   async createSession(
@@ -140,6 +174,7 @@ class JapaRepository {
       SELECT COALESCE(SUM(session_count), 0) AS totalJapaCount
       FROM japa_sessions
       WHERE user_id = ?
+      ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
     );
@@ -153,14 +188,7 @@ class JapaRepository {
       SELECT COALESCE(SUM(session_count), 0) AS totalJapaCount
       FROM japa_sessions
       WHERE user_id = ?
-      AND (
-        remarks IS NULL
-        OR TRIM(remarks) = ''
-        OR (
-          lower(remarks) NOT LIKE 'challenge%'
-          AND lower(remarks) NOT LIKE '%challenge japa%'
-        )
-      )
+      ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
     );
@@ -211,6 +239,7 @@ class JapaRepository {
         ON m.id = j.mantra_id
       WHERE j.user_id = ?
       ${periodFilter}
+      ${EXCLUDE_CHALLENGE_REMARKS_J}
       GROUP BY j.mantra_id, j.mantra_type
       HAVING COALESCE(SUM(j.session_count), 0) > 0
       ORDER BY total DESC
@@ -230,6 +259,7 @@ class JapaRepository {
       SELECT created_at AS createdAt, session_count AS sessionCount
       FROM japa_sessions
       WHERE user_id = ?
+      ${EXCLUDE_CHALLENGE_REMARKS}
       ORDER BY created_at ASC
       `,
       [userId],
@@ -247,6 +277,7 @@ class JapaRepository {
       FROM japa_sessions
       WHERE user_id = ?
       AND DATE(created_at, '+5 hours', '30 minutes') >= ${fromSql}
+      ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
     );
@@ -261,6 +292,7 @@ class JapaRepository {
       WHERE user_id = ?
       AND DATE(created_at, '+5 hours', '30 minutes') =
           DATE('now', '+5 hours', '30 minutes')
+      ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
     );
@@ -282,6 +314,7 @@ class JapaRepository {
       WHERE user_id = ?
       AND strftime('%Y-%m', created_at, '+5 hours', '30 minutes') =
           strftime('%Y-%m', 'now', '+5 hours', '30 minutes')
+      ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
     );
@@ -312,6 +345,7 @@ class JapaRepository {
       WHERE user_id = ?
       AND DATE(created_at, '+5 hours', '30 minutes') >=
           DATE('now', '+5 hours', '30 minutes', '-6 days')
+      ${EXCLUDE_CHALLENGE_REMARKS}
       GROUP BY DATE(created_at, '+5 hours', '30 minutes')
       ORDER BY DATE(created_at, '+5 hours', '30 minutes') ASC
       `,

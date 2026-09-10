@@ -199,9 +199,18 @@ const LoginScreen = () => {
         routes: [{name: 'Home'}],
       });
     } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Unable to sign in.';
+      const isNetwork =
+        !error?.response &&
+        /network|timeout|econnrefused|failed to connect/i.test(String(message));
       Alert.alert(
         'Test login failed',
-        error?.response?.data?.message || error?.message || 'Unable to sign in.',
+        isNetwork
+          ? 'Cannot reach local API at 127.0.0.1:5000. Keep USB connected and run:\nadb reverse tcp:5000 tcp:5000\nadb reverse tcp:8081 tcp:8081\nAlso keep the backend running.'
+          : message,
       );
     } finally {
       setSubmitting(false);

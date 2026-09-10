@@ -56,4 +56,22 @@ router.post(
   challengeController.rate,
 );
 
+router.get(
+  '/:id/rewards',
+  authenticate,
+  challengeController.listRewards,
+);
+
+router.post(
+  '/:id/rewards/claim',
+  authenticate,
+  challengeController.claimReward,
+);
+
+router.post(
+  '/:id/rewards/delivery',
+  authenticate,
+  challengeController.submitRewardDelivery,
+);
+
 export default router;

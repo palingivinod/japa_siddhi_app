@@ -45,6 +45,9 @@ const ChantScreen = () => {
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [challengeMantra, setChallengeMantra] = useState(
+    String(route.params?.challengeMantra || '').trim(),
+  );
   const lastTap = useRef(0);
   const intervals = useRef<number[]>([]);
   const countRef = useRef(0);
@@ -104,14 +107,50 @@ const ChantScreen = () => {
       setSelected(current => current ?? preferred);
       const data = summaryResponse.data.data ?? {};
       const totals = applyMantraTotals(data.byMantra || []);
-      const resumeDraft = route.params?.resume
-        ? await getJapaDraft()
-        : await getJapaDraft(mode, preferred?.id);
+      let initialCount = Number(route.params?.initialCount || 0);
+      let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
+
+      // Challenge japa uses its own target/progress — never Antharanga draft/goal.
+      if (challengeId) {
+        try {
+          const challengeResponse = await apiService.get(
+            `/challenges/${challengeId}`,
+          );
+          const challenge = challengeResponse.data?.data || {};
+          paramGoal = Math.max(
+            1,
+            Number(challenge.targetValue || paramGoal) || paramGoal,
+          );
+          initialCount = Math.max(
+            0,
+            Number(challenge.currentValue || initialCount) || 0,
+          );
+          const mantra =
+            String(challenge.mantra || '').trim() ||
+            String(challenge.rewardName || '')
+              .replace(/\s*Certificate$/i, '')
+              .trim();
+          if (mantra && mantra.toLowerCase() !== 'certificate') {
+            setChallengeMantra(mantra);
+          }
+        } catch {
+          // Fall back to route params.
+        }
+      }
+
+      const resumeDraft = challengeId
+        ? await getJapaDraft(mode, preferred?.id, challengeId)
+        : route.params?.resume
+          ? await getJapaDraft()
+          : await getJapaDraft(mode, preferred?.id);
       const restore =
         !!resumeDraft &&
         resumeDraft.count > 0 &&
         resumeDraft.count < resumeDraft.goal &&
-        (route.params?.resume || resumeDraft.mode === mode);
+        (challengeId
+          ? Number(resumeDraft.challengeId || 0) === challengeId
+          : !resumeDraft.challengeId &&
+            (route.params?.resume || resumeDraft.mode === mode));
       const activeMantraId = restore
         ? Number(resumeDraft?.mantraId || preferred?.id || 0)
         : Number(preferred?.id || 0);
@@ -123,8 +162,27 @@ const ChantScreen = () => {
           }
         }
         applyDraftToCount(resumeDraft);
+      } else if (challengeId) {
+        applyDraftToCount({
+          count: Math.min(initialCount, paramGoal),
+          postedCount: Math.min(initialCount, paramGoal),
+          goal: paramGoal,
+        });
+        completingRef.current = false;
+      } else if (
+        initialCount > 0 &&
+        paramGoal > initialCount &&
+        route.params?.resume
+      ) {
+        applyDraftToCount({
+          count: initialCount,
+          postedCount: initialCount,
+          goal: paramGoal,
+        });
+        completingRef.current = false;
       } else {
-        setGoal(Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000);
+        setGoal(paramGoal);
+        completingRef.current = false;
       }
       setSavedTotal(
         totals[activeMantraId] || Number(data.totalJapaCount ?? 0) || 0,
@@ -155,7 +213,7 @@ const ChantScreen = () => {
       goal: goalRef.current,
       count: nextCount,
       postedCount,
-      japaGoalId: route.params?.japaGoalId,
+      japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
       challengeId: challengeId || undefined,
     });
   };
@@ -169,7 +227,7 @@ const ChantScreen = () => {
     }
     setSelected(item);
     setSavedTotal(mantraTotals[item.id] || 0);
-    const draft = await getJapaDraft(mode, item.id);
+    const draft = await getJapaDraft(mode, item.id, challengeId || undefined);
     if (draft) {
       applyDraftToCount(draft);
     } else {
@@ -206,8 +264,56 @@ const ChantScreen = () => {
         sessionCount: savedCount,
         completed: options?.completed,
       });
+    const goGoalComplete = () =>
+      navigation.replace('JapaGoalComplete', {
+        count: Math.max(savedCount, countRef.current, goal),
+        goal: goalRef.current,
+        mode,
+        mantraId: selectedRef.current?.id,
+        privateMantra: route.params?.privateMantra,
+        japaGoalId: route.params?.japaGoalId,
+        userTotal,
+      });
     if (challengeId) {
-      navigation.replace('ChallengeComplete', {id: challengeId});
+      const update = (data?.challengeUpdates || []).find(
+        (row: any) => Number(row.challengeId) === challengeId,
+      );
+      const challengeDone =
+        Boolean(update?.completed) ||
+        (options?.completed && countRef.current >= goalRef.current);
+      if (challengeDone) {
+        navigation.replace('ChallengeComplete', {
+          id: challengeId,
+          count: Number(update?.currentValue || countRef.current || goal),
+          goal: goalRef.current,
+          mode,
+          mantraId: selectedRef.current?.id,
+          privateMantra: route.params?.privateMantra,
+        });
+        return;
+      }
+      navigation.replace('ChallengeProgress', {id: challengeId});
+      return;
+    }
+    if (options?.completed) {
+      if (reached.length) {
+        const highest = Math.max(
+          ...reached.map((level: number) => Number(level)),
+        );
+        Alert.alert(
+          t('milestoneReachedTitle'),
+          t('milestoneReachedBody', {count: highest.toLocaleString()}),
+          [
+            {text: t('ok'), style: 'cancel', onPress: goGoalComplete},
+            {
+              text: t('viewMilestone'),
+              onPress: () => navigation.navigate('MilestoneNotifications'),
+            },
+          ],
+        );
+        return;
+      }
+      goGoalComplete();
       return;
     }
     if (reached.length) {
@@ -253,7 +359,7 @@ const ChantScreen = () => {
       }
       const remaining = Math.max(sessionCount - postedCountRef.current, 0);
       if (remaining < 1) {
-        await clearJapaDraft(mode, selected.id);
+        await clearJapaDraft(mode, selected.id, challengeId || undefined);
         afterSessionSaved(
           {userTotal: savedTotal, count: sessionCount},
           sessionCount,
@@ -267,12 +373,12 @@ const ChantScreen = () => {
         chantMode: 'TAP',
         sessionCount: remaining,
         durationSeconds: Math.max(remaining * 2, 1),
-        japaGoalId: route.params?.japaGoalId,
+        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
       });
       postedCountRef.current = sessionCount;
-      await clearJapaDraft(mode, selected.id);
+      await clearJapaDraft(mode, selected.id, challengeId || undefined);
       afterSessionSaved(response.data.data, remaining, {completed: true});
     } catch (err: any) {
       completingRef.current = false;
@@ -352,7 +458,7 @@ const ChantScreen = () => {
           chantMode: 'TAP',
           sessionCount: delta,
           durationSeconds: Math.max(delta * 2, 1),
-          japaGoalId: route.params?.japaGoalId,
+          japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
           challengeId: challengeId || undefined,
           remarks: sessionRemarks(),
         });
@@ -392,29 +498,44 @@ const ChantScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <Text style={styles.mode}>
-        {mode === 'private' ? t('myJapa') : t('communityJapa')}
+        {challengeId
+          ? 'Challenge Japa'
+          : mode === 'private'
+            ? t('myJapa')
+            : t('communityJapa')}
       </Text>
-      <View style={styles.chipRow}>
-        {mantras.map(item => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.chip, selected?.id === item.id && styles.chipActive]}
-            onPress={() => selectMantra(item)}>
-            <Text
-              style={[
-                styles.chipText,
-                selected?.id === item.id && styles.chipTextActive,
-              ]}>
-              {item.mantraName}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {challengeId ? (
+        <Text style={styles.challengeHint}>
+          Counting only for this challenge — separate from Antharanga japa.
+        </Text>
+      ) : (
+        <View style={styles.chipRow}>
+          {mantras.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.chip, selected?.id === item.id && styles.chipActive]}
+              onPress={() => selectMantra(item)}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selected?.id === item.id && styles.chipTextActive,
+                ]}>
+                {item.mantraName}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
       <Text style={styles.mantra}>
-        {selected?.mantraName ||
-          selected?.transliteration ||
-          route.params?.privateMantra ||
-          t('myJapa')}
+        {challengeId
+          ? challengeMantra ||
+            selected?.mantraName ||
+            selected?.transliteration ||
+            t('myJapa')
+          : selected?.mantraName ||
+            selected?.transliteration ||
+            route.params?.privateMantra ||
+            t('myJapa')}
       </Text>
       <TouchableOpacity
         activeOpacity={0.85}
@@ -427,8 +548,11 @@ const ChantScreen = () => {
         </View>
       </TouchableOpacity>
       <Text style={styles.goal}>
-        Goal {goal.toLocaleString()}
-        {savedTotal > 0 ? ` · Lifetime ${savedTotal.toLocaleString()}` : ''}
+        {challengeId
+          ? `Challenge goal ${goal.toLocaleString()}`
+          : `Goal ${goal.toLocaleString()}${
+              savedTotal > 0 ? ` · Lifetime ${savedTotal.toLocaleString()}` : ''
+            }`}
       </Text>
       <View style={styles.barRow}>
         <View style={styles.barTrack}>
@@ -445,7 +569,11 @@ const ChantScreen = () => {
         onPress={tapChant}
         disabled={goalReached || saving}>
         <Text style={styles.tapCircleText}>
-          {goalReached ? 'Goal reached' : 'Click to count chant'}
+          {goalReached
+            ? challengeId
+              ? 'Challenge complete'
+              : 'Goal reached'
+            : 'Click to count chant'}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -458,14 +586,20 @@ const ChantScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.save}
-        onPress={() =>
+        onPress={() => {
+          if (challengeId) {
+            navigation.navigate('ChallengeProgress', {id: challengeId});
+            return;
+          }
           navigation.navigate('JapaProgress', {
             count: savedTotal + count,
             goal,
             sessionCount: count,
-          })
-        }>
-        <Text style={styles.saveText}>View Progress</Text>
+          });
+        }}>
+        <Text style={styles.saveText}>
+          {challengeId ? 'View Challenge Progress' : 'View Progress'}
+        </Text>
       </TouchableOpacity>
       {message ? (
         <Text style={[styles.message, {color: formMessageColor(message)}]}>
@@ -483,6 +617,12 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     marginBottom: 10,
+  },
+  challengeHint: {
+    marginTop: -4,
+    marginBottom: 10,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   chipRow: {
     flexDirection: 'row',

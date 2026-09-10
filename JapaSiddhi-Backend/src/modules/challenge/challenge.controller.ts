@@ -249,6 +249,74 @@ class ChallengeController {
     }
   }
 
+
+  async listRewards(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await challengeService.listRewards(
+        Number(req.params.id),
+        userId,
+      );
+      return apiResponse.success(res, 'Challenge rewards fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async claimReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await challengeService.claimReward(
+        Number(req.params.id),
+        userId,
+        Number(req.body?.rewardId),
+      );
+      return apiResponse.success(res, 'Reward claimed successfully', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
+  async submitRewardDelivery(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await challengeService.submitRewardDelivery(
+        Number(req.params.id),
+        userId,
+        {
+          fullName: String(req.body?.fullName || ''),
+          mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          address: String(req.body?.address || ''),
+          city: String(req.body?.city || ''),
+          state: String(req.body?.state || ''),
+          pinCode: String(req.body?.pinCode || req.body?.postalCode || ''),
+        },
+      );
+      return apiResponse.success(
+        res,
+        'Reward delivery details saved successfully',
+        result,
+      );
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
 }
 
 export default new ChallengeController();

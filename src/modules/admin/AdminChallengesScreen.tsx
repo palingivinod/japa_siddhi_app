@@ -40,6 +40,11 @@ const AdminChallengesScreen = () => {
             id: String(row.id),
             title: row.title || '',
             detail: row.detail || row.description || '',
+            description: row.description || '',
+            targetValue: Number(row.targetValue || 0),
+            rewardName: row.rewardName || '',
+            startDate: row.startDate || '',
+            endDate: row.endDate || '',
             status: (active ? 'Active' : 'Inactive') as AdminChallenge['status'],
             active,
           };
@@ -119,8 +124,8 @@ const AdminChallengesScreen = () => {
       showBack>
       <Text style={styles.heading}>Challenge Management</Text>
       <Text style={styles.sub}>
-        Tap Active/Inactive to show or hide a challenge for users. Use Delete to
-        remove it.
+        Tap Active/Inactive to show or hide a challenge. Use Edit to change
+        details, or Delete to remove it.
       </Text>
 
       {loading ? (
@@ -149,6 +154,23 @@ const AdminChallengesScreen = () => {
               <Text style={styles.meta}>{item.detail}</Text>
             </View>
             <View style={styles.actions}>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() =>
+                  navigation.navigate('AdminChallengeCreate', {
+                    id: item.id,
+                    title: item.title,
+                    description: (item as any).description || item.detail,
+                    detail: item.detail,
+                    targetValue: (item as any).targetValue,
+                    rewardName: (item as any).rewardName,
+                    startDate: (item as any).startDate,
+                    endDate: (item as any).endDate,
+                  })
+                }
+                disabled={busy}>
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.pill, active ? styles.pillOn : styles.pillOff]}
                 onPress={() => toggle(item)}
@@ -217,6 +239,21 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   actions: {alignItems: 'flex-end'},
+  editBtn: {
+    marginBottom: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 88,
+    alignItems: 'center',
+  },
+  editText: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: Colors.templeGold,
+  },
   pill: {
     borderRadius: 20,
     borderWidth: 1,

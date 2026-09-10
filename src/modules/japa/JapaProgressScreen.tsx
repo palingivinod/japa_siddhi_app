@@ -55,15 +55,15 @@ const JapaProgressScreen = () => {
       navigation.navigate('JapaAnnadanam');
       return;
     }
+    // Normal / Antharanga resume only — never open a challenge draft here.
     const draft = await getJapaDraft();
-    if (draft) {
+    if (draft && !Number(draft.challengeId || 0)) {
       navigation.navigate('Chant', {
         mode: draft.mode,
         mantraId: draft.mantraId,
         privateMantra: draft.privateMantra,
         goal: draft.goal,
         japaGoalId: draft.japaGoalId,
-        challengeId: draft.challengeId,
         resume: true,
       });
       return;
