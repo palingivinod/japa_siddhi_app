@@ -90,12 +90,13 @@ const ChallengeProgressScreen = () => {
     undefined;
 
   const resume = () =>
-    navigation.navigate('ReferenceChant', {
+    navigation.navigate('Chant', {
       mode: 'community',
       goal: sessionGoalForChallenge(item),
       initialCount: challengeCurrentCount(item),
       challengeId: route.params?.id,
       challengeMantra,
+      durationMs: 2500,
     });
 
   return (

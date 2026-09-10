@@ -51,7 +51,7 @@ const GoalSelectScreen = () => {
         // Goal is stored locally for the chant session if the API is offline.
       }
     }
-    navigation.navigate('ReferenceChant', {
+    navigation.navigate('Chant', {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
       privateMantra: route.params?.privateMantra,
@@ -61,6 +61,7 @@ const GoalSelectScreen = () => {
       dailyTarget,
       challengeId,
       initialCount: route.params?.initialCount,
+      durationMs: 2500,
     });
   };
 

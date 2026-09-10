@@ -30,12 +30,13 @@ const deriveChallengeMantra = (rewardName?: string | null) => {
 };
 
 const startChallengeJapa = (navigation: any, item: any) => {
-  navigation.navigate('ReferenceChant', {
+  navigation.navigate('Chant', {
     mode: 'community',
     goal: sessionGoalForChallenge(item),
     initialCount: challengeCurrentCount(item),
     challengeId: item?.id,
     challengeMantra: deriveChallengeMantra(item?.mantra || item?.rewardName),
+    durationMs: 2500,
   });
 };
 
