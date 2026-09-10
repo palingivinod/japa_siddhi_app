@@ -212,38 +212,38 @@ const ProfileViewScreen = () => {
         </View>
       ) : null}
       <MenuCard
-        icon="om"
+        emoji="🙏"
         title={t('personalProfile')}
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
       />
       <MenuCard
-        icon="bell"
+        emoji="🔔"
         title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
       />
       <MenuCard
-        icon="box"
+        emoji="📦"
         title={t('orderHistory')}
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
-        icon="prayer"
+        emoji="💬"
         title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}
       />
       <MenuCard
-        icon="settings"
+        emoji="⚙️"
         title={t('settings')}
         onPress={() => navigation.navigate('Settings')}
       />
       <MenuCard
-        icon="globe"
+        emoji="🌐"
         title={t('language')}
         onPress={() =>
           navigation.navigate('LanguageSelect', {fromSettings: true})
         }
       />
-      <MenuCard icon="logout" title={t('logout')} onPress={logout} />
+      <MenuCard emoji="🚪" title={t('logout')} onPress={logout} />
     </ScreenLayout>
   );
 };

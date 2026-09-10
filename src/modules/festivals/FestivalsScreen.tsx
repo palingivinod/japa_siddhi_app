@@ -78,11 +78,15 @@ const FestivalsScreen = () => {
         <Text style={styles.date}>
           {panchang.displayDate || t('loadingToday')}
         </Text>
-        <Text style={styles.name}>
-          {festivalName(panchang.festival) || t('todaysPanchangam')}
-        </Text>
-        {panchang.festival?.description ? (
-          <Text style={styles.description}>{panchang.festival.description}</Text>
+        {panchang.festival ? (
+          <>
+            <Text style={styles.name}>{festivalName(panchang.festival)}</Text>
+            {panchang.festival.description ? (
+              <Text style={styles.description}>
+                {panchang.festival.description}
+              </Text>
+            ) : null}
+          </>
         ) : null}
         {panchang.nextFestival && !panchang.festival ? (
           <Text style={styles.description}>

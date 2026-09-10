@@ -23,7 +23,8 @@ export type AppIconName =
   | 'japa'
   | 'seva'
   | 'orders'
-  | 'profile';
+  | 'profile'
+  | 'care';
 
 interface Props {
   name: AppIconName;
@@ -32,7 +33,7 @@ interface Props {
   style?: ViewStyle;
 }
 
-/** Photo icons for menu cards — realistic, not emoji. */
+/** Photo icons for hub / home tiles — fill circular containers. */
 const PHOTO: Partial<Record<AppIconName, any>> = {
   mala: require('../../assets/images/family_japa.webp'),
   trophy: require('../../assets/images/achievements.webp'),
@@ -42,7 +43,8 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   flame: require('../../assets/images/festivals.webp'),
   prayer: require('../../assets/images/chant.webp'),
   box: require('../../assets/images/order.webp'),
-  // person/profile intentionally omitted — line icons tint for tabs / avatar mark
+  care: require('../../assets/images/customer_care.webp'),
+  // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 
 const AppIcon: React.FC<Props> = ({
@@ -60,7 +62,7 @@ const AppIcon: React.FC<Props> = ({
           {
             width: size,
             height: size,
-            borderRadius: size * 0.22,
+            borderRadius: size / 2,
           },
           style,
         ]}
@@ -118,26 +120,66 @@ function renderLineIcon(name: AppIconName, size: number, color: string) {
     case 'settings':
       return (
         <View style={[styles.center, {width: size, height: size}]}>
+          {[0.55, 0.78, 0.42].map((widthRatio, index) => (
+            <View
+              key={`settings-line-${index}`}
+              style={{
+                width: size * widthRatio,
+                height: stroke,
+                backgroundColor: color,
+                borderRadius: 1,
+                marginVertical: size * 0.07,
+              }}
+            />
+          ))}
+        </View>
+      );
+    case 'prayer':
+      return (
+        <View style={[styles.center, {width: size, height: size}]}>
           <View
             style={{
               width: size * 0.72,
-              height: size * 0.72,
-              borderRadius: size * 0.36,
+              height: size * 0.52,
+              borderRadius: size * 0.14,
               borderWidth: stroke,
               borderColor: color,
-              alignItems: 'center',
-              justifyContent: 'center',
+              paddingHorizontal: size * 0.1,
+              paddingTop: size * 0.12,
             }}>
             <View
               style={{
-                width: size * 0.28,
-                height: size * 0.28,
-                borderRadius: size * 0.14,
-                borderWidth: stroke,
-                borderColor: color,
+                width: '100%',
+                height: stroke,
+                backgroundColor: color,
+                borderRadius: 1,
+                marginBottom: size * 0.08,
+              }}
+            />
+            <View
+              style={{
+                width: '68%',
+                height: stroke,
+                backgroundColor: color,
+                borderRadius: 1,
               }}
             />
           </View>
+          <View
+            style={{
+              width: 0,
+              height: 0,
+              marginTop: -1,
+              marginRight: size * 0.22,
+              borderLeftWidth: size * 0.1,
+              borderRightWidth: size * 0.1,
+              borderTopWidth: size * 0.12,
+              borderLeftColor: 'transparent',
+              borderRightColor: 'transparent',
+              borderTopColor: color,
+              alignSelf: 'flex-end',
+            }}
+          />
         </View>
       );
     case 'globe':
@@ -328,21 +370,23 @@ function renderLineIcon(name: AppIconName, size: number, color: string) {
       );
     case 'om':
       return (
-        <Text
-          style={{
-            fontSize: size * 0.92,
-            lineHeight: size,
-            color,
-            fontWeight: '700',
-            textAlign: 'center',
-            includeFontPadding: false,
-          }}>
-          ॐ
-        </Text>
+        <View style={[styles.center, {width: size, height: size}]}>
+          <Text
+            style={{
+              fontSize: size * 0.62,
+              lineHeight: size * 0.72,
+              color,
+              fontWeight: '700',
+              textAlign: 'center',
+              includeFontPadding: false,
+              textAlignVertical: 'center',
+            }}>
+            ॐ
+          </Text>
+        </View>
       );
     case 'orders':
     case 'box':
-      // Only reached when no photo (orders). Box uses photo via PHOTO map.
       return (
         <View style={[styles.center, {width: size, height: size}]}>
           <View

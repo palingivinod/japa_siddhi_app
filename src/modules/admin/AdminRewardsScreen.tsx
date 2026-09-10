@@ -4,6 +4,7 @@ import {
   Alert,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -19,6 +20,11 @@ const AdminRewardsScreen = () => {
   const navigation = useNavigation<any>();
   const [rewards, setRewards] = useState<AdminReward[]>([]);
   const [loading, setLoading] = useState(true);
+  const [busyId, setBusyId] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [newStock, setNewStock] = useState('0');
+  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,10 +52,90 @@ const AdminRewardsScreen = () => {
     }, [load]),
   );
 
+  const addReward = async () => {
+    const name = newName.trim();
+    if (!name) {
+      Alert.alert('Required', 'Enter a reward name.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await apiService.post('/admin/rewards', {
+        name,
+        stock: Math.max(0, Number(newStock) || 0),
+      });
+      setNewName('');
+      setNewStock('0');
+      setShowAdd(false);
+      await load();
+    } catch (err) {
+      Alert.alert('Rewards', getApiError(err, 'Could not add reward.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteReward = (item: AdminReward) => {
+    Alert.alert('Delete reward', `Remove ${item.name}?`, [
+      {text: 'Cancel', style: 'cancel'},
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setBusyId(item.id);
+          try {
+            await apiService.delete(`/admin/rewards/${item.id}`);
+            setRewards(current => current.filter(row => row.id !== item.id));
+          } catch (err) {
+            Alert.alert(
+              'Rewards',
+              getApiError(err, 'Could not delete reward.'),
+            );
+          } finally {
+            setBusyId('');
+          }
+        },
+      },
+    ]);
+  };
+
   return (
     <AdminScreenLayout title="Configure Rewards" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Configure Rewards</Text>
       <Text style={styles.section}>Reward choices.</Text>
+
+      <PrimaryButton
+        title={showAdd ? 'CANCEL' : 'ADD REWARD'}
+        onPress={() => setShowAdd(current => !current)}
+      />
+      <View style={styles.gap} />
+
+      {showAdd ? (
+        <View style={styles.addCard}>
+          <Text style={styles.label}>Reward name</Text>
+          <TextInput
+            style={styles.input}
+            value={newName}
+            onChangeText={setNewName}
+            placeholder="Enter reward name"
+            placeholderTextColor={Colors.placeholder}
+          />
+          <Text style={styles.label}>Stock</Text>
+          <TextInput
+            style={styles.input}
+            value={newStock}
+            onChangeText={setNewStock}
+            keyboardType="number-pad"
+            placeholder="0"
+            placeholderTextColor={Colors.placeholder}
+          />
+          <PrimaryButton
+            title={saving ? 'ADDING...' : 'SAVE REWARD'}
+            onPress={addReward}
+            disabled={saving}
+          />
+        </View>
+      ) : null}
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
 
@@ -66,6 +152,14 @@ const AdminRewardsScreen = () => {
             }
             hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
             <Text style={styles.edit}>EDIT</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => deleteReward(item)}
+            disabled={busyId === item.id}
+            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+            <Text style={styles.delete}>
+              {busyId === item.id ? '...' : 'DELETE'}
+            </Text>
           </TouchableOpacity>
         </View>
       ))}
@@ -101,6 +195,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginBottom: 12,
   },
+  gap: {height: 12},
+  addCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 16,
+    marginBottom: 14,
+  },
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  input: {
+    height: 48,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    color: Colors.textPrimary,
+    fontSize: 16,
+  },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -117,9 +236,17 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: Colors.sacredBrown,
+    paddingRight: 8,
   },
   edit: {
     color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.4,
+    marginRight: 14,
+  },
+  delete: {
+    color: Colors.error,
     fontWeight: '800',
     fontSize: 14,
     letterSpacing: 0.4,
@@ -128,5 +255,4 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginBottom: 12,
   },
-  gap: {height: 16},
 });

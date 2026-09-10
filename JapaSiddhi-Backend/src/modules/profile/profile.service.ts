@@ -24,10 +24,16 @@ class ProfileService {
     userId: number,
     data: UpdateProfileRequest,
   ) {
+    // fullName and email are locked after registration
+    const {
+      fullName: _ignoredName,
+      email: _ignoredEmail,
+      ...editable
+    } = data;
 
     await profileRepository.updateProfile(
       userId,
-      data,
+      editable,
     );
 
     const profile =

@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
@@ -14,6 +15,7 @@ import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 import {saveAdminSession} from './adminSession';
 import {resetAdminAuthGate} from './AdminAuthGate';
+import {getApiError, verifyAdminCredentials} from './adminCredentials';
 
 const AdminLoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,14 +31,18 @@ const AdminLoginScreen = () => {
     }
     setBusy(true);
     try {
+      const admin = await verifyAdminCredentials(trimmed, password);
       resetAdminAuthGate();
-      await saveAdminSession(trimmed);
+      await saveAdminSession(admin.email || trimmed);
       navigation.reset({
         index: 0,
         routes: [{name: 'AdminDashboard'}],
       });
     } catch (error: any) {
-      Alert.alert('Sign in failed', error?.message || 'Unable to sign in.');
+      Alert.alert(
+        'Sign in failed',
+        getApiError(error, 'Invalid admin email or password.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -70,6 +76,15 @@ const AdminLoginScreen = () => {
           placeholderTextColor={Colors.placeholder}
           secureTextEntry
         />
+
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate('AdminForgotPassword', {
+              email: email.trim().toLowerCase(),
+            })
+          }>
+          <Text style={styles.forgot}>Forgot password?</Text>
+        </TouchableOpacity>
 
         <PrimaryButton
           title={busy ? 'SIGNING IN...' : 'SIGN IN'}
@@ -112,5 +127,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     marginBottom: 16,
+  },
+  forgot: {
+    alignSelf: 'flex-end',
+    marginTop: -6,
+    marginBottom: 18,
+    color: Colors.leafGreen,
+    fontWeight: '700',
   },
 });

@@ -25,6 +25,23 @@ export interface CompleteProfileRequest {
   profileImage?: string | null;
 }
 
+export interface UpdateProfileRequest {
+  mobileNumber?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  countryId?: number;
+  stateId?: number;
+  cityId?: number;
+  preferredLanguageId?: number;
+  address?: string;
+  maritalStatus?: 'Bachelor' | 'Married';
+  spouseName?: string;
+  spouseDob?: string;
+  anniversaryDate?: string;
+  gothram?: string;
+  nakshatram?: string;
+}
+
 export const mapProfile = (data: any) => {
   if (!data) {
     return null;
@@ -36,6 +53,12 @@ export const mapProfile = (data: any) => {
     mobileNumber: data.mobileNumber ?? data.mobile_number ?? '',
     email: data.email ?? '',
     gender: data.gender ?? '',
+    dateOfBirth: data.dateOfBirth ?? data.date_of_birth ?? '',
+    countryId: data.countryId ?? data.country_id ?? null,
+    stateId: data.stateId ?? data.state_id ?? null,
+    cityId: data.cityId ?? data.city_id ?? null,
+    preferredLanguageId:
+      data.preferredLanguageId ?? data.preferred_language_id ?? null,
     cityName: data.cityName ?? data.city_name ?? '',
     stateName: data.stateName ?? data.state_name ?? '',
     countryName: data.countryName ?? data.country_name ?? '',
@@ -44,6 +67,8 @@ export const mapProfile = (data: any) => {
     address: data.address ?? '',
     maritalStatus: data.maritalStatus ?? data.marital_status ?? '',
     spouseName: data.spouseName ?? data.spouse_name ?? '',
+    spouseDob: data.spouseDob ?? data.spouse_dob ?? '',
+    anniversaryDate: data.anniversaryDate ?? data.anniversary_date ?? '',
     gothram: data.gothram ?? '',
     nakshatram: data.nakshatram ?? '',
     profilePhoto: data.profilePhoto ?? data.profile_photo ?? data.profileImage ?? null,
@@ -167,6 +192,12 @@ class ProfileApi {
     } as any);
     const response = await apiService.post('/profile/photo', formData);
     return mapProfile(response.data.data);
+  }
+
+  async updateProfile(data: UpdateProfileRequest) {
+    const response = await apiService.put('/profile', data);
+    const payload = response.data?.data;
+    return mapProfile(payload?.profile ?? payload);
   }
 
   async deleteAccount() {

@@ -46,6 +46,7 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   title: string;
   route?: string;
 }> = [
+  {title: 'Add Admin', route: 'AdminAccounts'},
   {title: 'User Management', route: 'AdminUsers'},
   {title: 'Japa Management', route: 'AdminJapa'},
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
@@ -168,7 +169,7 @@ export const ADMIN_REWARDS: AdminReward[] = [
 export type AdminProduct = {
   id: string;
   name: string;
-  price: number;
+  price?: number;
   stock: number;
 };
 
@@ -199,10 +200,10 @@ export type AdminPaymentRow = {
 };
 
 export const ADMIN_PRODUCTS: AdminProduct[] = [
-  {id: '1', name: 'Rudraksha', price: 499, stock: 12},
-  {id: '2', name: 'Spatik mala', price: 699, stock: 5},
-  {id: '3', name: 'Pasupu kommuka maala', price: 799, stock: 0},
-  {id: '4', name: 'Tulasi mala', price: 399, stock: 0},
+  {id: '1', name: 'Rudraksha', stock: 12},
+  {id: '2', name: 'Spatik mala', stock: 5},
+  {id: '3', name: 'Pasupu kommuka maala', stock: 0},
+  {id: '4', name: 'Tulasi mala', stock: 0},
 ];
 
 export const ADMIN_BANNERS: AdminBanner[] = [

@@ -1,8 +1,108 @@
 import {Router, Request, Response} from 'express';
+import rateLimit from 'express-rate-limit';
 
 import mysql from '../../database/mysql';
+import adminAccountService from './adminAccount.service';
 
 const router = Router();
+
+const adminOtpLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 5,
+  message: {
+    success: false,
+    message: 'Too many OTP requests. Please try again later.',
+  },
+});
+
+router.post('/auth/login', async (req: Request, res: Response) => {
+  try {
+    const data = await adminAccountService.login(
+      String(req.body?.email || ''),
+      String(req.body?.password || ''),
+    );
+    return res.json({success: true, message: 'Admin signed in', data});
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Admin login failed',
+    });
+  }
+});
+
+router.post(
+  '/auth/forgot/send-otp',
+  adminOtpLimiter,
+  async (req: Request, res: Response) => {
+    try {
+      const data = await adminAccountService.sendForgotOtp(
+        String(req.body?.email || ''),
+      );
+      return res.json({
+        success: true,
+        message: 'OTP sent to admin email',
+        data,
+      });
+    } catch (error: any) {
+      return res.status(error?.statusCode || 500).json({
+        success: false,
+        message: error?.message || 'Could not send OTP',
+      });
+    }
+  },
+);
+
+router.post('/auth/forgot/reset', async (req: Request, res: Response) => {
+  try {
+    const data = await adminAccountService.resetPassword(
+      String(req.body?.email || ''),
+      String(req.body?.otp || ''),
+      String(req.body?.newPassword || req.body?.password || ''),
+    );
+    return res.json({
+      success: true,
+      message: 'Password updated successfully',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Could not reset password',
+    });
+  }
+});
+
+router.get('/auth/accounts', async (_req: Request, res: Response) => {
+  try {
+    const data = await adminAccountService.listAdmins();
+    return res.json({success: true, data});
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Could not list admins',
+    });
+  }
+});
+
+router.post('/auth/accounts', async (req: Request, res: Response) => {
+  try {
+    const data = await adminAccountService.addAdmin({
+      email: String(req.body?.email || ''),
+      password: String(req.body?.password || ''),
+      fullName: String(req.body?.fullName || ''),
+    });
+    return res.json({
+      success: true,
+      message: 'Admin account created',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Could not add admin',
+    });
+  }
+});
 
 const num = (value: unknown) => {
   const n = Number(value ?? 0);
@@ -1858,6 +1958,118 @@ const mapOrderRow = (row: any) => {
   };
 };
 
+const parseRemarkLine = (remarks: string, label: string) => {
+  const match = String(remarks || '')
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .find(line => line.toLowerCase().startsWith(`${label.toLowerCase()}:`));
+  if (!match) {
+    return '';
+  }
+  return match.slice(label.length + 1).trim();
+};
+
+const mapOrderDetail = (row: any) => {
+  const base = mapOrderRow(row);
+  const remarks = String(row.remarks || '');
+  const deliveryName =
+    row.claimFullName ||
+    row.banaFullName ||
+    parseRemarkLine(remarks, 'Name') ||
+    row.customerName ||
+    '';
+  const deliveryMobile =
+    row.claimMobile ||
+    row.banaMobile ||
+    parseRemarkLine(remarks, 'Mobile') ||
+    row.customerMobile ||
+    '';
+  const deliveryAddress =
+    row.claimAddress ||
+    row.banaAddress ||
+    parseRemarkLine(remarks, 'Address') ||
+    '';
+  const deliveryCity =
+    row.claimCity || parseRemarkLine(remarks, 'City') || '';
+  const deliveryState =
+    row.claimState || parseRemarkLine(remarks, 'State') || '';
+  const deliveryPin =
+    row.claimPinCode ||
+    row.banaPostalCode ||
+    parseRemarkLine(remarks, 'PIN') ||
+    parseRemarkLine(remarks, 'PIN Code') ||
+    '';
+  const email = row.customerEmail || row.banaEmail || '';
+  const mobile = [row.customerMobileCode, row.customerMobile]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || deliveryMobile;
+
+  return {
+    ...base,
+    orderType: row.orderType || '',
+    orderSource: row.orderSource || '',
+    paymentId: row.paymentId || null,
+    updatedAt: row.updatedAt || null,
+    customerEmail: email,
+    customerMobile: mobile,
+    userId: row.userId ? String(row.userId) : null,
+    delivery: {
+      fullName: deliveryName,
+      mobile: deliveryMobile || mobile,
+      email,
+      address: deliveryAddress,
+      city: deliveryCity,
+      state: deliveryState,
+      pinCode: deliveryPin,
+      gothram: row.banaGothram || '',
+      nakshatram: row.banaNakshatram || '',
+    },
+    challengeId: row.claimChallengeId || null,
+    rewardName: row.claimRewardName || null,
+  };
+};
+
+const orderDetailSelect = `
+  SELECT
+    o.id,
+    o.user_id AS userId,
+    o.order_number AS orderNumber,
+    o.order_type AS orderType,
+    o.order_source AS orderSource,
+    o.item_name AS itemName,
+    o.quantity,
+    o.payment_id AS paymentId,
+    o.payment_status AS paymentStatus,
+    o.order_status AS orderStatus,
+    o.remarks,
+    o.created_at AS createdAt,
+    o.updated_at AS updatedAt,
+    IFNULL(u.full_name, 'Devotee') AS customerName,
+    u.email AS customerEmail,
+    u.mobile_country_code AS customerMobileCode,
+    u.mobile_number AS customerMobile,
+    crc.challenge_id AS claimChallengeId,
+    crc.reward_name AS claimRewardName,
+    crc.full_name AS claimFullName,
+    crc.mobile AS claimMobile,
+    crc.address AS claimAddress,
+    crc.city AS claimCity,
+    crc.state AS claimState,
+    crc.pin_code AS claimPinCode,
+    bl.full_name AS banaFullName,
+    bl.mobile AS banaMobile,
+    bl.email AS banaEmail,
+    bl.address AS banaAddress,
+    bl.postal_code AS banaPostalCode,
+    bl.gothram AS banaGothram,
+    bl.nakshatram AS banaNakshatram
+  FROM orders o
+  LEFT JOIN users u ON u.id = o.user_id
+  LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
+  LEFT JOIN bana_lingam bl ON bl.order_id = o.id
+`;
+
 router.get('/orders', async (_req: Request, res: Response) => {
   try {
     const rows = await mysql.query<any[]>(`
@@ -1887,34 +2099,47 @@ router.get('/orders', async (_req: Request, res: Response) => {
   }
 });
 
+const ensureOrderDetailJoins = async () => {
+  const alters = [
+    'ALTER TABLE challenge_reward_claims ADD COLUMN full_name TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN mobile TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN address TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN city TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN state TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN pin_code TEXT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN order_id INT NULL',
+    'ALTER TABLE challenge_reward_claims ADD COLUMN order_number VARCHAR(64) NULL',
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // Column already exists.
+    }
+  }
+};
+
 router.get('/orders/:id', async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (!id) {
       return res.status(400).json({success: false, message: 'Invalid order id.'});
     }
-    const rows = await mysql.query<any[]>(`
-      SELECT
-        o.id,
-        o.order_number AS orderNumber,
-        o.item_name AS itemName,
-        o.quantity,
-        o.payment_status AS paymentStatus,
-        o.order_status AS orderStatus,
-        o.remarks,
-        o.created_at AS createdAt,
-        IFNULL(u.full_name, 'Devotee') AS customerName
-      FROM orders o
-      LEFT JOIN users u ON u.id = o.user_id
+    await ensureOrderDetailJoins();
+    const rows = await mysql.query<any[]>(
+      `
+      ${orderDetailSelect}
       WHERE o.id = ?
       LIMIT 1
-    `, [id]);
+      `,
+      [id],
+    );
     if (!rows?.length) {
       return res.status(404).json({success: false, message: 'Order not found.'});
     }
     return res.json({
       success: true,
-      data: mapOrderRow(rows[0]),
+      data: mapOrderDetail(rows[0]),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -1949,27 +2174,20 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       [nextStatus, id],
     );
 
-    const rows = await mysql.query<any[]>(`
-      SELECT
-        o.id,
-        o.order_number AS orderNumber,
-        o.item_name AS itemName,
-        o.quantity,
-        o.payment_status AS paymentStatus,
-        o.order_status AS orderStatus,
-        o.remarks,
-        o.created_at AS createdAt,
-        IFNULL(u.full_name, 'Devotee') AS customerName
-      FROM orders o
-      LEFT JOIN users u ON u.id = o.user_id
+    await ensureOrderDetailJoins();
+    const rows = await mysql.query<any[]>(
+      `
+      ${orderDetailSelect}
       WHERE o.id = ?
       LIMIT 1
-    `, [id]);
+      `,
+      [id],
+    );
 
     return res.json({
       success: true,
       message: 'Order status updated.',
-      data: mapOrderRow(rows[0]),
+      data: mapOrderDetail(rows[0]),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -2748,6 +2966,249 @@ router.post('/rewards', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to create reward.',
+    });
+  }
+});
+
+router.delete('/rewards/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid reward id.'});
+    }
+    const current = await mysql.query<any[]>(
+      `SELECT id FROM challenge_rewards WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    if (!current?.length) {
+      return res.status(404).json({success: false, message: 'Reward not found.'});
+    }
+    await mysql.query(`DELETE FROM challenge_rewards WHERE id = ?`, [id]);
+    return res.json({
+      success: true,
+      message: 'Reward deleted successfully.',
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to delete reward.',
+    });
+  }
+});
+
+const mapProductRow = (row: any) => ({
+  id: String(row.id),
+  name: String(row.name || ''),
+  stock: Number(row.stock || 0),
+  active: Number(row.isActive ?? row.is_active ?? 1) === 1,
+});
+
+const ensureProductsTable = async () => {
+  try {
+    await mysql.query(`
+      CREATE TABLE IF NOT EXISTS spiritual_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        stock INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch {
+    try {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS spiritual_products (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          stock INT NOT NULL DEFAULT 0,
+          is_active TINYINT NOT NULL DEFAULT 1,
+          display_order INT NOT NULL DEFAULT 0,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )
+      `);
+    } catch {
+      // Table may already exist with engine-specific DDL.
+    }
+  }
+
+  try {
+    const countRows = await mysql.query<any[]>(
+      `SELECT COUNT(*) AS total FROM spiritual_products`,
+    );
+    if (Number(countRows?.[0]?.total || 0) > 0) {
+      return;
+    }
+    const defaults = [
+      ['Rudraksha', 12, 1],
+      ['Spatik mala', 5, 2],
+      ['Pasupu kommuka maala', 0, 3],
+      ['Tulasi mala', 0, 4],
+    ];
+    for (const [name, stock, order] of defaults) {
+      await mysql.query(
+        `
+        INSERT INTO spiritual_products (name, stock, is_active, display_order)
+        VALUES (?, ?, 1, ?)
+        `,
+        [name, stock, order],
+      );
+    }
+  } catch {
+    // Seed optional if table unavailable.
+  }
+};
+
+router.get('/products', async (_req: Request, res: Response) => {
+  try {
+    await ensureProductsTable();
+    const rows = await mysql.query<any[]>(`
+      SELECT
+        id,
+        name,
+        stock,
+        is_active AS isActive
+      FROM spiritual_products
+      ORDER BY display_order ASC, id ASC
+    `);
+    return res.json({
+      success: true,
+      data: (rows || []).map(mapProductRow),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load products.',
+    });
+  }
+});
+
+router.post('/products', async (req: Request, res: Response) => {
+  try {
+    await ensureProductsTable();
+    const name = String(req.body?.name || '').trim();
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Product name is required.',
+      });
+    }
+    const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
+    await mysql.query(
+      `
+      INSERT INTO spiritual_products (name, stock, is_active, display_order)
+      VALUES (?, ?, 1, ?)
+      `,
+      [name, stock, Number(req.body?.displayOrder || 99)],
+    );
+    const rows = await mysql.query<any[]>(`
+      SELECT id, name, stock, is_active AS isActive
+      FROM spiritual_products
+      ORDER BY id DESC
+      LIMIT 1
+    `);
+    return res.status(201).json({
+      success: true,
+      message: 'Product created successfully.',
+      data: mapProductRow(rows[0]),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to create product.',
+    });
+  }
+});
+
+router.put('/products/:id', async (req: Request, res: Response) => {
+  try {
+    await ensureProductsTable();
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid product id.'});
+    }
+    const current = await mysql.query<any[]>(
+      `
+      SELECT id, name, stock, is_active AS isActive
+      FROM spiritual_products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+    if (!current?.length) {
+      return res.status(404).json({success: false, message: 'Product not found.'});
+    }
+
+    const name = String(req.body?.name || '').trim();
+    const stock =
+      req.body?.stock === undefined || req.body?.stock === null
+        ? undefined
+        : Math.max(0, Number(req.body.stock) || 0);
+
+    await mysql.query(
+      `
+      UPDATE spiritual_products
+      SET
+        name = ?,
+        stock = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [
+        name || current[0].name,
+        stock === undefined ? Number(current[0].stock || 0) : stock,
+        id,
+      ],
+    );
+
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id, name, stock, is_active AS isActive
+      FROM spiritual_products
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+    return res.json({
+      success: true,
+      message: 'Product updated successfully.',
+      data: mapProductRow(rows[0]),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update product.',
+    });
+  }
+});
+
+router.delete('/products/:id', async (req: Request, res: Response) => {
+  try {
+    await ensureProductsTable();
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid product id.'});
+    }
+    const current = await mysql.query<any[]>(
+      `SELECT id FROM spiritual_products WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    if (!current?.length) {
+      return res.status(404).json({success: false, message: 'Product not found.'});
+    }
+    await mysql.query(`DELETE FROM spiritual_products WHERE id = ?`, [id]);
+    return res.json({
+      success: true,
+      message: 'Product deleted successfully.',
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to delete product.',
     });
   }
 });

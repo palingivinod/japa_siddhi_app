@@ -285,12 +285,72 @@ class SqliteEngine {
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         UNIQUE(challenge_id, user_id)
       );
+
+      CREATE TABLE IF NOT EXISTS spiritual_products (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        stock INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        display_order INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS admin_accounts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL UNIQUE,
+        password_hash TEXT NOT NULL,
+        full_name TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
     `);
     this.ensureRewardClaimColumns();
     this.seedChallenges();
     this.seedFaqs();
     this.seedRewards();
+    this.seedProducts();
+    this.seedAdminAccounts();
     this.persist();
+  }
+
+  private seedAdminAccounts(): void {
+    if (!this.db) {
+      return;
+    }
+    const rows = this.db.exec('SELECT COUNT(*) AS total FROM admin_accounts');
+    const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
+    if (total > 0) {
+      return;
+    }
+    // Placeholder hash replaced on first API boot by adminAccount.service
+    this.db.run(
+      `
+      INSERT INTO admin_accounts (email, password_hash, full_name, is_active)
+      VALUES ('kailaasavaasi@gmail.com', 'PENDING_SEED', 'Primary Admin', 1)
+      `,
+    );
+  }
+
+  private seedProducts(): void {
+    if (!this.db) {
+      return;
+    }
+    const rows = this.db.exec('SELECT COUNT(*) AS total FROM spiritual_products');
+    const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
+    if (total > 0) {
+      return;
+    }
+    this.db.run(
+      `
+      INSERT INTO spiritual_products (name, stock, is_active, display_order) VALUES
+        ('Rudraksha', 12, 1, 1),
+        ('Spatik mala', 5, 1, 2),
+        ('Pasupu kommuka maala', 0, 1, 3),
+        ('Tulasi mala', 0, 1, 4)
+      `,
+    );
   }
 
   private ensureRewardClaimColumns(): void {

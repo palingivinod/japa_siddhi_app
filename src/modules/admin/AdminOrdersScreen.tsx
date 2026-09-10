@@ -65,7 +65,7 @@ const AdminOrdersScreen = () => {
   return (
     <AdminScreenLayout title="Order Management" tab="AdminOrders">
       <Text style={styles.heading}>Order Management</Text>
-      <Text style={styles.sub}>Manage customer orders.</Text>
+      <Text style={styles.sub}>Manage devotee orders.</Text>
 
       {loading ? (
         <View style={styles.centerBox}>

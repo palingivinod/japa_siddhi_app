@@ -122,92 +122,51 @@ class ProfileRepository {
 
   async updateProfile(
     userId: number,
-
     data: UpdateProfileRequest,
-
   ): Promise<void> {
-
-
     await mysql.query<ResultSetHeader>(
       `
       UPDATE users
-
       SET
-
-
-        full_name =
-        COALESCE(?, full_name),
-
-
-        email =
-        COALESCE(?, email),
-
-
-        gender =
-        COALESCE(?, gender),
-
-
-        date_of_birth =
-        COALESCE(?, date_of_birth),
-
-
-        country_id =
-        COALESCE(?, country_id),
-
-
-        state_id =
-        COALESCE(?, state_id),
-
-
-        city_id =
-        COALESCE(?, city_id),
-
-
-        preferred_language_id =
-        COALESCE(?, preferred_language_id),
-
-
-        profile_photo =
-        COALESCE(?, profile_photo),
-
-
+        mobile_number = COALESCE(?, mobile_number),
+        gender = COALESCE(?, gender),
+        date_of_birth = COALESCE(?, date_of_birth),
+        country_id = COALESCE(?, country_id),
+        state_id = COALESCE(?, state_id),
+        city_id = COALESCE(?, city_id),
+        preferred_language_id = COALESCE(?, preferred_language_id),
+        profile_photo = COALESCE(?, profile_photo),
+        address = COALESCE(?, address),
+        marital_status = COALESCE(?, marital_status),
+        spouse_name = COALESCE(?, spouse_name),
+        spouse_dob = COALESCE(?, spouse_dob),
+        anniversary_date = COALESCE(?, anniversary_date),
+        gothram = COALESCE(?, gothram),
+        nakshatram = COALESCE(?, nakshatram),
         profile_completed = 1,
-
-
-        updated_at =
-        CURRENT_TIMESTAMP
-
-
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
-
       AND deleted_at IS NULL
-
       `,
       [
-
-        data.fullName ?? null,
-
-        data.email ?? null,
-
+        data.mobileNumber ?? null,
         data.gender ?? null,
-
         data.dateOfBirth ?? null,
-
         data.countryId ?? null,
-
         data.stateId ?? null,
-
         data.cityId ?? null,
-
         data.preferredLanguageId ?? null,
-
         data.profilePhoto ?? null,
-
+        data.address ?? null,
+        data.maritalStatus ?? null,
+        data.spouseName ?? null,
+        data.spouseDob ?? null,
+        data.anniversaryDate ?? null,
+        data.gothram ?? null,
+        data.nakshatram ?? null,
         userId,
-
       ],
     );
-
   }
 
   async updatePhoto(userId: number, profilePhoto: string): Promise<void> {

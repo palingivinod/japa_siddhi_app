@@ -87,7 +87,9 @@ import DonationConfirmationScreen from '../modules/donate/DonationConfirmationSc
 import WelcomeGiftScreen from '../modules/auth/WelcomeGiftScreen';
 import AdminHubScreen from '../modules/admin/AdminHubScreen';
 import AdminLoginScreen from '../modules/admin/AdminLoginScreen';
+import AdminForgotPasswordScreen from '../modules/admin/AdminForgotPasswordScreen';
 import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
+import AdminAccountsScreen from '../modules/admin/AdminAccountsScreen';
 import AdminUsersScreen from '../modules/admin/AdminUsersScreen';
 import AdminUserDetailsScreen from '../modules/admin/AdminUserDetailsScreen';
 import AdminUserEditScreen from '../modules/admin/AdminUserEditScreen';
@@ -276,7 +278,9 @@ export type RootStackParamList = {
   DonationConfirmation: any;
   AdminHub: undefined;
   AdminLogin: undefined;
+  AdminForgotPassword: {email?: string} | undefined;
   AdminDashboard: undefined;
+  AdminAccounts: undefined;
   AdminUsers: undefined;
   AdminUserDetails: {userId?: string} | undefined;
   AdminUserEdit: {userId?: string} | undefined;
@@ -404,7 +408,9 @@ const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
 const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
 const ProtectedAdminHub = AdminHubScreen;
 const ProtectedAdminLogin = AdminLoginScreen;
+const ProtectedAdminForgotPassword = AdminForgotPasswordScreen;
 const ProtectedAdminDashboard = withAdminAuth(AdminDashboardScreen);
+const ProtectedAdminAccounts = withAdminAuth(AdminAccountsScreen);
 const ProtectedAdminUsers = withAdminAuth(AdminUsersScreen);
 const ProtectedAdminUserDetails = withAdminAuth(AdminUserDetailsScreen);
 const ProtectedAdminUserEdit = withAdminAuth(AdminUserEditScreen);
@@ -620,8 +626,16 @@ const AppNavigator = () => {
         <Stack.Screen name="AdminHub" component={ProtectedAdminHub} />
         <Stack.Screen name="AdminLogin" component={ProtectedAdminLogin} />
         <Stack.Screen
+          name="AdminForgotPassword"
+          component={ProtectedAdminForgotPassword}
+        />
+        <Stack.Screen
           name="AdminDashboard"
           component={ProtectedAdminDashboard}
+        />
+        <Stack.Screen
+          name="AdminAccounts"
+          component={ProtectedAdminAccounts}
         />
         <Stack.Screen name="AdminUsers" component={ProtectedAdminUsers} />
         <Stack.Screen

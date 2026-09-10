@@ -83,7 +83,7 @@ const JapaHubScreen = () => {
                 styles.iconWrap,
                 item.tone === 'green' ? styles.iconGreen : styles.iconGold,
               ]}>
-              <AppIcon name={item.icon} size={28} color={Colors.sacredBrown} />
+              <AppIcon name={item.icon} size={48} color={Colors.sacredBrown} />
             </View>
             <View style={styles.copy}>
               <Text style={styles.title}>{item.title}</Text>

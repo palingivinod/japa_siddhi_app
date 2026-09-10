@@ -9,6 +9,11 @@ import {resetAdminAuthGate} from './AdminAuthGate';
 
 const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
   {
+    title: 'Add Admin',
+    route: 'AdminAccounts',
+    sub: 'Create login credentials for another admin',
+  },
+  {
     title: 'Challenge Creation',
     route: 'AdminChallengeCreate',
     sub: 'Create a new community challenge',

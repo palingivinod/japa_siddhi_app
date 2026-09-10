@@ -11,6 +11,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../../i18n/LanguageContext';
+import AppIcon, {AppIconName} from '../../../components/icons/AppIcon';
 import apiService from '../../../services/apiService';
 import {
   emptyPanchang,
@@ -60,42 +61,42 @@ const HomeScreen = () => {
         title: t('tileJapaChanting'),
         sub: t('tileJapaSub'),
         route: 'JapaHub',
-        emoji: '🕉️',
+        icon: 'prayer' as AppIconName,
         tone: 'gold' as const,
       },
       {
         title: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
-        emoji: '🪨',
+        icon: 'banalingam' as AppIconName,
         tone: 'green' as const,
       },
       {
         title: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
-        emoji: '🍲',
+        icon: 'bowl' as AppIconName,
         tone: 'gold' as const,
       },
       {
         title: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
-        emoji: '🔥',
+        icon: 'flame' as AppIconName,
         tone: 'green' as const,
       },
       {
         title: t('tileOrders'),
         sub: t('tileOrdersSub'),
         route: 'Orders',
-        emoji: '📦',
+        icon: 'box' as AppIconName,
         tone: 'gold' as const,
       },
       {
         title: t('tileCustomerCare'),
         sub: t('tileCustomerCareSub'),
         route: 'CustomerCare',
-        emoji: '💬',
+        icon: 'care' as AppIconName,
         tone: 'green' as const,
       },
     ],
@@ -238,12 +239,18 @@ const HomeScreen = () => {
             <Text style={styles.dateLine}>
               {panchang.displayDate || t('loadingToday')}
             </Text>
-            <Text style={styles.cardTitle}>
-              {festivalName(panchang.festival) || t('todaysPanchangam')}
-            </Text>
-            <Text style={styles.cardMeta}>
-              {panchang.festival?.description || t('panchangMeta')}
-            </Text>
+            {panchang.festival ? (
+              <>
+                <Text style={styles.cardTitle}>
+                  {festivalName(panchang.festival)}
+                </Text>
+                {panchang.festival.description ? (
+                  <Text style={styles.cardMeta}>
+                    {panchang.festival.description}
+                  </Text>
+                ) : null}
+              </>
+            ) : null}
             {panchang.nextFestival && !panchang.festival ? (
               <Text style={styles.nextFestival}>
                 {t('next')}: {festivalName(panchang.nextFestival)} ·{' '}
@@ -354,7 +361,11 @@ const HomeScreen = () => {
                       ? styles.tileIconGreen
                       : styles.tileIconGold,
                   ]}>
-                  <Text style={styles.tileEmoji}>{item.emoji}</Text>
+                  <AppIcon
+                    name={item.icon}
+                    size={48}
+                    color={Colors.sacredBrown}
+                  />
                 </View>
                 <Text style={styles.tileTitle}>{item.title}</Text>
                 <Text style={styles.tileSub}>{item.sub}</Text>
@@ -538,21 +549,19 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
   },
   tileIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
+    overflow: 'hidden',
   },
   tileIconGold: {
     backgroundColor: '#F3E2C6',
   },
   tileIconGreen: {
     backgroundColor: '#E4EFDF',
-  },
-  tileEmoji: {
-    fontSize: 20,
   },
   tileTitle: {
     fontSize: 15,

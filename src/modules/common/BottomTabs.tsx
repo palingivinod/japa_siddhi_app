@@ -2,7 +2,6 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
-import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
@@ -16,13 +15,13 @@ interface Props {
 const TABS: Array<{
   key: TabKey;
   labelKey: TranslationKey;
-  icon: AppIconName;
+  emoji: string;
 }> = [
-  {key: 'Home', labelKey: 'tabHome', icon: 'home'},
-  {key: 'JapaHub', labelKey: 'tabJapa', icon: 'japa'},
-  {key: 'SevaHub', labelKey: 'tabSeva', icon: 'seva'},
-  {key: 'Orders', labelKey: 'tabOrders', icon: 'orders'},
-  {key: 'Profile', labelKey: 'tabProfile', icon: 'profile'},
+  {key: 'Home', labelKey: 'tabHome', emoji: '🏠'},
+  {key: 'JapaHub', labelKey: 'tabJapa', emoji: '🕉️'},
+  {key: 'SevaHub', labelKey: 'tabSeva', emoji: '🤲'},
+  {key: 'Orders', labelKey: 'tabOrders', emoji: '📦'},
+  {key: 'Profile', labelKey: 'tabProfile', emoji: '👤'},
 ];
 
 const BottomTabs: React.FC<Props> = ({active}) => {
@@ -33,13 +32,17 @@ const BottomTabs: React.FC<Props> = ({active}) => {
     <View style={styles.bar}>
       {TABS.map(tab => {
         const isActive = tab.key === active;
-        const color = isActive ? Colors.templeGold : Colors.leafGreen;
         return (
           <TouchableOpacity
             key={tab.key}
             style={styles.item}
-            onPress={() => navigation.navigate(tab.key)}>
-            <AppIcon name={tab.icon} size={20} color={color} />
+            onPress={() => navigation.navigate(tab.key)}
+            activeOpacity={0.75}>
+            <View style={[styles.iconWrap, isActive && styles.iconWrapActive]}>
+              <Text style={[styles.emoji, isActive && styles.emojiActive]}>
+                {tab.emoji}
+              </Text>
+            </View>
             <Text style={[styles.label, isActive && styles.active]}>
               {t(tab.labelKey)}
             </Text>
@@ -58,16 +61,38 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
-    paddingTop: 8,
-    paddingBottom: 10,
+    paddingTop: 4,
+    paddingBottom: 6,
   },
   item: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: 1,
+  },
+  iconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconWrapActive: {
+    backgroundColor: '#F3E2C6',
+  },
+  emoji: {
+    fontSize: 15,
+    lineHeight: 20,
+    textAlign: 'center',
+    includeFontPadding: false,
+    opacity: 0.85,
+  },
+  emojiActive: {
+    fontSize: 16,
+    lineHeight: 20,
+    opacity: 1,
   },
   label: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: Colors.leafGreen,
   },

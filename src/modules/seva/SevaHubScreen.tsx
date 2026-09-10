@@ -71,7 +71,7 @@ const SevaHubScreen = () => {
             style={styles.card}
             onPress={() => navigation.navigate(item.route)}>
             <View style={styles.dot}>
-              <AppIcon name={item.icon} size={28} color={Colors.sacredBrown} />
+              <AppIcon name={item.icon} size={44} color={Colors.sacredBrown} />
             </View>
             <View style={styles.copy}>
               <Text style={styles.title}>{item.title}</Text>

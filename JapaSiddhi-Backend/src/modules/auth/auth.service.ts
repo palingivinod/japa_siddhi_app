@@ -449,22 +449,28 @@ class AuthService {
 
 
   async sendOtp(data: {
-    mobileCountryCode: string;
-    mobileNumber: string;
+    mobileCountryCode?: string;
+    mobileNumber?: string;
     email?: string;
   }) {
-    const mobileCountryCode = normalizePhone(data.mobileCountryCode);
-    const mobileNumber = normalizePhone(data.mobileNumber);
     const destinationEmail = String(data.email || '').trim().toLowerCase();
-    if (!mobileCountryCode || mobileNumber.length < 6) {
-      throw new AppError('Enter a valid mobile number', 400);
-    }
-
     if (!destinationEmail || !destinationEmail.includes('@')) {
       throw new AppError(
         'Enter the email address where the OTP should be sent.',
         400,
       );
+    }
+
+    let mobileCountryCode = normalizePhone(data.mobileCountryCode || '');
+    let mobileNumber = normalizePhone(data.mobileNumber || '');
+
+    // Email-only OTP login: fill mobile from existing account when available.
+    if (!mobileCountryCode || mobileNumber.length < 6) {
+      const existingUser = await authRepository.findUserByEmail(destinationEmail);
+      mobileCountryCode =
+        normalizePhone(existingUser?.mobileCountryCode || '') || '91';
+      mobileNumber =
+        normalizePhone(existingUser?.mobileNumber || '') || '0000000000';
     }
 
     // Always send to the email the user typed (independent of any phone account).
@@ -494,17 +500,17 @@ class AuthService {
       sent: true,
       sentTo: emailOtpService.maskEmail(destinationEmail),
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+      mobileCountryCode,
+      mobileNumber,
     };
   }
 
   async verifyOtp(data: {
-    mobileCountryCode: string;
-    mobileNumber: string;
+    mobileCountryCode?: string;
+    mobileNumber?: string;
     email?: string;
     otp: string;
   }) {
-    const mobileCountryCode = normalizePhone(data.mobileCountryCode);
-    const mobileNumber = normalizePhone(data.mobileNumber);
     const email = String(data.email || '').trim().toLowerCase();
     const otp = String(data.otp || '').trim();
 
@@ -531,6 +537,15 @@ class AuthService {
     }
 
     await otpRepository.deleteByEmail(email);
+
+    const mobileCountryCode =
+      normalizePhone(data.mobileCountryCode || '') ||
+      normalizePhone(stored.mobileCountryCode || '') ||
+      '91';
+    const mobileNumber =
+      normalizePhone(data.mobileNumber || '') ||
+      normalizePhone(stored.mobileNumber || '') ||
+      '0000000000';
 
     // Login identity is the verified email (not whoever owns the phone number).
     const user = await authRepository.findUserByEmail(email);

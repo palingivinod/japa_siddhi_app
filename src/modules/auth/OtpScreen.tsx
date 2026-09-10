@@ -112,7 +112,7 @@ const OtpScreen = ({route, navigation}: any) => {
           <ContinueButton title="VERIFY & CONTINUE" onPress={verifyOTP} />
         )}
         <Text style={styles.change} onPress={() => navigation.goBack()}>
-          Change mobile / email
+          Change email
         </Text>
       </View>
     </SafeAreaView>

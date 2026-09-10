@@ -28,21 +28,18 @@ export const phoneAuthValidation = [
 ];
 
 export const otpSendValidation = [
-  body('mobileCountryCode')
-    .trim()
-    .notEmpty()
-    .withMessage('Country code is required.'),
-  body('mobileNumber')
-    .trim()
-    .notEmpty()
-    .isLength({min: 6, max: 15})
-    .withMessage('Enter a valid mobile number.'),
   body('email')
     .trim()
     .notEmpty()
     .withMessage('Email is required.')
     .isEmail()
     .withMessage('Enter a valid email address.'),
+  body('mobileCountryCode')
+    .optional({nullable: true})
+    .trim(),
+  body('mobileNumber')
+    .optional({nullable: true})
+    .trim(),
 ];
 
 export const otpVerifyValidation = [

@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 22,
-    lineHeight: 26,
+    lineHeight: 28,
     textAlign: 'center',
     includeFontPadding: false,
   },

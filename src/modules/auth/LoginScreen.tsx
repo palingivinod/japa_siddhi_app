@@ -13,9 +13,6 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
-import countries, {CountryItem} from '../../constants/countries';
-import CountryPickerField from './components/CountryPickerField';
-import PhoneNumberField from './components/PhoneNumberField';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
@@ -28,15 +25,9 @@ import {resetAuthGate} from '../common/AuthGate';
 import PrimaryButton from '../common/PrimaryButton';
 import {saveAdminSession} from '../admin/adminSession';
 import {resetAdminAuthGate} from '../admin/AdminAuthGate';
+import {verifyAdminCredentials} from '../admin/adminCredentials';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-type LoginMode = 'otp' | 'password';
-
-const isAdminEmail = (email: string) => {
-  const local = email.trim().toLowerCase().split('@')[0] || '';
-  return local === 'admin' || local.startsWith('admin.');
-};
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -44,13 +35,8 @@ const LoginScreen = () => {
   const {t} = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [mode, setMode] = useState<LoginMode>('otp');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [selectedCountry, setSelectedCountry] = useState<CountryItem>(
-    countries.find(c => c.code === 'IN') ?? countries[0],
-  );
   const [hasValidSession, setHasValidSession] = useState(false);
 
   useFocusEffect(
@@ -73,50 +59,6 @@ const LoginScreen = () => {
       };
     }, [route.params?.forceLoginForm]),
   );
-
-  const handleContinue = async () => {
-    const mobileNumber = phoneNumber.replace(/\D/g, '');
-    const mobileCountryCode = selectedCountry.callingCode.replace(/\D/g, '');
-    const trimmedEmail = email.trim().toLowerCase();
-
-    if (mobileNumber.length < 6) {
-      Alert.alert(t('required'), t('validMobile'));
-      return;
-    }
-
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      Alert.alert(t('required'), t('validEmailOtp'));
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await apiService.post('/auth/otp/send', {
-        mobileCountryCode,
-        mobileNumber,
-        email: trimmedEmail,
-      });
-
-      navigation.navigate('OtpScreen', {
-        phoneNumber: `${mobileCountryCode}${mobileNumber}`,
-        mobileCountryCode,
-        mobileNumber,
-        email: trimmedEmail,
-        sentTo: response.data?.data?.sentTo,
-      });
-    } catch (error: any) {
-      const timedOut =
-        error?.code === 'ECONNABORTED' ||
-        String(error?.message || '').toLowerCase().includes('timeout');
-      Alert.alert(
-        t('otpFailed'),
-        error?.response?.data?.message ||
-          (timedOut ? t('serverWaking') : t('unableSendOtp')),
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const goHome = async () => {
     const session = await getValidSession();
@@ -145,14 +87,17 @@ const LoginScreen = () => {
 
     setSubmitting(true);
     try {
-      if (isAdminEmail(trimmedEmail)) {
+      try {
+        const admin = await verifyAdminCredentials(trimmedEmail, password);
         resetAdminAuthGate();
-        await saveAdminSession(trimmedEmail);
+        await saveAdminSession(admin.email || trimmedEmail);
         navigation.reset({
           index: 0,
           routes: [{name: 'AdminDashboard'}],
         });
         return;
+      } catch {
+        // Not an admin account — continue with devotee password login.
       }
 
       const response = await apiService.post('/auth/dev-login', {
@@ -174,7 +119,43 @@ const LoginScreen = () => {
         'Login failed',
         error?.response?.data?.message ||
           error?.message ||
-          'Use OTP login, or an admin email (admin@...) with password.',
+          'Unable to sign in. Try password or Login with OTP.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLoginWithOtp = async () => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      Alert.alert(t('required'), 'Enter your email address to receive OTP.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const response = await apiService.post('/auth/otp/send', {
+        email: trimmedEmail,
+      });
+      const data = response.data?.data || {};
+      navigation.navigate('OtpScreen', {
+        phoneNumber: `${data.mobileCountryCode || '91'}${
+          data.mobileNumber || '0000000000'
+        }`,
+        mobileCountryCode: data.mobileCountryCode || '91',
+        mobileNumber: data.mobileNumber || '0000000000',
+        email: trimmedEmail,
+        sentTo: data.sentTo || trimmedEmail,
+      });
+    } catch (error: any) {
+      const timedOut =
+        error?.code === 'ECONNABORTED' ||
+        String(error?.message || '').toLowerCase().includes('timeout');
+      Alert.alert(
+        t('otpFailed'),
+        error?.response?.data?.message ||
+          (timedOut ? t('serverWaking') : t('unableSendOtp')),
       );
     } finally {
       setSubmitting(false);
@@ -224,7 +205,7 @@ const LoginScreen = () => {
     navigation.setParams({forceLoginForm: true});
   };
 
-  const socialSoon = (name: string) => {
+  const socialContinue = (name: string) => {
     navigation.navigate('SocialAuth', {provider: name});
   };
 
@@ -250,105 +231,52 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
-            <View style={styles.modeRow}>
-              <TouchableOpacity
-                style={[styles.modeChip, mode === 'otp' && styles.modeChipOn]}
-                onPress={() => setMode('otp')}>
-                <Text
-                  style={[
-                    styles.modeText,
-                    mode === 'otp' && styles.modeTextOn,
-                  ]}>
-                  OTP
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.modeChip,
-                  mode === 'password' && styles.modeChipOn,
-                ]}
-                onPress={() => setMode('password')}>
-                <Text
-                  style={[
-                    styles.modeText,
-                    mode === 'password' && styles.modeTextOn,
-                  ]}>
-                  Password
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.label}>{t('email')}</Text>
+            <TextInput
+              style={styles.emailInput}
+              value={email}
+              onChangeText={setEmail}
+              placeholder={t('enterEmailAddress')}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
 
-            {mode === 'otp' ? (
-              <>
-                <Text style={styles.label}>{t('mobileNumber')}</Text>
-                <CountryPickerField
-                  value={selectedCountry}
-                  onChange={setSelectedCountry}
-                />
-                <PhoneNumberField
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  placeholder={t('enterMobileNumber')}
-                />
-                <Text style={styles.helper}>{t('otpEmailHelper')}</Text>
+            <Text style={styles.label}>Password</Text>
+            <TextInput
+              style={styles.emailInput}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="Enter password"
+              placeholderTextColor={Colors.placeholder}
+              secureTextEntry
+            />
 
-                <Text style={styles.label}>{t('email')}</Text>
-                <TextInput
-                  style={styles.emailInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder={t('enterEmailAddress')}
-                  placeholderTextColor={Colors.placeholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('AdminForgotPassword', {
+                  email: email.trim().toLowerCase(),
+                })
+              }>
+              <Text style={styles.forgotPassword}>Forgot password?</Text>
+            </TouchableOpacity>
 
-                <ContinueButton
-                  title={submitting ? t('sendingOtp') : t('sendOtp')}
-                  onPress={handleContinue}
-                  loading={submitting}
-                  disabled={
-                    phoneNumber.replace(/\D/g, '').length < 6 ||
-                    !EMAIL_REGEX.test(email.trim()) ||
-                    submitting
-                  }
-                />
-              </>
-            ) : (
-              <>
-                <Text style={styles.helper}>
-                  Devotees can sign in with email and password. Admin emails
-                  (admin@...) open the admin panel.
-                </Text>
-                <Text style={styles.label}>{t('email')}</Text>
-                <TextInput
-                  style={styles.emailInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder={t('enterEmailAddress')}
-                  placeholderTextColor={Colors.placeholder}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <Text style={styles.label}>Password</Text>
-                <TextInput
-                  style={styles.emailInput}
-                  value={password}
-                  onChangeText={setPassword}
-                  placeholder="Enter password"
-                  placeholderTextColor={Colors.placeholder}
-                  secureTextEntry
-                />
-                <ContinueButton
-                  title={submitting ? 'SIGNING IN...' : 'SIGN IN'}
-                  onPress={handlePasswordLogin}
-                  loading={submitting}
-                  disabled={submitting}
-                />
-              </>
-            )}
+            <ContinueButton
+              title={submitting ? 'SIGNING IN...' : 'SIGN IN'}
+              onPress={handlePasswordLogin}
+              loading={submitting}
+              disabled={submitting}
+            />
+
+            <TouchableOpacity
+              style={styles.otpLinkBtn}
+              onPress={handleLoginWithOtp}
+              disabled={submitting}>
+              <Text style={styles.otpLinkText}>
+                {submitting ? 'Sending OTP...' : 'Login with OTP'}
+              </Text>
+            </TouchableOpacity>
 
             {__DEV__ ? (
               <View style={styles.testBox}>
@@ -367,23 +295,19 @@ const LoginScreen = () => {
               </View>
             ) : null}
 
-            {__DEV__ ? (
-              <>
-                <Text style={styles.or}>{t('orContinueWith')}</Text>
-                {['Google', 'Facebook', 'Email'].map(item => (
-                  <TouchableOpacity
-                    key={item}
-                    style={styles.social}
-                    onPress={() => socialSoon(item)}>
-                    <Text style={styles.socialText}>{item}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            ) : null}
+            <Text style={styles.or}>{t('orContinueWith')}</Text>
+            {['Google', 'Facebook'].map(item => (
+              <TouchableOpacity
+                key={item}
+                style={styles.social}
+                onPress={() => socialContinue(item)}>
+                <Text style={styles.socialText}>{item}</Text>
+              </TouchableOpacity>
+            ))}
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
-              <TouchableOpacity onPress={() => setMode('otp')}>
+              <TouchableOpacity onPress={handleLoginWithOtp} disabled={submitting}>
                 <Text style={styles.linkText}>{t('createAnAccount')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -436,31 +360,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 20,
   },
-  modeRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 18,
-  },
-  modeChip: {
-    flex: 1,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modeChipOn: {
-    backgroundColor: Colors.templeGold,
-    borderColor: Colors.templeGold,
-  },
-  modeText: {
-    color: Colors.sacredBrown,
-    fontWeight: '800',
-  },
-  modeTextOn: {
-    color: Colors.white,
-  },
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
@@ -468,7 +367,6 @@ const styles = StyleSheet.create({
   },
   helper: {
     color: Colors.textSecondary,
-    marginTop: -8,
     marginBottom: 16,
     fontSize: 13,
     lineHeight: 18,
@@ -483,6 +381,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     marginBottom: 12,
+  },
+  forgotPassword: {
+    alignSelf: 'flex-end',
+    marginTop: -4,
+    marginBottom: 14,
+    color: Colors.leafGreen,
+    fontWeight: '700',
+  },
+  otpLinkBtn: {
+    marginTop: 16,
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  otpLinkText: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 16,
   },
   or: {
     textAlign: 'center',

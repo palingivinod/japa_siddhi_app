@@ -54,11 +54,6 @@ const PanchangDetails = ({panchang, compact}: Props) => {
 
   return (
     <View style={styles.wrap}>
-      {panchang.locationName || panchang.source ? (
-        <Text style={styles.meta}>
-          {[panchang.locationName, panchang.source].filter(Boolean).join(' · ')}
-        </Text>
-      ) : null}
       <View style={styles.row}>
         {items.map(([label, text]) => (
           <View key={label} style={styles.item}>
@@ -76,12 +71,6 @@ export default PanchangDetails;
 const styles = StyleSheet.create({
   wrap: {
     marginTop: 14,
-  },
-  meta: {
-    color: Colors.leafGreen,
-    fontWeight: '700',
-    fontSize: 12,
-    marginBottom: 8,
   },
   row: {
     flexDirection: 'row',
