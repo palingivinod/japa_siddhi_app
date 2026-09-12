@@ -2,22 +2,26 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 
 const InsightCard = ({
-  text = 'Consistency is growing. Keep your daily Japa rhythm.',
+  text,
 }: {
   text?: string;
-}) => (
+}) => {
+  const {t, tt} = useLanguage();
+  return (
   <View style={styles.card}>
     <View style={styles.dot}>
       <Text style={styles.emoji}>✨</Text>
     </View>
     <View style={styles.copy}>
-      <Text style={styles.title}>Spiritual insight</Text>
-      <Text style={styles.text}>{text}</Text>
+      <Text style={styles.title}>{t('spiritualInsight')}</Text>
+      <Text style={styles.text}>{tt(text || t('consistencyInsight'))}</Text>
     </View>
   </View>
-);
+  );
+};
 
 export default InsightCard;
 

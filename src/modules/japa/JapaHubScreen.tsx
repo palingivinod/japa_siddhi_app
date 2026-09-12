@@ -125,14 +125,16 @@ const styles = StyleSheet.create({
   body: {flex: 1, paddingHorizontal: 20},
   heading: {
     fontSize: 20,
+    lineHeight: 30,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 12,
+    includeFontPadding: true,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingVertical: 18,
     paddingHorizontal: 14,
     marginBottom: 12,
     flexDirection: 'row',
@@ -155,9 +157,20 @@ const styles = StyleSheet.create({
   iconGreen: {
     backgroundColor: '#E4EFDF',
   },
-  copy: {flex: 1},
-  title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
-  sub: {marginTop: 4, color: Colors.textSecondary},
+  copy: {flex: 1, paddingVertical: 2},
+  title: {
+    fontSize: 18,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    includeFontPadding: true,
+  },
+  sub: {
+    marginTop: 2,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
   chevron: {
     fontSize: 28,
     color: Colors.lightGold,
@@ -169,8 +182,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 10,
     fontSize: 16,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.leafGreen,
+    includeFontPadding: true,
   },
   stats: {flexDirection: 'row', gap: 10},
   statCard: {
@@ -186,11 +201,15 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
   statValue: {
     marginTop: 2,
     fontSize: 22,
+    lineHeight: 32,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
 });

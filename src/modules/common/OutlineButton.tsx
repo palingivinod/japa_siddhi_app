@@ -2,17 +2,21 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity} from 'react-native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 
 interface Props {
   title: string;
   onPress: () => void;
 }
 
-const OutlineButton: React.FC<Props> = ({title, onPress}) => (
+const OutlineButton: React.FC<Props> = ({title, onPress}) => {
+  const {tt} = useLanguage();
+  return (
   <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.8}>
-    <Text style={styles.text}>{title}</Text>
+    <Text style={styles.text}>{tt(title)}</Text>
   </TouchableOpacity>
-);
+  );
+};
 
 export default OutlineButton;
 

@@ -2,21 +2,25 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 
 const StatCards = ({
   items,
 }: {
   items: {label: string; value: string | number}[];
-}) => (
+}) => {
+  const {tt} = useLanguage();
+  return (
   <View style={styles.row}>
     {items.map(item => (
       <View key={item.label} style={styles.card}>
-        <Text style={styles.label}>{item.label}</Text>
+        <Text style={styles.label}>{tt(item.label)}</Text>
         <Text style={styles.value}>{item.value}</Text>
       </View>
     ))}
   </View>
-);
+  );
+};
 
 export default StatCards;
 

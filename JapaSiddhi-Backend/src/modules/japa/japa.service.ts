@@ -43,7 +43,7 @@ class JapaService {
       if (!ownedGoal) {
         throw new AppError('Japa goal not found for this user', 403);
       }
-    } else {
+    } else if (data.mantraType !== 'PERSONAL') {
       japaGoalId = await japaGoalRepository.findOrCreateActiveGoal(
         userId,
         data.mantraId,

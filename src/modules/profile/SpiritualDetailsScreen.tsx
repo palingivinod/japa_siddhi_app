@@ -11,20 +11,25 @@ import {Picker} from '@react-native-picker/picker';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import ProfileApi from '../auth/services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 
-const Row = ({label, value}: {label: string; value?: string}) => (
-  <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <Text style={styles.rowValue}>{value || 'Not added'}</Text>
-  </View>
-);
+const Row = ({label, value}: {label: string; value?: string}) => {
+  const {t, tt} = useLanguage();
+  return (
+    <View style={styles.row}>
+      <Text style={styles.rowLabel}>{tt(label)}</Text>
+      <Text style={styles.rowValue}>{value ? tt(value) : t('notAdded')}</Text>
+    </View>
+  );
+};
 
 const SpiritualDetailsScreen = () => {
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -142,31 +147,31 @@ const SpiritualDetailsScreen = () => {
 
   return (
     <ScreenLayout title="Edit Spiritual Details" showBack tab="Profile">
-      <Text style={styles.label}>Gothram</Text>
+      <Text style={styles.label}>{t('gothram')}</Text>
       <TextInput
         style={styles.input}
         value={gothram}
         onChangeText={setGothram}
-        placeholder="Enter Gothram"
+        placeholder={t('enterGothram')}
       />
 
-      <Text style={styles.label}>Nakshatram</Text>
+      <Text style={styles.label}>{t('nakshatram')}</Text>
       <TextInput
         style={styles.input}
         value={nakshatram}
         onChangeText={setNakshatram}
-        placeholder="Enter Nakshatram"
+        placeholder={t('enterNakshatram')}
       />
 
-      <Text style={styles.label}>Marital status</Text>
+      <Text style={styles.label}>{t('maritalStatus')}</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={maritalStatus}
           onValueChange={value =>
             setMaritalStatus(value as 'Bachelor' | 'Married')
           }>
-          <Picker.Item label="Bachelor" value="Bachelor" />
-          <Picker.Item label="Married" value="Married" />
+          <Picker.Item label={t('bachelor')} value="Bachelor" />
+          <Picker.Item label={t('married')} value="Married" />
         </Picker>
       </View>
 

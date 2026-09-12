@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 
 export type MilestoneProgressData = {
@@ -19,6 +20,7 @@ type Props = {
 };
 
 const MilestoneProgressCard = ({milestone, onPress}: Props) => {
+  const {t, tt} = useLanguage();
   if (!milestone) {
     return null;
   }
@@ -27,19 +29,24 @@ const MilestoneProgressCard = ({milestone, onPress}: Props) => {
   const next = Number(milestone.next || 0);
   const percent = Math.min(100, Number(milestone.progressPercent || 0));
   const barLabel = milestone.allComplete
-    ? milestone.latestTitle || 'Parma Siddhi Yogam'
-    : milestone.nextTitle || 'Next milestone';
+    ? tt(milestone.latestTitle || 'Parma Siddhi Yogam')
+    : tt(milestone.nextTitle || 'Next milestone');
   const subtitle = milestone.allComplete
-    ? `All milestones reached · ${total.toLocaleString()} Japas`
-    : `${total.toLocaleString()} / ${next.toLocaleString()} Japas`;
+    ? t('allMilestonesReached', {count: total.toLocaleString()})
+    : t('japasProgressCount', {
+        current: total.toLocaleString(),
+        next: next.toLocaleString(),
+      });
 
   const content = (
     <View style={styles.card}>
-      <Text style={styles.kicker}>Spiritual milestone</Text>
+      <Text style={styles.kicker}>{t('spiritualMilestone')}</Text>
       <Text style={styles.meta}>{subtitle}</Text>
       {!milestone.allComplete ? (
         <Text style={styles.remaining}>
-          {Number(milestone.remaining || 0).toLocaleString()} Japas to go
+          {t('japasToGo', {
+            count: Number(milestone.remaining || 0).toLocaleString(),
+          })}
         </Text>
       ) : null}
       <View style={styles.barRow}>
@@ -79,18 +86,24 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 11,
-    letterSpacing: 0.5,
+    lineHeight: 18,
+    letterSpacing: 0,
+    includeFontPadding: true,
   },
   meta: {
     marginTop: 6,
     color: Colors.sacredBrown,
     fontWeight: '700',
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   remaining: {
     marginTop: 4,
     color: Colors.textSecondary,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '600',
+    includeFontPadding: true,
   },
   barRow: {
     flexDirection: 'row',
@@ -114,6 +127,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     fontSize: 12,
+    lineHeight: 18,
     textAlign: 'right',
+    includeFontPadding: true,
   },
 });

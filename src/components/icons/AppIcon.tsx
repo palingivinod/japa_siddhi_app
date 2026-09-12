@@ -24,7 +24,17 @@ export type AppIconName =
   | 'seva'
   | 'orders'
   | 'profile'
-  | 'care';
+  | 'care'
+  | 'japaAnnadanam'
+  | 'generalAnnadanam'
+  | 'festivalCampaign'
+  | 'personalProfile'
+  | 'notificationsPhoto'
+  | 'orderHistory'
+  | 'feedback'
+  | 'settingsPhoto'
+  | 'language'
+  | 'logoutDoor';
 
 interface Props {
   name: AppIconName;
@@ -35,15 +45,26 @@ interface Props {
 
 /** Photo icons for hub / home tiles — fill circular containers. */
 const PHOTO: Partial<Record<AppIconName, any>> = {
-  mala: require('../../assets/images/family_japa.webp'),
+  om: require('../../assets/images/samuhika_japa.png'),
+  mala: require('../../assets/images/antharanga_japa.png'),
   trophy: require('../../assets/images/achievements.webp'),
   chart: require('../../assets/images/myprogress.webp'),
-  banalingam: require('../../assets/images/banalingam.webp'),
+  banalingam: require('../../assets/images/shiva_linga.png'),
   bowl: require('../../assets/images/donation.webp'),
   flame: require('../../assets/images/festivals.webp'),
   prayer: require('../../assets/images/chant.webp'),
   box: require('../../assets/images/order.webp'),
   care: require('../../assets/images/customer_care.webp'),
+  japaAnnadanam: require('../../assets/images/japa_annadanam.png'),
+  generalAnnadanam: require('../../assets/images/general_annadanam.png'),
+  festivalCampaign: require('../../assets/images/festival_annadanam.png'),
+  personalProfile: require('../../assets/images/menu_personal_details.png'),
+  notificationsPhoto: require('../../assets/images/menu_notifications.png'),
+  orderHistory: require('../../assets/images/menu_orders.png'),
+  feedback: require('../../assets/images/menu_feedback.png'),
+  settingsPhoto: require('../../assets/images/menu_settings.png'),
+  language: require('../../assets/images/menu_language.png'),
+  logoutDoor: require('../../assets/images/menu_logout.png'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 

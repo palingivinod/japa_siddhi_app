@@ -92,9 +92,11 @@ const styles = StyleSheet.create({
   body: {flex: 1, paddingHorizontal: 20},
   heading: {
     fontSize: 20,
+    lineHeight: 30,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 12,
+    includeFontPadding: true,
   },
   card: {
     backgroundColor: Colors.white,
@@ -118,7 +120,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  copy: {flex: 1},
-  title: {fontSize: 18, fontWeight: '800', color: Colors.sacredBrown},
-  sub: {marginTop: 4, color: Colors.textSecondary},
+  copy: {flex: 1, paddingVertical: 2},
+  title: {
+    fontSize: 18,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    includeFontPadding: true,
+  },
+  sub: {
+    marginTop: 2,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
 });

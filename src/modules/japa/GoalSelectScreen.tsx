@@ -1,74 +1,214 @@
-import React, {useMemo, useState} from 'react';
-import {StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import React, {useCallback, useMemo, useState} from 'react';
+import {
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
-const PRESETS = [108, 500, 1000, 2000, 5000, 10000];
-
-const daysUntil = (value: string) => {
-  const parts = String(value || '').split(/[/-]/);
-  if (parts.length !== 3) {
-    return 30;
+const formatDate = (value?: Date | null) => {
+  if (!value) {
+    return '';
   }
-  const iso =
-    parts[0].length === 4
-      ? value
-      : `${parts[2]}-${parts[1]}-${parts[0]}`;
-  const diff = Math.ceil(
-    (new Date(iso).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+  const day = String(value.getDate()).padStart(2, '0');
+  const month = String(value.getMonth() + 1).padStart(2, '0');
+  const year = value.getFullYear();
+  return `${day}/${month}/${year}`;
+};
+
+const parseApiDate = (value?: string) => {
+  const iso = String(value || '').slice(0, 10);
+  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+};
+
+const daysUntil = (value?: Date | null) => {
+  if (!value) {
+    return 1;
+  }
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(value);
+  end.setHours(0, 0, 0, 0);
+  return Math.max(
+    1,
+    Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)),
   );
-  return Math.max(1, diff || 30);
 };
 
 const GoalSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [goalType, setGoalType] = useState<'count' | 'date'>('count');
-  const [goal, setGoal] = useState(Number(route.params?.goal || 2000));
-  const [endDate, setEndDate] = useState('31/12/2026');
+  const [goalText, setGoalText] = useState(
+    route.params?.goal ? String(route.params.goal) : '',
+  );
+  const [endDate, setEndDate] = useState<Date | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
 
+  const goal = Number(String(goalText).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
-  const dailyTarget = Math.ceil(goal / remainingDays);
+  const dailyTarget = Math.max(1, Math.ceil(goal / remainingDays));
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const load = async () => {
+        try {
+          const response = await apiService.get('/japa-goals');
+          const rows = response.data?.data ?? [];
+          const mode = route.params?.mode;
+          const mantraId = route.params?.mantraId;
+          // Private japa always creates a new mantra goal from this screen.
+          if (mode === 'private') {
+            return;
+          }
+          const saved =
+            rows.find((item: any) => {
+              if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
+                return false;
+              }
+              if (mantraId) {
+                return Number(item.mantraId) === Number(mantraId);
+              }
+              return item.mantraType !== 'PERSONAL';
+            }) ||
+            rows.find(
+              (item: any) =>
+                String(item.status || '').toUpperCase() === 'ACTIVE' &&
+                item.mantraType !== 'PERSONAL',
+            );
+          if (!active || !saved) {
+            return;
+          }
+          if (!route.params?.goal && saved.targetCount) {
+            setGoalText(String(saved.targetCount));
+          }
+          const parsed = parseApiDate(saved.endDate);
+          if (parsed) {
+            setEndDate(parsed);
+          }
+          if (
+            Number(saved.days || 0) > 1 ||
+            (saved.startDate &&
+              saved.endDate &&
+              saved.startDate !== saved.endDate)
+          ) {
+            setGoalType('date');
+          }
+        } catch {
+          undefined;
+        }
+      };
+      load();
+      return () => {
+        active = false;
+      };
+    }, [route.params?.goal, route.params?.mantraId, route.params?.mode]),
+  );
+
+  const onPickDate = (event: DateTimePickerEvent, selected?: Date) => {
+    if (Platform.OS !== 'ios') {
+      setShowCalendar(false);
+    }
+    if (event.type === 'dismissed') {
+      setShowCalendar(false);
+      return;
+    }
+    if (selected) {
+      setEndDate(selected);
+    }
+    if (Platform.OS === 'ios' && event.type === 'set') {
+      setShowCalendar(false);
+    }
+  };
 
   const start = async () => {
+    if (goal < 1) {
+      Alert.alert(t('setYourGoal'), 'Set a goal count to start.');
+      return;
+    }
+    if (goalType === 'date' && !endDate) {
+      Alert.alert(t('setYourGoal'), 'Pick a goal date from the calendar.');
+      return;
+    }
     const challengeId = Number(route.params?.challengeId || 0) || undefined;
+    const isPrivate = route.params?.mode === 'private';
+    const privateMantra = String(route.params?.privateMantra || '').trim();
+    let personalMantraId =
+      Number(route.params?.personalMantraId || 0) || undefined;
+    let japaGoalId = Number(route.params?.japaGoalId || 0) || undefined;
     if (!challengeId) {
       try {
-        await apiService.post('/japa-goals', {
-          mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
-          mantraId: route.params?.mantraId,
-          goalName:
-            route.params?.mode === 'private' ? 'Private Japa' : 'Daily Japa',
+        if (isPrivate && !personalMantraId && privateMantra) {
+          const mantraResponse = await apiService.post('/personal-mantras', {
+            mantraName: privateMantra.slice(0, 200),
+            mantraText: privateMantra,
+            preferredJapaCount: goal,
+          });
+          personalMantraId =
+            Number(mantraResponse.data?.data?.id || 0) || undefined;
+        }
+        const response = await apiService.post('/japa-goals', {
+          mantraType: isPrivate ? 'PERSONAL' : 'DEFAULT',
+          mantraId: isPrivate ? undefined : route.params?.mantraId,
+          personalMantraId,
+          goalName: isPrivate ? 'Private Japa' : 'Daily Japa',
           targetCount: goal,
-          days: goalType === 'date' ? remainingDays : 1,
+          days: goalType === 'date' ? remainingDays : isPrivate ? 3650 : 1,
           startDate: new Date().toISOString().slice(0, 10),
+          notes: isPrivate ? privateMantra || null : undefined,
         });
+        japaGoalId =
+          Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
       } catch {
-        // Goal is stored locally for the chant session if the API is offline.
+        undefined;
       }
     }
-    navigation.navigate('Chant', {
+    const chantParams = {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
-      privateMantra: route.params?.privateMantra,
+      privateMantra: privateMantra || route.params?.privateMantra,
+      personalMantraId,
+      japaGoalId,
       goal,
       goalType,
-      endDate,
-      dailyTarget,
+      endDate: formatDate(endDate),
+      dailyTarget: goalType === 'date' ? dailyTarget : goal,
       challengeId,
       initialCount: route.params?.initialCount,
       durationMs: 2500,
-    });
+    };
+    if (isPrivate) {
+      navigation.replace('Chant', chantParams);
+      return;
+    }
+    navigation.navigate('Chant', chantParams);
   };
 
   return (
     <ScreenLayout title="Set Your Goal" showBack tab="JapaHub">
       <Text style={styles.hint}>
-        {goalType === 'count' ? 'How many chants today?' : 'Complete this count by a date'}
+        {goalType === 'count'
+          ? 'How many chants today?'
+          : 'Complete this count by a date'}
       </Text>
       <View style={styles.chips}>
         <TouchableOpacity
@@ -82,34 +222,61 @@ const GoalSelectScreen = () => {
           <Text style={styles.chipText}>Date goal</Text>
         </TouchableOpacity>
       </View>
+
       <View style={styles.circle}>
-        <Text style={styles.count}>{goal.toLocaleString()}</Text>
+        <TextInput
+          style={styles.countInput}
+          value={goalText}
+          onChangeText={text => setGoalText(text.replace(/[^\d]/g, ''))}
+          keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor={Colors.placeholder}
+          textAlign="center"
+        />
         <Text style={styles.japas}>JAPAS</Text>
       </View>
-      <View style={styles.row}>
-        {PRESETS.map(item => (
-          <TouchableOpacity
-            key={item}
-            style={[styles.chip, goal === item && styles.chipOn]}
-            onPress={() => setGoal(item)}>
-            <Text style={styles.chipText}>{item.toLocaleString()}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+
       {goalType === 'date' ? (
         <>
-          <Text style={styles.label}>Complete before</Text>
-          <TextInput
-            style={styles.input}
-            value={endDate}
-            onChangeText={setEndDate}
-            placeholder="DD / MM / YYYY"
-          />
-          <Text style={styles.meta}>
-            {remainingDays} days left · {dailyTarget.toLocaleString()} chants each day
-          </Text>
+          <TouchableOpacity
+            style={styles.calendarBtn}
+            onPress={() => setShowCalendar(true)}
+            activeOpacity={0.85}>
+            <Text style={styles.calendarLabel}>
+              {endDate ? formatDate(endDate) : 'Pick goal date'}
+            </Text>
+          </TouchableOpacity>
+          {showCalendar ? (
+            <DateTimePicker
+              value={endDate || new Date()}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+              minimumDate={new Date()}
+              onChange={onPickDate}
+            />
+          ) : null}
+          {endDate && goal > 0 ? (
+            <Text style={styles.meta}>
+              {remainingDays} days left · {dailyTarget.toLocaleString()} chants
+              each day
+            </Text>
+          ) : null}
         </>
       ) : null}
+
+      {goal > 0 || endDate ? (
+        <View style={styles.summaryBox}>
+          {goal > 0 ? (
+            <Text style={styles.summary}>
+              Goal count : {goal.toLocaleString()}
+            </Text>
+          ) : null}
+          {endDate ? (
+            <Text style={styles.summary}>Date goal : {formatDate(endDate)}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
       <PrimaryButton title="START JAPA" onPress={start} />
     </ScreenLayout>
   );
@@ -136,10 +303,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
+    paddingHorizontal: 12,
   },
-  count: {fontSize: 36, fontWeight: '800', color: Colors.sacredBrown},
+  countInput: {
+    minWidth: 140,
+    fontSize: 36,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    padding: 0,
+  },
   japas: {marginTop: 4, color: Colors.leafGreen, fontWeight: '800'},
-  row: {flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16},
   chip: {
     borderWidth: 1,
     borderColor: Colors.cardBorder,
@@ -150,20 +323,35 @@ const styles = StyleSheet.create({
   },
   chipOn: {borderColor: Colors.sacredBrown, borderWidth: 2},
   chipText: {color: Colors.sacredBrown, fontWeight: '700'},
-  label: {color: Colors.leafGreen, fontWeight: '700', marginBottom: 8},
-  input: {
+  summaryBox: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  summary: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  calendarBtn: {
     backgroundColor: Colors.white,
     borderWidth: 1,
-    borderColor: Colors.inputBorder,
+    borderColor: Colors.cardBorder,
     borderRadius: 14,
     padding: 14,
-    fontSize: 16,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  calendarLabel: {
     color: Colors.sacredBrown,
-    marginBottom: 8,
+    fontWeight: '700',
+    fontSize: 16,
   },
   meta: {
     color: Colors.textSecondary,
     marginBottom: 20,
     fontWeight: '600',
+    textAlign: 'center',
   },
 });

@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../../theme/colors';
+import {useLanguage} from '../../../i18n/LanguageContext';
 
 interface Props {
   title: string;
@@ -21,6 +22,7 @@ const ContinueButton = ({
   loading = false,
   disabled = false,
 }: Props) => {
+  const {tt} = useLanguage();
   return (
     <TouchableOpacity
       style={[
@@ -32,7 +34,7 @@ const ContinueButton = ({
       {loading ? (
         <ActivityIndicator color={Colors.buttonPrimaryText} />
       ) : (
-        <Text style={styles.text}>{title}</Text>
+        <Text style={styles.text}>{tt(title)}</Text>
       )}
     </TouchableOpacity>
   );

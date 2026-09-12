@@ -207,43 +207,36 @@ const ProfileViewScreen = () => {
       <Text style={styles.name}>{profile?.fullName || t('devoteeName')}</Text>
       {achievedMilestone ? (
         <View style={styles.milestoneBadge}>
-          <Text style={styles.milestoneLabel}>Achieved milestone</Text>
+          <Text style={styles.milestoneLabel}>{t('achievedMilestone')}</Text>
           <Text style={styles.milestoneValue}>{achievedMilestone}</Text>
         </View>
       ) : null}
       <MenuCard
-        emoji="🙏"
+        icon="personalProfile"
         title={t('personalProfile')}
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
       />
       <MenuCard
-        emoji="🔔"
+        icon="notificationsPhoto"
         title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
       />
       <MenuCard
-        emoji="📦"
+        icon="orderHistory"
         title={t('orderHistory')}
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
-        emoji="💬"
+        icon="feedback"
         title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}
       />
       <MenuCard
-        emoji="⚙️"
+        icon="settingsPhoto"
         title={t('settings')}
         onPress={() => navigation.navigate('Settings')}
       />
-      <MenuCard
-        emoji="🌐"
-        title={t('language')}
-        onPress={() =>
-          navigation.navigate('LanguageSelect', {fromSettings: true})
-        }
-      />
-      <MenuCard emoji="🚪" title={t('logout')} onPress={logout} />
+      <MenuCard icon="logoutDoor" title={t('logout')} onPress={logout} />
     </ScreenLayout>
   );
 };
@@ -292,9 +285,11 @@ const styles = StyleSheet.create({
   name: {
     textAlign: 'center',
     fontSize: 22,
+    lineHeight: 32,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 10,
+    includeFontPadding: true,
   },
   milestoneBadge: {
     alignSelf: 'center',

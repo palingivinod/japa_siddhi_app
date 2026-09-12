@@ -95,12 +95,6 @@ const SettingsScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
-        onPress={() => toggle('notify_on', notifications, setNotifications)}>
-        <Text style={styles.label}>{t('notifications')}</Text>
-        <Text style={styles.value}>{onLabel(notifications)}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.row}
         onPress={() => toggle('japa_autolock', autoLock, setAutoLock)}>
         <Text style={styles.label}>{t('autoLockJapa')}</Text>
         <Text style={styles.value}>{onLabel(autoLock)}</Text>
@@ -115,18 +109,6 @@ const SettingsScreen = () => {
         style={styles.row}
         onPress={() => navigation.navigate('CustomerCare')}>
         <Text style={styles.label}>{t('helpSupport')}</Text>
-        <Text style={styles.value}>{t('open')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.row}
-        onPress={() => navigation.navigate('SpiritualDetails')}>
-        <Text style={styles.label}>{t('spiritualDetails')}</Text>
-        <Text style={styles.value}>{t('edit')}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.row}
-        onPress={() => navigation.navigate('AnalyticsHub')}>
-        <Text style={styles.label}>{t('japaAnalyticsLabel')}</Text>
         <Text style={styles.value}>{t('open')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.delete} onPress={deleteAccount}>

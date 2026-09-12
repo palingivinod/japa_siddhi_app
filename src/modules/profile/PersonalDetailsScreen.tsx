@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import countryList, {CountryItem} from '../../constants/countries';
 import {DEFAULT_LANGUAGE, Language} from '../../constants/languages';
+import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import CountryPickerField from '../auth/components/CountryPickerField';
@@ -32,16 +33,19 @@ interface CityModel {
   name: string;
 }
 
-const Row = ({label, value}: {label: string; value?: string}) =>
-  value ? (
+const Row = ({label, value}: {label: string; value?: string}) => {
+  const {tt} = useLanguage();
+  return value ? (
     <View style={styles.row}>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowValue}>{value}</Text>
+      <Text style={styles.rowLabel}>{tt(label)}</Text>
+      <Text style={styles.rowValue}>{tt(value)}</Text>
     </View>
   ) : null;
+};
 
 const PersonalDetailsScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -237,14 +241,14 @@ const PersonalDetailsScreen = () => {
 
   return (
     <ScreenLayout title="Edit Personal Details" showBack tab="Profile">
-      <Text style={styles.label}>Full name</Text>
+      <Text style={styles.label}>{t('fullName')}</Text>
       <TextInput
         style={[styles.input, styles.disabledInput]}
         value={fullName}
         editable={false}
       />
 
-      <Text style={styles.label}>Email</Text>
+      <Text style={styles.label}>{t('email')}</Text>
       <TextInput
         style={[styles.input, styles.disabledInput]}
         value={email}
@@ -252,27 +256,27 @@ const PersonalDetailsScreen = () => {
         autoCapitalize="none"
       />
 
-      <Text style={styles.label}>Mobile</Text>
+      <Text style={styles.label}>{t('mobile')}</Text>
       <TextInput
         style={styles.input}
         value={mobileNumber}
         onChangeText={setMobileNumber}
         keyboardType="phone-pad"
-        placeholder="Mobile number"
+        placeholder={t('placeholderMobile')}
       />
 
-      <Text style={styles.label}>Gender</Text>
+      <Text style={styles.label}>{t('gender')}</Text>
       <View style={styles.pickerContainer}>
         <Picker selectedValue={gender} onValueChange={setGender}>
-          <Picker.Item label="Select Gender" value="" />
-          <Picker.Item label="Male" value="Male" />
-          <Picker.Item label="Female" value="Female" />
-          <Picker.Item label="Other" value="Other" />
-          <Picker.Item label="Prefer Not To Say" value="Prefer Not To Say" />
+          <Picker.Item label={t('selectGender')} value="" />
+          <Picker.Item label={t('male')} value="Male" />
+          <Picker.Item label={t('female')} value="Female" />
+          <Picker.Item label={t('otherGender')} value="Other" />
+          <Picker.Item label={t('preferNotToSay')} value="Prefer Not To Say" />
         </Picker>
       </View>
 
-      <Text style={styles.label}>Country</Text>
+      <Text style={styles.label}>{t('country')}</Text>
       <CountryPickerField
         value={
           country ?? {
@@ -289,7 +293,7 @@ const PersonalDetailsScreen = () => {
         }}
       />
 
-      <Text style={styles.label}>State</Text>
+      <Text style={styles.label}>{t('state')}</Text>
       <StateSelector
         country={country}
         value={stateModel}
@@ -299,47 +303,47 @@ const PersonalDetailsScreen = () => {
         }}
       />
 
-      <Text style={styles.label}>City</Text>
+      <Text style={styles.label}>{t('city')}</Text>
       <CitySelector
         state={stateModel}
         value={cityModel}
         onChange={(item: CityModel) => setCityModel(item)}
       />
 
-      <Text style={styles.label}>Address</Text>
+      <Text style={styles.label}>{t('address')}</Text>
       <TextInput
         style={styles.input}
         value={address}
         onChangeText={setAddress}
-        placeholder="Enter address"
+        placeholder={t('enterAddress')}
       />
 
-      <Text style={styles.label}>Language</Text>
+      <Text style={styles.label}>{t('language')}</Text>
       <LanguageSelector
         value={language}
         onChange={(item: Language) => setLanguage(item)}
       />
 
-      <Text style={styles.label}>Marital status</Text>
+      <Text style={styles.label}>{t('maritalStatus')}</Text>
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={maritalStatus}
           onValueChange={value =>
             setMaritalStatus(value as 'Bachelor' | 'Married')
           }>
-          <Picker.Item label="Bachelor" value="Bachelor" />
-          <Picker.Item label="Married" value="Married" />
+          <Picker.Item label={t('bachelor')} value="Bachelor" />
+          <Picker.Item label={t('married')} value="Married" />
         </Picker>
       </View>
 
       {maritalStatus === 'Married' ? (
         <>
-          <Text style={styles.label}>Spouse name</Text>
+          <Text style={styles.label}>{t('spouseName')}</Text>
           <TextInput
             style={styles.input}
             value={spouseName}
             onChangeText={setSpouseName}
-            placeholder="Spouse name"
+            placeholder={t('spouseName')}
           />
         </>
       ) : null}

@@ -3,6 +3,8 @@ import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import InsightCard from '../common/InsightCard';
@@ -21,34 +23,34 @@ type Period =
   | 'goals'
   | 'streak';
 
-const CHART_CAPTION: Record<Period, string> = {
-  overview: 'Last 12 months from saved Japa',
-  daily: 'Last 7 days from saved Japa',
-  weekly: 'Last 7 days from saved Japa',
-  monthly: 'This month, grouped by week',
-  lifetime: 'Last 12 months from saved Japa',
-  goals: 'Last 7 days from saved Japa',
-  streak: 'Last 7 days — keep a bar on every day',
+const CHART_CAPTION: Record<Period, TranslationKey> = {
+  overview: 'chartLast12Months',
+  daily: 'chartLast7Days',
+  weekly: 'chartLast7Days',
+  monthly: 'chartThisMonthWeeks',
+  lifetime: 'chartLast12Months',
+  goals: 'chartLast7Days',
+  streak: 'chartStreakDays',
 };
 
-const BY_MANTRA_CAPTION: Record<Period, string> = {
-  overview: 'Lifetime count for each mantra',
-  daily: "Today's count for each mantra",
-  weekly: "This week's count for each mantra",
-  monthly: "This month's count for each mantra",
-  lifetime: 'Lifetime count for each mantra',
-  goals: "This week's count for each mantra",
-  streak: "This year's count for each mantra",
+const BY_MANTRA_CAPTION: Record<Period, TranslationKey> = {
+  overview: 'byMantraLifetime',
+  daily: 'byMantraToday',
+  weekly: 'byMantraWeek',
+  monthly: 'byMantraMonth',
+  lifetime: 'byMantraLifetime',
+  goals: 'byMantraWeek',
+  streak: 'byMantraYear',
 };
 
-const NEXT: Record<Period, {title: string; route: string}> = {
-  overview: {title: 'DAILY ANALYTICS', route: 'DailyAnalytics'},
-  daily: {title: 'WEEKLY ANALYTICS', route: 'WeeklyAnalytics'},
-  weekly: {title: 'MONTHLY ANALYTICS', route: 'MonthlyAnalytics'},
-  monthly: {title: 'LIFETIME ANALYTICS', route: 'LifetimeAnalytics'},
-  lifetime: {title: 'GOAL ANALYTICS', route: 'GoalAnalytics'},
-  goals: {title: 'STREAK ANALYTICS', route: 'StreakAnalytics'},
-  streak: {title: 'BACK TO JAPA', route: 'JapaHub'},
+const NEXT: Record<Period, {titleKey: TranslationKey; route: string}> = {
+  overview: {titleKey: 'dailyAnalyticsCta', route: 'DailyAnalytics'},
+  daily: {titleKey: 'weeklyAnalyticsCta', route: 'WeeklyAnalytics'},
+  weekly: {titleKey: 'monthlyAnalyticsCta', route: 'MonthlyAnalytics'},
+  monthly: {titleKey: 'lifetimeAnalyticsCta', route: 'LifetimeAnalytics'},
+  lifetime: {titleKey: 'goalAnalyticsCta', route: 'GoalAnalytics'},
+  goals: {titleKey: 'streakAnalyticsCta', route: 'StreakAnalytics'},
+  streak: {titleKey: 'backToJapa', route: 'JapaHub'},
 };
 
 const AnalyticsTemplate = ({
@@ -59,6 +61,7 @@ const AnalyticsTemplate = ({
   period: Period;
 }) => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [data, setData] = useState<any>(null);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -81,7 +84,7 @@ const AnalyticsTemplate = ({
       })
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load analytics.'));
+        setError(getApiError(err, t('couldNotLoadAnalytics')));
       })
       .finally(() => setLoading(false));
   }, [period]);
@@ -100,17 +103,17 @@ const AnalyticsTemplate = ({
       ) : null}
       {data ? (
         <View>
-          <Text style={styles.source}>Updated from your saved Japa sessions</Text>
+          <Text style={styles.source}>{t('updatedFromSavedJapa')}</Text>
           <MilestoneProgressCard
             milestone={data.milestone}
             onPress={() => navigation.navigate('MilestoneNotifications')}
           />
           <StatCards items={data.stats || []} />
-          <Text style={styles.section}>Progress trend</Text>
-          <Text style={styles.caption}>{CHART_CAPTION[period]}</Text>
+          <Text style={styles.section}>{t('progressTrend')}</Text>
+          <Text style={styles.caption}>{t(CHART_CAPTION[period])}</Text>
           <TrendChart values={data.trend || []} />
-          <Text style={styles.section}>By mantra</Text>
-          <Text style={styles.caption}>{BY_MANTRA_CAPTION[period]}</Text>
+          <Text style={styles.section}>{t('byMantra')}</Text>
+          <Text style={styles.caption}>{t(BY_MANTRA_CAPTION[period])}</Text>
           {(data.byMantra || []).length ? (
             (data.byMantra as Array<{
               mantraId: number;
@@ -125,12 +128,12 @@ const AnalyticsTemplate = ({
               </View>
             ))
           ) : (
-            <Text style={styles.caption}>No saved Japa by mantra yet.</Text>
+            <Text style={styles.caption}>{t('noSavedJapaByMantra')}</Text>
           )}
-          <Text style={styles.section}>Highlights</Text>
+          <Text style={styles.section}>{t('highlights')}</Text>
           <InsightCard text={data.insight} />
           <PrimaryButton
-            title={NEXT[period].title}
+            title={t(NEXT[period].titleKey)}
             onPress={() => navigation.navigate(NEXT[period].route)}
           />
         </View>

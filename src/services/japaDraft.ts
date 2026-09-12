@@ -21,10 +21,13 @@ export const draftKey = (
   mode: string,
   mantraId?: number,
   challengeId?: number,
+  japaGoalId?: number,
 ) =>
   Number(challengeId) > 0
     ? `challenge:${Number(challengeId)}`
-    : `${mode}:${Number(mantraId || 0)}`;
+    : Number(japaGoalId) > 0
+      ? `${mode}:goal:${Number(japaGoalId)}`
+      : `${mode}:${Number(mantraId || 0)}`;
 
 const isActive = (draft?: JapaDraft | null) => {
   const count = Number(draft?.count || 0);
@@ -38,6 +41,7 @@ const normalize = (draft: JapaDraft): JapaDraft => ({
   goal: Number(draft.goal || 0),
   postedCount: Number(draft.postedCount || 0),
   mantraId: Number(draft.mantraId || 0) || undefined,
+  japaGoalId: Number(draft.japaGoalId || 0) || undefined,
   challengeId: Number(draft.challengeId || 0) || undefined,
 });
 
@@ -53,7 +57,14 @@ const readMap = async (): Promise<DraftMap> => {
     }
     const draft = normalize(JSON.parse(legacy) as JapaDraft);
     const map = isActive(draft)
-      ? {[draftKey(draft.mode, draft.mantraId, draft.challengeId)]: draft}
+      ? {
+          [draftKey(
+            draft.mode,
+            draft.mantraId,
+            draft.challengeId,
+            draft.japaGoalId,
+          )]: draft,
+        }
       : {};
     await AsyncStorage.setItem(DRAFTS_KEY, JSON.stringify(map));
     await AsyncStorage.removeItem(LEGACY_KEY);
@@ -71,11 +82,16 @@ export const getJapaDraft = async (
   mode?: string,
   mantraId?: number,
   challengeId?: number,
+  japaGoalId?: number,
 ): Promise<JapaDraft | null> => {
   const map = await readMap();
   if (Number(challengeId) > 0) {
     const match = map[draftKey(mode || 'community', mantraId, challengeId)];
     return isActive(match) ? normalize(match) : null;
+  }
+  if (Number(japaGoalId) > 0) {
+    const match = map[draftKey(mode || 'private', mantraId, undefined, japaGoalId)];
+    return isActive(match) && !match.challengeId ? normalize(match) : null;
   }
   if (mode) {
     const match = map[draftKey(mode, mantraId)];
@@ -91,7 +107,12 @@ export const getJapaDraft = async (
 export const saveJapaDraft = async (draft: JapaDraft) => {
   const next = normalize({...draft, updatedAt: Date.now()});
   const map = await readMap();
-  const key = draftKey(next.mode, next.mantraId, next.challengeId);
+  const key = draftKey(
+    next.mode,
+    next.mantraId,
+    next.challengeId,
+    next.japaGoalId,
+  );
   if (!isActive(next)) {
     delete map[key];
   } else {
@@ -104,13 +125,14 @@ export const clearJapaDraft = async (
   mode?: string,
   mantraId?: number,
   challengeId?: number,
+  japaGoalId?: number,
 ) => {
-  if (!mode && !challengeId) {
+  if (!mode && !challengeId && !japaGoalId) {
     await AsyncStorage.removeItem(DRAFTS_KEY);
     await AsyncStorage.removeItem(LEGACY_KEY);
     return;
   }
   const map = await readMap();
-  delete map[draftKey(mode || 'community', mantraId, challengeId)];
+  delete map[draftKey(mode || 'community', mantraId, challengeId, japaGoalId)];
   await writeMap(map);
 };

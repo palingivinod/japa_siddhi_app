@@ -2,18 +2,40 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 
-const TABS = ['All', 'Pending', 'Shipped', 'Delivered'];
+const TABS: Array<{id: string; key: TranslationKey}> = [
+  {id: 'All', key: 'orderTabAll'},
+  {id: 'Pending', key: 'orderTabPending'},
+  {id: 'Shipped', key: 'orderTabShipped'},
+  {id: 'Delivered', key: 'orderTabDelivered'},
+];
 
 const statusOf = (item: any) =>
   String(item.orderStatus || item.status || '').toLowerCase();
 
+const statusKey = (raw: string): TranslationKey => {
+  const value = raw.toLowerCase();
+  if (value.includes('deliver')) {
+    return 'orderTabDelivered';
+  }
+  if (value.includes('ship')) {
+    return 'orderTabShipped';
+  }
+  if (value.includes('pend')) {
+    return 'orderTabPending';
+  }
+  return 'statusProcessing';
+};
+
 const OrdersScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, tt} = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [tab, setTab] = useState('All');
   const [loading, setLoading] = useState(true);
@@ -29,7 +51,7 @@ const OrdersScreen = () => {
       .then(response => setOrders(response.data.data ?? []))
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load orders.'));
+        setError(getApiError(err, t('couldNotLoadOrders')));
       })
       .finally(() => setLoading(false));
   };
@@ -49,9 +71,9 @@ const OrdersScreen = () => {
     <ScreenLayout title="My Orders" tab="Orders">
       <View style={styles.tabs}>
         {TABS.map(item => (
-          <TouchableOpacity key={item} onPress={() => setTab(item)}>
-            <Text style={[styles.tab, tab === item && styles.tabActive]}>
-              {item}
+          <TouchableOpacity key={item.id} onPress={() => setTab(item.id)}>
+            <Text style={[styles.tab, tab === item.id && styles.tabActive]}>
+              {t(item.key)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -61,7 +83,7 @@ const OrdersScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       {!loading && !error && visible.length === 0 ? (
-        <Text style={styles.empty}>No orders yet.</Text>
+        <Text style={styles.empty}>{t('noOrdersYet')}</Text>
       ) : null}
       {visible.map(item => (
         <View key={item.id} style={styles.card}>
@@ -73,8 +95,8 @@ const OrdersScreen = () => {
               {item.orderNumber || `Order #${item.id}`}
             </Text>
             <Text style={styles.meta}>
-              {item.itemName || item.productName || item.donationType || 'Seva'} •{' '}
-              {item.orderStatus || item.status || 'Processing'}
+              {tt(String(item.itemName || item.productName || item.donationType || t('seva')))}{' '}
+              • {t(statusKey(String(item.orderStatus || item.status || '')))}
             </Text>
           </View>
           <TouchableOpacity
@@ -82,7 +104,7 @@ const OrdersScreen = () => {
             onPress={() =>
               navigation.navigate('OrderDetails', {id: item.id, order: item})
             }>
-            <Text style={styles.viewText}>VIEW</Text>
+            <Text style={styles.viewText}>{t('view')}</Text>
           </TouchableOpacity>
         </View>
       ))}

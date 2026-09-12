@@ -4,7 +4,6 @@ import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
-import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -14,10 +13,10 @@ const FeedbackScreen = () => {
 
   return (
     <ScreenLayout title="Share Feedback" showBack tab="Profile">
-      <Text style={styles.heading}>How was your experience?</Text>
+      <Text style={styles.heading}>{t('howWasExperience')}</Text>
       <FormField
-        label="Comments"
-        placeholder="Tell us more"
+        label={t('comments')}
+        placeholder={t('tellUsMore')}
         value={message}
         onChangeText={setMessage}
         multiline
@@ -27,8 +26,6 @@ const FeedbackScreen = () => {
         title="CONTINUE TO RATING"
         onPress={() => navigation.navigate('StarRating', {message})}
       />
-      <Text style={styles.spacer} />
-      <OutlineButton title="Skip" onPress={() => navigation.goBack()} />
     </ScreenLayout>
   );
 };
@@ -45,5 +42,4 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   area: {minHeight: 100, textAlignVertical: 'top'},
-  spacer: {height: 12},
 });

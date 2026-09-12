@@ -72,13 +72,13 @@ const DonateScreen = () => {
 
       {!loading && !hasAny ? (
         <Text style={styles.empty}>
-          Annadanam options are currently unavailable.
+          {t('annadanamUnavailable')}
         </Text>
       ) : null}
 
       {visibility.japa ? (
         <MenuCard
-          emoji="🙏"
+          icon="japaAnnadanam"
           title={t('japaAnnadanam')}
           subtitle={t('japaAnnadanamSub')}
           tone="gold"
@@ -88,7 +88,7 @@ const DonateScreen = () => {
 
       {visibility.general ? (
         <MenuCard
-          emoji="🍲"
+          icon="generalAnnadanam"
           title={t('generalAnnadanam')}
           subtitle={t('generalAnnadanamSub')}
           tone="green"
@@ -98,9 +98,9 @@ const DonateScreen = () => {
 
       {visibility.campaigns ? (
         <MenuCard
-          emoji="🪔"
-          title="Festival Campaigns"
-          subtitle="Seasonal Annadanam campaigns"
+          icon="festivalCampaign"
+          title={t('festivalCampaigns')}
+          subtitle={t('seasonalAnnadanamCampaigns')}
           onPress={() => navigation.navigate('Festivals')}
         />
       ) : null}

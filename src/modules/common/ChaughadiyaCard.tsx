@@ -115,26 +115,34 @@ const styles = StyleSheet.create({
   label: {
     color: Colors.leafGreen,
     fontSize: 11,
+    lineHeight: 18,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0,
+    includeFontPadding: true,
   },
   name: {
     marginTop: 6,
     color: Colors.sacredBrown,
-    fontSize: 26,
+    fontSize: 24,
+    lineHeight: 34,
     fontWeight: '800',
+    includeFontPadding: true,
   },
   time: {
     marginTop: 6,
     color: Colors.sacredBrown,
     fontWeight: '700',
     fontSize: 14,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   effect: {
     marginTop: 4,
     color: Colors.leafGreen,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '700',
+    includeFontPadding: true,
   },
   chevronWrap: {
     width: 28,
@@ -167,6 +175,8 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 15,
+    lineHeight: 24,
+    includeFontPadding: true,
   },
   rowNameActive: {
     color: Colors.templeGold,
@@ -175,5 +185,7 @@ const styles = StyleSheet.create({
     marginTop: 3,
     color: Colors.textSecondary,
     fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
 });

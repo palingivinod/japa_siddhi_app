@@ -221,7 +221,7 @@ const HomeScreen = () => {
           {homeBanners.map(item => (
             <View key={String(item.id)} style={styles.noticeCard}>
               <View style={styles.noticeCopy}>
-                <Text style={styles.noticeKicker}>NOTICE</Text>
+                <Text style={styles.noticeKicker}>{t('notice')}</Text>
                 <Text style={styles.noticeTitle}>{item.title}</Text>
                 {item.subtitle ? (
                   <Text style={styles.noticeSub}>{item.subtitle}</Text>
@@ -386,13 +386,17 @@ const styles = StyleSheet.create({
   body: {flex: 1, paddingHorizontal: 20},
   greet: {
     fontSize: 22,
+    lineHeight: 32,
     fontWeight: '800',
     color: Colors.leafGreen,
+    includeFontPadding: true,
   },
   wish: {
     marginTop: 4,
     marginBottom: 16,
     color: Colors.sacredBrown,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   noticeCard: {
     backgroundColor: Colors.white,
@@ -407,18 +411,23 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 11,
-    letterSpacing: 0.8,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
   noticeTitle: {
     marginTop: 4,
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 17,
+    lineHeight: 26,
+    includeFontPadding: true,
   },
   noticeSub: {
     marginTop: 4,
     color: Colors.textSecondary,
     fontSize: 13,
+    lineHeight: 20,
+    includeFontPadding: true,
   },
   festival: {
     backgroundColor: Colors.white,
@@ -433,11 +442,15 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
     fontWeight: '800',
     fontSize: 14,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   nextFestival: {
     marginTop: 8,
     color: Colors.sacredBrown,
     fontWeight: '700',
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   progressCard: {
     backgroundColor: Colors.white,
@@ -449,17 +462,23 @@ const styles = StyleSheet.create({
   },
   progressTitle: {
     fontSize: 18,
+    lineHeight: 28,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   progressMeta: {
     marginTop: 6,
     color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   todayLabel: {
     marginTop: 14,
     color: Colors.leafGreen,
     fontWeight: '700',
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   barRow: {
     flexDirection: 'row',
@@ -481,6 +500,8 @@ const styles = StyleSheet.create({
   percent: {
     fontWeight: '800',
     color: Colors.sacredBrown,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   row: {flexDirection: 'row', gap: 10, marginBottom: 14},
   half: {
@@ -495,23 +516,31 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 12,
-    letterSpacing: 0.6,
+    lineHeight: 20,
+    letterSpacing: 0,
+    includeFontPadding: true,
   },
   big: {
     marginTop: 8,
     fontSize: 18,
+    lineHeight: 28,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   cardTitle: {
     marginTop: 6,
     fontSize: 17,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   cardMeta: {
     marginTop: 4,
     color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   promo: {
     backgroundColor: Colors.white,
@@ -525,13 +554,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     color: Colors.templeGold,
     fontWeight: '800',
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   section: {
     marginTop: 8,
     marginBottom: 10,
     fontSize: 18,
+    lineHeight: 28,
     fontWeight: '800',
     color: Colors.leafGreen,
+    includeFontPadding: true,
   },
   grid: {
     flexDirection: 'row',
@@ -544,6 +577,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 16,
+    paddingBottom: 18,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
@@ -565,12 +599,16 @@ const styles = StyleSheet.create({
   },
   tileTitle: {
     fontSize: 15,
+    lineHeight: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   tileSub: {
     marginTop: 4,
     color: Colors.textSecondary,
     fontSize: 13,
+    lineHeight: 20,
+    includeFontPadding: true,
   },
 });

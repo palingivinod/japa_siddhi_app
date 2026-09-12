@@ -61,8 +61,8 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
-    paddingTop: 4,
-    paddingBottom: 6,
+    paddingTop: 6,
+    paddingBottom: 8,
   },
   item: {
     flex: 1,
@@ -93,8 +93,12 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 11,
+    lineHeight: 16,
     fontWeight: '600',
     color: Colors.leafGreen,
+    includeFontPadding: true,
+    textAlign: 'center',
+    paddingBottom: 1,
   },
   active: {
     color: Colors.templeGold,

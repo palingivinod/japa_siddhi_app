@@ -132,11 +132,16 @@ class JapaRepository {
           CASE
             WHEN target_count - ? < 0 THEN 0
             ELSE target_count - ?
+          END,
+        status =
+          CASE
+            WHEN target_count - ? <= 0 THEN 'COMPLETED'
+            ELSE status
           END
       WHERE id = ?
       AND user_id = ?
       `,
-      [completed, completed, completed, goalId, userId],
+      [completed, completed, completed, completed, goalId, userId],
     );
   }
 

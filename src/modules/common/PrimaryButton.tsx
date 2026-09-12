@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity} from 'react-native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 
 interface Props {
   title: string;
@@ -9,15 +10,18 @@ interface Props {
   disabled?: boolean;
 }
 
-const PrimaryButton: React.FC<Props> = ({title, onPress, disabled}) => (
+const PrimaryButton: React.FC<Props> = ({title, onPress, disabled}) => {
+  const {tt} = useLanguage();
+  return (
   <TouchableOpacity
     style={[styles.button, disabled && styles.disabled]}
     onPress={onPress}
     disabled={disabled}
     activeOpacity={0.8}>
-    <Text style={styles.text}>{title}</Text>
+    <Text style={styles.text}>{tt(title)}</Text>
   </TouchableOpacity>
-);
+  );
+};
 
 export default PrimaryButton;
 
@@ -37,6 +41,10 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '800',
     fontSize: 16,
+    lineHeight: 24,
     letterSpacing: 0.6,
+    includeFontPadding: true,
+    textAlign: 'center',
+    paddingVertical: 2,
   },
 });

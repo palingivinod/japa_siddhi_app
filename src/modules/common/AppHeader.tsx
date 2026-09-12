@@ -86,8 +86,11 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 22,
+    lineHeight: 32,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
+    paddingHorizontal: 4,
   },
   logo: {
     width: 40,

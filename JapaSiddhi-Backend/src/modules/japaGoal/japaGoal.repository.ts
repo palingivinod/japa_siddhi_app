@@ -91,6 +91,7 @@ class JapaGoalRepository {
       FROM japa_goals
       WHERE user_id = ?
       AND status = 'ACTIVE'
+      AND mantra_type = 'DEFAULT'
       ORDER BY created_at DESC
       LIMIT 1
       `,

@@ -1,22 +1,27 @@
 import React from 'react';
 import {StyleSheet, Text, TextInput, TextInputProps, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 
 interface Props extends TextInputProps {
   label: string;
 }
 
-const FormField: React.FC<Props> = ({label, style, ...props}) => (
-  <View style={styles.wrap}>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      placeholderTextColor={Colors.placeholder}
-      style={[styles.input, style]}
-      {...props}
-    />
-  </View>
-);
+const FormField: React.FC<Props> = ({label, style, placeholder, ...props}) => {
+  const {tt} = useLanguage();
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.label}>{tt(label)}</Text>
+      <TextInput
+        placeholder={placeholder ? tt(placeholder) : placeholder}
+        placeholderTextColor={Colors.placeholder}
+        style={[styles.input, style]}
+        {...props}
+      />
+    </View>
+  );
+};
 
 export default FormField;
 

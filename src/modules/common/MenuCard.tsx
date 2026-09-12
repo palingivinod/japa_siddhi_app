@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 
 interface Props {
@@ -23,6 +24,7 @@ const MenuCard: React.FC<Props> = ({
   onPress,
   tone = 'gold',
 }) => {
+  const {tt} = useLanguage();
   const showMark = Boolean(icon || emoji);
   return (
     <TouchableOpacity
@@ -37,16 +39,16 @@ const MenuCard: React.FC<Props> = ({
           showMark ? styles.dotEmoji : null,
         ]}>
         {icon ? (
-          <AppIcon name={icon} size={22} color={Colors.sacredBrown} />
+          <AppIcon name={icon} size={42} color={Colors.sacredBrown} />
         ) : emoji ? (
           <Text style={styles.emoji}>{emoji}</Text>
         ) : null}
       </View>
       <View style={styles.copy}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.sub}>{subtitle}</Text> : null}
+        <Text style={styles.title}>{tt(title)}</Text>
+        {subtitle ? <Text style={styles.sub}>{tt(subtitle)}</Text> : null}
       </View>
-      {value ? <Text style={styles.value}>{value}</Text> : null}
+      {value ? <Text style={styles.value}>{tt(value)}</Text> : null}
       {onPress && !value ? <Text style={styles.chevron}>›</Text> : null}
     </TouchableOpacity>
   );
@@ -73,7 +75,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'visible',
+    overflow: 'hidden',
   },
   dotGreen: {
     backgroundColor: Colors.leafGreen,
@@ -91,15 +93,20 @@ const styles = StyleSheet.create({
   },
   copy: {
     flex: 1,
+    paddingVertical: 2,
   },
   title: {
     fontSize: 16,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   sub: {
-    marginTop: 4,
+    marginTop: 2,
     color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   value: {
     color: Colors.leafGreen,

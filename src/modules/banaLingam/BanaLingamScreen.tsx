@@ -80,11 +80,11 @@ const BanaLingamScreen = () => {
 
   return (
     <ScreenLayout title="Baanalingam" showBack tab="SevaHub">
-      <Text style={styles.heading}>Baanalingam Distribution.</Text>
+      <Text style={styles.heading}>{t('baanalingamDistribution')}</Text>
       <MenuCard
-        emoji="🕉️"
-        title="Sacred service"
-        subtitle="Apply to receive Baanalingam with delivery."
+        icon="banalingam"
+        title={t('sacredService')}
+        subtitle={t('applyBaanalingamDelivery')}
       />
       <FormField
         label="Name"
@@ -101,7 +101,7 @@ const BanaLingamScreen = () => {
       />
       {savedAddresses.length ? (
         <>
-          <Text style={styles.label}>Saved addresses</Text>
+          <Text style={styles.label}>{t('savedAddresses')}</Text>
           <View style={styles.chips}>
             {savedAddresses.map(item => {
               const active = item === address.trim();
@@ -120,8 +120,8 @@ const BanaLingamScreen = () => {
         </>
       ) : null}
       <FormField
-        label={savedAddresses.length ? 'New or selected address' : 'Address'}
-        placeholder="Delivery address"
+        label={savedAddresses.length ? t('newOrSelectedAddress') : t('address')}
+        placeholder={t('deliveryAddress')}
         value={address}
         onChangeText={setAddress}
       />

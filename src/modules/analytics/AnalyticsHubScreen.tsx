@@ -2,24 +2,31 @@ import React, {useCallback, useState} from 'react';
 import {ActivityIndicator, StyleSheet, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import MilestoneProgressCard from '../common/MilestoneProgressCard';
 import ScreenLayout from '../common/ScreenLayout';
 
-const ITEMS = [
-  {title: 'Japa Overview', route: 'JapaOverview', emoji: '🕉️'},
-  {title: 'Daily Analytics', route: 'DailyAnalytics', emoji: '📅'},
-  {title: 'Weekly Analytics', route: 'WeeklyAnalytics', emoji: '📈'},
-  {title: 'Monthly Analytics', route: 'MonthlyAnalytics', emoji: '🗓️'},
-  {title: 'Lifetime Analytics', route: 'LifetimeAnalytics', emoji: '♾️'},
-  {title: 'Goal Analytics', route: 'GoalAnalytics', emoji: '🎯'},
-  {title: 'Streak Analytics', route: 'StreakAnalytics', emoji: '🔥'},
+const ITEMS: Array<{
+  titleKey: TranslationKey;
+  route: string;
+  emoji: string;
+}> = [
+  {titleKey: 'japaOverview', route: 'JapaOverview', emoji: '🕉️'},
+  {titleKey: 'dailyAnalytics', route: 'DailyAnalytics', emoji: '📅'},
+  {titleKey: 'weeklyAnalytics', route: 'WeeklyAnalytics', emoji: '📈'},
+  {titleKey: 'monthlyAnalytics', route: 'MonthlyAnalytics', emoji: '🗓️'},
+  {titleKey: 'lifetimeAnalytics', route: 'LifetimeAnalytics', emoji: '♾️'},
+  {titleKey: 'goalAnalytics', route: 'GoalAnalytics', emoji: '🎯'},
+  {titleKey: 'streakAnalytics', route: 'StreakAnalytics', emoji: '🔥'},
 ];
 
 const AnalyticsHubScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [milestone, setMilestone] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,7 +53,7 @@ const AnalyticsHubScreen = () => {
         <MenuCard
           key={item.route}
           emoji={item.emoji}
-          title={item.title}
+          title={t(item.titleKey)}
           onPress={() => navigation.navigate(item.route)}
         />
       ))}

@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: Colors.cream,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.sacredBrown,
@@ -80,6 +80,8 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 13,
-    letterSpacing: 0.2,
+    lineHeight: 20,
+    includeFontPadding: true,
+    textAlign: 'center',
   },
 });
