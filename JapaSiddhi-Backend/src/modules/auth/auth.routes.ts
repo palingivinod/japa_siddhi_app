@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import {NextFunction, Request, Response, Router} from 'express';
 import rateLimit from 'express-rate-limit';
 
 import authController from './auth.controller';
@@ -39,13 +39,19 @@ const emailPasswordLogin = [
 router.post('/password-login', ...emailPasswordLogin);
 
 // /login: email+password when no Firebase token; otherwise Firebase login.
-router.post('/login', (req, res, next) => {
-  const body = req.body || {};
-  if (body.email && body.password && !body.firebaseToken) {
-    return authController.passwordLogin(req, res, next);
-  }
-  return next();
-}, loginValidation, validateRequest, authController.login);
+router.post(
+  '/login',
+  (req: Request, res: Response, next: NextFunction) => {
+    const body = req.body || {};
+    if (body.email && body.password && !body.firebaseToken) {
+      return authController.passwordLogin(req, res, next);
+    }
+    return next();
+  },
+  loginValidation,
+  validateRequest,
+  authController.login,
+);
 
 router.post(
   '/register',
