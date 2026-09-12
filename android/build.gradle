@@ -40,8 +40,14 @@ subprojects { subproject ->
     subproject.pluginManager.withPlugin("com.android.application", relocateCmake)
 
     subproject.tasks.configureEach { task ->
-        // Old architecture does not need screens CMake; the .so output folder gets locked on this PC.
-        if (subproject.name.contains("react-native-screens") && task.name.contains("CMake")) {
+        // Old architecture does not need screens CMake; the .so output folder
+        // gets locked on Windows. Keep CMake enabled on Linux CI runners.
+        def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
+        if (
+            isWindows &&
+            subproject.name.contains("react-native-screens") &&
+            task.name.contains("CMake")
+        ) {
             task.enabled = false
         }
     }
