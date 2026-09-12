@@ -60,10 +60,18 @@ const SignupPhotoScreen = () => {
       '',
     );
     const mobileNumber = String(params.mobileNumber || '').replace(/\D/g, '');
+    const password = String(params.password || '');
     if (mobileNumber.length < 8 || mobileNumber === '0000000000') {
       Alert.alert(
         'Mobile required',
         'Go back and enter a valid mobile number before creating your profile.',
+      );
+      return;
+    }
+    if (password.length < 6) {
+      Alert.alert(
+        'Password required',
+        'Go back to Create Account and set your password before creating your profile.',
       );
       return;
     }
@@ -101,6 +109,7 @@ const SignupPhotoScreen = () => {
           ...payload,
           mobileCountryCode,
           mobileNumber,
+          password,
         });
         if (result?.data?.token) {
           await saveSession(result.data.token, result.data.user);

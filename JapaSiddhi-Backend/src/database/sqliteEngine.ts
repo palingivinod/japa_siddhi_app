@@ -61,6 +61,7 @@ class SqliteEngine {
       ['anniversary_date', 'TEXT'],
       ['gothram', 'TEXT'],
       ['nakshatram', 'TEXT'],
+      ['password_hash', 'TEXT'],
     ];
 
     columns.forEach(([name, definition]) => {

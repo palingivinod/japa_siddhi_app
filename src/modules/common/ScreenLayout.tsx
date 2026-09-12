@@ -23,7 +23,8 @@ const ScreenLayout: React.FC<Props> = ({
   tab,
   scroll = true,
 }) => {
-  const back = showBack ?? !tab;
+  // Tab roots hide back unless explicitly requested. Stack pages show back.
+  const back = showBack ?? (tab ? false : true);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

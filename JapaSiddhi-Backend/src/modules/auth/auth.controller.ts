@@ -52,6 +52,19 @@ class AuthController {
 
 
 
+  async passwordLogin(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await authService.passwordLogin(req.body);
+      return apiResponse.success(res, 'Login successful', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async register(
     req: Request,
     res: Response,

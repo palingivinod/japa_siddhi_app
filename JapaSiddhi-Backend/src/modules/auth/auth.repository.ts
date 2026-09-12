@@ -9,6 +9,7 @@ interface CreateUserData {
   mobileNumber: string;
   email?: string;
   fullName?: string;
+  passwordHash?: string;
 
   deviceType: 'ANDROID' | 'IOS';
 
@@ -23,8 +24,14 @@ const mapUser = (row: any): AuthUser | null => {
     return null;
   }
 
+  const {
+    password_hash: _passwordHashSnake,
+    passwordHash: _passwordHashCamel,
+    ...safeRow
+  } = row;
+
   return {
-    ...row,
+    ...safeRow,
     firebaseUid: row.firebaseUid ?? row.firebase_uid,
     mobileCountryCode: row.mobileCountryCode ?? row.mobile_country_code,
     mobileNumber: row.mobileNumber ?? row.mobile_number,
@@ -170,6 +177,7 @@ class AuthRepository {
           mobile_number,
           email,
           full_name,
+          password_hash,
           device_type,
           device_model,
           device_os,
@@ -179,6 +187,7 @@ class AuthRepository {
         )
         VALUES
         (
+          ?,
           ?,
           ?,
           ?,
@@ -203,6 +212,7 @@ class AuthRepository {
           data.mobileNumber,
           data.email ? data.email.toLowerCase() : null,
           data.fullName ?? 'Devotee',
+          data.passwordHash ?? null,
           data.deviceType,
           data.deviceModel ?? null,
           data.deviceOs ?? null,
@@ -212,6 +222,35 @@ class AuthRepository {
       );
 
     return result.insertId;
+  }
+
+  async getPasswordHashByEmail(email: string): Promise<string | null> {
+    const rows = await mysql.query<Array<{password_hash?: string | null}>>(
+      `
+      SELECT password_hash
+      FROM users
+      WHERE lower(email) = ?
+      AND deleted_at IS NULL
+      LIMIT 1
+      `,
+      [email.toLowerCase()],
+    );
+    if (!rows.length) {
+      return null;
+    }
+    const hash = rows[0]?.password_hash;
+    return hash ? String(hash) : null;
+  }
+
+  async setPasswordHash(userId: number, passwordHash: string): Promise<void> {
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET password_hash = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [passwordHash, userId],
+    );
   }
 
   async ensureDevUser(data: {

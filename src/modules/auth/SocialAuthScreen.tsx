@@ -6,35 +6,28 @@ import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import OutlineButton from '../common/OutlineButton';
-import apiService from '../../services/apiService';
 
 const SocialAuthScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const provider = String(route.params?.provider || 'Email');
 
-  const continueSignup = async () => {
-    try {
-      await apiService.post('/auth/social', {provider: provider.toLowerCase()});
-    } catch {
-      // Social login is a placeholder until provider SDKs are connected.
-    }
-    navigation.navigate('SignupPersonal', {provider});
-  };
-
   return (
     <ScreenLayout title={`Continue with ${provider}`} showBack>
       <Text style={styles.title}>Continue with {provider}</Text>
       <Text style={styles.copy}>
         {provider} login will complete in a later release. New devotees can
-        create a profile now. Returning devotees can use mobile number and a
-        4-digit email OTP.
+        create an account with email, password and mobile. Returning devotees
+        sign in with email and password.
       </Text>
-      <PrimaryButton title="CREATE PROFILE" onPress={continueSignup} />
+      <PrimaryButton
+        title="CREATE ACCOUNT"
+        onPress={() => navigation.navigate('CreateAccount')}
+      />
       <Text style={styles.gap} />
       <OutlineButton
-        title="USE MOBILE + EMAIL OTP"
-        onPress={() => navigation.navigate('Login')}
+        title="SIGN IN WITH EMAIL + PASSWORD"
+        onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
       />
     </ScreenLayout>
   );

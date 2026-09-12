@@ -10,6 +10,7 @@ import {
   completeProfileValidation,
   otpSendValidation,
   otpVerifyValidation,
+  passwordLoginValidation,
 } from './auth.validation';
 
 import validateRequest from '../../middleware/validateRequest';
@@ -56,6 +57,13 @@ router.post(
   phoneAuthValidation,
   validateRequest,
   authController.phoneLogin,
+);
+
+router.post(
+  '/password-login',
+  passwordLoginValidation,
+  validateRequest,
+  authController.passwordLogin,
 );
 
 router.post(

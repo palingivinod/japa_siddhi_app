@@ -7,22 +7,35 @@ import Colors from '../../theme/colors';
 
 interface Props {
   title: string;
+  /** true = always show, false = never, omit = show when navigation can go back */
   showBack?: boolean;
   showBell?: boolean;
 }
 
 const AppHeader: React.FC<Props> = ({
   title,
-  showBack = false,
+  showBack,
   showBell = false,
 }) => {
   const navigation = useNavigation<any>();
   const {t, tt} = useLanguage();
 
+  const shouldShowBack =
+    showBack === true ||
+    (showBack !== false && !showBell && navigation.canGoBack());
+
+  const onBack = () => {
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.navigate('Home');
+  };
+
   return (
     <View style={styles.row}>
-      {showBack ? (
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.back}>
+      {shouldShowBack ? (
+        <TouchableOpacity onPress={onBack} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
       ) : showBell ? (

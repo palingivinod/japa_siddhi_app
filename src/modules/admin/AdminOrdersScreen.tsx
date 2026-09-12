@@ -63,7 +63,7 @@ const AdminOrdersScreen = () => {
   );
 
   return (
-    <AdminScreenLayout title="Order Management" tab="AdminOrders">
+    <AdminScreenLayout title="Order Management" tab="AdminOrders" showBack={false}>
       <Text style={styles.heading}>Order Management</Text>
       <Text style={styles.sub}>Manage devotee orders.</Text>
 

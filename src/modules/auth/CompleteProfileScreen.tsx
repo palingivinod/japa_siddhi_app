@@ -248,10 +248,20 @@ const CompleteProfileScreen = ({
           // Profile still created if mobile sync fails.
         }
       } else {
+        const password = String(route?.params?.password || '');
+        if (password.length < 6) {
+          Alert.alert(
+            'Password required',
+            'Please create your account with email, password and mobile first.',
+          );
+          setLoading(false);
+          return;
+        }
         const result = await ProfileApi.register({
           ...profilePayload,
           mobileCountryCode: code,
           mobileNumber: number,
+          password,
         });
         const token = result?.data?.token;
         const user = result?.data?.user;

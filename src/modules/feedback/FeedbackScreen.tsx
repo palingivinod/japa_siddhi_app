@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {StyleSheet, Text} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
@@ -9,6 +10,7 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const FeedbackScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [message, setMessage] = useState('');
 
   return (

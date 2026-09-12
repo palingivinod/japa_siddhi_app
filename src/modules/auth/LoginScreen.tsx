@@ -100,7 +100,7 @@ const LoginScreen = () => {
         // Not an admin account — continue with devotee password login.
       }
 
-      const response = await apiService.post('/auth/dev-login', {
+      const response = await apiService.post('/auth/password-login', {
         email: trimmedEmail,
         password: password.trim(),
       });
@@ -119,43 +119,7 @@ const LoginScreen = () => {
         'Login failed',
         error?.response?.data?.message ||
           error?.message ||
-          'Unable to sign in. Try password or Login with OTP.',
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleLoginWithOtp = async () => {
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      Alert.alert(t('required'), 'Enter your email address to receive OTP.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const response = await apiService.post('/auth/otp/send', {
-        email: trimmedEmail,
-      });
-      const data = response.data?.data || {};
-      navigation.navigate('OtpScreen', {
-        phoneNumber: `${data.mobileCountryCode || '91'}${
-          data.mobileNumber || '0000000000'
-        }`,
-        mobileCountryCode: data.mobileCountryCode || '91',
-        mobileNumber: data.mobileNumber || '0000000000',
-        email: trimmedEmail,
-        sentTo: data.sentTo || trimmedEmail,
-      });
-    } catch (error: any) {
-      const timedOut =
-        error?.code === 'ECONNABORTED' ||
-        String(error?.message || '').toLowerCase().includes('timeout');
-      Alert.alert(
-        t('otpFailed'),
-        error?.response?.data?.message ||
-          (timedOut ? t('serverWaking') : t('unableSendOtp')),
+          'Unable to sign in. Check your email and password.',
       );
     } finally {
       setSubmitting(false);
@@ -269,15 +233,6 @@ const LoginScreen = () => {
               disabled={submitting}
             />
 
-            <TouchableOpacity
-              style={styles.otpLinkBtn}
-              onPress={handleLoginWithOtp}
-              disabled={submitting}>
-              <Text style={styles.otpLinkText}>
-                {submitting ? 'Sending OTP...' : 'Login with OTP'}
-              </Text>
-            </TouchableOpacity>
-
             {__DEV__ ? (
               <View style={styles.testBox}>
                 <Text style={styles.testTitle}>Test login (SMTP off)</Text>
@@ -307,7 +262,9 @@ const LoginScreen = () => {
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
-              <TouchableOpacity onPress={handleLoginWithOtp} disabled={submitting}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('CreateAccount')}
+                disabled={submitting}>
                 <Text style={styles.linkText}>{t('createAnAccount')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -388,16 +345,6 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     color: Colors.leafGreen,
     fontWeight: '700',
-  },
-  otpLinkBtn: {
-    marginTop: 16,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  otpLinkText: {
-    color: Colors.templeGold,
-    fontWeight: '800',
-    fontSize: 16,
   },
   or: {
     textAlign: 'center',

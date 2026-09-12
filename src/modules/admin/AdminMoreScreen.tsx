@@ -68,7 +68,7 @@ const AdminMoreScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="More" tab="AdminMore">
+    <AdminScreenLayout title="More" tab="AdminMore" showBack={false}>
       <Text style={styles.heading}>More</Text>
       <Text style={styles.sub}>Admin tools and account.</Text>
 

@@ -65,7 +65,7 @@ const AdminJapaScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="Japa Management" tab="AdminJapa">
+    <AdminScreenLayout title="Japa Management" tab="AdminJapa" showBack={false}>
       <Text style={styles.heading}>Japa Management</Text>
       <Text style={styles.sub}>Manage up to 12 predefined mantras.</Text>
 

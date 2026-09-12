@@ -35,11 +35,18 @@ export const otpSendValidation = [
     .isEmail()
     .withMessage('Enter a valid email address.'),
   body('mobileCountryCode')
-    .optional({nullable: true})
-    .trim(),
+    .trim()
+    .notEmpty()
+    .withMessage('Country code is required.'),
   body('mobileNumber')
-    .optional({nullable: true})
-    .trim(),
+    .trim()
+    .notEmpty()
+    .isLength({min: 6, max: 15})
+    .withMessage('Enter a valid mobile number.'),
+  body('mode')
+    .optional()
+    .isIn(['register', 'login'])
+    .withMessage('Invalid OTP mode.'),
 ];
 
 export const otpVerifyValidation = [
@@ -50,8 +57,27 @@ export const otpVerifyValidation = [
     .withMessage('Enter the 4-digit OTP.'),
 ];
 
+export const passwordLoginValidation = [
+  body('email')
+    .trim()
+    .notEmpty()
+    .withMessage('Email is required.')
+    .isEmail()
+    .withMessage('Enter a valid email address.'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required.')
+    .isLength({min: 6})
+    .withMessage('Password must be at least 6 characters.'),
+];
+
 export const registerValidation = [
   ...phoneAuthValidation,
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required.')
+    .isLength({min: 6})
+    .withMessage('Password must be at least 6 characters.'),
   body('fullName')
     .trim()
     .notEmpty()

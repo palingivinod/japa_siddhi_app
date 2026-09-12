@@ -79,7 +79,7 @@ const AdminAccountsScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="Add Admin" tab="AdminDashboard">
+    <AdminScreenLayout title="Add Admin" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Admin accounts</Text>
       <Text style={styles.sub}>
         Add login credentials for another administrator.

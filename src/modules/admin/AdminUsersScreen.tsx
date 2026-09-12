@@ -70,7 +70,7 @@ const AdminUsersScreen = () => {
   );
 
   return (
-    <AdminScreenLayout title="User Management" tab="AdminUsers">
+    <AdminScreenLayout title="User Management" tab="AdminUsers" showBack={false}>
       <Text style={styles.heading}>User Management</Text>
       <Text style={styles.sub}>Manage registered users.</Text>
 

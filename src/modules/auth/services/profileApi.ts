@@ -130,12 +130,14 @@ class ProfileApi {
   async register(data: CompleteProfileRequest & {
     mobileCountryCode: string;
     mobileNumber: string;
+    password: string;
   }) {
     const response = await apiService.post('/auth/register', {
       mobileCountryCode: data.mobileCountryCode,
       mobileNumber: data.mobileNumber,
       fullName: data.fullName,
       email: data.email,
+      password: data.password,
       gender: data.gender,
       dateOfBirth: data.dob,
       dob: data.dob,

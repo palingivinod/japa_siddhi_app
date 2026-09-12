@@ -48,6 +48,7 @@ const SignupPersonalScreen = () => {
       ...route.params,
       fullName: fullName.trim(),
       email: email.trim(),
+      password: route.params?.password,
       mobileCountryCode: code,
       mobileNumber: mobile,
       phoneNumber: `${code}${mobile}`,

@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS users (
   nakshatram TEXT,
   preferred_language_id INTEGER,
   timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
+  password_hash TEXT,
   device_type TEXT NOT NULL DEFAULT 'ANDROID',
   device_model TEXT,
   device_os TEXT,

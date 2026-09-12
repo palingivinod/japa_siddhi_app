@@ -83,7 +83,7 @@ const AdminDashboardScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="Admin Dashboard" tab="AdminDashboard">
+    <AdminScreenLayout title="Admin Dashboard" tab="AdminDashboard" showBack={false}>
       <Text style={styles.heading}>Admin Dashboard</Text>
       <Text style={styles.sub}>
         Centralized control for the Japa Siddhi platform.

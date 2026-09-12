@@ -18,7 +18,7 @@ const AdminScreenLayout: React.FC<Props> = ({
   title,
   children,
   tab,
-  showBack = false,
+  showBack = true,
 }) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>

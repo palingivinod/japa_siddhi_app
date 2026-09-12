@@ -1,4 +1,5 @@
 import {randomUUID} from 'crypto';
+import bcrypt from 'bcrypt';
 import { admin } from '../../firebase/firebase';
 
 import authRepository from './auth.repository';
@@ -29,6 +30,16 @@ const issueToken = (user: AuthUser) =>
 
 const normalizePhone = (value: string) =>
   String(value || '').replace(/\D/g, '');
+
+const hashPassword = (password: string) => bcrypt.hash(password, 10);
+
+const assertPassword = (password: string) => {
+  const value = String(password || '');
+  if (value.length < 6) {
+    throw new AppError('Password must be at least 6 characters.', 400);
+  }
+  return value;
+};
 
 const profileFields = (data: any) => ({
   fullName: String(data.fullName || '').trim(),
@@ -250,6 +261,7 @@ class AuthService {
     mobileCountryCode: string;
     mobileNumber: string;
     email: string;
+    password?: string;
     fullName?: string;
     gender?: CompleteProfileRequest['gender'] | 'Prefer Not To Say';
     dateOfBirth?: string;
@@ -267,6 +279,8 @@ class AuthService {
     const mobileNumber = normalizePhone(data.mobileNumber);
     const email = String(data.email || '').trim().toLowerCase();
     const fullName = String(data.fullName || '').trim();
+    const password = assertPassword(String(data.password || ''));
+    const passwordHash = await hashPassword(password);
 
     if (
       !mobileCountryCode ||
@@ -284,7 +298,16 @@ class AuthService {
 
     const existingEmail = await authRepository.findUserByEmail(email);
     if (existingEmail) {
-      // Same email → continue/complete THAT account only (never another phone's user).
+      const existingHash = await authRepository.getPasswordHashByEmail(email);
+      if (existingHash) {
+        throw new AppError(
+          'An account with this email already exists. Please sign in with email and password.',
+          409,
+        );
+      }
+
+      // Legacy account without password — finish profile and set password once.
+      await authRepository.setPasswordHash(existingEmail.id, passwordHash);
       await authRepository.completeProfile(
         existingEmail.id,
         profileFields({
@@ -293,7 +316,6 @@ class AuthService {
           email,
         }),
       );
-      // Keep this account's mobile in sync with what they typed (independent of other users).
       await authRepository.updateMobileIfChanged(
         existingEmail.id,
         mobileCountryCode,
@@ -318,44 +340,26 @@ class AuthService {
         mobileNumber,
         email,
         fullName,
+        passwordHash,
         firebaseUid: `email:${email}`,
         deviceType: data.deviceType ?? 'ANDROID',
       });
     } catch (error: any) {
       const message = String(error?.message || error?.sqlMessage || '');
       if (/firebase_uid|UNIQUE/i.test(message)) {
-        // Email row may have been created concurrently — continue that account.
         const raced = await authRepository.findUserByEmail(email);
         if (raced) {
-          await authRepository.completeProfile(
-            raced.id,
-            profileFields({
-              ...data,
-              fullName: fullName || raced.fullName,
-              email,
-            }),
+          throw new AppError(
+            'An account with this email already exists. Please sign in with email and password.',
+            409,
           );
-          await authRepository.updateMobileIfChanged(
-            raced.id,
-            mobileCountryCode,
-            mobileNumber,
-          );
-          const existingUser = await authRepository.findUserById(raced.id);
-          if (!existingUser) {
-            throw new AppError('User login failed', 500);
-          }
-          return {
-            token: issueToken(existingUser),
-            user: existingUser,
-            isNewUser: false,
-          };
         }
-        // Phone-era uid collision: retry with a fresh unique id.
         userId = await authRepository.createUser({
           mobileCountryCode,
           mobileNumber,
           email,
           fullName,
+          passwordHash,
           firebaseUid: `usr:${randomUUID()}`,
           deviceType: data.deviceType ?? 'ANDROID',
         });
@@ -384,6 +388,46 @@ class AuthService {
     };
   }
 
+  async passwordLogin(data: {
+    email?: string;
+    password?: string;
+  }): Promise<LoginResponse> {
+    const email = String(data.email || '').trim().toLowerCase();
+    const password = String(data.password || '');
+
+    if (!email || !email.includes('@')) {
+      throw new AppError('Enter a valid email address', 400);
+    }
+    if (!password) {
+      throw new AppError('Enter your password', 400);
+    }
+
+    const user = await authRepository.findUserByEmail(email);
+    if (!user) {
+      throw new AppError('Invalid email or password.', 401);
+    }
+
+    const passwordHash = await authRepository.getPasswordHashByEmail(email);
+    if (!passwordHash) {
+      throw new AppError(
+        'No password is set for this account. Create your account again to set email, password and mobile.',
+        401,
+      );
+    }
+
+    const ok = await bcrypt.compare(password, passwordHash);
+    if (!ok) {
+      throw new AppError('Invalid email or password.', 401);
+    }
+
+    await authRepository.updateLastLogin(user.id);
+    const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
+    return {
+      token: issueToken(freshUser),
+      user: freshUser,
+    };
+  }
+
   async signIn(data: {
     mobileCountryCode: string;
     mobileNumber: string;
@@ -405,7 +449,7 @@ class AuthService {
 
     if (!user) {
       throw new AppError(
-        'No account found for this email. Use OTP login to create one.',
+        'No account found for this email. Please create an account first.',
         401,
       );
     }
@@ -502,7 +546,16 @@ class AuthService {
     mobileCountryCode?: string;
     mobileNumber?: string;
     email?: string;
+    mode?: 'register' | 'login';
   }) {
+    const mode = data.mode === 'login' ? 'login' : 'register';
+    if (mode !== 'register') {
+      throw new AppError(
+        'OTP is only available while creating a new account. Please sign in with email and password.',
+        400,
+      );
+    }
+
     const destinationEmail = String(data.email || '').trim().toLowerCase();
     if (!destinationEmail || !destinationEmail.includes('@')) {
       throw new AppError(
@@ -511,19 +564,31 @@ class AuthService {
       );
     }
 
-    let mobileCountryCode = normalizePhone(data.mobileCountryCode || '');
-    let mobileNumber = normalizePhone(data.mobileNumber || '');
-
-    // Email-only OTP login: fill mobile from existing account when available.
-    if (!mobileCountryCode || mobileNumber.length < 6) {
-      const existingUser = await authRepository.findUserByEmail(destinationEmail);
-      mobileCountryCode =
-        normalizePhone(existingUser?.mobileCountryCode || '') || '91';
-      mobileNumber =
-        normalizePhone(existingUser?.mobileNumber || '') || '0000000000';
+    const mobileCountryCode = normalizePhone(data.mobileCountryCode || '');
+    const mobileNumber = normalizePhone(data.mobileNumber || '');
+    if (
+      !mobileCountryCode ||
+      mobileNumber.length < 6 ||
+      /^0+$/.test(mobileNumber)
+    ) {
+      throw new AppError(
+        'Enter a valid mobile number to create your account.',
+        400,
+      );
     }
 
-    // Always send to the email the user typed (independent of any phone account).
+    const existingUser = await authRepository.findUserByEmail(destinationEmail);
+    if (existingUser) {
+      const existingHash =
+        await authRepository.getPasswordHashByEmail(destinationEmail);
+      if (existingHash) {
+        throw new AppError(
+          'An account with this email already exists. Please sign in with email and password.',
+          409,
+        );
+      }
+    }
+
     const existing = await otpRepository.findActiveByEmail(destinationEmail);
     if (
       existing &&
@@ -552,6 +617,7 @@ class AuthService {
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
       mobileCountryCode,
       mobileNumber,
+      mode: 'register' as const,
     };
   }
 
@@ -560,7 +626,16 @@ class AuthService {
     mobileNumber?: string;
     email?: string;
     otp: string;
+    mode?: 'register' | 'login';
   }) {
+    const mode = data.mode === 'login' ? 'login' : 'register';
+    if (mode !== 'register') {
+      throw new AppError(
+        'OTP is only available while creating a new account. Please sign in with email and password.',
+        400,
+      );
+    }
+
     const email = String(data.email || '').trim().toLowerCase();
     const otp = String(data.otp || '').trim();
 
@@ -594,31 +669,33 @@ class AuthService {
       '91';
     const mobileNumber =
       normalizePhone(data.mobileNumber || '') ||
-      normalizePhone(stored.mobileNumber || '') ||
-      '0000000000';
+      normalizePhone(stored.mobileNumber || '');
 
-    // Login identity is the verified email (not whoever owns the phone number).
-    const user = await authRepository.findUserByEmail(email);
-
-    if (!user) {
-      return {
-        verified: true,
-        isNewUser: true,
-        token: null,
-        user: null,
-        email,
-        mobileCountryCode,
-        mobileNumber,
-      };
+    if (!mobileNumber || /^0+$/.test(mobileNumber)) {
+      throw new AppError('Enter a valid mobile number to create your account.', 400);
     }
 
-    await authRepository.updateLastLogin(user.id);
-    const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
+    const user = await authRepository.findUserByEmail(email);
+    if (user) {
+      const existingHash = await authRepository.getPasswordHashByEmail(email);
+      if (existingHash) {
+        throw new AppError(
+          'An account with this email already exists. Please sign in with email and password.',
+          409,
+        );
+      }
+    }
+
+    // Registration OTP only unlocks signup — never issues a login session here.
     return {
       verified: true,
-      isNewUser: false,
-      token: issueToken(freshUser),
-      user: freshUser,
+      isNewUser: true,
+      token: null,
+      user: null,
+      email,
+      mobileCountryCode,
+      mobileNumber,
+      mode: 'register' as const,
     };
   }
 
