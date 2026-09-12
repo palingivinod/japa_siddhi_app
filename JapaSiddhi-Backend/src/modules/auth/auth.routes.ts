@@ -29,14 +29,23 @@ const otpSendLimiter = rateLimit({
 
 const router = Router();
 
-
-// Firebase Login
-router.post(
-  '/login',
-  loginValidation,
+// Email + password login (also kept on /password-login for older clients).
+const emailPasswordLogin = [
+  passwordLoginValidation,
   validateRequest,
-  authController.login,
-);
+  authController.passwordLogin,
+];
+
+router.post('/password-login', ...emailPasswordLogin);
+
+// /login: email+password when no Firebase token; otherwise Firebase login.
+router.post('/login', (req, res, next) => {
+  const body = req.body || {};
+  if (body.email && body.password && !body.firebaseToken) {
+    return authController.passwordLogin(req, res, next);
+  }
+  return next();
+}, loginValidation, validateRequest, authController.login);
 
 router.post(
   '/register',
@@ -57,13 +66,6 @@ router.post(
   phoneAuthValidation,
   validateRequest,
   authController.phoneLogin,
-);
-
-router.post(
-  '/password-login',
-  passwordLoginValidation,
-  validateRequest,
-  authController.passwordLogin,
 );
 
 router.post(

@@ -100,10 +100,24 @@ const LoginScreen = () => {
         // Not an admin account — continue with devotee password login.
       }
 
-      const response = await apiService.post('/auth/password-login', {
-        email: trimmedEmail,
-        password: password.trim(),
-      });
+      // Prefer /auth/login (exists on older servers). Fall back to /password-login.
+      let response;
+      try {
+        response = await apiService.post('/auth/login', {
+          email: trimmedEmail,
+          password: password.trim(),
+        });
+      } catch (firstError: any) {
+        const status = firstError?.response?.status;
+        if (status === 404) {
+          response = await apiService.post('/auth/password-login', {
+            email: trimmedEmail,
+            password: password.trim(),
+          });
+        } else {
+          throw firstError;
+        }
+      }
       const data = response.data?.data;
       if (!data?.token || !data?.user) {
         throw new Error('Login did not return a session');
@@ -115,11 +129,14 @@ const LoginScreen = () => {
         routes: [{name: 'Home'}],
       });
     } catch (error: any) {
+      const status = error?.response?.status;
+      const serverMessage = error?.response?.data?.message;
       Alert.alert(
         'Login failed',
-        error?.response?.data?.message ||
-          error?.message ||
-          'Unable to sign in. Check your email and password.',
+        serverMessage ||
+          (status === 404
+            ? 'Login service is updating. Please try again in a minute, or use the latest app build.'
+            : error?.message || 'Unable to login. Check your email and password.'),
       );
     } finally {
       setSubmitting(false);
@@ -227,7 +244,7 @@ const LoginScreen = () => {
             </TouchableOpacity>
 
             <ContinueButton
-              title={submitting ? 'SIGNING IN...' : 'SIGN IN'}
+              title={submitting ? 'Logging in...' : 'Login'}
               onPress={handlePasswordLogin}
               loading={submitting}
               disabled={submitting}

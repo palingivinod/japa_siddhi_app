@@ -4,6 +4,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
@@ -150,6 +151,12 @@ const CreateAccountScreen = () => {
           onPress={submit}
           disabled={submitting}
         />
+        <TouchableOpacity
+          style={styles.signInBtn}
+          onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
+          disabled={submitting}>
+          <Text style={styles.signInText}>Sign in</Text>
+        </TouchableOpacity>
       </View>
     </ScreenLayout>
   );
@@ -189,4 +196,14 @@ const styles = StyleSheet.create({
   codeInput: {width: 72, textAlign: 'center'},
   mobileInput: {flex: 1},
   actions: {marginTop: 16, marginBottom: 24},
+  signInBtn: {
+    marginTop: 18,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  signInText: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 16,
+  },
 });
