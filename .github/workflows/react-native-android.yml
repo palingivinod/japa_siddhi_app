@@ -85,11 +85,13 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
+          set -o pipefail
           ./gradlew assembleRelease \
             --no-daemon \
             --stacktrace \
             --warning-mode all \
-            -PreactNativeArchitectures=arm64-v8a
+            -PreactNativeArchitectures=arm64-v8a \
+            2>&1 | tee ../android-release-build.log
 
       - name: Locate built APK
         id: find_apk
@@ -127,10 +129,41 @@ jobs:
           echo "::group::Disk space"
           df -h
           echo "::endgroup::"
-          echo "::group::Java processes"
-          ps aux | grep -E 'java|gradle|node' | head -n 40 || true
-          echo "::endgroup::"
-          echo "::group::Gradle logs"
+          if [ -f android-release-build.log ]; then
+            echo "::group::Gradle log (last 200 lines)"
+            tail -n 200 android-release-build.log
+            echo "::endgroup::"
+            # Surface root cause in the Checks UI / annotations API
+            python3 - <<'PY'
+          from pathlib import Path
+          text = Path("android-release-build.log").read_text(errors="ignore")
+          markers = [
+              "What went wrong:",
+              "Execution failed for task",
+              "FAILURE: Build failed with an exception.",
+              "* What went wrong:",
+          ]
+          start = -1
+          for m in markers:
+              i = text.rfind(m)
+              if i > start:
+                  start = i
+          snippet = text[start:] if start >= 0 else text[-4000:]
+          snippet = snippet.strip()[:3500].replace("\r", "")
+          for line in snippet.splitlines()[:80]:
+              # GitHub annotations: one ::error:: line
+              safe = line.replace("%", "%25").replace("\r", "").replace("\n", "")
+              print(f"::error title=Android Gradle::{safe}")
+          PY
+          else:
+            echo "android-release-build.log missing"
           find android -type f \( -name "*.log" -o -name "hs_err_pid*.log" \) -print 2>/dev/null | head -n 50 || true
-          find ~/.gradle -type f -name "*.log" 2>/dev/null | tail -n 20 || true
-          echo "::endgroup::"
+
+      - name: Upload Gradle failure log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-build-log
+          path: android-release-build.log
+          if-no-files-found: ignore
+          retention-days: 7

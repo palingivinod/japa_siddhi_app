@@ -122,8 +122,10 @@ android {
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            // Match gradle.properties / CI (-PreactNativeArchitectures=arm64-v8a).
+            // Building an extra ABI that Hermes/RN did not produce breaks packaging on CI.
             ndk {
-                abiFilters "armeabi-v7a", "arm64-v8a"
+                abiFilters "arm64-v8a"
             }
         }
     }
