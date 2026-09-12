@@ -100,17 +100,17 @@ const LoginScreen = () => {
         // Not an admin account — continue with devotee password login.
       }
 
-      // Prefer /auth/login (exists on older servers). Fall back to /password-login.
+      // Dedicated password endpoint first; fall back to /auth/login.
       let response;
       try {
-        response = await apiService.post('/auth/login', {
+        response = await apiService.post('/auth/password-login', {
           email: trimmedEmail,
           password: password.trim(),
         });
       } catch (firstError: any) {
         const status = firstError?.response?.status;
         if (status === 404) {
-          response = await apiService.post('/auth/password-login', {
+          response = await apiService.post('/auth/login', {
             email: trimmedEmail,
             password: password.trim(),
           });
@@ -130,12 +130,17 @@ const LoginScreen = () => {
       });
     } catch (error: any) {
       const status = error?.response?.status;
-      const serverMessage = error?.response?.data?.message;
+      const rawMessage = error?.response?.data?.message;
+      const serverMessage = Array.isArray(rawMessage)
+        ? rawMessage.map((item: any) => item?.msg || item).filter(Boolean).join('\n')
+        : typeof rawMessage === 'string'
+          ? rawMessage
+          : '';
       Alert.alert(
         'Login failed',
         serverMessage ||
           (status === 404
-            ? 'Login service is updating. Please try again in a minute, or use the latest app build.'
+            ? 'Login service is updating. Please try again in a minute.'
             : error?.message || 'Unable to login. Check your email and password.'),
       );
     } finally {

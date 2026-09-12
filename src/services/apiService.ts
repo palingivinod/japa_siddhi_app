@@ -52,9 +52,11 @@ apiService.interceptors.response.use(
       url.includes('/auth/register') ||
       url.includes('/auth/signin') ||
       url.includes('/auth/login') ||
+      url.includes('/auth/password-login') ||
       url.includes('/auth/phone') ||
       url.includes('/auth/dev-login') ||
-      url.includes('/auth/otp');
+      url.includes('/auth/otp') ||
+      url.includes('/admin/auth/login');
 
     if (isAuthError && !isPublicAuth) {
       await clearSession();

@@ -1,5 +1,5 @@
 import {randomUUID} from 'crypto';
-import bcrypt from 'bcrypt';
+import {compare as bcryptCompare, hash as bcryptHash} from 'bcrypt';
 import { admin } from '../../firebase/firebase';
 
 import authRepository from './auth.repository';
@@ -31,7 +31,7 @@ const issueToken = (user: AuthUser) =>
 const normalizePhone = (value: string) =>
   String(value || '').replace(/\D/g, '');
 
-const hashPassword = (password: string) => bcrypt.hash(password, 10);
+const hashPassword = (password: string) => bcryptHash(password, 10);
 
 const assertPassword = (password: string) => {
   const value = String(password || '');
@@ -415,7 +415,7 @@ class AuthService {
       );
     }
 
-    const ok = await bcrypt.compare(password, passwordHash);
+    const ok = await bcryptCompare(password, passwordHash);
     if (!ok) {
       throw new AppError('Invalid email or password.', 401);
     }

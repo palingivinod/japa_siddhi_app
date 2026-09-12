@@ -29,107 +29,121 @@ const otpSendLimiter = rateLimit({
 
 const router = Router();
 
-// Email + password login (also kept on /password-login for older clients).
-const emailPasswordLogin = [
-  passwordLoginValidation,
-  validateRequest,
-  authController.passwordLogin,
-];
+type ExpressHandler = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => unknown;
 
-router.post('/password-login', ...emailPasswordLogin);
+const runPasswordLogin: ExpressHandler = (req, res, next) =>
+  authController.passwordLogin(req, res, next);
+
+// Express 5: spread validator arrays so each item is a real middleware function.
+router.post(
+  '/password-login',
+  ...passwordLoginValidation,
+  validateRequest,
+  runPasswordLogin,
+);
 
 // /login: email+password when no Firebase token; otherwise Firebase login.
 router.post(
   '/login',
-  (req: Request, res: Response, next: NextFunction) => {
+  ((req, res, next) => {
     const body = req.body || {};
     if (body.email && body.password && !body.firebaseToken) {
-      return authController.passwordLogin(req, res, next);
+      return runPasswordLogin(req, res, next);
     }
     return next();
-  },
-  loginValidation,
+  }) as ExpressHandler,
+  ...loginValidation,
   validateRequest,
-  authController.login,
+  ((req, res, next) => authController.login(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/register',
-  registerValidation,
+  ...registerValidation,
   validateRequest,
-  authController.register,
+  ((req, res, next) =>
+    authController.register(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/signin',
-  phoneAuthValidation,
+  ...phoneAuthValidation,
   validateRequest,
-  authController.signIn,
+  ((req, res, next) =>
+    authController.signIn(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/phone',
-  phoneAuthValidation,
+  ...phoneAuthValidation,
   validateRequest,
-  authController.phoneLogin,
+  ((req, res, next) =>
+    authController.phoneLogin(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/dev-login',
-  authController.devLogin,
+  ((req, res, next) =>
+    authController.devLogin(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/social',
-  authController.social,
+  ((req, res, next) =>
+    authController.social(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/otp/send',
   otpSendLimiter,
-  otpSendValidation,
+  ...otpSendValidation,
   validateRequest,
-  authController.sendOtp,
+  ((req, res, next) =>
+    authController.sendOtp(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/otp/verify',
-  otpVerifyValidation,
+  ...otpVerifyValidation,
   validateRequest,
-  authController.verifyOtp,
+  ((req, res, next) =>
+    authController.verifyOtp(req, res, next)) as ExpressHandler,
 );
 
-
-// Complete Profile
 router.put(
   '/complete-profile',
   authMiddleware,
-  completeProfileValidation,
+  ...completeProfileValidation,
   validateRequest,
-  authController.completeProfile,
+  ((req, res, next) =>
+    authController.completeProfile(req, res, next)) as ExpressHandler,
 );
 
 router.post(
   '/complete-profile',
   authMiddleware,
-  completeProfileValidation,
+  ...completeProfileValidation,
   validateRequest,
-  authController.completeProfile,
+  ((req, res, next) =>
+    authController.completeProfile(req, res, next)) as ExpressHandler,
 );
 
-
-// Get Current User Profile
 router.get(
   '/profile',
   authMiddleware,
-  authController.getProfile,
+  ((req, res, next) =>
+    authController.getProfile(req, res, next)) as ExpressHandler,
 );
 
 router.delete(
   '/account',
   authMiddleware,
-  authController.deleteAccount,
+  ((req, res, next) =>
+    authController.deleteAccount(req, res, next)) as ExpressHandler,
 );
-
 
 export default router;
