@@ -60,6 +60,11 @@ jobs:
             "build-tools;36.0.0" \
             "ndk;27.1.12297006"
 
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android/sdk/ndk-bundle || true
+          df -h
+
       - name: Make gradlew executable
         run: |
           chmod +x android/gradlew
@@ -130,18 +135,41 @@ jobs:
           echo "::group::Disk space"
           df -h
           echo "::endgroup::"
-          if [ -f android-release-build.log ]; then
-            echo "::group::Gradle log (last 160 lines)"
-            tail -n 160 android-release-build.log
-            echo "::endgroup::"
-            # Publish root-cause lines as check annotations (visible via API)
-            grep -nE "What went wrong|Execution failed for task|FAILURE: Build failed|FAILED|error:|Error:|Caused by:|AAPT|ndk|SDK|Could not|Cannot|Exception" android-release-build.log | tail -n 60 | while IFS= read -r line; do
-              safe=${line//%/\%25}
-              echo "::error title=Android Gradle::${safe}"
-            done
-          else
+          if [ ! -f android-release-build.log ]; then
             echo "::error::android-release-build.log was not created"
+            exit 0
           fi
+          echo "::group::Gradle log (last 160 lines)"
+          tail -n 160 android-release-build.log
+          echo "::endgroup::"
+          {
+            echo "## Android Gradle failure"
+            echo ""
+            echo '```'
+            # Prefer the root-cause section when present
+            if grep -q "What went wrong:" android-release-build.log; then
+              awk '
+                /\* What went wrong:/ {p=1}
+                p {print}
+                /^\* Try:/ {if(p){exit}}
+                /^BUILD FAILED/ {if(p){exit}}
+              ' android-release-build.log | head -n 40
+            else
+              grep -E "^> Task .+ FAILED$|^FAILURE:|Execution failed for task" android-release-build.log | tail -n 40
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          FAILED_TASK=$(grep -E "^> Task .+ FAILED$" android-release-build.log | tail -n 1 | sed 's/^> Task //')
+          if [ -n "$FAILED_TASK" ]; then
+            echo "::error title=Failed Gradle task::${FAILED_TASK}"
+          fi
+          awk '
+            /\* What went wrong:/ {p=1; next}
+            p && (/^\* Try:/ || /^BUILD FAILED/) {exit}
+            p {print}
+          ' android-release-build.log | head -n 20 | while IFS= read -r line; do
+            echo "::error title=What went wrong::${line}"
+          done
 
       - name: Upload Gradle failure log
         if: failure()

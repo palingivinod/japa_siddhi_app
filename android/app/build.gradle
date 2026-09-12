@@ -1,6 +1,11 @@
-// Keep outputs off locked android/app/build and android/build/out
+// Keep outputs off locked android/app/build and android/build/out (Windows only).
 def altAppBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
-layout.buildDirectory.set(file(altAppBuild ? "${altAppBuild}/out/app" : "${rootDir}/build-r4/out/app"))
+def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
+if (altAppBuild) {
+    layout.buildDirectory.set(file("${altAppBuild}/out/app"))
+} else if (isWindows) {
+    layout.buildDirectory.set(file("${rootDir}/build-r4/out/app"))
+}
 
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"

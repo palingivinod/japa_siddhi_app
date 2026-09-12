@@ -23,13 +23,21 @@ apply plugin: "com.facebook.react.rootproject"
 
 subprojects { subproject ->
     def altBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
-    def buildRoot = altBuild ?: "${rootProject.projectDir}/build-r4"
-    subproject.layout.buildDirectory.set(
-        file("${buildRoot}/out/${subproject.name}")
-    )
+    def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
+    // Relocate outputs only on Windows (file locks) or when explicitly requested.
+    // On Linux CI, default build dirs keep KSP/AGP paths stable.
+    def buildRoot = altBuild ?: (isWindows ? "${rootProject.projectDir}/build-r4" : null)
+    if (buildRoot) {
+        subproject.layout.buildDirectory.set(
+            file("${buildRoot}/out/${subproject.name}")
+        )
+    }
 
     // Keep CMake .cxx off locked node_modules/<lib>/android/.cxx
     def relocateCmake = {
+        if (!buildRoot) {
+            return
+        }
         try {
             subproject.android.externalNativeBuild.cmake.buildStagingDirectory =
                 file("${buildRoot}/cxx/${subproject.name}")
@@ -42,7 +50,6 @@ subprojects { subproject ->
     subproject.tasks.configureEach { task ->
         // Old architecture does not need screens CMake; the .so output folder
         // gets locked on Windows. Keep CMake enabled on Linux CI runners.
-        def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
         if (
             isWindows &&
             subproject.name.contains("react-native-screens") &&
