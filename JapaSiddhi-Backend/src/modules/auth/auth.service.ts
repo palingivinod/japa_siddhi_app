@@ -1,3 +1,4 @@
+import {randomUUID} from 'crypto';
 import { admin } from '../../firebase/firebase';
 
 import authRepository from './auth.repository';
@@ -267,7 +268,11 @@ class AuthService {
     const email = String(data.email || '').trim().toLowerCase();
     const fullName = String(data.fullName || '').trim();
 
-    if (!mobileCountryCode || mobileNumber.length < 6) {
+    if (
+      !mobileCountryCode ||
+      mobileNumber.length < 6 ||
+      /^0+$/.test(mobileNumber)
+    ) {
       throw new AppError('Enter a valid mobile number', 400);
     }
     if (!email || !email.includes('@')) {
@@ -305,14 +310,59 @@ class AuthService {
       };
     }
 
-    // New email = new account, even if the phone number is already used elsewhere.
-    const userId = await authRepository.createUser({
-      mobileCountryCode,
-      mobileNumber,
-      email,
-      fullName,
-      deviceType: data.deviceType ?? 'ANDROID',
-    });
+    // New email = new account. firebase_uid must stay unique (not phone-based).
+    let userId: number;
+    try {
+      userId = await authRepository.createUser({
+        mobileCountryCode,
+        mobileNumber,
+        email,
+        fullName,
+        firebaseUid: `email:${email}`,
+        deviceType: data.deviceType ?? 'ANDROID',
+      });
+    } catch (error: any) {
+      const message = String(error?.message || error?.sqlMessage || '');
+      if (/firebase_uid|UNIQUE/i.test(message)) {
+        // Email row may have been created concurrently — continue that account.
+        const raced = await authRepository.findUserByEmail(email);
+        if (raced) {
+          await authRepository.completeProfile(
+            raced.id,
+            profileFields({
+              ...data,
+              fullName: fullName || raced.fullName,
+              email,
+            }),
+          );
+          await authRepository.updateMobileIfChanged(
+            raced.id,
+            mobileCountryCode,
+            mobileNumber,
+          );
+          const existingUser = await authRepository.findUserById(raced.id);
+          if (!existingUser) {
+            throw new AppError('User login failed', 500);
+          }
+          return {
+            token: issueToken(existingUser),
+            user: existingUser,
+            isNewUser: false,
+          };
+        }
+        // Phone-era uid collision: retry with a fresh unique id.
+        userId = await authRepository.createUser({
+          mobileCountryCode,
+          mobileNumber,
+          email,
+          fullName,
+          firebaseUid: `usr:${randomUUID()}`,
+          deviceType: data.deviceType ?? 'ANDROID',
+        });
+      } else {
+        throw error;
+      }
+    }
 
     await authRepository.completeProfile(userId, profileFields({
       ...data,

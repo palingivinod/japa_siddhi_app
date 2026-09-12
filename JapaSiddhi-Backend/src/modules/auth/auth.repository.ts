@@ -196,7 +196,9 @@ class AuthRepository {
         [
           randomUUID(),
           data.firebaseUid ??
-            `phone:${data.mobileCountryCode}${data.mobileNumber}`,
+            (data.email
+              ? `email:${String(data.email).trim().toLowerCase()}`
+              : `usr:${randomUUID()}`),
           data.mobileCountryCode,
           data.mobileNumber,
           data.email ? data.email.toLowerCase() : null,

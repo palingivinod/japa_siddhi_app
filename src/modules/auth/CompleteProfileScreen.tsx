@@ -45,18 +45,21 @@ const CompleteProfileScreen = ({
   navigation,
   route,
 }: any) => {
-  const phoneNumber = route?.params?.phoneNumber ?? '';
   const registeredEmail = route?.params?.email ?? '';
-  const mobileCountryCode = String(route?.params?.mobileCountryCode || '').replace(
-    /\D/g,
-    '',
-  );
-  const mobileNumber = String(route?.params?.mobileNumber || '').replace(
-    /\D/g,
-    '',
-  );
+  const initialPhone = String(route?.params?.phoneNumber || '').replace(/\D/g, '');
+  const initialCode =
+    String(route?.params?.mobileCountryCode || '').replace(/\D/g, '') ||
+    (initialPhone.length > 10 ? initialPhone.slice(0, initialPhone.length - 10) : '91') ||
+    '91';
+  const initialMobileRaw =
+    String(route?.params?.mobileNumber || '').replace(/\D/g, '') ||
+    (initialPhone.length >= 10 ? initialPhone.slice(-10) : '');
 
   const [loading, setLoading] = useState(false);
+  const [countryCode, setCountryCode] = useState(initialCode);
+  const [mobileNumber, setMobileNumber] = useState(
+    initialMobileRaw === '0000000000' ? '' : initialMobileRaw,
+  );
 
   const [profileImage, setProfileImage] =
     useState<string | null>(null);
@@ -189,6 +192,13 @@ const CompleteProfileScreen = ({
     return;
   }
 
+  const code = countryCode.replace(/\D/g, '') || '91';
+  const number = mobileNumber.replace(/\D/g, '');
+  if (number.length < 8 || number === '0000000000') {
+    Alert.alert('Validation', 'Enter a valid mobile number.');
+    return;
+  }
+
   if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
     Alert.alert('Validation', 'Spouse name is required for married devotees.');
     return;
@@ -202,6 +212,7 @@ const CompleteProfileScreen = ({
           item.isoCode === country?.code || item.code === country?.code,
       );
 
+      const phoneNumber = `${code}${number}`;
       const profilePayload: CompleteProfileRequest = {
         fullName: fullName.trim(),
         email: email.trim(),
@@ -231,16 +242,15 @@ const CompleteProfileScreen = ({
       const session = await hydrateSession();
       if (session.token) {
         await ProfileApi.completeProfile(profilePayload);
+        try {
+          await ProfileApi.updateProfile({mobileNumber: number});
+        } catch {
+          // Profile still created if mobile sync fails.
+        }
       } else {
-        const countryCode =
-          mobileCountryCode ||
-          String(phoneNumber).slice(0, Math.max(String(phoneNumber).length - 10, 1));
-        const number =
-          mobileNumber || String(phoneNumber).slice(-10);
-
         const result = await ProfileApi.register({
           ...profilePayload,
-          mobileCountryCode: countryCode,
+          mobileCountryCode: code,
           mobileNumber: number,
         });
         const token = result?.data?.token;
@@ -362,14 +372,28 @@ const CompleteProfileScreen = ({
           Mobile Number
         </Text>
 
-        <TextInput
-          style={[
-            styles.input,
-            styles.disabledInput,
-          ]}
-          editable={false}
-          value={phoneNumber}
-        />
+        <View style={styles.mobileRow}>
+          <TextInput
+            style={[styles.input, styles.codeInput]}
+            value={countryCode}
+            onChangeText={text =>
+              setCountryCode(text.replace(/\D/g, '').slice(0, 4))
+            }
+            keyboardType="phone-pad"
+            placeholder="91"
+            maxLength={4}
+          />
+          <TextInput
+            style={[styles.input, styles.mobileInput]}
+            value={mobileNumber}
+            onChangeText={text =>
+              setMobileNumber(text.replace(/\D/g, '').slice(0, 15))
+            }
+            keyboardType="phone-pad"
+            placeholder="Enter mobile number"
+            maxLength={15}
+          />
+        </View>
 
         <Text style={styles.label}>
           Gender *
@@ -746,6 +770,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'center',
     fontSize: 16,
+  },
+
+  mobileRow: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  codeInput: {
+    width: 72,
+    textAlign: 'center',
+  },
+  mobileInput: {
+    flex: 1,
   },
 
   disabledInput: {

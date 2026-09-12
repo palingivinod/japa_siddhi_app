@@ -5,6 +5,7 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import OutlineButton from '../common/OutlineButton';
 import ProfileApi from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
@@ -54,12 +55,25 @@ const SignupPhotoScreen = () => {
 
   const submit = async () => {
     const params = route.params || {};
+    const mobileCountryCode = String(params.mobileCountryCode || '91').replace(
+      /\D/g,
+      '',
+    );
+    const mobileNumber = String(params.mobileNumber || '').replace(/\D/g, '');
+    if (mobileNumber.length < 8 || mobileNumber === '0000000000') {
+      Alert.alert(
+        'Mobile required',
+        'Go back and enter a valid mobile number before creating your profile.',
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       const payload = {
         fullName: params.fullName || 'Devotee',
         email: params.email,
-        phoneNumber: `${params.mobileCountryCode || ''}${params.mobileNumber || ''}`,
+        phoneNumber: `${mobileCountryCode}${mobileNumber}`,
         gender: params.gender || 'Prefer Not To Say',
         dob: toIso(params.dob),
         countryId: 1,
@@ -67,7 +81,8 @@ const SignupPhotoScreen = () => {
         cityId: 1,
         languageId: 1,
         address: params.address,
-        maritalStatus: params.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
+        maritalStatus:
+          params.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
         gothram: params.gothram,
         nakshatram: params.nakshatram,
         profileImage: null,
@@ -76,11 +91,16 @@ const SignupPhotoScreen = () => {
       const session = await hydrateSession();
       if (session.token) {
         await ProfileApi.completeProfile(payload);
+        try {
+          await ProfileApi.updateProfile({mobileNumber});
+        } catch {
+          // Profile still created if mobile sync fails.
+        }
       } else {
         const result = await ProfileApi.register({
           ...payload,
-          mobileCountryCode: String(params.mobileCountryCode || '91'),
-          mobileNumber: String(params.mobileNumber || ''),
+          mobileCountryCode,
+          mobileNumber,
         });
         if (result?.data?.token) {
           await saveSession(result.data.token, result.data.user);
@@ -95,9 +115,15 @@ const SignupPhotoScreen = () => {
       }
       navigation.replace('RegistrationComplete');
     } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Could not create your profile.';
       Alert.alert(
         'Registration',
-        error?.response?.data?.message || 'Could not create your profile.',
+        /UNIQUE|firebase_uid/i.test(String(message))
+          ? 'This account may already exist. Try logging in with the same email, or use a different email.'
+          : message,
       );
     } finally {
       setSaving(false);
@@ -106,29 +132,47 @@ const SignupPhotoScreen = () => {
 
   return (
     <ScreenLayout title="Profile Photo" showBack>
-      <TouchableOpacity
-        style={styles.avatarWrap}
-        onPress={choosePhoto}
-        accessibilityRole="button"
-        accessibilityLabel="Add a profile photo">
-        <View style={styles.avatar}>
-          {pickedPhoto?.uri ? (
-            <Image source={{uri: pickedPhoto.uri}} style={styles.avatarImage} />
-          ) : (
-            <Text style={styles.face}>😊</Text>
-          )}
-        </View>
-        <View style={styles.cameraBadge}>
-          <Text style={styles.cameraBadgeText}>📷</Text>
-        </View>
-      </TouchableOpacity>
-      <Text style={styles.title}>Add a profile photo</Text>
-      <Text style={styles.copy}>This is optional. You can skip and add it later.</Text>
-      <PrimaryButton
-        title={saving ? 'CREATING...' : 'CREATE PROFILE'}
-        onPress={submit}
-        disabled={saving}
-      />
+      <Text style={styles.step}>Step 3 of 3</Text>
+      <View style={styles.track}>
+        <View style={styles.fill} />
+      </View>
+      <Text style={styles.percent}>100%</Text>
+
+      <View style={styles.photoBlock}>
+        <TouchableOpacity
+          style={styles.avatarWrap}
+          onPress={choosePhoto}
+          accessibilityRole="button"
+          accessibilityLabel="Add a profile photo">
+          <View style={styles.avatar}>
+            {pickedPhoto?.uri ? (
+              <Image source={{uri: pickedPhoto.uri}} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.face}>😊</Text>
+            )}
+          </View>
+          <View style={styles.cameraBadge}>
+            <Text style={styles.cameraBadgeText}>📷</Text>
+          </View>
+        </TouchableOpacity>
+        <Text style={styles.title}>Add a profile photo</Text>
+        <Text style={styles.copy}>
+          This is optional. You can skip and add it later.
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        <PrimaryButton
+          title={saving ? 'CREATING...' : 'CREATE PROFILE'}
+          onPress={submit}
+          disabled={saving}
+        />
+        <View style={styles.gap} />
+        <OutlineButton
+          title="SKIP FOR NOW"
+          onPress={submit}
+        />
+      </View>
     </ScreenLayout>
   );
 };
@@ -136,9 +180,29 @@ const SignupPhotoScreen = () => {
 export default SignupPhotoScreen;
 
 const styles = StyleSheet.create({
+  step: {color: Colors.leafGreen, fontWeight: '700', marginBottom: 8},
+  track: {
+    height: 10,
+    borderRadius: 6,
+    backgroundColor: Colors.lightGold,
+    overflow: 'hidden',
+  },
+  fill: {width: '100%', height: 10, backgroundColor: Colors.templeGold},
+  percent: {
+    alignSelf: 'flex-end',
+    marginTop: 4,
+    marginBottom: 8,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  photoBlock: {
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
   avatarWrap: {
     alignSelf: 'center',
-    marginVertical: 20,
+    marginBottom: 18,
   },
   avatar: {
     width: 120,
@@ -149,6 +213,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
+    backgroundColor: Colors.white,
   },
   avatarImage: {
     width: '100%',
@@ -156,11 +221,11 @@ const styles = StyleSheet.create({
   },
   cameraBadge: {
     position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    right: -2,
+    bottom: -2,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: Colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
@@ -176,11 +241,17 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    marginBottom: 8,
   },
   copy: {
     textAlign: 'center',
     color: Colors.textSecondary,
-    marginVertical: 16,
     lineHeight: 22,
+    paddingHorizontal: 12,
   },
+  actions: {
+    marginTop: 32,
+    marginBottom: 28,
+  },
+  gap: {height: 14},
 });

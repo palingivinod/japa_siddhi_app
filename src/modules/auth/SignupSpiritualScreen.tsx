@@ -51,18 +51,20 @@ const SignupSpiritualScreen = () => {
           <Text style={styles.prefText}>{item}</Text>
         </TouchableOpacity>
       ))}
-      <PrimaryButton
-        title="CONTINUE"
-        onPress={() =>
-          navigation.navigate('SignupPhoto', {
-            ...route.params,
-            gothram,
-            nakshatram,
-            maritalStatus: route.params?.maritalStatus || 'Bachelor',
-            prefs,
-          })
-        }
-      />
+      <View style={styles.actions}>
+        <PrimaryButton
+          title="CONTINUE"
+          onPress={() =>
+            navigation.navigate('SignupPhoto', {
+              ...route.params,
+              gothram,
+              nakshatram,
+              maritalStatus: route.params?.maritalStatus || 'Bachelor',
+              prefs,
+            })
+          }
+        />
+      </View>
     </ScreenLayout>
   );
 };
@@ -106,4 +108,8 @@ const styles = StyleSheet.create({
   },
   boxOn: {backgroundColor: Colors.templeGold},
   prefText: {color: Colors.sacredBrown, fontWeight: '600'},
+  actions: {
+    marginTop: 28,
+    marginBottom: 24,
+  },
 });

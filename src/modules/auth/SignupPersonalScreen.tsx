@@ -11,6 +11,13 @@ const SignupPersonalScreen = () => {
   const route = useRoute<any>();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState(route.params?.email || '');
+  const [countryCode, setCountryCode] = useState(
+    String(route.params?.mobileCountryCode || '91').replace(/\D/g, '') || '91',
+  );
+  const [mobileNumber, setMobileNumber] = useState(() => {
+    const raw = String(route.params?.mobileNumber || '').replace(/\D/g, '');
+    return raw === '0000000000' ? '' : raw;
+  });
   const [gender, setGender] = useState('Male');
   const [dob, setDob] = useState('01/01/1995');
   const [address, setAddress] = useState('');
@@ -27,6 +34,12 @@ const SignupPersonalScreen = () => {
       Alert.alert('Required', 'Enter your full name.');
       return;
     }
+    const code = countryCode.replace(/\D/g, '') || '91';
+    const mobile = mobileNumber.replace(/\D/g, '');
+    if (mobile.length < 8) {
+      Alert.alert('Required', 'Enter a valid mobile number.');
+      return;
+    }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
       Alert.alert('Required', 'Enter spouse name for married devotees.');
       return;
@@ -35,6 +48,9 @@ const SignupPersonalScreen = () => {
       ...route.params,
       fullName: fullName.trim(),
       email: email.trim(),
+      mobileCountryCode: code,
+      mobileNumber: mobile,
+      phoneNumber: `${code}${mobile}`,
       gender,
       dob,
       address,
@@ -61,15 +77,29 @@ const SignupPersonalScreen = () => {
         placeholder="Your name"
         value={fullName}
         onChangeText={setFullName}
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>Mobile Number</Text>
-      <TextInput
-        style={styles.input}
-        value={`${route.params?.mobileCountryCode || '+91'} ${
-          route.params?.mobileNumber || ''
-        }`}
-        editable={false}
-      />
+      <View style={styles.mobileRow}>
+        <TextInput
+          style={[styles.input, styles.codeInput]}
+          value={countryCode}
+          onChangeText={text => setCountryCode(text.replace(/\D/g, '').slice(0, 4))}
+          keyboardType="phone-pad"
+          placeholder="91"
+          placeholderTextColor={Colors.placeholder}
+          maxLength={4}
+        />
+        <TextInput
+          style={[styles.input, styles.mobileInput]}
+          value={mobileNumber}
+          onChangeText={text => setMobileNumber(text.replace(/\D/g, '').slice(0, 15))}
+          keyboardType="phone-pad"
+          placeholder="Enter mobile number"
+          placeholderTextColor={Colors.placeholder}
+          maxLength={15}
+        />
+      </View>
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
@@ -78,6 +108,7 @@ const SignupPersonalScreen = () => {
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>Date of Birth</Text>
       <TextInput
@@ -85,6 +116,7 @@ const SignupPersonalScreen = () => {
         placeholder="DD / MM / YYYY"
         value={dob}
         onChangeText={setDob}
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>Gender</Text>
       <View style={styles.chips}>
@@ -103,15 +135,23 @@ const SignupPersonalScreen = () => {
         placeholder="Address"
         value={address}
         onChangeText={setAddress}
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>City</Text>
-      <TextInput style={styles.input} placeholder="City" value={city} onChangeText={setCity} />
+      <TextInput
+        style={styles.input}
+        placeholder="City"
+        value={city}
+        onChangeText={setCity}
+        placeholderTextColor={Colors.placeholder}
+      />
       <Text style={styles.label}>State</Text>
       <TextInput
         style={styles.input}
         placeholder="State"
         value={stateName}
         onChangeText={setStateName}
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>Country</Text>
       <TextInput
@@ -119,6 +159,7 @@ const SignupPersonalScreen = () => {
         placeholder="Country"
         value={country}
         onChangeText={setCountry}
+        placeholderTextColor={Colors.placeholder}
       />
       <Text style={styles.label}>Marital Status</Text>
       <View style={styles.chips}>
@@ -139,6 +180,7 @@ const SignupPersonalScreen = () => {
             placeholder="Spouse name"
             value={spouseName}
             onChangeText={setSpouseName}
+            placeholderTextColor={Colors.placeholder}
           />
           <Text style={styles.label}>Spouse Date of Birth</Text>
           <TextInput
@@ -146,6 +188,7 @@ const SignupPersonalScreen = () => {
             placeholder="DD / MM / YYYY"
             value={spouseDob}
             onChangeText={setSpouseDob}
+            placeholderTextColor={Colors.placeholder}
           />
           <Text style={styles.label}>Anniversary Date</Text>
           <TextInput
@@ -153,10 +196,13 @@ const SignupPersonalScreen = () => {
             placeholder="DD / MM / YYYY"
             value={anniversary}
             onChangeText={setAnniversary}
+            placeholderTextColor={Colors.placeholder}
           />
         </>
       ) : null}
-      <PrimaryButton title="CONTINUE" onPress={next} />
+      <View style={styles.actions}>
+        <PrimaryButton title="CONTINUE" onPress={next} />
+      </View>
     </ScreenLayout>
   );
 };
@@ -179,7 +225,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.sacredBrown,
   },
-  label: {color: Colors.leafGreen, fontWeight: '700', marginBottom: 6, marginTop: 10},
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 6,
+    marginTop: 10,
+  },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 1,
@@ -189,6 +240,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.sacredBrown,
   },
+  mobileRow: {flexDirection: 'row', gap: 10, alignItems: 'center'},
+  codeInput: {width: 72, textAlign: 'center'},
+  mobileInput: {flex: 1},
   chips: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   chip: {
     borderWidth: 1,
@@ -198,6 +252,14 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: Colors.white,
   },
-  chipOn: {borderColor: Colors.templeGold, borderWidth: 2, backgroundColor: Colors.lightGold},
+  chipOn: {
+    borderColor: Colors.templeGold,
+    borderWidth: 2,
+    backgroundColor: Colors.lightGold,
+  },
   chipText: {color: Colors.sacredBrown, fontWeight: '700'},
+  actions: {
+    marginTop: 28,
+    marginBottom: 24,
+  },
 });
