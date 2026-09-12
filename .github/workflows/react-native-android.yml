@@ -126,38 +126,22 @@ jobs:
       - name: Dump failure diagnostics
         if: failure()
         run: |
+          set +e
           echo "::group::Disk space"
           df -h
           echo "::endgroup::"
           if [ -f android-release-build.log ]; then
-            echo "::group::Gradle log (last 200 lines)"
-            tail -n 200 android-release-build.log
+            echo "::group::Gradle log (last 160 lines)"
+            tail -n 160 android-release-build.log
             echo "::endgroup::"
-            # Surface root cause in the Checks UI / annotations API
-            python3 - <<'PY'
-          from pathlib import Path
-          text = Path("android-release-build.log").read_text(errors="ignore")
-          markers = [
-              "What went wrong:",
-              "Execution failed for task",
-              "FAILURE: Build failed with an exception.",
-              "* What went wrong:",
-          ]
-          start = -1
-          for m in markers:
-              i = text.rfind(m)
-              if i > start:
-                  start = i
-          snippet = text[start:] if start >= 0 else text[-4000:]
-          snippet = snippet.strip()[:3500].replace("\r", "")
-          for line in snippet.splitlines()[:80]:
-              # GitHub annotations: one ::error:: line
-              safe = line.replace("%", "%25").replace("\r", "").replace("\n", "")
-              print(f"::error title=Android Gradle::{safe}")
-          PY
-          else:
-            echo "android-release-build.log missing"
-          find android -type f \( -name "*.log" -o -name "hs_err_pid*.log" \) -print 2>/dev/null | head -n 50 || true
+            # Publish root-cause lines as check annotations (visible via API)
+            grep -nE "What went wrong|Execution failed for task|FAILURE: Build failed|FAILED|error:|Error:|Caused by:|AAPT|ndk|SDK|Could not|Cannot|Exception" android-release-build.log | tail -n 60 | while IFS= read -r line; do
+              safe=${line//%/\%25}
+              echo "::error title=Android Gradle::${safe}"
+            done
+          else
+            echo "::error::android-release-build.log was not created"
+          fi
 
       - name: Upload Gradle failure log
         if: failure()
