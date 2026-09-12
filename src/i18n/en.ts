@@ -439,15 +439,6 @@ const en = {
   keptPrivateReports: 'Kept private. Reports show only Private Japa.',
   setGoal: 'Set Goal',
   reportsPrivateJapaOnly: 'Reports will display only "Private Japa".',
-  addAnotherPrivateJapa: 'ADD ANOTHER PRIVATE JAPA',
-  continuePrivateJapa: 'CONTINUE JAPA',
-  privateJapaDeadline: 'Deadline',
-  privateJapaProgress: '{{count}} / {{goal}} japas',
-  activePrivateJapas: 'Your private japas',
-  addAnotherPrivateJapaHint:
-    'Add another private japa with a different mantra. Each keeps its own count and deadline.',
-  privateGoalExpiredHint:
-    'Start a new private mantra after the current goal is completed or the date has passed.',
   orderTabAll: 'All',
   orderTabPending: 'Pending',
   orderTabShipped: 'Shipped',

@@ -64,17 +64,13 @@ const JapaGoalCompleteScreen = () => {
         const response = await apiService.post('/japa-goals', {
           mantraType: mode === 'private' ? 'PERSONAL' : 'DEFAULT',
           mantraId,
-          personalMantraId: Number(route.params?.personalMantraId || 0) || undefined,
           goalName: mode === 'private' ? 'Private Japa' : 'Extended Japa',
           targetCount: nextGoal,
-          days: mode === 'private' ? 3650 : 1,
+          days: 1,
           startDate: new Date().toISOString().slice(0, 10),
-          notes:
-            mode === 'private'
-              ? String(route.params?.privateMantra || '').trim() || null
-              : feedback
-                ? `Extended after ${completedCount}; rating ${rating}. ${feedback}`
-                : `Extended after ${completedCount}; rating ${rating}.`,
+          notes: feedback
+            ? `Extended after ${completedCount}; rating ${rating}. ${feedback}`
+            : `Extended after ${completedCount}; rating ${rating}.`,
         });
         japaGoalId = Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
       } catch {
@@ -97,7 +93,6 @@ const JapaGoalCompleteScreen = () => {
         privateMantra: route.params?.privateMantra,
         goal: nextGoal,
         japaGoalId,
-        personalMantraId: Number(route.params?.personalMantraId || 0) || undefined,
         initialCount: completedCount,
         resume: true,
       });

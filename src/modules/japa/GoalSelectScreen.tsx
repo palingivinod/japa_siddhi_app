@@ -76,24 +76,22 @@ const GoalSelectScreen = () => {
           const rows = response.data?.data ?? [];
           const mode = route.params?.mode;
           const mantraId = route.params?.mantraId;
-          // Private japa always creates a new mantra goal from this screen.
-          if (mode === 'private') {
-            return;
-          }
           const saved =
             rows.find((item: any) => {
               if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
                 return false;
               }
+              if (mode === 'private') {
+                return item.mantraType === 'PERSONAL';
+              }
               if (mantraId) {
                 return Number(item.mantraId) === Number(mantraId);
               }
-              return item.mantraType !== 'PERSONAL';
+              return true;
             }) ||
             rows.find(
               (item: any) =>
-                String(item.status || '').toUpperCase() === 'ACTIVE' &&
-                item.mantraType !== 'PERSONAL',
+                String(item.status || '').toUpperCase() === 'ACTIVE',
             );
           if (!active || !saved) {
             return;
@@ -150,44 +148,25 @@ const GoalSelectScreen = () => {
       return;
     }
     const challengeId = Number(route.params?.challengeId || 0) || undefined;
-    const isPrivate = route.params?.mode === 'private';
-    const privateMantra = String(route.params?.privateMantra || '').trim();
-    let personalMantraId =
-      Number(route.params?.personalMantraId || 0) || undefined;
-    let japaGoalId = Number(route.params?.japaGoalId || 0) || undefined;
     if (!challengeId) {
       try {
-        if (isPrivate && !personalMantraId && privateMantra) {
-          const mantraResponse = await apiService.post('/personal-mantras', {
-            mantraName: privateMantra.slice(0, 200),
-            mantraText: privateMantra,
-            preferredJapaCount: goal,
-          });
-          personalMantraId =
-            Number(mantraResponse.data?.data?.id || 0) || undefined;
-        }
-        const response = await apiService.post('/japa-goals', {
-          mantraType: isPrivate ? 'PERSONAL' : 'DEFAULT',
-          mantraId: isPrivate ? undefined : route.params?.mantraId,
-          personalMantraId,
-          goalName: isPrivate ? 'Private Japa' : 'Daily Japa',
+        await apiService.post('/japa-goals', {
+          mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
+          mantraId: route.params?.mantraId,
+          goalName:
+            route.params?.mode === 'private' ? 'Private Japa' : 'Daily Japa',
           targetCount: goal,
-          days: goalType === 'date' ? remainingDays : isPrivate ? 3650 : 1,
+          days: goalType === 'date' ? remainingDays : 1,
           startDate: new Date().toISOString().slice(0, 10),
-          notes: isPrivate ? privateMantra || null : undefined,
         });
-        japaGoalId =
-          Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
       } catch {
         undefined;
       }
     }
-    const chantParams = {
+    navigation.navigate('Chant', {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
-      privateMantra: privateMantra || route.params?.privateMantra,
-      personalMantraId,
-      japaGoalId,
+      privateMantra: route.params?.privateMantra,
       goal,
       goalType,
       endDate: formatDate(endDate),
@@ -195,12 +174,7 @@ const GoalSelectScreen = () => {
       challengeId,
       initialCount: route.params?.initialCount,
       durationMs: 2500,
-    };
-    if (isPrivate) {
-      navigation.replace('Chant', chantParams);
-      return;
-    }
-    navigation.navigate('Chant', chantParams);
+    });
   };
 
   return (

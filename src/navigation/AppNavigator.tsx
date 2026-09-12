@@ -151,18 +151,7 @@ export type RootStackParamList = {
   JapaHub: undefined;
   CommunityJapa: undefined;
   MantraSelect: {mode?: string; mantraId?: number} | undefined;
-  GoalSelect:
-    | {
-        mode?: string;
-        mantraId?: number;
-        goal?: number;
-        challengeId?: number;
-        privateMantra?: string;
-        personalMantraId?: number;
-        addAnother?: boolean;
-        japaGoalId?: number;
-      }
-    | undefined;
+  GoalSelect: {mode?: string; mantraId?: number; goal?: number; challengeId?: number; privateMantra?: string} | undefined;
   ReferenceChant: {
     mode?: string;
     mantraId?: number;
@@ -182,11 +171,10 @@ export type RootStackParamList = {
         mantraId?: number;
         privateMantra?: string;
         japaGoalId?: number;
-        personalMantraId?: number;
         userTotal?: number;
       }
     | undefined;
-  PrivateJapa: {addAnother?: boolean} | undefined;
+  PrivateJapa: undefined;
   SevaHub: undefined;
   Chant: {
     mode?: 'community' | 'private';
@@ -194,11 +182,7 @@ export type RootStackParamList = {
     goal?: number;
     challengeId?: number;
     privateMantra?: string;
-    personalMantraId?: number;
     japaGoalId?: number;
-    goalType?: string;
-    endDate?: string;
-    dailyTarget?: number;
     durationMs?: number;
     resume?: boolean;
     initialCount?: number;
