@@ -125,6 +125,119 @@ class AuthRepository {
     return rows.length > 0 ? mapUser(rows[0]) : null;
   }
 
+  /** Soft-deleted rows keep password_hash; email/mobile are anonymized as deleted_{id}_{value}. */
+  async findDeletedUserByEmail(email: string): Promise<AuthUser | null> {
+    const normalized = email.toLowerCase().trim();
+    if (!normalized) {
+      return null;
+    }
+
+    const exact = await mysql.query<any[]>(
+      `
+      SELECT *
+      FROM users
+      WHERE deleted_at IS NOT NULL
+      AND lower(email) = ?
+      LIMIT 1
+      `,
+      [normalized],
+    );
+    if (exact.length > 0) {
+      return mapUser(exact[0]);
+    }
+
+    const candidates = await mysql.query<any[]>(
+      `
+      SELECT *
+      FROM users
+      WHERE deleted_at IS NOT NULL
+      AND lower(email) LIKE 'deleted_%'
+      ORDER BY id DESC
+      LIMIT 100
+      `,
+    );
+
+    const match = candidates.find(row => {
+      const stored = String(row.email || '').toLowerCase();
+      const prefix = `deleted_${row.id}_`;
+      return stored === `${prefix}${normalized}` || stored.endsWith(`_${normalized}`);
+    });
+
+    return match ? mapUser(match) : null;
+  }
+
+  async findDeletedUserByMobile(
+    mobileCountryCode: string,
+    mobileNumber: string,
+  ): Promise<AuthUser | null> {
+    const country = String(mobileCountryCode || '').replace(/\D/g, '');
+    const mobile = String(mobileNumber || '').replace(/\D/g, '');
+    if (mobile.length < 8) {
+      return null;
+    }
+
+    const candidates = await mysql.query<any[]>(
+      `
+      SELECT *
+      FROM users
+      WHERE deleted_at IS NOT NULL
+      ORDER BY id DESC
+      LIMIT 100
+      `,
+    );
+
+    const match = candidates.find(row => {
+      const rawMobile = String(row.mobile_number ?? row.mobileNumber ?? '');
+      const prefix = `deleted_${row.id}_`;
+      const original = rawMobile.toLowerCase().startsWith(prefix.toLowerCase())
+        ? rawMobile.slice(prefix.length)
+        : rawMobile;
+      const digits = original.replace(/\D/g, '');
+      const rawCountry = String(
+        row.mobile_country_code ?? row.mobileCountryCode ?? '',
+      ).replace(/\D/g, '');
+      const countryOk = !rawCountry || rawCountry === country;
+      return digits === mobile && countryOk;
+    });
+
+    return match ? mapUser(match) : null;
+  }
+
+  async restoreUser(
+    userId: number,
+    email: string | null,
+    mobileCountryCode: string,
+    mobileNumber: string,
+  ): Promise<void> {
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET
+        deleted_at = NULL,
+        email = ?,
+        mobile_country_code = ?,
+        mobile_number = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [
+        email ? email.toLowerCase() : null,
+        mobileCountryCode,
+        mobileNumber,
+        userId,
+      ],
+    );
+  }
+
+  parseAnonymizedValue(value: string | null | undefined, userId: number): string {
+    const raw = String(value || '');
+    const prefix = `deleted_${userId}_`;
+    if (raw.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return raw.slice(prefix.length);
+    }
+    return raw;
+  }
+
   async findUserByCredentials(
     mobileCountryCode: string,
     mobileNumber: string,
@@ -248,7 +361,6 @@ class AuthRepository {
       SELECT password_hash
       FROM users
       WHERE id = ?
-      AND deleted_at IS NULL
       LIMIT 1
       `,
       [userId],

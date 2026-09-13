@@ -408,12 +408,29 @@ class AuthService {
     }
 
     let user: AuthUser | null = null;
+    let wasDeleted = false;
+    let restoreEmail: string | null = null;
+    let restoreCountry = '91';
+    let restoreMobile = '';
+
     if (identifier.includes('@')) {
       const email = identifier.toLowerCase();
       if (!email.includes('@') || email.indexOf('@') < 1) {
         throw new AppError('Enter a valid email address', 400);
       }
       user = await authRepository.findUserByEmail(email);
+      if (!user) {
+        user = await authRepository.findDeletedUserByEmail(email);
+        if (user) {
+          wasDeleted = true;
+          restoreEmail = email;
+          restoreCountry =
+            normalizePhone(user.mobileCountryCode || '') || '91';
+          restoreMobile = normalizePhone(
+            authRepository.parseAnonymizedValue(user.mobileNumber, user.id),
+          );
+        }
+      }
     } else {
       const digits = normalizePhone(identifier);
       const country =
@@ -425,17 +442,36 @@ class AuthService {
       if (mobile.length < 8) {
         throw new AppError('Enter a valid mobile number', 400);
       }
+      restoreCountry = country;
+      restoreMobile = mobile;
       user = await authRepository.findUserByMobile(country, mobile);
+      if (!user) {
+        user = await authRepository.findDeletedUserByMobile(country, mobile);
+        if (user) {
+          wasDeleted = true;
+          const originalEmail = authRepository.parseAnonymizedValue(
+            user.email,
+            user.id,
+          );
+          restoreEmail =
+            originalEmail && originalEmail.includes('@')
+              ? originalEmail.toLowerCase()
+              : null;
+        }
+      }
     }
 
     if (!user) {
-      throw new AppError('Invalid email/number or password.', 401);
+      throw new AppError(
+        'No account found for this email or mobile number.',
+        404,
+      );
     }
 
     const passwordHash = await authRepository.getPasswordHashByUserId(user.id);
     if (!passwordHash) {
       throw new AppError(
-        'No password is set for this account. Use Forgot password or create your account again.',
+        'No password is set for this account. Use Forgot password to set one.',
         401,
       );
     }
@@ -443,6 +479,18 @@ class AuthService {
     const ok = await bcryptCompare(password, passwordHash);
     if (!ok) {
       throw new AppError('Invalid email/number or password.', 401);
+    }
+
+    if (wasDeleted) {
+      await authRepository.restoreUser(
+        user.id,
+        restoreEmail,
+        restoreCountry || normalizePhone(user.mobileCountryCode || '') || '91',
+        restoreMobile ||
+          normalizePhone(
+            authRepository.parseAnonymizedValue(user.mobileNumber, user.id),
+          ),
+      );
     }
 
     await authRepository.updateLastLogin(user.id);
@@ -464,8 +512,26 @@ class AuthService {
     }
 
     let user: AuthUser | null = null;
+    let wasDeleted = false;
+    let restoreEmail: string | null = null;
+    let restoreCountry = '91';
+    let restoreMobile = '';
+
     if (identifier.includes('@')) {
-      user = await authRepository.findUserByEmail(identifier.toLowerCase());
+      const email = identifier.toLowerCase();
+      user = await authRepository.findUserByEmail(email);
+      if (!user) {
+        user = await authRepository.findDeletedUserByEmail(email);
+        if (user) {
+          wasDeleted = true;
+          restoreEmail = email;
+          restoreCountry =
+            normalizePhone(user.mobileCountryCode || '') || '91';
+          restoreMobile = normalizePhone(
+            authRepository.parseAnonymizedValue(user.mobileNumber, user.id),
+          );
+        }
+      }
     } else {
       const digits = normalizePhone(identifier);
       const country =
@@ -476,7 +542,44 @@ class AuthService {
       if (mobile.length < 8) {
         throw new AppError('Enter a valid mobile number', 400);
       }
+      restoreCountry = country;
+      restoreMobile = mobile;
       user = await authRepository.findUserByMobile(country, mobile);
+      if (!user) {
+        user = await authRepository.findDeletedUserByMobile(country, mobile);
+        if (user) {
+          wasDeleted = true;
+          const originalEmail = authRepository.parseAnonymizedValue(
+            user.email,
+            user.id,
+          );
+          restoreEmail =
+            originalEmail && originalEmail.includes('@')
+              ? originalEmail.toLowerCase()
+              : null;
+        }
+      }
+    }
+
+    if (!user) {
+      throw new AppError(
+        'No account found for this email or mobile number.',
+        404,
+      );
+    }
+
+    // Soft-deleted accounts can reset password after we restore contact fields.
+    if (wasDeleted) {
+      await authRepository.restoreUser(
+        user.id,
+        restoreEmail,
+        restoreCountry || normalizePhone(user.mobileCountryCode || '') || '91',
+        restoreMobile ||
+          normalizePhone(
+            authRepository.parseAnonymizedValue(user.mobileNumber, user.id),
+          ),
+      );
+      user = (await authRepository.findUserById(user.id)) as AuthUser;
     }
 
     if (!user?.email || !String(user.email).includes('@')) {
@@ -536,7 +639,19 @@ class AuthService {
       throw new AppError('Password must be at least 6 characters.', 400);
     }
 
-    const user = await authRepository.findUserByEmail(email);
+    let user = await authRepository.findUserByEmail(email);
+    if (!user) {
+      user = await authRepository.findDeletedUserByEmail(email);
+      if (user) {
+        const mobile = normalizePhone(
+          authRepository.parseAnonymizedValue(user.mobileNumber, user.id),
+        );
+        const country =
+          normalizePhone(user.mobileCountryCode || '') || '91';
+        await authRepository.restoreUser(user.id, email, country, mobile);
+        user = await authRepository.findUserByEmail(email);
+      }
+    }
     if (!user) {
       throw new AppError('No account found for this email.', 404);
     }

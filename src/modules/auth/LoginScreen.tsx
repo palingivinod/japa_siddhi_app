@@ -129,7 +129,12 @@ const LoginScreen = () => {
         response = await apiService.post('/auth/password-login', payload);
       } catch (firstError: any) {
         const status = firstError?.response?.status;
-        if (status === 404) {
+        const msg = String(firstError?.response?.data?.message || '');
+        // Only fall back when the password-login route itself is missing on older APIs.
+        const routeMissing =
+          status === 404 &&
+          !/account|password|email|mobile|otp/i.test(msg);
+        if (routeMissing) {
           response = await apiService.post('/auth/login', payload);
         } else {
           throw firstError;
@@ -140,6 +145,16 @@ const LoginScreen = () => {
         throw new Error('Login did not return a session');
       }
       await saveSession(data.token, data.user);
+      // Re-hydrate profile from server after logout/uninstall so local session matches DB.
+      try {
+        const profileResponse = await apiService.get('/auth/profile');
+        const profile = profileResponse.data?.data;
+        if (profile) {
+          await saveSession(data.token, {...data.user, ...profile});
+        }
+      } catch {
+        // Token + user from login is enough if profile refresh fails.
+      }
       resetAuthGate();
       navigation.reset({
         index: 0,
@@ -148,7 +163,7 @@ const LoginScreen = () => {
     } catch (error: any) {
       const status = error?.response?.status;
       const rawMessage = error?.response?.data?.message;
-      const serverMessage = Array.isArray(rawMessage)
+      let serverMessage = Array.isArray(rawMessage)
         ? rawMessage
             .map((item: any) => item?.msg || item)
             .filter(Boolean)
@@ -156,11 +171,14 @@ const LoginScreen = () => {
         : typeof rawMessage === 'string'
           ? rawMessage
           : '';
+      if (/no admin account/i.test(serverMessage)) {
+        serverMessage = 'No account found for this email or mobile number.';
+      }
       Alert.alert(
         'Login failed',
         serverMessage ||
           (status === 404
-            ? 'Login service is updating. Please try again in a minute.'
+            ? 'No account found for this email or mobile number.'
             : error?.message ||
               'Unable to login. Check your email/number and password.'),
       );

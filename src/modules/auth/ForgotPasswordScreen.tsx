@@ -12,13 +12,19 @@ import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
-import {
-  resetAdminPassword,
-  sendAdminForgotOtp,
-} from '../admin/adminCredentials';
 
 type Step = 'identifier' | 'otp';
-type AccountKind = 'user' | 'admin';
+
+const friendlyForgotError = (error: any, fallback: string) => {
+  const raw = String(getApiError(error, fallback) || '');
+  if (/no admin account/i.test(raw)) {
+    return 'No account found for this email or mobile number.';
+  }
+  if (/cannot post|not found|404/i.test(raw) && /forgot|admin/i.test(raw)) {
+    return 'No account found for this email or mobile number.';
+  }
+  return raw || fallback;
+};
 
 const ForgotPasswordScreen = () => {
   const navigation = useNavigation<any>();
@@ -28,7 +34,6 @@ const ForgotPasswordScreen = () => {
     String(route.params?.identifier || route.params?.email || ''),
   );
   const [accountEmail, setAccountEmail] = useState('');
-  const [accountKind, setAccountKind] = useState<AccountKind>('user');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -44,38 +49,24 @@ const ForgotPasswordScreen = () => {
 
     setBusy(true);
     try {
-      // Prefer devotee reset; fall back to admin when email matches an admin.
-      try {
-        const response = await apiService.post('/auth/forgot/send-otp', {
-          identifier: value,
-          email: value.includes('@') ? value.toLowerCase() : undefined,
-        });
-        const data = response.data?.data || {};
-        setAccountKind('user');
-        setAccountEmail(String(data.email || value).toLowerCase());
-        setSentTo(data.sentTo || value);
-        setStep('otp');
-        Alert.alert(
-          'OTP sent',
-          `A 4-digit code was sent to ${data.sentTo || value}.`,
-        );
-        return;
-      } catch (userError: any) {
-        if (!value.includes('@')) {
-          throw userError;
-        }
-        const result = await sendAdminForgotOtp(value.toLowerCase());
-        setAccountKind('admin');
-        setAccountEmail(value.toLowerCase());
-        setSentTo(result?.sentTo || value);
-        setStep('otp');
-        Alert.alert(
-          'OTP sent',
-          `A 4-digit code was sent to ${result?.sentTo || value}.`,
-        );
-      }
+      // Devotee reset only. Admins use AdminForgotPassword from Admin Login.
+      const response = await apiService.post('/auth/forgot/send-otp', {
+        identifier: value,
+        email: value.includes('@') ? value.toLowerCase() : undefined,
+      });
+      const data = response.data?.data || {};
+      setAccountEmail(String(data.email || value).toLowerCase());
+      setSentTo(data.sentTo || value);
+      setStep('otp');
+      Alert.alert(
+        'OTP sent',
+        `A 4-digit code was sent to ${data.sentTo || value}.`,
+      );
     } catch (error) {
-      Alert.alert('OTP failed', getApiError(error, 'Could not send OTP.'));
+      Alert.alert(
+        'OTP failed',
+        friendlyForgotError(error, 'Could not send OTP.'),
+      );
     } finally {
       setBusy(false);
     }
@@ -97,19 +88,11 @@ const ForgotPasswordScreen = () => {
 
     setBusy(true);
     try {
-      if (accountKind === 'admin') {
-        await resetAdminPassword(
-          accountEmail,
-          otp.trim(),
-          newPassword.trim(),
-        );
-      } else {
-        await apiService.post('/auth/forgot/reset', {
-          email: accountEmail,
-          otp: otp.trim(),
-          newPassword: newPassword.trim(),
-        });
-      }
+      await apiService.post('/auth/forgot/reset', {
+        email: accountEmail,
+        otp: otp.trim(),
+        newPassword: newPassword.trim(),
+      });
       Alert.alert('Password updated', 'Login with your new password.', [
         {
           text: 'OK',
@@ -120,7 +103,7 @@ const ForgotPasswordScreen = () => {
     } catch (error) {
       Alert.alert(
         'Reset failed',
-        getApiError(error, 'Could not update password.'),
+        friendlyForgotError(error, 'Could not update password.'),
       );
     } finally {
       setBusy(false);
