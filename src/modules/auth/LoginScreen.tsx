@@ -35,7 +35,7 @@ const LoginScreen = () => {
   const {t} = useLanguage();
   const [submitting, setSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [hasValidSession, setHasValidSession] = useState(false);
 
@@ -75,9 +75,9 @@ const LoginScreen = () => {
   };
 
   const handlePasswordLogin = async () => {
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      Alert.alert(t('required'), t('validEmailOtp'));
+    const value = identifier.trim();
+    if (!value) {
+      Alert.alert(t('required'), 'Enter your email or mobile number.');
       return;
     }
     if (!password.trim()) {
@@ -85,35 +85,52 @@ const LoginScreen = () => {
       return;
     }
 
+    const isEmail = value.includes('@');
+    if (isEmail && !EMAIL_REGEX.test(value.toLowerCase())) {
+      Alert.alert(t('required'), 'Enter a valid email address.');
+      return;
+    }
+    if (!isEmail) {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length < 8) {
+        Alert.alert(t('required'), 'Enter a valid mobile number.');
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
-      try {
-        const admin = await verifyAdminCredentials(trimmedEmail, password);
-        resetAdminAuthGate();
-        await saveAdminSession(admin.email || trimmedEmail);
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'AdminDashboard'}],
-        });
-        return;
-      } catch {
-        // Not an admin account — continue with devotee password login.
+      if (isEmail) {
+        try {
+          const admin = await verifyAdminCredentials(
+            value.toLowerCase(),
+            password,
+          );
+          resetAdminAuthGate();
+          await saveAdminSession(admin.email || value.toLowerCase());
+          navigation.reset({
+            index: 0,
+            routes: [{name: 'AdminDashboard'}],
+          });
+          return;
+        } catch {
+          // Not an admin account — continue with devotee password login.
+        }
       }
 
-      // Dedicated password endpoint first; fall back to /auth/login.
+      const payload = {
+        identifier: value,
+        email: isEmail ? value.toLowerCase() : undefined,
+        password: password.trim(),
+      };
+
       let response;
       try {
-        response = await apiService.post('/auth/password-login', {
-          email: trimmedEmail,
-          password: password.trim(),
-        });
+        response = await apiService.post('/auth/password-login', payload);
       } catch (firstError: any) {
         const status = firstError?.response?.status;
         if (status === 404) {
-          response = await apiService.post('/auth/login', {
-            email: trimmedEmail,
-            password: password.trim(),
-          });
+          response = await apiService.post('/auth/login', payload);
         } else {
           throw firstError;
         }
@@ -132,7 +149,10 @@ const LoginScreen = () => {
       const status = error?.response?.status;
       const rawMessage = error?.response?.data?.message;
       const serverMessage = Array.isArray(rawMessage)
-        ? rawMessage.map((item: any) => item?.msg || item).filter(Boolean).join('\n')
+        ? rawMessage
+            .map((item: any) => item?.msg || item)
+            .filter(Boolean)
+            .join('\n')
         : typeof rawMessage === 'string'
           ? rawMessage
           : '';
@@ -141,7 +161,8 @@ const LoginScreen = () => {
         serverMessage ||
           (status === 404
             ? 'Login service is updating. Please try again in a minute.'
-            : error?.message || 'Unable to login. Check your email and password.'),
+            : error?.message ||
+              'Unable to login. Check your email/number and password.'),
       );
     } finally {
       setSubmitting(false);
@@ -217,12 +238,12 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
-            <Text style={styles.label}>{t('email')}</Text>
+            <Text style={styles.label}>Email / Mobile number</Text>
             <TextInput
               style={styles.emailInput}
-              value={email}
-              onChangeText={setEmail}
-              placeholder={t('enterEmailAddress')}
+              value={identifier}
+              onChangeText={setIdentifier}
+              placeholder="email@example.com or 9876543210"
               placeholderTextColor={Colors.placeholder}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -241,8 +262,8 @@ const LoginScreen = () => {
 
             <TouchableOpacity
               onPress={() =>
-                navigation.navigate('AdminForgotPassword', {
-                  email: email.trim().toLowerCase(),
+                navigation.navigate('ForgotPassword', {
+                  identifier: identifier.trim(),
                 })
               }>
               <Text style={styles.forgotPassword}>Forgot password?</Text>

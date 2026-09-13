@@ -391,33 +391,58 @@ class AuthService {
   async passwordLogin(data: {
     email?: string;
     password?: string;
+    identifier?: string;
+    mobileCountryCode?: string;
+    mobileNumber?: string;
   }): Promise<LoginResponse> {
-    const email = String(data.email || '').trim().toLowerCase();
     const password = String(data.password || '');
-
-    if (!email || !email.includes('@')) {
-      throw new AppError('Enter a valid email address', 400);
-    }
     if (!password) {
       throw new AppError('Enter your password', 400);
     }
 
-    const user = await authRepository.findUserByEmail(email);
-    if (!user) {
-      throw new AppError('Invalid email or password.', 401);
+    const identifier = String(
+      data.identifier || data.email || data.mobileNumber || '',
+    ).trim();
+    if (!identifier) {
+      throw new AppError('Enter your email or mobile number', 400);
     }
 
-    const passwordHash = await authRepository.getPasswordHashByEmail(email);
+    let user: AuthUser | null = null;
+    if (identifier.includes('@')) {
+      const email = identifier.toLowerCase();
+      if (!email.includes('@') || email.indexOf('@') < 1) {
+        throw new AppError('Enter a valid email address', 400);
+      }
+      user = await authRepository.findUserByEmail(email);
+    } else {
+      const digits = normalizePhone(identifier);
+      const country =
+        normalizePhone(data.mobileCountryCode || '') ||
+        (digits.length > 10 ? digits.slice(0, digits.length - 10) : '91') ||
+        '91';
+      const mobile =
+        digits.length > 10 ? digits.slice(-10) : digits;
+      if (mobile.length < 8) {
+        throw new AppError('Enter a valid mobile number', 400);
+      }
+      user = await authRepository.findUserByMobile(country, mobile);
+    }
+
+    if (!user) {
+      throw new AppError('Invalid email/number or password.', 401);
+    }
+
+    const passwordHash = await authRepository.getPasswordHashByUserId(user.id);
     if (!passwordHash) {
       throw new AppError(
-        'No password is set for this account. Create your account again to set email, password and mobile.',
+        'No password is set for this account. Use Forgot password or create your account again.',
         401,
       );
     }
 
     const ok = await bcryptCompare(password, passwordHash);
     if (!ok) {
-      throw new AppError('Invalid email or password.', 401);
+      throw new AppError('Invalid email/number or password.', 401);
     }
 
     await authRepository.updateLastLogin(user.id);
@@ -426,6 +451,116 @@ class AuthService {
       token: issueToken(freshUser),
       user: freshUser,
     };
+  }
+
+  async sendForgotPasswordOtp(data: {
+    email?: string;
+    identifier?: string;
+    mobileCountryCode?: string;
+  }) {
+    const identifier = String(data.identifier || data.email || '').trim();
+    if (!identifier) {
+      throw new AppError('Enter your email or mobile number', 400);
+    }
+
+    let user: AuthUser | null = null;
+    if (identifier.includes('@')) {
+      user = await authRepository.findUserByEmail(identifier.toLowerCase());
+    } else {
+      const digits = normalizePhone(identifier);
+      const country =
+        normalizePhone(data.mobileCountryCode || '') ||
+        (digits.length > 10 ? digits.slice(0, digits.length - 10) : '91') ||
+        '91';
+      const mobile = digits.length > 10 ? digits.slice(-10) : digits;
+      if (mobile.length < 8) {
+        throw new AppError('Enter a valid mobile number', 400);
+      }
+      user = await authRepository.findUserByMobile(country, mobile);
+    }
+
+    if (!user?.email || !String(user.email).includes('@')) {
+      throw new AppError(
+        'No account with a registered email was found for this login.',
+        404,
+      );
+    }
+
+    const destinationEmail = String(user.email).trim().toLowerCase();
+    const existing = await otpRepository.findActiveByEmail(destinationEmail);
+    if (
+      existing &&
+      Date.now() - Number(existing.createdAt) <
+        environment.OTP_RESEND_SECONDS * 1000
+    ) {
+      throw new AppError(
+        `Please wait ${environment.OTP_RESEND_SECONDS} seconds before requesting another OTP.`,
+        429,
+      );
+    }
+
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    await emailOtpService.sendOtp(destinationEmail, otp);
+    await otpRepository.save({
+      mobileCountryCode: normalizePhone(user.mobileCountryCode || '') || '91',
+      mobileNumber: normalizePhone(user.mobileNumber || '') || '0000000000',
+      email: destinationEmail,
+      codeHash: emailOtpService.hashOtp(otp),
+      expiresAt: Date.now() + environment.OTP_EXPIRES_SECONDS * 1000,
+    });
+
+    return {
+      sent: true,
+      sentTo: emailOtpService.maskEmail(destinationEmail),
+      email: destinationEmail,
+      expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+    };
+  }
+
+  async resetForgotPassword(data: {
+    email?: string;
+    otp?: string;
+    newPassword?: string;
+  }) {
+    const email = String(data.email || '').trim().toLowerCase();
+    const code = String(data.otp || '').trim();
+    const password = String(data.newPassword || '');
+
+    if (!email || !email.includes('@')) {
+      throw new AppError('Email is required to reset password.', 400);
+    }
+    if (code.length !== 4) {
+      throw new AppError('Enter the 4-digit OTP.', 400);
+    }
+    if (password.length < 6) {
+      throw new AppError('Password must be at least 6 characters.', 400);
+    }
+
+    const user = await authRepository.findUserByEmail(email);
+    if (!user) {
+      throw new AppError('No account found for this email.', 404);
+    }
+
+    const stored = await otpRepository.findActiveByEmail(email);
+    if (!stored || Number(stored.expiresAt) < Date.now()) {
+      throw new AppError('Invalid or expired OTP.', 401);
+    }
+    if (Number(stored.attempts) >= environment.OTP_MAX_ATTEMPTS) {
+      await otpRepository.deleteByEmail(email);
+      throw new AppError('Too many incorrect attempts. Request a new OTP.', 401);
+    }
+
+    const valid = emailOtpService.matches(code, stored.codeHash);
+    if (!valid) {
+      await otpRepository.incrementAttempts(stored.id);
+      throw new AppError('Invalid or expired OTP.', 401);
+    }
+
+    await otpRepository.deleteByEmail(email);
+    const passwordHash = await hashPassword(password);
+    await authRepository.setPasswordHash(user.id, passwordHash);
+
+    return {success: true, email};
   }
 
   async signIn(data: {

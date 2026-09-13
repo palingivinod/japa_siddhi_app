@@ -9,6 +9,7 @@ import SplashScreen from '../modules/auth/SplashScreen';
 import LanguageSelectScreen from '../modules/auth/LanguageSelectScreen';
 import LoginScreen from '../modules/auth/LoginScreen';
 import CreateAccountScreen from '../modules/auth/CreateAccountScreen';
+import ForgotPasswordScreen from '../modules/auth/ForgotPasswordScreen';
 import OtpScreen from '../modules/auth/OtpScreen';
 import SocialAuthScreen from '../modules/auth/SocialAuthScreen';
 import SignupPersonalScreen from '../modules/auth/SignupPersonalScreen';
@@ -129,6 +130,7 @@ export type RootStackParamList = {
   LanguageSelect: {fromSettings?: boolean} | undefined;
   Login: {forceLoginForm?: boolean} | undefined;
   CreateAccount: undefined;
+  ForgotPassword: {identifier?: string; email?: string} | undefined;
   SocialAuth: {provider?: string} | undefined;
   OtpScreen: {
     phoneNumber: string;
@@ -479,6 +481,7 @@ const AppNavigator = () => {
         <Stack.Screen name="LanguageSelect" component={LanguageSelectScreen} />
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+        <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="SocialAuth" component={SocialAuthScreen} />
         <Stack.Screen name="OtpScreen" component={OtpScreen} />
         <Stack.Screen name="SignupPersonal" component={SignupPersonalScreen} />

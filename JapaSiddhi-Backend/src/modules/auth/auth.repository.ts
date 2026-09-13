@@ -242,6 +242,24 @@ class AuthRepository {
     return hash ? String(hash) : null;
   }
 
+  async getPasswordHashByUserId(userId: number): Promise<string | null> {
+    const rows = await mysql.query<Array<{password_hash?: string | null}>>(
+      `
+      SELECT password_hash
+      FROM users
+      WHERE id = ?
+      AND deleted_at IS NULL
+      LIMIT 1
+      `,
+      [userId],
+    );
+    if (!rows.length) {
+      return null;
+    }
+    const hash = rows[0]?.password_hash;
+    return hash ? String(hash) : null;
+  }
+
   async setPasswordHash(userId: number, passwordHash: string): Promise<void> {
     await mysql.query<ResultSetHeader>(
       `

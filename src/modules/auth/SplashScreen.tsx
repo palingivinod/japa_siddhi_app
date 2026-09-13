@@ -1,13 +1,14 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {CommonActions} from '@react-navigation/native';
 
@@ -18,8 +19,38 @@ import {getValidSession} from '../../services/session';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
+/** Intrinsic size of splash_welcome.png */
+const SPLASH_W = 410;
+const SPLASH_H = 901;
+
 const SplashScreen = ({navigation}: Props) => {
   const [busy, setBusy] = useState(false);
+  const {width, height} = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+
+  // Cover the full screen (including notches) without letterboxing.
+  const heroStyle = useMemo(() => {
+    const scale = Math.max(width / SPLASH_W, height / SPLASH_H);
+    const w = SPLASH_W * scale;
+    const h = SPLASH_H * scale;
+    return {
+      width: w,
+      height: h,
+      left: (width - w) / 2,
+      top: (height - h) / 2,
+    };
+  }, [width, height]);
+
+  // GET STARTED sits in the lower band of the artwork.
+  const hitStyle = useMemo(
+    () => ({
+      left: Math.max(16, width * 0.08),
+      right: Math.max(16, width * 0.08),
+      top: height * 0.68,
+      bottom: Math.max(insets.bottom + 8, height * 0.08),
+    }),
+    [width, height, insets.bottom],
+  );
 
   const getStarted = useCallback(async () => {
     if (busy) {
@@ -28,8 +59,6 @@ const SplashScreen = ({navigation}: Props) => {
     setBusy(true);
     try {
       const savedLanguage = await getLanguage();
-      // Returning users already chose a language — skip Choose Language.
-      // They can change it later from Settings.
       if (savedLanguage) {
         const session = await getValidSession();
         if (session.token) {
@@ -44,7 +73,6 @@ const SplashScreen = ({navigation}: Props) => {
         navigation.replace('Login');
         return;
       }
-      // New users only: ask language once after welcome Continue.
       navigation.replace('LanguageSelect');
     } catch {
       navigation.replace('LanguageSelect');
@@ -54,16 +82,20 @@ const SplashScreen = ({navigation}: Props) => {
   }, [busy, navigation]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor={Colors.background} barStyle="dark-content" />
+    <View style={styles.container}>
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="dark-content"
+      />
       <View style={styles.stage}>
         <Image
           source={require('../../assets/images/splash_welcome.png')}
-          style={styles.hero}
-          resizeMode="contain"
+          style={[styles.hero, heroStyle]}
+          resizeMode="stretch"
         />
         <TouchableOpacity
-          style={styles.hit}
+          style={[styles.hit, hitStyle]}
           onPress={getStarted}
           activeOpacity={0.85}
           disabled={busy}
@@ -76,7 +108,7 @@ const SplashScreen = ({navigation}: Props) => {
           </View>
         ) : null}
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -89,17 +121,13 @@ const styles = StyleSheet.create({
   },
   stage: {
     flex: 1,
+    overflow: 'hidden',
   },
   hero: {
-    width: '100%',
-    height: '100%',
+    position: 'absolute',
   },
   hit: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    top: '62%',
-    bottom: 12,
   },
   busyOverlay: {
     ...StyleSheet.absoluteFillObject,

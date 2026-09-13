@@ -58,15 +58,67 @@ export const otpVerifyValidation = [
 ];
 
 export const passwordLoginValidation = [
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required.')
+    .isLength({min: 6})
+    .withMessage('Password must be at least 6 characters.'),
+  body('identifier')
+    .optional({nullable: true})
+    .trim(),
+  body('email')
+    .optional({nullable: true})
+    .trim(),
+  body('mobileNumber')
+    .optional({nullable: true})
+    .trim(),
+  body('mobileCountryCode')
+    .optional({nullable: true})
+    .trim(),
+  body().custom((_, {req}) => {
+    const id = String(
+      req.body?.identifier || req.body?.email || req.body?.mobileNumber || '',
+    ).trim();
+    if (!id) {
+      throw new Error('Enter your email or mobile number.');
+    }
+    return true;
+  }),
+];
+
+export const forgotPasswordSendValidation = [
+  body('identifier')
+    .optional({nullable: true})
+    .trim(),
+  body('email')
+    .optional({nullable: true})
+    .trim(),
+  body('mobileCountryCode')
+    .optional({nullable: true})
+    .trim(),
+  body().custom((_, {req}) => {
+    const id = String(req.body?.identifier || req.body?.email || '').trim();
+    if (!id) {
+      throw new Error('Enter your email or mobile number.');
+    }
+    return true;
+  }),
+];
+
+export const forgotPasswordResetValidation = [
   body('email')
     .trim()
     .notEmpty()
     .withMessage('Email is required.')
     .isEmail()
     .withMessage('Enter a valid email address.'),
-  body('password')
+  body('otp')
+    .trim()
+    .isLength({min: 4, max: 4})
+    .withMessage('Enter the 4-digit OTP.'),
+  body('newPassword')
     .notEmpty()
-    .withMessage('Password is required.')
+    .withMessage('New password is required.')
     .isLength({min: 6})
     .withMessage('Password must be at least 6 characters.'),
 ];

@@ -11,6 +11,8 @@ import {
   otpSendValidation,
   otpVerifyValidation,
   passwordLoginValidation,
+  forgotPasswordSendValidation,
+  forgotPasswordResetValidation,
 } from './auth.validation';
 
 import validateRequest from '../../middleware/validateRequest';
@@ -46,19 +48,40 @@ router.post(
   runPasswordLogin,
 );
 
-// /login: email+password when no Firebase token; otherwise Firebase login.
+// /login: email/phone+password when no Firebase token; otherwise Firebase login.
 router.post(
   '/login',
-  ((req, res, next) => {
+  (req: Request, res: Response, next: NextFunction) => {
     const body = req.body || {};
-    if (body.email && body.password && !body.firebaseToken) {
+    const hasPassword = Boolean(body.password);
+    const hasIdentifier = Boolean(
+      body.identifier || body.email || body.mobileNumber,
+    );
+    if (hasPassword && hasIdentifier && !body.firebaseToken) {
       return runPasswordLogin(req, res, next);
     }
     return next();
-  }) as ExpressHandler,
+  },
   ...loginValidation,
   validateRequest,
   ((req, res, next) => authController.login(req, res, next)) as ExpressHandler,
+);
+
+router.post(
+  '/forgot/send-otp',
+  otpSendLimiter,
+  ...forgotPasswordSendValidation,
+  validateRequest,
+  ((req, res, next) =>
+    authController.sendForgotPasswordOtp(req, res, next)) as ExpressHandler,
+);
+
+router.post(
+  '/forgot/reset',
+  ...forgotPasswordResetValidation,
+  validateRequest,
+  ((req, res, next) =>
+    authController.resetForgotPassword(req, res, next)) as ExpressHandler,
 );
 
 router.post(

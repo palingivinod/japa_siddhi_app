@@ -65,6 +65,32 @@ class AuthController {
     }
   }
 
+  async sendForgotPasswordOtp(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await authService.sendForgotPasswordOtp(req.body);
+      return apiResponse.success(res, 'OTP sent successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resetForgotPassword(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await authService.resetForgotPassword(req.body);
+      return apiResponse.success(res, 'Password updated successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async register(
     req: Request,
     res: Response,
