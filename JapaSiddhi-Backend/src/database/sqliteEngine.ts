@@ -31,6 +31,7 @@ class SqliteEngine {
       this.migrateUsers();
       this.ensureFeatureTables();
       this.clearPlaceholderDonationSettings();
+      console.log(`SQLite database opened (persistent): ${DB_PATH}`);
       return;
     }
 

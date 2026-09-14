@@ -6,6 +6,7 @@ dotenv.config();
 import app from './app';
 import { initializeSocket } from './socket/socketServer';
 import { initializeFirebase } from './firebase/firebase';
+import { purgeDemoData } from './utils/demoData';
 
 // ✅ Initialize Firebase Admin BEFORE starting the server
 initializeFirebase();
@@ -17,7 +18,8 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 initializeSocket(server);
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
+    await purgeDemoData();
     console.log('========================================');
     console.log(`🚀 Japa Siddhi Backend Started`);
     console.log(`🌐 Port : ${PORT}`);

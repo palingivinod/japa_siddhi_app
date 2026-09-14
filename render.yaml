@@ -7,6 +7,8 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/v1/health
+    # Persistent disk keeps SQLite users/japa/donations across deploys.
+    # Do NOT remove this disk or change SQLITE_PATH — that wipes production data.
     disk:
       name: japasiddhi-data
       mountPath: /var/data
@@ -20,8 +22,9 @@ services:
         value: /var/data/japa_siddhi.sqlite
       - key: UPLOAD_PATH
         value: /var/data/uploads
+      # Must stay stable across deploys or every user session is invalidated.
       - key: JWT_SECRET
-        generateValue: true
+        sync: false
       - key: SMTP_HOST
         value: smtp.gmail.com
       - key: SMTP_PORT

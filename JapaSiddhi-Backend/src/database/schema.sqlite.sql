@@ -437,17 +437,7 @@ VALUES
 (9, 'Om Aim Saraswatyai Namah', 'Goddess Saraswati', 'ॐ ऐं सरस्वत्यै नमः', 'Om Aim Saraswatyai Namah', 108, 1, 1, 9),
 (10, 'Om Shri Hanumate Namah', 'Lord Hanuman', 'ॐ श्री हनुमते नमः', 'Om Shri Hanumate Namah', 108, 1, 1, 10);
 
-INSERT OR IGNORE INTO users
-(id, uuid, firebase_uid, mobile_country_code, mobile_number, full_name, email, gender, date_of_birth, country_id, state_id, city_id, preferred_language_id, profile_completed, role, terms_accepted, privacy_policy_accepted)
-VALUES
-(1, '11111111-1111-1111-1111-111111111111', 'dev-user-1', '91', '9999999999', 'Demo Devotee', 'devotee@japasiddhi.com', 'Male', '1995-08-16', 1, 1, 1, 1, 1, 'USER', 1, 1);
-
 INSERT OR IGNORE INTO global_japa_counter (id, total_japa_count) VALUES (1, 0);
-
-INSERT OR IGNORE INTO japa_goals
-(id, user_id, mantra_type, mantra_id, goal_name, target_count, completed_count, remaining_count, start_date, end_date, daily_target, status, notes)
-VALUES
-(1, 1, 'DEFAULT', 1, 'Om Namah Shivaya Sadhana', 10800, 1080, 9720, '2026-08-01', '2026-12-31', 108, 'ACTIVE', 'Daily Shiva japa');
 
 INSERT OR IGNORE INTO festivals
 (id, festival_name, description, festival_date, festival_type, is_public_holiday, is_active, display_order)
@@ -459,11 +449,6 @@ VALUES
 (5, 'Diwali', 'Festival of lights. Offer japa and donations.', '2026-11-08', 'HINDU', 1, 1, 5),
 (6, 'Kartika Purnima', 'Sacred full moon for Shiva and Vishnu japa.', '2026-11-24', 'HINDU', 0, 1, 6),
 (7, 'Maha Shivaratri', 'Night-long worship of Lord Shiva.', '2027-02-04', 'HINDU', 1, 1, 7);
-
-INSERT OR IGNORE INTO donations
-(id, user_id, donation_type, amount, currency, payment_method, transaction_id, payment_reference, payment_status, donation_status, remarks)
-VALUES
-(1, 1, 'MONTHLY', 200, 'INR', 'UPI', 'TXN-DEMO-200', 'UPI-200', 'SUCCESS', 'SUCCESS', 'Monthly seva');
 
 INSERT OR IGNORE INTO app_settings (setting_key, setting_value, setting_type, category, description) VALUES
 ('trust_name', 'Bilva Patra Trust', 'TEXT', 'TRUST', 'Trust Name'),
@@ -483,11 +468,3 @@ INSERT OR IGNORE INTO app_settings (setting_key, setting_value, setting_type, ca
 ('home_banner_description', 'Begin your spiritual journey with daily mantra chanting and devotion.', 'TEXT', 'APP', 'Home Screen Banner Description'),
 ('home_banner_action', 'CHANT', 'TEXT', 'APP', 'Home Screen Banner Action');
 
-INSERT OR IGNORE INTO family_groups (id, user_id, family_name, description)
-VALUES (1, 1, 'Siddhi Family', 'Our family japa circle');
-
-INSERT OR IGNORE INTO family_members (id, family_id, user_id, member_name, relation, mobile_number, email)
-VALUES
-(1, 1, 1, 'Demo Devotee', 'Self', '9999999999', 'devotee@japasiddhi.com'),
-(2, 1, NULL, 'Amma', 'Mother', '9888888888', NULL),
-(3, 1, NULL, 'Nanna', 'Father', '9777777777', NULL);

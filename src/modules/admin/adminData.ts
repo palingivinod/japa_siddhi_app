@@ -74,97 +74,13 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Export Reports', route: 'AdminExportReports'},
 ];
 
-export const ADMIN_USERS: AdminUser[] = [
-  {
-    id: '1',
-    name: 'Ananya Rao',
-    japaCount: 1240,
-    status: 'Active',
-    mobile: '+91 XXXXX XXXXX',
-  },
-  {
-    id: '2',
-    name: 'Suresh Kumar',
-    japaCount: 820,
-    status: 'Active',
-    mobile: '+91 XXXXX XXXXX',
-  },
-  {
-    id: '3',
-    name: 'Meera',
-    japaCount: 120,
-    status: 'Blocked',
-    mobile: '+91 XXXXX XXXXX',
-  },
-  {
-    id: '4',
-    name: 'Ravi',
-    japaCount: 2410,
-    status: 'Active',
-    mobile: '+91 XXXXX XXXXX',
-  },
-];
+export const ADMIN_USERS: AdminUser[] = [];
 
-export const ADMIN_MANTRAS: AdminMantra[] = [
-  {
-    id: '1',
-    name: 'Om Namah Shivaya',
-    subtitle: 'Community mantra',
-    active: true,
-    target: 10000,
-  },
-  {
-    id: '2',
-    name: 'Om Namo Narayanaya',
-    subtitle: 'Community mantra',
-    active: true,
-    target: 10000,
-  },
-  {
-    id: '3',
-    name: 'Hare Krishna',
-    subtitle: 'Community mantra',
-    active: true,
-    target: 10000,
-  },
-  {
-    id: '4',
-    name: 'Gayatri Mantra',
-    subtitle: 'Community mantra',
-    active: true,
-    target: 10000,
-  },
-];
+export const ADMIN_MANTRAS: AdminMantra[] = [];
 
-export const ADMIN_CHALLENGES: AdminChallenge[] = [
-  {
-    id: '1',
-    title: 'Kartika Masam 10,000',
-    detail: '1,284 participants',
-    status: 'Active',
-  },
-  {
-    id: '2',
-    title: 'Shivaratri 25,000',
-    detail: '842 participants',
-    status: 'Active',
-  },
-  {
-    id: '3',
-    title: 'Daily 108',
-    detail: 'Completed',
-    status: 'Inactive',
-  },
-];
+export const ADMIN_CHALLENGES: AdminChallenge[] = [];
 
-export const ADMIN_REWARDS: AdminReward[] = [
-  {id: '1', name: 'Rudraksha', stock: 12},
-  {id: '2', name: 'Spatik mala', stock: 5},
-  {id: '3', name: 'Pasupu kommuka maala', stock: 0},
-  {id: '4', name: 'Green agate', stock: 8},
-  {id: '5', name: 'Yellow agate', stock: 3},
-  {id: '6', name: 'Tulasi mala', stock: 0},
-];
+export const ADMIN_REWARDS: AdminReward[] = [];
 
 export type AdminProduct = {
   id: string;
@@ -199,42 +115,11 @@ export type AdminPaymentRow = {
   status: 'Sent' | 'Pending';
 };
 
-export const ADMIN_PRODUCTS: AdminProduct[] = [
-  {id: '1', name: 'Rudraksha', stock: 12},
-  {id: '2', name: 'Spatik mala', stock: 5},
-  {id: '3', name: 'Pasupu kommuka maala', stock: 0},
-  {id: '4', name: 'Tulasi mala', stock: 0},
-];
+export const ADMIN_PRODUCTS: AdminProduct[] = [];
 
-export const ADMIN_BANNERS: AdminBanner[] = [
-  {id: '1', title: 'Kartika Masam', module: 'Home', status: 'Active'},
-  {id: '2', title: 'Japa Rewards', module: 'Challenges', status: 'Scheduled'},
-  {id: '3', title: 'Annadanam', module: 'Annadanam', status: 'Blocked'},
-];
+export const ADMIN_BANNERS: AdminBanner[] = [];
 
-export const ADMIN_ORDERS: AdminOrder[] = [
-  {
-    id: '10281',
-    orderNo: '#10281',
-    product: 'Rudraksha',
-    customer: 'Ananya',
-    status: 'Processing',
-  },
-  {
-    id: '10280',
-    orderNo: '#10280',
-    product: 'Spatik mala',
-    customer: 'Suresh',
-    status: 'Shipped',
-  },
-  {
-    id: '10279',
-    orderNo: '#10279',
-    product: 'Tulasi mala',
-    customer: 'Meera',
-    status: 'Delivered',
-  },
-];
+export const ADMIN_ORDERS: AdminOrder[] = [];
 
 export const ADMIN_PAYMENTS: AdminPaymentRow[] = [
   {id: '1', label: 'Today', amount: '₹0', status: 'Pending'},
@@ -420,7 +305,7 @@ export const ADMIN_EXPORT_REPORTS: AdminExportReport[] = [
 ];
 
 export const findAdminUser = (id?: string) =>
-  ADMIN_USERS.find(user => user.id === id) || ADMIN_USERS[0];
+  ADMIN_USERS.find(user => user.id === id);
 
 export const findAdminOrder = (id?: string) =>
-  ADMIN_ORDERS.find(order => order.id === id) || ADMIN_ORDERS[0];
+  ADMIN_ORDERS.find(order => order.id === id);

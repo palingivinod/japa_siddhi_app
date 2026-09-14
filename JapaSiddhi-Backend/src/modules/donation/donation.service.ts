@@ -99,7 +99,7 @@ class DonationService {
         !!donation,
 
       amount:
-        donation?.amount ?? 200,
+        donation?.amount ?? 0,
 
       month:
         new Date()

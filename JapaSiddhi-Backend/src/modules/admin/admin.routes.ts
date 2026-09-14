@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 
 import mysql from '../../database/mysql';
 import adminAccountService from './adminAccount.service';
+import {demoDonationSql, demoUserSql} from '../../utils/demoData';
 
 const router = Router();
 
@@ -125,8 +126,9 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
   try {
     const usersRows = await mysql.query<any[]>(`
       SELECT COUNT(*) AS totalUsers
-      FROM users
-      WHERE deleted_at IS NULL
+      FROM users u
+      WHERE u.deleted_at IS NULL
+      ${demoUserSql('u')}
     `);
 
     const japaGlobal = await mysql.query<any[]>(`
@@ -155,9 +157,12 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
 
     const donationsRows = await mysql.query<any[]>(`
       SELECT IFNULL(SUM(amount), 0) AS totalDonations
-      FROM donations
-      WHERE UPPER(IFNULL(payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
-         OR UPPER(IFNULL(donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+      FROM donations d
+      WHERE (
+        UPPER(IFNULL(d.payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+        OR UPPER(IFNULL(d.donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+      )
+      ${demoDonationSql('d')}
     `);
 
     const users = num(usersRows?.[0]?.totalUsers);
@@ -255,12 +260,14 @@ router.get('/analytics', async (req: Request, res: Response) => {
         OR UPPER(IFNULL(donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
       )
     `;
+    const donationDemoFilter = demoDonationSql('d');
     const donationStamp = 'IFNULL(donated_at, created_at)';
 
     const totalUsersSql = `
       SELECT COUNT(*) AS total
       FROM users u
       WHERE u.deleted_at IS NULL
+      ${demoUserSql('u')}
       ${regionFilterUsers}
     `;
     const totalUsersRows = await mysql.query<any[]>(totalUsersSql);
@@ -281,11 +288,13 @@ router.get('/analytics', async (req: Request, res: Response) => {
              FROM users u
              WHERE u.deleted_at IS NULL
                AND u.created_at >= ${dateGte}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`
           : `SELECT COUNT(*) AS total
              FROM users u
              WHERE u.deleted_at IS NULL
                AND date(u.created_at) >= ${dateGte}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`;
 
       const prevUsersSql =
@@ -295,12 +304,14 @@ router.get('/analytics', async (req: Request, res: Response) => {
              WHERE u.deleted_at IS NULL
                AND u.created_at >= ${prevGte}
                AND u.created_at < ${prevLt}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`
           : `SELECT COUNT(*) AS total
              FROM users u
              WHERE u.deleted_at IS NULL
                AND date(u.created_at) >= ${prevGte}
                AND date(u.created_at) < ${prevLt}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`;
 
       const [inRangeRows, prevRows] = await Promise.all([
@@ -386,29 +397,33 @@ router.get('/analytics', async (req: Request, res: Response) => {
       const sumSql =
         engine === 'mysql'
           ? `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations
+             FROM donations d
              WHERE ${donationSuccess}
                AND ${donationStamp} >= ${dateGte}
+               ${donationDemoFilter}
                ${regionFilterUserId}`
           : `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations
+             FROM donations d
              WHERE ${donationSuccess}
                AND date(${donationStamp}) >= ${dateGte}
+               ${donationDemoFilter}
                ${regionFilterUserId}`;
 
       const prevSumSql =
         engine === 'mysql'
           ? `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations
+             FROM donations d
              WHERE ${donationSuccess}
                AND ${donationStamp} >= ${prevGte}
                AND ${donationStamp} < ${prevLt}
+               ${donationDemoFilter}
                ${regionFilterUserId}`
           : `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations
+             FROM donations d
              WHERE ${donationSuccess}
                AND date(${donationStamp}) >= ${prevGte}
                AND date(${donationStamp}) < ${prevLt}
+               ${donationDemoFilter}
                ${regionFilterUserId}`;
 
       const [sumRows, prevRows] = await Promise.all([
@@ -423,14 +438,16 @@ router.get('/analytics', async (req: Request, res: Response) => {
         const daySql =
           engine === 'mysql'
             ? `SELECT IFNULL(SUM(amount), 0) AS total
-               FROM donations
+               FROM donations d
                WHERE ${donationSuccess}
                  AND DATE(${donationStamp}) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
+                 ${donationDemoFilter}
                  ${regionFilterUserId}`
             : `SELECT IFNULL(SUM(amount), 0) AS total
-               FROM donations
+               FROM donations d
                WHERE ${donationSuccess}
                  AND date(${donationStamp}) = date('now', '-${i} days')
+                 ${donationDemoFilter}
                  ${regionFilterUserId}`;
         const dayRows = await mysql.query<any[]>(daySql);
         const d = new Date();
@@ -893,6 +910,128 @@ router.get('/users', async (_req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to load users.',
+    });
+  }
+});
+
+/** Soft-deleted accounts still keep japa history — admin can restore them. */
+router.get('/users-deleted', async (_req: Request, res: Response) => {
+  try {
+    const rows = await mysql.query<any[]>(`
+      SELECT
+        u.id,
+        u.full_name AS fullName,
+        u.email,
+        u.mobile_country_code AS mobileCountryCode,
+        u.mobile_number AS mobileNumber,
+        u.account_status AS accountStatus,
+        u.deleted_at AS deletedAt,
+        IFNULL((
+          SELECT SUM(js.session_count)
+          FROM japa_sessions js
+          WHERE js.user_id = u.id
+        ), 0) AS japaCount
+      FROM users u
+      WHERE u.deleted_at IS NOT NULL
+      ORDER BY u.deleted_at DESC
+      LIMIT 500
+    `);
+    return res.json({
+      success: true,
+      data: (rows || []).map((row: any) => ({
+        ...mapUserRow(row),
+        deletedAt: row.deletedAt || row.deleted_at || null,
+      })),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load deleted users.',
+    });
+  }
+});
+
+router.post('/users/:id/restore', async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) {
+      return res.status(400).json({success: false, message: 'Invalid user id.'});
+    }
+    const rows = await mysql.query<any[]>(
+      `SELECT * FROM users WHERE id = ? AND deleted_at IS NOT NULL LIMIT 1`,
+      [userId],
+    );
+    if (!rows?.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'No soft-deleted user found for this id.',
+      });
+    }
+    const row = rows[0];
+    const rawEmail = String(row.email || '');
+    const rawMobile = String(row.mobile_number || row.mobileNumber || '');
+    const prefix = `deleted_${userId}_`;
+    const email = rawEmail.toLowerCase().startsWith(prefix)
+      ? rawEmail.slice(prefix.length)
+      : rawEmail.includes('@')
+        ? rawEmail
+        : null;
+    const mobile = rawMobile.toLowerCase().startsWith(prefix)
+      ? rawMobile.slice(prefix.length).replace(/\D/g, '')
+      : rawMobile.replace(/\D/g, '');
+    const country = String(
+      row.mobile_country_code || row.mobileCountryCode || '91',
+    ).replace(/\D/g, '') || '91';
+
+    await mysql.query(
+      `
+      UPDATE users
+      SET
+        deleted_at = NULL,
+        email = ?,
+        mobile_country_code = ?,
+        mobile_number = ?,
+        firebase_uid = COALESCE(NULLIF(firebase_uid, ''), ?),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [
+        email ? email.toLowerCase() : null,
+        country,
+        mobile || '0000000000',
+        email ? `email:${email.toLowerCase()}` : `usr-restored-${userId}`,
+        userId,
+      ],
+    );
+
+    const restored = await mysql.query<any[]>(
+      `
+      SELECT
+        u.id,
+        u.full_name AS fullName,
+        u.email,
+        u.mobile_country_code AS mobileCountryCode,
+        u.mobile_number AS mobileNumber,
+        u.account_status AS accountStatus,
+        IFNULL((
+          SELECT SUM(js.session_count) FROM japa_sessions js WHERE js.user_id = u.id
+        ), 0) AS japaCount
+      FROM users u
+      WHERE u.id = ? AND u.deleted_at IS NULL
+      LIMIT 1
+      `,
+      [userId],
+    );
+
+    return res.json({
+      success: true,
+      message: 'User restored with previous japa history.',
+      data: restored?.[0] ? mapUserRow(restored[0]) : null,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to restore user.',
     });
   }
 });
@@ -2203,6 +2342,7 @@ const formatInr = (amount: number) =>
 const buildPaymentReportRows = async () => {
   await mysql.query('SELECT 1');
   const engine = mysql.getEngineName() || 'sqlite';
+  const demoDonationFilter = demoDonationSql('d');
   const successFilter = `
     (
       UPPER(IFNULL(payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
@@ -2213,35 +2353,38 @@ const buildPaymentReportRows = async () => {
 
   const todaySql =
     engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
-         WHERE ${successFilter} AND DATE(${stamp}) = CURDATE()`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
-         WHERE ${successFilter} AND date(${stamp}) = date('now')`;
+      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+         WHERE ${successFilter} AND DATE(${stamp}) = CURDATE() ${demoDonationFilter}`
+      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+         WHERE ${successFilter} AND date(${stamp}) = date('now') ${demoDonationFilter}`;
 
   const weekSql =
     engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
+      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
-           AND DATE(${stamp}) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
+           AND DATE(${stamp}) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) ${demoDonationFilter}`
+      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
-           AND date(${stamp}) >= date('now', '-6 days')`;
+           AND date(${stamp}) >= date('now', '-6 days') ${demoDonationFilter}`;
 
   const monthSql =
     engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
+      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
            AND YEAR(${stamp}) = YEAR(CURDATE())
-           AND MONTH(${stamp}) = MONTH(CURDATE())`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations
+           AND MONTH(${stamp}) = MONTH(CURDATE()) ${demoDonationFilter}`
+      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
-           AND strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now')`;
+           AND strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now') ${demoDonationFilter}`;
 
   const refundSql = `
     SELECT IFNULL(SUM(amount), 0) AS total
-    FROM donations
-    WHERE UPPER(IFNULL(payment_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
-       OR UPPER(IFNULL(donation_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
+    FROM donations d
+    WHERE (
+      UPPER(IFNULL(d.payment_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
+      OR UPPER(IFNULL(d.donation_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
+    )
+    ${demoDonationFilter}
   `;
 
   const [todayRows, weekRows, monthRows, refundRows] = await Promise.all([
@@ -2324,6 +2467,8 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
         IFNULL(d.donated_at, d.created_at) AS donatedAt
       FROM donations d
       LEFT JOIN users u ON u.id = d.user_id
+      WHERE 1=1
+      ${demoDonationSql('d')}
       ORDER BY d.id DESC
       LIMIT 1000
     `);
@@ -2622,6 +2767,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           u.created_at AS createdAt
         FROM users u
         WHERE u.deleted_at IS NULL
+        ${demoUserSql('u')}
         ORDER BY u.id DESC
         LIMIT 5000
       `);
@@ -2776,6 +2922,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
             )
           )
         WHERE u.deleted_at IS NULL
+        ${demoUserSql('u')}
         GROUP BY u.id, u.full_name, u.email, u.mobile_country_code, u.mobile_number
         ORDER BY totalJapa DESC, userName ASC
         LIMIT 10000
@@ -2847,6 +2994,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           IFNULL(d.donated_at, d.created_at) AS donatedAt
         FROM donations d
         LEFT JOIN users u ON u.id = d.user_id
+        WHERE 1=1
+        ${demoDonationSql('d')}
         ORDER BY d.id DESC
         LIMIT 5000
       `);

@@ -297,6 +297,42 @@ class AuthService {
     }
 
     const existingEmail = await authRepository.findUserByEmail(email);
+    if (!existingEmail) {
+      // Same email was soft-deleted earlier — restore that account + history.
+      const deleted = await authRepository.findDeletedUserByEmail(email);
+      if (deleted) {
+        await authRepository.restoreUser(
+          deleted.id,
+          email,
+          mobileCountryCode,
+          mobileNumber,
+        );
+        await authRepository.setPasswordHash(deleted.id, passwordHash);
+        await authRepository.completeProfile(
+          deleted.id,
+          profileFields({
+            ...data,
+            fullName: fullName || deleted.fullName,
+            email,
+          }),
+        );
+        // Free the old firebase uid collision risk after restore.
+        await authRepository.updateMobileIfChanged(
+          deleted.id,
+          mobileCountryCode,
+          mobileNumber,
+        );
+        const restored = await authRepository.findUserById(deleted.id);
+        if (!restored) {
+          throw new AppError('Could not restore your previous account.', 500);
+        }
+        return {
+          token: issueToken(restored),
+          user: restored,
+          isNewUser: false,
+        };
+      }
+    }
     if (existingEmail) {
       const existingHash = await authRepository.getPasswordHashByEmail(email);
       if (existingHash) {
@@ -346,13 +382,41 @@ class AuthService {
       });
     } catch (error: any) {
       const message = String(error?.message || error?.sqlMessage || '');
-      if (/firebase_uid|UNIQUE/i.test(message)) {
+      if (/firebase_uid|UNIQUE|email/i.test(message)) {
         const raced = await authRepository.findUserByEmail(email);
         if (raced) {
           throw new AppError(
             'An account with this email already exists. Please sign in with email and password.',
             409,
           );
+        }
+        // Soft-deleted row may still hold email:/phone unique keys — restore it.
+        const deleted = await authRepository.findDeletedUserByEmail(email);
+        if (deleted) {
+          await authRepository.restoreUser(
+            deleted.id,
+            email,
+            mobileCountryCode,
+            mobileNumber,
+          );
+          await authRepository.setPasswordHash(deleted.id, passwordHash);
+          await authRepository.completeProfile(
+            deleted.id,
+            profileFields({
+              ...data,
+              fullName: fullName || deleted.fullName,
+              email,
+            }),
+          );
+          const restored = await authRepository.findUserById(deleted.id);
+          if (!restored) {
+            throw new AppError('Could not restore your previous account.', 500);
+          }
+          return {
+            token: issueToken(restored),
+            user: restored,
+            isNewUser: false,
+          };
         }
         userId = await authRepository.createUser({
           mobileCountryCode,

@@ -108,11 +108,13 @@ router.post(
     authController.phoneLogin(req, res, next)) as ExpressHandler,
 );
 
-router.post(
-  '/dev-login',
-  ((req, res, next) =>
-    authController.devLogin(req, res, next)) as ExpressHandler,
-);
+if (process.env.NODE_ENV !== 'production') {
+  router.post(
+    '/dev-login',
+    ((req, res, next) =>
+      authController.devLogin(req, res, next)) as ExpressHandler,
+  );
+}
 
 router.post(
   '/social',

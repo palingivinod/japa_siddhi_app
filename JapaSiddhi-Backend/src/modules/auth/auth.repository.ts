@@ -387,18 +387,30 @@ class AuthRepository {
     email: string;
     fullName: string;
   }): Promise<AuthUser> {
+    // NEVER fall back to user id=1 — that hijacked real devotees.
+    // Only reuse the exact local test account email / seed phone.
     const existing =
       (await this.findUserByEmail(data.email)) ||
-      (await this.findUserByMobile('91', '9999999999')) ||
-      (await this.findUserById(1));
+      (await this.findUserByMobile('91', '9999999999'));
 
     if (existing) {
+      // Only mutate if this already looks like the local test account.
+      const email = String(existing.email || '').toLowerCase();
+      const mobile = String(existing.mobileNumber || '').replace(/\D/g, '');
+      const isTestAccount =
+        email === String(data.email || '').toLowerCase() ||
+        mobile === '9999999999';
+      if (!isTestAccount) {
+        throw new Error(
+          'Refusing to overwrite a real user for local test login.',
+        );
+      }
       await this.markDevProfileComplete(existing.id, data);
       return (await this.findUserById(existing.id)) as AuthUser;
     }
 
     const id = await this.createUser({
-      firebaseUid: 'dev-user-test',
+      firebaseUid: `dev-local:${String(data.email).toLowerCase()}`,
       mobileCountryCode: '91',
       mobileNumber: '9999999999',
       email: data.email,
@@ -562,12 +574,13 @@ class AuthRepository {
       SET
         deleted_at = NOW(),
         firebase_token = NULL,
+        firebase_uid = ?,
         email = ?,
         mobile_number = ?
       WHERE id = ?
       AND deleted_at IS NULL
       `,
-      [anonymizedEmail, anonymizedMobile, userId],
+      [`deleted-uid-${userId}-${Date.now()}`, anonymizedEmail, anonymizedMobile, userId],
     );
   }
 }
