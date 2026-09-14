@@ -2641,32 +2641,164 @@ router.get('/reports/export', async (req: Request, res: Response) => {
     };
 
     const addJapa = async () => {
-      const rows = await mysql.query<any[]>(`
+      const challengeFilter = `
+        AND (
+          js.remarks IS NULL
+          OR TRIM(js.remarks) = ''
+          OR (
+            lower(js.remarks) NOT LIKE 'challenge%'
+            AND lower(js.remarks) NOT LIKE '%challenge japa%'
+          )
+        )
+      `;
+
+      // Sheet 1: daily rows — S.No, User Name, Date, Japa Name, Japa Count
+      const dailyRows = await mysql.query<any[]>(`
         SELECT
-          js.id,
           IFNULL(u.full_name, 'Devotee') AS userName,
-          js.mantra_type AS mantraType,
-          js.session_count AS sessionCount,
-          js.chant_mode AS chantMode,
-          js.duration_seconds AS durationSeconds,
-          js.created_at AS createdAt
+          DATE(js.created_at, '+5 hours', '30 minutes') AS japaDate,
+          COALESCE(
+            m.mantra_name,
+            upm.mantra_name,
+            CASE
+              WHEN js.mantra_type = 'PERSONAL' THEN 'Private Japa'
+              ELSE 'Japa'
+            END
+          ) AS japaName,
+          COALESCE(SUM(js.session_count), 0) AS japaCount
         FROM japa_sessions js
         LEFT JOIN users u ON u.id = js.user_id
-        ORDER BY js.id DESC
-        LIMIT 5000
+        LEFT JOIN mantras m ON m.id = js.mantra_id
+        LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
+        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        ${challengeFilter}
+        GROUP BY
+          js.user_id,
+          DATE(js.created_at, '+5 hours', '30 minutes'),
+          js.mantra_id,
+          js.personal_mantra_id,
+          js.mantra_type,
+          u.full_name,
+          m.mantra_name,
+          upm.mantra_name
+        HAVING COALESCE(SUM(js.session_count), 0) > 0
+        ORDER BY japaDate DESC, userName ASC, japaName ASC
+        LIMIT 20000
       `);
-      const sheet = workbook.addWorksheet('Japa');
-      sheet.columns = [
-        {header: 'ID', key: 'id', width: 8},
-        {header: 'User', key: 'userName', width: 24},
-        {header: 'Mantra Type', key: 'mantraType', width: 16},
-        {header: 'Count', key: 'sessionCount', width: 10},
-        {header: 'Mode', key: 'chantMode', width: 12},
-        {header: 'Duration (s)', key: 'durationSeconds', width: 12},
-        {header: 'Created At', key: 'createdAt', width: 22},
+
+      const dailySheet = workbook.addWorksheet('Japa by Date');
+      dailySheet.columns = [
+        {header: 'S.No', key: 'sno', width: 8},
+        {header: 'User Name', key: 'userName', width: 26},
+        {header: 'Date', key: 'japaDate', width: 14},
+        {header: 'Japa Name', key: 'japaName', width: 28},
+        {header: 'Japa Count', key: 'japaCount', width: 12},
       ];
-      (rows || []).forEach((row: any) => sheet.addRow(row));
-      sheet.getRow(1).font = {bold: true};
+      (dailyRows || []).forEach((row: any, index: number) => {
+        dailySheet.addRow({
+          sno: index + 1,
+          userName: row.userName || row.user_name || 'Devotee',
+          japaDate: String(row.japaDate || row.japa_date || '').slice(0, 10),
+          japaName: row.japaName || row.japa_name || 'Japa',
+          japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
+        });
+      });
+      dailySheet.getRow(1).font = {bold: true};
+
+      // Sheet 2: lifetime total per user + mantra
+      const totalRows = await mysql.query<any[]>(`
+        SELECT
+          IFNULL(u.full_name, 'Devotee') AS userName,
+          COALESCE(
+            m.mantra_name,
+            upm.mantra_name,
+            CASE
+              WHEN js.mantra_type = 'PERSONAL' THEN 'Private Japa'
+              ELSE 'Japa'
+            END
+          ) AS japaName,
+          COALESCE(SUM(js.session_count), 0) AS totalCount
+        FROM japa_sessions js
+        LEFT JOIN users u ON u.id = js.user_id
+        LEFT JOIN mantras m ON m.id = js.mantra_id
+        LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
+        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        ${challengeFilter}
+        GROUP BY
+          js.user_id,
+          js.mantra_id,
+          js.personal_mantra_id,
+          js.mantra_type,
+          u.full_name,
+          m.mantra_name,
+          upm.mantra_name
+        HAVING COALESCE(SUM(js.session_count), 0) > 0
+        ORDER BY userName ASC, totalCount DESC
+        LIMIT 20000
+      `);
+
+      const totalsSheet = workbook.addWorksheet('Mantra Totals');
+      totalsSheet.columns = [
+        {header: 'S.No', key: 'sno', width: 8},
+        {header: 'User Name', key: 'userName', width: 26},
+        {header: 'Japa Name', key: 'japaName', width: 28},
+        {header: 'Total Count', key: 'totalCount', width: 14},
+      ];
+      (totalRows || []).forEach((row: any, index: number) => {
+        totalsSheet.addRow({
+          sno: index + 1,
+          userName: row.userName || row.user_name || 'Devotee',
+          japaName: row.japaName || row.japa_name || 'Japa',
+          totalCount: Number(row.totalCount ?? row.total_count ?? 0),
+        });
+      });
+      totalsSheet.getRow(1).font = {bold: true};
+
+      // Sheet 3: one row per user with overall japa total
+      const userTotalRows = await mysql.query<any[]>(`
+        SELECT
+          u.id AS userId,
+          IFNULL(u.full_name, 'Devotee') AS userName,
+          IFNULL(u.email, '') AS email,
+          TRIM(
+            IFNULL(u.mobile_country_code, '') || IFNULL(u.mobile_number, '')
+          ) AS mobile,
+          COALESCE(SUM(js.session_count), 0) AS totalJapa
+        FROM users u
+        LEFT JOIN japa_sessions js
+          ON js.user_id = u.id
+          AND (
+            js.remarks IS NULL
+            OR TRIM(js.remarks) = ''
+            OR (
+              lower(js.remarks) NOT LIKE 'challenge%'
+              AND lower(js.remarks) NOT LIKE '%challenge japa%'
+            )
+          )
+        WHERE u.deleted_at IS NULL
+        GROUP BY u.id, u.full_name, u.email, u.mobile_country_code, u.mobile_number
+        ORDER BY totalJapa DESC, userName ASC
+        LIMIT 10000
+      `);
+
+      const usersSheet = workbook.addWorksheet('User Totals');
+      usersSheet.columns = [
+        {header: 'S.No', key: 'sno', width: 8},
+        {header: 'User Name', key: 'userName', width: 26},
+        {header: 'Email', key: 'email', width: 28},
+        {header: 'Mobile', key: 'mobile', width: 16},
+        {header: 'Total Japa Count', key: 'totalJapa', width: 16},
+      ];
+      (userTotalRows || []).forEach((row: any, index: number) => {
+        usersSheet.addRow({
+          sno: index + 1,
+          userName: row.userName || row.user_name || 'Devotee',
+          email: row.email || '',
+          mobile: row.mobile || '',
+          totalJapa: Number(row.totalJapa ?? row.total_japa ?? 0),
+        });
+      });
+      usersSheet.getRow(1).font = {bold: true};
     };
 
     const addChallenges = async () => {

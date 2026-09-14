@@ -14,11 +14,16 @@ import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminMantra} from './adminData';
+import {
+  alertExcelError,
+  downloadAdminExcel,
+} from './adminExcelDownload';
 
 const AdminJapaScreen = () => {
   const navigation = useNavigation<any>();
   const [mantras, setMantras] = useState<AdminMantra[]>([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const loadMantras = useCallback(async () => {
     setLoading(true);
@@ -64,10 +69,35 @@ const AdminJapaScreen = () => {
     }
   };
 
+  const onDownloadJapaExcel = async () => {
+    setExporting(true);
+    try {
+      await downloadAdminExcel(
+        'japa',
+        'Users japa sheet (date, mantra, counts & totals)',
+      );
+    } catch (err) {
+      alertExcelError(err);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <AdminScreenLayout title="Japa Management" tab="AdminJapa" showBack={false}>
       <Text style={styles.heading}>Japa Management</Text>
       <Text style={styles.sub}>Manage up to 12 predefined mantras.</Text>
+
+      <TouchableOpacity
+        style={[styles.exportBtn, exporting && styles.exportBusy]}
+        disabled={exporting}
+        onPress={onDownloadJapaExcel}>
+        {exporting ? (
+          <ActivityIndicator color={Colors.sacredBrown} />
+        ) : (
+          <Text style={styles.exportText}>DOWNLOAD USERS JAPA EXCEL</Text>
+        )}
+      </TouchableOpacity>
 
       {loading ? (
         <View style={styles.centerBox}>
@@ -113,8 +143,24 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 6,
-    marginBottom: 16,
+    marginBottom: 12,
     color: Colors.textSecondary,
+  },
+  exportBtn: {
+    marginBottom: 14,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  exportBusy: {opacity: 0.6},
+  exportText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    fontSize: 13,
   },
   centerBox: {
     paddingVertical: 20,

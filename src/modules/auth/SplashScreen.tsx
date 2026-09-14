@@ -22,22 +22,24 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 /** Intrinsic size of splash_welcome.png */
 const SPLASH_W = 410;
 const SPLASH_H = 901;
+/** Cream from the bottom of the splash art — matches footer band. */
+const SPLASH_FILL = '#F9E7CF';
 
 const SplashScreen = ({navigation}: Props) => {
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
-  // Cover the full screen (including notches) without letterboxing.
+  // Cover the full stage with slight overscan; pin to bottom so footer never lifts.
   const heroStyle = useMemo(() => {
-    const scale = Math.max(width / SPLASH_W, height / SPLASH_H);
-    const w = SPLASH_W * scale;
-    const h = SPLASH_H * scale;
+    const scale = Math.max(width / SPLASH_W, height / SPLASH_H) * 1.06;
+    const w = Math.ceil(SPLASH_W * scale);
+    const h = Math.ceil(SPLASH_H * scale);
     return {
       width: w,
       height: h,
-      left: (width - w) / 2,
-      top: (height - h) / 2,
+      left: Math.floor((width - w) / 2),
+      top: Math.floor(height - h),
     };
   }, [width, height]);
 
@@ -46,8 +48,8 @@ const SplashScreen = ({navigation}: Props) => {
     () => ({
       left: Math.max(16, width * 0.08),
       right: Math.max(16, width * 0.08),
-      top: height * 0.68,
-      bottom: Math.max(insets.bottom + 8, height * 0.08),
+      top: height * 0.66,
+      bottom: Math.max(insets.bottom + 12, height * 0.06),
     }),
     [width, height, insets.bottom],
   );
@@ -89,10 +91,11 @@ const SplashScreen = ({navigation}: Props) => {
         barStyle="dark-content"
       />
       <View style={styles.stage}>
+        <View style={styles.bottomFill} pointerEvents="none" />
         <Image
           source={require('../../assets/images/splash_welcome.png')}
           style={[styles.hero, heroStyle]}
-          resizeMode="stretch"
+          resizeMode="cover"
         />
         <TouchableOpacity
           style={[styles.hit, hitStyle]}
@@ -117,14 +120,19 @@ export default SplashScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: SPLASH_FILL,
   },
   stage: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+    backgroundColor: SPLASH_FILL,
   },
   hero: {
     position: 'absolute',
+  },
+  bottomFill: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: SPLASH_FILL,
   },
   hit: {
     position: 'absolute',

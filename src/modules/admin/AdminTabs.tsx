@@ -18,11 +18,11 @@ type TabItem = {
 };
 
 const TABS: TabItem[] = [
-  {key: 'AdminDashboard', label: 'Dashboard', icon: '⌂'},
-  {key: 'AdminUsers', label: 'Users', icon: '●'},
-  {key: 'AdminJapa', label: 'Japa', icon: 'ॐ'},
-  {key: 'AdminOrders', label: 'Orders', icon: '▣'},
-  {key: 'AdminMore', label: 'More', icon: '⋮'},
+  {key: 'AdminDashboard', label: 'Dashboard', icon: '📊'},
+  {key: 'AdminUsers', label: 'Users', icon: '👥'},
+  {key: 'AdminJapa', label: 'Japa', icon: '🕉️'},
+  {key: 'AdminOrders', label: 'Orders', icon: '📦'},
+  {key: 'AdminMore', label: 'More', icon: '☰'},
 ];
 
 type Props = {
@@ -71,13 +71,16 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   icon: {
-    fontSize: 16,
+    fontSize: 24,
+    lineHeight: 30,
     color: Colors.leafGreen,
     marginBottom: 2,
+    textAlign: 'center',
   },
   label: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
     color: Colors.leafGreen,
   },
   active: {

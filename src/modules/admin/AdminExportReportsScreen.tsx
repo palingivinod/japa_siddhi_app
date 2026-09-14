@@ -1,11 +1,6 @@
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Linking,
-  NativeModules,
-  Platform,
-  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,12 +8,12 @@ import {
 } from 'react-native';
 
 import Colors from '../../theme/colors';
-import ENV from '../../env';
-import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {ADMIN_EXPORT_REPORTS} from './adminData';
-
-const {FileDownload} = NativeModules;
+import {
+  alertExcelError,
+  downloadAdminExcel,
+} from './adminExcelDownload';
 
 const TYPE_BY_ID: Record<string, string> = {
   '1': 'users',
@@ -39,58 +34,9 @@ const AdminExportReportsScreen = () => {
   const downloadExcel = async (type: string, label: string) => {
     setExporting(type);
     try {
-      const response = await apiService.get('/admin/reports/export', {
-        params: {type},
-      });
-      const file = response.data?.data || {};
-      const fileName = String(
-        file.fileName || `report-${type}-${Date.now()}.xlsx`,
-      );
-      const mimeType =
-        String(file.mimeType || '') ||
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-      const base64 = String(file.base64 || '');
-
-      if (base64 && FileDownload?.saveBase64File) {
-        const savedUri = await FileDownload.saveBase64File(
-          fileName,
-          base64,
-          mimeType,
-        );
-        Alert.alert(
-          'Excel downloaded',
-          `${label}\n${fileName} saved to Downloads.\n\n${savedUri || ''}`,
-        );
-        return;
-      }
-
-      const apiOrigin = String(ENV.API_URL).replace(/\/api\/v1\/?$/, '');
-      const url =
-        (file.path ? `${apiOrigin}${file.path}` : '') ||
-        String(file.url || '') ||
-        `${ENV.API_URL}/admin/reports/export?type=${encodeURIComponent(
-          type,
-        )}&download=1`;
-
-      try {
-        await Linking.openURL(url);
-        Alert.alert('Excel ready', `${fileName} is opening for download.`);
-        return;
-      } catch {
-        await Share.share({
-          title: fileName,
-          message:
-            Platform.OS === 'ios'
-              ? `${label}: ${fileName}`
-              : `${label} download:\n${url}`,
-          url,
-        });
-      }
+      await downloadAdminExcel(type, label);
     } catch (err) {
-      Alert.alert(
-        'Export failed',
-        getApiError(err, 'Could not generate Excel sheet.'),
-      );
+      alertExcelError(err);
     } finally {
       setExporting('');
     }
@@ -125,6 +71,22 @@ const AdminExportReportsScreen = () => {
       })}
 
       <TouchableOpacity
+        style={[styles.outlineBtn, exporting === 'japa' && styles.pillBusy]}
+        disabled={Boolean(exporting)}
+        onPress={() =>
+          downloadExcel(
+            'japa',
+            'Users japa sheet (date, mantra, counts & totals)',
+          )
+        }>
+        <Text style={styles.outlineText}>
+          {exporting === 'japa'
+            ? 'PREPARING EXCEL...'
+            : 'DOWNLOAD USERS JAPA XL'}
+        </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={[styles.outlineBtn, exporting === 'all' && styles.pillBusy]}
         disabled={Boolean(exporting)}
         onPress={() => downloadExcel('all', 'All reports')}>
@@ -137,12 +99,6 @@ const AdminExportReportsScreen = () => {
         disabled={Boolean(exporting)}
         onPress={() => downloadExcel('donations', 'Donation Reports')}>
         <Text style={styles.outlineText}>EXPORT DONATIONS XL</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.outlineBtn}
-        disabled={Boolean(exporting)}
-        onPress={() => downloadExcel('japa', 'Japa Reports')}>
-        <Text style={styles.outlineText}>EXPORT JAPA XL</Text>
       </TouchableOpacity>
     </AdminScreenLayout>
   );

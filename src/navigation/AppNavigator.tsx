@@ -1,5 +1,5 @@
 import React from 'react';
-import {NavigationContainer} from '@react-navigation/native';
+import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {navigationRef} from './navigationRef';
 import {withAuth} from '../modules/common/AuthGate';
@@ -458,12 +458,22 @@ const ProtectedAdminMore = withAdminAuth(AdminMoreScreen);
 
 const AppNavigator = () => {
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer
+      ref={navigationRef}
+      theme={{
+        ...DefaultTheme,
+        colors: {
+          ...DefaultTheme.colors,
+          background: '#F9E7CF',
+          card: '#F9E7CF',
+        },
+      }}>
       <Stack.Navigator
         initialRouteName="Splash"
         screenOptions={{
           headerShown: false,
           animation: 'slide_from_right',
+          contentStyle: {backgroundColor: '#F9E7CF'},
         }}>
         {__DEV__ ? (
           <>
