@@ -70,12 +70,6 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     status: 'done',
   },
   {
-    id: '12',
-    title: 'Product Management',
-    route: 'AdminProducts',
-    status: 'done',
-  },
-  {
     id: '13',
     title: 'Order Management',
     route: 'AdminOrders',

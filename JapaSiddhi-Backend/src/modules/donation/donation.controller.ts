@@ -169,6 +169,23 @@ class DonationController {
     }
   }
 
+  async homamStatus(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await donationService.getHomamStatus(userId);
+      return apiResponse.success(res, 'Homam status fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 

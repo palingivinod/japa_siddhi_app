@@ -1,27 +1,54 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {
-  ADMIN_FEEDBACK,
-  AdminFeedback,
-  AdminTicketStatus,
-} from './adminData';
-
-const nextStatus = (status: AdminTicketStatus): AdminTicketStatus =>
-  status === 'Pending' ? 'Resolved' : 'Pending';
+import {AdminFeedback} from './adminData';
 
 const AdminFeedbackScreen = () => {
-  const [items, setItems] = useState<AdminFeedback[]>(ADMIN_FEEDBACK);
+  const [items, setItems] = useState<AdminFeedback[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const cycle = (id: string) => {
-    setItems(current =>
-      current.map(item =>
-        item.id === id ? {...item, status: nextStatus(item.status)} : item,
-      ),
-    );
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.get('/admin/feedback');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setItems(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          name: row.name || `Feedback #${row.id}`,
+          rating: row.rating || '',
+          comment: row.comment || '',
+          videoUrl: row.videoUrl || null,
+          status: 'Pending',
+        })),
+      );
+    } catch (err) {
+      setItems([]);
+      Alert.alert('Feedback', getApiError(err, 'Could not load feedback.'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
     <AdminScreenLayout
@@ -29,35 +56,35 @@ const AdminFeedbackScreen = () => {
       tab="AdminDashboard"
       showBack>
       <Text style={styles.heading}>Feedback Management</Text>
-      <Text style={styles.sub}>Review ratings and comments.</Text>
+      <Text style={styles.sub}>
+        Ratings, comments, and any attached videos. Details are also emailed to
+        admin.
+      </Text>
 
-      {items.map(item => {
-        const pending = item.status === 'Pending';
-        return (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.copy}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {item.rating} • {item.comment}
-              </Text>
-            </View>
+      {loading ? (
+        <ActivityIndicator color={Colors.templeGold} style={{marginVertical: 20}} />
+      ) : null}
+
+      {!loading && items.length === 0 ? (
+        <Text style={styles.empty}>No feedback yet.</Text>
+      ) : null}
+
+      {items.map(item => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.name}>{item.name}</Text>
+          <Text style={styles.meta}>
+            {item.rating} • {item.comment}
+          </Text>
+          {item.videoUrl ? (
             <TouchableOpacity
-              style={[
-                styles.pill,
-                pending ? styles.pillPending : styles.pillResolved,
-              ]}
-              onPress={() => cycle(item.id)}>
-              <Text
-                style={[
-                  styles.pillText,
-                  pending ? styles.pillTextPending : styles.pillTextResolved,
-                ]}>
-                {item.status}
-              </Text>
+              onPress={() => Linking.openURL(String(item.videoUrl))}>
+              <Text style={styles.link}>Open feedback video</Text>
             </TouchableOpacity>
-          </View>
-        );
-      })}
+          ) : (
+            <Text style={styles.noMedia}>No video attached</Text>
+          )}
+        </View>
+      ))}
     </AdminScreenLayout>
   );
 };
@@ -75,6 +102,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
   },
+  empty: {color: Colors.textSecondary, marginBottom: 12},
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -82,28 +110,23 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     padding: 16,
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  copy: {flex: 1},
   name: {
-    fontSize: 17,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    fontSize: 16,
   },
   meta: {
     marginTop: 4,
     color: Colors.textSecondary,
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  link: {
+    marginTop: 10,
+    color: Colors.leafGreen,
+    fontWeight: '800',
   },
-  pillPending: {borderColor: Colors.sacredBrown},
-  pillResolved: {borderColor: Colors.leafGreen},
-  pillText: {fontWeight: '800', fontSize: 13},
-  pillTextPending: {color: Colors.sacredBrown},
-  pillTextResolved: {color: Colors.leafGreen},
+  noMedia: {
+    marginTop: 10,
+    color: Colors.textLight,
+  },
 });

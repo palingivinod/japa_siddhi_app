@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {ActivityIndicator, StyleSheet, Text} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -10,15 +10,27 @@ import MenuCard from '../common/MenuCard';
 import ScreenLayout from '../common/ScreenLayout';
 
 const notificationEmoji = (item: any) => {
-  const text = `${item.actionType || ''} ${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
-  if (item.actionType === 'JAPA_MILESTONE' || text.includes('milestone')) {
+  const action = String(item.actionType || '');
+  const text = `${action} ${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
+  if (action === 'JAPA_MILESTONE' || text.includes('milestone')) {
     return '🏅';
   }
-  if (text.includes('order') || text.includes('gift')) {
-    return '📦';
-  }
-  if (text.includes('challenge')) {
+  if (
+    action === 'CHALLENGE_DEADLINE' ||
+    action === 'CHALLENGE_COMPLETED' ||
+    action === 'CHALLENGE_REWARD_READY' ||
+    text.includes('challenge')
+  ) {
     return '🏆';
+  }
+  if (action === 'GOAL_DEADLINE' || text.includes('goal')) {
+    return '🎯';
+  }
+  if (action === 'DAILY_JAPA_REMINDER' || text.includes('daily japa')) {
+    return '🙏';
+  }
+  if (text.includes('order') || text.includes('gift') || text.includes('reward')) {
+    return '📦';
   }
   if (text.includes('homam')) {
     return '🔥';
@@ -60,6 +72,68 @@ const NotificationsScreen = () => {
     }, [load]),
   );
 
+  const openNotification = async (item: any) => {
+    if (item?.id && !item.isRead) {
+      apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
+      setItems(current =>
+        current.map(row =>
+          row.id === item.id ? {...row, isRead: true} : row,
+        ),
+      );
+    }
+
+    const action = String(item.actionType || '');
+    const text = `${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
+    const challengeId =
+      Number(item.extraData?.challengeId) ||
+      (action === 'CHALLENGE_COMPLETED' || action === 'CHALLENGE_REWARD_READY'
+        ? Number(item.actionId)
+        : 0);
+
+    if (action === 'JAPA_MILESTONE' || text.includes('milestone')) {
+      navigation.navigate('MilestoneNotifications');
+      return;
+    }
+    if (
+      action === 'CHALLENGE_DEADLINE' ||
+      action === 'CHALLENGE_COMPLETED' ||
+      action === 'CHALLENGE_REWARD_READY' ||
+      text.includes('challenge')
+    ) {
+      if (challengeId > 0) {
+        navigation.navigate('ChallengeDetails', {id: challengeId});
+        return;
+      }
+      navigation.navigate('Challenges');
+      return;
+    }
+    if (action === 'GOAL_DEADLINE' || text.includes('goal')) {
+      navigation.navigate('JapaHub');
+      return;
+    }
+    if (
+      action === 'DAILY_JAPA_REMINDER' ||
+      text.includes('daily japa') ||
+      text.includes('chanted today')
+    ) {
+      navigation.navigate('JapaHub');
+      return;
+    }
+    if (text.includes('order') || text.includes('gift')) {
+      navigation.navigate('Orders');
+      return;
+    }
+    if (text.includes('homam')) {
+      navigation.navigate('NithyaHomam');
+      return;
+    }
+    if (text.includes('annadan') || text.includes('japa')) {
+      navigation.navigate('MilestoneNotifications');
+      return;
+    }
+    navigation.navigate('Home');
+  };
+
   return (
     <ScreenLayout title={t('notifications')} showBack>
       <MenuCard
@@ -81,26 +155,7 @@ const NotificationsScreen = () => {
           emoji={notificationEmoji(item)}
           title={item.title}
           subtitle={item.message || item.body}
-          onPress={() => {
-            const text = `${item.title} ${item.message || item.body || ''}`.toLowerCase();
-            if (item.actionType === 'JAPA_MILESTONE' || text.includes('japa') || text.includes('annadan')) {
-              navigation.navigate('MilestoneNotifications');
-              return;
-            }
-            if (text.includes('order') || text.includes('gift')) {
-              navigation.navigate('Orders');
-              return;
-            }
-            if (text.includes('challenge')) {
-              navigation.navigate('Challenges');
-              return;
-            }
-            if (text.includes('homam')) {
-              navigation.navigate('NithyaHomam');
-              return;
-            }
-            navigation.navigate('Home');
-          }}
+          onPress={() => openNotification(item)}
         />
       ))}
     </ScreenLayout>
@@ -119,6 +174,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  name: {fontSize: 16, fontWeight: '700', color: Colors.textPrimary},
-  meta: {marginTop: 6, color: Colors.textSecondary},
 });

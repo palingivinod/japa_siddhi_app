@@ -5,8 +5,26 @@ import {
 import challengeRepository from './challenge.repository';
 import orderService from '../orders/order.service';
 import mysql from '../../database/mysql';
+import emailOtpService from '../../services/emailOtp.service';
+import authRepository from '../auth/auth.repository';
 
 class ChallengeService {
+  private async userSummary(userId: number) {
+    try {
+      const user = await authRepository.findUserById(userId);
+      if (!user) {
+        return {name: 'Devotee', email: '-', mobile: '-'};
+      }
+      const mobile = `${user.mobileCountryCode || ''}${user.mobileNumber || ''}`.trim() || '-';
+      return {
+        name: user.fullName || 'Devotee',
+        email: user.email || '-',
+        mobile,
+      };
+    } catch {
+      return {name: 'Devotee', email: '-', mobile: '-'};
+    }
+  }
 
   async create(
     data: CreateChallengeRequest,
@@ -136,6 +154,21 @@ class ChallengeService {
         challengeId,
         userId,
       );
+
+    const devotee = await this.userSummary(userId);
+    await emailOtpService.notifyAdmin(
+      'New challenge registration',
+      [
+        'A devotee joined a challenge.',
+        `Challenge: ${challenge.title || challengeId}`,
+        `Challenge ID: ${challengeId}`,
+        `Target: ${Number(challenge.targetValue || 0).toLocaleString('en-IN')}`,
+        `Name: ${devotee.name}`,
+        `Email: ${devotee.email}`,
+        `Mobile: ${devotee.mobile}`,
+        `User ID: ${userId}`,
+      ].join('\n'),
+    );
 
     return {
 
@@ -331,6 +364,20 @@ class ChallengeService {
       String(reward.name || ''),
     );
     const claim = await challengeRepository.getRewardClaim(challengeId, userId);
+    const devotee = await this.userSummary(userId);
+    await emailOtpService.notifyAdmin(
+      'Challenge reward selected',
+      [
+        'A devotee selected a challenge reward.',
+        `Challenge: ${challenge.title || challengeId}`,
+        `Reward: ${String(reward.name || '')}`,
+        `Name: ${devotee.name}`,
+        `Email: ${devotee.email}`,
+        `Mobile: ${devotee.mobile}`,
+        `User ID: ${userId}`,
+        `Claim ID: ${claim?.id || '-'}`,
+      ].join('\n'),
+    );
     return {
       challengeId,
       rewardId,
@@ -442,6 +489,24 @@ class ChallengeService {
       orderId: Number(created.id),
       orderNumber,
     });
+
+    const challenge = await challengeRepository.getById(challengeId);
+    await emailOtpService.notifyAdmin(
+      'Challenge reward delivery details',
+      [
+        'A devotee submitted reward delivery details.',
+        `Challenge: ${challenge?.title || challengeId}`,
+        `Reward: ${String(claim.rewardName || '')}`,
+        `Order: ${orderNumber}`,
+        `Name: ${fullName}`,
+        `Mobile: ${mobile}`,
+        `Address: ${address}`,
+        `City: ${city}`,
+        `State: ${state}`,
+        `PIN: ${pinCode}`,
+        `User ID: ${userId}`,
+      ].join('\n'),
+    );
 
     return {
       challengeId,

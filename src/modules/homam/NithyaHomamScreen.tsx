@@ -14,50 +14,54 @@ const BENEFITS = [
   {emoji: '🔔', text: 'Personalized reminders'},
 ];
 
+type EnrollmentState = {
+  code: string;
+  status: 'Pending' | 'Active' | 'Inactive';
+  stage: string;
+};
+
 const NithyaHomamScreen = () => {
   const navigation = useNavigation<any>();
   const [loading, setLoading] = useState(true);
-  const [enrollment, setEnrollment] = useState<{
-    code: string;
-    status: string;
-    stage: string;
-  } | null>(null);
+  const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       setLoading(true);
       apiService
-        .get('/orders')
+        .get('/donations/homam-status')
         .then(response => {
           if (!active) {
             return;
           }
-          const rows = Array.isArray(response.data?.data)
-            ? response.data.data
-            : [];
-          const homam = rows.find(
-            (row: any) =>
-              String(row.orderType || row.itemName || '')
-                .toUpperCase()
-                .includes('NITHYA') ||
-              String(row.itemName || '')
-                .toUpperCase()
-                .includes('HOMAM'),
-          );
-          if (!homam) {
+          const statusRow = response.data?.data || null;
+          if (!statusRow?.id) {
             setEnrollment(null);
             return;
           }
-          const statusRaw = String(
-            homam.orderStatus || homam.status || '',
-          ).toUpperCase();
-          const isActive =
-            statusRaw !== 'INACTIVE' && statusRaw !== 'CANCELLED';
+          const payment = String(statusRow.paymentStatus || '').toUpperCase();
+          const orderStatus = String(statusRow.orderStatus || '').toUpperCase();
+          if (orderStatus === 'INACTIVE' || orderStatus === 'CANCELLED') {
+            setEnrollment({
+              code: statusRow.code || `NH${statusRow.id}`,
+              status: 'Inactive',
+              stage: 'Inactive',
+            });
+            return;
+          }
+          if (payment === 'SUCCESS' || orderStatus === 'ACTIVE') {
+            setEnrollment({
+              code: statusRow.code || `NH${statusRow.id}`,
+              status: 'Active',
+              stage: 'Verified',
+            });
+            return;
+          }
           setEnrollment({
-            code: `NH${homam.id}`,
-            status: isActive ? 'Active' : 'Inactive',
-            stage: isActive ? 'Enrolled' : 'Inactive',
+            code: statusRow.code || `NH${statusRow.id}`,
+            status: 'Pending',
+            stage: 'Pending verification',
           });
         })
         .catch(() => {
@@ -97,40 +101,41 @@ const NithyaHomamScreen = () => {
           <Text style={styles.statusMeta}>
             {enrollment.stage} • {enrollment.status}
           </Text>
+          {enrollment.status === 'Pending' ? (
+            <Text style={styles.hint}>
+              Payment UTR is with admin for verification. You will be active
+              after it is confirmed.
+            </Text>
+          ) : null}
           {enrollment.status === 'Inactive' ? (
             <Text style={styles.hint}>
               Your enrollment is inactive. Contact support or enroll again.
             </Text>
-          ) : (
+          ) : null}
+          {enrollment.status === 'Active' ? (
             <Text style={styles.hint}>
               You are enrolled for daily Nithya Homam.
             </Text>
-          )}
+          ) : null}
         </View>
       ) : null}
 
-      {!loading && !enrollment ? (
+      {!loading && (!enrollment || enrollment.status === 'Inactive') ? (
         <>
-          <Text style={styles.section}>Benefits</Text>
-          {BENEFITS.map(item => (
-            <View key={item.text} style={styles.row}>
-              <Text style={styles.benefitEmoji}>{item.emoji}</Text>
-              <Text style={styles.item}>{item.text}</Text>
-            </View>
-          ))}
+          {!enrollment ? (
+            <>
+              <Text style={styles.section}>Benefits</Text>
+              {BENEFITS.map(item => (
+                <View key={item.text} style={styles.row}>
+                  <Text style={styles.benefitEmoji}>{item.emoji}</Text>
+                  <Text style={styles.item}>{item.text}</Text>
+                </View>
+              ))}
+            </>
+          ) : null}
           <View style={styles.gap} />
           <PrimaryButton
-            title="ENROLL NOW"
-            onPress={() => navigation.navigate('HomamEnroll')}
-          />
-        </>
-      ) : null}
-
-      {!loading && enrollment?.status === 'Inactive' ? (
-        <>
-          <View style={styles.gap} />
-          <PrimaryButton
-            title="ENROLL AGAIN"
+            title={enrollment ? 'ENROLL AGAIN' : 'ENROLL NOW'}
             onPress={() => navigation.navigate('HomamEnroll')}
           />
         </>

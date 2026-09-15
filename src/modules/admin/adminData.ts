@@ -21,12 +21,31 @@ export type AdminMantra = {
 
 export type AdminChallengeStatus = 'Active' | 'Inactive';
 
+export type AdminChallengeProgressBuckets = {
+  pct0: number;
+  pct1to25: number;
+  pct26to50: number;
+  pct51to75: number;
+  pct76to99: number;
+  pct100: number;
+};
+
 export type AdminChallenge = {
   id: string;
   title: string;
   detail: string;
   status: AdminChallengeStatus;
   active?: boolean;
+  description?: string;
+  targetValue?: number;
+  rewardName?: string;
+  startDate?: string;
+  endDate?: string;
+  participants?: number;
+  completed?: number;
+  completionRate?: number;
+  avgProgress?: number;
+  progressBuckets?: AdminChallengeProgressBuckets;
 };
 
 export type AdminReward = {
@@ -46,7 +65,6 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   title: string;
   route?: string;
 }> = [
-  {title: 'Add Admin', route: 'AdminAccounts'},
   {title: 'User Management', route: 'AdminUsers'},
   {title: 'Japa Management', route: 'AdminJapa'},
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
@@ -54,7 +72,6 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Configure Rewards', route: 'AdminRewards'},
   {title: 'Notification Management', route: 'AdminNotifications'},
   {title: 'Banner Management', route: 'AdminBanners'},
-  {title: 'Product Management', route: 'AdminProducts'},
   {title: 'Orders', route: 'AdminOrders'},
   {title: 'Payments', route: 'AdminPayments'},
   {title: 'Annadanam', route: 'AdminAnnadanam'},
@@ -69,9 +86,6 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Donation Analytics', route: 'AdminDonationAnalytics'},
   {title: 'Festival Analytics', route: 'AdminFestivalAnalytics'},
   {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
-  {title: 'Languages', route: 'AdminLanguages'},
-  {title: 'Multilingual Content', route: 'AdminMultilingualContent'},
-  {title: 'Export Reports', route: 'AdminExportReports'},
 ];
 
 export const ADMIN_USERS: AdminUser[] = [];
@@ -144,7 +158,7 @@ export type AdminBaanalingamItem = {
   status: AdminBaanalingamStatus;
 };
 
-export type AdminHomamStatus = 'Active' | 'Inactive';
+export type AdminHomamStatus = 'Pending' | 'Active' | 'Inactive';
 
 export type AdminHomamItem = {
   id: string;
@@ -152,6 +166,8 @@ export type AdminHomamItem = {
   name: string;
   stage: string;
   status: AdminHomamStatus;
+  mobile?: string;
+  utr?: string;
 };
 
 export type AdminTicketStatus = 'Pending' | 'Resolved';
@@ -160,6 +176,8 @@ export type AdminTicket = {
   id: string;
   code: string;
   subject: string;
+  message?: string;
+  screenshotUrl?: string | null;
   status: AdminTicketStatus;
 };
 
@@ -168,6 +186,7 @@ export type AdminFeedback = {
   name: string;
   rating: string;
   comment: string;
+  videoUrl?: string | null;
   status: AdminTicketStatus;
 };
 

@@ -14,44 +14,24 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     sub: 'Create login credentials for another admin',
   },
   {
-    title: 'Challenge Creation',
-    route: 'AdminChallengeCreate',
-    sub: 'Create a new community challenge',
-  },
-  {
-    title: 'Challenge Management',
-    route: 'AdminChallenges',
-    sub: 'Track active and completed challenges',
-  },
-  {
-    title: 'Configure Rewards',
-    route: 'AdminRewards',
-    sub: 'Reward choices and stock updates',
-  },
-  {
     title: 'Notification Management',
     route: 'AdminNotifications',
     sub: 'Create and send notifications',
   },
   {
-    title: 'Banner Management',
-    route: 'AdminBanners',
-    sub: 'Manage banners across app modules',
+    title: 'Languages',
+    route: 'AdminLanguages',
+    sub: 'Manage app languages',
   },
   {
-    title: 'Product Management',
-    route: 'AdminProducts',
-    sub: 'Manage spiritual products and stock',
+    title: 'Multilingual Content',
+    route: 'AdminMultilingualContent',
+    sub: 'Edit translated content',
   },
   {
-    title: 'Mantra Management',
-    route: 'AdminMantras',
-    sub: 'Create, edit or delete mantras',
-  },
-  {
-    title: 'User Management',
-    route: 'AdminUsers',
-    sub: 'Manage registered users',
+    title: 'Export Reports',
+    route: 'AdminExportReports',
+    sub: 'Download Excel and report files',
   },
 ];
 

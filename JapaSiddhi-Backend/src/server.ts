@@ -7,6 +7,7 @@ import app from './app';
 import { initializeSocket } from './socket/socketServer';
 import { initializeFirebase } from './firebase/firebase';
 import { purgeDemoData } from './utils/demoData';
+import { startNotificationReminderScheduler } from './modules/notification/notificationReminder.service';
 
 // ✅ Initialize Firebase Admin BEFORE starting the server
 initializeFirebase();
@@ -20,11 +21,13 @@ initializeSocket(server);
 
 server.listen(PORT, '0.0.0.0', async () => {
     await purgeDemoData();
+    startNotificationReminderScheduler();
     console.log('========================================');
     console.log(`🚀 Japa Siddhi Backend Started`);
     console.log(`🌐 Port : ${PORT}`);
     console.log('========================================');
     console.log('🔌 Socket.IO Started');
+    console.log('🔔 Notification reminders scheduled');
     console.log('========================================');
 });
 

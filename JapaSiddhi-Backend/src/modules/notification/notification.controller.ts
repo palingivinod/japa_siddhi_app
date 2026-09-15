@@ -31,8 +31,8 @@ class NotificationController {
 
       }
 
-      import('../admin/adminNotification.service')
-        .then(mod => mod.flushDueAdminNotifications())
+      import('../notification/notificationReminder.service')
+        .then(mod => mod.runReminderSweep())
         .catch(() => undefined);
 
       const result =
@@ -137,6 +137,10 @@ class NotificationController {
         );
 
       }
+
+      import('../notification/notificationReminder.service')
+        .then(mod => mod.runReminderSweep())
+        .catch(() => undefined);
 
       const result =
         await notificationService.getUnreadCount(

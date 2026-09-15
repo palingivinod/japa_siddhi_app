@@ -18,8 +18,11 @@ const adminOtpLimiter = rateLimit({
 
 router.post('/auth/login', async (req: Request, res: Response) => {
   try {
+    const identifier = String(
+      req.body?.identifier || req.body?.email || req.body?.mobileNumber || '',
+    );
     const data = await adminAccountService.login(
-      String(req.body?.email || ''),
+      identifier,
       String(req.body?.password || ''),
     );
     return res.json({success: true, message: 'Admin signed in', data});
@@ -91,6 +94,8 @@ router.post('/auth/accounts', async (req: Request, res: Response) => {
       email: String(req.body?.email || ''),
       password: String(req.body?.password || ''),
       fullName: String(req.body?.fullName || ''),
+      mobileCountryCode: String(req.body?.mobileCountryCode || '91'),
+      mobileNumber: String(req.body?.mobileNumber || ''),
     });
     return res.json({
       success: true,
@@ -1206,13 +1211,11 @@ router.get('/mantras', async (_req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository'))
       .default;
-    // Admin list matches what users can see: active mantras only.
-    const rows = await mantraRepository.getActiveMantras();
+    // Admin sees all mantras (active + inactive). Users only get active ones.
+    const rows = await mantraRepository.getAllMantras();
     return res.json({
       success: true,
-      data: (rows || []).map((row: any) =>
-        mapMantraRow({...row, isActive: 1}),
-      ),
+      data: (rows || []).map((row: any) => mapMantraRow(row)),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -1284,28 +1287,52 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
     }
     const mantraRepository = (await import('../mantra/mantra.repository'))
       .default;
-    const updated = await mantraRepository.update(id, {
-      mantraName: req.body?.mantraName || req.body?.name,
-      deityName: req.body?.deityName || req.body?.subtitle,
-      sanskritText: req.body?.sanskritText,
-      transliteration: req.body?.transliteration,
-      defaultJapaCount:
-        req.body?.defaultJapaCount != null || req.body?.target != null
-          ? Number(req.body?.defaultJapaCount ?? req.body?.target)
-          : undefined,
-      isActive:
-        req.body?.isActive != null || req.body?.active != null
-          ? Boolean(req.body?.isActive ?? req.body?.active)
-          : undefined,
-      isFeatured:
-        req.body?.isFeatured != null ? Boolean(req.body.isFeatured) : undefined,
-    });
+
+    const hasStatusOnly =
+      (req.body?.isActive != null || req.body?.active != null) &&
+      req.body?.mantraName == null &&
+      req.body?.name == null &&
+      req.body?.deityName == null &&
+      req.body?.subtitle == null &&
+      req.body?.sanskritText == null &&
+      req.body?.transliteration == null &&
+      req.body?.defaultJapaCount == null &&
+      req.body?.target == null &&
+      req.body?.isFeatured == null;
+
+    const nextActive =
+      req.body?.isActive != null || req.body?.active != null
+        ? Boolean(req.body?.isActive ?? req.body?.active)
+        : undefined;
+
+    // Status toggle: only flip is_active — never delete the mantra.
+    const updated = hasStatusOnly
+      ? await mantraRepository.setActive(id, Boolean(nextActive))
+      : await mantraRepository.update(id, {
+          mantraName: req.body?.mantraName || req.body?.name,
+          deityName: req.body?.deityName || req.body?.subtitle,
+          sanskritText: req.body?.sanskritText,
+          transliteration: req.body?.transliteration,
+          defaultJapaCount:
+            req.body?.defaultJapaCount != null || req.body?.target != null
+              ? Number(req.body?.defaultJapaCount ?? req.body?.target)
+              : undefined,
+          isActive: nextActive,
+          isFeatured:
+            req.body?.isFeatured != null
+              ? Boolean(req.body.isFeatured)
+              : undefined,
+        });
     if (!updated) {
       return res.status(404).json({success: false, message: 'Mantra not found.'});
     }
     return res.json({
       success: true,
-      message: 'Mantra updated successfully.',
+      message: hasStatusOnly
+        ? nextActive
+          ? 'Mantra is now visible to users.'
+          : 'Mantra is now hidden from users.'
+        : 'Mantra updated successfully.',
       data: mapMantraRow(updated),
     });
   } catch (error: any) {
@@ -1376,6 +1403,9 @@ const parseChallengeDate = (raw: unknown): string | null => {
 
 const mapChallengeRow = (row: any) => {
   const active = Number(row.isActive) === 1 || row.isActive === true;
+  const participants = Number(row.participants || 0);
+  const completed = Number(row.completed || 0);
+  const avgProgress = Math.round(Number(row.avgProgress || 0));
   return {
     id: String(row.id),
     title: row.title || '',
@@ -1390,26 +1420,79 @@ const mapChallengeRow = (row: any) => {
     endDate: parseChallengeDate(row.endDate) || row.endDate,
     status: active ? 'Active' : 'Inactive',
     active,
+    participants,
+    completed,
+    completionRate:
+      participants > 0 ? Math.round((completed * 100) / participants) : 0,
+    avgProgress,
+    progressBuckets: {
+      pct0: Number(row.bucket0 || 0),
+      pct1to25: Number(row.bucket25 || 0),
+      pct26to50: Number(row.bucket50 || 0),
+      pct51to75: Number(row.bucket75 || 0),
+      pct76to99: Number(row.bucket99 || 0),
+      pct100: Number(row.bucket100 || 0),
+    },
   };
 };
+
+const challengeProgressPctSql = `
+  CASE
+    WHEN cp.id IS NULL THEN NULL
+    WHEN IFNULL(cp.is_completed, 0) = 1 THEN 100
+    WHEN IFNULL(c.target_value, 0) <= 0 THEN 0
+    WHEN IFNULL(cp.current_value, 0) >= c.target_value THEN 100
+    ELSE CAST(ROUND(100.0 * cp.current_value / c.target_value) AS INTEGER)
+  END
+`;
 
 router.get('/challenges', async (_req: Request, res: Response) => {
   try {
     const rows = await mysql.query<any[]>(`
       SELECT
-        id,
-        title,
-        description,
-        challenge_type AS challengeType,
-        target_value AS targetValue,
-        reward_type AS rewardType,
-        reward_name AS rewardName,
-        reward_quantity AS rewardQuantity,
-        start_date AS startDate,
-        end_date AS endDate,
-        is_active AS isActive
-      FROM challenges
-      ORDER BY id DESC
+        c.id,
+        c.title,
+        c.description,
+        c.challenge_type AS challengeType,
+        c.target_value AS targetValue,
+        c.reward_type AS rewardType,
+        c.reward_name AS rewardName,
+        c.reward_quantity AS rewardQuantity,
+        c.start_date AS startDate,
+        c.end_date AS endDate,
+        c.is_active AS isActive,
+        COUNT(cp.id) AS participants,
+        SUM(
+          CASE
+            WHEN cp.id IS NULL THEN 0
+            WHEN IFNULL(cp.is_completed, 0) = 1 THEN 1
+            WHEN IFNULL(c.target_value, 0) > 0
+              AND IFNULL(cp.current_value, 0) >= c.target_value THEN 1
+            ELSE 0
+          END
+        ) AS completed,
+        IFNULL(AVG(${challengeProgressPctSql}), 0) AS avgProgress,
+        SUM(CASE WHEN ${challengeProgressPctSql} = 0 THEN 1 ELSE 0 END) AS bucket0,
+        SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 1 AND 25 THEN 1 ELSE 0 END) AS bucket25,
+        SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 26 AND 50 THEN 1 ELSE 0 END) AS bucket50,
+        SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 51 AND 75 THEN 1 ELSE 0 END) AS bucket75,
+        SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 76 AND 99 THEN 1 ELSE 0 END) AS bucket99,
+        SUM(CASE WHEN ${challengeProgressPctSql} >= 100 THEN 1 ELSE 0 END) AS bucket100
+      FROM challenges c
+      LEFT JOIN challenge_participants cp ON cp.challenge_id = c.id
+      GROUP BY
+        c.id,
+        c.title,
+        c.description,
+        c.challenge_type,
+        c.target_value,
+        c.reward_type,
+        c.reward_name,
+        c.reward_quantity,
+        c.start_date,
+        c.end_date,
+        c.is_active
+      ORDER BY c.id DESC
     `);
     return res.json({
       success: true,
@@ -1791,20 +1874,36 @@ router.put('/annadanam-features/:id', async (req: Request, res: Response) => {
 
 const mapHomamEnrollment = (row: any) => {
   const statusRaw = String(row.orderStatus || '').toUpperCase();
-  const active = statusRaw !== 'INACTIVE' && statusRaw !== 'CANCELLED';
   const paymentRaw = String(row.paymentStatus || '').toUpperCase();
-  let stage = 'Enrolled';
-  if (!active) {
+  const remarks = String(row.remarks || '');
+  const utrMatch = remarks.match(/UTR:\s*([A-Z0-9]+)/i);
+  const mobileMatch = remarks.match(/Mobile:\s*([^|]+)/i);
+  const nameFromRemarks = remarks.match(/Name:\s*([^|]+)/i);
+
+  let stage = 'Pending verification';
+  let status: 'Pending' | 'Active' | 'Inactive' = 'Pending';
+  if (statusRaw === 'INACTIVE' || statusRaw === 'CANCELLED') {
     stage = 'Inactive';
-  } else if (paymentRaw === 'SUCCESS' || paymentRaw === 'PAID') {
-    stage = 'Paid';
+    status = 'Inactive';
+  } else if (
+    paymentRaw === 'SUCCESS' ||
+    paymentRaw === 'PAID' ||
+    statusRaw === 'ACTIVE'
+  ) {
+    stage = 'Verified';
+    status = 'Active';
   }
+
   return {
     id: String(row.id),
     code: `NH${row.id}`,
-    name: row.customerName || 'Devotee',
+    name: row.customerName || nameFromRemarks?.[1]?.trim() || 'Devotee',
+    mobile: mobileMatch?.[1]?.trim() || '',
+    utr: utrMatch?.[1]?.trim() || '',
+    remarks,
     stage,
-    status: active ? 'Active' : 'Inactive',
+    status,
+    paymentStatus: paymentRaw || 'PENDING',
     orderNumber: row.orderNumber,
     createdAt: row.createdAt,
   };
@@ -1818,6 +1917,7 @@ router.get('/homam-enrollments', async (_req: Request, res: Response) => {
         o.order_number AS orderNumber,
         o.payment_status AS paymentStatus,
         o.order_status AS orderStatus,
+        o.remarks,
         o.created_at AS createdAt,
         IFNULL(u.full_name, 'Devotee') AS customerName
       FROM orders o
@@ -1852,22 +1952,51 @@ router.put('/homam-enrollments/:id', async (req: Request, res: Response) => {
       return res.status(404).json({success: false, message: 'Enrollment not found.'});
     }
 
+    const action = String(req.body?.action || '').toLowerCase();
     const statusRaw = String(req.body?.status || '').toLowerCase();
-    const active =
+    const verify =
+      action === 'verify' ||
       statusRaw === 'active' ||
       req.body?.active === true ||
       req.body?.active === 1 ||
       req.body?.active === '1';
-    const nextStatus = active ? 'ACTIVE' : 'INACTIVE';
+    const reject =
+      action === 'reject' ||
+      statusRaw === 'inactive' ||
+      req.body?.active === false ||
+      req.body?.active === 0 ||
+      req.body?.active === '0';
 
-    await mysql.query(
-      `
-      UPDATE orders
-      SET order_status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      `,
-      [nextStatus, id],
-    );
+    if (verify) {
+      await mysql.query(
+        `
+        UPDATE orders
+        SET
+          payment_status = 'SUCCESS',
+          order_status = 'ACTIVE',
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [id],
+      );
+    } else if (reject) {
+      await mysql.query(
+        `
+        UPDATE orders
+        SET
+          payment_status = 'FAILED',
+          order_status = 'INACTIVE',
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [id],
+      );
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Use action verify or reject.',
+      });
+    }
 
     const rows = await mysql.query<any[]>(`
       SELECT
@@ -1875,6 +2004,7 @@ router.put('/homam-enrollments/:id', async (req: Request, res: Response) => {
         o.order_number AS orderNumber,
         o.payment_status AS paymentStatus,
         o.order_status AS orderStatus,
+        o.remarks,
         o.created_at AS createdAt,
         IFNULL(u.full_name, 'Devotee') AS customerName
       FROM orders o
@@ -1885,8 +2015,10 @@ router.put('/homam-enrollments/:id', async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: 'Enrollment updated.',
-      data: mapHomamEnrollment(rows[0]),
+      message: verify
+        ? 'Payment verified. Enrollment is now active.'
+        : 'Enrollment marked inactive / payment rejected.',
+      data: mapHomamEnrollment(rows?.[0] || {}),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -3012,8 +3144,12 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       usersSheet.getRow(1).font = {bold: true};
     };
 
-    const addChallenges = async () => {
-      const rows = await mysql.query<any[]>(`
+    const addChallenges = async (challengeIdFilter?: number) => {
+      const idFilter =
+        challengeIdFilter && challengeIdFilter > 0
+          ? `WHERE c.id = ${challengeIdFilter}`
+          : '';
+      const summaryRows = await mysql.query<any[]>(`
         SELECT
           c.id,
           c.title,
@@ -3022,26 +3158,150 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           c.start_date AS startDate,
           c.end_date AS endDate,
           c.is_active AS isActive,
-          (SELECT COUNT(*) FROM challenge_participants cp WHERE cp.challenge_id = c.id) AS participants,
-          (SELECT COUNT(*) FROM challenge_participants cp WHERE cp.challenge_id = c.id AND cp.is_completed = 1) AS completed
+          COUNT(cp.id) AS participants,
+          SUM(
+            CASE
+              WHEN cp.id IS NULL THEN 0
+              WHEN IFNULL(cp.is_completed, 0) = 1 THEN 1
+              WHEN IFNULL(c.target_value, 0) > 0
+                AND IFNULL(cp.current_value, 0) >= c.target_value THEN 1
+              ELSE 0
+            END
+          ) AS completed,
+          IFNULL(AVG(${challengeProgressPctSql}), 0) AS avgProgress,
+          SUM(CASE WHEN ${challengeProgressPctSql} = 0 THEN 1 ELSE 0 END) AS bucket0,
+          SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 1 AND 25 THEN 1 ELSE 0 END) AS bucket25,
+          SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 26 AND 50 THEN 1 ELSE 0 END) AS bucket50,
+          SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 51 AND 75 THEN 1 ELSE 0 END) AS bucket75,
+          SUM(CASE WHEN ${challengeProgressPctSql} BETWEEN 76 AND 99 THEN 1 ELSE 0 END) AS bucket99,
+          SUM(CASE WHEN ${challengeProgressPctSql} >= 100 THEN 1 ELSE 0 END) AS bucket100
         FROM challenges c
+        LEFT JOIN challenge_participants cp ON cp.challenge_id = c.id
+        ${idFilter}
+        GROUP BY
+          c.id,
+          c.title,
+          c.challenge_type,
+          c.target_value,
+          c.start_date,
+          c.end_date,
+          c.is_active
         ORDER BY c.id DESC
         LIMIT 2000
       `);
-      const sheet = workbook.addWorksheet('Challenges');
-      sheet.columns = [
+
+      const summarySheet = workbook.addWorksheet('Challenge Summary');
+      summarySheet.columns = [
         {header: 'ID', key: 'id', width: 8},
         {header: 'Title', key: 'title', width: 28},
         {header: 'Type', key: 'challengeType', width: 16},
-        {header: 'Target', key: 'targetValue', width: 10},
+        {header: 'Target', key: 'targetValue', width: 12},
         {header: 'Start', key: 'startDate', width: 14},
         {header: 'End', key: 'endDate', width: 14},
         {header: 'Active', key: 'isActive', width: 10},
-        {header: 'Participants', key: 'participants', width: 14},
+        {header: 'Joined', key: 'participants', width: 10},
         {header: 'Completed', key: 'completed', width: 12},
+        {header: 'Completion %', key: 'completionRate', width: 14},
+        {header: 'Avg Progress %', key: 'avgProgress', width: 14},
+        {header: '0%', key: 'bucket0', width: 8},
+        {header: '1-25%', key: 'bucket25', width: 10},
+        {header: '26-50%', key: 'bucket50', width: 10},
+        {header: '51-75%', key: 'bucket75', width: 10},
+        {header: '76-99%', key: 'bucket99', width: 10},
+        {header: '100%', key: 'bucket100', width: 8},
       ];
-      (rows || []).forEach((row: any) => sheet.addRow(row));
-      sheet.getRow(1).font = {bold: true};
+      (summaryRows || []).forEach((row: any) => {
+        const participants = Number(row.participants || 0);
+        const completed = Number(row.completed || 0);
+        summarySheet.addRow({
+          id: row.id,
+          title: row.title,
+          challengeType: row.challengeType,
+          targetValue: Number(row.targetValue || 0),
+          startDate: row.startDate,
+          endDate: row.endDate,
+          isActive: Number(row.isActive) === 1 ? 'Yes' : 'No',
+          participants,
+          completed,
+          completionRate:
+            participants > 0
+              ? Math.round((completed * 100) / participants)
+              : 0,
+          avgProgress: Math.round(Number(row.avgProgress || 0)),
+          bucket0: Number(row.bucket0 || 0),
+          bucket25: Number(row.bucket25 || 0),
+          bucket50: Number(row.bucket50 || 0),
+          bucket75: Number(row.bucket75 || 0),
+          bucket99: Number(row.bucket99 || 0),
+          bucket100: Number(row.bucket100 || 0),
+        });
+      });
+      summarySheet.getRow(1).font = {bold: true};
+
+      const participantFilter =
+        challengeIdFilter && challengeIdFilter > 0
+          ? `AND c.id = ${challengeIdFilter}`
+          : '';
+      const participantRows = await mysql.query<any[]>(`
+        SELECT
+          c.id AS challengeId,
+          c.title AS challengeTitle,
+          c.target_value AS targetValue,
+          u.id AS userId,
+          IFNULL(u.full_name, 'Devotee') AS userName,
+          IFNULL(u.email, '') AS email,
+          IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+          IFNULL(u.mobile_number, '') AS mobileNumber,
+          IFNULL(cp.current_value, 0) AS currentValue,
+          IFNULL(cp.is_completed, 0) AS isCompleted,
+          cp.completed_at AS completedAt,
+          ${challengeProgressPctSql} AS progressPct,
+          IFNULL(cp.reward_given, 0) AS rewardGiven,
+          cp.created_at AS joinedAt
+        FROM challenge_participants cp
+        INNER JOIN challenges c ON c.id = cp.challenge_id
+        LEFT JOIN users u ON u.id = cp.user_id
+        WHERE 1=1
+        ${participantFilter}
+        ORDER BY c.id DESC, progressPct DESC, cp.id ASC
+        LIMIT 20000
+      `);
+
+      const peopleSheet = workbook.addWorksheet('Participants Progress');
+      peopleSheet.columns = [
+        {header: 'S.No', key: 'sno', width: 8},
+        {header: 'Challenge', key: 'challengeTitle', width: 28},
+        {header: 'User Name', key: 'userName', width: 24},
+        {header: 'Email', key: 'email', width: 28},
+        {header: 'Mobile', key: 'mobile', width: 16},
+        {header: 'Current Count', key: 'currentValue', width: 14},
+        {header: 'Target', key: 'targetValue', width: 12},
+        {header: 'Progress %', key: 'progressPct', width: 12},
+        {header: 'Completed', key: 'completed', width: 12},
+        {header: 'Completed At', key: 'completedAt', width: 20},
+        {header: 'Reward Given', key: 'rewardGiven', width: 14},
+        {header: 'Joined At', key: 'joinedAt', width: 20},
+      ];
+      (participantRows || []).forEach((row: any, index: number) => {
+        const pct = Number(row.progressPct ?? 0);
+        const mobile = `${row.mobileCountryCode || ''}${row.mobileNumber || ''}`.trim();
+        peopleSheet.addRow({
+          sno: index + 1,
+          challengeTitle: row.challengeTitle || '',
+          userName: row.userName || 'Devotee',
+          email: row.email || '',
+          mobile,
+          currentValue: Number(row.currentValue || 0),
+          targetValue: Number(row.targetValue || 0),
+          progressPct: pct,
+          completed:
+            Number(row.isCompleted) === 1 || pct >= 100 ? 'Yes' : 'No',
+          completedAt: row.completedAt || '',
+          rewardGiven: Number(row.rewardGiven) === 1 ? 'Yes' : 'No',
+          joinedAt: row.joinedAt || '',
+        });
+      });
+      peopleSheet.getRow(1).font = {bold: true};
     };
 
     const addDonations = async () => {
@@ -3112,12 +3372,23 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       sheet.getRow(1).font = {bold: true};
     };
 
+    const challengeIdFilter = Number(req.query.challengeId || 0);
+
     if (type === 'users' || type === 'user') {
       await addUsers();
     } else if (type === 'japa') {
       await addJapa();
-    } else if (type === 'challenges' || type === 'challenge') {
-      await addChallenges();
+    } else if (
+      type === 'challenges' ||
+      type === 'challenge' ||
+      type === 'challenge-progress' ||
+      type === 'challenge_progress'
+    ) {
+      await addChallenges(
+        Number.isFinite(challengeIdFilter) && challengeIdFilter > 0
+          ? challengeIdFilter
+          : undefined,
+      );
     } else if (type === 'donations' || type === 'donation') {
       await addDonations();
     } else if (type === 'orders' || type === 'order') {
@@ -3554,6 +3825,65 @@ router.delete('/products/:id', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to delete product.',
+    });
+  }
+});
+
+router.get('/feedback', async (req: Request, res: Response) => {
+  try {
+    const feedbackService = (await import('../feedback/feedback.service'))
+      .default;
+    const rows = await feedbackService.getAll();
+    const host = `${req.protocol}://${req.get('host')}`;
+    return res.json({
+      success: true,
+      data: (rows || []).map((row: any) => ({
+        id: String(row.id),
+        name: `User #${row.userId || '-'}`,
+        rating: `${Number(row.rating || 0)}★`,
+        comment: row.message || row.title || '',
+        videoUrl: row.videoUrl ? `${host}${row.videoUrl}` : null,
+        status: 'Pending',
+        createdAt: row.createdAt,
+      })),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load feedback.',
+    });
+  }
+});
+
+router.get('/support-tickets', async (req: Request, res: Response) => {
+  try {
+    const customerCareService = (
+      await import('../customerCare/customerCare.service')
+    ).default;
+    const rows = await customerCareService.getAll();
+    const host = `${req.protocol}://${req.get('host')}`;
+    return res.json({
+      success: true,
+      data: (rows || []).map((row: any) => ({
+        id: String(row.id),
+        code: `TK${row.id}`,
+        subject: row.subject || '',
+        message: row.message || '',
+        screenshotUrl: row.screenshotUrl
+          ? `${host}${row.screenshotUrl}`
+          : null,
+        status:
+          String(row.status || '').toUpperCase() === 'RESOLVED' ||
+          String(row.status || '').toUpperCase() === 'CLOSED'
+            ? 'Resolved'
+            : 'Pending',
+        createdAt: row.createdAt,
+      })),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load support tickets.',
     });
   }
 });

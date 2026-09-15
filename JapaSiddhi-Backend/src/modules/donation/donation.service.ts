@@ -9,6 +9,8 @@ import emailOtpService from '../../services/emailOtp.service';
 import orderService from '../orders/order.service';
 import banaLingamService from '../banaLingam/banaLingam.service';
 import profileRepository from '../profile/profile.repository';
+import AppError from '../../utils/appError';
+import mysql from '../../database/mysql';
 
 
 
@@ -17,7 +19,7 @@ class DonationService {
 
   async create(
     userId: number,
-    data: CreateDonationRequest,
+    data: CreateDonationRequest & {skipAdminNotify?: boolean},
   ) {
 
 
@@ -47,17 +49,20 @@ class DonationService {
       });
 
 
-    await emailOtpService.notifyAdmin(
-      `New ${data.donationType} donation`,
-      [
-        'A new donation or seva was recorded.',
-        `Type: ${data.donationType}`,
-        `Amount: ₹${data.amount}`,
-        `Method: ${data.paymentMethod}`,
-        `Remarks: ${data.remarks || '-'}`,
-        `Donation ID: ${id}`,
-      ].join('\n'),
-    );
+    if (!data.skipAdminNotify) {
+      await emailOtpService.notifyAdmin(
+        `New ${data.donationType} donation`,
+        [
+          'A new donation or seva was recorded.',
+          `Type: ${data.donationType}`,
+          `Amount: ₹${data.amount}`,
+          `Method: ${data.paymentMethod}`,
+          `Remarks: ${data.remarks || '-'}`,
+          `User ID: ${userId}`,
+          `Donation ID: ${id}`,
+        ].join('\n'),
+      );
+    }
 
     return {
 
@@ -232,6 +237,37 @@ class DonationService {
     };
   }
 
+  async getHomamStatus(userId: number) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        payment_status AS paymentStatus,
+        order_status AS orderStatus,
+        remarks,
+        created_at AS createdAt
+      FROM orders
+      WHERE user_id = ?
+        AND order_type = 'NITHYA_HOMAM'
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [userId],
+    );
+    const row = rows?.[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      id: row.id,
+      code: `NH${row.id}`,
+      paymentStatus: row.paymentStatus,
+      orderStatus: row.orderStatus,
+      remarks: row.remarks || '',
+      createdAt: row.createdAt,
+    };
+  }
+
   async checkout(
     userId: number,
     data: {
@@ -244,13 +280,36 @@ class DonationService {
       nakshatram?: string;
       gothram?: string;
       remarks?: string;
+      purpose?: string;
+      transactionId?: string;
+      utr?: string;
     },
   ) {
     const kind = String(data.kind || 'ANNADANAM').toUpperCase();
     const amount = Number(data.amount || 1008);
+    const purpose = String(data.purpose || data.remarks || '').trim();
+    const utr = String(data.transactionId || data.utr || '')
+      .trim()
+      .replace(/\s+/g, '')
+      .toUpperCase();
+
+    if (kind === 'NITHYA_HOMAM') {
+      if (utr.length < 8) {
+        throw new AppError(
+          'Enter the UPI payment UTR / Transaction ID from your payment app after paying.',
+          400,
+        );
+      }
+    }
+
     const remarks = [
+      data.fullName ? `Name: ${data.fullName}` : '',
+      data.mobile ? `Mobile: ${data.mobile}` : '',
+      data.gothram ? `Gothram: ${data.gothram}` : '',
+      data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
       data.occasion ? `Occasion: ${data.occasion}` : '',
-      data.remarks || '',
+      purpose ? `Purpose: ${purpose}` : '',
+      utr ? `UTR: ${utr}` : '',
     ]
       .filter(Boolean)
       .join(' | ');
@@ -282,9 +341,10 @@ class DonationService {
         donationType,
         amount,
         paymentMethod: 'UPI',
-        transactionId: `UPI-${Date.now()}`,
+        transactionId: utr || `UPI-${Date.now()}`,
         paymentReference: 'UPI QR',
         remarks,
+        skipAdminNotify: kind === 'NITHYA_HOMAM',
       });
       donationId = donation.id;
     }
@@ -299,8 +359,26 @@ class DonationService {
     });
 
     if (kind === 'NITHYA_HOMAM') {
-      await orderService.updatePaymentStatus(order.id, 'SUCCESS');
-      await orderService.updateOrderStatus(order.id, 'ACTIVE');
+      // Stay pending until admin verifies the UTR against bank/UPI statement.
+      await orderService.updatePaymentStatus(order.id, 'PENDING');
+      await orderService.updateOrderStatus(order.id, 'PENDING');
+      await emailOtpService.notifyAdmin(
+        'Nithya Homam payment pending verification',
+        [
+          'A devotee submitted Nithya Homam payment for verification.',
+          `Name: ${data.fullName || '-'}`,
+          `Mobile: ${data.mobile || '-'}`,
+          `Gothram: ${data.gothram || '-'}`,
+          `Nakshatram: ${data.nakshatram || '-'}`,
+          `Purpose: ${purpose || '-'}`,
+          `Amount: ₹${amount}`,
+          `UTR / Transaction ID: ${utr}`,
+          `User ID: ${userId}`,
+          `Enrollment ID: NH${order.id}`,
+          '',
+          'Please verify this UTR in your UPI/bank app, then mark Verified in Admin → Nithya Homam.',
+        ].join('\n'),
+      );
     }
 
     if (kind === 'BANA_LINGAM') {
@@ -341,6 +419,12 @@ class DonationService {
       amount,
       method: 'Razorpay',
       kind,
+      paymentStatus: kind === 'NITHYA_HOMAM' ? 'PENDING' : 'SUCCESS',
+      utr: utr || null,
+      message:
+        kind === 'NITHYA_HOMAM'
+          ? 'Payment submitted. Enrollment will activate after admin verifies your UTR.'
+          : undefined,
     };
   }
 

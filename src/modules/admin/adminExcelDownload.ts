@@ -12,9 +12,13 @@ import apiService, {getApiError} from '../../services/apiService';
 const {FileDownload} = NativeModules;
 
 /** Download an admin Excel report by type (users, japa, all, …). */
-export const downloadAdminExcel = async (type: string, label: string) => {
+export const downloadAdminExcel = async (
+  type: string,
+  label: string,
+  extraParams?: Record<string, string | number>,
+) => {
   const response = await apiService.get('/admin/reports/export', {
-    params: {type},
+    params: {type, ...(extraParams || {})},
   });
   const file = response.data?.data || {};
   const fileName = String(

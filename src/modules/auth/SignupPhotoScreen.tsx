@@ -5,7 +5,6 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
-import OutlineButton from '../common/OutlineButton';
 import ProfileApi from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
@@ -166,7 +165,7 @@ const SignupPhotoScreen = () => {
         </TouchableOpacity>
         <Text style={styles.title}>Add a profile photo</Text>
         <Text style={styles.copy}>
-          This is optional. You can skip and add it later.
+          Tap the camera to choose a photo from your gallery or take a new one.
         </Text>
       </View>
 
@@ -175,11 +174,6 @@ const SignupPhotoScreen = () => {
           title={saving ? 'CREATING...' : 'CREATE PROFILE'}
           onPress={submit}
           disabled={saving}
-        />
-        <View style={styles.gap} />
-        <OutlineButton
-          title="SKIP FOR NOW"
-          onPress={submit}
         />
       </View>
     </ScreenLayout>
@@ -262,5 +256,4 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 28,
   },
-  gap: {height: 14},
 });

@@ -14,11 +14,50 @@ const normalizeEmail = (email: string) =>
     .trim()
     .toLowerCase();
 
+const normalizePhone = (value: string) =>
+  String(value || '').replace(/\D/g, '');
+
+const parseMobile = (countryCode: string, mobileNumber: string) => {
+  const cc = normalizePhone(countryCode) || '91';
+  const mobile = normalizePhone(mobileNumber);
+  if (mobile.length < 8 || /^0+$/.test(mobile)) {
+    return null;
+  }
+  return {
+    countryCode: cc,
+    mobile: mobile.length > 10 ? mobile.slice(-10) : mobile,
+  };
+};
+
 class AdminAccountService {
   private seeded = false;
+  private mobileColumnsReady = false;
 
   private async hashPassword(password: string) {
     return bcrypt.hash(password, 10);
+  }
+
+  private async ensureMobileColumns() {
+    if (this.mobileColumnsReady) {
+      return;
+    }
+    this.mobileColumnsReady = true;
+    try {
+      await mysql.query(`
+        ALTER TABLE admin_accounts
+        ADD COLUMN mobile_country_code VARCHAR(8) NOT NULL DEFAULT '91'
+      `);
+    } catch {
+      // Column already exists.
+    }
+    try {
+      await mysql.query(`
+        ALTER TABLE admin_accounts
+        ADD COLUMN mobile_number VARCHAR(20) NULL
+      `);
+    } catch {
+      // Column already exists.
+    }
   }
 
   private async ensureDefaultAdmin() {
@@ -26,6 +65,7 @@ class AdminAccountService {
       return;
     }
     this.seeded = true;
+    await this.ensureMobileColumns();
 
     try {
       const rows = await mysql.query<any[]>(
@@ -42,8 +82,15 @@ class AdminAccountService {
         const passwordHash = await this.hashPassword(DEFAULT_ADMIN_PASSWORD);
         await mysql.query(
           `
-          INSERT INTO admin_accounts (email, password_hash, full_name, is_active)
-          VALUES (?, ?, ?, 1)
+          INSERT INTO admin_accounts (
+            email,
+            password_hash,
+            full_name,
+            mobile_country_code,
+            mobile_number,
+            is_active
+          )
+          VALUES (?, ?, ?, '91', NULL, 1)
           `,
           [DEFAULT_ADMIN_EMAIL, passwordHash, 'Primary Admin'],
         );
@@ -67,27 +114,55 @@ class AdminAccountService {
     }
   }
 
-  async login(email: string, password: string) {
+  async login(identifier: string, password: string) {
     await this.ensureDefaultAdmin();
-    const normalized = normalizeEmail(email);
-    if (!normalized || !password) {
-      throw new AppError('Enter admin email and password.', 400);
+    const value = String(identifier || '').trim();
+    if (!value || !password) {
+      throw new AppError('Enter admin email or mobile number and password.', 400);
     }
 
-    const rows = await mysql.query<any[]>(
-      `
-      SELECT
-        id,
-        email,
-        password_hash AS passwordHash,
-        full_name AS fullName,
-        is_active AS isActive
-      FROM admin_accounts
-      WHERE lower(email) = ?
-      LIMIT 1
-      `,
-      [normalized],
-    );
+    let rows: any[] = [];
+    if (value.includes('@')) {
+      const normalized = normalizeEmail(value);
+      rows = await mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          email,
+          password_hash AS passwordHash,
+          full_name AS fullName,
+          mobile_country_code AS mobileCountryCode,
+          mobile_number AS mobileNumber,
+          is_active AS isActive
+        FROM admin_accounts
+        WHERE lower(email) = ?
+        LIMIT 1
+        `,
+        [normalized],
+      );
+    } else {
+      const digits = normalizePhone(value);
+      const mobile = digits.length > 10 ? digits.slice(-10) : digits;
+      if (mobile.length < 8) {
+        throw new AppError('Enter a valid admin mobile number.', 400);
+      }
+      rows = await mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          email,
+          password_hash AS passwordHash,
+          full_name AS fullName,
+          mobile_country_code AS mobileCountryCode,
+          mobile_number AS mobileNumber,
+          is_active AS isActive
+        FROM admin_accounts
+        WHERE REPLACE(REPLACE(IFNULL(mobile_number, ''), '+', ''), ' ', '') = ?
+        LIMIT 1
+        `,
+        [mobile],
+      );
+    }
 
     const admin = rows[0];
     if (!admin || Number(admin.isActive) !== 1) {
@@ -103,6 +178,8 @@ class AdminAccountService {
       id: admin.id,
       email: admin.email,
       fullName: admin.fullName || 'Admin',
+      mobileCountryCode: admin.mobileCountryCode || '91',
+      mobileNumber: admin.mobileNumber || '',
     };
   }
 
@@ -224,6 +301,8 @@ class AdminAccountService {
         id,
         email,
         full_name AS fullName,
+        mobile_country_code AS mobileCountryCode,
+        mobile_number AS mobileNumber,
         is_active AS isActive,
         created_at AS createdAt
       FROM admin_accounts
@@ -234,6 +313,8 @@ class AdminAccountService {
       id: row.id,
       email: row.email,
       fullName: row.fullName || 'Admin',
+      mobileCountryCode: row.mobileCountryCode || '91',
+      mobileNumber: row.mobileNumber || '',
       isActive: Number(row.isActive) === 1,
       createdAt: row.createdAt,
     }));
@@ -242,43 +323,74 @@ class AdminAccountService {
   async addAdmin(data: {
     email: string;
     password: string;
-    fullName?: string;
+    fullName: string;
+    mobileCountryCode: string;
+    mobileNumber: string;
   }) {
     await this.ensureDefaultAdmin();
     const email = normalizeEmail(data.email);
     const password = String(data.password || '');
-    const fullName = String(data.fullName || '').trim() || 'Admin';
+    const fullName = String(data.fullName || '').trim();
+    const mobile = parseMobile(data.mobileCountryCode, data.mobileNumber);
 
+    if (!fullName) {
+      throw new AppError('Full name is required.', 400);
+    }
     if (!email.includes('@')) {
       throw new AppError('Enter a valid admin email.', 400);
+    }
+    if (!mobile) {
+      throw new AppError('Enter a valid mobile number.', 400);
     }
     if (password.length < 6) {
       throw new AppError('Password must be at least 6 characters.', 400);
     }
 
-    const existing = await mysql.query<any[]>(
+    const existingEmail = await mysql.query<any[]>(
       `
       SELECT id FROM admin_accounts WHERE lower(email) = ? LIMIT 1
       `,
       [email],
     );
-    if (existing.length) {
+    if (existingEmail.length) {
       throw new AppError('An admin with this email already exists.', 409);
+    }
+
+    const existingMobile = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM admin_accounts
+      WHERE REPLACE(REPLACE(IFNULL(mobile_number, ''), '+', ''), ' ', '') = ?
+      LIMIT 1
+      `,
+      [mobile.mobile],
+    );
+    if (existingMobile.length) {
+      throw new AppError('An admin with this mobile number already exists.', 409);
     }
 
     const passwordHash = await this.hashPassword(password);
     const result = await mysql.query<any>(
       `
-      INSERT INTO admin_accounts (email, password_hash, full_name, is_active)
-      VALUES (?, ?, ?, 1)
+      INSERT INTO admin_accounts (
+        email,
+        password_hash,
+        full_name,
+        mobile_country_code,
+        mobile_number,
+        is_active
+      )
+      VALUES (?, ?, ?, ?, ?, 1)
       `,
-      [email, passwordHash, fullName],
+      [email, passwordHash, fullName, mobile.countryCode, mobile.mobile],
     );
 
     return {
       id: result.insertId,
       email,
       fullName,
+      mobileCountryCode: mobile.countryCode,
+      mobileNumber: mobile.mobile,
     };
   }
 }

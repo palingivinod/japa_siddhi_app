@@ -173,6 +173,22 @@ class JapaService {
       next,
       completed,
     );
+    if (completed) {
+      try {
+        const {notifyChallengeCompleted} = await import(
+          '../notification/notificationReminder.service'
+        );
+        await notifyChallengeCompleted({
+          userId,
+          challengeId,
+          title: row.title,
+          currentValue: next,
+          targetValue: target,
+        });
+      } catch {
+        // Progress is saved even if notification fails.
+      }
+    }
     return [{challengeId, currentValue: next, completed}];
   }
 
@@ -198,6 +214,22 @@ class JapaService {
         next,
         completed,
       );
+      if (completed) {
+        try {
+          const {notifyChallengeCompleted} = await import(
+            '../notification/notificationReminder.service'
+          );
+          await notifyChallengeCompleted({
+            userId,
+            challengeId,
+            title: row.title,
+            currentValue: next,
+            targetValue: target,
+          });
+        } catch {
+          // Progress is saved even if notification fails.
+        }
+      }
       updates.push({challengeId, currentValue: next, completed});
     }
     return updates;

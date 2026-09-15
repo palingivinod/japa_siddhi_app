@@ -246,6 +246,7 @@ class SqliteEngine {
         user_id INTEGER NOT NULL,
         subject TEXT NOT NULL,
         message TEXT NOT NULL,
+        screenshot_url TEXT,
         admin_reply TEXT,
         status TEXT NOT NULL DEFAULT 'OPEN',
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -258,6 +259,7 @@ class SqliteEngine {
         rating INTEGER NOT NULL,
         title TEXT NOT NULL,
         message TEXT NOT NULL,
+        video_url TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
 
@@ -398,12 +400,16 @@ class SqliteEngine {
         email TEXT NOT NULL UNIQUE,
         password_hash TEXT NOT NULL,
         full_name TEXT,
+        mobile_country_code TEXT NOT NULL DEFAULT '91',
+        mobile_number TEXT,
         is_active INTEGER NOT NULL DEFAULT 1,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    this.ensureAdminAccountColumns();
     this.ensureRewardClaimColumns();
+    this.ensureFeedbackSupportColumns();
     this.seedChallenges();
     this.seedFaqs();
     this.seedRewards();
@@ -448,6 +454,44 @@ class SqliteEngine {
         ('Tulasi mala', 0, 1, 4)
       `,
     );
+  }
+
+  private ensureAdminAccountColumns(): void {
+    if (!this.db) {
+      return;
+    }
+    const info = this.db.exec('PRAGMA table_info(admin_accounts)');
+    const names = new Set(
+      (info[0]?.values || []).map((row: any[]) => String(row[1] || '')),
+    );
+    const columns: Array<[string, string]> = [
+      ['mobile_country_code', "TEXT NOT NULL DEFAULT '91'"],
+      ['mobile_number', 'TEXT'],
+    ];
+    columns.forEach(([name, definition]) => {
+      if (!names.has(name)) {
+        this.db?.run(
+          `ALTER TABLE admin_accounts ADD COLUMN ${name} ${definition}`,
+        );
+      }
+    });
+  }
+
+  private ensureFeedbackSupportColumns(): void {
+    if (!this.db) {
+      return;
+    }
+    const addColumn = (table: string, name: string, definition: string) => {
+      const info = this.db?.exec(`PRAGMA table_info(${table})`);
+      const names = new Set(
+        (info?.[0]?.values || []).map((row: any[]) => String(row[1] || '')),
+      );
+      if (!names.has(name)) {
+        this.db?.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+      }
+    };
+    addColumn('feedback', 'video_url', 'TEXT');
+    addColumn('customer_care', 'screenshot_url', 'TEXT');
   }
 
   private ensureRewardClaimColumns(): void {

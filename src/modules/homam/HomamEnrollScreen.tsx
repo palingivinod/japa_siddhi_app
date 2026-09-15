@@ -33,7 +33,7 @@ const HomamEnrollScreen = () => {
       subtitle: 'Scan this QR to complete enrollment.',
       showSummary: true,
       methodLabel: 'METHOD',
-      button: 'I HAVE PAID',
+      button: 'SUBMIT PAYMENT FOR VERIFICATION',
     });
   };
 

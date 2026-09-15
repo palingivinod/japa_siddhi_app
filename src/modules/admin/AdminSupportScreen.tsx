@@ -1,23 +1,57 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import {
+  ActivityIndicator,
+  Alert,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_TICKETS, AdminTicket, AdminTicketStatus} from './adminData';
-
-const nextStatus = (status: AdminTicketStatus): AdminTicketStatus =>
-  status === 'Pending' ? 'Resolved' : 'Pending';
+import {AdminTicket} from './adminData';
 
 const AdminSupportScreen = () => {
-  const [tickets, setTickets] = useState<AdminTicket[]>(ADMIN_TICKETS);
+  const [tickets, setTickets] = useState<AdminTicket[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const cycle = (id: string) => {
-    setTickets(current =>
-      current.map(item =>
-        item.id === id ? {...item, status: nextStatus(item.status)} : item,
-      ),
-    );
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await apiService.get('/admin/support-tickets');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setTickets(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          code: row.code || `TK${row.id}`,
+          subject: row.subject || '',
+          message: row.message || '',
+          screenshotUrl: row.screenshotUrl || null,
+          status: row.status === 'Resolved' ? 'Resolved' : 'Pending',
+        })),
+      );
+    } catch (err) {
+      setTickets([]);
+      Alert.alert(
+        'Support',
+        getApiError(err, 'Could not load support tickets.'),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   return (
     <AdminScreenLayout
@@ -25,33 +59,38 @@ const AdminSupportScreen = () => {
       tab="AdminDashboard"
       showBack>
       <Text style={styles.heading}>Customer Support Ticket Management</Text>
-      <Text style={styles.sub}>Resolve customer support tickets.</Text>
+      <Text style={styles.sub}>
+        Tickets with screenshots. Details are also emailed to admin.
+      </Text>
 
-      {tickets.map(item => {
-        const pending = item.status === 'Pending';
-        return (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.copy}>
-              <Text style={styles.name}>{item.code}</Text>
-              <Text style={styles.meta}>{item.subject}</Text>
-            </View>
+      {loading ? (
+        <ActivityIndicator color={Colors.templeGold} style={{marginVertical: 20}} />
+      ) : null}
+
+      {!loading && tickets.length === 0 ? (
+        <Text style={styles.empty}>No support tickets yet.</Text>
+      ) : null}
+
+      {tickets.map(item => (
+        <View key={item.id} style={styles.card}>
+          <Text style={styles.name}>{item.code}</Text>
+          <Text style={styles.meta}>{item.subject}</Text>
+          {item.message ? (
+            <Text style={styles.message} numberOfLines={3}>
+              {item.message}
+            </Text>
+          ) : null}
+          <Text style={styles.status}>Status: {item.status}</Text>
+          {item.screenshotUrl ? (
             <TouchableOpacity
-              style={[
-                styles.pill,
-                pending ? styles.pillPending : styles.pillResolved,
-              ]}
-              onPress={() => cycle(item.id)}>
-              <Text
-                style={[
-                  styles.pillText,
-                  pending ? styles.pillTextPending : styles.pillTextResolved,
-                ]}>
-                {item.status}
-              </Text>
+              onPress={() => Linking.openURL(String(item.screenshotUrl))}>
+              <Text style={styles.link}>Open screenshot</Text>
             </TouchableOpacity>
-          </View>
-        );
-      })}
+          ) : (
+            <Text style={styles.noMedia}>No screenshot attached</Text>
+          )}
+        </View>
+      ))}
     </AdminScreenLayout>
   );
 };
@@ -69,6 +108,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     color: Colors.textSecondary,
   },
+  empty: {color: Colors.textSecondary, marginBottom: 12},
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -76,28 +116,33 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     padding: 16,
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  copy: {flex: 1, paddingRight: 10},
   name: {
-    fontSize: 17,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    fontSize: 16,
   },
   meta: {
     marginTop: 4,
     color: Colors.textSecondary,
+    fontWeight: '600',
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  message: {
+    marginTop: 8,
+    color: Colors.sacredBrown,
   },
-  pillPending: {borderColor: Colors.sacredBrown},
-  pillResolved: {borderColor: Colors.leafGreen},
-  pillText: {fontWeight: '800', fontSize: 13},
-  pillTextPending: {color: Colors.sacredBrown},
-  pillTextResolved: {color: Colors.leafGreen},
+  status: {
+    marginTop: 8,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  link: {
+    marginTop: 10,
+    color: Colors.leafGreen,
+    fontWeight: '800',
+  },
+  noMedia: {
+    marginTop: 10,
+    color: Colors.textLight,
+  },
 });

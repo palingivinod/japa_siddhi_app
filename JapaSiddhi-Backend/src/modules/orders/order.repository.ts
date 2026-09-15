@@ -140,7 +140,7 @@ class OrderRepository {
       FROM orders
 
       WHERE user_id = ?
-
+        AND order_type <> 'NITHYA_HOMAM'
       ORDER BY created_at DESC
       `,
       [

@@ -41,6 +41,12 @@ router.get(
   donationController.catalog,
 );
 
+router.get(
+  '/homam-status',
+  authenticate,
+  donationController.homamStatus,
+);
+
 router.post(
   '/checkout',
   authenticate,

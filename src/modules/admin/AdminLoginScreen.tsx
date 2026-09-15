@@ -19,21 +19,32 @@ import {getApiError, verifyAdminCredentials} from './adminCredentials';
 
 const AdminLoginScreen = () => {
   const navigation = useNavigation<any>();
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
 
   const signIn = async () => {
-    const trimmed = email.trim().toLowerCase();
-    if (!trimmed || !password.trim()) {
-      Alert.alert('Required', 'Enter admin email and password.');
+    const value = identifier.trim();
+    if (!value || !password.trim()) {
+      Alert.alert('Required', 'Enter admin email or mobile number and password.');
       return;
+    }
+    if (value.includes('@') && !value.includes('.')) {
+      Alert.alert('Required', 'Enter a valid admin email.');
+      return;
+    }
+    if (!value.includes('@')) {
+      const digits = value.replace(/\D/g, '');
+      if (digits.length < 8) {
+        Alert.alert('Required', 'Enter a valid mobile number.');
+        return;
+      }
     }
     setBusy(true);
     try {
-      const admin = await verifyAdminCredentials(trimmed, password);
+      const admin = await verifyAdminCredentials(value, password);
       resetAdminAuthGate();
-      await saveAdminSession(admin.email || trimmed);
+      await saveAdminSession(admin.email || value.toLowerCase());
       navigation.reset({
         index: 0,
         routes: [{name: 'AdminDashboard'}],
@@ -55,12 +66,12 @@ const AdminLoginScreen = () => {
         <Text style={styles.heading}>Admin Login</Text>
         <Text style={styles.sub}>Secure administrator access.</Text>
 
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.label}>Email / Mobile number</Text>
         <TextInput
           style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="Enter here"
+          value={identifier}
+          onChangeText={setIdentifier}
+          placeholder="email@example.com or 9876543210"
           placeholderTextColor={Colors.placeholder}
           keyboardType="email-address"
           autoCapitalize="none"

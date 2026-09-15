@@ -56,12 +56,24 @@ const AdminJapaScreen = () => {
   );
 
   const toggle = async (item: AdminMantra) => {
+    const nextActive = !item.active;
+    // Keep the row visible; only flip Active/Inactive for users.
+    setMantras(current =>
+      current.map(row =>
+        row.id === item.id ? {...row, active: nextActive} : row,
+      ),
+    );
     try {
       await apiService.put(`/admin/mantras/${item.id}`, {
-        isActive: !item.active,
+        isActive: nextActive,
+        active: nextActive,
       });
-      await loadMantras();
     } catch (err) {
+      setMantras(current =>
+        current.map(row =>
+          row.id === item.id ? {...row, active: item.active} : row,
+        ),
+      );
       Alert.alert(
         'Update failed',
         getApiError(err, 'Could not update mantra status.'),
@@ -86,7 +98,9 @@ const AdminJapaScreen = () => {
   return (
     <AdminScreenLayout title="Japa Management" tab="AdminJapa" showBack={false}>
       <Text style={styles.heading}>Japa Management</Text>
-      <Text style={styles.sub}>Manage up to 12 predefined mantras.</Text>
+      <Text style={styles.sub}>
+        Tap Active/Inactive to show or hide a mantra for users.
+      </Text>
 
       <TouchableOpacity
         style={[styles.exportBtn, exporting && styles.exportBusy]}
@@ -119,7 +133,7 @@ const AdminJapaScreen = () => {
                 styles.pillText,
                 item.active ? styles.pillTextOn : styles.pillTextOff,
               ]}>
-              {item.active ? 'Active' : 'Off'}
+              {item.active ? 'Active' : 'Inactive'}
             </Text>
           </TouchableOpacity>
         </View>

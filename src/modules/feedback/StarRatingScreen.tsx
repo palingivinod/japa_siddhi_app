@@ -17,11 +17,19 @@ const StarRatingScreen = () => {
   const submit = async () => {
     setSaving(true);
     try {
-      await apiService.post('/feedback', {
-        rating,
-        title: 'App feedback',
-        message: route.params?.message || 'Rating only',
-      });
+      const video = route.params?.video;
+      const formData = new FormData();
+      formData.append('rating', String(rating));
+      formData.append('title', 'App feedback');
+      formData.append('message', route.params?.message || 'Rating only');
+      if (video?.uri) {
+        formData.append('video', {
+          uri: video.uri,
+          type: video.type || 'video/mp4',
+          name: video.fileName || 'feedback.mp4',
+        } as any);
+      }
+      await apiService.post('/feedback', formData);
       navigation.replace('FeedbackConfirmation');
     } catch (error) {
       Alert.alert('Rating', getApiError(error, 'Could not save rating.'));
@@ -34,6 +42,9 @@ const StarRatingScreen = () => {
     <ScreenLayout title="Rate Your Experience" showBack tab="Profile">
       <Text style={styles.hint}>Tap a star to rate</Text>
       <StarPicker value={rating} onChange={setRating} />
+      {route.params?.video ? (
+        <Text style={styles.videoNote}>Video attached with this feedback</Text>
+      ) : null}
       <PrimaryButton
         title={saving ? 'SUBMITTING...' : 'SUBMIT RATING'}
         onPress={submit}
@@ -51,5 +62,11 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     marginTop: 24,
+  },
+  videoNote: {
+    textAlign: 'center',
+    color: Colors.textSecondary,
+    marginTop: 12,
+    marginBottom: 8,
   },
 });

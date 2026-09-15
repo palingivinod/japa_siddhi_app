@@ -1,104 +1,54 @@
-import {
-  CreateTicketRequest,
-  TicketStatus,
-} from './customerCare.types';
-
+import {CreateTicketRequest, TicketStatus} from './customerCare.types';
 import customerCareRepository from './customerCare.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import mysql from '../../database/mysql';
 
 class CustomerCareService {
-
-  async create(
-    data: CreateTicketRequest,
-  ) {
-
-    const id =
-      await customerCareRepository.create(
-        data,
-      );
+  async create(data: CreateTicketRequest, mediaBaseUrl?: string) {
+    const id = await customerCareRepository.create(data);
+    const screenshotLink = data.screenshotUrl
+      ? `${mediaBaseUrl || ''}${data.screenshotUrl}`
+      : '-';
 
     await emailOtpService.notifyAdmin(
       'New customer care ticket',
       [
         'A new support ticket was raised.',
+        `User ID: ${data.userId}`,
         `Subject: ${data.subject}`,
         `Order / Service: ${data.orderService || '-'}`,
         `Message: ${data.message}`,
+        `Screenshot: ${screenshotLink}`,
         `Ticket ID: ${id}`,
       ].join('\n'),
     );
 
-    return {
-
-      id,
-
-    };
-
+    return {id, screenshotUrl: data.screenshotUrl || null};
   }
 
-  async getById(
-    id: number,
-  ) {
-
-    const ticket =
-      await customerCareRepository.getById(
-        id,
-      );
-
+  async getById(id: number) {
+    const ticket = await customerCareRepository.getById(id);
     if (!ticket) {
-
-      throw new Error(
-        'Support ticket not found',
-      );
-
+      throw new Error('Support ticket not found');
     }
-
     return ticket;
-
   }
 
-  async getUserTickets(
-    userId: number,
-  ) {
-
-    return customerCareRepository.getUserTickets(
-      userId,
-    );
-
+  async getUserTickets(userId: number) {
+    return customerCareRepository.getUserTickets(userId);
   }
 
-  async reply(
-    id: number,
-    reply: string,
-    status: TicketStatus,
-  ) {
+  async getAll() {
+    return customerCareRepository.getAll();
+  }
 
-    const ticket =
-      await customerCareRepository.getById(
-        id,
-      );
-
+  async reply(id: number, reply: string, status: TicketStatus) {
+    const ticket = await customerCareRepository.getById(id);
     if (!ticket) {
-
-      throw new Error(
-        'Support ticket not found',
-      );
-
+      throw new Error('Support ticket not found');
     }
-
-    await customerCareRepository.reply(
-      id,
-      reply,
-      status,
-    );
-
-    return {
-
-      success: true,
-
-    };
-
+    await customerCareRepository.reply(id, reply, status);
+    return {success: true};
   }
 
   async getConfig() {
@@ -165,7 +115,6 @@ class CustomerCareService {
       ];
     }
   }
-
 }
 
 export default new CustomerCareService();

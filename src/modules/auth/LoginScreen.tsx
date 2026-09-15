@@ -100,22 +100,17 @@ const LoginScreen = () => {
 
     setSubmitting(true);
     try {
-      if (isEmail) {
-        try {
-          const admin = await verifyAdminCredentials(
-            value.toLowerCase(),
-            password,
-          );
-          resetAdminAuthGate();
-          await saveAdminSession(admin.email || value.toLowerCase());
-          navigation.reset({
-            index: 0,
-            routes: [{name: 'AdminDashboard'}],
-          });
-          return;
-        } catch {
-          // Not an admin account — continue with devotee password login.
-        }
+      try {
+        const admin = await verifyAdminCredentials(value, password);
+        resetAdminAuthGate();
+        await saveAdminSession(admin.email || value.toLowerCase());
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'AdminDashboard'}],
+        });
+        return;
+      } catch {
+        // Not an admin account — continue with devotee password login.
       }
 
       const payload = {

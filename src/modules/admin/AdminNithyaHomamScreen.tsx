@@ -31,8 +31,15 @@ const AdminNithyaHomamScreen = () => {
           id: String(row.id),
           code: row.code || `NH${row.id}`,
           name: row.name || 'Devotee',
-          stage: row.stage || 'Enrolled',
-          status: row.status === 'Inactive' ? 'Inactive' : 'Active',
+          mobile: row.mobile || '',
+          utr: row.utr || '',
+          stage: row.stage || 'Pending verification',
+          status:
+            row.status === 'Inactive'
+              ? 'Inactive'
+              : row.status === 'Pending'
+                ? 'Pending'
+                : 'Active',
         })),
       );
     } catch (err) {
@@ -52,15 +59,18 @@ const AdminNithyaHomamScreen = () => {
     }, [load]),
   );
 
-  const toggle = async (item: AdminHomamItem) => {
-    const nextActive = item.status !== 'Active';
+  const updateEnrollment = async (
+    item: AdminHomamItem,
+    action: 'verify' | 'reject',
+  ) => {
     setBusyId(item.id);
     try {
       const response = await apiService.put(
         `/admin/homam-enrollments/${item.id}`,
         {
-          active: nextActive,
-          status: nextActive ? 'Active' : 'Inactive',
+          action,
+          active: action === 'verify',
+          status: action === 'verify' ? 'Active' : 'Inactive',
         },
       );
       const updated = response.data?.data;
@@ -69,8 +79,17 @@ const AdminNithyaHomamScreen = () => {
           row.id === item.id
             ? {
                 ...row,
-                status: updated?.status === 'Inactive' ? 'Inactive' : 'Active',
-                stage: updated?.stage || (nextActive ? 'Paid' : 'Inactive'),
+                status:
+                  updated?.status === 'Inactive'
+                    ? 'Inactive'
+                    : updated?.status === 'Pending'
+                      ? 'Pending'
+                      : 'Active',
+                stage:
+                  updated?.stage ||
+                  (action === 'verify' ? 'Verified' : 'Inactive'),
+                utr: updated?.utr || row.utr,
+                mobile: updated?.mobile || row.mobile,
               }
             : row,
         ),
@@ -92,7 +111,8 @@ const AdminNithyaHomamScreen = () => {
       showBack>
       <Text style={styles.heading}>Nithya Homam Management</Text>
       <Text style={styles.sub}>
-        Shows only users who enrolled. Tap Active/Inactive to update status.
+        Check the UTR in your UPI/bank app, then tap Verify Payment. Reject if
+        the UTR is missing or invalid.
       </Text>
 
       {loading ? (
@@ -103,33 +123,51 @@ const AdminNithyaHomamScreen = () => {
 
       {!loading && items.length === 0 ? (
         <Text style={styles.empty}>
-          No enrollments yet. Users appear here after they enroll and pay.
+          No enrollments yet. Users appear here after they submit UTR.
         </Text>
       ) : null}
 
       {items.map(item => {
-        const active = item.status === 'Active';
         const busy = busyId === item.id;
         return (
           <View key={item.id} style={styles.card}>
-            <View style={styles.copy}>
-              <Text style={styles.name}>{item.code}</Text>
-              <Text style={styles.meta}>
-                {item.name} • {item.stage}
-              </Text>
+            <Text style={styles.name}>{item.code}</Text>
+            <Text style={styles.meta}>
+              {item.name}
+              {item.mobile ? ` • ${item.mobile}` : ''}
+            </Text>
+            <Text style={styles.meta}>Status: {item.stage}</Text>
+            <Text style={styles.utr}>
+              UTR: {item.utr || 'Not provided'}
+            </Text>
+            <View style={styles.actions}>
+              {item.status !== 'Active' ? (
+                <TouchableOpacity
+                  style={[styles.pill, styles.pillOn]}
+                  onPress={() => updateEnrollment(item, 'verify')}
+                  disabled={busy}>
+                  <Text style={[styles.pillText, styles.pillTextOn]}>
+                    {busy ? '...' : 'Verify Payment'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <View style={[styles.pill, styles.pillOn]}>
+                  <Text style={[styles.pillText, styles.pillTextOn]}>
+                    Active
+                  </Text>
+                </View>
+              )}
+              {item.status !== 'Inactive' ? (
+                <TouchableOpacity
+                  style={[styles.pill, styles.pillOff]}
+                  onPress={() => updateEnrollment(item, 'reject')}
+                  disabled={busy}>
+                  <Text style={[styles.pillText, styles.pillTextOff]}>
+                    {busy ? '...' : 'Reject'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
-            <TouchableOpacity
-              style={[styles.pill, active ? styles.pillOn : styles.pillOff]}
-              onPress={() => toggle(item)}
-              disabled={busy}>
-              <Text
-                style={[
-                  styles.pillText,
-                  active ? styles.pillTextOn : styles.pillTextOff,
-                ]}>
-                {busy ? '...' : item.status}
-              </Text>
-            </TouchableOpacity>
           </View>
         );
       })}
@@ -159,10 +197,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     padding: 16,
     marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  copy: {flex: 1},
   name: {
     fontSize: 17,
     fontWeight: '800',
@@ -172,13 +207,25 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: Colors.textSecondary,
   },
+  utr: {
+    marginTop: 8,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  actions: {
+    marginTop: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
   pill: {
     borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 7,
-    minWidth: 88,
+    minWidth: 120,
     alignItems: 'center',
+    marginRight: 8,
+    marginBottom: 6,
   },
   pillOn: {borderColor: Colors.leafGreen},
   pillOff: {borderColor: Colors.error},

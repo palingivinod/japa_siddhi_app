@@ -6,6 +6,7 @@ import {
   Platform,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -51,10 +52,12 @@ const CheckoutScreen = () => {
   const [saving, setSaving] = useState(false);
   const [upiId, setUpiId] = useState(TRUST_UPI_ID);
   const [payeeName, setPayeeName] = useState('Bilva Patra Trust');
+  const [utr, setUtr] = useState('');
   const title = params.title || 'Proceed to Pay';
   const itemName = params.itemName || 'Annadanam Donation';
   const subtitle = params.subtitle || 'Scan the QR with any UPI app.';
   const amount = Number(params.amount || 1008);
+  const isHomam = String(params.kind || '').toUpperCase() === 'NITHYA_HOMAM';
 
   useEffect(() => {
     apiService
@@ -104,6 +107,16 @@ const CheckoutScreen = () => {
   };
 
   const pay = async () => {
+    if (isHomam) {
+      const cleaned = utr.trim().replace(/\s+/g, '');
+      if (cleaned.length < 8) {
+        Alert.alert(
+          'Payment UTR required',
+          'After paying in your UPI app, enter the UTR / Transaction ID shown in the payment success screen. Admin will verify this before activating enrollment.',
+        );
+        return;
+      }
+    }
     setSaving(true);
     try {
       const response = await apiService.post('/donations/checkout', {
@@ -115,8 +128,10 @@ const CheckoutScreen = () => {
         occasion: params.occasion,
         nakshatram: params.nakshatram,
         gothram: params.gothram,
-        remarks: params.remarks,
+        remarks: params.remarks || params.purpose,
         paymentMethod: 'UPI',
+        transactionId: utr.trim().replace(/\s+/g, ''),
+        utr: utr.trim().replace(/\s+/g, ''),
       });
       const data = response.data.data || {};
       if (params.kind === 'NITHYA_HOMAM') {
@@ -166,13 +181,38 @@ const CheckoutScreen = () => {
         ))}
       </View>
       {upiId ? <Text style={styles.upiId}>UPI ID: {upiId}</Text> : null}
+      {isHomam ? (
+        <>
+          <Text style={styles.utrLabel}>UTR / Transaction ID *</Text>
+          <TextInput
+            style={styles.utrInput}
+            value={utr}
+            onChangeText={setUtr}
+            placeholder="Enter UPI UTR after payment"
+            placeholderTextColor={Colors.placeholder}
+            autoCapitalize="characters"
+            autoCorrect={false}
+          />
+          <Text style={styles.utrHint}>
+            Pay first in PhonePe / GPay / Paytm, copy the UTR from the success
+            screen, then submit. Enrollment activates only after admin verifies
+            the UTR.
+          </Text>
+        </>
+      ) : null}
       <Text style={styles.hint}>
         This is a voluntary offering to Bilva Patra Trust, not a Google Play
         purchase. Open PhonePe, GPay, Paytm or any UPI app, scan this QR, then
-        tap Proceed to Pay after the UPI app confirms success.
+        tap {isHomam ? 'Submit after entering UTR' : 'Proceed to Pay after the UPI app confirms success'}.
       </Text>
       <PrimaryButton
-        title={saving ? 'RECORDING...' : params.button || 'PROCEED TO PAY'}
+        title={
+          saving
+            ? 'SUBMITTING...'
+            : isHomam
+              ? 'SUBMIT PAYMENT FOR VERIFICATION'
+              : params.button || 'PROCEED TO PAY'
+        }
         onPress={pay}
         disabled={saving}
       />
@@ -238,6 +278,28 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '700',
     marginBottom: 10,
+  },
+  utrLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  utrInput: {
+    height: 54,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    color: Colors.textPrimary,
+    marginBottom: 8,
+  },
+  utrHint: {
+    color: Colors.textSecondary,
+    lineHeight: 20,
+    marginBottom: 14,
+    fontSize: 13,
   },
   hint: {
     textAlign: 'center',

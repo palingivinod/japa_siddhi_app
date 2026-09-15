@@ -245,7 +245,8 @@ class ChallengeRepository {
       SELECT
         cp.challenge_id AS challengeId,
         cp.current_value AS currentValue,
-        c.target_value AS targetValue
+        c.target_value AS targetValue,
+        c.title AS title
       FROM challenge_participants cp
       INNER JOIN challenges c
         ON c.id = cp.challenge_id

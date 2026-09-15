@@ -445,6 +445,17 @@ class AuthService {
 
     await this.setupNewUser(user);
 
+    await emailOtpService.notifyAdmin(
+      'New user registration',
+      [
+        'A new devotee registered on Japa Siddhi.',
+        `Name: ${user.fullName || fullName || '-'}`,
+        `Email: ${user.email || email}`,
+        `Mobile: +${user.mobileCountryCode || mobileCountryCode}${user.mobileNumber || mobileNumber}`,
+        `User ID: ${user.id}`,
+      ].join('\n'),
+    );
+
     return {
       token: issueToken(user),
       user,

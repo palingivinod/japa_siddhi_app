@@ -6,22 +6,28 @@ export type AdminAccount = {
   id: number;
   email: string;
   fullName: string;
+  mobileCountryCode?: string;
+  mobileNumber?: string;
   isActive?: boolean;
   createdAt?: string;
 };
 
 export const verifyAdminCredentials = async (
-  email: string,
+  identifier: string,
   password: string,
 ) => {
+  const value = identifier.trim();
   const response = await apiService.post('/admin/auth/login', {
-    email: email.trim().toLowerCase(),
+    identifier: value,
+    email: value.includes('@') ? value.toLowerCase() : undefined,
     password,
   });
   return response.data?.data as {
     id: number;
     email: string;
     fullName: string;
+    mobileCountryCode?: string;
+    mobileNumber?: string;
   };
 };
 
@@ -57,12 +63,16 @@ export const listAdminAccounts = async () => {
 export const addAdminAccount = async (data: {
   email: string;
   password: string;
-  fullName?: string;
+  fullName: string;
+  mobileCountryCode: string;
+  mobileNumber: string;
 }) => {
   const response = await apiService.post('/admin/auth/accounts', {
     email: data.email.trim().toLowerCase(),
     password: data.password,
-    fullName: data.fullName?.trim() || undefined,
+    fullName: data.fullName.trim(),
+    mobileCountryCode: data.mobileCountryCode.replace(/\D/g, '') || '91',
+    mobileNumber: data.mobileNumber.replace(/\D/g, ''),
   });
   return response.data?.data as AdminAccount;
 };
