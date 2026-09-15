@@ -297,7 +297,7 @@ export const ADMIN_EXPORT_REPORTS: AdminExportReport[] = [
     id: '2',
     title: 'Japa Reports',
     subtitle:
-      'All users: S.No, name, date, japa name, count + mantra totals',
+      'S.No, name, date, japa name, japa count + total across all mantras',
   },
   {id: '3', title: 'Challenge Reports', subtitle: 'Challenge results'},
   {id: '4', title: 'Donation Reports', subtitle: 'Annadanam'},

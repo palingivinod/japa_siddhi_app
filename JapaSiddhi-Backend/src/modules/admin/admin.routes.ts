@@ -2798,9 +2798,32 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         )
       `;
 
-      // Sheet 1: daily rows — S.No, User Name, Date, Japa Name, Japa Count
+      // Lifetime total across ALL mantras per user (for Total Count column).
+      const lifetimeRows = await mysql.query<any[]>(`
+        SELECT
+          js.user_id AS userId,
+          COALESCE(SUM(js.session_count), 0) AS allMantraTotal
+        FROM japa_sessions js
+        LEFT JOIN users u ON u.id = js.user_id
+        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        ${challengeFilter}
+        GROUP BY js.user_id
+      `);
+      const lifetimeByUser = new Map<number, number>();
+      (lifetimeRows || []).forEach((row: any) => {
+        const id = Number(row.userId ?? row.user_id ?? 0);
+        if (id) {
+          lifetimeByUser.set(
+            id,
+            Number(row.allMantraTotal ?? row.all_mantra_total ?? 0),
+          );
+        }
+      });
+
+      // Sheet 1: daily rows — S.No, User Name, Date, Japa Name, Japa Count, Total Count
       const dailyRows = await mysql.query<any[]>(`
         SELECT
+          js.user_id AS userId,
           IFNULL(u.full_name, 'Devotee') AS userName,
           DATE(js.created_at, '+5 hours', '30 minutes') AS japaDate,
           COALESCE(
@@ -2839,21 +2862,25 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         {header: 'Date', key: 'japaDate', width: 14},
         {header: 'Japa Name', key: 'japaName', width: 28},
         {header: 'Japa Count', key: 'japaCount', width: 12},
+        {header: 'Total Count', key: 'totalCount', width: 14},
       ];
       (dailyRows || []).forEach((row: any, index: number) => {
+        const userId = Number(row.userId ?? row.user_id ?? 0);
         dailySheet.addRow({
           sno: index + 1,
           userName: row.userName || row.user_name || 'Devotee',
           japaDate: String(row.japaDate || row.japa_date || '').slice(0, 10),
           japaName: row.japaName || row.japa_name || 'Japa',
           japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
+          totalCount: lifetimeByUser.get(userId) || 0,
         });
       });
       dailySheet.getRow(1).font = {bold: true};
 
-      // Sheet 2: lifetime total per user + mantra
+      // Sheet 2: per-mantra count + overall total across all mantras
       const totalRows = await mysql.query<any[]>(`
         SELECT
+          js.user_id AS userId,
           IFNULL(u.full_name, 'Devotee') AS userName,
           COALESCE(
             m.mantra_name,
@@ -2863,7 +2890,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
               ELSE 'Japa'
             END
           ) AS japaName,
-          COALESCE(SUM(js.session_count), 0) AS totalCount
+          COALESCE(SUM(js.session_count), 0) AS japaCount
         FROM japa_sessions js
         LEFT JOIN users u ON u.id = js.user_id
         LEFT JOIN mantras m ON m.id = js.mantra_id
@@ -2879,7 +2906,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           m.mantra_name,
           upm.mantra_name
         HAVING COALESCE(SUM(js.session_count), 0) > 0
-        ORDER BY userName ASC, totalCount DESC
+        ORDER BY userName ASC, japaCount DESC
         LIMIT 20000
       `);
 
@@ -2888,14 +2915,17 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         {header: 'S.No', key: 'sno', width: 8},
         {header: 'User Name', key: 'userName', width: 26},
         {header: 'Japa Name', key: 'japaName', width: 28},
+        {header: 'Japa Count', key: 'japaCount', width: 12},
         {header: 'Total Count', key: 'totalCount', width: 14},
       ];
       (totalRows || []).forEach((row: any, index: number) => {
+        const userId = Number(row.userId ?? row.user_id ?? 0);
         totalsSheet.addRow({
           sno: index + 1,
           userName: row.userName || row.user_name || 'Devotee',
           japaName: row.japaName || row.japa_name || 'Japa',
-          totalCount: Number(row.totalCount ?? row.total_count ?? 0),
+          japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
+          totalCount: lifetimeByUser.get(userId) || 0,
         });
       });
       totalsSheet.getRow(1).font = {bold: true};
