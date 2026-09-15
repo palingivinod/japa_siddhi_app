@@ -27,6 +27,7 @@ import annadanamRoutes from './modules/annadanam/annadanam.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
 import screensRoutes from './modules/screens/screens.routes';
 import database from './database/mysql';
+import {getSqlitePath} from './database/sqliteEngine';
 const app = express();
 
 app.set('trust proxy', 1);
@@ -108,7 +109,10 @@ app.get('/api/v1/health', async (_, res) => {
     message: 'API and database are healthy',
     data: {
       database: database.getEngineName(),
-      sqlitePath: process.env.SQLITE_PATH || null,
+      sqlitePath:
+        database.getEngineName() === 'sqlite'
+          ? getSqlitePath()
+          : process.env.SQLITE_PATH || null,
       usersActive,
       usersDeleted,
       donations,

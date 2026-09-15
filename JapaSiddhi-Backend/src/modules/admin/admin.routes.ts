@@ -2799,13 +2799,13 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       `;
 
       // Lifetime total across ALL mantras per user (for Total Count column).
+      // Include orphaned sessions (user row missing) so history is never dropped.
       const lifetimeRows = await mysql.query<any[]>(`
         SELECT
           js.user_id AS userId,
           COALESCE(SUM(js.session_count), 0) AS allMantraTotal
         FROM japa_sessions js
-        LEFT JOIN users u ON u.id = js.user_id
-        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        WHERE 1=1
         ${challengeFilter}
         GROUP BY js.user_id
       `);
@@ -2820,11 +2820,20 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         }
       });
 
-      // Sheet 1: daily rows — S.No, User Name, Date, Japa Name, Japa Count, Total Count
+      // Sheet 1: daily rows — keep every historical chant day
       const dailyRows = await mysql.query<any[]>(`
         SELECT
           js.user_id AS userId,
-          IFNULL(u.full_name, 'Devotee') AS userName,
+          COALESCE(
+            NULLIF(TRIM(u.full_name), ''),
+            NULLIF(TRIM(js.user_name), ''),
+            NULLIF(TRIM(js.user_email), ''),
+            CASE
+              WHEN js.user_id IS NOT NULL THEN 'User #' || js.user_id
+              ELSE 'Devotee'
+            END
+          ) AS userName,
+          IFNULL(js.user_email, u.email) AS userEmail,
           DATE(js.created_at, '+5 hours', '30 minutes') AS japaDate,
           COALESCE(
             m.mantra_name,
@@ -2839,7 +2848,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         LEFT JOIN users u ON u.id = js.user_id
         LEFT JOIN mantras m ON m.id = js.mantra_id
         LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
-        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        WHERE 1=1
         ${challengeFilter}
         GROUP BY
           js.user_id,
@@ -2848,17 +2857,21 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           js.personal_mantra_id,
           js.mantra_type,
           u.full_name,
+          u.email,
+          js.user_name,
+          js.user_email,
           m.mantra_name,
           upm.mantra_name
         HAVING COALESCE(SUM(js.session_count), 0) > 0
         ORDER BY japaDate DESC, userName ASC, japaName ASC
-        LIMIT 20000
+        LIMIT 50000
       `);
 
       const dailySheet = workbook.addWorksheet('Japa by Date');
       dailySheet.columns = [
         {header: 'S.No', key: 'sno', width: 8},
         {header: 'User Name', key: 'userName', width: 26},
+        {header: 'Email', key: 'userEmail', width: 28},
         {header: 'Date', key: 'japaDate', width: 14},
         {header: 'Japa Name', key: 'japaName', width: 28},
         {header: 'Japa Count', key: 'japaCount', width: 12},
@@ -2866,9 +2879,13 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       ];
       (dailyRows || []).forEach((row: any, index: number) => {
         const userId = Number(row.userId ?? row.user_id ?? 0);
+        const name = String(row.userName || row.user_name || '').trim();
         dailySheet.addRow({
           sno: index + 1,
-          userName: row.userName || row.user_name || 'Devotee',
+          userName: name && name.toLowerCase() !== 'devotee'
+            ? name
+            : String(row.userEmail || row.user_email || name || `User #${userId}`),
+          userEmail: row.userEmail || row.user_email || '',
           japaDate: String(row.japaDate || row.japa_date || '').slice(0, 10),
           japaName: row.japaName || row.japa_name || 'Japa',
           japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
@@ -2881,7 +2898,16 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       const totalRows = await mysql.query<any[]>(`
         SELECT
           js.user_id AS userId,
-          IFNULL(u.full_name, 'Devotee') AS userName,
+          COALESCE(
+            NULLIF(TRIM(u.full_name), ''),
+            NULLIF(TRIM(js.user_name), ''),
+            NULLIF(TRIM(js.user_email), ''),
+            CASE
+              WHEN js.user_id IS NOT NULL THEN 'User #' || js.user_id
+              ELSE 'Devotee'
+            END
+          ) AS userName,
+          IFNULL(js.user_email, u.email) AS userEmail,
           COALESCE(
             m.mantra_name,
             upm.mantra_name,
@@ -2895,7 +2921,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         LEFT JOIN users u ON u.id = js.user_id
         LEFT JOIN mantras m ON m.id = js.mantra_id
         LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
-        WHERE (u.deleted_at IS NULL OR u.id IS NULL)
+        WHERE 1=1
         ${challengeFilter}
         GROUP BY
           js.user_id,
@@ -2903,26 +2929,34 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           js.personal_mantra_id,
           js.mantra_type,
           u.full_name,
+          u.email,
+          js.user_name,
+          js.user_email,
           m.mantra_name,
           upm.mantra_name
         HAVING COALESCE(SUM(js.session_count), 0) > 0
         ORDER BY userName ASC, japaCount DESC
-        LIMIT 20000
+        LIMIT 50000
       `);
 
       const totalsSheet = workbook.addWorksheet('Mantra Totals');
       totalsSheet.columns = [
         {header: 'S.No', key: 'sno', width: 8},
         {header: 'User Name', key: 'userName', width: 26},
+        {header: 'Email', key: 'userEmail', width: 28},
         {header: 'Japa Name', key: 'japaName', width: 28},
         {header: 'Japa Count', key: 'japaCount', width: 12},
         {header: 'Total Count', key: 'totalCount', width: 14},
       ];
       (totalRows || []).forEach((row: any, index: number) => {
         const userId = Number(row.userId ?? row.user_id ?? 0);
+        const name = String(row.userName || row.user_name || '').trim();
         totalsSheet.addRow({
           sno: index + 1,
-          userName: row.userName || row.user_name || 'Devotee',
+          userName: name && name.toLowerCase() !== 'devotee'
+            ? name
+            : String(row.userEmail || row.user_email || name || `User #${userId}`),
+          userEmail: row.userEmail || row.user_email || '',
           japaName: row.japaName || row.japa_name || 'Japa',
           japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
           totalCount: lifetimeByUser.get(userId) || 0,

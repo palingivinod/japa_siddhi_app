@@ -50,6 +50,31 @@ class JapaService {
       );
     }
 
+    const userRows = await mysql.query<any[]>(
+      `
+      SELECT
+        full_name AS fullName,
+        email,
+        mobile_country_code AS mobileCountryCode,
+        mobile_number AS mobileNumber
+      FROM users
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [userId],
+    );
+    const profile = userRows?.[0] || {};
+    const userName = String(profile.fullName || profile.full_name || '').trim();
+    const userEmail = String(profile.email || '').trim().toLowerCase();
+    const country = String(
+      profile.mobileCountryCode || profile.mobile_country_code || '',
+    ).replace(/\D/g, '');
+    const mobile = String(
+      profile.mobileNumber || profile.mobile_number || '',
+    ).replace(/\D/g, '');
+    const userMobile =
+      country && mobile ? `+${country}${mobile}` : mobile || null;
+
     const sessionId =
       await japaRepository.createSession({
 
@@ -76,6 +101,10 @@ class JapaService {
           data.durationSeconds ?? 0,
 
         remarks,
+
+        userName: userName || null,
+        userEmail: userEmail || null,
+        userMobile,
 
       });
 

@@ -2,10 +2,80 @@ import fs from 'fs';
 import path from 'path';
 import initSqlJs, {Database} from 'sql.js';
 
-const DB_PATH =
-  process.env.SQLITE_PATH ||
-  path.join(process.cwd(), 'data', 'japa_siddhi.sqlite');
+const RENDER_DISK_DB = '/var/data/japa_siddhi.sqlite';
+const LOCAL_DEFAULT_DB = path.join(process.cwd(), 'data', 'japa_siddhi.sqlite');
+
+const countSqliteRows = (filePath: string, table: string): number => {
+  try {
+    if (!fs.existsSync(filePath)) {
+      return -1;
+    }
+    // Lightweight: file size as proxy if we cannot open yet; refined after init.
+    return fs.statSync(filePath).size;
+  } catch {
+    return -1;
+  }
+};
+
+/**
+ * Prefer an explicit SQLITE_PATH. On Render, always use the persistent disk
+ * even if the dashboard env var was never set — otherwise every deploy wipes users.
+ */
+export const resolveSqlitePath = (): string => {
+  const fromEnv = String(process.env.SQLITE_PATH || '').trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  const onRender = Boolean(
+    process.env.RENDER ||
+      process.env.RENDER_SERVICE_ID ||
+      process.env.RENDER_EXTERNAL_URL,
+  );
+  const diskMounted = fs.existsSync('/var/data');
+
+  if (onRender || diskMounted || process.env.NODE_ENV === 'production') {
+    try {
+      fs.mkdirSync('/var/data', {recursive: true});
+
+      const diskSize = countSqliteRows(RENDER_DISK_DB, 'users');
+      const localSize = countSqliteRows(LOCAL_DEFAULT_DB, 'users');
+
+      // Prefer whichever file has more data so we don't abandon history.
+      if (diskSize < 0 && localSize > 0) {
+        fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
+        console.log(
+          `Migrated SQLite from ephemeral ${LOCAL_DEFAULT_DB} → ${RENDER_DISK_DB}`,
+        );
+      } else if (diskSize >= 0 && localSize > diskSize) {
+        const backup = `${RENDER_DISK_DB}.bak-${Date.now()}`;
+        try {
+          fs.copyFileSync(RENDER_DISK_DB, backup);
+        } catch {
+          // ignore backup failure
+        }
+        fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
+        console.log(
+          `Replaced smaller disk DB with larger ephemeral copy (${localSize} > ${diskSize} bytes). Backup: ${backup}`,
+        );
+      }
+
+      return RENDER_DISK_DB;
+    } catch (error) {
+      console.warn(
+        'Could not use /var/data for SQLite; falling back to local path.',
+        error,
+      );
+    }
+  }
+
+  return LOCAL_DEFAULT_DB;
+};
+
+const DB_PATH = resolveSqlitePath();
 const SCHEMA_PATH = path.join(__dirname, 'schema.sqlite.sql');
+
+export const getSqlitePath = () => DB_PATH;
 
 class SqliteEngine {
   private db: Database | null = null;
@@ -29,6 +99,7 @@ class SqliteEngine {
     if (fs.existsSync(DB_PATH)) {
       this.db = new SQL.Database(fs.readFileSync(DB_PATH));
       this.migrateUsers();
+      this.migrateJapaSessions();
       this.ensureFeatureTables();
       this.clearPlaceholderDonationSettings();
       console.log(`SQLite database opened (persistent): ${DB_PATH}`);
@@ -39,10 +110,16 @@ class SqliteEngine {
     const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
     this.db.exec(schema);
     this.migrateUsers();
+    this.migrateJapaSessions();
     this.ensureFeatureTables();
     this.clearPlaceholderDonationSettings();
     this.persist();
     console.log(`SQLite database created at ${DB_PATH}`);
+  }
+
+  private tableColumns(table: string): Set<string> {
+    const info = this.db?.exec(`PRAGMA table_info(${table})`);
+    return new Set((info?.[0]?.values || []).map(row => String(row[1])));
   }
 
   private migrateUsers(): void {
@@ -50,10 +127,7 @@ class SqliteEngine {
       return;
     }
 
-    const info = this.db.exec('PRAGMA table_info(users)');
-    const names = new Set(
-      (info[0]?.values || []).map(row => String(row[1])),
-    );
+    const names = this.tableColumns('users');
     const columns: Array<[string, string]> = [
       ['address', 'TEXT'],
       ['marital_status', "TEXT DEFAULT 'Bachelor'"],
@@ -68,6 +142,27 @@ class SqliteEngine {
     columns.forEach(([name, definition]) => {
       if (!names.has(name)) {
         this.db?.run(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
+      }
+    });
+    this.persist();
+  }
+
+  /** Keep chant history readable even if the users row is later missing. */
+  private migrateJapaSessions(): void {
+    if (!this.db) {
+      return;
+    }
+    const names = this.tableColumns('japa_sessions');
+    const columns: Array<[string, string]> = [
+      ['user_name', 'TEXT'],
+      ['user_email', 'TEXT'],
+      ['user_mobile', 'TEXT'],
+    ];
+    columns.forEach(([name, definition]) => {
+      if (!names.has(name)) {
+        this.db?.run(
+          `ALTER TABLE japa_sessions ADD COLUMN ${name} ${definition}`,
+        );
       }
     });
     this.persist();

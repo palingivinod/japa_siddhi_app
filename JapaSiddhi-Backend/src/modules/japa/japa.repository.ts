@@ -38,6 +38,26 @@ const EXCLUDE_CHALLENGE_REMARKS_J = `
 `;
 
 class JapaRepository {
+  private sessionUserColumnsReady = false;
+
+  private async ensureSessionUserColumns(): Promise<void> {
+    if (this.sessionUserColumnsReady) {
+      return;
+    }
+    const alters = [
+      'ALTER TABLE japa_sessions ADD COLUMN user_name TEXT',
+      'ALTER TABLE japa_sessions ADD COLUMN user_email TEXT',
+      'ALTER TABLE japa_sessions ADD COLUMN user_mobile TEXT',
+    ];
+    for (const sql of alters) {
+      try {
+        await mysql.query(sql);
+      } catch {
+        // Column already exists (MySQL/SQLite).
+      }
+    }
+    this.sessionUserColumnsReady = true;
+  }
 
   async createSession(
     data: {
@@ -50,8 +70,12 @@ class JapaRepository {
       sessionCount: number;
       durationSeconds: number;
       remarks?: string | null;
+      userName?: string | null;
+      userEmail?: string | null;
+      userMobile?: string | null;
     },
   ): Promise<number> {
+    await this.ensureSessionUserColumns();
 
     const result =
       await mysql.query<ResultSetHeader>(
@@ -68,7 +92,10 @@ class JapaRepository {
           duration_seconds,
           started_at,
           completed_at,
-          remarks
+          remarks,
+          user_name,
+          user_email,
+          user_mobile
         )
         VALUES
         (
@@ -82,6 +109,9 @@ class JapaRepository {
           ?,
           NOW(),
           NOW(),
+          ?,
+          ?,
+          ?,
           ?
         )
         `,
@@ -95,6 +125,9 @@ class JapaRepository {
           data.sessionCount,
           data.durationSeconds,
           data.remarks ?? null,
+          data.userName ?? null,
+          data.userEmail ?? null,
+          data.userMobile ?? null,
         ],
       );
 

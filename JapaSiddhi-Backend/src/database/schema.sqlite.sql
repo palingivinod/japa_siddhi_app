@@ -196,6 +196,9 @@ CREATE TABLE IF NOT EXISTS japa_sessions (
   completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   duration_seconds INTEGER NOT NULL DEFAULT 0,
   remarks TEXT,
+  user_name TEXT,
+  user_email TEXT,
+  user_mobile TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
