@@ -13,6 +13,7 @@ interface Props {
   icon?: AppIconName;
   onPress?: () => void;
   tone?: 'gold' | 'green';
+  selected?: boolean;
 }
 
 const MenuCard: React.FC<Props> = ({
@@ -23,12 +24,13 @@ const MenuCard: React.FC<Props> = ({
   icon,
   onPress,
   tone = 'gold',
+  selected = false,
 }) => {
   const {tt} = useLanguage();
   const showMark = Boolean(icon || emoji);
   return (
     <TouchableOpacity
-      style={styles.card}
+      style={[styles.card, selected && styles.cardSelected]}
       onPress={onPress}
       disabled={!onPress}
       activeOpacity={0.8}>
@@ -37,6 +39,7 @@ const MenuCard: React.FC<Props> = ({
           styles.dot,
           tone === 'green' && styles.dotGreen,
           showMark ? styles.dotEmoji : null,
+          selected && styles.dotSelected,
         ]}>
         {icon ? (
           <AppIcon name={icon} size={42} color={Colors.sacredBrown} />
@@ -45,11 +48,23 @@ const MenuCard: React.FC<Props> = ({
         ) : null}
       </View>
       <View style={styles.copy}>
-        <Text style={styles.title}>{tt(title)}</Text>
-        {subtitle ? <Text style={styles.sub}>{tt(subtitle)}</Text> : null}
+        <Text style={[styles.title, selected && styles.titleSelected]}>
+          {tt(title)}
+        </Text>
+        {subtitle ? (
+          <Text style={[styles.sub, selected && styles.subSelected]}>
+            {tt(subtitle)}
+          </Text>
+        ) : null}
       </View>
       {value ? <Text style={styles.value}>{tt(value)}</Text> : null}
-      {onPress && !value ? <Text style={styles.chevron}>›</Text> : null}
+      {selected ? (
+        <View style={styles.check}>
+          <Text style={styles.checkMark}>✓</Text>
+        </View>
+      ) : onPress && !value ? (
+        <Text style={styles.chevron}>›</Text>
+      ) : null}
     </TouchableOpacity>
   );
 };
@@ -66,6 +81,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  cardSelected: {
+    backgroundColor: Colors.selectedTint,
+    borderColor: Colors.selectedOrange,
+    borderWidth: 2,
   },
   dot: {
     width: 42,
@@ -85,6 +105,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
+  dotSelected: {
+    borderWidth: 2,
+    borderColor: Colors.selectedOrange,
+  },
   emoji: {
     fontSize: 22,
     lineHeight: 28,
@@ -102,11 +126,18 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
+  titleSelected: {
+    color: Colors.primaryDark,
+  },
   sub: {
     marginTop: 2,
     color: Colors.textSecondary,
     lineHeight: 22,
     includeFontPadding: true,
+  },
+  subSelected: {
+    color: Colors.selectedOrange,
+    fontWeight: '800',
   },
   value: {
     color: Colors.leafGreen,
@@ -116,5 +147,20 @@ const styles = StyleSheet.create({
     fontSize: 22,
     color: Colors.templeGold,
     fontWeight: '700',
+  },
+  check: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    marginLeft: 8,
+    backgroundColor: Colors.selectedOrange,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkMark: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '800',
+    includeFontPadding: false,
   },
 });

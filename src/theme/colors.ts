@@ -57,6 +57,8 @@ const Colors = {
   cardBorder: '#E8D9B8',
   iconBackground: '#F7E7C4',
   templeGold: '#B87316',
+  selectedOrange: '#E8730C',
+  selectedTint: '#FFE8CC',
   leafGreen: '#4E6B21',
   sacredBrown: '#56350F',
 };

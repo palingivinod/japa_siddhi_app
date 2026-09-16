@@ -58,7 +58,8 @@ const CommunityJapaScreen = () => {
           emoji="🕉️"
           title={item.mantraName || item.transliteration}
           subtitle={selected?.id === item.id ? 'Selected' : 'Tap to select'}
-          tone={selected?.id === item.id ? 'green' : 'gold'}
+          tone="gold"
+          selected={selected?.id === item.id}
           onPress={() => setSelected(item)}
         />
       ))}

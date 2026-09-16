@@ -67,7 +67,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  active: {borderColor: Colors.templeGold, borderWidth: 2},
+  active: {
+    borderColor: Colors.selectedOrange,
+    borderWidth: 2,
+    backgroundColor: Colors.selectedTint,
+  },
   radio: {
     width: 24,
     height: 24,
@@ -78,7 +82,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioOn: {backgroundColor: Colors.templeGold},
+  radioOn: {
+    backgroundColor: Colors.selectedOrange,
+    borderColor: Colors.selectedOrange,
+  },
   check: {color: Colors.white, fontWeight: '800', fontSize: 12},
   name: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
 });
