@@ -131,7 +131,7 @@ export const clearSession = async () => {
   ]);
   memoryUser = null;
   notify(null);
-  await AsyncStorage.multiRemove([
+  const keys = [
     TOKEN_KEY,
     USER_KEY,
     ...ORPHAN_AUTH_KEYS,
@@ -140,5 +140,26 @@ export const clearSession = async () => {
     'japa_goal_draft',
     'saved_delivery_addresses',
     ...scopedKeys,
-  ]);
+  ];
+  // AsyncStorage v3 renamed multiRemove to removeMany; fall back per key so a
+  // failed sign-out never blocks login or account creation.
+  try {
+    const storage = AsyncStorage as unknown as {
+      removeMany?: (items: string[]) => Promise<void>;
+      multiRemove?: (items: string[]) => Promise<void>;
+    };
+    if (typeof storage.removeMany === 'function') {
+      await storage.removeMany(keys);
+      return;
+    }
+    if (typeof storage.multiRemove === 'function') {
+      await storage.multiRemove(keys);
+      return;
+    }
+  } catch {
+    // Fall through to removing them one by one.
+  }
+  for (const key of keys) {
+    await AsyncStorage.removeItem(key).catch(() => undefined);
+  }
 };

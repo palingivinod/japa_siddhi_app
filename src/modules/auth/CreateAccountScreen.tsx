@@ -54,7 +54,8 @@ const CreateAccountScreen = () => {
     setSubmitting(true);
     try {
       // Drop any leftover session so nothing in signup is sent as that devotee.
-      await clearSession();
+      // A storage failure here must not block signing up.
+      await clearSession().catch(() => undefined);
       const response = await apiService.post('/auth/otp/send', {
         email: trimmedEmail,
         mobileCountryCode: code,

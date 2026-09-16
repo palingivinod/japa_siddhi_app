@@ -99,7 +99,7 @@ const SignupPhotoScreen = () => {
       // Creating an account must always create a new row. Completing the
       // profile over a leftover session rewrote that devotee's name, email
       // and mobile, locking them out and handing over their japa history.
-      await clearSession();
+      await clearSession().catch(() => undefined);
       const result = await ProfileApi.register({
         ...payload,
         mobileCountryCode,
