@@ -14,6 +14,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService from '../../services/apiService';
+import {clearSession} from '../../services/session';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -52,6 +53,8 @@ const CreateAccountScreen = () => {
 
     setSubmitting(true);
     try {
+      // Drop any leftover session so nothing in signup is sent as that devotee.
+      await clearSession();
       const response = await apiService.post('/auth/otp/send', {
         email: trimmedEmail,
         mobileCountryCode: code,

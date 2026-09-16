@@ -387,20 +387,14 @@ class AuthRepository {
     email: string;
     fullName: string;
   }): Promise<AuthUser> {
-    // NEVER fall back to user id=1 — that hijacked real devotees.
-    // Only reuse the exact local test account email / seed phone.
-    const existing =
-      (await this.findUserByEmail(data.email)) ||
-      (await this.findUserByMobile('91', '9999999999'));
+    // Match the test account by its exact email only. Matching on the seed
+    // phone took over whichever devotee happened to hold that number, which
+    // showed the tester that devotee's japa history under the test name.
+    const wanted = String(data.email || '').trim().toLowerCase();
+    const existing = await this.findUserByEmail(wanted);
 
     if (existing) {
-      // Only mutate if this already looks like the local test account.
-      const email = String(existing.email || '').toLowerCase();
-      const mobile = String(existing.mobileNumber || '').replace(/\D/g, '');
-      const isTestAccount =
-        email === String(data.email || '').toLowerCase() ||
-        mobile === '9999999999';
-      if (!isTestAccount) {
+      if (String(existing.email || '').toLowerCase() !== wanted) {
         throw new Error(
           'Refusing to overwrite a real user for local test login.',
         );

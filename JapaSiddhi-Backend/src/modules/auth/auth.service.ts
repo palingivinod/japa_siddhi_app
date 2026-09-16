@@ -859,7 +859,18 @@ class AuthService {
 
     }
 
-
+    // Never let one devotee's profile take over another devotee's email.
+    const nextEmail = String(data.email || '').trim().toLowerCase();
+    const currentEmail = String(user.email || '').trim().toLowerCase();
+    if (nextEmail && nextEmail !== currentEmail) {
+      const owner = await authRepository.findUserByEmail(nextEmail);
+      if (owner && Number(owner.id) !== Number(userId)) {
+        throw new AppError(
+          'That email already belongs to another account.',
+          409,
+        );
+      }
+    }
 
     await authRepository.completeProfile(userId, profileFields(data));
 

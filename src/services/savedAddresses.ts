@@ -1,8 +1,27 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import apiService from './apiService';
+import {userScopedKey} from './session';
 
-const STORAGE_KEY = 'saved_delivery_addresses';
+const STORAGE_BASE = 'saved_delivery_addresses';
+/** Addresses used to live under one shared key, so that copy is dropped. */
+const SHARED_KEY = 'saved_delivery_addresses';
+
+let sharedKeyDropped = false;
+
+const storageKey = () => userScopedKey(STORAGE_BASE);
+
+const dropSharedAddresses = async () => {
+  if (sharedKeyDropped) {
+    return;
+  }
+  sharedKeyDropped = true;
+  try {
+    await AsyncStorage.removeItem(SHARED_KEY);
+  } catch {
+    sharedKeyDropped = false;
+  }
+};
 
 const unique = (items: string[]) => {
   const seen = new Set<string>();
@@ -18,8 +37,9 @@ const unique = (items: string[]) => {
 };
 
 const readLocal = async () => {
+  await dropSharedAddresses();
   try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    const raw = await AsyncStorage.getItem(await storageKey());
     const parsed = raw ? JSON.parse(raw) : [];
     return unique(Array.isArray(parsed) ? parsed.map(String) : []);
   } catch {
@@ -28,7 +48,7 @@ const readLocal = async () => {
 };
 
 const writeLocal = async (items: string[]) => {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(unique(items)));
+  await AsyncStorage.setItem(await storageKey(), JSON.stringify(unique(items)));
 };
 
 export const loadSavedAddresses = async () => {

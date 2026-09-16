@@ -1,7 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DRAFTS_KEY = 'japa_goal_drafts';
-const LEGACY_KEY = 'japa_goal_draft';
+import {userScopedKey} from './session';
+
+const DRAFTS_BASE = 'japa_goal_drafts';
+/** Pre-scoping keys held every devotee's drafts together, so they are dropped. */
+const SHARED_KEYS = ['japa_goal_drafts', 'japa_goal_draft'];
+
+let sharedKeysDropped = false;
+
+const draftsKey = () => userScopedKey(DRAFTS_BASE);
+
+const dropSharedDrafts = async () => {
+  if (sharedKeysDropped) {
+    return;
+  }
+  sharedKeysDropped = true;
+  try {
+    for (const key of SHARED_KEYS) {
+      await AsyncStorage.removeItem(key);
+    }
+  } catch {
+    sharedKeysDropped = false;
+  }
+};
 
 export type JapaDraft = {
   mode: 'private' | 'community';
@@ -51,36 +72,17 @@ const normalize = (draft: JapaDraft): JapaDraft => ({
 });
 
 const readMap = async (): Promise<DraftMap> => {
+  await dropSharedDrafts();
   try {
-    const raw = await AsyncStorage.getItem(DRAFTS_KEY);
-    if (raw) {
-      return JSON.parse(raw) as DraftMap;
-    }
-    const legacy = await AsyncStorage.getItem(LEGACY_KEY);
-    if (!legacy) {
-      return {};
-    }
-    const draft = normalize(JSON.parse(legacy) as JapaDraft);
-    const map = isActive(draft)
-      ? {
-          [draftKey(
-            draft.mode,
-            draft.mantraId,
-            draft.challengeId,
-            draft.personalMantraId,
-          )]: draft,
-        }
-      : {};
-    await AsyncStorage.setItem(DRAFTS_KEY, JSON.stringify(map));
-    await AsyncStorage.removeItem(LEGACY_KEY);
-    return map;
+    const raw = await AsyncStorage.getItem(await draftsKey());
+    return raw ? (JSON.parse(raw) as DraftMap) : {};
   } catch {
     return {};
   }
 };
 
 const writeMap = async (map: DraftMap) => {
-  await AsyncStorage.setItem(DRAFTS_KEY, JSON.stringify(map));
+  await AsyncStorage.setItem(await draftsKey(), JSON.stringify(map));
 };
 
 export const getJapaDraft = async (
@@ -132,8 +134,8 @@ export const clearJapaDraft = async (
   personalMantraId?: number,
 ) => {
   if (!mode && !challengeId) {
-    await AsyncStorage.removeItem(DRAFTS_KEY);
-    await AsyncStorage.removeItem(LEGACY_KEY);
+    await AsyncStorage.removeItem(await draftsKey());
+    await dropSharedDrafts();
     return;
   }
   const map = await readMap();

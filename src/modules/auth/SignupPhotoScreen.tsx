@@ -6,7 +6,7 @@ import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import ProfileApi from './services/profileApi';
-import {hydrateSession, saveSession} from '../../services/session';
+import {clearSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
 import {MOBILE_DIGITS, isMobile} from '../../utils/validators';
 
@@ -96,24 +96,18 @@ const SignupPhotoScreen = () => {
         profileImage: null,
       } as const;
 
-      const session = await hydrateSession();
-      if (session.token) {
-        await ProfileApi.completeProfile(payload);
-        try {
-          await ProfileApi.updateProfile({mobileNumber});
-        } catch {
-          // Profile still created if mobile sync fails.
-        }
-      } else {
-        const result = await ProfileApi.register({
-          ...payload,
-          mobileCountryCode,
-          mobileNumber,
-          password,
-        });
-        if (result?.data?.token) {
-          await saveSession(result.data.token, result.data.user);
-        }
+      // Creating an account must always create a new row. Completing the
+      // profile over a leftover session rewrote that devotee's name, email
+      // and mobile, locking them out and handing over their japa history.
+      await clearSession();
+      const result = await ProfileApi.register({
+        ...payload,
+        mobileCountryCode,
+        mobileNumber,
+        password,
+      });
+      if (result?.data?.token) {
+        await saveSession(result.data.token, result.data.user);
       }
       if (pickedPhoto) {
         try {

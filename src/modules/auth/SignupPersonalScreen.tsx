@@ -1,11 +1,33 @@
 import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+
+/** The next steps expect DD/MM/YYYY, so the picker writes that shape back. */
+const formatDate = (date: Date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}/${date.getFullYear()}`;
+};
+
+const parseDate = (value: string, fallbackYear: number) => {
+  const parts = String(value || '').split(/[/-]/).map(part => Number(part.trim()));
+  const [day, month, year] = parts;
+  if (day > 0 && month > 0 && year > 1000) {
+    const parsed = new Date(year, month - 1, day);
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+  return new Date(fallbackYear, 0, 1);
+};
+
+type DateField = 'dob' | 'spouseDob' | 'anniversary';
 
 const SignupPersonalScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,6 +51,40 @@ const SignupPersonalScreen = () => {
   const [spouseName, setSpouseName] = useState('');
   const [spouseDob, setSpouseDob] = useState('');
   const [anniversary, setAnniversary] = useState('');
+  const [picker, setPicker] = useState<DateField | null>(null);
+
+  const dateValues: Record<DateField, string> = {
+    dob,
+    spouseDob,
+    anniversary,
+  };
+
+  const setDateValue = (field: DateField, value: string) => {
+    if (field === 'dob') {
+      setDob(value);
+      return;
+    }
+    if (field === 'spouseDob') {
+      setSpouseDob(value);
+      return;
+    }
+    setAnniversary(value);
+  };
+
+  const renderDateField = (field: DateField, label: string) => (
+    <>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity
+        style={[styles.input, styles.dateField]}
+        onPress={() => setPicker(field)}>
+        <Text
+          style={dateValues[field] ? styles.dateText : styles.datePlaceholder}>
+          {dateValues[field] || 'Select date'}
+        </Text>
+        <Text style={styles.dateIcon}>📅</Text>
+      </TouchableOpacity>
+    </>
+  );
 
   const next = () => {
     if (fullName.trim().length < 3) {
@@ -120,14 +176,7 @@ const SignupPersonalScreen = () => {
         autoCapitalize="none"
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>Date of Birth</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="DD / MM / YYYY"
-        value={dob}
-        onChangeText={setDob}
-        placeholderTextColor={Colors.placeholder}
-      />
+      {renderDateField('dob', 'Date of Birth')}
       <Text style={styles.label}>Gender</Text>
       <View style={styles.chips}>
         {['Male', 'Female', 'Other'].map(item => (
@@ -192,23 +241,22 @@ const SignupPersonalScreen = () => {
             onChangeText={setSpouseName}
             placeholderTextColor={Colors.placeholder}
           />
-          <Text style={styles.label}>Spouse Date of Birth</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="DD / MM / YYYY"
-            value={spouseDob}
-            onChangeText={setSpouseDob}
-            placeholderTextColor={Colors.placeholder}
-          />
-          <Text style={styles.label}>Anniversary Date</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="DD / MM / YYYY"
-            value={anniversary}
-            onChangeText={setAnniversary}
-            placeholderTextColor={Colors.placeholder}
-          />
+          {renderDateField('spouseDob', 'Spouse Date of Birth')}
+          {renderDateField('anniversary', 'Anniversary Date')}
         </>
+      ) : null}
+      {picker ? (
+        <DateTimePicker
+          value={parseDate(dateValues[picker], picker === 'dob' ? 1995 : 2015)}
+          mode="date"
+          maximumDate={new Date()}
+          onChange={(_, selectedDate) => {
+            setPicker(null);
+            if (selectedDate) {
+              setDateValue(picker, formatDate(selectedDate));
+            }
+          }}
+        />
       ) : null}
       <View style={styles.actions}>
         <PrimaryButton title="CONTINUE" onPress={next} />
@@ -250,6 +298,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.sacredBrown,
   },
+  dateField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateText: {color: Colors.textPrimary, fontSize: 16, fontWeight: '600'},
+  datePlaceholder: {color: Colors.placeholder, fontSize: 16},
+  dateIcon: {fontSize: 18},
   fieldError: {
     color: Colors.error,
     fontWeight: '700',

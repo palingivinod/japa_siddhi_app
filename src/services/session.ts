@@ -76,6 +76,21 @@ export const getStoredUser = async () => {
   return memoryUser;
 };
 
+/** Id of the signed-in devotee, or 0 when nobody is signed in. */
+export const getSessionUserId = async (): Promise<number> => {
+  const user = await getStoredUser();
+  return Number(user?.id ?? user?.userId ?? 0) || 0;
+};
+
+/**
+ * Local caches must be stored per devotee. A shared key would show one
+ * devotee's japa progress and addresses to whoever signs in next.
+ */
+export const userScopedKey = async (base: string) => {
+  const id = await getSessionUserId();
+  return `${base}:${id || 'guest'}`;
+};
+
 export const updateStoredUser = async (patch: Record<string, unknown>) => {
   const current = (await getStoredUser()) || {};
   memoryUser = {...current, ...patch};
@@ -103,8 +118,27 @@ export const getValidSession = async () => {
   return session;
 };
 
+/**
+ * Credentials written by the older redux auth thunk. Nothing reads them now,
+ * but leaving them behind would let a previous account be restored.
+ */
+const ORPHAN_AUTH_KEYS = ['JWT_TOKEN', 'USER', 'FIREBASE_TOKEN'];
+
 export const clearSession = async () => {
+  const scopedKeys = await Promise.all([
+    userScopedKey('japa_goal_drafts'),
+    userScopedKey('saved_delivery_addresses'),
+  ]);
   memoryUser = null;
   notify(null);
-  await AsyncStorage.multiRemove([TOKEN_KEY, USER_KEY]);
+  await AsyncStorage.multiRemove([
+    TOKEN_KEY,
+    USER_KEY,
+    ...ORPHAN_AUTH_KEYS,
+    // Shared keys from before caches were scoped per devotee.
+    'japa_goal_drafts',
+    'japa_goal_draft',
+    'saved_delivery_addresses',
+    ...scopedKeys,
+  ]);
 };

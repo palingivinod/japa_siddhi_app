@@ -147,6 +147,7 @@ class JapaGoalRepository {
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.japa_goal_id = j.id
+          AND js.user_id = j.user_id
         ), 0) AS completedCount,
 
         CASE
@@ -154,11 +155,13 @@ class JapaGoalRepository {
             SELECT SUM(js.session_count)
             FROM japa_sessions js
             WHERE js.japa_goal_id = j.id
+            AND js.user_id = j.user_id
           ), 0) < 0 THEN 0
           ELSE j.target_count - COALESCE((
             SELECT SUM(js.session_count)
             FROM japa_sessions js
             WHERE js.japa_goal_id = j.id
+            AND js.user_id = j.user_id
           ), 0)
         END AS remainingCount,
 
