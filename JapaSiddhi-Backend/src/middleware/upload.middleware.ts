@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import multer from 'multer';
-import {NextFunction, Request, Response} from 'express';
+import {NextFunction, Request, RequestHandler, Response} from 'express';
 
 import environment from '../config/environment';
 import apiResponse from '../utils/apiResponse';
@@ -164,12 +164,9 @@ const supportUploader = multer({
 });
 
 const wrapUpload =
-  (
-    middleware: ReturnType<typeof multer.prototype.single>,
-    tooLargeMessage: string,
-  ) =>
+  (middleware: RequestHandler, tooLargeMessage: string) =>
   (req: Request, res: Response, next: NextFunction) => {
-    middleware(req, res, err => {
+    middleware(req, res, (err: unknown) => {
       if (!err) {
         next();
         return;
@@ -180,11 +177,8 @@ const wrapUpload =
         }
         return apiResponse.error(res, err.message, 400);
       }
-      return apiResponse.error(
-        res,
-        err.message || 'Could not upload file',
-        400,
-      );
+      const message = err instanceof Error ? err.message : '';
+      return apiResponse.error(res, message || 'Could not upload file', 400);
     });
   };
 
