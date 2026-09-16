@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "license": "MIT",
   "engines": {
-    "node": ">=20"
+    "node": ">=22 <25"
   },
   "scripts": {
     "dev": "nodemon",
@@ -19,6 +19,7 @@
   "dependencies": {
     "archiver": "^8.0.0",
     "bcrypt": "^6.0.0",
+    "better-sqlite3": "^13.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.5",
     "csv-writer": "^1.6.0",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",

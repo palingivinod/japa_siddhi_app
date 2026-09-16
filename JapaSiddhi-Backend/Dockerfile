@@ -1,4 +1,6 @@
-FROM node:20-alpine
+# Node 22+ is required by better-sqlite3; the package ships a musl prebuild,
+# so Alpine needs no compiler toolchain.
+FROM node:24-alpine
 
 WORKDIR /app
 

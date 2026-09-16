@@ -5,6 +5,10 @@ const IS_PRODUCTION = !__DEV__;
 const DEV_API_URL = 'http://127.0.0.1:5000/api/v1';
 const PROD_API_URL = 'https://japasiddhi.onrender.com/api/v1';
 
+// Debug builds talk to Render too, so USB testing and the Play Store app share
+// one database. Set this to false to go back to the laptop backend.
+const USE_PRODUCTION_API_IN_DEV = true;
+
 const ENV = {
   APP_NAME: 'Japa Siddhi',
 
@@ -13,7 +17,8 @@ const ENV = {
   IS_PRODUCTION,
 
   // Release APK from GitHub Actions uses PROD_API_URL automatically (__DEV__=false).
-  API_URL: IS_PRODUCTION ? PROD_API_URL : DEV_API_URL,
+  API_URL:
+    IS_PRODUCTION || USE_PRODUCTION_API_IN_DEV ? PROD_API_URL : DEV_API_URL,
 
   TIMEOUT: 120000,
 

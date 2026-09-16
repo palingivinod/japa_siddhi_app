@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import initSqlJs, {Database} from 'sql.js';
+import BetterSqlite3 from 'better-sqlite3';
 
 const RENDER_DISK_DB = '/var/data/japa_siddhi.sqlite';
 const LOCAL_DEFAULT_DB = path.join(process.cwd(), 'data', 'japa_siddhi.sqlite');
@@ -77,8 +77,100 @@ const SCHEMA_PATH = path.join(__dirname, 'schema.sqlite.sql');
 
 export const getSqlitePath = () => DB_PATH;
 
+type ExecTable = {columns: string[]; values: unknown[][]};
+
+const isSingleQuery = (sql: string): boolean => {
+  const body = sql.trim().replace(/;\s*$/, '');
+  return /^(select|pragma|with)\b/i.test(body) && !body.includes(';');
+};
+
+/**
+ * better-sqlite3 only binds numbers, strings, bigints, buffers and null.
+ * Repositories pass undefined for optional columns and booleans for flags,
+ * which sql.js used to coerce for us.
+ */
+const bindable = (params: unknown[]): unknown[] =>
+  params.map(value => {
+    if (value === undefined) {
+      return null;
+    }
+    if (typeof value === 'boolean') {
+      return value ? 1 : 0;
+    }
+    if (value instanceof Date) {
+      return value.toISOString().slice(0, 19).replace('T', ' ');
+    }
+    return value;
+  });
+
+/**
+ * Presents the sql.js surface the migrations and seeds in this file were
+ * written against, so only the storage underneath changes.
+ */
+class CompatDatabase {
+  private rowsModified = 0;
+
+  constructor(readonly raw: BetterSqlite3.Database) {}
+
+  exec(sql: string): ExecTable[] {
+    if (isSingleQuery(sql)) {
+      const rows = this.raw
+        .prepare(sql.trim().replace(/;\s*$/, ''))
+        .all() as Record<string, unknown>[];
+      if (!rows.length) {
+        return [];
+      }
+      const columns = Object.keys(rows[0]);
+      return [{columns, values: rows.map(row => columns.map(c => row[c]))}];
+    }
+    this.raw.exec(sql);
+    return [];
+  }
+
+  run(sql: string, params: unknown[] = []): void {
+    const info = this.raw.prepare(sql).run(...(bindable(params) as any[]));
+    this.rowsModified = info.changes;
+  }
+
+  getRowsModified(): number {
+    return this.rowsModified;
+  }
+
+  close(): void {
+    this.raw.close();
+  }
+}
+
+/**
+ * sql.js kept the database in memory and rewrote the whole file, so it never
+ * produced a -wal. Any log sitting next to the file on the first boot of this
+ * driver therefore predates the switch — it belongs to a `sqlite3` shell
+ * session and would replay stale pages (including deletes run by hand) over
+ * newer data. Move it aside once, with a backup, instead of opening onto it.
+ */
+const retireSqlJsArtifacts = (dbFile: string): void => {
+  const marker = `${dbFile}.better-sqlite3`;
+  if (fs.existsSync(marker) || !fs.existsSync(dbFile)) {
+    return;
+  }
+  try {
+    const stamp = Date.now();
+    fs.copyFileSync(dbFile, `${dbFile}.bak-${stamp}`);
+    for (const suffix of ['-wal', '-shm']) {
+      const sidecar = `${dbFile}${suffix}`;
+      if (fs.existsSync(sidecar)) {
+        fs.renameSync(sidecar, `${sidecar}.stale-${stamp}`);
+        console.log(`Set aside stale ${sidecar} left by a sqlite3 shell.`);
+      }
+    }
+    fs.writeFileSync(marker, new Date().toISOString());
+  } catch (error) {
+    console.warn('Could not retire sql.js artifacts.', error);
+  }
+};
+
 class SqliteEngine {
-  private db: Database | null = null;
+  private db: CompatDatabase | null = null;
   private ready: Promise<void> | null = null;
 
   async init(): Promise<void> {
@@ -89,32 +181,39 @@ class SqliteEngine {
   }
 
   private async open(): Promise<void> {
-    const SQL = await initSqlJs({
-      locateFile: (file: string) =>
-        path.join(process.cwd(), 'node_modules/sql.js/dist', file),
-    });
-
     fs.mkdirSync(path.dirname(DB_PATH), {recursive: true});
 
-    if (fs.existsSync(DB_PATH)) {
-      this.db = new SQL.Database(fs.readFileSync(DB_PATH));
-      this.migrateUsers();
-      this.migrateJapaSessions();
-      this.ensureFeatureTables();
-      this.clearPlaceholderDonationSettings();
-      console.log(`SQLite database opened (persistent): ${DB_PATH}`);
-      return;
+    const existed = fs.existsSync(DB_PATH);
+    if (existed) {
+      retireSqlJsArtifacts(DB_PATH);
     }
 
-    this.db = new SQL.Database();
-    const schema = fs.readFileSync(SCHEMA_PATH, 'utf8');
-    this.db.exec(schema);
+    const raw = new BetterSqlite3(DB_PATH);
+    // Reads and writes now go through the file itself, so a `sqlite3` shell
+    // sees live data. WAL keeps that shell from blocking the API.
+    raw.pragma('journal_mode = WAL');
+    raw.pragma('synchronous = NORMAL');
+    raw.pragma('busy_timeout = 5000');
+    // better-sqlite3 turns foreign keys on by default and sql.js did not.
+    // Existing rows and delete order rely on them being off; enforcing them
+    // now would start rejecting writes that have always been accepted.
+    raw.pragma('foreign_keys = OFF');
+    this.db = new CompatDatabase(raw);
+
+    if (!existed) {
+      this.db.exec(fs.readFileSync(SCHEMA_PATH, 'utf8'));
+    }
+
     this.migrateUsers();
     this.migrateJapaSessions();
     this.ensureFeatureTables();
     this.clearPlaceholderDonationSettings();
-    this.persist();
-    console.log(`SQLite database created at ${DB_PATH}`);
+
+    console.log(
+      existed
+        ? `SQLite database opened (persistent): ${DB_PATH}`
+        : `SQLite database created at ${DB_PATH}`,
+    );
   }
 
   private tableColumns(table: string): Set<string> {
@@ -612,11 +711,19 @@ class SqliteEngine {
     );
   }
 
+  /**
+   * Every statement is already committed to the file. Folding the log back in
+   * keeps the .sqlite self-contained for anyone copying or inspecting it.
+   */
   private persist(): void {
     if (!this.db) {
       return;
     }
-    fs.writeFileSync(DB_PATH, Buffer.from(this.db.export()));
+    try {
+      this.db.raw.pragma('wal_checkpoint(PASSIVE)');
+    } catch {
+      // A concurrent reader can hold the checkpoint off; the data is safe.
+    }
   }
 
   private translate(sql: string): string {
@@ -638,26 +745,18 @@ class SqliteEngine {
 
     const translated = this.translate(sql);
     const isRead = /^\s*(select|pragma|with)\b/i.test(translated);
+    const stmt = this.db.raw.prepare(translated);
+    const values = bindable(params) as any[];
 
     if (isRead) {
-      const stmt = this.db.prepare(translated);
-      if (params.length) {
-        stmt.bind(params);
-      }
-      const rows: Record<string, unknown>[] = [];
-      while (stmt.step()) {
-        rows.push(stmt.getAsObject());
-      }
-      stmt.free();
-      return rows as T;
+      return stmt.all(...values) as T;
     }
 
-    this.db.run(translated, params);
-    const insertResult = this.db.exec('SELECT last_insert_rowid() AS id');
-    const insertId = Number(insertResult[0]?.values?.[0]?.[0] ?? 0);
-    const affectedRows = this.db.getRowsModified();
-    this.persist();
-    return {insertId, affectedRows} as T;
+    const info = stmt.run(...values);
+    return {
+      insertId: Number(info.lastInsertRowid),
+      affectedRows: info.changes,
+    } as T;
   }
 }
 
