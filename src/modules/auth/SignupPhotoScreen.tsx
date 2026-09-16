@@ -8,6 +8,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ProfileApi from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
+import {MOBILE_DIGITS, isMobile} from '../../utils/validators';
 
 const toIso = (value: string) => {
   const parts = String(value || '').split(/[/-]/);
@@ -60,10 +61,10 @@ const SignupPhotoScreen = () => {
     );
     const mobileNumber = String(params.mobileNumber || '').replace(/\D/g, '');
     const password = String(params.password || '');
-    if (mobileNumber.length < 8 || mobileNumber === '0000000000') {
+    if (!isMobile(mobileNumber) || /^0+$/.test(mobileNumber)) {
       Alert.alert(
         'Mobile required',
-        'Go back and enter a valid mobile number before creating your profile.',
+        `Go back and enter your ${MOBILE_DIGITS}-digit mobile number before creating your profile.`,
       );
       return;
     }

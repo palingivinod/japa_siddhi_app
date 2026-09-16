@@ -29,6 +29,7 @@ import {DEFAULT_LANGUAGE, Language} from '../../constants/languages';
 import ProfileApi, {CompleteProfileRequest} from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 interface StateModel {
   id: number;
@@ -194,8 +195,8 @@ const CompleteProfileScreen = ({
 
   const code = countryCode.replace(/\D/g, '') || '91';
   const number = mobileNumber.replace(/\D/g, '');
-  if (number.length < 8 || number === '0000000000') {
-    Alert.alert('Validation', 'Enter a valid mobile number.');
+  if (!isMobile(number) || /^0+$/.test(number)) {
+    Alert.alert('Validation', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
     return;
   }
 
@@ -397,13 +398,18 @@ const CompleteProfileScreen = ({
             style={[styles.input, styles.mobileInput]}
             value={mobileNumber}
             onChangeText={text =>
-              setMobileNumber(text.replace(/\D/g, '').slice(0, 15))
+              setMobileNumber(digitsOnly(text).slice(0, MOBILE_DIGITS))
             }
             keyboardType="phone-pad"
-            placeholder="Enter mobile number"
-            maxLength={15}
+            placeholder={`Enter ${MOBILE_DIGITS}-digit mobile number`}
+            maxLength={MOBILE_DIGITS}
           />
         </View>
+        {mobileNumber.length > 0 && !isMobile(mobileNumber) ? (
+          <Text style={styles.errorText}>
+            Mobile number must be {MOBILE_DIGITS} digits.
+          </Text>
+        ) : null}
 
         <Text style={styles.label}>
           Gender *

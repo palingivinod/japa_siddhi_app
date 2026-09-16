@@ -14,6 +14,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService from '../../services/apiService';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -44,8 +45,8 @@ const CreateAccountScreen = () => {
       Alert.alert(t('required'), 'Passwords do not match.');
       return;
     }
-    if (mobile.length < 8 || /^0+$/.test(mobile)) {
-      Alert.alert(t('required'), 'Enter a valid mobile number.');
+    if (!isMobile(mobile) || /^0+$/.test(mobile)) {
+      Alert.alert(t('required'), `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
       return;
     }
 
@@ -136,14 +137,20 @@ const CreateAccountScreen = () => {
           style={[styles.input, styles.mobileInput]}
           value={mobileNumber}
           onChangeText={text =>
-            setMobileNumber(text.replace(/\D/g, '').slice(0, 15))
+            setMobileNumber(digitsOnly(text).slice(0, MOBILE_DIGITS))
           }
           keyboardType="phone-pad"
-          placeholder="Enter mobile number"
+          placeholder={`Enter ${MOBILE_DIGITS}-digit mobile number`}
           placeholderTextColor={Colors.placeholder}
-          maxLength={15}
+          maxLength={MOBILE_DIGITS}
         />
       </View>
+      {mobileNumber.length > 0 && !isMobile(mobileNumber) ? (
+        <Text style={styles.fieldError}>
+          Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
+          entered.
+        </Text>
+      ) : null}
 
       <View style={styles.actions}>
         <PrimaryButton
@@ -191,6 +198,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     marginBottom: 12,
+  },
+  fieldError: {
+    color: Colors.error,
+    fontWeight: '700',
+    marginTop: -4,
+    marginBottom: 10,
   },
   mobileRow: {flexDirection: 'row', gap: 10, alignItems: 'center'},
   codeInput: {width: 72, textAlign: 'center'},

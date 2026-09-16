@@ -5,6 +5,7 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const SignupPersonalScreen = () => {
   const navigation = useNavigation<any>();
@@ -36,8 +37,8 @@ const SignupPersonalScreen = () => {
     }
     const code = countryCode.replace(/\D/g, '') || '91';
     const mobile = mobileNumber.replace(/\D/g, '');
-    if (mobile.length < 8) {
-      Alert.alert('Required', 'Enter a valid mobile number.');
+    if (!isMobile(mobile) || /^0+$/.test(mobile)) {
+      Alert.alert('Required', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
       return;
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
@@ -94,13 +95,21 @@ const SignupPersonalScreen = () => {
         <TextInput
           style={[styles.input, styles.mobileInput]}
           value={mobileNumber}
-          onChangeText={text => setMobileNumber(text.replace(/\D/g, '').slice(0, 15))}
+          onChangeText={text =>
+            setMobileNumber(digitsOnly(text).slice(0, MOBILE_DIGITS))
+          }
           keyboardType="phone-pad"
-          placeholder="Enter mobile number"
+          placeholder={`Enter ${MOBILE_DIGITS}-digit mobile number`}
           placeholderTextColor={Colors.placeholder}
-          maxLength={15}
+          maxLength={MOBILE_DIGITS}
         />
       </View>
+      {mobileNumber.length > 0 && !isMobile(mobileNumber) ? (
+        <Text style={styles.fieldError}>
+          Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
+          entered.
+        </Text>
+      ) : null}
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
@@ -240,6 +249,12 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     color: Colors.sacredBrown,
+  },
+  fieldError: {
+    color: Colors.error,
+    fontWeight: '700',
+    marginTop: -4,
+    marginBottom: 10,
   },
   mobileRow: {flexDirection: 'row', gap: 10, alignItems: 'center'},
   codeInput: {width: 72, textAlign: 'center'},

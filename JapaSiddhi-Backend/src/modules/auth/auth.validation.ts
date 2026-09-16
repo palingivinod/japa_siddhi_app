@@ -2,6 +2,22 @@
 
 import { body } from 'express-validator';
 
+/** Mobile is mandatory on signup and must be exactly this many digits. */
+export const MOBILE_DIGITS = 10;
+
+const hasMobileDigits = (value: unknown) =>
+  new RegExp(`^[0-9]{${MOBILE_DIGITS}}$`).test(
+    String(value || '').replace(/\D/g, ''),
+  );
+
+/**
+ * Signup only. Login keeps the looser rule so devotees who registered with a
+ * shorter number before this check are not locked out of their accounts.
+ */
+const strictMobileNumber = body('mobileNumber')
+  .custom(value => hasMobileDigits(value))
+  .withMessage(`Enter your ${MOBILE_DIGITS}-digit mobile number.`);
+
 export const loginValidation = [
   body('firebaseToken')
     .trim()
@@ -47,6 +63,11 @@ export const otpSendValidation = [
     .optional()
     .isIn(['register', 'login'])
     .withMessage('Invalid OTP mode.'),
+  body('mobileNumber')
+    .custom((value, {req}) =>
+      req.body.mode === 'login' ? true : hasMobileDigits(value),
+    )
+    .withMessage(`Enter your ${MOBILE_DIGITS}-digit mobile number.`),
 ];
 
 export const otpVerifyValidation = [
@@ -125,6 +146,7 @@ export const forgotPasswordResetValidation = [
 
 export const registerValidation = [
   ...phoneAuthValidation,
+  strictMobileNumber,
   body('password')
     .notEmpty()
     .withMessage('Password is required.')
