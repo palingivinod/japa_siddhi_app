@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   StyleSheet,
   Text,
@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
-import {saveJapaDraft} from '../../services/japaDraft';
+import {clearJapaDraft, saveJapaDraft} from '../../services/japaDraft';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
@@ -37,6 +37,36 @@ const JapaGoalCompleteScreen = () => {
   const [extendBy, setExtendBy] = useState(108);
   const [customExtend, setCustomExtend] = useState('');
   const [busy, setBusy] = useState(false);
+  const extendedRef = useRef(false);
+  const retiredRef = useRef(false);
+
+  /**
+   * A finished own mantra leaves the chant list, but its counts stay in
+   * reports because the summary reads the name without the active flag.
+   */
+  const retireOwnMantra = async () => {
+    if (!usingOwnMantra || retiredRef.current || extendedRef.current) {
+      return;
+    }
+    retiredRef.current = true;
+    await clearJapaDraft('private', undefined, undefined, personalMantraId);
+    if (!personalMantraId) {
+      return;
+    }
+    try {
+      await apiService.delete(`/personal-mantras/${personalMantraId}`);
+    } catch {
+      // Keep the completion flow going even if the cleanup call fails.
+    }
+  };
+
+  // Also retire it when the devotee leaves with the back button.
+  useEffect(
+    () => () => {
+      retireOwnMantra();
+    },
+    [],
+  );
 
   const extra = useMemo(() => {
     const typed = Number(customExtend);
@@ -48,7 +78,8 @@ const JapaGoalCompleteScreen = () => {
 
   const nextGoal = Math.max(completedGoal, completedCount) + extra;
 
-  const goProgress = () => {
+  const goProgress = async () => {
+    await retireOwnMantra();
     navigation.replace('JapaProgress', {
       count: route.params?.userTotal ?? completedCount,
       goal: completedGoal,
@@ -62,6 +93,7 @@ const JapaGoalCompleteScreen = () => {
       return;
     }
     setBusy(true);
+    extendedRef.current = true;
     try {
       let japaGoalId = Number(route.params?.japaGoalId || 0) || undefined;
       try {
@@ -87,7 +119,8 @@ const JapaGoalCompleteScreen = () => {
 
       await saveJapaDraft({
         mode,
-        mantraId: usingOwnMantra ? personalMantraId : mantraId,
+        mantraId: usingOwnMantra ? undefined : mantraId,
+        personalMantraId: usingOwnMantra ? personalMantraId : undefined,
         privateMantra: route.params?.privateMantra,
         goal: nextGoal,
         count: completedCount,
