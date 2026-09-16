@@ -264,10 +264,12 @@ class JapaRepository {
       `
       SELECT
         j.mantra_id AS mantraId,
+        j.personal_mantra_id AS personalMantraId,
         COALESCE(
           MAX(m.mantra_name),
+          MAX(upm.mantra_name),
           CASE
-            WHEN j.mantra_type = 'PERSONAL' THEN 'Private Japa'
+            WHEN j.mantra_type = 'PERSONAL' THEN 'My Mantra'
             ELSE 'Japa'
           END
         ) AS mantraName,
@@ -275,10 +277,12 @@ class JapaRepository {
       FROM japa_sessions j
       LEFT JOIN mantras m
         ON m.id = j.mantra_id
+      LEFT JOIN user_personal_mantras upm
+        ON upm.id = j.personal_mantra_id
       WHERE j.user_id = ?
       ${periodFilter}
       ${EXCLUDE_CHALLENGE_REMARKS_J}
-      GROUP BY j.mantra_id, j.mantra_type
+      GROUP BY j.mantra_id, j.personal_mantra_id, j.mantra_type
       HAVING COALESCE(SUM(j.session_count), 0) > 0
       ORDER BY total DESC
       `,
@@ -286,6 +290,8 @@ class JapaRepository {
     );
     return (rows || []).map(item => ({
       mantraId: Number(item.mantraId || item.mantra_id || 0) || 0,
+      personalMantraId:
+        Number(item.personalMantraId || item.personal_mantra_id || 0) || 0,
       mantraName: String(item.mantraName || item.mantra_name || 'Japa'),
       total: this.toCount(item.total),
     }));

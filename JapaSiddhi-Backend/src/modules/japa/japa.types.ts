@@ -113,6 +113,7 @@ export interface JapaSummary {
 
   byMantra?: Array<{
     mantraId: number;
+    personalMantraId?: number;
     mantraName: string;
     total: number;
   }>;

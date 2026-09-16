@@ -410,10 +410,11 @@ export const ml: TranslationDict = {
   addDeliveryAddressHint:
     'ആദ്യം ഡെലിവറി വിലാസം ചേർക്കുക. പിന്നീട് ഓർഡർ ബട്ടൺ കാണും.',
   privateJapaHeading: 'സ്വകാര്യ ജപം',
-  privateMantra: 'സ്വകാര്യ മന്ത്രം',
-  mantraHiddenSecure: 'നിങ്ങളുടെ മന്ത്രം മറച്ച് സുരക്ഷിതമായി സൂക്ഷിക്കും.',
+  privateMantra: 'എന്റെ മന്ത്രം',
+  mantraHiddenSecure:
+    'നിങ്ങളുടെ സ്വന്തം മന്ത്രം അക്കൗണ്ടിൽ സൂക്ഷിച്ച് എണ്ണപ്പെടും.',
   enterYourMantra: 'നിങ്ങളുടെ മന്ത്രം നൽകുക',
-  keptPrivateReports: 'സ്വകാര്യമായി സൂക്ഷിക്കും. റിപ്പോർട്ടുകളിൽ സ്വകാര്യ ജപം മാത്രം കാണും.',
+  keptPrivateReports: 'നിങ്ങളുടെ മന്ത്രം ടൈപ്പ് ചെയ്യുക',
   setGoal: 'ലക്ഷ്യം നിശ്ചയിക്കുക',
   reportsPrivateJapaOnly: 'റിപ്പോർട്ടുകളിൽ "സ്വകാര്യ ജപം" മാത്രം കാണും.',
   orderTabAll: 'എല്ലാം',

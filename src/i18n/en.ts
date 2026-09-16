@@ -433,10 +433,10 @@ const en = {
   addDeliveryAddressHint:
     'Add your delivery address first. The order button appears after that.',
   privateJapaHeading: 'Private Japa',
-  privateMantra: 'Private Mantra',
-  mantraHiddenSecure: 'Your mantra is hidden and securely stored.',
+  privateMantra: 'My Mantra',
+  mantraHiddenSecure: 'Your own mantra is saved to your account and counted.',
   enterYourMantra: 'Enter your mantra',
-  keptPrivateReports: 'Kept private. Reports show only Private Japa.',
+  keptPrivateReports: 'Type your mantra',
   setGoal: 'Set Goal',
   reportsPrivateJapaOnly: 'Reports will display only "Private Japa".',
   orderTabAll: 'All',

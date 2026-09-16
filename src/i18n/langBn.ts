@@ -408,10 +408,10 @@ export const bn: TranslationDict = {
   addDeliveryAddressHint:
     'প্রথমে ডেলিভারি ঠিকানা যোগ করুন। তারপর অর্ডার বোতাম দেখা যাবে।',
   privateJapaHeading: 'অন্তরঙ্গ জপ',
-  privateMantra: 'ব্যক্তিগত মন্ত্র',
-  mantraHiddenSecure: 'আপনার মন্ত্র লুকানো ও নিরাপদে সংরক্ষিত।',
+  privateMantra: 'আমার মন্ত্র',
+  mantraHiddenSecure: 'আপনার নিজের মন্ত্র অ্যাকাউন্টে সংরক্ষিত ও গণনা হয়।',
   enterYourMantra: 'আপনার মন্ত্র লিখুন',
-  keptPrivateReports: 'ব্যক্তিগত রাখা হয়। রিপোর্টে শুধু অন্তরঙ্গ জপ দেখাবে।',
+  keptPrivateReports: 'আপনার মন্ত্র লিখুন',
   setGoal: 'লক্ষ্য নির্ধারণ',
   reportsPrivateJapaOnly: 'রিপোর্টে শুধু "অন্তরঙ্গ জপ" দেখাবে।',
   orderTabAll: 'সব',

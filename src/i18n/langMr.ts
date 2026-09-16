@@ -408,10 +408,10 @@ export const mr: TranslationDict = {
   addDeliveryAddressHint:
     'प्रथम वितरण पत्ता जोडा. त्यानंतर ऑर्डर बटण दिसेल.',
   privateJapaHeading: 'अंतरंग जप',
-  privateMantra: 'खाजगी मंत्र',
-  mantraHiddenSecure: 'तुमचा मंत्र लपवला आणि सुरक्षितपणे साठवला आहे.',
+  privateMantra: 'माझा मंत्र',
+  mantraHiddenSecure: 'तुमचा स्वतःचा मंत्र खात्यात जतन होतो आणि मोजला जातो.',
   enterYourMantra: 'तुमचा मंत्र प्रविष्ट करा',
-  keptPrivateReports: 'खाजगी ठेवले. अहवालात फक्त अंतरंग जप दिसेल.',
+  keptPrivateReports: 'तुमचा मंत्र लिहा',
   setGoal: 'ध्येय ठरवा',
   reportsPrivateJapaOnly: 'अहवालात फक्त "अंतरंग जप" दिसेल.',
   orderTabAll: 'सर्व',

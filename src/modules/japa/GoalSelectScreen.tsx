@@ -153,8 +153,11 @@ const GoalSelectScreen = () => {
         await apiService.post('/japa-goals', {
           mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
           mantraId: route.params?.mantraId,
+          personalMantraId: route.params?.personalMantraId,
           goalName:
-            route.params?.mode === 'private' ? 'Private Japa' : 'Daily Japa',
+            route.params?.mode === 'private'
+              ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
+              : 'Daily Japa',
           targetCount: goal,
           days: goalType === 'date' ? remainingDays : 1,
           startDate: new Date().toISOString().slice(0, 10),
@@ -167,6 +170,7 @@ const GoalSelectScreen = () => {
       mode: route.params?.mode || 'community',
       mantraId: route.params?.mantraId,
       privateMantra: route.params?.privateMantra,
+      personalMantraId: route.params?.personalMantraId,
       goal,
       goalType,
       endDate: formatDate(endDate),

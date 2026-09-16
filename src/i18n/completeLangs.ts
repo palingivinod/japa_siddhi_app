@@ -408,10 +408,10 @@ export const kn: TranslationDict = {
   addDeliveryAddressHint:
     'ಮೊದಲು ವಿತರಣೆ ವಿಳಾಸ ಸೇರಿಸಿ. ನಂತರ ಆರ್ಡರ್ ಬಟನ್ ಕಾಣಿಸುತ್ತದೆ.',
   privateJapaHeading: 'ಅಂತರಂಗ ಜಪ',
-  privateMantra: 'ಖಾಸಗಿ ಮಂತ್ರ',
-  mantraHiddenSecure: 'ನಿಮ್ಮ ಮಂತ್ರವನ್ನು ಅಡಗಿಸಿ ಸುರಕ್ಷಿತವಾಗಿ ಇರಿಸಲಾಗುತ್ತದೆ.',
+  privateMantra: 'ನನ್ನ ಮಂತ್ರ',
+  mantraHiddenSecure: 'ನಿಮ್ಮ ಸ್ವಂತ ಮಂತ್ರ ನಿಮ್ಮ ಖಾತೆಯಲ್ಲಿ ಉಳಿಸಿ ಎಣಿಸಲಾಗುತ್ತದೆ.',
   enterYourMantra: 'ನಿಮ್ಮ ಮಂತ್ರ ನಮೂದಿಸಿ',
-  keptPrivateReports: 'ಖಾಸಗಿಯಾಗಿ ಇರಿಸಲಾಗುತ್ತದೆ. ವರದಿಗಳಲ್ಲಿ ಅಂತರಂಗ ಜಪ ಮಾತ್ರ ಕಾಣುತ್ತದೆ.',
+  keptPrivateReports: 'ನಿಮ್ಮ ಮಂತ್ರವನ್ನು ಟೈಪ್ ಮಾಡಿ',
   setGoal: 'ಗುರಿ ನಿಗದಿಪಡಿಸಿ',
   reportsPrivateJapaOnly: 'ವರದಿಗಳಲ್ಲಿ "ಅಂತರಂಗ ಜಪ" ಮಾತ್ರ ಕಾಣಿಸುತ್ತದೆ.',
   orderTabAll: 'ಎಲ್ಲಾ',

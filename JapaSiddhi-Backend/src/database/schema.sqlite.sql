@@ -156,10 +156,17 @@ CREATE TABLE IF NOT EXISTS user_personal_mantras (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
   mantra_name TEXT NOT NULL,
+  deity_name TEXT,
+  mantra_text TEXT,
   sanskrit_text TEXT,
   transliteration TEXT,
+  preferred_japa_count INTEGER NOT NULL DEFAULT 108,
+  image_url TEXT,
+  audio_url TEXT,
+  is_favorite INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 

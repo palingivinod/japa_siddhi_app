@@ -91,7 +91,7 @@ const AdminLoginScreen = () => {
         <TouchableOpacity
           onPress={() =>
             navigation.navigate('AdminForgotPassword', {
-              email: email.trim().toLowerCase(),
+              email: identifier.trim().toLowerCase(),
             })
           }>
           <Text style={styles.forgot}>Forgot password?</Text>

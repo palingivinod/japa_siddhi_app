@@ -408,10 +408,10 @@ export const or: TranslationDict = {
   addDeliveryAddressHint:
     'ପ୍ରଥମେ ଡିଲିଭାରି ଠିକଣା ଯୋଗ କରନ୍ତୁ। ତା\'ପରେ ଅର୍ଡର ବଟନ୍ ଦେଖାଯିବ।',
   privateJapaHeading: 'ଅନ୍ତରଙ୍ଗ ଜପ',
-  privateMantra: 'ବ୍ୟକ୍ତିଗତ ମନ୍ତ୍ର',
-  mantraHiddenSecure: 'ଆପଣଙ୍କ ମନ୍ତ୍ର ଲୁଚାଯାଇ ସୁରକ୍ଷିତ ଭାବରେ ସଞ୍ଚିତ।',
+  privateMantra: 'ମୋର ମନ୍ତ୍ର',
+  mantraHiddenSecure: 'ଆପଣଙ୍କ ନିଜ ମନ୍ତ୍ର ଖାତାରେ ସଞ୍ଚିତ ହୋଇ ଗଣନା ହେବ।',
   enterYourMantra: 'ଆପଣଙ୍କ ମନ୍ତ୍ର ଲେଖନ୍ତୁ',
-  keptPrivateReports: 'ବ୍ୟକ୍ତିଗତ ରଖାଯାଏ। ରିପୋର୍ଟରେ କେବଳ ଅନ୍ତରଙ୍ଗ ଜପ ଦେଖାଯିବ।',
+  keptPrivateReports: 'ଆପଣଙ୍କ ମନ୍ତ୍ର ଲେଖନ୍ତୁ',
   setGoal: 'ଲକ୍ଷ୍ୟ ନିର୍ଦ୍ଧାରଣ',
   reportsPrivateJapaOnly: 'ରିପୋର୍ଟରେ କେବଳ "ଅନ୍ତରଙ୍ଗ ଜପ" ଦେଖାଯିବ।',
   orderTabAll: 'ସବୁ',

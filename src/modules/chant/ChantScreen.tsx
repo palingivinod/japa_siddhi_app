@@ -39,6 +39,9 @@ const ChantScreen = () => {
   const [selected, setSelected] = useState<Mantra | null>(null);
   const [savedTotal, setSavedTotal] = useState(0);
   const [mantraTotals, setMantraTotals] = useState<Record<number, number>>({});
+  const [personalTotals, setPersonalTotals] = useState<Record<number, number>>(
+    {},
+  );
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
   const [saving, setSaving] = useState(false);
@@ -49,6 +52,11 @@ const ChantScreen = () => {
   const [challengeMantra, setChallengeMantra] = useState(
     String(route.params?.challengeMantra || '').trim(),
   );
+  const ownMantra = String(route.params?.privateMantra || '').trim();
+  const personalMantraId =
+    Number(route.params?.personalMantraId || 0) || undefined;
+  // Antaranga japa counts the user's own mantra, not a preset one.
+  const usingOwnMantra = mode === 'private' && Boolean(ownMantra);
   const lastTap = useRef(0);
   const intervals = useRef<number[]>([]);
   const countRef = useRef(0);
@@ -65,11 +73,18 @@ const ChantScreen = () => {
 
   const applyMantraTotals = (rows: any[]) => {
     const next: Record<number, number> = {};
+    const personal: Record<number, number> = {};
     (rows || []).forEach(item => {
+      const ownId = Number(item.personalMantraId || 0);
+      if (ownId) {
+        personal[ownId] = Number(item.total || 0);
+        return;
+      }
       next[Number(item.mantraId || 0)] = Number(item.total || 0);
     });
     setMantraTotals(next);
-    return next;
+    setPersonalTotals(personal);
+    return {presets: next, personal};
   };
 
   const applyDraftToCount = (draft: {
@@ -101,13 +116,18 @@ const ChantScreen = () => {
       const items: Mantra[] = mantraResponse.data.data ?? [];
       setMantras(items);
       const preferredId = Number(route.params?.mantraId || 0);
-      const preferred =
-        (preferredId && items.find(item => item.id === preferredId)) ||
-        items[0] ||
-        null;
-      setSelected(current => current ?? preferred);
+      const preferred = usingOwnMantra
+        ? null
+        : (preferredId && items.find(item => item.id === preferredId)) ||
+          items[0] ||
+          null;
+      if (!usingOwnMantra) {
+        setSelected(current => current ?? preferred);
+      }
       const data = summaryResponse.data.data ?? {};
-      const totals = applyMantraTotals(data.byMantra || []);
+      const {presets: totals, personal} = applyMantraTotals(
+        data.byMantra || [],
+      );
       let initialCount = Number(route.params?.initialCount || 0);
       let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
 
@@ -139,11 +159,12 @@ const ChantScreen = () => {
         }
       }
 
+      const draftId = usingOwnMantra ? personalMantraId : preferred?.id;
       const resumeDraft = challengeId
-        ? await getJapaDraft(mode, preferred?.id, challengeId)
+        ? await getJapaDraft(mode, draftId, challengeId)
         : route.params?.resume
           ? await getJapaDraft()
-          : await getJapaDraft(mode, preferred?.id);
+          : await getJapaDraft(mode, draftId);
       const restore =
         !!resumeDraft &&
         resumeDraft.count > 0 &&
@@ -156,7 +177,7 @@ const ChantScreen = () => {
         ? Number(resumeDraft?.mantraId || preferred?.id || 0)
         : Number(preferred?.id || 0);
       if (restore && resumeDraft) {
-        if (resumeDraft.mantraId) {
+        if (resumeDraft.mantraId && !usingOwnMantra) {
           const match = items.find(item => item.id === resumeDraft.mantraId);
           if (match) {
             setSelected(match);
@@ -186,7 +207,9 @@ const ChantScreen = () => {
         completingRef.current = false;
       }
       setSavedTotal(
-        totals[activeMantraId] || Number(data.totalJapaCount ?? 0) || 0,
+        usingOwnMantra
+          ? personal[Number(personalMantraId || 0)] || 0
+          : totals[activeMantraId] || Number(data.totalJapaCount ?? 0) || 0,
       );
     } catch (err: any) {
       setRawError(err);
@@ -206,11 +229,14 @@ const ChantScreen = () => {
     }, []),
   );
 
+  const draftMantraId = () =>
+    usingOwnMantra ? personalMantraId : selectedRef.current?.id;
+
   const persistDraft = async (nextCount: number, postedCount: number) => {
     await saveJapaDraft({
       mode,
-      mantraId: selectedRef.current?.id,
-      privateMantra: route.params?.privateMantra,
+      mantraId: draftMantraId(),
+      privateMantra: ownMantra || route.params?.privateMantra,
       goal: goalRef.current,
       count: nextCount,
       postedCount,
@@ -248,11 +274,20 @@ const ChantScreen = () => {
     );
     const mantraId = Number(selectedRef.current?.id || 0);
     const added = Number(fallbackCount || 0);
-    setMantraTotals(prev => {
-      const nextTotal = Number(prev[mantraId] || savedTotal || 0) + added;
-      setSavedTotal(nextTotal);
-      return mantraId ? {...prev, [mantraId]: nextTotal} : prev;
-    });
+    if (usingOwnMantra) {
+      const ownId = Number(personalMantraId || 0);
+      setPersonalTotals(prev => {
+        const nextTotal = Number(prev[ownId] || savedTotal || 0) + added;
+        setSavedTotal(nextTotal);
+        return ownId ? {...prev, [ownId]: nextTotal} : prev;
+      });
+    } else {
+      setMantraTotals(prev => {
+        const nextTotal = Number(prev[mantraId] || savedTotal || 0) + added;
+        setSavedTotal(nextTotal);
+        return mantraId ? {...prev, [mantraId]: nextTotal} : prev;
+      });
+    }
     if (options?.resetCount) {
       setCount(0);
       countRef.current = 0;
@@ -271,7 +306,8 @@ const ChantScreen = () => {
         goal: goalRef.current,
         mode,
         mantraId: selectedRef.current?.id,
-        privateMantra: route.params?.privateMantra,
+        privateMantra: ownMantra || route.params?.privateMantra,
+        personalMantraId,
         japaGoalId: route.params?.japaGoalId,
         userTotal,
       });
@@ -340,10 +376,16 @@ const ChantScreen = () => {
       return `Challenge:${challengeId}`;
     }
     if (mode === 'private') {
-      return `Private Japa · ${String(route.params?.privateMantra || 'Private').slice(0, 80)}`;
+      return `My Japa · ${String(ownMantra || route.params?.privateMantra || 'My Mantra').slice(0, 80)}`;
     }
     return undefined;
   };
+
+  /** Own-mantra japa is stored as PERSONAL; presets stay DEFAULT. */
+  const sessionMantraFields = () =>
+    usingOwnMantra
+      ? {mantraType: 'PERSONAL' as const, personalMantraId}
+      : {mantraType: 'DEFAULT' as const, mantraId: selectedRef.current?.id};
 
   const finishGoal = async (sessionCount: number) => {
     if (completingRef.current || sessionCount < 1) {
@@ -353,14 +395,14 @@ const ChantScreen = () => {
     setSaving(true);
     setMessage('Goal reached. Saving your session...');
     try {
-      if (!selected) {
+      if (!selected && !usingOwnMantra) {
         setMessage('Select a mantra, then save your completed goal.');
         completingRef.current = false;
         return;
       }
       const remaining = Math.max(sessionCount - postedCountRef.current, 0);
       if (remaining < 1) {
-        await clearJapaDraft(mode, selected.id, challengeId || undefined);
+        await clearJapaDraft(mode, draftMantraId(), challengeId || undefined);
         afterSessionSaved(
           {userTotal: savedTotal, count: sessionCount},
           sessionCount,
@@ -369,8 +411,7 @@ const ChantScreen = () => {
         return;
       }
       const response = await apiService.post('/japa/session', {
-        mantraType: 'DEFAULT',
-        mantraId: selected.id,
+        ...sessionMantraFields(),
         chantMode: 'TAP',
         sessionCount: remaining,
         durationSeconds: Math.max(remaining * 2, 1),
@@ -379,7 +420,7 @@ const ChantScreen = () => {
         remarks: sessionRemarks(),
       });
       postedCountRef.current = sessionCount;
-      await clearJapaDraft(mode, selected.id, challengeId || undefined);
+      await clearJapaDraft(mode, draftMantraId(), challengeId || undefined);
       afterSessionSaved(response.data.data, remaining, {completed: true});
     } catch (err: any) {
       completingRef.current = false;
@@ -444,7 +485,7 @@ const ChantScreen = () => {
       await finishGoal(count);
       return;
     }
-    if (!selected) {
+    if (!selected && !usingOwnMantra) {
       setMessage('Select a mantra, then save your session.');
       return;
     }
@@ -454,8 +495,7 @@ const ChantScreen = () => {
       const delta = Math.max(count - postedCountRef.current, 0);
       if (delta > 0) {
         const response = await apiService.post('/japa/session', {
-          mantraType: 'DEFAULT',
-          mantraId: selected.id,
+          ...sessionMantraFields(),
           chantMode: 'TAP',
           sessionCount: delta,
           durationSeconds: Math.max(delta * 2, 1),
@@ -509,6 +549,10 @@ const ChantScreen = () => {
         <Text style={styles.challengeHint}>
           Counting only for this challenge — separate from Antharanga japa.
         </Text>
+      ) : usingOwnMantra ? (
+        <Text style={styles.challengeHint}>
+          Counting your own mantra — separate from the listed mantras.
+        </Text>
       ) : (
         <View style={styles.chipRow}>
           {mantras.map(item => (
@@ -533,10 +577,12 @@ const ChantScreen = () => {
             selected?.mantraName ||
             selected?.transliteration ||
             t('myJapa')
-          : selected?.mantraName ||
-            selected?.transliteration ||
-            route.params?.privateMantra ||
-            t('myJapa')}
+          : usingOwnMantra
+            ? ownMantra
+            : selected?.mantraName ||
+              selected?.transliteration ||
+              route.params?.privateMantra ||
+              t('myJapa')}
       </Text>
       <Pressable
         onPress={tapChant}

@@ -3,6 +3,7 @@ import {StyleSheet, Text, TextInput, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
+import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -12,10 +13,58 @@ const PrivateJapaScreen = () => {
   const {t} = useLanguage();
   const [mantra, setMantra] = useState('');
   const [goal, setGoal] = useState('1008');
+  const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  /** Reuse the saved mantra if the user typed it before, else create it. */
+  const resolvePersonalMantraId = async (name: string) => {
+    try {
+      const existing = await apiService.get('/personal-mantras');
+      const rows = existing.data?.data ?? [];
+      const match = rows.find(
+        (item: any) =>
+          String(item.mantraName || '').trim().toLowerCase() ===
+          name.toLowerCase(),
+      );
+      if (match?.id) {
+        return Number(match.id);
+      }
+    } catch {
+      undefined;
+    }
+    const created = await apiService.post('/personal-mantras', {
+      mantraName: name,
+      mantraText: name,
+      preferredJapaCount: Number(String(goal).replace(/,/g, '')) || 1008,
+    });
+    return Number(created.data?.data?.id || 0) || undefined;
+  };
+
+  const start = async () => {
+    const name = mantra.trim();
+    if (!name) {
+      setMessage(t('enterYourMantra'));
+      return;
+    }
+    setSaving(true);
+    setMessage('');
+    let personalMantraId: number | undefined;
+    try {
+      personalMantraId = await resolvePersonalMantraId(name);
+    } catch {
+      personalMantraId = undefined;
+    }
+    setSaving(false);
+    navigation.navigate('GoalSelect', {
+      mode: 'private',
+      privateMantra: name,
+      personalMantraId,
+      goal: Number(String(goal).replace(/,/g, '')) || 1008,
+    });
+  };
 
   return (
     <ScreenLayout title="My Japa" showBack tab="JapaHub">
-      <Text style={styles.heading}>{t('privateJapaHeading')}</Text>
       <View style={styles.card}>
         <View style={styles.dot}>
           <Text style={styles.emoji}>📿</Text>
@@ -29,10 +78,12 @@ const PrivateJapaScreen = () => {
       <TextInput
         style={styles.input}
         value={mantra}
-        onChangeText={setMantra}
+        onChangeText={text => {
+          setMantra(text);
+          setMessage('');
+        }}
         placeholder={t('keptPrivateReports')}
         placeholderTextColor={Colors.placeholder}
-        secureTextEntry
       />
       <Text style={styles.label}>{t('setGoal')}</Text>
       <TextInput
@@ -42,16 +93,10 @@ const PrivateJapaScreen = () => {
         keyboardType="numeric"
       />
       <PrimaryButton
-        title={t('startPrivateJapa')}
-        onPress={() =>
-          navigation.navigate('GoalSelect', {
-            mode: 'private',
-            privateMantra: mantra.trim() || t('privateJapaHeading'),
-            goal: Number(String(goal).replace(/,/g, '')) || 1008,
-          })
-        }
+        title={saving ? t('loading') : t('startPrivateJapa')}
+        onPress={start}
       />
-      <Text style={styles.note}>{t('reportsPrivateJapaOnly')}</Text>
+      {message ? <Text style={styles.error}>{message}</Text> : null}
     </ScreenLayout>
   );
 };
@@ -59,12 +104,6 @@ const PrivateJapaScreen = () => {
 export default PrivateJapaScreen;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-    marginBottom: 14,
-  },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -107,10 +146,10 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 18,
   },
-  note: {
+  error: {
     marginTop: 14,
+    color: Colors.error,
+    fontWeight: '700',
     textAlign: 'center',
-    color: Colors.leafGreen,
-    fontWeight: '600',
   },
 });

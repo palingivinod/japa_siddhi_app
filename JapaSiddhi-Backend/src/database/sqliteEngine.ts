@@ -410,6 +410,7 @@ class SqliteEngine {
     this.ensureAdminAccountColumns();
     this.ensureRewardClaimColumns();
     this.ensureFeedbackSupportColumns();
+    this.ensurePersonalMantraColumns();
     this.seedChallenges();
     this.seedFaqs();
     this.seedRewards();
@@ -492,6 +493,32 @@ class SqliteEngine {
     };
     addColumn('feedback', 'video_url', 'TEXT');
     addColumn('customer_care', 'screenshot_url', 'TEXT');
+  }
+
+  /** Older databases created the table with only name/sanskrit columns. */
+  private ensurePersonalMantraColumns(): void {
+    if (!this.db) {
+      return;
+    }
+    const names = this.tableColumns('user_personal_mantras');
+    const columns: Array<[string, string]> = [
+      ['deity_name', 'TEXT'],
+      ['mantra_text', 'TEXT'],
+      ['sanskrit_text', 'TEXT'],
+      ['transliteration', 'TEXT'],
+      ['preferred_japa_count', 'INTEGER NOT NULL DEFAULT 108'],
+      ['image_url', 'TEXT'],
+      ['audio_url', 'TEXT'],
+      ['is_favorite', 'INTEGER NOT NULL DEFAULT 0'],
+      ['updated_at', 'TEXT'],
+    ];
+    columns.forEach(([name, definition]) => {
+      if (!names.has(name)) {
+        this.db?.run(
+          `ALTER TABLE user_personal_mantras ADD COLUMN ${name} ${definition}`,
+        );
+      }
+    });
   }
 
   private ensureRewardClaimColumns(): void {

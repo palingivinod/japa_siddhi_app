@@ -408,10 +408,11 @@ export const ta: TranslationDict = {
   addDeliveryAddressHint:
     'முதலில் டெலிவரி முகவரி சேர்க்கவும். பிறகு ஆர்டர் பொத்தான் தோன்றும்.',
   privateJapaHeading: 'தனிப்பட்ட ஜபம்',
-  privateMantra: 'தனிப்பட்ட மந்திரம்',
-  mantraHiddenSecure: 'உங்கள் மந்திரம் மறைக்கப்பட்டு பாதுகாப்பாக வைக்கப்படும்.',
+  privateMantra: 'எனது மந்திரம்',
+  mantraHiddenSecure:
+    'உங்கள் சொந்த மந்திரம் கணக்கில் சேமிக்கப்பட்டு எண்ணப்படும்.',
   enterYourMantra: 'உங்கள் மந்திரத்தை உள்ளிடவும்',
-  keptPrivateReports: 'தனிப்பட்டதாக வைக்கப்படும். அறிக்கைகளில் தனிப்பட்ட ஜபம் மட்டும் தெரியும்.',
+  keptPrivateReports: 'உங்கள் மந்திரத்தை தட்டச்சு செய்யுங்கள்',
   setGoal: 'இலக்கை அமை',
   reportsPrivateJapaOnly: 'அறிக்கைகளில் "தனிப்பட்ட ஜபம்" மட்டும் தெரியும்.',
   orderTabAll: 'அனைத்தும்',
