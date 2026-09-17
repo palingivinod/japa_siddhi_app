@@ -7,7 +7,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {Picker} from '@react-native-picker/picker';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
@@ -16,6 +15,7 @@ import {DEFAULT_LANGUAGE, Language} from '../../constants/languages';
 import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import SelectField from '../common/SelectField';
 import CountryPickerField from '../auth/components/CountryPickerField';
 import StateSelector from '../auth/components/StateSelector';
 import CitySelector from '../auth/components/CitySelector';
@@ -266,18 +266,18 @@ const PersonalDetailsScreen = () => {
       />
 
       <Text style={styles.label}>{t('gender')}</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={gender}
-          onValueChange={setGender}
-          itemStyle={styles.pickerItem}>
-          <Picker.Item label={t('selectGender')} value="" />
-          <Picker.Item label={t('male')} value="Male" />
-          <Picker.Item label={t('female')} value="Female" />
-          <Picker.Item label={t('otherGender')} value="Other" />
-          <Picker.Item label={t('preferNotToSay')} value="Prefer Not To Say" />
-        </Picker>
-      </View>
+      <SelectField
+        value={gender}
+        onChange={setGender}
+        placeholder={t('selectGender')}
+        title={t('gender')}
+        options={[
+          {label: t('male'), value: 'Male'},
+          {label: t('female'), value: 'Female'},
+          {label: t('otherGender'), value: 'Other'},
+          {label: t('preferNotToSay'), value: 'Prefer Not To Say'},
+        ]}
+      />
 
       <Text style={styles.label}>{t('country')}</Text>
       <CountryPickerField
@@ -328,17 +328,15 @@ const PersonalDetailsScreen = () => {
       />
 
       <Text style={styles.label}>{t('maritalStatus')}</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={maritalStatus}
-          onValueChange={value =>
-            setMaritalStatus(value as 'Bachelor' | 'Married')
-          }
-          itemStyle={styles.pickerItem}>
-          <Picker.Item label={t('bachelor')} value="Bachelor" />
-          <Picker.Item label={t('married')} value="Married" />
-        </Picker>
-      </View>
+      <SelectField
+        value={maritalStatus}
+        onChange={value => setMaritalStatus(value as 'Bachelor' | 'Married')}
+        title={t('maritalStatus')}
+        options={[
+          {label: t('bachelor'), value: 'Bachelor'},
+          {label: t('married'), value: 'Married'},
+        ]}
+      />
 
       {maritalStatus === 'Married' ? (
         <>
@@ -407,18 +405,6 @@ const styles = StyleSheet.create({
   disabledInput: {
     backgroundColor: '#F3F1EC',
     color: '#8A8174',
-  },
-  pickerItem: {
-    color: Colors.sacredBrown,
-    fontSize: 18,
-  },
-  pickerContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    marginBottom: 8,
-    overflow: 'hidden',
   },
   gap: {
     height: 12,

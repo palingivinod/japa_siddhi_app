@@ -110,6 +110,22 @@ router.post('/auth/accounts', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/auth/accounts/:id', async (req: Request, res: Response) => {
+  try {
+    const data = await adminAccountService.deleteAdmin(Number(req.params.id));
+    return res.json({
+      success: true,
+      message: 'Admin account removed',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Could not remove admin',
+    });
+  }
+});
+
 const num = (value: unknown) => {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n : 0;
@@ -3839,7 +3855,11 @@ router.get('/feedback', async (req: Request, res: Response) => {
       success: true,
       data: (rows || []).map((row: any) => ({
         id: String(row.id),
-        name: `User #${row.userId || '-'}`,
+        name:
+          String(row.userName || '').trim() || `User #${row.userId || '-'}`,
+        userId: row.userId || null,
+        mobileNumber: row.userMobile || '',
+        email: row.userEmail || '',
         rating: `${Number(row.rating || 0)}★`,
         comment: row.message || row.title || '',
         videoUrl: row.videoUrl ? `${host}${row.videoUrl}` : null,

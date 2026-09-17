@@ -30,6 +30,7 @@ const AdminFeedbackScreen = () => {
         rows.map((row: any) => ({
           id: String(row.id),
           name: row.name || `Feedback #${row.id}`,
+          mobileNumber: row.mobileNumber || '',
           rating: row.rating || '',
           comment: row.comment || '',
           videoUrl: row.videoUrl || null,
@@ -72,6 +73,9 @@ const AdminFeedbackScreen = () => {
       {items.map(item => (
         <View key={item.id} style={styles.card}>
           <Text style={styles.name}>{item.name}</Text>
+          {item.mobileNumber ? (
+            <Text style={styles.contact}>{item.mobileNumber}</Text>
+          ) : null}
           <Text style={styles.meta}>
             {item.rating} • {item.comment}
           </Text>
@@ -115,6 +119,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     fontSize: 16,
+  },
+  contact: {
+    marginTop: 2,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
   },
   meta: {
     marginTop: 4,

@@ -12,12 +12,11 @@ import {
   Image,
 } from 'react-native';
 
-import {Picker} from '@react-native-picker/picker';
-
 import Colors from '../../theme/colors';
 
 import AppHeader from '../common/AppHeader';
 import DatePickerModal from '../common/DatePickerModal';
+import SelectField from '../common/SelectField';
 import CountryPickerField from './components/CountryPickerField';
 import StateSelector from './components/StateSelector';
 import CitySelector from './components/CitySelector';
@@ -415,41 +414,18 @@ const CompleteProfileScreen = ({
           Gender *
         </Text>
 
-        <View style={styles.pickerContainer}>
-
-          <Picker
-            selectedValue={gender}
-            onValueChange={setGender}
-            itemStyle={styles.pickerItem}>
-
-            <Picker.Item
-              label="Select Gender"
-              value=""
-            />
-
-            <Picker.Item
-              label="Male"
-              value="Male"
-            />
-
-            <Picker.Item
-              label="Female"
-              value="Female"
-            />
-
-            <Picker.Item
-              label="Other"
-              value="Other"
-            />
-
-            <Picker.Item
-              label="Prefer Not To Say"
-              value="Prefer Not To Say"
-            />
-
-          </Picker>
-
-        </View>
+        <SelectField
+          value={gender}
+          onChange={setGender}
+          placeholder="Select Gender"
+          title="Gender"
+          options={[
+            {label: 'Male', value: 'Male'},
+            {label: 'Female', value: 'Female'},
+            {label: 'Other', value: 'Other'},
+            {label: 'Prefer Not To Say', value: 'Prefer Not To Say'},
+          ]}
+        />
                 <Text style={styles.label}>
           Date of Birth *
         </Text>
@@ -537,17 +513,15 @@ const CompleteProfileScreen = ({
         <Text style={styles.label}>
           Marital Status *
         </Text>
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={maritalStatus}
-            onValueChange={value =>
-              setMaritalStatus(value as 'Bachelor' | 'Married')
-            }
-            itemStyle={styles.pickerItem}>
-            <Picker.Item label="Bachelor" value="Bachelor" />
-            <Picker.Item label="Married" value="Married" />
-          </Picker>
-        </View>
+        <SelectField
+          value={maritalStatus}
+          onChange={value => setMaritalStatus(value as 'Bachelor' | 'Married')}
+          title="Marital Status"
+          options={[
+            {label: 'Bachelor', value: 'Bachelor'},
+            {label: 'Married', value: 'Married'},
+          ]}
+        />
 
         {maritalStatus === 'Married' ? (
           <>
@@ -793,18 +767,6 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
 
-  pickerContainer: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#D9D9D9',
-    overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
-  },
-
-  pickerItem: {
-    color: Colors.sacredBrown,
-    fontSize: 18,
-  },
 
   dateText: {
     fontSize: 16,

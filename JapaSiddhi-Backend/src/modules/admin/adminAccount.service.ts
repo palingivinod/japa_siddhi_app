@@ -17,16 +17,20 @@ const normalizeEmail = (email: string) =>
 const normalizePhone = (value: string) =>
   String(value || '').replace(/\D/g, '');
 
+/** Admin mobile numbers are mandatory and must be exactly 10 digits. */
+const ADMIN_MOBILE_DIGITS = 10;
+
 const parseMobile = (countryCode: string, mobileNumber: string) => {
   const cc = normalizePhone(countryCode) || '91';
-  const mobile = normalizePhone(mobileNumber);
-  if (mobile.length < 8 || /^0+$/.test(mobile)) {
+  const digits = normalizePhone(mobileNumber);
+  const mobile =
+    digits.length > ADMIN_MOBILE_DIGITS
+      ? digits.slice(-ADMIN_MOBILE_DIGITS)
+      : digits;
+  if (mobile.length !== ADMIN_MOBILE_DIGITS || /^0+$/.test(mobile)) {
     return null;
   }
-  return {
-    countryCode: cc,
-    mobile: mobile.length > 10 ? mobile.slice(-10) : mobile,
-  };
+  return {countryCode: cc, mobile};
 };
 
 class AdminAccountService {
@@ -293,6 +297,40 @@ class AdminAccountService {
     return {success: true, email: normalized};
   }
 
+  /** The oldest active account is the primary admin. */
+  private async primaryAdmin() {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id, email, full_name AS fullName
+      FROM admin_accounts
+      WHERE is_active = 1
+      ORDER BY id ASC
+      LIMIT 1
+      `,
+    );
+    return rows[0] || null;
+  }
+
+  /**
+   * Admin accounts appearing or disappearing must always reach the primary
+   * admin's inbox, but a mail failure must never block the change itself.
+   */
+  private async notifyPrimaryAdmin(subject: string, lines: string[]) {
+    try {
+      const primary = await this.primaryAdmin();
+      const to = normalizeEmail(primary?.email || '') || DEFAULT_ADMIN_EMAIL;
+      if (!to) {
+        return;
+      }
+      await emailOtpService.sendMail(to, subject, lines.join('\n'));
+    } catch (error: any) {
+      console.error(
+        'Primary admin notification failed:',
+        error?.message || error,
+      );
+    }
+  }
+
   async listAdmins() {
     await this.ensureDefaultAdmin();
     const rows = await mysql.query<any[]>(
@@ -340,7 +378,10 @@ class AdminAccountService {
       throw new AppError('Enter a valid admin email.', 400);
     }
     if (!mobile) {
-      throw new AppError('Enter a valid mobile number.', 400);
+      throw new AppError(
+        `Enter a valid ${ADMIN_MOBILE_DIGITS}-digit mobile number.`,
+        400,
+      );
     }
     if (password.length < 6) {
       throw new AppError('Password must be at least 6 characters.', 400);
@@ -385,6 +426,18 @@ class AdminAccountService {
       [email, passwordHash, fullName, mobile.countryCode, mobile.mobile],
     );
 
+    await this.notifyPrimaryAdmin('New admin account added', [
+      'A new admin account was created in Japa Siddhi.',
+      '',
+      `Name: ${fullName}`,
+      `Email: ${email}`,
+      `Mobile: +${mobile.countryCode} ${mobile.mobile}`,
+      `Admin ID: ${result.insertId}`,
+      `Added at: ${new Date().toISOString()}`,
+      '',
+      'If you did not authorise this, remove the account from Admin → Add Admin and change your password.',
+    ]);
+
     return {
       id: result.insertId,
       email,
@@ -392,6 +445,59 @@ class AdminAccountService {
       mobileCountryCode: mobile.countryCode,
       mobileNumber: mobile.mobile,
     };
+  }
+
+  /** Only the primary admin's own account is protected from removal. */
+  async deleteAdmin(id: number) {
+    await this.ensureDefaultAdmin();
+    const adminId = Number(id);
+    if (!adminId) {
+      throw new AppError('Select an admin account to remove.', 400);
+    }
+
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        email,
+        full_name AS fullName,
+        mobile_country_code AS mobileCountryCode,
+        mobile_number AS mobileNumber
+      FROM admin_accounts
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [adminId],
+    );
+    const admin = rows[0];
+    if (!admin) {
+      throw new AppError('Admin account not found.', 404);
+    }
+
+    const primary = await this.primaryAdmin();
+    const email = normalizeEmail(admin.email);
+    if (
+      email === DEFAULT_ADMIN_EMAIL ||
+      Number(primary?.id) === adminId
+    ) {
+      throw new AppError('The primary admin account cannot be removed.', 403);
+    }
+
+    await mysql.query(`DELETE FROM admin_accounts WHERE id = ?`, [adminId]);
+
+    await this.notifyPrimaryAdmin('Admin account removed', [
+      'An admin account was removed from Japa Siddhi.',
+      '',
+      `Name: ${admin.fullName || 'Admin'}`,
+      `Email: ${admin.email}`,
+      `Mobile: +${admin.mobileCountryCode || '91'} ${
+        admin.mobileNumber || '-'
+      }`,
+      `Admin ID: ${adminId}`,
+      `Removed at: ${new Date().toISOString()}`,
+    ]);
+
+    return {id: adminId, email: admin.email};
   }
 }
 

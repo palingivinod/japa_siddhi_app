@@ -7,13 +7,13 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import {Picker} from '@react-native-picker/picker';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import SelectField from '../common/SelectField';
 import ProfileApi from '../auth/services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 
@@ -164,17 +164,15 @@ const SpiritualDetailsScreen = () => {
       />
 
       <Text style={styles.label}>{t('maritalStatus')}</Text>
-      <View style={styles.pickerContainer}>
-        <Picker
-          selectedValue={maritalStatus}
-          onValueChange={value =>
-            setMaritalStatus(value as 'Bachelor' | 'Married')
-          }
-          itemStyle={styles.pickerItem}>
-          <Picker.Item label={t('bachelor')} value="Bachelor" />
-          <Picker.Item label={t('married')} value="Married" />
-        </Picker>
-      </View>
+      <SelectField
+        value={maritalStatus}
+        onChange={value => setMaritalStatus(value as 'Bachelor' | 'Married')}
+        title={t('maritalStatus')}
+        options={[
+          {label: t('bachelor'), value: 'Bachelor'},
+          {label: t('married'), value: 'Married'},
+        ]}
+      />
 
       {saving ? (
         <ActivityIndicator color={Colors.templeGold} style={{marginVertical: 16}} />
@@ -227,18 +225,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
-  },
-  pickerItem: {
-    color: Colors.sacredBrown,
-    fontSize: 18,
-  },
-  pickerContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    marginBottom: 12,
-    overflow: 'hidden',
   },
   gap: {
     height: 12,

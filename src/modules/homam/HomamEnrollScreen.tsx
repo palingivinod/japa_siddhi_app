@@ -5,6 +5,7 @@ import {useNavigation} from '@react-navigation/native';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const HomamEnrollScreen = () => {
   const navigation = useNavigation<any>();
@@ -17,6 +18,13 @@ const HomamEnrollScreen = () => {
   const continuePay = () => {
     if (!fullName.trim() || !mobile.trim()) {
       Alert.alert('Nithya Homam', 'Name and mobile are required.');
+      return;
+    }
+    if (!isMobile(mobile)) {
+      Alert.alert(
+        'Nithya Homam',
+        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+      );
       return;
     }
     navigation.navigate('HomamPayment', {
@@ -49,8 +57,9 @@ const HomamEnrollScreen = () => {
         label="Mobile"
         placeholder="Mobile number"
         keyboardType="phone-pad"
+        maxLength={MOBILE_DIGITS}
         value={mobile}
-        onChangeText={setMobile}
+        onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
       <FormField
         label="Gothram"

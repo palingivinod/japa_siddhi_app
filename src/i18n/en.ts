@@ -175,7 +175,7 @@ const en = {
   japaPaused: 'Japa Paused',
   challengeComplete: 'Challenge Complete',
   challengeDetails: 'Challenge Details',
-  smartJapa: 'Smart Japa',
+  smartJapa: 'Japa Count',
   japaProgress: 'Japa Progress',
   rateYourExperience: 'Rate Your Experience',
   raiseTicket: 'Raise a Ticket',

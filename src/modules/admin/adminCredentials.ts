@@ -77,4 +77,9 @@ export const addAdminAccount = async (data: {
   return response.data?.data as AdminAccount;
 };
 
+export const deleteAdminAccount = async (id: number) => {
+  const response = await apiService.delete(`/admin/auth/accounts/${id}`);
+  return response.data?.data;
+};
+
 export {getApiError};

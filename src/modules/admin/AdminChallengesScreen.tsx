@@ -10,7 +10,6 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
-import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminChallenge, AdminChallengeProgressBuckets} from './adminData';
@@ -206,7 +205,9 @@ const AdminChallengesScreen = () => {
       ) : null}
 
       {!loading && !error && items.length === 0 ? (
-        <Text style={styles.empty}>No challenges yet. Create one below.</Text>
+        <Text style={styles.empty}>
+          No challenges yet. Add one from Challenge Creation.
+        </Text>
       ) : null}
 
       {items.map(item => {
@@ -305,11 +306,6 @@ const AdminChallengesScreen = () => {
           </View>
         );
       })}
-
-      <PrimaryButton
-        title="CREATE CHALLENGE"
-        onPress={() => navigation.navigate('AdminChallengeCreate')}
-      />
     </AdminScreenLayout>
   );
 };

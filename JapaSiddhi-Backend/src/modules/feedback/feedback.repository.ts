@@ -90,20 +90,25 @@ class FeedbackRepository {
     );
   }
 
+  /** Admin review needs the devotee behind each entry, not just their id. */
   async getAll() {
     await this.ensureColumns();
     return mysql.query<any[]>(
       `
       SELECT
-        id,
-        user_id AS userId,
-        rating,
-        title,
-        message,
-        video_url AS videoUrl,
-        created_at AS createdAt
-      FROM feedback
-      ORDER BY created_at DESC
+        f.id,
+        f.user_id AS userId,
+        f.rating,
+        f.title,
+        f.message,
+        f.video_url AS videoUrl,
+        f.created_at AS createdAt,
+        u.full_name AS userName,
+        u.mobile_number AS userMobile,
+        u.email AS userEmail
+      FROM feedback f
+      LEFT JOIN users u ON u.id = f.user_id
+      ORDER BY f.created_at DESC
       `,
     );
   }

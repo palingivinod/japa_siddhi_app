@@ -14,6 +14,7 @@ import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const BanaLingamScreen = () => {
   const navigation = useNavigation<any>();
@@ -48,7 +49,9 @@ const BanaLingamScreen = () => {
           stored?.mobile_number ||
           '';
         setFullName(current => current || String(name));
-        setMobile(current => current || String(phone));
+        setMobile(
+          current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS),
+        );
         setGothram(current => current || String(profile?.gothram || ''));
         setNakshatram(current => current || String(profile?.nakshatram || ''));
         setSavedAddresses(addresses);
@@ -65,6 +68,13 @@ const BanaLingamScreen = () => {
   const submit = async () => {
     if (!fullName.trim() || !mobile.trim() || !address.trim()) {
       Alert.alert('Baanalingam', 'Name, mobile and address are required.');
+      return;
+    }
+    if (!isMobile(mobile)) {
+      Alert.alert(
+        'Baanalingam',
+        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+      );
       return;
     }
     const nextAddresses = await saveDeliveryAddress(address);
@@ -96,8 +106,9 @@ const BanaLingamScreen = () => {
         label="Mobile"
         placeholder="Mobile number"
         keyboardType="phone-pad"
+        maxLength={MOBILE_DIGITS}
         value={mobile}
-        onChangeText={setMobile}
+        onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
       {savedAddresses.length ? (
         <>

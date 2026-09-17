@@ -184,6 +184,7 @@ export type AdminTicket = {
 export type AdminFeedback = {
   id: string;
   name: string;
+  mobileNumber?: string;
   rating: string;
   comment: string;
   videoUrl?: string | null;

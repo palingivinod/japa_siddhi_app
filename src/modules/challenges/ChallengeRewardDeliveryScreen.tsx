@@ -7,6 +7,7 @@ import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const ChallengeRewardDeliveryScreen = () => {
   const navigation = useNavigation<any>();
@@ -32,6 +33,13 @@ const ChallengeRewardDeliveryScreen = () => {
       !pinCode.trim()
     ) {
       Alert.alert('Required', 'Enter all delivery details.');
+      return;
+    }
+    if (!isMobile(mobile)) {
+      Alert.alert(
+        'Required',
+        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+      );
       return;
     }
     if (!challengeId) {
@@ -82,8 +90,9 @@ const ChallengeRewardDeliveryScreen = () => {
         label="Mobile Number"
         placeholder="Enter here"
         value={mobile}
-        onChangeText={setMobile}
+        onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
         keyboardType="phone-pad"
+        maxLength={MOBILE_DIGITS}
       />
       <FormField
         label="Address"

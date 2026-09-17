@@ -8,12 +8,13 @@ import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const GeneralAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [fullName, setFullName] = useState('');
-  const [mobile, setMobile] = useState('+91');
+  const [mobile, setMobile] = useState('');
   const [occasion, setOccasion] = useState('');
   const [amount, setAmount] = useState('1008');
   const [enabled, setEnabled] = useState(true);
@@ -28,6 +29,13 @@ const GeneralAnnadanamScreen = () => {
   const continuePay = () => {
     if (!fullName.trim()) {
       Alert.alert(t('tileAnnadanam'), t('pleaseEnterName'));
+      return;
+    }
+    if (!isMobile(mobile)) {
+      Alert.alert(
+        t('tileAnnadanam'),
+        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+      );
       return;
     }
     navigation.navigate('DonationForm', {
@@ -56,9 +64,13 @@ const GeneralAnnadanamScreen = () => {
           />
           <FormField
             label={t('mobileNumber')}
+            placeholder={t('enterMobileNumber')}
             value={mobile}
-            onChangeText={setMobile}
+            onChangeText={text =>
+              setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))
+            }
             keyboardType="phone-pad"
+            maxLength={MOBILE_DIGITS}
           />
           <FormField
             label={t('occasionLabel')}

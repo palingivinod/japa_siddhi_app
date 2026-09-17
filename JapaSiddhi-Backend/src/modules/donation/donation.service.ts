@@ -302,9 +302,17 @@ class DonationService {
       }
     }
 
+    // Older app builds may send a country code, so keep the last 10 digits and
+    // reject anything that is not a full mobile number.
+    const rawMobile = String(data.mobile ?? '').trim();
+    const mobile = rawMobile.replace(/\D/g, '').slice(-10);
+    if (rawMobile && mobile.length !== 10) {
+      throw new AppError('Enter a valid 10-digit mobile number.', 400);
+    }
+
     const remarks = [
       data.fullName ? `Name: ${data.fullName}` : '',
-      data.mobile ? `Mobile: ${data.mobile}` : '',
+      mobile ? `Mobile: ${mobile}` : '',
       data.gothram ? `Gothram: ${data.gothram}` : '',
       data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
       data.occasion ? `Occasion: ${data.occasion}` : '',
@@ -367,7 +375,7 @@ class DonationService {
         [
           'A devotee submitted Nithya Homam payment for verification.',
           `Name: ${data.fullName || '-'}`,
-          `Mobile: ${data.mobile || '-'}`,
+          `Mobile: ${mobile || '-'}`,
           `Gothram: ${data.gothram || '-'}`,
           `Nakshatram: ${data.nakshatram || '-'}`,
           `Purpose: ${purpose || '-'}`,
@@ -386,7 +394,7 @@ class DonationService {
         userId,
         orderId: order.id,
         fullName: data.fullName || 'Devotee',
-        mobile: data.mobile || '',
+        mobile,
         address: data.address || 'Temple delivery',
         cityId: 1,
         stateId: 1,
