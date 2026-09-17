@@ -2,48 +2,45 @@ import React, {useCallback, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {shortMonthDay} from '../../i18n/calendar';
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 
-const formatDay = (raw?: string | null) => {
-  const value = String(raw || '').trim();
-  if (!value) {
-    return '';
-  }
-  const iso = /^\d{4}-\d{2}-\d{2}/.test(value)
-    ? value.slice(0, 10)
-    : (() => {
-        const parts = value.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
-        if (!parts) {
-          return value;
-        }
-        return `${parts[3]}-${parts[2].padStart(2, '0')}-${parts[1].padStart(2, '0')}`;
-      })();
-  const date = new Date(`${iso}T12:00:00`);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
-};
+type Translate = ReturnType<typeof useLanguage>['t'];
 
-const scheduleLabel = (item: any) => {
+const scheduleLabel = (t: Translate, item: any) => {
   if (String(item.challengeType || '').toUpperCase() === 'STREAK') {
-    return 'Every day';
+    return t('everyDay');
   }
-  const start = formatDay(item.startDate);
-  const end = formatDay(item.endDate);
+  const start = shortMonthDay(t, item.startDate);
+  const end = shortMonthDay(t, item.endDate);
   if (!start && !end) {
-    return 'Every day';
+    return t('everyDay');
   }
   if (start && end && start === end) {
-    return 'Every day';
+    return t('everyDay');
   }
   if (start && end) {
-    return `${start} – ${end}`;
+    return t('dateRange', {start, end});
   }
   return start || end;
+};
+
+/**
+ * Admins type challenge blurbs in English. Known shapes such as "30 day
+ * challenge" are rebuilt from the dictionary; anything else is passed through
+ * the title lookup and left alone when there is no match.
+ */
+const describe = (t: Translate, tt: (value: string) => string, raw: string) => {
+  const value = String(raw || '').trim();
+  const dayCount = value.match(/^(\d+)\s*day\s*challenge$/i);
+  if (dayCount) {
+    return t('dayChallenge', {count: dayCount[1]});
+  }
+  return tt(value);
 };
 
 const mantraOf = (item: any) => {
@@ -62,6 +59,7 @@ const mantraOf = (item: any) => {
 
 const ChallengesScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, tt} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [resumeIds, setResumeIds] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -114,11 +112,8 @@ const ChallengesScreen = () => {
 
   return (
     <ScreenLayout title="Challenge Japa" showBack tab="JapaHub">
-      <Text style={styles.heading}>Take a Japa challenge</Text>
-      <Text style={styles.sub}>
-        Complete a target count within the challenge dates. Challenge counts stay
-        separate from Antharanga japa.
-      </Text>
+      <Text style={styles.heading}>{t('takeJapaChallenge')}</Text>
+      <Text style={styles.sub}>{t('challengeIntro')}</Text>
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
 
@@ -126,11 +121,11 @@ const ChallengesScreen = () => {
         items.map((item, index) => {
           const target = Number(item.targetValue || item.target || 0);
           const mantra = mantraOf(item);
-          const description =
-            item.description ||
-            (target
-              ? `Complete ${target.toLocaleString()} chants.`
-              : 'Join this community challenge.');
+          const description = item.description
+            ? describe(t, tt, item.description)
+            : target
+              ? t('completeChants', {count: target.toLocaleString()})
+              : t('joinCommunityChallenge');
           const canResume = Boolean(resumeIds[Number(item.id)]);
           return (
             <View key={item.id} style={styles.card}>
@@ -143,15 +138,19 @@ const ChallengesScreen = () => {
                   <View style={styles.dotInner} />
                 </View>
                 <View style={styles.copy}>
-                  <Text style={styles.title}>{item.title}</Text>
+                  <Text style={styles.title}>{tt(item.title)}</Text>
                   <Text style={styles.description}>{description}</Text>
                   {mantra ? (
-                    <Text style={styles.meta}>Mantra: {mantra}</Text>
+                    <Text style={styles.meta}>
+                      {t('mantraWithName', {name: tt(mantra)})}
+                    </Text>
                   ) : null}
                   <Text style={styles.meta}>
-                    Target: {target ? target.toLocaleString() : '—'}
+                    {t('targetWithCount', {
+                      count: target ? target.toLocaleString() : '—',
+                    })}
                   </Text>
-                  <Text style={styles.meta}>{scheduleLabel(item)}</Text>
+                  <Text style={styles.meta}>{scheduleLabel(t, item)}</Text>
                 </View>
               </View>
               <View style={styles.actions}>
@@ -162,7 +161,7 @@ const ChallengesScreen = () => {
                     onPress={() =>
                       navigation.navigate('ChallengeProgress', {id: item.id})
                     }>
-                    <Text style={styles.resumeText}>RESUME</Text>
+                    <Text style={styles.resumeText}>{t('resumeLabel')}</Text>
                   </TouchableOpacity>
                 ) : null}
                 <TouchableOpacity
@@ -171,7 +170,7 @@ const ChallengesScreen = () => {
                   onPress={() =>
                     navigation.navigate('ChallengeDetails', {id: item.id})
                   }>
-                  <Text style={styles.viewText}>VIEW</Text>
+                  <Text style={styles.viewText}>{t('view')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -179,9 +178,7 @@ const ChallengesScreen = () => {
         })}
 
       {!loading && items.length === 0 ? (
-        <Text style={styles.empty}>
-          No challenges yet. When an admin creates one, it will appear here.
-        </Text>
+        <Text style={styles.empty}>{t('noChallengesYet')}</Text>
       ) : null}
     </ScreenLayout>
   );

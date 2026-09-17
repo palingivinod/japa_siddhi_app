@@ -423,4 +423,106 @@ export const ta: TranslationDict = {
   noOrdersYet: 'இன்னும் ஆர்டர்கள் இல்லை.',
   statusProcessing: 'செயலாக்கத்தில்',
   couldNotLoadOrders: 'ஆர்டர்களை ஏற்ற முடியவில்லை.',
+
+  // Japa count screen
+  japasLabel: 'ஜபங்கள்',
+  clickToCountChant: 'ஜபத்தை எண்ண அழுத்துங்கள்',
+  goalReachedLabel: 'இலக்கை அடைந்தீர்கள்',
+  challengeCompleteLabel: 'சவால் முடிந்தது',
+  saveSession: 'அமர்வைச் சேமி',
+  savingLabel: 'சேமிக்கப்படுகிறது...',
+  viewProgress: 'முன்னேற்றத்தைப் பார்',
+  viewChallengeProgress: 'சவால் முன்னேற்றத்தைப் பார்',
+  goalWithCount: 'இலக்கு {{count}}',
+  goalWithLifetime: 'இலக்கு {{count}} · மொத்தம் {{lifetime}}',
+  challengeGoalWithCount: 'சவால் இலக்கு {{count}}',
+  challengeCountingHint:
+    'இந்தச் சவாலுக்கு மட்டும் எண்ணிக்கை — அந்தரங்க ஜபத்திலிருந்து தனி.',
+
+  // Japa progress screen
+  goalLabel: 'இலக்கு',
+  dailyGoal: 'தினசரி இலக்கு',
+  thisWeek: 'இந்த வாரம்',
+  goalCompletion: 'இலக்கு நிறைவு',
+  noChantsThisWeek: 'இந்த வாரம் இன்னும் ஜபம் சேமிக்கப்படவில்லை.',
+
+  // Challenge list screen
+  takeJapaChallenge: 'ஜப சவாலை ஏற்றுக்கொள்',
+  challengeIntro:
+    'சவால் தேதிகளுக்குள் நிர்ணயித்த எண்ணிக்கையை நிறைவு செய்யுங்கள். சவால் எண்ணிக்கை அந்தரங்க ஜபத்திலிருந்து தனியாக இருக்கும்.',
+  mantraWithName: 'மந்திரம்: {{name}}',
+  targetWithCount: 'இலக்கு: {{count}}',
+  completeChants: '{{count}} ஜபங்களை நிறைவு செய்யுங்கள்.',
+  joinCommunityChallenge: 'இந்தக் கூட்டுச் சவாலில் சேருங்கள்.',
+  everyDay: 'தினமும்',
+  resumeLabel: 'தொடரவும்',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} நாள் சவால்',
+  festivalChallenge: 'திருவிழா சவால்',
+  noChallengesYet:
+    'இன்னும் சவால்கள் இல்லை. நிர்வாகி ஒன்றை உருவாக்கும்போது இங்கே தோன்றும்.',
+
+  // Set your goal screen
+  howManyChantsToday: 'இன்று எத்தனை ஜபங்கள்?',
+  completeCountByDate: 'இந்த எண்ணிக்கையை ஒரு தேதிக்குள் நிறைவு செய்யுங்கள்',
+  countGoal: 'எண்ணிக்கை இலக்கு',
+  dateGoal: 'தேதி இலக்கு',
+  pickGoalDate: 'இலக்கு தேதியைத் தேர்ந்தெடு',
+  setGoalCountToStart: 'தொடங்க இலக்கு எண்ணிக்கையை நிர்ணயியுங்கள்.',
+  pickGoalDateFromCalendar: 'நாட்காட்டியில் இருந்து இலக்கு தேதியைத் தேர்ந்தெடுங்கள்.',
+  daysLeftDailyTarget: '{{days}} நாட்கள் உள்ளன · நாளுக்கு {{count}} ஜபங்கள்',
+  goalCountSummary: 'இலக்கு எண்ணிக்கை : {{count}}',
+  dateGoalSummary: 'தேதி இலக்கு : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'முன்னேற்றக் கண்காணிப்பு',
+  progressLabel: 'முன்னேற்றம்',
+  percentCompleted: '{{percent}}% நிறைவு',
+  todayTitle: 'இன்று',
+  remainingLabel: 'மீதம்',
+  dailyActivity: 'தினசரி செயல்பாடு',
+  japaChallengeTitle: '{{count}} ஜப சவால்',
+  challengeOnlyAnalytics:
+    'சவாலுக்கு மட்டுமான பகுப்பாய்வு. இந்த எண்ணிக்கைகள் அந்தரங்க / வழக்கமான ஜப பகுப்பாய்வில் சேர்க்கப்படவில்லை.',
+  resumeChallenge: 'சவாலைத் தொடரவும்',
+  chooseReward: 'பரிசைத் தேர்ந்தெடு',
+  enterDeliveryDetails: 'விநியோக விவரங்களை உள்ளிடு',
+  leaderboard: 'தலைவர் பலகை',
+  rewardOrdered: 'பரிசு ஆர்டர் செய்யப்பட்டது{{name}}{{order}}.',
+  rewardSelected:
+    'பரிசு தேர்ந்தெடுக்கப்பட்டது{{name}}. ஆர்டர் செய்ய விநியோக விவரங்களைச் சேர்க்கவும்.',
+  couldNotLoadChallengeProgress: 'சவால் முன்னேற்றத்தை ஏற்ற முடியவில்லை.',
+
+  // Preset mantras in Tamil script. Devotee-created mantras stay as typed.
+  mantraOmNamahShivaya: 'ஓம் நமః சிவாய',
+  mantraMahaMrityunjaya: 'மகா மிருத்யுஞ்ஜய மந்திரம்',
+  mantraGayatri: 'காயத்ரி மந்திரம்',
+  mantraOmNamoNarayanaya: 'ஓம் நமோ நாராயணாய',
+  mantraHareKrishna: 'ஹரே கிருஷ்ண மகா மந்திரம்',
+  mantraSriRama: 'ஸ்ரீ ராம மந்திரம்',
+  mantraOmGamGanapataye: 'ஓம் கம் கணபதயே நமः',
+  mantraOmShreemMahalakshmyai: 'ஓம் ஸ்ரீம் மஹாலக்ஷ்ம்யை நமः',
+  mantraOmAimSaraswatyai: 'ஓம் ஐம் சரஸ்வத்யை நமः',
+  mantraOmShriHanumate: 'ஓம் ஸ்ரீ ஹனுமதே நமः',
+
+  // Short weekday and month names
+  daySun: 'ஞாயி',
+  dayMon: 'திங்',
+  dayTue: 'செவ்',
+  dayWed: 'புத',
+  dayThu: 'வியா',
+  dayFri: 'வெள்',
+  daySat: 'சனி',
+  monthJan: 'ஜன',
+  monthFeb: 'பிப்',
+  monthMar: 'மார்',
+  monthApr: 'ஏப்',
+  monthMay: 'மே',
+  monthJun: 'ஜூன்',
+  monthJul: 'ஜூலை',
+  monthAug: 'ஆக',
+  monthSep: 'செப்',
+  monthOct: 'அக்',
+  monthNov: 'நவ',
+  monthDec: 'டிச',
 };

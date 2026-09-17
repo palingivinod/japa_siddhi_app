@@ -55,7 +55,7 @@ const ownChip = (id: number, name: string): ChantMantra => ({
 const ChantScreen = () => {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
-  const {t} = useLanguage();
+  const {t, tt} = useLanguage();
   const mode = route.params?.mode === 'private' ? 'private' : 'community';
   const [mantras, setMantras] = useState<ChantMantra[]>([]);
   const [selected, setSelected] = useState<ChantMantra | null>(null);
@@ -591,6 +591,11 @@ const ChantScreen = () => {
 
   const progress = Math.min(100, Math.round((count / Math.max(goal, 1)) * 100));
 
+  // Preset mantra names live in the dictionary, so they follow the chosen
+  // language. A devotee's own mantra is always shown exactly as they typed it.
+  const mantraLabel = (item: ChantMantra) =>
+    item.own ? item.name : tt(item.name);
+
   if (loading) {
     return (
       <ScreenLayout title="Smart Japa" showBack tab="JapaHub">
@@ -606,15 +611,13 @@ const ChantScreen = () => {
       ) : null}
       <Text style={styles.mode}>
         {challengeId
-          ? 'Challenge Japa'
+          ? t('challengeJapa')
           : mode === 'private'
             ? t('myJapa')
             : t('communityJapa')}
       </Text>
       {challengeId ? (
-        <Text style={styles.challengeHint}>
-          Counting only for this challenge — separate from Antharanga japa.
-        </Text>
+        <Text style={styles.challengeHint}>{t('challengeCountingHint')}</Text>
       ) : (
         <View style={styles.chipRow}>
           {mantras.map(item => (
@@ -631,7 +634,7 @@ const ChantScreen = () => {
                   styles.chipText,
                   selected?.key === item.key && styles.chipTextActive,
                 ]}>
-                {item.name}
+                {mantraLabel(item)}
               </Text>
             </TouchableOpacity>
           ))}
@@ -639,8 +642,12 @@ const ChantScreen = () => {
       )}
       <Text style={styles.mantra}>
         {challengeId
-          ? challengeMantra || selected?.name || t('myJapa')
-          : selected?.name || route.params?.privateMantra || t('myJapa')}
+          ? (challengeMantra && tt(challengeMantra)) ||
+            (selected && mantraLabel(selected)) ||
+            t('myJapa')
+          : (selected && mantraLabel(selected)) ||
+            route.params?.privateMantra ||
+            t('myJapa')}
       </Text>
       <Pressable
         onPress={tapChant}
@@ -652,15 +659,18 @@ const ChantScreen = () => {
         <View style={[styles.ring, goalReached && styles.ringPaused]}>
           <View style={styles.innerRing}>
             <Text style={styles.count}>{count.toLocaleString()}</Text>
-            <Text style={styles.japas}>JAPAS</Text>
+            <Text style={styles.japas}>{t('japasLabel')}</Text>
           </View>
         </View>
         <Text style={styles.goal}>
           {challengeId
-            ? `Challenge goal ${goal.toLocaleString()}`
-            : `Goal ${goal.toLocaleString()}${
-                savedTotal > 0 ? ` · Lifetime ${savedTotal.toLocaleString()}` : ''
-              }`}
+            ? t('challengeGoalWithCount', {count: goal.toLocaleString()})
+            : savedTotal > 0
+              ? t('goalWithLifetime', {
+                  count: goal.toLocaleString(),
+                  lifetime: savedTotal.toLocaleString(),
+                })
+              : t('goalWithCount', {count: goal.toLocaleString()})}
         </Text>
         <View style={styles.barRow}>
           <View style={styles.barTrack}>
@@ -673,9 +683,9 @@ const ChantScreen = () => {
           <Text style={styles.tapCircleText}>
             {goalReached
               ? challengeId
-                ? 'Challenge complete'
-                : 'Goal reached'
-              : 'Click to count chant'}
+                ? t('challengeCompleteLabel')
+                : t('goalReachedLabel')
+              : t('clickToCountChant')}
           </Text>
         </View>
       </Pressable>
@@ -684,7 +694,7 @@ const ChantScreen = () => {
         onPress={saveSession}
         disabled={saving}>
         <Text style={styles.saveText}>
-          {saving ? 'Saving...' : 'Save Session'}
+          {saving ? t('savingLabel') : t('saveSession')}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -701,7 +711,7 @@ const ChantScreen = () => {
           });
         }}>
         <Text style={styles.saveText}>
-          {challengeId ? 'View Challenge Progress' : 'View Progress'}
+          {challengeId ? t('viewChallengeProgress') : t('viewProgress')}
         </Text>
       </TouchableOpacity>
       {message ? (

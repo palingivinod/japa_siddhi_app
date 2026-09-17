@@ -425,4 +425,106 @@ export const ml: TranslationDict = {
   noOrdersYet: 'ഇനിയും ഓർഡറുകൾ ഇല്ല.',
   statusProcessing: 'പ്രോസസ്സിംഗിൽ',
   couldNotLoadOrders: 'ഓർഡറുകൾ ലോഡ് ചെയ്യാൻ കഴിഞ്ഞില്ല.',
+
+  // Japa count screen
+  japasLabel: 'ജപങ്ങൾ',
+  clickToCountChant: 'ജപം എണ്ണാൻ അമർത്തുക',
+  goalReachedLabel: 'ലക്ഷ്യം എത്തി',
+  challengeCompleteLabel: 'വെല്ലുവിളി പൂർത്തിയായി',
+  saveSession: 'സെഷൻ സേവ് ചെയ്യുക',
+  savingLabel: 'സേവ് ചെയ്യുന്നു...',
+  viewProgress: 'പ്രോഗ്രസ് കാണുക',
+  viewChallengeProgress: 'വെല്ലുവിളി പ്രോഗ്രസ് കാണുക',
+  goalWithCount: 'ലക്ഷ്യം {{count}}',
+  goalWithLifetime: 'ലക്ഷ്യം {{count}} · ആകെ {{lifetime}}',
+  challengeGoalWithCount: 'വെല്ലുവിളി ലക്ഷ്യം {{count}}',
+  challengeCountingHint:
+    'ഈ വെല്ലുവിളിക്ക് മാത്രമുള്ള എണ്ണം — അന്തരംഗ ജപത്തിൽ നിന്ന് വേറിട്ട്.',
+
+  // Japa progress screen
+  goalLabel: 'ലക്ഷ്യം',
+  dailyGoal: 'ദൈനിക ലക്ഷ്യം',
+  thisWeek: 'ഈ ആഴ്ച',
+  goalCompletion: 'ലക്ഷ്യ പൂർത്തീകരണം',
+  noChantsThisWeek: 'ഈ ആഴ്ച ഇതുവരെ ജപം സേവ് ചെയ്തിട്ടില്ല.',
+
+  // Challenge list screen
+  takeJapaChallenge: 'ജപ വെല്ലുവിളി സ്വീകരിക്കുക',
+  challengeIntro:
+    'വെല്ലുവിളി തീയതികൾക്കുള്ളിൽ നിശ്ചിത എണ്ണം പൂർത്തിയാക്കുക. വെല്ലുവിളി എണ്ണം അന്തരംഗ ജപത്തിൽ നിന്ന് വേറിട്ടു നിൽക്കും.',
+  mantraWithName: 'മന്ത്രം: {{name}}',
+  targetWithCount: 'ലക്ഷ്യം: {{count}}',
+  completeChants: '{{count}} ജപങ്ങൾ പൂർത്തിയാക്കുക.',
+  joinCommunityChallenge: 'ഈ കൂട്ടായ വെല്ലുവിളിയിൽ ചേരുക.',
+  everyDay: 'എല്ലാ ദിവസവും',
+  resumeLabel: 'തുടരുക',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} ദിവസ വെല്ലുവിളി',
+  festivalChallenge: 'ഉത്സവ വെല്ലുവിളി',
+  noChallengesYet:
+    'ഇതുവരെ വെല്ലുവിളികളില്ല. അഡ്മിൻ ഒന്ന് സൃഷ്ടിക്കുമ്പോൾ ഇവിടെ കാണാം.',
+
+  // Set your goal screen
+  howManyChantsToday: 'ഇന്ന് എത്ര ജപങ്ങൾ?',
+  completeCountByDate: 'ഈ എണ്ണം ഒരു തീയതിക്കുള്ളിൽ പൂർത്തിയാക്കുക',
+  countGoal: 'എണ്ണ ലക്ഷ്യം',
+  dateGoal: 'തീയതി ലക്ഷ്യം',
+  pickGoalDate: 'ലക്ഷ്യ തീയതി തിരഞ്ഞെടുക്കുക',
+  setGoalCountToStart: 'ആരംഭിക്കാൻ ലക്ഷ്യ എണ്ണം നിശ്ചയിക്കുക.',
+  pickGoalDateFromCalendar: 'കലണ്ടറിൽ നിന്ന് ലക്ഷ്യ തീയതി തിരഞ്ഞെടുക്കുക.',
+  daysLeftDailyTarget: '{{days}} ദിവസം ബാക്കി · ദിവസം {{count}} ജപങ്ങൾ',
+  goalCountSummary: 'ലക്ഷ്യ എണ്ണം : {{count}}',
+  dateGoalSummary: 'തീയതി ലക്ഷ്യം : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'പ്രോഗ്രസ് ട്രാക്കിംഗ്',
+  progressLabel: 'പ്രോഗ്രസ്',
+  percentCompleted: '{{percent}}% പൂർത്തിയായി',
+  todayTitle: 'ഇന്ന്',
+  remainingLabel: 'ബാക്കി',
+  dailyActivity: 'ദൈനിക പ്രവർത്തനം',
+  japaChallengeTitle: '{{count}} ജപ വെല്ലുവിളി',
+  challengeOnlyAnalytics:
+    'വെല്ലുവിളിക്ക് മാത്രമുള്ള വിശകലനം. ഈ എണ്ണങ്ങൾ അന്തരംഗ / സാധാരണ ജപ വിശകലനത്തിൽ ഉൾപ്പെടുന്നില്ല.',
+  resumeChallenge: 'വെല്ലുവിളി തുടരുക',
+  chooseReward: 'സമ്മാനം തിരഞ്ഞെടുക്കുക',
+  enterDeliveryDetails: 'ഡെലിവറി വിവരങ്ങൾ നൽകുക',
+  leaderboard: 'ലീഡർബോർഡ്',
+  rewardOrdered: 'സമ്മാനം ഓർഡർ ചെയ്തു{{name}}{{order}}.',
+  rewardSelected:
+    'സമ്മാനം തിരഞ്ഞെടുത്തു{{name}}. ഓർഡർ ചെയ്യാൻ ഡെലിവറി വിവരങ്ങൾ ചേർക്കുക.',
+  couldNotLoadChallengeProgress: 'വെല്ലുവിളി പ്രോഗ്രസ് ലോഡ് ചെയ്യാനായില്ല.',
+
+  // Preset mantras in Malayalam script. Devotee mantras stay as typed.
+  mantraOmNamahShivaya: 'ഓം നമഃ ശിവായ',
+  mantraMahaMrityunjaya: 'മഹാ മൃത്യുഞ്ജയ മന്ത്രം',
+  mantraGayatri: 'ഗായത്രി മന്ത്രം',
+  mantraOmNamoNarayanaya: 'ഓം നമോ നാരായണായ',
+  mantraHareKrishna: 'ഹരേ കൃഷ്ണ മഹാ മന്ത്രം',
+  mantraSriRama: 'ശ്രീ രാമ മന്ത്രം',
+  mantraOmGamGanapataye: 'ഓം ഗം ഗണപതയേ നമഃ',
+  mantraOmShreemMahalakshmyai: 'ഓം ശ്രീം മഹാലക്ഷ്മ്യൈ നമഃ',
+  mantraOmAimSaraswatyai: 'ഓം ഐം സരസ്വത്യൈ നമഃ',
+  mantraOmShriHanumate: 'ഓം ശ്രീ ഹനുമതേ നമഃ',
+
+  // Short weekday and month names
+  daySun: 'ഞായ',
+  dayMon: 'തിങ്ക',
+  dayTue: 'ചൊവ്വ',
+  dayWed: 'ബുധ',
+  dayThu: 'വ്യാഴ',
+  dayFri: 'വെള്ളി',
+  daySat: 'ശനി',
+  monthJan: 'ജനു',
+  monthFeb: 'ഫെബ്',
+  monthMar: 'മാർ',
+  monthApr: 'ഏപ്രി',
+  monthMay: 'മേയ്',
+  monthJun: 'ജൂൺ',
+  monthJul: 'ജൂലൈ',
+  monthAug: 'ഓഗ',
+  monthSep: 'സെപ്',
+  monthOct: 'ഒക്ടോ',
+  monthNov: 'നവം',
+  monthDec: 'ഡിസം',
 };

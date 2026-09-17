@@ -131,6 +131,127 @@ const num = (value: unknown) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+/**
+ * Timestamps are stored in UTC but a devotee's day runs on IST, and the app
+ * already buckets japa by IST (see japa.repository). Admin analytics has to use
+ * the same boundary or the panel disagrees with what devotees see on their own
+ * progress screen, and anything done between midnight and 05:30 IST is counted
+ * on the previous day.
+ */
+const IST_OFFSET_MINUTES = 330;
+
+/** The IST calendar day a stored UTC timestamp belongs to. */
+const istDay = (engine: string, column: string) =>
+  engine === 'mysql'
+    ? `DATE(DATE_ADD(${column}, INTERVAL ${IST_OFFSET_MINUTES} MINUTE))`
+    : `date(${column}, '+5 hours', '30 minutes')`;
+
+/** Today in IST, optionally shifted by whole days (negative for the past). */
+const istToday = (engine: string, offsetDays = 0) => {
+  if (engine === 'mysql') {
+    const minutes = IST_OFFSET_MINUTES + offsetDays * 1440;
+    return `DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL ${minutes} MINUTE))`;
+  }
+  const shift = offsetDays
+    ? `, '${offsetDays > 0 ? '+' : '-'}${Math.abs(offsetDays)} days'`
+    : '';
+  return `date('now', '+5 hours', '30 minutes'${shift})`;
+};
+
+const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** The IST day `offsetDays` from today, as a Date read via its UTC parts. */
+const istDayAt = (offsetDays: number) =>
+  new Date(
+    Date.now() +
+      IST_OFFSET_MINUTES * 60 * 1000 +
+      offsetDays * 24 * 60 * 60 * 1000,
+  );
+
+/** 'YYYY-MM-DD' in IST, matching what the grouped SQL returns. */
+const istDayKey = (offsetDays: number) => {
+  const day = istDayAt(offsetDays);
+  return `${day.getUTCFullYear()}-${String(day.getUTCMonth() + 1).padStart(
+    2,
+    '0',
+  )}-${String(day.getUTCDate()).padStart(2, '0')}`;
+};
+
+/** Short '17 Sep' label for a bar, on the same IST day as the bucket. */
+const istDayLabel = (offsetDays: number) => {
+  const day = istDayAt(offsetDays);
+  return `${String(day.getUTCDate()).padStart(2, '0')} ${
+    MONTH_LABELS[day.getUTCMonth()]
+  }`;
+};
+
+/**
+ * Turn one grouped 'day, total' result into a dense bar per day across the
+ * window, so days with no activity still show up as a zero instead of being
+ * missing. Replaces the old one-query-per-bar loops.
+ */
+const dailyBars = (rows: any[], barCount: number) => {
+  const byDay = new Map<string, number>();
+  (rows || []).forEach(row => {
+    byDay.set(String(row.day || '').slice(0, 10), num(row.total));
+  });
+
+  const bars: Array<{label: string; value: number}> = [];
+  for (let i = barCount - 1; i >= 0; i -= 1) {
+    bars.push({
+      label: istDayLabel(-i),
+      value: byDay.get(istDayKey(-i)) || 0,
+    });
+  }
+  return bars;
+};
+
+/**
+ * A challenge chant is saved with remarks of 'Challenge:<id>' (japa.service), so
+ * this is the exact complement of the exclusion filter used for normal japa.
+ * Keeping them complementary means normal japa plus challenge japa always adds
+ * up to every session, with nothing double counted and nothing dropped.
+ */
+const CHALLENGE_SESSION_SQL = `
+  AND (
+    lower(IFNULL(js.remarks, '')) LIKE 'challenge%'
+    OR lower(IFNULL(js.remarks, '')) LIKE '%challenge japa%'
+  )
+`;
+
+/** Everything that is not a challenge chant, i.e. Antharanga / normal japa. */
+const NORMAL_SESSION_SQL = `
+  AND (
+    js.remarks IS NULL
+    OR TRIM(js.remarks) = ''
+    OR (
+      lower(js.remarks) NOT LIKE 'challenge%'
+      AND lower(js.remarks) NOT LIKE '%challenge japa%'
+    )
+  )
+`;
+
+/** Match a session's remarks to one specific challenge id, never a prefix. */
+const challengeMatchSql = (engine: string) =>
+  engine === 'mysql'
+    ? `(js.remarks = CONCAT('Challenge:', c.id)
+        OR js.remarks LIKE CONCAT('Challenge:', c.id, ' %'))`
+    : `(js.remarks = 'Challenge:' || c.id
+        OR js.remarks LIKE 'Challenge:' || c.id || ' %')`;
+
 const formatDonationsLabel = (amount: number) => {
   if (amount >= 100000) {
     const lakhs = amount / 100000;
@@ -257,23 +378,9 @@ router.get('/analytics', async (req: Request, res: Response) => {
         ? `AND user_id IN (SELECT id FROM users WHERE IFNULL(country_id, 1) = 1 AND deleted_at IS NULL)`
         : '';
 
-    const regionFilterCp =
-      region === 'in' || region === 'india'
-        ? `AND cp.user_id IN (SELECT id FROM users WHERE IFNULL(country_id, 1) = 1 AND deleted_at IS NULL)`
-        : '';
-
-    const dateGte =
-      engine === 'mysql'
-        ? `DATE_SUB(CURDATE(), INTERVAL ${days - 1} DAY)`
-        : `date('now', '-${days - 1} days')`;
-    const prevGte =
-      engine === 'mysql'
-        ? `DATE_SUB(CURDATE(), INTERVAL ${days * 2 - 1} DAY)`
-        : `date('now', '-${days * 2 - 1} days')`;
-    const prevLt =
-      engine === 'mysql'
-        ? `DATE_SUB(CURDATE(), INTERVAL ${days - 1} DAY)`
-        : `date('now', '-${days - 1} days')`;
+    const dateGte = istToday(engine, -(days - 1));
+    const prevGte = istToday(engine, -(days * 2 - 1));
+    const prevLt = istToday(engine, -(days - 1));
 
     const donationSuccess = `
       (
@@ -303,35 +410,20 @@ router.get('/analytics', async (req: Request, res: Response) => {
     if (metric === 'users') {
       kpiLabel = range === 'all' ? 'Total users' : 'New users';
 
-      const usersInRangeSql =
-        engine === 'mysql'
-          ? `SELECT COUNT(*) AS total
+      const userDay = istDay(engine, 'u.created_at');
+
+      const usersInRangeSql = `SELECT COUNT(*) AS total
              FROM users u
              WHERE u.deleted_at IS NULL
-               AND u.created_at >= ${dateGte}
-               ${demoUserSql('u')}
-               ${regionFilterUsers}`
-          : `SELECT COUNT(*) AS total
-             FROM users u
-             WHERE u.deleted_at IS NULL
-               AND date(u.created_at) >= ${dateGte}
+               AND ${userDay} >= ${dateGte}
                ${demoUserSql('u')}
                ${regionFilterUsers}`;
 
-      const prevUsersSql =
-        engine === 'mysql'
-          ? `SELECT COUNT(*) AS total
+      const prevUsersSql = `SELECT COUNT(*) AS total
              FROM users u
              WHERE u.deleted_at IS NULL
-               AND u.created_at >= ${prevGte}
-               AND u.created_at < ${prevLt}
-               ${demoUserSql('u')}
-               ${regionFilterUsers}`
-          : `SELECT COUNT(*) AS total
-             FROM users u
-             WHERE u.deleted_at IS NULL
-               AND date(u.created_at) >= ${prevGte}
-               AND date(u.created_at) < ${prevLt}
+               AND ${userDay} >= ${prevGte}
+               AND ${userDay} < ${prevLt}
                ${demoUserSql('u')}
                ${regionFilterUsers}`;
 
@@ -343,9 +435,13 @@ router.get('/analytics', async (req: Request, res: Response) => {
       kpi = range === 'all' ? users : num(inRangeRows?.[0]?.total);
       prev = num(prevRows?.[0]?.total);
 
-      const genderSql =
-        engine === 'mysql'
-          ? `SELECT
+      // 'All' covers the whole devotee base; a narrower window shows the mix of
+      // devotees who joined inside it. The demo filter has to match the KPI
+      // above, otherwise the bars and the headline number disagree.
+      const genderWindow =
+        range === 'all' ? '' : `AND ${userDay} >= ${dateGte}`;
+
+      const genderSql = `SELECT
                CASE
                  WHEN LOWER(IFNULL(u.gender, '')) IN ('male', 'm') THEN 'Male'
                  WHEN LOWER(IFNULL(u.gender, '')) IN ('female', 'f') THEN 'Female'
@@ -355,22 +451,8 @@ router.get('/analytics', async (req: Request, res: Response) => {
                COUNT(*) AS total
              FROM users u
              WHERE u.deleted_at IS NULL
-               AND u.created_at >= ${dateGte}
-               ${regionFilterUsers}
-             GROUP BY label
-             ORDER BY total DESC
-             LIMIT 6`
-          : `SELECT
-               CASE
-                 WHEN LOWER(IFNULL(u.gender, '')) IN ('male', 'm') THEN 'Male'
-                 WHEN LOWER(IFNULL(u.gender, '')) IN ('female', 'f') THEN 'Female'
-                 WHEN TRIM(IFNULL(u.gender, '')) = '' THEN 'Unknown'
-                 ELSE IFNULL(u.gender, 'Other')
-               END AS label,
-               COUNT(*) AS total
-             FROM users u
-             WHERE u.deleted_at IS NULL
-               AND date(u.created_at) >= ${dateGte}
+               ${genderWindow}
+               ${demoUserSql('u')}
                ${regionFilterUsers}
              GROUP BY label
              ORDER BY total DESC
@@ -386,64 +468,37 @@ router.get('/analytics', async (req: Request, res: Response) => {
         });
       } else {
         const barCount = Math.min(days, 6);
-        for (let i = barCount - 1; i >= 0; i -= 1) {
-          const daySql =
-            engine === 'mysql'
-              ? `SELECT COUNT(*) AS total
-                 FROM users u
-                 WHERE u.deleted_at IS NULL
-                   AND DATE(u.created_at) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
-                   ${regionFilterUsers}`
-              : `SELECT COUNT(*) AS total
-                 FROM users u
-                 WHERE u.deleted_at IS NULL
-                   AND date(u.created_at) = date('now', '-${i} days')
-                   ${regionFilterUsers}`;
-          const dayRows = await mysql.query<any[]>(daySql);
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          bars.push({
-            label: d.toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-            }),
-            value: num(dayRows?.[0]?.total),
-          });
-        }
+        const dayRows = await mysql.query<any[]>(
+          `SELECT ${userDay} AS day, COUNT(*) AS total
+           FROM users u
+           WHERE u.deleted_at IS NULL
+             AND ${userDay} >= ${istToday(engine, -(barCount - 1))}
+             ${demoUserSql('u')}
+             ${regionFilterUsers}
+           GROUP BY day`,
+        );
+        bars.push(...dailyBars(dayRows, barCount));
       }
     } else if (metric === 'donations') {
       kpiLabel = 'Donations ₹';
       kpiFormat = 'currency';
 
-      const sumSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(amount), 0) AS total
+      const donationDay = istDay(engine, donationStamp);
+      const donationWindow =
+        range === 'all' ? '' : `AND ${donationDay} >= ${dateGte}`;
+
+      const sumSql = `SELECT IFNULL(SUM(amount), 0) AS total
              FROM donations d
              WHERE ${donationSuccess}
-               AND ${donationStamp} >= ${dateGte}
-               ${donationDemoFilter}
-               ${regionFilterUserId}`
-          : `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations d
-             WHERE ${donationSuccess}
-               AND date(${donationStamp}) >= ${dateGte}
+               ${donationWindow}
                ${donationDemoFilter}
                ${regionFilterUserId}`;
 
-      const prevSumSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(amount), 0) AS total
+      const prevSumSql = `SELECT IFNULL(SUM(amount), 0) AS total
              FROM donations d
              WHERE ${donationSuccess}
-               AND ${donationStamp} >= ${prevGte}
-               AND ${donationStamp} < ${prevLt}
-               ${donationDemoFilter}
-               ${regionFilterUserId}`
-          : `SELECT IFNULL(SUM(amount), 0) AS total
-             FROM donations d
-             WHERE ${donationSuccess}
-               AND date(${donationStamp}) >= ${prevGte}
-               AND date(${donationStamp}) < ${prevLt}
+               AND ${donationDay} >= ${prevGte}
+               AND ${donationDay} < ${prevLt}
                ${donationDemoFilter}
                ${regionFilterUserId}`;
 
@@ -455,90 +510,73 @@ router.get('/analytics', async (req: Request, res: Response) => {
       prev = Math.round(num(prevRows?.[0]?.total));
 
       const barCount = Math.min(days, 6);
-      for (let i = barCount - 1; i >= 0; i -= 1) {
-        const daySql =
-          engine === 'mysql'
-            ? `SELECT IFNULL(SUM(amount), 0) AS total
-               FROM donations d
-               WHERE ${donationSuccess}
-                 AND DATE(${donationStamp}) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
-                 ${donationDemoFilter}
-                 ${regionFilterUserId}`
-            : `SELECT IFNULL(SUM(amount), 0) AS total
-               FROM donations d
-               WHERE ${donationSuccess}
-                 AND date(${donationStamp}) = date('now', '-${i} days')
-                 ${donationDemoFilter}
-                 ${regionFilterUserId}`;
-        const dayRows = await mysql.query<any[]>(daySql);
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        bars.push({
-          label: d.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-          }),
-          value: Math.round(num(dayRows?.[0]?.total)),
-        });
-      }
+      const dayRows = await mysql.query<any[]>(
+        `SELECT ${donationDay} AS day, IFNULL(SUM(amount), 0) AS total
+         FROM donations d
+         WHERE ${donationSuccess}
+           AND ${donationDay} >= ${istToday(engine, -(barCount - 1))}
+           ${donationDemoFilter}
+           ${regionFilterUserId}
+         GROUP BY day`,
+      );
+      bars.push(
+        ...dailyBars(dayRows, barCount).map(bar => ({
+          label: bar.label,
+          value: Math.round(bar.value),
+        })),
+      );
     } else if (metric === 'challenges') {
       kpiLabel = 'Challenge japas';
 
-      const joinSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(cp.current_value), 0) AS total
-             FROM challenge_participants cp
-             WHERE cp.created_at >= ${dateGte}
-             ${regionFilterCp}`
-          : `SELECT IFNULL(SUM(cp.current_value), 0) AS total
-             FROM challenge_participants cp
-             WHERE date(cp.created_at) >= ${dateGte}
-             ${regionFilterCp}`;
+      // Chants are what this screen reports, so they are read from the sessions
+      // themselves. The old query summed challenge_participants.current_value
+      // filtered on the row's created_at, which is the date the devotee joined,
+      // not the date they chanted — so chanting today against a challenge joined
+      // last week counted as zero, while a join today dragged in its whole
+      // lifetime total.
+      const sessionDay = istDay(engine, 'js.created_at');
+      const windowFilter =
+        range === 'all' ? '' : `AND ${sessionDay} >= ${dateGte}`;
 
-      const prevJoinSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(cp.current_value), 0) AS total
-             FROM challenge_participants cp
-             WHERE cp.created_at >= ${prevGte}
-               AND cp.created_at < ${prevLt}
-             ${regionFilterCp}`
-          : `SELECT IFNULL(SUM(cp.current_value), 0) AS total
-             FROM challenge_participants cp
-             WHERE date(cp.created_at) >= ${prevGte}
-               AND date(cp.created_at) < ${prevLt}
-             ${regionFilterCp}`;
+      const japaSql = `SELECT IFNULL(SUM(js.session_count), 0) AS total
+             FROM japa_sessions js
+             WHERE 1=1
+               ${windowFilter}
+               ${CHALLENGE_SESSION_SQL}
+               ${regionFilterSessions}`;
 
-      const [joinRows, prevRows] = await Promise.all([
-        mysql.query<any[]>(joinSql),
-        mysql.query<any[]>(prevJoinSql),
+      const prevJapaSql = `SELECT IFNULL(SUM(js.session_count), 0) AS total
+             FROM japa_sessions js
+             WHERE ${sessionDay} >= ${prevGte}
+               AND ${sessionDay} < ${prevLt}
+               ${CHALLENGE_SESSION_SQL}
+               ${regionFilterSessions}`;
+
+      const [japaRows, prevRows] = await Promise.all([
+        mysql.query<any[]>(japaSql),
+        mysql.query<any[]>(prevJapaSql),
       ]);
-      kpi = num(joinRows?.[0]?.total);
+      kpi = num(japaRows?.[0]?.total);
       prev = num(prevRows?.[0]?.total);
 
-      const topSql =
-        engine === 'mysql'
-          ? `SELECT
+      // One bar per challenge, counting only japa inside the selected window.
+      // The date filter used to be missing here entirely, so the chart showed
+      // all-time totals and never changed when the range changed. The join stays
+      // a LEFT JOIN so a challenge with no chants yet still shows as zero.
+      const topRows = await mysql.query<any[]>(
+        `SELECT
                IFNULL(c.title, 'Challenge') AS label,
-               IFNULL(SUM(cp.current_value), 0) AS total
+               IFNULL(SUM(js.session_count), 0) AS total
              FROM challenges c
-             LEFT JOIN challenge_participants cp
-               ON cp.challenge_id = c.id
-              ${regionFilterCp}
+             LEFT JOIN japa_sessions js
+               ON ${challengeMatchSql(engine)}
+               ${windowFilter}
+               ${regionFilterSessions}
              GROUP BY c.id, c.title
              ORDER BY total DESC, c.id DESC
-             LIMIT 6`
-          : `SELECT
-               IFNULL(c.title, 'Challenge') AS label,
-               IFNULL(SUM(cp.current_value), 0) AS total
-             FROM challenges c
-             LEFT JOIN challenge_participants cp
-               ON cp.challenge_id = c.id
-              ${regionFilterCp}
-             GROUP BY c.id, c.title
-             ORDER BY total DESC, c.id DESC
-             LIMIT 6`;
+             LIMIT 6`,
+      );
 
-      const topRows = await mysql.query<any[]>(topSql);
       if (topRows?.length) {
         topRows.forEach((row: any) => {
           bars.push({
@@ -547,29 +585,18 @@ router.get('/analytics', async (req: Request, res: Response) => {
           });
         });
       } else {
+        // No challenges exist yet, so fall back to a daily view of challenge
+        // japa rather than leaving the chart blank.
         const barCount = Math.min(days, 6);
-        for (let i = barCount - 1; i >= 0; i -= 1) {
-          const daySql =
-            engine === 'mysql'
-              ? `SELECT COUNT(*) AS total
-                 FROM challenge_participants cp
-                 WHERE DATE(cp.created_at) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
-                 ${regionFilterCp}`
-              : `SELECT COUNT(*) AS total
-                 FROM challenge_participants cp
-                 WHERE date(cp.created_at) = date('now', '-${i} days')
-                 ${regionFilterCp}`;
-          const dayRows = await mysql.query<any[]>(daySql);
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          bars.push({
-            label: d.toLocaleDateString('en-IN', {
-              day: '2-digit',
-              month: 'short',
-            }),
-            value: num(dayRows?.[0]?.total),
-          });
-        }
+        const dayRows = await mysql.query<any[]>(
+          `SELECT ${sessionDay} AS day, IFNULL(SUM(js.session_count), 0) AS total
+           FROM japa_sessions js
+           WHERE ${sessionDay} >= ${istToday(engine, -(barCount - 1))}
+             ${CHALLENGE_SESSION_SQL}
+             ${regionFilterSessions}
+           GROUP BY day`,
+        );
+        bars.push(...dailyBars(dayRows, barCount));
       }
     } else if (metric === 'festivals') {
       kpiLabel = 'Festivals';
@@ -694,61 +721,23 @@ router.get('/analytics', async (req: Request, res: Response) => {
       // japa / overview
       kpiLabel = 'Japa count';
 
-      const japaSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(js.session_count), 0) AS total
-             FROM japa_sessions js
-             WHERE js.created_at >= ${dateGte}
-             ${regionFilterSessions}
-             AND (
-               js.remarks IS NULL
-               OR TRIM(js.remarks) = ''
-               OR (
-                 LOWER(js.remarks) NOT LIKE 'challenge%'
-                 AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
-               )
-             )`
-          : `SELECT IFNULL(SUM(js.session_count), 0) AS total
-             FROM japa_sessions js
-             WHERE date(js.created_at) >= ${dateGte}
-             ${regionFilterSessions}
-             AND (
-               js.remarks IS NULL
-               OR TRIM(js.remarks) = ''
-               OR (
-                 lower(js.remarks) NOT LIKE 'challenge%'
-                 AND lower(js.remarks) NOT LIKE '%challenge japa%'
-               )
-             )`;
+      const sessionDay = istDay(engine, 'js.created_at');
+      const windowFilter =
+        range === 'all' ? '' : `AND ${sessionDay} >= ${dateGte}`;
 
-      const prevJapaSql =
-        engine === 'mysql'
-          ? `SELECT IFNULL(SUM(js.session_count), 0) AS total
+      const japaSql = `SELECT IFNULL(SUM(js.session_count), 0) AS total
              FROM japa_sessions js
-             WHERE js.created_at >= ${prevGte}
-               AND js.created_at < ${prevLt}
-             ${regionFilterSessions}
-             AND (
-               js.remarks IS NULL
-               OR TRIM(js.remarks) = ''
-               OR (
-                 LOWER(js.remarks) NOT LIKE 'challenge%'
-                 AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
-               )
-             )`
-          : `SELECT IFNULL(SUM(js.session_count), 0) AS total
+             WHERE 1=1
+               ${windowFilter}
+               ${NORMAL_SESSION_SQL}
+               ${regionFilterSessions}`;
+
+      const prevJapaSql = `SELECT IFNULL(SUM(js.session_count), 0) AS total
              FROM japa_sessions js
-             WHERE date(js.created_at) >= ${prevGte}
-               AND date(js.created_at) < ${prevLt}
-             ${regionFilterSessions}
-             AND (
-               js.remarks IS NULL
-               OR TRIM(js.remarks) = ''
-               OR (
-                 lower(js.remarks) NOT LIKE 'challenge%'
-                 AND lower(js.remarks) NOT LIKE '%challenge japa%'
-               )
-             )`;
+             WHERE ${sessionDay} >= ${prevGte}
+               AND ${sessionDay} < ${prevLt}
+               ${NORMAL_SESSION_SQL}
+               ${regionFilterSessions}`;
 
       const [japaRows, prevRows] = await Promise.all([
         mysql.query<any[]>(japaSql),
@@ -758,44 +747,15 @@ router.get('/analytics', async (req: Request, res: Response) => {
       prev = num(prevRows?.[0]?.total);
 
       const barCount = Math.min(days, 6);
-      for (let i = barCount - 1; i >= 0; i -= 1) {
-        const daySql =
-          engine === 'mysql'
-            ? `SELECT IFNULL(SUM(js.session_count), 0) AS total
-               FROM japa_sessions js
-               WHERE DATE(js.created_at) = DATE_SUB(CURDATE(), INTERVAL ${i} DAY)
-               ${regionFilterSessions}
-               AND (
-                 js.remarks IS NULL
-                 OR TRIM(js.remarks) = ''
-                 OR (
-                   LOWER(js.remarks) NOT LIKE 'challenge%'
-                   AND LOWER(js.remarks) NOT LIKE '%challenge japa%'
-                 )
-               )`
-            : `SELECT IFNULL(SUM(js.session_count), 0) AS total
-               FROM japa_sessions js
-               WHERE date(js.created_at) = date('now', '-${i} days')
-               ${regionFilterSessions}
-               AND (
-                 js.remarks IS NULL
-                 OR TRIM(js.remarks) = ''
-                 OR (
-                   lower(js.remarks) NOT LIKE 'challenge%'
-                   AND lower(js.remarks) NOT LIKE '%challenge japa%'
-                 )
-               )`;
-        const dayRows = await mysql.query<any[]>(daySql);
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        bars.push({
-          label: d.toLocaleDateString('en-IN', {
-            day: '2-digit',
-            month: 'short',
-          }),
-          value: num(dayRows?.[0]?.total),
-        });
-      }
+      const dayRows = await mysql.query<any[]>(
+        `SELECT ${sessionDay} AS day, IFNULL(SUM(js.session_count), 0) AS total
+         FROM japa_sessions js
+         WHERE ${sessionDay} >= ${istToday(engine, -(barCount - 1))}
+           ${NORMAL_SESSION_SQL}
+           ${regionFilterSessions}
+         GROUP BY day`,
+      );
+      bars.push(...dailyBars(dayRows, barCount));
     }
 
     let changePercent = 0;
@@ -805,29 +765,26 @@ router.get('/analytics', async (req: Request, res: Response) => {
       changePercent = 100;
     }
 
+    // An all-time KPI has no earlier period to be compared against, and the
+    // stale 180-360 day window used before made every 'All' view read '+100%'.
+    // Users are handled separately just below with a real 7-day trend.
+    if (range === 'all' && metric !== 'users') {
+      changePercent = 0;
+    }
+
     // For total-users KPI on "all", compare new users this 7d vs prior 7d for change.
     if (metric === 'users' && range === 'all') {
-      const recentSql =
-        engine === 'mysql'
-          ? `SELECT COUNT(*) AS total FROM users u
+      const allUserDay = istDay(engine, 'u.created_at');
+      const recentSql = `SELECT COUNT(*) AS total FROM users u
              WHERE u.deleted_at IS NULL
-               AND u.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-               ${regionFilterUsers}`
-          : `SELECT COUNT(*) AS total FROM users u
-             WHERE u.deleted_at IS NULL
-               AND date(u.created_at) >= date('now', '-6 days')
+               AND ${allUserDay} >= ${istToday(engine, -6)}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`;
-      const priorSql =
-        engine === 'mysql'
-          ? `SELECT COUNT(*) AS total FROM users u
+      const priorSql = `SELECT COUNT(*) AS total FROM users u
              WHERE u.deleted_at IS NULL
-               AND u.created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
-               AND u.created_at < DATE_SUB(CURDATE(), INTERVAL 6 DAY)
-               ${regionFilterUsers}`
-          : `SELECT COUNT(*) AS total FROM users u
-             WHERE u.deleted_at IS NULL
-               AND date(u.created_at) >= date('now', '-13 days')
-               AND date(u.created_at) < date('now', '-6 days')
+               AND ${allUserDay} >= ${istToday(engine, -13)}
+               AND ${allUserDay} < ${istToday(engine, -6)}
+               ${demoUserSql('u')}
                ${regionFilterUsers}`;
       const [recentRows, priorRows] = await Promise.all([
         mysql.query<any[]>(recentSql),

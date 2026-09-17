@@ -64,23 +64,28 @@ apiService.interceptors.response.use(
 
     const config = error?.config || {};
 
-    if (isAuthError && !isPublicAuth) {
+    if (isAuthError && !isPublicAuth && !config.__authRetried) {
       // A devotee stays signed in until they tap Logout, so an auth failure
-      // first tries to swap the token and replay the call. Only a token the
-      // server refuses to renew ends the session.
-      if (!config.__authRetried) {
-        const token = await refreshAuthToken();
-        if (token) {
-          config.__authRetried = true;
-          config.headers = {
-            ...(config.headers || {}),
-            Authorization: `Bearer ${token}`,
-          };
-          return apiService.request(config);
-        }
+      // first tries to swap the token and replay the call.
+      const result = await refreshAuthToken();
+
+      if (result.status === 'refreshed') {
+        config.__authRetried = true;
+        config.headers = {
+          ...(config.headers || {}),
+          Authorization: `Bearer ${result.token}`,
+        };
+        return apiService.request(config);
       }
-      await clearSession();
-      resetToLogin();
+
+      // 'unavailable' means the server could not be asked — a cold start, a
+      // dropped connection, an older deploy without /auth/refresh. The stored
+      // token stays put and the screen shows its own error, because a devotee
+      // must never be signed out by a problem that is not their session.
+      if (result.status === 'refused') {
+        await clearSession();
+        resetToLogin();
+      }
     }
 
     return Promise.reject(error);

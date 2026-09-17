@@ -422,4 +422,106 @@ export const or: TranslationDict = {
   noOrdersYet: 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଅର୍ଡର ନାହିଁ।',
   statusProcessing: 'ପ୍ରକ୍ରିୟାଧୀନ',
   couldNotLoadOrders: 'ଅର୍ଡର ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।',
+
+  // Japa count screen
+  japasLabel: 'ଜପ',
+  clickToCountChant: 'ଜପ ଗଣିବା ପାଇଁ ଦବାନ୍ତୁ',
+  goalReachedLabel: 'ଲକ୍ଷ୍ୟ ପୂରଣ ହେଲା',
+  challengeCompleteLabel: 'ଚ୍ୟାଲେଞ୍ଜ ସମ୍ପୂର୍ଣ୍ଣ',
+  saveSession: 'ସେସନ୍ ସେଭ୍ କରନ୍ତୁ',
+  savingLabel: 'ସେଭ୍ ହେଉଛି...',
+  viewProgress: 'ପ୍ରଗତି ଦେଖନ୍ତୁ',
+  viewChallengeProgress: 'ଚ୍ୟାଲେଞ୍ଜ ପ୍ରଗତି ଦେଖନ୍ତୁ',
+  goalWithCount: 'ଲକ୍ଷ୍ୟ {{count}}',
+  goalWithLifetime: 'ଲକ୍ଷ୍ୟ {{count}} · ମୋଟ {{lifetime}}',
+  challengeGoalWithCount: 'ଚ୍ୟାଲେଞ୍ଜ ଲକ୍ଷ୍ୟ {{count}}',
+  challengeCountingHint:
+    'କେବଳ ଏହି ଚ୍ୟାଲେଞ୍ଜ ପାଇଁ ଗଣନା — ଅନ୍ତରଙ୍ଗ ଜପଠାରୁ ଅଲଗା।',
+
+  // Japa progress screen
+  goalLabel: 'ଲକ୍ଷ୍ୟ',
+  dailyGoal: 'ଦୈନିକ ଲକ୍ଷ୍ୟ',
+  thisWeek: 'ଏହି ସପ୍ତାହ',
+  goalCompletion: 'ଲକ୍ଷ୍ୟ ପୂର୍ଣ୍ଣତା',
+  noChantsThisWeek: 'ଏହି ସପ୍ତାହରେ ଏପର୍ଯ୍ୟନ୍ତ ଜପ ସେଭ୍ ହୋଇନାହିଁ।',
+
+  // Challenge list screen
+  takeJapaChallenge: 'ଜପ ଚ୍ୟାଲେଞ୍ଜ ଗ୍ରହଣ କରନ୍ତୁ',
+  challengeIntro:
+    'ଚ୍ୟାଲେଞ୍ଜ ତାରିଖ ଭିତରେ ନିର୍ଦ୍ଧାରିତ ସଂଖ୍ୟା ପୂର୍ଣ୍ଣ କରନ୍ତୁ। ଚ୍ୟାଲେଞ୍ଜ ଗଣନା ଅନ୍ତରଙ୍ଗ ଜପଠାରୁ ଅଲଗା ରହେ।',
+  mantraWithName: 'ମନ୍ତ୍ର: {{name}}',
+  targetWithCount: 'ଲକ୍ଷ୍ୟ: {{count}}',
+  completeChants: '{{count}} ଜପ ପୂର୍ଣ୍ଣ କରନ୍ତୁ।',
+  joinCommunityChallenge: 'ଏହି ସାମୂହିକ ଚ୍ୟାଲେଞ୍ଜରେ ଯୋଗ ଦିଅନ୍ତୁ।',
+  everyDay: 'ପ୍ରତିଦିନ',
+  resumeLabel: 'ଜାରି ରଖନ୍ତୁ',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} ଦିନର ଚ୍ୟାଲେଞ୍ଜ',
+  festivalChallenge: 'ପର୍ବ ଚ୍ୟାଲେଞ୍ଜ',
+  noChallengesYet:
+    'ଏପର୍ଯ୍ୟନ୍ତ ଚ୍ୟାଲେଞ୍ଜ ନାହିଁ। ଆଡମିନ୍ ଏକ ତିଆରି କଲେ ଏଠାରେ ଦେଖାଯିବ।',
+
+  // Set your goal screen
+  howManyChantsToday: 'ଆଜି କେତେ ଜପ?',
+  completeCountByDate: 'ଏହି ସଂଖ୍ୟା ଏକ ତାରିଖ ଭିତରେ ପୂର୍ଣ୍ଣ କରନ୍ତୁ',
+  countGoal: 'ସଂଖ୍ୟା ଲକ୍ଷ୍ୟ',
+  dateGoal: 'ତାରିଖ ଲକ୍ଷ୍ୟ',
+  pickGoalDate: 'ଲକ୍ଷ୍ୟ ତାରିଖ ବାଛନ୍ତୁ',
+  setGoalCountToStart: 'ଆରମ୍ଭ କରିବାକୁ ଲକ୍ଷ୍ୟ ସଂଖ୍ୟା ନିର୍ଦ୍ଧାରଣ କରନ୍ତୁ।',
+  pickGoalDateFromCalendar: 'କ୍ୟାଲେଣ୍ଡରରୁ ଲକ୍ଷ୍ୟ ତାରିଖ ବାଛନ୍ତୁ।',
+  daysLeftDailyTarget: '{{days}} ଦିନ ବାକି · ପ୍ରତିଦିନ {{count}} ଜପ',
+  goalCountSummary: 'ଲକ୍ଷ୍ୟ ସଂଖ୍ୟା : {{count}}',
+  dateGoalSummary: 'ତାରିଖ ଲକ୍ଷ୍ୟ : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'ପ୍ରଗତି ଟ୍ରାକିଂ',
+  progressLabel: 'ପ୍ରଗତି',
+  percentCompleted: '{{percent}}% ସମ୍ପୂର୍ଣ୍ଣ',
+  todayTitle: 'ଆଜି',
+  remainingLabel: 'ବାକି',
+  dailyActivity: 'ଦୈନିକ କାର୍ଯ୍ୟକଳାପ',
+  japaChallengeTitle: '{{count}} ଜପ ଚ୍ୟାଲେଞ୍ଜ',
+  challengeOnlyAnalytics:
+    'କେବଳ ଚ୍ୟାଲେଞ୍ଜର ବିଶ୍ଳେଷଣ। ଏହି ଗଣନା ଅନ୍ତରଙ୍ଗ / ସାଧାରଣ ଜପ ବିଶ୍ଳେଷଣରେ ସାମିଲ ନାହିଁ।',
+  resumeChallenge: 'ଚ୍ୟାଲେଞ୍ଜ ଜାରି ରଖନ୍ତୁ',
+  chooseReward: 'ପୁରସ୍କାର ବାଛନ୍ତୁ',
+  enterDeliveryDetails: 'ଡେଲିଭରି ବିବରଣୀ ଦିଅନ୍ତୁ',
+  leaderboard: 'ଲିଡରବୋର୍ଡ',
+  rewardOrdered: 'ପୁରସ୍କାର ଅର୍ଡର ହୋଇଛି{{name}}{{order}}।',
+  rewardSelected:
+    'ପୁରସ୍କାର ବଛା ହୋଇଛି{{name}}। ଅର୍ଡର କରିବାକୁ ଡେଲିଭରି ବିବରଣୀ ଯୋଗ କରନ୍ତୁ।',
+  couldNotLoadChallengeProgress: 'ଚ୍ୟାଲେଞ୍ଜ ପ୍ରଗତି ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।',
+
+  // Preset mantras in Odia script. Devotee mantras stay as typed.
+  mantraOmNamahShivaya: 'ଓଁ ନମଃ ଶିବାୟ',
+  mantraMahaMrityunjaya: 'ମହା ମୃତ୍ୟୁଞ୍ଜୟ ମନ୍ତ୍ର',
+  mantraGayatri: 'ଗାୟତ୍ରୀ ମନ୍ତ୍ର',
+  mantraOmNamoNarayanaya: 'ଓଁ ନମୋ ନାରାୟଣାୟ',
+  mantraHareKrishna: 'ହରେ କୃଷ୍ଣ ମହା ମନ୍ତ୍ର',
+  mantraSriRama: 'ଶ୍ରୀ ରାମ ମନ୍ତ୍ର',
+  mantraOmGamGanapataye: 'ଓଁ ଗଂ ଗଣପତୟେ ନମଃ',
+  mantraOmShreemMahalakshmyai: 'ଓଁ ଶ୍ରୀଂ ମହାଲକ୍ଷ୍ମ୍ୟୈ ନମଃ',
+  mantraOmAimSaraswatyai: 'ଓଁ ଐଂ ସରସ୍ୱତ୍ୟୈ ନମଃ',
+  mantraOmShriHanumate: 'ଓଁ ଶ୍ରୀ ହନୁମତେ ନମଃ',
+
+  // Short weekday and month names
+  daySun: 'ରବି',
+  dayMon: 'ସୋମ',
+  dayTue: 'ମଙ୍ଗଳ',
+  dayWed: 'ବୁଧ',
+  dayThu: 'ଗୁରୁ',
+  dayFri: 'ଶୁକ୍ର',
+  daySat: 'ଶନି',
+  monthJan: 'ଜାନୁ',
+  monthFeb: 'ଫେବ୍ରୁ',
+  monthMar: 'ମାର୍ଚ୍ଚ',
+  monthApr: 'ଏପ୍ରି',
+  monthMay: 'ମେ',
+  monthJun: 'ଜୁନ',
+  monthJul: 'ଜୁଲା',
+  monthAug: 'ଅଗ',
+  monthSep: 'ସେପ୍ଟେ',
+  monthOct: 'ଅକ୍ଟୋ',
+  monthNov: 'ନଭେ',
+  monthDec: 'ଡିସେ',
 };

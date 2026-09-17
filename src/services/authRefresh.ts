@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 import ENV from '../env';
-import {getToken, isTokenExpired, saveSession} from './session';
+import {decodeJwtPayload, getToken, saveSession} from './session';
 
 /**
  * Sessions must only end when the devotee taps Logout, so a stored token is
@@ -14,36 +14,54 @@ const refreshClient = axios.create({
   headers: {'Content-Type': 'application/json'},
 });
 
-let inFlight: Promise<string | null> | null = null;
+/**
+ * A refresh either produces a new token, is definitively refused by the server,
+ * or could not be completed at all. The three cases must stay separate: only a
+ * refusal means the session is over. Treating "could not reach the server" as a
+ * refusal is what used to sign devotees out during a restart or a flaky network.
+ */
+export type RefreshResult =
+  | {status: 'refreshed'; token: string}
+  | {status: 'refused'}
+  | {status: 'unavailable'};
 
-const requestRefresh = async (token: string): Promise<string | null> => {
+const REFUSED: RefreshResult = {status: 'refused'};
+const UNAVAILABLE: RefreshResult = {status: 'unavailable'};
+
+let inFlight: Promise<RefreshResult> | null = null;
+
+const requestRefresh = async (token: string): Promise<RefreshResult> => {
   try {
     const response = await refreshClient.post('/auth/refresh', {token});
     const data = response?.data?.data ?? {};
     if (!data.token) {
-      return null;
+      return UNAVAILABLE;
     }
     await saveSession(data.token, data.user || undefined);
-    return data.token as string;
+    return {status: 'refreshed', token: String(data.token)};
   } catch (error: any) {
-    // Only a rejected token means the session is really over. Network trouble
-    // must leave the stored token alone so the devotee stays signed in.
-    if (error?.response?.status === 401) {
-      return null;
+    const status = Number(error?.response?.status || 0);
+
+    // 401 is the only answer that means "this token is dead". A timeout, an
+    // offline device, a cold start, a 404 from an older deploy or any 5xx must
+    // leave the stored token exactly where it is.
+    if (status === 401) {
+      return REFUSED;
     }
-    return token;
+    return UNAVAILABLE;
   }
 };
 
-/** Swap the stored token for a new one. Returns null when the server says no. */
-export const refreshAuthToken = async (): Promise<string | null> => {
+/** Swap the stored token for a new one, reporting which of the three happened. */
+export const refreshAuthToken = async (): Promise<RefreshResult> => {
   if (inFlight) {
     return inFlight;
   }
   inFlight = (async () => {
     const token = await getToken();
     if (!token) {
-      return null;
+      // Nothing to refresh. Not a refusal, so no session is torn down here.
+      return UNAVAILABLE;
     }
     return requestRefresh(token);
   })();
@@ -56,28 +74,13 @@ export const refreshAuthToken = async (): Promise<string | null> => {
 
 const REFRESH_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** True when the token still verifies but is inside its last week of life. */
 const expiresSoon = (token: string) => {
-  try {
-    const part = token.split('.')[1];
-    if (!part) {
-      return false;
-    }
-    const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-    const atobFn = (globalThis as any).atob as
-      | ((value: string) => string)
-      | undefined;
-    if (!atobFn) {
-      return false;
-    }
-    const payload = JSON.parse(atobFn(padded));
-    if (!payload?.exp) {
-      return false;
-    }
-    return payload.exp * 1000 - Date.now() < REFRESH_WINDOW_MS;
-  } catch {
+  const payload = decodeJwtPayload(token);
+  if (!payload?.exp) {
     return false;
   }
+  return payload.exp * 1000 - Date.now() < REFRESH_WINDOW_MS;
 };
 
 /**
@@ -89,7 +92,9 @@ export const ensureFreshToken = async () => {
   if (!token) {
     return;
   }
-  if (isTokenExpired(token) || expiresSoon(token)) {
+  const payload = decodeJwtPayload(token);
+  const expired = Boolean(payload?.exp) && payload!.exp! * 1000 <= Date.now();
+  if (expired || expiresSoon(token)) {
     await refreshAuthToken();
   }
 };

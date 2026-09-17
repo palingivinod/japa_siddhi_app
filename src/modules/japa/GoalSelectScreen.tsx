@@ -121,11 +121,11 @@ const GoalSelectScreen = () => {
 
   const start = async () => {
     if (goal < 1) {
-      Alert.alert(t('setYourGoal'), 'Set a goal count to start.');
+      Alert.alert(t('setYourGoal'), t('setGoalCountToStart'));
       return;
     }
     if (goalType === 'date' && !endDate) {
-      Alert.alert(t('setYourGoal'), 'Pick a goal date from the calendar.');
+      Alert.alert(t('setYourGoal'), t('pickGoalDateFromCalendar'));
       return;
     }
     const challengeId = Number(route.params?.challengeId || 0) || undefined;
@@ -166,19 +166,19 @@ const GoalSelectScreen = () => {
     <ScreenLayout title="Set Your Goal" showBack tab="JapaHub">
       <Text style={styles.hint}>
         {goalType === 'count'
-          ? 'How many chants today?'
-          : 'Complete this count by a date'}
+          ? t('howManyChantsToday')
+          : t('completeCountByDate')}
       </Text>
       <View style={styles.chips}>
         <TouchableOpacity
           style={[styles.chip, goalType === 'count' && styles.chipOn]}
           onPress={() => setGoalType('count')}>
-          <Text style={styles.chipText}>Count goal</Text>
+          <Text style={styles.chipText}>{t('countGoal')}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.chip, goalType === 'date' && styles.chipOn]}
           onPress={() => setGoalType('date')}>
-          <Text style={styles.chipText}>Date goal</Text>
+          <Text style={styles.chipText}>{t('dateGoal')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -192,7 +192,7 @@ const GoalSelectScreen = () => {
           placeholderTextColor={Colors.placeholder}
           textAlign="center"
         />
-        <Text style={styles.japas}>JAPAS</Text>
+        <Text style={styles.japas}>{t('japasLabel')}</Text>
       </View>
 
       {goalType === 'date' ? (
@@ -202,7 +202,7 @@ const GoalSelectScreen = () => {
             onPress={() => setShowCalendar(true)}
             activeOpacity={0.85}>
             <Text style={styles.calendarLabel}>
-              {endDate ? formatDate(endDate) : 'Pick goal date'}
+              {endDate ? formatDate(endDate) : t('pickGoalDate')}
             </Text>
           </TouchableOpacity>
           <DatePickerModal
@@ -217,8 +217,10 @@ const GoalSelectScreen = () => {
           />
           {endDate && goal > 0 ? (
             <Text style={styles.meta}>
-              {remainingDays} days left · {dailyTarget.toLocaleString()} chants
-              each day
+              {t('daysLeftDailyTarget', {
+                days: remainingDays,
+                count: dailyTarget.toLocaleString(),
+              })}
             </Text>
           ) : null}
         </>
@@ -228,16 +230,18 @@ const GoalSelectScreen = () => {
         <View style={styles.summaryBox}>
           {goal > 0 ? (
             <Text style={styles.summary}>
-              Goal count : {goal.toLocaleString()}
+              {t('goalCountSummary', {count: goal.toLocaleString()})}
             </Text>
           ) : null}
           {endDate ? (
-            <Text style={styles.summary}>Date goal : {formatDate(endDate)}</Text>
+            <Text style={styles.summary}>
+              {t('dateGoalSummary', {date: formatDate(endDate)})}
+            </Text>
           ) : null}
         </View>
       ) : null}
 
-      <PrimaryButton title="START JAPA" onPress={start} />
+      <PrimaryButton title={t('startJapa')} onPress={start} />
     </ScreenLayout>
   );
 };

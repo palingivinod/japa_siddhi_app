@@ -447,6 +447,108 @@ const en = {
   noOrdersYet: 'No orders yet.',
   statusProcessing: 'Processing',
   couldNotLoadOrders: 'Could not load orders.',
+
+  // Japa count screen
+  japasLabel: 'JAPAS',
+  clickToCountChant: 'Click to count chant',
+  goalReachedLabel: 'Goal reached',
+  challengeCompleteLabel: 'Challenge complete',
+  saveSession: 'Save Session',
+  savingLabel: 'Saving...',
+  viewProgress: 'View Progress',
+  viewChallengeProgress: 'View Challenge Progress',
+  goalWithCount: 'Goal {{count}}',
+  goalWithLifetime: 'Goal {{count}} · Lifetime {{lifetime}}',
+  challengeGoalWithCount: 'Challenge goal {{count}}',
+  challengeCountingHint:
+    'Counting only for this challenge — separate from Antharanga japa.',
+
+  // Japa progress screen
+  goalLabel: 'GOAL',
+  dailyGoal: 'Daily goal',
+  thisWeek: 'This week',
+  goalCompletion: 'Goal completion',
+  noChantsThisWeek: 'No chants saved this week yet.',
+
+  // Challenge list screen
+  takeJapaChallenge: 'Take a Japa challenge',
+  challengeIntro:
+    'Complete a target count within the challenge dates. Challenge counts stay separate from Antharanga japa.',
+  mantraWithName: 'Mantra: {{name}}',
+  targetWithCount: 'Target: {{count}}',
+  completeChants: 'Complete {{count}} chants.',
+  joinCommunityChallenge: 'Join this community challenge.',
+  everyDay: 'Every day',
+  resumeLabel: 'RESUME',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} day challenge',
+  festivalChallenge: 'Festival challenge',
+  noChallengesYet:
+    'No challenges yet. When an admin creates one, it will appear here.',
+
+  // Set your goal screen
+  howManyChantsToday: 'How many chants today?',
+  completeCountByDate: 'Complete this count by a date',
+  countGoal: 'Count goal',
+  dateGoal: 'Date goal',
+  pickGoalDate: 'Pick goal date',
+  setGoalCountToStart: 'Set a goal count to start.',
+  pickGoalDateFromCalendar: 'Pick a goal date from the calendar.',
+  daysLeftDailyTarget: '{{days}} days left · {{count}} chants each day',
+  goalCountSummary: 'Goal count : {{count}}',
+  dateGoalSummary: 'Date goal : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'Progress Tracking',
+  progressLabel: 'Progress',
+  percentCompleted: '{{percent}}% completed',
+  todayTitle: 'Today',
+  remainingLabel: 'Remaining',
+  dailyActivity: 'Daily activity',
+  japaChallengeTitle: '{{count}} Japa Challenge',
+  challengeOnlyAnalytics:
+    'Challenge-only analytics. These counts are not included in Antharanga / normal japa analytics.',
+  resumeChallenge: 'RESUME CHALLENGE',
+  chooseReward: 'CHOOSE REWARD',
+  enterDeliveryDetails: 'ENTER DELIVERY DETAILS',
+  leaderboard: 'LEADERBOARD',
+  rewardOrdered: 'Reward ordered{{name}}{{order}}.',
+  rewardSelected:
+    'Reward selected{{name}}. Add delivery details to place the order.',
+  couldNotLoadChallengeProgress: 'Could not load challenge progress.',
+
+  // Preset mantra names. Devotee-created mantras are shown exactly as typed.
+  mantraOmNamahShivaya: 'Om Namah Shivaya',
+  mantraMahaMrityunjaya: 'Maha Mrityunjaya Mantra',
+  mantraGayatri: 'Gayatri Mantra',
+  mantraOmNamoNarayanaya: 'Om Namo Narayanaya',
+  mantraHareKrishna: 'Hare Krishna Maha Mantra',
+  mantraSriRama: 'Sri Rama Mantra',
+  mantraOmGamGanapataye: 'Om Gam Ganapataye Namah',
+  mantraOmShreemMahalakshmyai: 'Om Shreem Mahalakshmyai Namah',
+  mantraOmAimSaraswatyai: 'Om Aim Saraswatyai Namah',
+  mantraOmShriHanumate: 'Om Shri Hanumate Namah',
+
+  // Short weekday and month names used by the progress chart and date ranges
+  daySun: 'Sun',
+  dayMon: 'Mon',
+  dayTue: 'Tue',
+  dayWed: 'Wed',
+  dayThu: 'Thu',
+  dayFri: 'Fri',
+  daySat: 'Sat',
+  monthJan: 'Jan',
+  monthFeb: 'Feb',
+  monthMar: 'Mar',
+  monthApr: 'Apr',
+  monthMay: 'May',
+  monthJun: 'Jun',
+  monthJul: 'Jul',
+  monthAug: 'Aug',
+  monthSep: 'Sep',
+  monthOct: 'Oct',
+  monthNov: 'Nov',
+  monthDec: 'Dec',
 } as const;
 
 export type TranslationKey = keyof typeof en;

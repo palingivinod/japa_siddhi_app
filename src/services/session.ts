@@ -17,21 +17,44 @@ const notify = (token: string | null) => {
   onTokenChange?.(token);
 };
 
-const decodeJwtPayload = (token: string): {exp?: number} | null => {
+const BASE64_ALPHABET =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+/**
+ * Hermes does not always provide atob, and Buffer only exists once a Node
+ * shim is loaded. Decoding by hand keeps token inspection working everywhere,
+ * which matters because a decode failure used to disable the silent refresh.
+ */
+const base64Decode = (input: string) => {
+  const clean = input.replace(/[^A-Za-z0-9+/]/g, '');
+  let output = '';
+  for (let i = 0; i < clean.length; i += 4) {
+    const chunk =
+      (BASE64_ALPHABET.indexOf(clean[i]) << 18) |
+      (BASE64_ALPHABET.indexOf(clean[i + 1]) << 12) |
+      ((clean[i + 2] ? BASE64_ALPHABET.indexOf(clean[i + 2]) : 0) << 6) |
+      (clean[i + 3] ? BASE64_ALPHABET.indexOf(clean[i + 3]) : 0);
+    output += String.fromCharCode((chunk >> 16) & 0xff);
+    if (clean[i + 2]) {
+      output += String.fromCharCode((chunk >> 8) & 0xff);
+    }
+    if (clean[i + 3]) {
+      output += String.fromCharCode(chunk & 0xff);
+    }
+  }
+  return output;
+};
+
+export const decodeJwtPayload = (
+  token: string | null | undefined,
+): {exp?: number; id?: number} | null => {
   try {
-    const part = token.split('.')[1];
+    const part = String(token || '').split('.')[1];
     if (!part) {
       return null;
     }
     const normalized = part.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4);
-    const atobFn = (globalThis as any).atob as
-      | ((value: string) => string)
-      | undefined;
-    const json = atobFn
-      ? atobFn(padded)
-      : Buffer.from(padded, 'base64').toString('utf8');
-    return JSON.parse(json);
+    return JSON.parse(base64Decode(normalized));
   } catch {
     return null;
   }

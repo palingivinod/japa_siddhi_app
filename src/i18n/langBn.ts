@@ -422,4 +422,106 @@ export const bn: TranslationDict = {
   noOrdersYet: 'এখনও কোনো অর্ডার নেই।',
   statusProcessing: 'প্রক্রিয়াধীন',
   couldNotLoadOrders: 'অর্ডার লোড করা যায়নি।',
+
+  // Japa count screen
+  japasLabel: 'জপ',
+  clickToCountChant: 'জপ গণনা করতে চাপুন',
+  goalReachedLabel: 'লক্ষ্য পূর্ণ হয়েছে',
+  challengeCompleteLabel: 'চ্যালেঞ্জ সম্পূর্ণ',
+  saveSession: 'সেশন সংরক্ষণ করুন',
+  savingLabel: 'সংরক্ষণ হচ্ছে...',
+  viewProgress: 'অগ্রগতি দেখুন',
+  viewChallengeProgress: 'চ্যালেঞ্জের অগ্রগতি দেখুন',
+  goalWithCount: 'লক্ষ্য {{count}}',
+  goalWithLifetime: 'লক্ষ্য {{count}} · মোট {{lifetime}}',
+  challengeGoalWithCount: 'চ্যালেঞ্জ লক্ষ্য {{count}}',
+  challengeCountingHint:
+    'শুধু এই চ্যালেঞ্জের জন্য গণনা — অন্তরঙ্গ জপ থেকে পৃথক।',
+
+  // Japa progress screen
+  goalLabel: 'লক্ষ্য',
+  dailyGoal: 'দৈনিক লক্ষ্য',
+  thisWeek: 'এই সপ্তাহে',
+  goalCompletion: 'লক্ষ্য পূর্ণতা',
+  noChantsThisWeek: 'এই সপ্তাহে এখনও কোনো জপ সংরক্ষিত হয়নি।',
+
+  // Challenge list screen
+  takeJapaChallenge: 'জপ চ্যালেঞ্জ গ্রহণ করুন',
+  challengeIntro:
+    'চ্যালেঞ্জের তারিখের মধ্যে নির্ধারিত সংখ্যা সম্পূর্ণ করুন। চ্যালেঞ্জের গণনা অন্তরঙ্গ জপ থেকে পৃথক থাকে।',
+  mantraWithName: 'মন্ত্র: {{name}}',
+  targetWithCount: 'লক্ষ্য: {{count}}',
+  completeChants: '{{count}} জপ সম্পূর্ণ করুন।',
+  joinCommunityChallenge: 'এই সামূহিক চ্যালেঞ্জে যোগ দিন।',
+  everyDay: 'প্রতিদিন',
+  resumeLabel: 'চালিয়ে যান',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} দিনের চ্যালেঞ্জ',
+  festivalChallenge: 'উৎসব চ্যালেঞ্জ',
+  noChallengesYet:
+    'এখনও কোনো চ্যালেঞ্জ নেই। অ্যাডমিন একটি তৈরি করলে এখানে দেখা যাবে।',
+
+  // Set your goal screen
+  howManyChantsToday: 'আজ কত জপ?',
+  completeCountByDate: 'এই সংখ্যা একটি তারিখের মধ্যে সম্পূর্ণ করুন',
+  countGoal: 'সংখ্যা লক্ষ্য',
+  dateGoal: 'তারিখ লক্ষ্য',
+  pickGoalDate: 'লক্ষ্য তারিখ বাছুন',
+  setGoalCountToStart: 'শুরু করতে লক্ষ্য সংখ্যা নির্ধারণ করুন।',
+  pickGoalDateFromCalendar: 'ক্যালেন্ডার থেকে লক্ষ্য তারিখ বাছুন।',
+  daysLeftDailyTarget: '{{days}} দিন বাকি · প্রতিদিন {{count}} জপ',
+  goalCountSummary: 'লক্ষ্য সংখ্যা : {{count}}',
+  dateGoalSummary: 'তারিখ লক্ষ্য : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'অগ্রগতি ট্র্যাকিং',
+  progressLabel: 'অগ্রগতি',
+  percentCompleted: '{{percent}}% সম্পূর্ণ',
+  todayTitle: 'আজ',
+  remainingLabel: 'বাকি',
+  dailyActivity: 'দৈনিক কার্যক্রম',
+  japaChallengeTitle: '{{count}} জপ চ্যালেঞ্জ',
+  challengeOnlyAnalytics:
+    'কেবল চ্যালেঞ্জের বিশ্লেষণ। এই গণনা অন্তরঙ্গ / সাধারণ জপ বিশ্লেষণে অন্তর্ভুক্ত নয়।',
+  resumeChallenge: 'চ্যালেঞ্জ চালিয়ে যান',
+  chooseReward: 'পুরস্কার বাছুন',
+  enterDeliveryDetails: 'ডেলিভারি বিবরণ দিন',
+  leaderboard: 'লিডারবোর্ড',
+  rewardOrdered: 'পুরস্কার অর্ডার করা হয়েছে{{name}}{{order}}।',
+  rewardSelected:
+    'পুরস্কার নির্বাচিত{{name}}। অর্ডার করতে ডেলিভারি বিবরণ যোগ করুন।',
+  couldNotLoadChallengeProgress: 'চ্যালেঞ্জের অগ্রগতি লোড করা যায়নি।',
+
+  // Preset mantras in Bengali script. Devotee mantras stay as typed.
+  mantraOmNamahShivaya: 'ওঁ নমঃ শিবায়',
+  mantraMahaMrityunjaya: 'মহা মৃত্যুঞ্জয় মন্ত্র',
+  mantraGayatri: 'গায়ত্রী মন্ত্র',
+  mantraOmNamoNarayanaya: 'ওঁ নমো নারায়ণায়',
+  mantraHareKrishna: 'হরে কৃষ্ণ মহা মন্ত্র',
+  mantraSriRama: 'শ্রী রাম মন্ত্র',
+  mantraOmGamGanapataye: 'ওঁ গং গণপতয়ে নমঃ',
+  mantraOmShreemMahalakshmyai: 'ওঁ শ্রীং মহালক্ষ্ম্যৈ নমঃ',
+  mantraOmAimSaraswatyai: 'ওঁ ঐং সরস্বত্যৈ নমঃ',
+  mantraOmShriHanumate: 'ওঁ শ্রী হনুমতে নমঃ',
+
+  // Short weekday and month names
+  daySun: 'রবি',
+  dayMon: 'সোম',
+  dayTue: 'মঙ্গল',
+  dayWed: 'বুধ',
+  dayThu: 'বৃহঃ',
+  dayFri: 'শুক্র',
+  daySat: 'শনি',
+  monthJan: 'জানু',
+  monthFeb: 'ফেব্রু',
+  monthMar: 'মার্চ',
+  monthApr: 'এপ্রি',
+  monthMay: 'মে',
+  monthJun: 'জুন',
+  monthJul: 'জুলা',
+  monthAug: 'আগ',
+  monthSep: 'সেপ্টে',
+  monthOct: 'অক্টো',
+  monthNov: 'নভে',
+  monthDec: 'ডিসে',
 };

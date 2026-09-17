@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -13,6 +14,7 @@ import {sessionGoalForChallenge, challengeCurrentCount} from './challengeGoal';
 const ChallengeProgressScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t, tt} = useLanguage();
   const [item, setItem] = useState<any>(null);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -27,10 +29,10 @@ const ChallengeProgressScreen = () => {
       .then(response => setItem(response.data.data))
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load challenge progress.'));
+        setError(getApiError(err, t('couldNotLoadChallengeProgress')));
       })
       .finally(() => setLoading(false));
-  }, [route.params?.id]);
+  }, [route.params?.id, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -108,32 +110,36 @@ const ChallengeProgressScreen = () => {
       {item ? (
         <>
           <Text style={styles.title}>
-            {item.title || `${target.toLocaleString()} Japa Challenge`}
+            {item.title
+              ? tt(item.title)
+              : t('japaChallengeTitle', {count: target.toLocaleString()})}
           </Text>
 
-          <Text style={styles.section}>Progress</Text>
+          <Text style={styles.section}>{t('progressLabel')}</Text>
           <View style={styles.track}>
             <View style={[styles.fill, {width: `${Math.min(100, percent)}%`}]} />
           </View>
-          <Text style={styles.total}>{current.toLocaleString()} Japas</Text>
-          <Text style={styles.completed}>{percent}% completed</Text>
+          <Text style={styles.total}>
+            {t('japasCountLabel', {count: current.toLocaleString()})}
+          </Text>
+          <Text style={styles.completed}>{t('percentCompleted', {percent})}</Text>
 
           <View style={styles.stats}>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Today</Text>
+              <Text style={styles.statLabel}>{t('todayTitle')}</Text>
               <Text style={styles.statValue}>{today.toLocaleString()}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>This week</Text>
+              <Text style={styles.statLabel}>{t('thisWeek')}</Text>
               <Text style={styles.statValue}>{week.toLocaleString()}</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statLabel}>Remaining</Text>
+              <Text style={styles.statLabel}>{t('remainingLabel')}</Text>
               <Text style={styles.statValue}>{remaining.toLocaleString()}</Text>
             </View>
           </View>
 
-          <Text style={styles.section}>Daily activity</Text>
+          <Text style={styles.section}>{t('dailyActivity')}</Text>
           <View style={styles.chart}>
             {(daily.length
               ? daily
@@ -160,22 +166,19 @@ const ChallengeProgressScreen = () => {
             ))}
           </View>
 
-          <Text style={styles.note}>
-            Challenge-only analytics. These counts are not included in Antharanga
-            / normal japa analytics.
-          </Text>
+          <Text style={styles.note}>{t('challengeOnlyAnalytics')}</Text>
 
           <View style={styles.gap} />
           {!completed ? (
             <>
-              <PrimaryButton title="RESUME CHALLENGE" onPress={resume} />
+              <PrimaryButton title={t('resumeChallenge')} onPress={resume} />
               <View style={styles.gap} />
             </>
           ) : null}
           {completed && !rewardClaimed ? (
             <>
               <PrimaryButton
-                title="CHOOSE REWARD"
+                title={t('chooseReward')}
                 onPress={() =>
                   navigation.navigate('ChallengeRewardSelect', {
                     id: route.params?.id,
@@ -188,7 +191,7 @@ const ChallengeProgressScreen = () => {
           {completed && rewardClaimed && !rewardDeliverySubmitted ? (
             <>
               <PrimaryButton
-                title="ENTER DELIVERY DETAILS"
+                title={t('enterDeliveryDetails')}
                 onPress={() =>
                   navigation.navigate('ChallengeRewardDelivery', {
                     id: route.params?.id,
@@ -201,21 +204,28 @@ const ChallengeProgressScreen = () => {
           ) : null}
           {completed && rewardClaimed && rewardDeliverySubmitted ? (
             <Text style={styles.note}>
-              Reward ordered
-              {item.claimedRewardName ? `: ${item.claimedRewardName}` : ''}
-              {item.rewardOrderNumber ? ` (#${item.rewardOrderNumber})` : ''}.
+              {t('rewardOrdered', {
+                name: item.claimedRewardName
+                  ? `: ${item.claimedRewardName}`
+                  : '',
+                order: item.rewardOrderNumber
+                  ? ` (#${item.rewardOrderNumber})`
+                  : '',
+              })}
             </Text>
           ) : null}
           {completed && rewardClaimed && !rewardDeliverySubmitted ? (
             <Text style={styles.note}>
-              Reward selected
-              {item.claimedRewardName ? `: ${item.claimedRewardName}` : ''}.
-              Add delivery details to place the order.
+              {t('rewardSelected', {
+                name: item.claimedRewardName
+                  ? `: ${item.claimedRewardName}`
+                  : '',
+              })}
             </Text>
           ) : null}
           {!completed ? (
             <OutlineButton
-              title="LEADERBOARD"
+              title={t('leaderboard')}
               onPress={() =>
                 navigation.navigate('ChallengeLeaderboard', {
                   id: route.params?.id,

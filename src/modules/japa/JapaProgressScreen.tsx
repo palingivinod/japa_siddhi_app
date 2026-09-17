@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {shortWeekday} from '../../i18n/calendar';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
@@ -9,14 +10,6 @@ import Colors from '../../theme/colors';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-
-const weekday = (value: string) => {
-  if (!value) {
-    return '';
-  }
-  const date = new Date(value);
-  return date.toLocaleDateString('en-US', {weekday: 'short'});
-};
 
 const JapaProgressScreen = () => {
   const navigation = useNavigation<any>();
@@ -75,15 +68,15 @@ const JapaProgressScreen = () => {
     <ScreenLayout title="Japa Progress" showBack tab="JapaHub">
       <View style={styles.stats}>
         <View style={styles.stat}>
-          <Text style={styles.label}>TODAY</Text>
+          <Text style={styles.label}>{t('today')}</Text>
           <Text style={styles.value}>{today.toLocaleString()}</Text>
         </View>
         <View style={styles.stat}>
-          <Text style={styles.label}>GOAL</Text>
+          <Text style={styles.label}>{t('goalLabel')}</Text>
           <Text style={styles.value}>{goal.toLocaleString()}</Text>
         </View>
       </View>
-      <Text style={styles.section}>Daily goal</Text>
+      <Text style={styles.section}>{t('dailyGoal')}</Text>
       <View style={styles.barRow}>
         <View style={styles.track}>
           <View style={[styles.fill, {width: `${percent}%`}]} />
@@ -91,18 +84,18 @@ const JapaProgressScreen = () => {
         <Text style={styles.percent}>{percent}%</Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>This week</Text>
+        <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
         {weekly.length === 0 ? (
-          <Text style={styles.meta}>No chants saved this week yet.</Text>
+          <Text style={styles.meta}>{t('noChantsThisWeek')}</Text>
         ) : (
           weekly.map(item => (
             <Text key={item.day} style={styles.meta}>
-              {weekday(item.day)} • {Number(item.count).toLocaleString()}
+              {shortWeekday(t, item.day)} • {Number(item.count).toLocaleString()}
             </Text>
           ))
         )}
       </View>
-      <Text style={styles.section}>Goal completion</Text>
+      <Text style={styles.section}>{t('goalCompletion')}</Text>
       <View style={styles.chart}>
         {weekly.map(item => (
           <View key={`bar-${item.day}`} style={styles.col}>
@@ -112,7 +105,7 @@ const JapaProgressScreen = () => {
                 {height: Math.max(8, Math.min(80, Number(item.count) / 30))},
               ]}
             />
-            <Text style={styles.axis}>{weekday(item.day)}</Text>
+            <Text style={styles.axis}>{shortWeekday(t, item.day)}</Text>
           </View>
         ))}
       </View>
@@ -123,7 +116,7 @@ const JapaProgressScreen = () => {
       />
       <View style={styles.gap} />
       <OutlineButton
-        title={lifetime >= 10000 ? 'DONATE NOW' : 'RESUME JAPA'}
+        title={lifetime >= 10000 ? t('donateNowAction') : t('resumeJapa')}
         onPress={resumeJapa}
       />
     </ScreenLayout>

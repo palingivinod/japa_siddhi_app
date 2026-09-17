@@ -427,6 +427,109 @@ export const hi: TranslationDict = {
   noOrdersYet: 'अभी कोई ऑर्डर नहीं है।',
   statusProcessing: 'प्रक्रिया में',
   couldNotLoadOrders: 'ऑर्डर लोड नहीं हो सके।',
+
+  // Japa count screen
+  japasLabel: 'जप',
+  clickToCountChant: 'जप गिनने के लिए दबाएँ',
+  goalReachedLabel: 'लक्ष्य पूरा हुआ',
+  challengeCompleteLabel: 'चुनौती पूर्ण',
+  saveSession: 'सत्र सहेजें',
+  savingLabel: 'सहेजा जा रहा है...',
+  viewProgress: 'प्रगति देखें',
+  viewChallengeProgress: 'चुनौती प्रगति देखें',
+  goalWithCount: 'लक्ष्य {{count}}',
+  goalWithLifetime: 'लक्ष्य {{count}} · कुल {{lifetime}}',
+  challengeGoalWithCount: 'चुनौती लक्ष्य {{count}}',
+  challengeCountingHint: 'केवल इस चुनौती के लिए गिनती — अंतरंग जप से अलग।',
+
+  // Japa progress screen
+  goalLabel: 'लक्ष्य',
+  dailyGoal: 'दैनिक लक्ष्य',
+  thisWeek: 'इस सप्ताह',
+  goalCompletion: 'लक्ष्य पूर्णता',
+  noChantsThisWeek: 'इस सप्ताह अभी कोई जप सहेजा नहीं गया।',
+
+  // Challenge list screen
+  takeJapaChallenge: 'जप चुनौती स्वीकारें',
+  challengeIntro:
+    'चुनौती की तिथियों के भीतर निर्धारित संख्या पूरी करें। चुनौती की गिनती अंतरंग जप से अलग रहती है।',
+  mantraWithName: 'मंत्र: {{name}}',
+  targetWithCount: 'लक्ष्य: {{count}}',
+  completeChants: '{{count}} जप पूरे करें।',
+  joinCommunityChallenge: 'इस सामूहिक चुनौती में शामिल हों।',
+  everyDay: 'प्रतिदिन',
+  resumeLabel: 'जारी रखें',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} दिन की चुनौती',
+  festivalChallenge: 'पर्व चुनौती',
+  noChallengesYet:
+    'अभी कोई चुनौती नहीं है। व्यवस्थापक द्वारा बनाने पर यहाँ दिखेगी।',
+
+  // Set your goal screen
+  howManyChantsToday: 'आज कितने जप?',
+  completeCountByDate: 'इस संख्या को एक तिथि तक पूरा करें',
+  countGoal: 'संख्या लक्ष्य',
+  dateGoal: 'तिथि लक्ष्य',
+  pickGoalDate: 'लक्ष्य तिथि चुनें',
+  setGoalCountToStart: 'शुरू करने के लिए लक्ष्य संख्या तय करें।',
+  pickGoalDateFromCalendar: 'कैलेंडर से लक्ष्य तिथि चुनें।',
+  daysLeftDailyTarget: '{{days}} दिन शेष · प्रतिदिन {{count}} जप',
+  goalCountSummary: 'लक्ष्य संख्या : {{count}}',
+  dateGoalSummary: 'तिथि लक्ष्य : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'प्रगति ट्रैकिंग',
+  progressLabel: 'प्रगति',
+  percentCompleted: '{{percent}}% पूर्ण',
+  todayTitle: 'आज',
+  remainingLabel: 'शेष',
+  dailyActivity: 'दैनिक गतिविधि',
+  japaChallengeTitle: '{{count}} जप चुनौती',
+  challengeOnlyAnalytics:
+    'केवल चुनौती का विश्लेषण। ये गिनती अंतरंग / सामान्य जप विश्लेषण में शामिल नहीं है।',
+  resumeChallenge: 'चुनौती जारी रखें',
+  chooseReward: 'पुरस्कार चुनें',
+  enterDeliveryDetails: 'डिलीवरी विवरण भरें',
+  leaderboard: 'लीडरबोर्ड',
+  rewardOrdered: 'पुरस्कार ऑर्डर किया गया{{name}}{{order}}।',
+  rewardSelected:
+    'पुरस्कार चुना गया{{name}}। ऑर्डर करने के लिए डिलीवरी विवरण जोड़ें।',
+  couldNotLoadChallengeProgress: 'चुनौती प्रगति लोड नहीं हो सकी।',
+  photoPickerNeedsRebuild:
+    'फ़ोटो पिकर के लिए ऐप फिर से इंस्टॉल करना होगा। एक बार npm run android चलाएँ, फिर प्रयास करें।',
+
+  // Preset mantras in Devanagari. Devotee-created mantras stay as typed.
+  mantraOmNamahShivaya: 'ॐ नमः शिवाय',
+  mantraMahaMrityunjaya: 'महा मृत्युंजय मंत्र',
+  mantraGayatri: 'गायत्री मंत्र',
+  mantraOmNamoNarayanaya: 'ॐ नमो नारायणाय',
+  mantraHareKrishna: 'हरे कृष्ण महा मंत्र',
+  mantraSriRama: 'श्री राम मंत्र',
+  mantraOmGamGanapataye: 'ॐ गं गणपतये नमः',
+  mantraOmShreemMahalakshmyai: 'ॐ श्रीं महालक्ष्म्यै नमः',
+  mantraOmAimSaraswatyai: 'ॐ ऐं सरस्वत्यै नमः',
+  mantraOmShriHanumate: 'ॐ श्री हनुमते नमः',
+
+  // Short weekday and month names
+  daySun: 'रवि',
+  dayMon: 'सोम',
+  dayTue: 'मंगल',
+  dayWed: 'बुध',
+  dayThu: 'गुरु',
+  dayFri: 'शुक्र',
+  daySat: 'शनि',
+  monthJan: 'जन',
+  monthFeb: 'फ़र',
+  monthMar: 'मार्च',
+  monthApr: 'अप्रै',
+  monthMay: 'मई',
+  monthJun: 'जून',
+  monthJul: 'जुल',
+  monthAug: 'अग',
+  monthSep: 'सित',
+  monthOct: 'अक्तू',
+  monthNov: 'नव',
+  monthDec: 'दिस',
 };
 
 /** Telugu */
@@ -810,6 +913,154 @@ export const te: TranslationDict = {
   noOrdersYet: 'ఇంకా ఆర్డర్లు లేవు.',
   statusProcessing: 'ప్రాసెస్ అవుతోంది',
   couldNotLoadOrders: 'ఆర్డర్లు లోడ్ కాలేదు.',
+
+  // Screen titles
+  smartJapa: 'జప లెక్క',
+  japaProgress: 'జప ప్రగతి',
+  japaChallenges: 'జప సవాళ్లు',
+  challengeComplete: 'సవాలు పూర్తయింది',
+  challengeDetails: 'సవాలు వివరాలు',
+  challengeProgress: 'సవాలు ప్రగతి',
+  challengeLeaderboard: 'సవాలు లీడర్‌బోర్డ్',
+  japaPaused: 'జపం నిలిపివేయబడింది',
+  setYourGoal: 'మీ లక్ష్యాన్ని నిర్ణయించండి',
+  homamEnrollment: 'హోమం నమోదు',
+  enrollmentConfirmed: 'నమోదు ఖరారైంది',
+  trackOrder: 'ఆర్డర్ ట్రాక్ చేయండి',
+  orderDetails: 'ఆర్డర్ వివరాలు',
+  deliveryStatus: 'డెలివరీ స్థితి',
+  placedSuccessful: 'విజయవంతంగా నమోదైంది',
+  thankYou: 'ధన్యవాదాలు',
+  donationForm: 'దాన ఫారం',
+  donationConfirmed: 'దానం ఖరారైంది',
+  referenceChant: 'సూచన మంత్రం',
+  rateYourExperience: 'మీ అనుభవాన్ని రేట్ చేయండి',
+  shareFeedback: 'అభిప్రాయం పంచుకోండి',
+  raiseTicket: 'టికెట్ నమోదు చేయండి',
+  reviewApplication: 'దరఖాస్తు సమీక్ష',
+  whatsappSupport: 'వాట్సాప్ సహాయం',
+  callSupport: 'కాల్ సహాయం',
+  faq: 'తరచూ అడిగే ప్రశ్నలు',
+  allScreens: 'అన్ని స్క్రీన్‌లు 0–64',
+  designSystem: 'జప సిద్ధి డిజైన్ సిస్టమ్',
+
+  // Feature pages
+  chantJapaDesc:
+    'పవిత్ర మంత్రాలను జపించండి, మీ జపాన్ని లెక్కించండి, నిత్య సాధనలో స్థిరంగా ఉండండి.',
+  familyJapaDesc:
+    'కుటుంబ సభ్యులను ఆహ్వానించండి, కలిసి జపించండి, ఉమ్మడి జప సంఖ్యను పెంచుకోండి.',
+  donateDesc:
+    'బిల్వ పత్ర ట్రస్ట్‌కు మద్దతు ఇవ్వండి, సేవ, ఆలయాలు మరియు ఆధ్యాత్మిక కార్యక్రమాలకు తోడ్పడండి.',
+  festivalsDesc:
+    'రాబోయే హిందూ పండుగలు మరియు మీరు చేరగల ప్రత్యేక జప కార్యక్రమాలను చూడండి.',
+  myProgressDesc:
+    'మీ జప లక్ష్యాలు, రోజువారీ టార్గెట్‌లు మరియు మీ ప్రగతిని ట్రాక్ చేయండి.',
+  profileDesc:
+    'మీ వ్యక్తిగత వివరాలు, భాష మరియు ఖాతా సెట్టింగ్‌లను చూడండి, మార్చుకోండి.',
+  featureReady: 'ఈ పేజీ తదుపరి ఫీచర్ నిర్మాణానికి సిద్ధంగా ఉంది.',
+  photoPickerNeedsRebuild:
+    'ఫోటో పికర్‌కు యాప్ మళ్లీ ఇన్‌స్టాల్ కావాలి. ఒకసారి npm run android రన్ చేసి మళ్లీ ప్రయత్నించండి.',
+
+  // Japa count screen
+  japasLabel: 'జపాలు',
+  clickToCountChant: 'జపం లెక్కించడానికి నొక్కండి',
+  goalReachedLabel: 'లక్ష్యం చేరుకున్నారు',
+  challengeCompleteLabel: 'సవాలు పూర్తయింది',
+  saveSession: 'సెషన్ సేవ్ చేయండి',
+  savingLabel: 'సేవ్ అవుతోంది...',
+  viewProgress: 'ప్రగతి చూడండి',
+  viewChallengeProgress: 'సవాలు ప్రగతి చూడండి',
+  goalWithCount: 'లక్ష్యం {{count}}',
+  goalWithLifetime: 'లక్ష్యం {{count}} · మొత్తం {{lifetime}}',
+  challengeGoalWithCount: 'సవాలు లక్ష్యం {{count}}',
+  challengeCountingHint:
+    'ఈ సవాలు కోసం మాత్రమే లెక్కింపు — అంతరంగ జపం నుండి వేరు.',
+
+  // Japa progress screen
+  goalLabel: 'లక్ష్యం',
+  dailyGoal: 'రోజువారీ లక్ష్యం',
+  thisWeek: 'ఈ వారం',
+  goalCompletion: 'లక్ష్య పూర్తి',
+  noChantsThisWeek: 'ఈ వారం ఇంకా జపం సేవ్ కాలేదు.',
+
+  // Challenge list screen
+  takeJapaChallenge: 'జప సవాలు స్వీకరించండి',
+  challengeIntro:
+    'సవాలు తేదీల లోపు నిర్ణీత సంఖ్యను పూర్తి చేయండి. సవాలు లెక్కలు అంతరంగ జపం నుండి వేరుగా ఉంటాయి.',
+  mantraWithName: 'మంత్రం: {{name}}',
+  targetWithCount: 'లక్ష్యం: {{count}}',
+  completeChants: '{{count}} జపాలు పూర్తి చేయండి.',
+  joinCommunityChallenge: 'ఈ సామూహిక సవాలులో చేరండి.',
+  everyDay: 'ప్రతి రోజు',
+  resumeLabel: 'కొనసాగించండి',
+  dateRange: '{{start}} – {{end}}',
+  dayChallenge: '{{count}} రోజుల సవాలు',
+  festivalChallenge: 'పండుగ సవాలు',
+  noChallengesYet: 'ఇంకా సవాళ్లు లేవు. అడ్మిన్ ఒకటి సృష్టించినప్పుడు ఇక్కడ కనిపిస్తుంది.',
+
+  // Set your goal screen
+  howManyChantsToday: 'ఈరోజు ఎన్ని జపాలు?',
+  completeCountByDate: 'ఈ సంఖ్యను ఒక తేదీలోపు పూర్తి చేయండి',
+  countGoal: 'సంఖ్య లక్ష్యం',
+  dateGoal: 'తేదీ లక్ష్యం',
+  pickGoalDate: 'లక్ష్య తేదీ ఎంచుకోండి',
+  setGoalCountToStart: 'ప్రారంభించడానికి లక్ష్య సంఖ్యను నిర్ణయించండి.',
+  pickGoalDateFromCalendar: 'క్యాలెండర్ నుండి లక్ష్య తేదీని ఎంచుకోండి.',
+  daysLeftDailyTarget: '{{days}} రోజులు మిగిలాయి · రోజుకు {{count}} జపాలు',
+  goalCountSummary: 'లక్ష్య సంఖ్య : {{count}}',
+  dateGoalSummary: 'తేదీ లక్ష్యం : {{date}}',
+
+  // Challenge progress screen
+  progressTracking: 'ప్రగతి ట్రాకింగ్',
+  progressLabel: 'ప్రగతి',
+  percentCompleted: '{{percent}}% పూర్తయింది',
+  todayTitle: 'ఈరోజు',
+  remainingLabel: 'మిగిలినవి',
+  dailyActivity: 'రోజువారీ కార్యకలాపం',
+  japaChallengeTitle: '{{count}} జప సవాలు',
+  challengeOnlyAnalytics:
+    'సవాలుకు మాత్రమే సంబంధించిన విశ్లేషణ. ఈ లెక్కలు అంతరంగ / సాధారణ జప విశ్లేషణలో చేర్చబడవు.',
+  resumeChallenge: 'సవాలు కొనసాగించండి',
+  chooseReward: 'బహుమతి ఎంచుకోండి',
+  enterDeliveryDetails: 'డెలివరీ వివరాలు నమోదు చేయండి',
+  leaderboard: 'లీడర్‌బోర్డ్',
+  rewardOrdered: 'బహుమతి ఆర్డర్ చేయబడింది{{name}}{{order}}.',
+  rewardSelected:
+    'బహుమతి ఎంచుకోబడింది{{name}}. ఆర్డర్ చేయడానికి డెలివరీ వివరాలు జోడించండి.',
+  couldNotLoadChallengeProgress: 'సవాలు ప్రగతి లోడ్ కాలేదు.',
+
+  // Preset mantras in Telugu script. Devotee-created mantras stay as typed.
+  mantraOmNamahShivaya: 'ఓం నమః శివాయ',
+  mantraMahaMrityunjaya: 'మహా మృత్యుంజయ మంత్రం',
+  mantraGayatri: 'గాయత్రీ మంత్రం',
+  mantraOmNamoNarayanaya: 'ఓం నమో నారాయణాయ',
+  mantraHareKrishna: 'హరే కృష్ణ మహా మంత్రం',
+  mantraSriRama: 'శ్రీ రామ మంత్రం',
+  mantraOmGamGanapataye: 'ఓం గం గణపతయే నమః',
+  mantraOmShreemMahalakshmyai: 'ఓం శ్రీం మహాలక్ష్మ్యై నమః',
+  mantraOmAimSaraswatyai: 'ఓం ఐం సరస్వత్యై నమః',
+  mantraOmShriHanumate: 'ఓం శ్రీ హనుమతే నమః',
+
+  // Short weekday and month names
+  daySun: 'ఆది',
+  dayMon: 'సోమ',
+  dayTue: 'మంగళ',
+  dayWed: 'బుధ',
+  dayThu: 'గురు',
+  dayFri: 'శుక్ర',
+  daySat: 'శని',
+  monthJan: 'జన',
+  monthFeb: 'ఫిబ్ర',
+  monthMar: 'మార్చి',
+  monthApr: 'ఏప్రి',
+  monthMay: 'మే',
+  monthJun: 'జూన్',
+  monthJul: 'జూలై',
+  monthAug: 'ఆగ',
+  monthSep: 'సెప్టెం',
+  monthOct: 'అక్టో',
+  monthNov: 'నవం',
+  monthDec: 'డిసెం',
 };
 
 
@@ -952,4 +1203,21 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Milestone reminders': 'milestoneReminders',
   Baanalingam: 'tileBaanalingam',
   'Japa Siddhi Design System': 'designSystem',
+
+  // Mantra names arrive from the API, so they are matched by title.
+  'Om Namah Shivaya': 'mantraOmNamahShivaya',
+  'Maha Mrityunjaya Mantra': 'mantraMahaMrityunjaya',
+  'Gayatri Mantra': 'mantraGayatri',
+  'Om Namo Narayanaya': 'mantraOmNamoNarayanaya',
+  'Hare Krishna Maha Mantra': 'mantraHareKrishna',
+  'Sri Rama Mantra': 'mantraSriRama',
+  'Om Gam Ganapataye Namah': 'mantraOmGamGanapataye',
+  'Om Shreem Mahalakshmyai Namah': 'mantraOmShreemMahalakshmyai',
+  'Om Aim Saraswatyai Namah': 'mantraOmAimSaraswatyai',
+  'Om Shri Hanumate Namah': 'mantraOmShriHanumate',
+
+  // Challenge copy that the admin stores in English.
+  'Festival challenge': 'festivalChallenge',
+  'Every day': 'everyDay',
+  'Progress Tracking': 'progressTracking',
 };
