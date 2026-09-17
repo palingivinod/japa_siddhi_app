@@ -267,7 +267,10 @@ const PersonalDetailsScreen = () => {
 
       <Text style={styles.label}>{t('gender')}</Text>
       <View style={styles.pickerContainer}>
-        <Picker selectedValue={gender} onValueChange={setGender}>
+        <Picker
+          selectedValue={gender}
+          onValueChange={setGender}
+          itemStyle={styles.pickerItem}>
           <Picker.Item label={t('selectGender')} value="" />
           <Picker.Item label={t('male')} value="Male" />
           <Picker.Item label={t('female')} value="Female" />
@@ -330,7 +333,8 @@ const PersonalDetailsScreen = () => {
           selectedValue={maritalStatus}
           onValueChange={value =>
             setMaritalStatus(value as 'Bachelor' | 'Married')
-          }>
+          }
+          itemStyle={styles.pickerItem}>
           <Picker.Item label={t('bachelor')} value="Bachelor" />
           <Picker.Item label={t('married')} value="Married" />
         </Picker>
@@ -403,6 +407,10 @@ const styles = StyleSheet.create({
   disabledInput: {
     backgroundColor: '#F3F1EC',
     color: '#8A8174',
+  },
+  pickerItem: {
+    color: Colors.sacredBrown,
+    fontSize: 18,
   },
   pickerContainer: {
     backgroundColor: Colors.white,

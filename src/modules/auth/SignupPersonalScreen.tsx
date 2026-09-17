@@ -1,11 +1,10 @@
 import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
-import DateTimePicker from '@react-native-community/datetimepicker';
-
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import DatePickerModal from '../common/DatePickerModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 /** The next steps expect DD/MM/YYYY, so the picker writes that shape back. */
@@ -246,15 +245,14 @@ const SignupPersonalScreen = () => {
         </>
       ) : null}
       {picker ? (
-        <DateTimePicker
+        <DatePickerModal
+          visible
           value={parseDate(dateValues[picker], picker === 'dob' ? 1995 : 2015)}
-          mode="date"
           maximumDate={new Date()}
-          onChange={(_, selectedDate) => {
+          onCancel={() => setPicker(null)}
+          onConfirm={selectedDate => {
+            setDateValue(picker, formatDate(selectedDate));
             setPicker(null);
-            if (selectedDate) {
-              setDateValue(picker, formatDate(selectedDate));
-            }
           }}
         />
       ) : null}

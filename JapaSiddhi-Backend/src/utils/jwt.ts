@@ -20,6 +20,18 @@ class JwtService {
       environment.JWT_SECRET as Secret,
     );
   }
+
+  /**
+   * Same signature check, but an already lapsed token still decodes. Used only
+   * by the refresh endpoint so a devotee is never signed out for being away.
+   */
+  verifyIgnoringExpiry(token: string): JwtPayload | string {
+    return jwt.verify(
+      token,
+      environment.JWT_SECRET as Secret,
+      {ignoreExpiration: true},
+    );
+  }
 }
 
 export default new JwtService();

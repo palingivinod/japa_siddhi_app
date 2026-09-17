@@ -106,13 +106,14 @@ export const hydrateSession = async () => {
   return {token: memoryToken, user: memoryUser};
 };
 
-/** Hydrate and drop expired tokens so login/auth gates stay consistent. */
+/**
+ * A stored token keeps the devotee signed in until they tap Logout. An aged
+ * token is still handed back: the API layer swaps it through /auth/refresh,
+ * and only a token the server refuses clears the session.
+ */
 export const getValidSession = async () => {
   const session = await hydrateSession();
-  if (!session.token || isTokenExpired(session.token)) {
-    if (session.token) {
-      await clearSession();
-    }
+  if (!session.token) {
     return {token: null as string | null, user: null};
   }
   return session;

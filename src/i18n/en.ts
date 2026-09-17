@@ -403,7 +403,7 @@ const en = {
   goToHome: 'GO TO HOME',
   backToHome: 'BACK TO HOME',
   joinCommunityJapa: 'JOIN SAMUHIKA JAPA',
-  startPrivateJapa: 'START PRIVATE JAPA',
+  startPrivateJapa: 'START JAPA',
   enrollNowBtn: 'ENROLL NOW',
   enrollAgain: 'ENROLL AGAIN',
   dailySacredHomam: 'Daily Sacred Homam',

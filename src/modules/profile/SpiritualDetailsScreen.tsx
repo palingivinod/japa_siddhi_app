@@ -169,7 +169,8 @@ const SpiritualDetailsScreen = () => {
           selectedValue={maritalStatus}
           onValueChange={value =>
             setMaritalStatus(value as 'Bachelor' | 'Married')
-          }>
+          }
+          itemStyle={styles.pickerItem}>
           <Picker.Item label={t('bachelor')} value="Bachelor" />
           <Picker.Item label={t('married')} value="Married" />
         </Picker>
@@ -226,6 +227,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 8,
+  },
+  pickerItem: {
+    color: Colors.sacredBrown,
+    fontSize: 18,
   },
   pickerContainer: {
     backgroundColor: Colors.white,

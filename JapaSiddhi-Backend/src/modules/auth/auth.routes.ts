@@ -157,6 +157,13 @@ router.post(
     authController.completeProfile(req, res, next)) as ExpressHandler,
 );
 
+// Public on purpose: a lapsed token must be exchangeable without a new login.
+router.post(
+  '/refresh',
+  ((req, res, next) =>
+    authController.refresh(req, res, next)) as ExpressHandler,
+);
+
 router.get(
   '/profile',
   authMiddleware,

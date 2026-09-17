@@ -291,6 +291,25 @@ class AuthController {
     }
   }
 
+  async refresh(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const header = String(req.headers.authorization || '');
+      const bearer = header.startsWith('Bearer ')
+        ? header.slice(7).trim()
+        : '';
+      const token = String(req.body?.token || '').trim() || bearer;
+
+      const result = await authService.refreshSession(token);
+      return apiResponse.success(res, 'Session refreshed', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deleteAccount(
     req: Request,
     res: Response,

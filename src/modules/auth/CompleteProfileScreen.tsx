@@ -13,11 +13,11 @@ import {
 } from 'react-native';
 
 import {Picker} from '@react-native-picker/picker';
-import DateTimePicker from '@react-native-community/datetimepicker';
 
 import Colors from '../../theme/colors';
 
 import AppHeader from '../common/AppHeader';
+import DatePickerModal from '../common/DatePickerModal';
 import CountryPickerField from './components/CountryPickerField';
 import StateSelector from './components/StateSelector';
 import CitySelector from './components/CitySelector';
@@ -419,7 +419,8 @@ const CompleteProfileScreen = ({
 
           <Picker
             selectedValue={gender}
-            onValueChange={setGender}>
+            onValueChange={setGender}
+            itemStyle={styles.pickerItem}>
 
             <Picker.Item
               label="Select Gender"
@@ -465,25 +466,16 @@ const CompleteProfileScreen = ({
 
         </TouchableOpacity>
 
-        {showDatePicker && (
-
-          <DateTimePicker
-            value={dob}
-            mode="date"
-            maximumDate={new Date()}
-            onChange={(
-              event,
-              selectedDate,
-            ) => {
-              setShowDatePicker(false);
-
-              if (selectedDate) {
-                setDob(selectedDate);
-              }
-            }}
-          />
-
-        )}
+        <DatePickerModal
+          visible={showDatePicker}
+          value={dob}
+          maximumDate={new Date()}
+          onCancel={() => setShowDatePicker(false)}
+          onConfirm={selectedDate => {
+            setDob(selectedDate);
+            setShowDatePicker(false);
+          }}
+        />
 
         <Text style={styles.label}>
           Country *
@@ -550,7 +542,8 @@ const CompleteProfileScreen = ({
             selectedValue={maritalStatus}
             onValueChange={value =>
               setMaritalStatus(value as 'Bachelor' | 'Married')
-            }>
+            }
+            itemStyle={styles.pickerItem}>
             <Picker.Item label="Bachelor" value="Bachelor" />
             <Picker.Item label="Married" value="Married" />
           </Picker>
@@ -572,19 +565,16 @@ const CompleteProfileScreen = ({
               onPress={() => setShowSpouseDobPicker(true)}>
               <Text style={styles.dateText}>{spouseDob.toDateString()}</Text>
             </TouchableOpacity>
-            {showSpouseDobPicker ? (
-              <DateTimePicker
-                value={spouseDob}
-                mode="date"
-                maximumDate={new Date()}
-                onChange={(_, selectedDate) => {
-                  setShowSpouseDobPicker(false);
-                  if (selectedDate) {
-                    setSpouseDob(selectedDate);
-                  }
-                }}
-              />
-            ) : null}
+            <DatePickerModal
+              visible={showSpouseDobPicker}
+              value={spouseDob}
+              maximumDate={new Date()}
+              onCancel={() => setShowSpouseDobPicker(false)}
+              onConfirm={selectedDate => {
+                setSpouseDob(selectedDate);
+                setShowSpouseDobPicker(false);
+              }}
+            />
 
             <Text style={styles.label}>Anniversary Date *</Text>
             <TouchableOpacity
@@ -594,19 +584,16 @@ const CompleteProfileScreen = ({
                 {anniversaryDate.toDateString()}
               </Text>
             </TouchableOpacity>
-            {showAnniversaryPicker ? (
-              <DateTimePicker
-                value={anniversaryDate}
-                mode="date"
-                maximumDate={new Date()}
-                onChange={(_, selectedDate) => {
-                  setShowAnniversaryPicker(false);
-                  if (selectedDate) {
-                    setAnniversaryDate(selectedDate);
-                  }
-                }}
-              />
-            ) : null}
+            <DatePickerModal
+              visible={showAnniversaryPicker}
+              value={anniversaryDate}
+              maximumDate={new Date()}
+              onCancel={() => setShowAnniversaryPicker(false)}
+              onConfirm={selectedDate => {
+                setAnniversaryDate(selectedDate);
+                setShowAnniversaryPicker(false);
+              }}
+            />
           </>
         ) : null}
 
@@ -812,6 +799,11 @@ const styles = StyleSheet.create({
     borderColor: '#D9D9D9',
     overflow: 'hidden',
     backgroundColor: '#FFFFFF',
+  },
+
+  pickerItem: {
+    color: Colors.sacredBrown,
+    fontSize: 18,
   },
 
   dateText: {

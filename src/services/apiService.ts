@@ -1,6 +1,7 @@
 import axios from 'axios';
 import ENV from '../env';
 import {clearSession, getToken, setTokenListener} from './session';
+import {refreshAuthToken} from './authRefresh';
 import {resetToLogin} from '../navigation/navigationRef';
 
 const apiService = axios.create({
@@ -58,9 +59,26 @@ apiService.interceptors.response.use(
       url.includes('/auth/dev-login') ||
       url.includes('/auth/otp') ||
       url.includes('/admin/auth/login') ||
-      url.includes('/admin/auth/forgot');
+      url.includes('/admin/auth/forgot') ||
+      url.includes('/auth/refresh');
+
+    const config = error?.config || {};
 
     if (isAuthError && !isPublicAuth) {
+      // A devotee stays signed in until they tap Logout, so an auth failure
+      // first tries to swap the token and replay the call. Only a token the
+      // server refuses to renew ends the session.
+      if (!config.__authRetried) {
+        const token = await refreshAuthToken();
+        if (token) {
+          config.__authRetried = true;
+          config.headers = {
+            ...(config.headers || {}),
+            Authorization: `Bearer ${token}`,
+          };
+          return apiService.request(config);
+        }
+      }
       await clearSession();
       resetToLogin();
     }

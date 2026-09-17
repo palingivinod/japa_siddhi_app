@@ -1,19 +1,16 @@
 import React, {useEffect, useState} from 'react';
 import {
   Alert,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
@@ -175,33 +172,17 @@ const AdminChallengeCreateScreen = () => {
     };
   }, [editId, isEdit, route.params?.title]);
 
-  const onStartChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowStartPicker(false);
-    }
-    if (event.type === 'dismissed') {
-      setShowStartPicker(false);
-      return;
-    }
-    if (selected) {
-      setStartDate(selected);
-      if (endDate && selected > endDate) {
-        setEndDate(selected);
-      }
-    }
-  };
-
-  const onEndChange = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS === 'android') {
-      setShowEndPicker(false);
-    }
-    if (event.type === 'dismissed') {
-      setShowEndPicker(false);
-      return;
-    }
-    if (selected) {
+  const onStartChange = (selected: Date) => {
+    setStartDate(selected);
+    if (endDate && selected > endDate) {
       setEndDate(selected);
     }
+    setShowStartPicker(false);
+  };
+
+  const onEndChange = (selected: Date) => {
+    setEndDate(selected);
+    setShowEndPicker(false);
   };
 
   const save = async () => {
@@ -309,14 +290,12 @@ const AdminChallengeCreateScreen = () => {
                 {formatDisplayDate(startDate)}
               </Text>
             </TouchableOpacity>
-            {showStartPicker ? (
-              <DateTimePicker
-                value={startDate || new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                onChange={onStartChange}
-              />
-            ) : null}
+            <DatePickerModal
+              visible={showStartPicker}
+              value={startDate || new Date()}
+              onCancel={() => setShowStartPicker(false)}
+              onConfirm={onStartChange}
+            />
           </View>
 
           <View style={styles.field}>
@@ -333,15 +312,13 @@ const AdminChallengeCreateScreen = () => {
                 {formatDisplayDate(endDate)}
               </Text>
             </TouchableOpacity>
-            {showEndPicker ? (
-              <DateTimePicker
-                value={endDate || startDate || new Date()}
-                mode="date"
-                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                minimumDate={startDate || undefined}
-                onChange={onEndChange}
-              />
-            ) : null}
+            <DatePickerModal
+              visible={showEndPicker}
+              value={endDate || startDate || new Date()}
+              minimumDate={startDate || undefined}
+              onCancel={() => setShowEndPicker(false)}
+              onConfirm={onEndChange}
+            />
           </View>
 
           <PrimaryButton

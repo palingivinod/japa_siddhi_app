@@ -1,7 +1,12 @@
 const Constants = {
   API_VERSION: 'v1',
 
-  TOKEN_EXPIRES_IN: '30d',
+  // Sessions end when the devotee taps Logout, so tokens are long lived and
+  // the app refreshes them silently through /auth/refresh.
+  TOKEN_EXPIRES_IN: '365d',
+
+  // A lapsed token can still be exchanged for a new one within this window.
+  TOKEN_REFRESH_GRACE_DAYS: 365,
 
   DEFAULT_LANGUAGE: 'en',
 

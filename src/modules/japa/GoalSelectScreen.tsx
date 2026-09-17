@@ -1,21 +1,18 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
   Alert,
-  Platform,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from '@react-native-community/datetimepicker';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -122,22 +119,6 @@ const GoalSelectScreen = () => {
     }, [route.params?.goal, route.params?.mantraId, route.params?.mode]),
   );
 
-  const onPickDate = (event: DateTimePickerEvent, selected?: Date) => {
-    if (Platform.OS !== 'ios') {
-      setShowCalendar(false);
-    }
-    if (event.type === 'dismissed') {
-      setShowCalendar(false);
-      return;
-    }
-    if (selected) {
-      setEndDate(selected);
-    }
-    if (Platform.OS === 'ios' && event.type === 'set') {
-      setShowCalendar(false);
-    }
-  };
-
   const start = async () => {
     if (goal < 1) {
       Alert.alert(t('setYourGoal'), 'Set a goal count to start.');
@@ -224,15 +205,16 @@ const GoalSelectScreen = () => {
               {endDate ? formatDate(endDate) : 'Pick goal date'}
             </Text>
           </TouchableOpacity>
-          {showCalendar ? (
-            <DateTimePicker
-              value={endDate || new Date()}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
-              minimumDate={new Date()}
-              onChange={onPickDate}
-            />
-          ) : null}
+          <DatePickerModal
+            visible={showCalendar}
+            value={endDate || new Date()}
+            minimumDate={new Date()}
+            onCancel={() => setShowCalendar(false)}
+            onConfirm={selected => {
+              setEndDate(selected);
+              setShowCalendar(false);
+            }}
+          />
           {endDate && goal > 0 ? (
             <Text style={styles.meta}>
               {remainingDays} days left · {dailyTarget.toLocaleString()} chants

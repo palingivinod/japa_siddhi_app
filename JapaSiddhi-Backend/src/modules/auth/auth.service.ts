@@ -6,6 +6,7 @@ import authRepository from './auth.repository';
 import otpRepository from './otp.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import environment from '../../config/environment';
+import Constants from '../../config/constants';
 
 import jwtService from '../../utils/jwt';
 
@@ -1058,6 +1059,51 @@ class AuthService {
 
     return user;
 
+  }
+
+  /**
+   * Hands back a fresh token for a signature-valid one, even if it has already
+   * lapsed. Devotees stay signed in until they tap Logout; only a tampered
+   * token, a very old one, or a closed account has to log in again.
+   */
+  async refreshSession(token: string): Promise<LoginResponse> {
+    const raw = String(token || '').trim();
+    if (!raw) {
+      throw new AppError('Authorization token missing.', 401);
+    }
+
+    let decoded: any;
+    try {
+      decoded = jwtService.verifyIgnoringExpiry(raw);
+    } catch {
+      throw new AppError('Invalid token.', 401);
+    }
+
+    if (!decoded || typeof decoded === 'string') {
+      throw new AppError('Invalid token.', 401);
+    }
+
+    const expiredAtMs = Number(decoded.exp || 0) * 1000;
+    const graceMs =
+      Constants.TOKEN_REFRESH_GRACE_DAYS * 24 * 60 * 60 * 1000;
+    if (expiredAtMs && Date.now() - expiredAtMs > graceMs) {
+      throw new AppError('Session expired. Please login again.', 401);
+    }
+
+    const userId = Number(decoded.id);
+    if (!userId) {
+      throw new AppError('Invalid token.', 401);
+    }
+
+    const user = await authRepository.findUserById(userId);
+    if (!user) {
+      throw new AppError('User not found', 401);
+    }
+
+    return {
+      token: issueToken(user),
+      user,
+    };
   }
 
   async deleteAccount(userId: number): Promise<void> {
