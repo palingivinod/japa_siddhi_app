@@ -98,13 +98,14 @@ const JapaGoalCompleteScreen = () => {
       let japaGoalId = Number(route.params?.japaGoalId || 0) || undefined;
       try {
         const response = await apiService.post('/japa-goals', {
-          mantraType: mode === 'private' ? 'PERSONAL' : 'DEFAULT',
+          // Antharanga japa can also run on a listed mantra, so the type
+          // follows the mantra that was chanted, not the screen mode.
+          mantraType: usingOwnMantra ? 'PERSONAL' : 'DEFAULT',
           mantraId,
           personalMantraId,
-          goalName:
-            mode === 'private'
-              ? ownMantra.slice(0, 80) || 'My Japa'
-              : 'Extended Japa',
+          goalName: usingOwnMantra
+            ? ownMantra.slice(0, 80) || 'My Japa'
+            : 'Extended Japa',
           targetCount: nextGoal,
           days: 1,
           startDate: new Date().toISOString().slice(0, 10),

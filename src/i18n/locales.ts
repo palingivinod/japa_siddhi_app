@@ -843,6 +843,8 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Antharanga Japam': 'myJapa',
   'Community Japa': 'communityJapa',
   'Samuhika Japam': 'communityJapa',
+  'JOIN SAMUHIKA JAPA': 'joinCommunityJapa',
+  'JOIN COMMUNITY JAPA': 'joinCommunityJapa',
   'Challenge Japa': 'challengeJapa',
   'Sankalp Japam': 'challengeJapa',
   'Japa Analytics': 'japaAnalytics',

@@ -705,7 +705,7 @@ class JapaService {
   }
 
   async getCommunity(userId: number) {
-    const [mantras, totalChants, devotees, summary] = await Promise.all([
+    const [mantras, totalChants, devotees, summary, mantraStats] = await Promise.all([
       mysql.query<any[]>(
         `
         SELECT
@@ -721,10 +721,12 @@ class JapaService {
       japaRepository.getGlobalJapaCount(),
       japaRepository.getDevoteeCount(),
       this.getSummary(userId),
+      japaRepository.getCommunityMantraStats(),
     ]);
 
     return {
       mantras,
+      mantraStats,
       totalChants,
       devotees: Math.max(devotees, 1),
       todayCount: summary.todayJapaCount,
@@ -732,10 +734,12 @@ class JapaService {
   }
 
   async joinCommunity(userId: number, mantraId?: number) {
-    const goal = await japaGoalRepository.findOrCreateActiveGoal(
-      userId,
-      mantraId,
-    );
+    const goal = mantraId
+      ? await japaGoalRepository.findOrCreateActiveGoalForMantra(
+          userId,
+          Number(mantraId),
+        )
+      : await japaGoalRepository.findOrCreateActiveGoal(userId);
     return {
       joined: true,
       japaGoalId: goal,

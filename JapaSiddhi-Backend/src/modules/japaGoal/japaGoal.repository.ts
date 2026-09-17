@@ -117,6 +117,47 @@ class JapaGoalRepository {
     });
   }
 
+  /**
+   * Samuhika japa membership is per mantra, so an active goal on a different
+   * mantra must not be reused when a devotee joins this one.
+   */
+  async findOrCreateActiveGoalForMantra(
+    userId: number,
+    mantraId: number,
+  ): Promise<number> {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM japa_goals
+      WHERE user_id = ?
+      AND status = 'ACTIVE'
+      AND mantra_type = 'DEFAULT'
+      AND mantra_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [userId, mantraId],
+    );
+
+    if (rows.length) {
+      return Number(rows[0].id);
+    }
+
+    return this.createGoal({
+      userId,
+      mantraType: 'DEFAULT',
+      mantraId,
+      personalMantraId: null,
+      goalName: 'Samuhika Japa',
+      targetCount: 10800,
+      remainingCount: 10800,
+      dailyTarget: 108,
+      startDate: new Date().toISOString().slice(0, 10),
+      endDate: '2026-12-31',
+      notes: 'Samuhika japa',
+    });
+  }
+
   async getUserGoals(
     userId: number,
   ) {

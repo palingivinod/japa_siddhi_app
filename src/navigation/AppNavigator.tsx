@@ -156,7 +156,7 @@ export type RootStackParamList = {
   Home: undefined;
   JapaHub: undefined;
   CommunityJapa: undefined;
-  MantraSelect: {mode?: string; mantraId?: number} | undefined;
+  MantraSelect: {mode?: string; mantraId?: number; mantraName?: string} | undefined;
   GoalSelect: {mode?: string; mantraId?: number; goal?: number; challengeId?: number; privateMantra?: string} | undefined;
   ReferenceChant: {
     mode?: string;

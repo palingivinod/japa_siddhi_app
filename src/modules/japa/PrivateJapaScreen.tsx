@@ -5,6 +5,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -63,6 +64,14 @@ const PrivateJapaScreen = () => {
     });
   };
 
+  /** Not everyone chants their own mantra — go straight to the listed ones. */
+  const startWithListedMantra = () => {
+    navigation.navigate('Chant', {
+      mode: 'private',
+      goal: Number(String(goal).replace(/,/g, '')) || 1008,
+    });
+  };
+
   return (
     <ScreenLayout title="My Japa" showBack tab="JapaHub">
       <View style={styles.card}>
@@ -96,6 +105,13 @@ const PrivateJapaScreen = () => {
         title={saving ? t('loading') : t('startPrivateJapa')}
         onPress={start}
       />
+      <View style={styles.orRow}>
+        <View style={styles.rule} />
+        <Text style={styles.orText}>OR</Text>
+        <View style={styles.rule} />
+      </View>
+      <OutlineButton title="MANTRAS" onPress={startWithListedMantra} />
+      <Text style={styles.hint}>Chant a listed mantra instead.</Text>
       {message ? <Text style={styles.error}>{message}</Text> : null}
     </ScreenLayout>
   );
@@ -145,6 +161,28 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.sacredBrown,
     marginBottom: 18,
+  },
+  orRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  rule: {
+    flex: 1,
+    height: 1,
+    backgroundColor: Colors.cardBorder,
+  },
+  orText: {
+    marginHorizontal: 12,
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  hint: {
+    marginTop: 10,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   error: {
     marginTop: 14,

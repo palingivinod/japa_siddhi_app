@@ -9,6 +9,7 @@ interface Props {
   title: string;
   /** true = always show, false = never, omit = show when navigation can go back */
   showBack?: boolean;
+  /** Home header: no back arrow, and the logo opens the profile. */
   showBell?: boolean;
 }
 
@@ -37,14 +38,6 @@ const AppHeader: React.FC<Props> = ({
       {shouldShowBack ? (
         <TouchableOpacity onPress={onBack} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
-        </TouchableOpacity>
-      ) : showBell ? (
-        <TouchableOpacity
-          onPress={() => navigation.navigate('Notifications')}
-          style={styles.back}
-          accessibilityRole="button"
-          accessibilityLabel={t('notifications')}>
-          <Text style={styles.bell}>●</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.back} />
@@ -89,11 +82,6 @@ const styles = StyleSheet.create({
     fontSize: 32,
     color: Colors.sacredBrown,
     lineHeight: 34,
-  },
-  bell: {
-    fontSize: 22,
-    color: Colors.templeGold,
-    fontWeight: '800',
   },
   title: {
     flex: 1,

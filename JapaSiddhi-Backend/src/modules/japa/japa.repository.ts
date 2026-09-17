@@ -379,6 +379,72 @@ class JapaRepository {
     return this.toCount(rows[0]?.total);
   }
 
+  /**
+   * Samuhika japa is counted per mantra: how many devotees joined that mantra
+   * and how much they have chanted between them. A devotee counts once, whether
+   * they joined the mantra or simply chanted it.
+   */
+  async getCommunityMantraStats() {
+    const [chantRows, devoteeRows] = await Promise.all([
+      mysql.query<any[]>(
+        `
+        SELECT
+          mantra_id AS mantraId,
+          COALESCE(SUM(session_count), 0) AS totalChants
+        FROM japa_sessions
+        WHERE mantra_type = 'DEFAULT'
+        AND mantra_id IS NOT NULL
+        ${EXCLUDE_CHALLENGE_REMARKS}
+        GROUP BY mantra_id
+        `,
+      ),
+      mysql.query<any[]>(
+        `
+        SELECT mantraId, COUNT(*) AS devotees
+        FROM (
+          SELECT DISTINCT mantra_id AS mantraId, user_id
+          FROM japa_sessions
+          WHERE mantra_type = 'DEFAULT'
+          AND mantra_id IS NOT NULL
+          ${EXCLUDE_CHALLENGE_REMARKS}
+          UNION
+          SELECT DISTINCT mantra_id AS mantraId, user_id
+          FROM japa_goals
+          WHERE mantra_type = 'DEFAULT'
+          AND mantra_id IS NOT NULL
+        ) t
+        GROUP BY mantraId
+        `,
+      ),
+    ]);
+
+    const stats = new Map<number, {mantraId: number; totalChants: number; devotees: number}>();
+    const entry = (id: number) => {
+      const existing = stats.get(id);
+      if (existing) {
+        return existing;
+      }
+      const created = {mantraId: id, totalChants: 0, devotees: 0};
+      stats.set(id, created);
+      return created;
+    };
+
+    (chantRows || []).forEach(row => {
+      const id = Number(row.mantraId || 0);
+      if (id) {
+        entry(id).totalChants = this.toCount(row.totalChants);
+      }
+    });
+    (devoteeRows || []).forEach(row => {
+      const id = Number(row.mantraId || 0);
+      if (id) {
+        entry(id).devotees = this.toCount(row.devotees);
+      }
+    });
+
+    return Array.from(stats.values());
+  }
+
   async getWeeklyBreakdown(userId: number) {
     const rows = await mysql.query<any[]>(
       `

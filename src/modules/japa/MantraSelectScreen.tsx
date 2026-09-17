@@ -10,10 +10,12 @@ import ScreenLayout from '../common/ScreenLayout';
 const MantraSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const passedId = Number(route.params?.mantraId || 0) || null;
   const [mantras, setMantras] = useState<any[]>([]);
-  const [selected, setSelected] = useState<number | null>(
-    route.params?.mantraId ?? null,
-  );
+  const [selected, setSelected] = useState<number | null>(passedId);
+  // Arriving with a mantra already chosen (community japa) only needs
+  // confirming, so the full list stays collapsed until it is asked for.
+  const [picking, setPicking] = useState(!passedId);
 
   useEffect(() => {
     apiService.get('/mantras').then(response => {
@@ -23,23 +25,48 @@ const MantraSelectScreen = () => {
     });
   }, []);
 
+  const chosen = mantras.find(item => item.id === selected);
+  const chosenName =
+    chosen?.mantraName ||
+    chosen?.transliteration ||
+    String(route.params?.mantraName || '');
+
   return (
     <ScreenLayout title="Select Mantra" showBack tab="JapaHub">
-      <Text style={styles.hint}>Choose one mantra to chant</Text>
-      {mantras.map(item => {
-        const active = item.id === selected;
-        return (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.card, active && styles.active]}
-            onPress={() => setSelected(item.id)}>
-            <View style={[styles.radio, active && styles.radioOn]}>
-              {active ? <Text style={styles.check}>✓</Text> : null}
+      {picking ? (
+        <>
+          <Text style={styles.hint}>Choose one mantra to chant</Text>
+          {mantras.map(item => {
+            const active = item.id === selected;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.card, active && styles.active]}
+                onPress={() => setSelected(item.id)}>
+                <View style={[styles.radio, active && styles.radioOn]}>
+                  {active ? <Text style={styles.check}>✓</Text> : null}
+                </View>
+                <Text style={styles.name}>{item.mantraName}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </>
+      ) : (
+        <>
+          <Text style={styles.hint}>Your selected mantra</Text>
+          <View style={[styles.card, styles.active]}>
+            <View style={[styles.radio, styles.radioOn]}>
+              <Text style={styles.check}>✓</Text>
             </View>
-            <Text style={styles.name}>{item.mantraName}</Text>
+            <Text style={styles.name}>{chosenName}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.changeBtn}
+            onPress={() => setPicking(true)}>
+            <Text style={styles.changeText}>Change mantra</Text>
           </TouchableOpacity>
-        );
-      })}
+        </>
+      )}
       <PrimaryButton
         title="SET GOAL"
         onPress={() =>
@@ -88,4 +115,15 @@ const styles = StyleSheet.create({
   },
   check: {color: Colors.white, fontWeight: '800', fontSize: 12},
   name: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
+  changeBtn: {
+    alignSelf: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  changeText: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    textDecorationLine: 'underline',
+  },
 });

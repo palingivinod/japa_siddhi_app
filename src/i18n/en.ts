@@ -402,7 +402,7 @@ const en = {
   endSession: 'END SESSION',
   goToHome: 'GO TO HOME',
   backToHome: 'BACK TO HOME',
-  joinCommunityJapa: 'JOIN COMMUNITY JAPA',
+  joinCommunityJapa: 'JOIN SAMUHIKA JAPA',
   startPrivateJapa: 'START PRIVATE JAPA',
   enrollNowBtn: 'ENROLL NOW',
   enrollAgain: 'ENROLL AGAIN',

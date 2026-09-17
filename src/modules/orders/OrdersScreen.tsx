@@ -68,7 +68,7 @@ const OrdersScreen = () => {
   }, [orders, tab]);
 
   return (
-    <ScreenLayout title="My Orders" tab="Orders">
+    <ScreenLayout title="My Orders" showBack tab="Orders">
       <View style={styles.tabs}>
         {TABS.map(item => (
           <TouchableOpacity key={item.id} onPress={() => setTab(item.id)}>
