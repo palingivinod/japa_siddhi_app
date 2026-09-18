@@ -24,11 +24,6 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     sub: 'Manage app languages',
   },
   {
-    title: 'Multilingual Content',
-    route: 'AdminMultilingualContent',
-    sub: 'Edit translated content',
-  },
-  {
     title: 'Export Reports',
     route: 'AdminExportReports',
     sub: 'Download Excel and report files',

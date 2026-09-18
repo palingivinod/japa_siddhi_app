@@ -175,6 +175,8 @@ export type AdminTicketStatus = 'Pending' | 'Resolved';
 export type AdminTicket = {
   id: string;
   code: string;
+  userId?: string | number | null;
+  userName?: string;
   subject: string;
   message?: string;
   screenshotUrl?: string | null;

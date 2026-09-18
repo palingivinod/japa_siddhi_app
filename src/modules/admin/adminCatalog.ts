@@ -166,12 +166,6 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     status: 'done',
   },
   {
-    id: '29',
-    title: 'Multilingual Content',
-    route: 'AdminMultilingualContent',
-    status: 'done',
-  },
-  {
     id: '30',
     title: 'Export Reports',
     route: 'AdminExportReports',

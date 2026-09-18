@@ -91,22 +91,27 @@ class CustomerCareRepository {
     );
   }
 
+  /** Admin review needs the devotee behind each ticket, not just their id. */
   async getAll() {
     await this.ensureColumns();
     return mysql.query<any[]>(
       `
       SELECT
-        id,
-        user_id AS userId,
-        subject,
-        message,
-        screenshot_url AS screenshotUrl,
-        admin_reply AS adminReply,
-        status,
-        created_at AS createdAt,
-        updated_at AS updatedAt
-      FROM customer_care
-      ORDER BY created_at DESC
+        cc.id,
+        cc.user_id AS userId,
+        cc.subject,
+        cc.message,
+        cc.screenshot_url AS screenshotUrl,
+        cc.admin_reply AS adminReply,
+        cc.status,
+        cc.created_at AS createdAt,
+        cc.updated_at AS updatedAt,
+        u.full_name AS userName,
+        u.mobile_number AS userMobile,
+        u.email AS userEmail
+      FROM customer_care cc
+      LEFT JOIN users u ON u.id = cc.user_id
+      ORDER BY cc.created_at DESC
       `,
     );
   }

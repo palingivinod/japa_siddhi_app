@@ -269,6 +269,60 @@ class ProfileRepository {
     return this.listAddresses(userId);
   }
 
+
+  private fcmColumnReady = false;
+
+  private async ensureFcmColumn() {
+    if (this.fcmColumnReady) {
+      return;
+    }
+    this.fcmColumnReady = true;
+    try {
+      await mysql.query(`ALTER TABLE users ADD COLUMN fcm_token TEXT NULL`);
+    } catch {
+      // Column already exists.
+    }
+  }
+
+  async savePushToken(
+    userId: number,
+    fcmToken: string,
+    platform?: string,
+  ) {
+    await this.ensureFcmColumn();
+    const token = String(fcmToken || '').trim();
+    if (!token) {
+      return {ok: false};
+    }
+
+    await mysql.query(
+      `
+      UPDATE users
+      SET fcm_token = NULL
+      WHERE fcm_token = ?
+        AND id <> ?
+      `,
+      [token, userId],
+    );
+
+    await mysql.query(
+      `
+      UPDATE users
+      SET fcm_token = ?,
+          device_type = CASE
+            WHEN ? IN ('IOS', 'ANDROID') THEN ?
+            ELSE device_type
+          END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [token, platform || '', platform || '', userId],
+    );
+
+    return {ok: true};
+  }
+
+
 }
 
 

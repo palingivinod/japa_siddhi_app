@@ -69,8 +69,8 @@ VALUES
 ('trust_name', 'Bilva Patra Trust', 'TEXT', 'TRUST', 'Trust Name'),
 ('trust_address', '', 'TEXT', 'TRUST', 'Trust Address'),
 ('support_email', '', 'EMAIL', 'TRUST', 'Support Email'),
-('support_phone', '', 'PHONE', 'TRUST', 'Support Phone'),
-('support_whatsapp', '', 'PHONE', 'TRUST', 'WhatsApp Number'),
+('support_phone', '+916281585599', 'PHONE', 'TRUST', 'Support Phone'),
+('support_whatsapp', '+916281585599', 'PHONE', 'TRUST', 'WhatsApp Number'),
 ('website_url', '', 'URL', 'TRUST', 'Official Website'),
 
 -- Donation

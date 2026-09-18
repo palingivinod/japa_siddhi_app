@@ -3844,6 +3844,10 @@ router.get('/support-tickets', async (req: Request, res: Response) => {
       data: (rows || []).map((row: any) => ({
         id: String(row.id),
         code: `TK${row.id}`,
+        userId: row.userId || null,
+        userName:
+          String(row.userName || '').trim() ||
+          (row.userId ? `User #${row.userId}` : 'Unknown'),
         subject: row.subject || '',
         message: row.message || '',
         screenshotUrl: row.screenshotUrl

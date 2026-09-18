@@ -33,9 +33,7 @@ class CustomerCareController {
         {
           userId,
           subject,
-          message: orderService
-            ? `${message}\n\nOrder / Service: ${orderService}`
-            : message,
+          message,
           orderService,
           screenshotUrl,
         },

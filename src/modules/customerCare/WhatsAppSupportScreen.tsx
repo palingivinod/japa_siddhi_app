@@ -7,7 +7,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const WhatsAppSupportScreen = () => {
-  const [url, setUrl] = useState('https://wa.me/917349483937');
+  const [url, setUrl] = useState('https://wa.me/916281585599');
 
   useEffect(() => {
     apiService

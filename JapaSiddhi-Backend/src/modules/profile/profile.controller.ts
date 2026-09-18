@@ -218,6 +218,32 @@ class ProfileController {
     }
   }
 
+
+  /** Store the device FCM token so admin broadcasts can show system popups. */
+  async savePushToken(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const fcmToken = String(req.body?.fcmToken || '').trim();
+      if (!fcmToken || fcmToken.length < 20) {
+        return apiResponse.error(res, 'A valid FCM token is required.', 400);
+      }
+      const platform = String(req.body?.platform || '')
+        .trim()
+        .toUpperCase();
+      await profileService.savePushToken(userId, fcmToken, platform);
+      return apiResponse.success(res, 'Push token saved', {ok: true});
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default new ProfileController();

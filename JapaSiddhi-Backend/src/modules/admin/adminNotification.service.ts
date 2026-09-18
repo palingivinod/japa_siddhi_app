@@ -1,12 +1,25 @@
 import {ResultSetHeader} from 'mysql2';
 
 import mysql from '../../database/mysql';
-import {admin} from '../../firebase/firebase';
+import {admin, isFirebaseReady} from '../../firebase/firebase';
 import notificationService from '../notification/notification.service';
 
 export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked';
 
 let queueReady = false;
+let fcmColumnReady = false;
+
+const ensureFcmColumn = async () => {
+  if (fcmColumnReady) {
+    return;
+  }
+  fcmColumnReady = true;
+  try {
+    await mysql.query(`ALTER TABLE users ADD COLUMN fcm_token TEXT NULL`);
+  } catch {
+    // Column already exists.
+  }
+};
 
 const ensureQueueTable = async () => {
   if (queueReady) {
@@ -64,10 +77,16 @@ const mapTarget = (raw: string): AdminNotifyTarget => {
   return 'all';
 };
 
+/**
+ * Device push tokens live in fcm_token. users.firebase_token stores the
+ * Firebase Auth id token used at login and must never be sent to FCM.
+ */
 const loadRecipients = async (target: AdminNotifyTarget) => {
+  await ensureFcmColumn();
+
   if (target === 'blocked') {
     return mysql.query<any[]>(`
-      SELECT id, firebase_token AS firebaseToken
+      SELECT id, fcm_token AS fcmToken
       FROM users
       WHERE deleted_at IS NULL
         AND UPPER(IFNULL(account_status, 'ACTIVE')) IN ('BLOCKED', 'SUSPENDED')
@@ -76,7 +95,7 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
 
   if (target === 'active_japa') {
     return mysql.query<any[]>(`
-      SELECT u.id, u.firebase_token AS firebaseToken
+      SELECT u.id, u.fcm_token AS fcmToken
       FROM users u
       WHERE u.deleted_at IS NULL
         AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
@@ -89,7 +108,7 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
   }
 
   return mysql.query<any[]>(`
-    SELECT id, firebase_token AS firebaseToken
+    SELECT id, fcm_token AS fcmToken
     FROM users
     WHERE deleted_at IS NULL
       AND UPPER(IFNULL(account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
@@ -102,8 +121,14 @@ const tryPush = async (
   message: string,
 ) => {
   const unique = [...new Set(tokens.filter(Boolean))];
-  if (!unique.length || !admin.apps.length) {
-    return {pushSent: 0, pushSkipped: unique.length ? 'firebase_not_configured' : 'no_tokens'};
+  if (!unique.length) {
+    return {pushSent: 0, pushSkipped: 'no_tokens' as string | null};
+  }
+  if (!isFirebaseReady()) {
+    return {
+      pushSent: 0,
+      pushSkipped: 'firebase_not_configured' as string | null,
+    };
   }
 
   let pushSent = 0;
@@ -111,7 +136,27 @@ const tryPush = async (
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
       notification: {title, body: message},
-      data: {type: 'ADMIN_BROADCAST'},
+      data: {
+        type: 'ADMIN_BROADCAST',
+        title,
+        body: message,
+      },
+      android: {
+        priority: 'high',
+        notification: {
+          sound: 'default',
+          defaultSound: true,
+          defaultVibrateTimings: true,
+        },
+      },
+      apns: {
+        payload: {
+          aps: {
+            sound: 'default',
+            badge: 1,
+          },
+        },
+      },
     });
     pushSent = result.successCount || 0;
   } catch {
@@ -145,7 +190,7 @@ export const deliverAdminNotification = async (input: {
   }
 
   const tokens = (recipients || [])
-    .map(row => String(row.firebaseToken || '').trim())
+    .map(row => String(row.fcmToken || '').trim())
     .filter(Boolean);
   const push = await tryPush(tokens, input.title, input.message);
 

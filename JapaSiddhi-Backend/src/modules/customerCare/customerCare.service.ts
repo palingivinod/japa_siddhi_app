@@ -4,17 +4,44 @@ import emailOtpService from '../../services/emailOtp.service';
 import mysql from '../../database/mysql';
 
 class CustomerCareService {
+  private async resolveUserName(userId: number) {
+    try {
+      const rows = await mysql.query<Array<{fullName?: string}>>(
+        `
+        SELECT full_name AS fullName
+        FROM users
+        WHERE id = ?
+        LIMIT 1
+        `,
+        [userId],
+      );
+      return String(rows?.[0]?.fullName || '').trim() || `User #${userId}`;
+    } catch {
+      return `User #${userId}`;
+    }
+  }
+
   async create(data: CreateTicketRequest, mediaBaseUrl?: string) {
-    const id = await customerCareRepository.create(data);
+    // Keep Order / Service in the stored message for older admin clients, but
+    // email the original description separately so it is not listed twice.
+    const storedMessage = data.orderService
+      ? `${data.message}\n\nOrder / Service: ${data.orderService}`
+      : data.message;
+    const id = await customerCareRepository.create({
+      ...data,
+      message: storedMessage,
+    });
     const screenshotLink = data.screenshotUrl
       ? `${mediaBaseUrl || ''}${data.screenshotUrl}`
       : '-';
+    const userName = await this.resolveUserName(data.userId);
 
     await emailOtpService.notifyAdmin(
       'New customer care ticket',
       [
         'A new support ticket was raised.',
         `User ID: ${data.userId}`,
+        `User Name: ${userName}`,
         `Subject: ${data.subject}`,
         `Order / Service: ${data.orderService || '-'}`,
         `Message: ${data.message}`,
@@ -63,10 +90,21 @@ class CustomerCareService {
     (settings || []).forEach(item => {
       map[item.setting_key] = item.setting_value;
     });
-    const phone = map.support_phone || '+917349483937';
+
+    // Canonical customer-care number for Call and WhatsApp. Older placeholders
+    // (empty / 9999… / previous 7349…) are ignored so both options always open
+    // this line after deploy.
+    const SUPPORT_PHONE = '+916281585599';
+    const stored = String(map.support_phone || '').replace(/[^\d]/g, '');
+    const isPlaceholder =
+      !stored ||
+      stored === '9999999999' ||
+      stored === '917349483937' ||
+      stored === '7349483937';
+    const phone = isPlaceholder ? SUPPORT_PHONE : String(map.support_phone);
     const digits = phone.replace(/[^\d]/g, '');
     return {
-      supportPhone: phone,
+      supportPhone: phone.startsWith('+') ? phone : `+${digits}`,
       supportEmail: map.support_email || 'kailaasavaasi@gmail.com',
       whatsappUrl: `https://wa.me/${digits}`,
       hours: '9 AM – 6 PM',

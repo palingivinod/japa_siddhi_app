@@ -30,6 +30,8 @@ const AdminSupportScreen = () => {
         rows.map((row: any) => ({
           id: String(row.id),
           code: row.code || `TK${row.id}`,
+          userId: row.userId ?? null,
+          userName: String(row.userName || '').trim(),
           subject: row.subject || '',
           message: row.message || '',
           screenshotUrl: row.screenshotUrl || null,
@@ -74,6 +76,14 @@ const AdminSupportScreen = () => {
       {tickets.map(item => (
         <View key={item.id} style={styles.card}>
           <Text style={styles.name}>{item.code}</Text>
+          <Text style={styles.meta}>
+            User ID: {item.userId != null ? String(item.userId) : '—'}
+          </Text>
+          <Text style={styles.meta}>
+            User Name:{' '}
+            {item.userName ||
+              (item.userId != null ? `User #${item.userId}` : '—')}
+          </Text>
           <Text style={styles.meta}>{item.subject}</Text>
           {item.message ? (
             <Text style={styles.message} numberOfLines={3}>

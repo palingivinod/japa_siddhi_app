@@ -58,4 +58,10 @@ router.post(
   profileController.saveAddress,
 );
 
+router.put(
+  '/push-token',
+  authenticate,
+  profileController.savePushToken,
+);
+
 export default router;

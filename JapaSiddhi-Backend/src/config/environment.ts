@@ -37,6 +37,11 @@ const environment = {
   FIREBASE_PROJECT_ID:
     process.env.FIREBASE_PROJECT_ID || '',
 
+  // Paste the full Firebase service-account JSON as one line on Render so FCM
+  // push works without shipping firebase-service-account.json in the repo.
+  FIREBASE_SERVICE_ACCOUNT_JSON:
+    process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '',
+
   SMTP_HOST:
     process.env.SMTP_HOST || 'smtp.gmail.com',
 

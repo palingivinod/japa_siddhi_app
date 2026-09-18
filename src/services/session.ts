@@ -5,16 +5,26 @@ const USER_KEY = 'auth_user';
 
 let memoryToken: string | null = null;
 let memoryUser: any = null;
-let onTokenChange: ((token: string | null) => void) | null = null;
+const tokenListeners = new Set<(token: string | null) => void>();
 
+/** Register a listener for JWT changes. Returns an unsubscribe function. */
 export const setTokenListener = (listener: (token: string | null) => void) => {
-  onTokenChange = listener;
+  tokenListeners.add(listener);
   listener(memoryToken);
+  return () => {
+    tokenListeners.delete(listener);
+  };
 };
 
 const notify = (token: string | null) => {
   memoryToken = token;
-  onTokenChange?.(token);
+  tokenListeners.forEach(listener => {
+    try {
+      listener(token);
+    } catch {
+      // One bad listener must not break auth header updates.
+    }
+  });
 };
 
 const BASE64_ALPHABET =

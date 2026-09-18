@@ -103,6 +103,14 @@ class ProfileService {
     return profileRepository.saveAddress(userId, address);
   }
 
+  async savePushToken(
+    userId: number,
+    fcmToken: string,
+    platform?: string,
+  ) {
+    return profileRepository.savePushToken(userId, fcmToken, platform);
+  }
+
 }
 
 export default new ProfileService();
