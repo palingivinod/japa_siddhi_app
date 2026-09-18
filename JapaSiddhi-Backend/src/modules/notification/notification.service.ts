@@ -37,6 +37,9 @@ class NotificationService {
 
           extraData:
             data.extraData ?? null,
+
+          expiresAt:
+            data.expiresAt ?? null,
         },
       );
 
@@ -60,6 +63,10 @@ class NotificationService {
       userId,
     );
 
+  }
+
+  async purgeExpiredReminders(userId?: number) {
+    await notificationRepository.purgeExpired(userId);
   }
 
 

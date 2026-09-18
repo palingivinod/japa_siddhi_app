@@ -16,6 +16,7 @@ import Colors from '../../theme/colors';
 interface Props {
   visible: boolean;
   value: Date;
+  mode?: 'date' | 'time';
   minimumDate?: Date;
   maximumDate?: Date;
   onCancel: () => void;
@@ -25,12 +26,13 @@ interface Props {
 /**
  * iOS reports every wheel movement through onChange, so the picker has to live
  * in a sheet that keeps a draft date and commits only on Done. Android keeps
- * its own calendar dialog. Light theme is forced because the surrounding cards
- * are always light.
+ * its own calendar / clock dialog. Light theme is forced because the
+ * surrounding cards are always light.
  */
 const DatePickerModal: React.FC<Props> = ({
   visible,
   value,
+  mode = 'date',
   minimumDate,
   maximumDate,
   onCancel,
@@ -52,8 +54,8 @@ const DatePickerModal: React.FC<Props> = ({
     return (
       <DateTimePicker
         value={value}
-        mode="date"
-        display="calendar"
+        mode={mode}
+        display={mode === 'date' ? 'calendar' : 'default'}
         minimumDate={minimumDate}
         maximumDate={maximumDate}
         onChange={(event: DateTimePickerEvent, selected?: Date) => {
@@ -86,7 +88,7 @@ const DatePickerModal: React.FC<Props> = ({
           </View>
           <DateTimePicker
             value={draft}
-            mode="date"
+            mode={mode}
             display="spinner"
             themeVariant="light"
             textColor={Colors.sacredBrown}

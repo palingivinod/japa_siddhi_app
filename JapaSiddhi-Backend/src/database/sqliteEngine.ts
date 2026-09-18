@@ -401,6 +401,7 @@ class SqliteEngine {
         is_read INTEGER NOT NULL DEFAULT 0,
         sent_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         read_at TEXT,
+        expires_at TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );

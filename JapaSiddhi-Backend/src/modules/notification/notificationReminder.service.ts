@@ -77,6 +77,7 @@ const notifyOnce = async (input: {
   actionType: string;
   actionId: number;
   extraData?: Record<string, any>;
+  expiresAt?: string | null;
 }) => {
   const enabled = await notificationsEnabled(input.userId);
   if (!enabled) {
@@ -98,9 +99,13 @@ const notifyOnce = async (input: {
     actionType: input.actionType,
     actionId: input.actionId,
     extraData: input.extraData || null,
+    expiresAt: input.expiresAt ?? null,
   });
   return true;
 };
+
+/** End of an IST calendar day — reminders leave the inbox after this. */
+const endOfDayStamp = (ymd: string) => `${ymd} 23:59:59`;
 
 const challengeDeadlineCopy = (
   title: string,
@@ -224,6 +229,7 @@ export const flushDeadlineReminders = async () => {
           daysLeft: left,
           endDate,
         },
+        expiresAt: endOfDayStamp(endDate),
       });
       if (ok) {
         created += 1;
@@ -274,6 +280,7 @@ export const flushDeadlineReminders = async () => {
           daysLeft: left,
           endDate,
         },
+        expiresAt: endOfDayStamp(endDate),
       });
       if (ok) {
         created += 1;
@@ -355,6 +362,7 @@ export const flushDeadlineReminders = async () => {
         actionType: 'DAILY_JAPA_REMINDER',
         actionId: dayKey,
         extraData: {date: today},
+        expiresAt: endOfDayStamp(today),
       });
       if (ok) {
         created += 1;
@@ -380,6 +388,7 @@ export const runReminderSweep = async () => {
       '../admin/adminNotification.service'
     );
     await flushDueAdminNotifications().catch(() => undefined);
+    await notificationService.purgeExpiredReminders().catch(() => undefined);
     await flushDeadlineReminders();
   } catch (error) {
     console.warn('Notification reminder sweep failed:', error);

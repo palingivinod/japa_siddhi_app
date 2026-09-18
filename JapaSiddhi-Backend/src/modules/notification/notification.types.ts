@@ -26,6 +26,9 @@ export interface CreateNotificationRequest {
 
   extraData?: Record<string, any> | null;
 
+  /** When set, the row is removed after this timestamp so reminders do not pile up. */
+  expiresAt?: string | null;
+
 }
 
 export interface NotificationResponse {

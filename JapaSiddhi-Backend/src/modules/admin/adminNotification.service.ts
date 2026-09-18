@@ -268,12 +268,36 @@ export const sendAdminNotification = async (input: {
   if (!sendNow) {
     let sendAt = String(input.scheduledAt || '').trim();
     if (!sendAt) {
-      const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-      tomorrow.setHours(9, 0, 0, 0);
-      sendAt = localDateTime(tomorrow);
-    } else if (/^\d{4}-\d{2}-\d{2}$/.test(sendAt)) {
-      sendAt = `${sendAt} 09:00:00`;
+      const error: any = new Error(
+        'Pick a date and time for a scheduled notification.',
+      );
+      error.statusCode = 400;
+      throw error;
     }
+    if (/^\d{4}-\d{2}-\d{2}$/.test(sendAt)) {
+      sendAt = `${sendAt} 09:00:00`;
+    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(sendAt)) {
+      sendAt = sendAt.replace('T', ' ').slice(0, 19);
+      if (sendAt.length === 16) {
+        sendAt = `${sendAt}:00`;
+      }
+    }
+
+    const sendAtMs = Date.parse(sendAt.replace(' ', 'T'));
+    if (!Number.isFinite(sendAtMs)) {
+      const error: any = new Error('Invalid schedule date/time.');
+      error.statusCode = 400;
+      throw error;
+    }
+    if (sendAtMs <= Date.now() + 30_000) {
+      const error: any = new Error(
+        'Schedule time must be in the future.',
+      );
+      error.statusCode = 400;
+      throw error;
+    }
+
+    sendAt = localDateTime(new Date(sendAtMs));
 
     const insert = await mysql.query<ResultSetHeader>(
       `
