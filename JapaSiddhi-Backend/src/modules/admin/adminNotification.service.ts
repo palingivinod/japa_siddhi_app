@@ -122,16 +122,22 @@ const tryPush = async (
 ) => {
   const unique = [...new Set(tokens.filter(Boolean))];
   if (!unique.length) {
-    return {pushSent: 0, pushSkipped: 'no_tokens' as string | null};
-  }
-  if (!isFirebaseReady()) {
     return {
       pushSent: 0,
-      pushSkipped: 'firebase_not_configured' as string | null,
+      pushFailed: 0,
+      pushSkipped: 'no_tokens' as string | null,
+    };
+  }
+  if (!isFirebaseReady()) {
+    const {getFirebaseInitError} = await import('../../firebase/firebase');
+    return {
+      pushSent: 0,
+      pushFailed: 0,
+      pushSkipped: (getFirebaseInitError() ||
+        'firebase_not_configured') as string | null,
     };
   }
 
-  let pushSent = 0;
   try {
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
@@ -145,24 +151,50 @@ const tryPush = async (
         priority: 'high',
         notification: {
           sound: 'default',
+          // Use Firebase's built-in fallback channel so we do not depend on a
+          // custom channel that the APK never created.
+          channelId: 'fcm_fallback_notification_channel',
           defaultSound: true,
           defaultVibrateTimings: true,
         },
       },
       apns: {
+        headers: {
+          'apns-priority': '10',
+          'apns-push-type': 'alert',
+        },
         payload: {
           aps: {
+            alert: {
+              title,
+              body: message,
+            },
             sound: 'default',
             badge: 1,
+            'content-available': 1,
           },
         },
       },
     });
-    pushSent = result.successCount || 0;
-  } catch {
-    return {pushSent: 0, pushSkipped: 'push_failed'};
+    const pushSent = result.successCount || 0;
+    const pushFailed = result.failureCount || 0;
+    const firstError = (result.responses || []).find(r => !r.success)?.error
+      ?.message;
+    return {
+      pushSent,
+      pushFailed,
+      pushSkipped:
+        pushSent === 0
+          ? (firstError || 'push_failed')
+          : (null as string | null),
+    };
+  } catch (error: any) {
+    return {
+      pushSent: 0,
+      pushFailed: unique.length,
+      pushSkipped: error?.message || 'push_failed',
+    };
   }
-  return {pushSent, pushSkipped: null as string | null};
 };
 
 export const deliverAdminNotification = async (input: {
@@ -320,6 +352,11 @@ export const sendAdminNotification = async (input: {
   }
 
   const delivered = await deliverAdminNotification({title, message, target});
+  const pushNote = delivered.pushSent
+    ? ` and ${delivered.pushSent} push popup(s)`
+    : delivered.pushSkipped
+      ? ` (push skipped: ${delivered.pushSkipped})`
+      : '';
   return {
     mode: 'sent' as const,
     target,
@@ -327,9 +364,7 @@ export const sendAdminNotification = async (input: {
     ...delivered,
     message:
       delivered.recipientCount > 0
-        ? `Sent to ${delivered.recipientCount} user(s) in-app${
-            delivered.pushSent ? ` and ${delivered.pushSent} push` : ''
-          }.`
+        ? `Sent to ${delivered.recipientCount} user(s) in-app${pushNote}.`
         : 'No matching users found for this target group.',
   };
 };

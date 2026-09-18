@@ -139,13 +139,18 @@ const AdminNotificationsScreen = () => {
         (data.mode === 'scheduled'
           ? `Scheduled for ${data.sendAt}`
           : `Delivered to ${data.recipientCount || 0} users`);
+      const pushLine =
+        data.mode === 'scheduled'
+          ? ''
+          : `\nPush popups: ${Number(data.pushSent || 0)}` +
+            (data.pushSkipped ? `\nPush note: ${data.pushSkipped}` : '');
       Alert.alert(
         data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
-        `${detail}\n\nTo: ${target}\nWhen: ${
+        `${detail}${pushLine}\n\nTo: ${target}\nWhen: ${
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)}`
             : 'Now'
-        }`,
+        }\n\nTip: put the user app in background/closed to see the system popup.`,
       );
       setTitle('');
       setMessage('');

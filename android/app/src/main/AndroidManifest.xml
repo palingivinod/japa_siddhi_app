@@ -61,7 +61,7 @@
       android:hardwareAccelerated="true">
       <meta-data
           android:name="com.google.firebase.messaging.default_notification_channel_id"
-          android:value="japa_siddhi_default"
+          android:value="fcm_fallback_notification_channel"
           tools:replace="android:value" />
       <activity
         android:name=".MainActivity"

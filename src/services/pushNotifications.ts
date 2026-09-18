@@ -17,7 +17,18 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 const requestPermission = async () => {
   if (Platform.OS === 'ios') {
-    const status = await messaging().requestPermission();
+    // iOS will not return an FCM token until the device is registered for APNs.
+    try {
+      await messaging().registerDeviceForRemoteMessages();
+    } catch {
+      // Already registered, or running on simulator without push support.
+    }
+    const status = await messaging().requestPermission({
+      alert: true,
+      badge: true,
+      sound: true,
+      provisional: false,
+    });
     return (
       status === messaging.AuthorizationStatus.AUTHORIZED ||
       status === messaging.AuthorizationStatus.PROVISIONAL
@@ -98,12 +109,12 @@ export const startPushNotifications = async () => {
     uploadToken(token).catch(() => undefined);
   });
 
-  // Foreground delivery does not create a system tray popup by itself; the
-  // in-app Notifications list still receives the row from the API. Background
-  // and killed-state messages use the FCM notification payload and pop up.
+  // Keep the listener registered so iOS continues delivering. Foreground
+  // banners are shown by AppDelegate (UNUserNotificationCenter). Background /
+  // killed-state use the FCM notification payload. In-app list still comes
+  // from the API row.
   unsubscribeForeground = messaging().onMessage(async () => {
-    // Intentionally empty — keeps the listener registered so iOS delivers
-    // subsequent messages. System banners appear when the app is not open.
+    // no-op
   });
 
   await registerCurrentToken();
