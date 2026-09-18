@@ -101,6 +101,35 @@ const notifyOnce = async (input: {
     extraData: input.extraData || null,
     expiresAt: input.expiresAt ?? null,
   });
+
+  // Same WhatsApp-style tray popup as admin broadcasts (needs fcm_token).
+  try {
+    const tokenRows = await mysql.query<any[]>(
+      `
+      SELECT fcm_token AS fcmToken
+      FROM users
+      WHERE id = ?
+        AND deleted_at IS NULL
+      LIMIT 1
+      `,
+      [input.userId],
+    );
+    const token = String(tokenRows?.[0]?.fcmToken || '').trim();
+    if (token) {
+      const {sendPushToTokens} = await import(
+        '../admin/adminNotification.service'
+      );
+      await sendPushToTokens(
+        [token],
+        input.title,
+        input.message,
+        input.actionType,
+      );
+    }
+  } catch (error) {
+    console.warn('Reminder FCM push failed:', error);
+  }
+
   return true;
 };
 

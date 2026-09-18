@@ -119,6 +119,7 @@ const tryPush = async (
   tokens: string[],
   title: string,
   message: string,
+  dataType = 'ADMIN_BROADCAST',
 ) => {
   const unique = [...new Set(tokens.filter(Boolean))];
   if (!unique.length) {
@@ -143,7 +144,7 @@ const tryPush = async (
       tokens: unique.slice(0, 500),
       notification: {title, body: message},
       data: {
-        type: 'ADMIN_BROADCAST',
+        type: String(dataType || 'ADMIN_BROADCAST'),
         title,
         body: message,
       },
@@ -196,6 +197,14 @@ const tryPush = async (
     };
   }
 };
+
+/** Send a system tray / banner push to one or more device tokens. */
+export const sendPushToTokens = (
+  tokens: string[],
+  title: string,
+  message: string,
+  dataType = 'REMINDER',
+) => tryPush(tokens, title, message, dataType);
 
 export const deliverAdminNotification = async (input: {
   title: string;
