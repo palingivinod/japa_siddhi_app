@@ -25,16 +25,20 @@ const ContinueButton = ({
   const {tt} = useLanguage();
   return (
     <TouchableOpacity
-      style={[
-        styles.button,
-        disabled && styles.disabled,
-      ]}
+      style={[styles.button, disabled && styles.disabled]}
       disabled={disabled || loading}
       onPress={onPress}>
       {loading ? (
         <ActivityIndicator color={Colors.buttonPrimaryText} />
       ) : (
-        <Text style={styles.text}>{tt(title)}</Text>
+        <Text
+          style={styles.text}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.72}
+          maxFontSizeMultiplier={1.15}>
+          {tt(title)}
+        </Text>
       )}
     </TouchableOpacity>
   );
@@ -50,15 +54,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 15,
+    paddingHorizontal: 16,
   },
-
   disabled: {
     backgroundColor: Colors.buttonDisabled,
   },
-
   text: {
     color: Colors.buttonPrimaryText,
     fontSize: 17,
     fontWeight: '700',
+    width: '100%',
+    textAlign: 'center',
+    includeFontPadding: false,
+    letterSpacing: 0,
   },
 });
