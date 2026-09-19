@@ -148,7 +148,7 @@ const AdminNotificationsScreen = () => {
         data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
         `${detail}${pushLine}\n\nTo: ${target}\nWhen: ${
           schedule === 'Later'
-            ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)}`
+            ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
         }\n\nTip: put the user app in background/closed to see the system popup.`,
       );

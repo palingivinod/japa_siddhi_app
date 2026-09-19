@@ -58,8 +58,6 @@ const ensureQueueTable = async () => {
   queueReady = true;
 };
 
-const pad2 = (n: number) => String(n).padStart(2, '0');
-
 /**
  * Wall-clock stamp in Asia/Kolkata. Admin "Later" times are chosen on the
  * phone as local IST; Render runs in UTC, so we must never use server-local
