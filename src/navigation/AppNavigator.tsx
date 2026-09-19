@@ -74,6 +74,7 @@ import OrderTrackingScreen from '../modules/orders/OrderTrackingScreen';
 import DeliveryStatusScreen from '../modules/orders/DeliveryStatusScreen';
 import CustomerCareScreen from '../modules/customerCare/CustomerCareScreen';
 import RaiseTicketScreen from '../modules/customerCare/RaiseTicketScreen';
+import MyTicketsScreen from '../modules/customerCare/MyTicketsScreen';
 import WhatsAppSupportScreen from '../modules/customerCare/WhatsAppSupportScreen';
 import CallSupportScreen from '../modules/customerCare/CallSupportScreen';
 import FaqScreen from '../modules/customerCare/FaqScreen';
@@ -119,7 +120,6 @@ import AdminJapaAnalyticsScreen from '../modules/admin/AdminJapaAnalyticsScreen'
 import AdminChallengeAnalyticsScreen from '../modules/admin/AdminChallengeAnalyticsScreen';
 import AdminDonationAnalyticsScreen from '../modules/admin/AdminDonationAnalyticsScreen';
 import AdminFestivalAnalyticsScreen from '../modules/admin/AdminFestivalAnalyticsScreen';
-import AdminNotificationAnalyticsScreen from '../modules/admin/AdminNotificationAnalyticsScreen';
 import AdminLanguagesScreen from '../modules/admin/AdminLanguagesScreen';
 import AdminMultilingualContentScreen from '../modules/admin/AdminMultilingualContentScreen';
 import AdminExportReportsScreen from '../modules/admin/AdminExportReportsScreen';
@@ -270,6 +270,7 @@ export type RootStackParamList = {
   DeliveryStatus: {id?: number; order?: any} | undefined;
   CustomerCare: undefined;
   RaiseTicket: undefined;
+  MyTickets: undefined;
   WhatsAppSupport: undefined;
   CallSupport: undefined;
   Faq: undefined;
@@ -332,7 +333,6 @@ export type RootStackParamList = {
   AdminChallengeAnalytics: undefined;
   AdminDonationAnalytics: undefined;
   AdminFestivalAnalytics: undefined;
-  AdminNotificationAnalytics: undefined;
   AdminLanguages: undefined;
   AdminMultilingualContent: undefined;
   AdminExportReports: undefined;
@@ -400,6 +400,7 @@ const ProtectedOrderTracking = withAuth(OrderTrackingScreen);
 const ProtectedDeliveryStatus = withAuth(DeliveryStatusScreen);
 const ProtectedCare = withAuth(CustomerCareScreen);
 const ProtectedRaiseTicket = withAuth(RaiseTicketScreen);
+const ProtectedMyTickets = withAuth(MyTicketsScreen);
 const ProtectedWhatsApp = withAuth(WhatsAppSupportScreen);
 const ProtectedCallSupport = withAuth(CallSupportScreen);
 const ProtectedFaq = withAuth(FaqScreen);
@@ -446,9 +447,6 @@ const ProtectedAdminChallengeAnalytics = withAdminAuth(
 );
 const ProtectedAdminDonationAnalytics = withAdminAuth(AdminDonationAnalyticsScreen);
 const ProtectedAdminFestivalAnalytics = withAdminAuth(AdminFestivalAnalyticsScreen);
-const ProtectedAdminNotificationAnalytics = withAdminAuth(
-  AdminNotificationAnalyticsScreen,
-);
 const ProtectedAdminLanguages = withAdminAuth(AdminLanguagesScreen);
 const ProtectedAdminMultilingualContent = withAdminAuth(
   AdminMultilingualContentScreen,
@@ -631,6 +629,7 @@ const AppNavigator = () => {
         <Stack.Screen name="DeliveryStatus" component={ProtectedDeliveryStatus} />
         <Stack.Screen name="CustomerCare" component={ProtectedCare} />
         <Stack.Screen name="RaiseTicket" component={ProtectedRaiseTicket} />
+        <Stack.Screen name="MyTickets" component={ProtectedMyTickets} />
         <Stack.Screen name="WhatsAppSupport" component={ProtectedWhatsApp} />
         <Stack.Screen name="CallSupport" component={ProtectedCallSupport} />
         <Stack.Screen name="Faq" component={ProtectedFaq} />
@@ -732,10 +731,6 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminFestivalAnalytics"
           component={ProtectedAdminFestivalAnalytics}
-        />
-        <Stack.Screen
-          name="AdminNotificationAnalytics"
-          component={ProtectedAdminNotificationAnalytics}
         />
         <Stack.Screen
           name="AdminLanguages"

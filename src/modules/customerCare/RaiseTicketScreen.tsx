@@ -65,7 +65,10 @@ const RaiseTicketScreen = () => {
         } as any);
       }
       await apiService.post('/customer-care', formData);
-      Alert.alert('Ticket', 'Your ticket was submitted. Admin will review it.');
+      Alert.alert(
+        'Ticket',
+        'Your ticket was submitted. Check My Tickets for the status and support reply.',
+      );
       navigation.goBack();
     } catch (error) {
       Alert.alert('Ticket', getApiError(error, 'Could not submit ticket.'));

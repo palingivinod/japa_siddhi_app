@@ -85,7 +85,6 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Challenge Analytics', route: 'AdminChallengeAnalytics'},
   {title: 'Donation Analytics', route: 'AdminDonationAnalytics'},
   {title: 'Festival Analytics', route: 'AdminFestivalAnalytics'},
-  {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
 ];
 
 export const ADMIN_USERS: AdminUser[] = [];
@@ -170,7 +169,7 @@ export type AdminHomamItem = {
   utr?: string;
 };
 
-export type AdminTicketStatus = 'Pending' | 'Resolved';
+export type AdminTicketStatus = 'Open' | 'In progress' | 'Solved' | 'Pending' | 'Resolved';
 
 export type AdminTicket = {
   id: string;
@@ -180,7 +179,8 @@ export type AdminTicket = {
   subject: string;
   message?: string;
   screenshotUrl?: string | null;
-  status: AdminTicketStatus;
+  adminReply?: string | null;
+  status: AdminTicketStatus | string;
 };
 
 export type AdminFeedback = {

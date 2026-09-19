@@ -154,12 +154,6 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     status: 'done',
   },
   {
-    id: '27',
-    title: 'Notification Analytics',
-    route: 'AdminNotificationAnalytics',
-    status: 'done',
-  },
-  {
     id: '28',
     title: 'Language Management',
     route: 'AdminLanguages',

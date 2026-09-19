@@ -69,7 +69,14 @@ class CustomerCareController {
 
   async getById(req: Request, res: Response, next: NextFunction) {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
       const result = await customerCareService.getById(Number(req.params.id));
+      if (Number(result.userId) !== Number(userId)) {
+        return apiResponse.error(res, 'Support ticket not found', 404);
+      }
       return apiResponse.success(
         res,
         'Support ticket fetched successfully',
@@ -82,16 +89,11 @@ class CustomerCareController {
 
   async reply(req: Request, res: Response, next: NextFunction) {
     try {
-      const {reply, status} = req.body;
-      const result = await customerCareService.reply(
-        Number(req.params.id),
-        reply,
-        status,
-      );
-      return apiResponse.success(
+      // Replies are admin-only via /admin/support-tickets/:id/reply.
+      return apiResponse.error(
         res,
-        'Support ticket updated successfully',
-        result,
+        'Use the admin support reply endpoint.',
+        403,
       );
     } catch (error) {
       next(error);

@@ -81,8 +81,10 @@ class CustomerCareRepository {
         subject,
         message,
         screenshot_url AS screenshotUrl,
+        admin_reply AS adminReply,
         status,
-        created_at AS createdAt
+        created_at AS createdAt,
+        updated_at AS updatedAt
       FROM customer_care
       WHERE user_id = ?
       ORDER BY created_at DESC
@@ -122,7 +124,8 @@ class CustomerCareRepository {
       UPDATE customer_care
       SET
         admin_reply = ?,
-        status = ?
+        status = ?,
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
       [reply, status, id],

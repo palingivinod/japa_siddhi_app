@@ -74,8 +74,86 @@ class CustomerCareService {
     if (!ticket) {
       throw new Error('Support ticket not found');
     }
-    await customerCareRepository.reply(id, reply, status);
-    return {success: true};
+
+    const cleanReply = String(reply || '').trim();
+    if (!cleanReply) {
+      throw Object.assign(new Error('Reply message is required.'), {
+        statusCode: 400,
+      });
+    }
+
+    const nextStatus: TicketStatus =
+      status === 'RESOLVED' || status === 'CLOSED'
+        ? 'RESOLVED'
+        : status === 'IN_PROGRESS'
+          ? 'IN_PROGRESS'
+          : 'OPEN';
+
+    await customerCareRepository.reply(id, cleanReply, nextStatus);
+
+    const userId = Number(ticket.userId);
+    const ticketCode = `TK${id}`;
+    const solved = nextStatus === 'RESOLVED';
+    const title = solved
+      ? 'Support ticket solved'
+      : 'Support replied to your ticket';
+    const message = solved
+      ? `Your ticket ${ticketCode} was marked solved. Reply: ${cleanReply}`
+      : `Support replied on ${ticketCode}: ${cleanReply}`;
+
+    try {
+      const notificationService = (
+        await import('../notification/notification.service')
+      ).default;
+      await notificationService.create({
+        userId,
+        title,
+        message,
+        notificationType: 'SYSTEM',
+        actionType: 'SUPPORT_TICKET_REPLY',
+        actionId: id,
+        extraData: {
+          ticketId: id,
+          status: nextStatus,
+        },
+      });
+    } catch (error) {
+      console.warn('Support reply in-app notification failed:', error);
+    }
+
+    try {
+      const tokenRows = await mysql.query<any[]>(
+        `
+        SELECT fcm_token AS fcmToken
+        FROM users
+        WHERE id = ?
+          AND deleted_at IS NULL
+        LIMIT 1
+        `,
+        [userId],
+      );
+      const token = String(tokenRows?.[0]?.fcmToken || '').trim();
+      if (token) {
+        const {sendPushToTokens} = await import(
+          '../admin/adminNotification.service'
+        );
+        await sendPushToTokens(
+          [token],
+          title,
+          message,
+          'SUPPORT_TICKET_REPLY',
+        );
+      }
+    } catch (error) {
+      console.warn('Support reply FCM push failed:', error);
+    }
+
+    return {
+      success: true,
+      id,
+      status: nextStatus,
+      adminReply: cleanReply,
+    };
   }
 
   async getConfig() {

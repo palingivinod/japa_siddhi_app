@@ -3853,18 +3853,54 @@ router.get('/support-tickets', async (req: Request, res: Response) => {
         screenshotUrl: row.screenshotUrl
           ? `${host}${row.screenshotUrl}`
           : null,
-        status:
-          String(row.status || '').toUpperCase() === 'RESOLVED' ||
-          String(row.status || '').toUpperCase() === 'CLOSED'
-            ? 'Resolved'
-            : 'Pending',
+        adminReply: row.adminReply || null,
+        status: String(row.status || 'OPEN').toUpperCase(),
         createdAt: row.createdAt,
+        updatedAt: row.updatedAt,
       })),
     });
   } catch (error: any) {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to load support tickets.',
+    });
+  }
+});
+
+router.put('/support-tickets/:id/reply', async (req: Request, res: Response) => {
+  try {
+    const customerCareService = (
+      await import('../customerCare/customerCare.service')
+    ).default;
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket id.',
+      });
+    }
+    const reply = String(req.body?.reply || '').trim();
+    const statusRaw = String(req.body?.status || 'RESOLVED')
+      .trim()
+      .toUpperCase();
+    const status =
+      statusRaw === 'OPEN' || statusRaw === 'IN_PROGRESS'
+        ? statusRaw
+        : 'RESOLVED';
+
+    const data = await customerCareService.reply(id, reply, status as any);
+    return res.json({
+      success: true,
+      message:
+        status === 'RESOLVED'
+          ? 'Reply sent and ticket marked solved.'
+          : 'Reply sent to the devotee.',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Unable to reply to support ticket.',
     });
   }
 });
