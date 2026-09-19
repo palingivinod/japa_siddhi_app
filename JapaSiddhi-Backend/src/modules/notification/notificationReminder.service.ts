@@ -405,6 +405,7 @@ export const flushDeadlineReminders = async () => {
 };
 
 let reminderTimer: NodeJS.Timeout | null = null;
+let queueTimer: NodeJS.Timeout | null = null;
 let reminderRunning = false;
 
 export const runReminderSweep = async () => {
@@ -430,7 +431,7 @@ export const startNotificationReminderScheduler = () => {
   if (reminderTimer) {
     return;
   }
-  // First sweep shortly after boot, then every 30 minutes.
+  // First sweep shortly after boot, then every 30 minutes for deadlines.
   setTimeout(() => {
     runReminderSweep().catch(() => undefined);
   }, 15_000);
@@ -439,5 +440,19 @@ export const startNotificationReminderScheduler = () => {
   }, 30 * 60 * 1000);
   if (typeof reminderTimer.unref === 'function') {
     reminderTimer.unref();
+  }
+
+  // Admin "Later" queue needs a tighter poll so scheduled pushes fire on time.
+  if (!queueTimer) {
+    queueTimer = setInterval(() => {
+      import('../admin/adminNotification.service')
+        .then(({flushDueAdminNotifications}) =>
+          flushDueAdminNotifications(),
+        )
+        .catch(() => undefined);
+    }, 60 * 1000);
+    if (typeof queueTimer.unref === 'function') {
+      queueTimer.unref();
+    }
   }
 };

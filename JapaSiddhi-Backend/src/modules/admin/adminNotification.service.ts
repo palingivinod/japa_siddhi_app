@@ -58,10 +58,62 @@ const ensureQueueTable = async () => {
   queueReady = true;
 };
 
-const localDateTime = (date = new Date()) => {
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/**
+ * Wall-clock stamp in Asia/Kolkata. Admin "Later" times are chosen on the
+ * phone as local IST; Render runs in UTC, so we must never use server-local
+ * Date.parse / NOW() for schedule comparisons.
+ */
+const nowIstStamp = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) =>
+    parts.find(part => part.type === type)?.value || '00';
+  // en-GB can still emit 24:xx near midnight in some engines — normalize.
+  let hour = get('hour');
+  if (hour === '24') {
+    hour = '00';
+  }
+  return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
+    'minute',
+  )}:${get('second')}`;
 };
+
+/** Keep the client wall-clock string; do not shift by server timezone. */
+const normalizeScheduleStamp = (raw: string) => {
+  let sendAt = String(raw || '').trim();
+  if (!sendAt) {
+    return '';
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(sendAt)) {
+    return `${sendAt} 09:00:00`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(sendAt)) {
+    sendAt = sendAt.replace('T', ' ').slice(0, 19);
+    if (sendAt.length === 16) {
+      sendAt = `${sendAt}:00`;
+    }
+    return sendAt;
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(sendAt)) {
+    return `${sendAt}:00`;
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(sendAt)) {
+    return sendAt.slice(0, 19);
+  }
+  return '';
+};
+
+const localDateTime = (date = new Date()) => nowIstStamp(date);
 
 const mapTarget = (raw: string): AdminNotifyTarget => {
   const value = String(raw || '')
@@ -243,44 +295,52 @@ export const deliverAdminNotification = async (input: {
 
 export const flushDueAdminNotifications = async () => {
   await ensureQueueTable();
-  const engine = mysql.getEngineName() || 'sqlite';
-  const dueSql =
-    engine === 'mysql'
-      ? `
-      SELECT id, title, message, target_group AS targetGroup
-      FROM admin_notification_queue
-      WHERE status = 'PENDING'
-        AND send_at <= NOW()
-      ORDER BY id ASC
-      LIMIT 20
+  const now = nowIstStamp();
+  // Compare wall-clock IST strings so Render UTC does not delay or skip jobs.
+  const due = await mysql.query<any[]>(
     `
-      : `
       SELECT id, title, message, target_group AS targetGroup
       FROM admin_notification_queue
       WHERE status = 'PENDING'
-        AND send_at <= datetime('now', 'localtime')
+        AND send_at <= ?
       ORDER BY id ASC
       LIMIT 20
-    `;
-  const due = await mysql.query<any[]>(dueSql);
+    `,
+    [now],
+  );
 
   for (const job of due || []) {
-    const result = await deliverAdminNotification({
-      title: job.title,
-      message: job.message,
-      target: mapTarget(job.targetGroup),
-      extraData: {queuedId: job.id},
-    });
-    await mysql.query(
-      `
-      UPDATE admin_notification_queue
-      SET status = 'SENT',
-          recipient_count = ?,
-          processed_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      `,
-      [result.recipientCount, job.id],
-    );
+    try {
+      const result = await deliverAdminNotification({
+        title: job.title,
+        message: job.message,
+        target: mapTarget(job.targetGroup),
+        extraData: {queuedId: job.id},
+      });
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENT',
+            recipient_count = ?,
+            processed_at = ?
+        WHERE id = ?
+          AND status = 'PENDING'
+        `,
+        [result.recipientCount, now, job.id],
+      );
+    } catch (error) {
+      console.warn(`Scheduled admin notification ${job.id} failed:`, error);
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'FAILED',
+            processed_at = ?
+        WHERE id = ?
+          AND status = 'PENDING'
+        `,
+        [now, job.id],
+      );
+    }
   }
 };
 
@@ -307,7 +367,7 @@ export const sendAdminNotification = async (input: {
   const sendNow = schedule !== 'later';
 
   if (!sendNow) {
-    let sendAt = String(input.scheduledAt || '').trim();
+    const sendAt = normalizeScheduleStamp(String(input.scheduledAt || ''));
     if (!sendAt) {
       const error: any = new Error(
         'Pick a date and time for a scheduled notification.',
@@ -315,30 +375,15 @@ export const sendAdminNotification = async (input: {
       error.statusCode = 400;
       throw error;
     }
-    if (/^\d{4}-\d{2}-\d{2}$/.test(sendAt)) {
-      sendAt = `${sendAt} 09:00:00`;
-    } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(sendAt)) {
-      sendAt = sendAt.replace('T', ' ').slice(0, 19);
-      if (sendAt.length === 16) {
-        sendAt = `${sendAt}:00`;
-      }
-    }
 
-    const sendAtMs = Date.parse(sendAt.replace(' ', 'T'));
-    if (!Number.isFinite(sendAtMs)) {
-      const error: any = new Error('Invalid schedule date/time.');
-      error.statusCode = 400;
-      throw error;
-    }
-    if (sendAtMs <= Date.now() + 30_000) {
+    const now = nowIstStamp();
+    if (sendAt <= now) {
       const error: any = new Error(
-        'Schedule time must be in the future.',
+        'Schedule time must be in the future (India time).',
       );
       error.statusCode = 400;
       throw error;
     }
-
-    sendAt = localDateTime(new Date(sendAtMs));
 
     const insert = await mysql.query<ResultSetHeader>(
       `
@@ -356,7 +401,7 @@ export const sendAdminNotification = async (input: {
       sendAt,
       recipientCount: 0,
       pushSent: 0,
-      message: `Scheduled for ${sendAt}. It will send automatically after that time.`,
+      message: `Scheduled for ${sendAt} IST. It will send automatically around that time.`,
     };
   }
 
