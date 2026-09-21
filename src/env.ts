@@ -24,6 +24,11 @@ const ENV = {
 
   GOOGLE_MAP_KEY: '',
 
+  // Firebase Console → Project settings → Your apps → Web client ID
+  // (client_type 3 / "Web client"). Required for Continue with Google.
+  GOOGLE_WEB_CLIENT_ID: '89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com',
+
+
   RAZORPAY_KEY: '',
 
   APPLE_PAY_KEY: '',
@@ -44,6 +49,10 @@ const ENV = {
   DEFAULT_LANGUAGE: 'en',
 
   DEFAULT_COUNTRY: 'IN',
+
+  
 };
+
+
 
 export default ENV;

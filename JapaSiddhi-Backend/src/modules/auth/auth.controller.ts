@@ -278,14 +278,37 @@ class AuthController {
     next: NextFunction,
   ) {
     try {
-      return apiResponse.success(
-        res,
-        'Use mobile number and email OTP to continue.',
-        {
-          provider: req.body?.provider || 'email',
-          available: false,
-        },
-      );
+      const provider = String(req.body?.provider || 'google')
+        .trim()
+        .toLowerCase();
+      if (provider !== 'google') {
+        return apiResponse.error(
+          res,
+          `${provider} login is not available yet. Use Google, or email and password.`,
+          400,
+        );
+      }
+
+      const firebaseToken = String(
+        req.body?.firebaseToken || req.body?.idToken || '',
+      ).trim();
+      if (!firebaseToken) {
+        return apiResponse.error(res, 'Google sign-in token is required.', 400);
+      }
+
+      const result = await authService.socialLogin({
+        firebaseToken,
+        provider,
+        deviceType:
+          String(req.body?.deviceType || '').toUpperCase() === 'IOS'
+            ? 'IOS'
+            : 'ANDROID',
+        deviceModel: req.body?.deviceModel,
+        deviceOs: req.body?.deviceOs,
+        appVersion: req.body?.appVersion,
+      });
+
+      return apiResponse.success(res, 'Signed in with Google', result);
     } catch (error) {
       next(error);
     }

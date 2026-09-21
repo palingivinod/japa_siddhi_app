@@ -372,6 +372,17 @@ class AuthRepository {
     return hash ? String(hash) : null;
   }
 
+  async linkFirebaseUid(userId: number, firebaseUid: string): Promise<void> {
+    await mysql.query(
+      `
+      UPDATE users
+      SET firebase_uid = ?
+      WHERE id = ?
+      `,
+      [firebaseUid, userId],
+    );
+  }
+
   async setPasswordHash(userId: number, passwordHash: string): Promise<void> {
     await mysql.query<ResultSetHeader>(
       `

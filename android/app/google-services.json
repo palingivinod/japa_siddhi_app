@@ -12,7 +12,20 @@
           "package_name": "com.japasiddhi"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "89483752433-7o0h8a7ahpp57qsml5u0rebb37cu180a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.japasiddhi",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBzWD3bquU98BRHwcozGfmzOuBKuTQH35c"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "89483752433-5mo8tneko4634toohk7m23qigvifldgk.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.japasiddhi"
+              }
+            }
+          ]
         }
       }
     }

@@ -1,23 +1,87 @@
-import messaging from '@react-native-firebase/messaging';
+import messaging, {FirebaseMessagingTypes} from '@react-native-firebase/messaging';
+import notifee, {AndroidImportance} from '@notifee/react-native';
 import {AppState, PermissionsAndroid, Platform} from 'react-native';
 
 import apiService from './apiService';
 import {getToken} from './session';
 
 let started = false;
+let channelReady = false;
 let lastUploadedToken = '';
 let unsubscribeRefresh: (() => void) | null = null;
 let unsubscribeForeground: (() => void) | null = null;
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const CHANNEL_ID = 'fcm_fallback_notification_channel';
+
+const sleep = (ms: number) =>
+  new Promise<void>(resolve => {
+    setTimeout(() => resolve(), ms);
+  });
+
+const ensureAndroidChannel = async () => {
+  if (channelReady || Platform.OS !== 'android') {
+    return;
+  }
+  await notifee.createChannel({
+    id: CHANNEL_ID,
+    name: 'Japa Siddhi Alerts',
+    importance: AndroidImportance.HIGH,
+    sound: 'default',
+    vibration: true,
+  });
+  channelReady = true;
+};
 
 /**
- * Ask the OS for notification permission. Android 13+ needs an explicit
- * POST_NOTIFICATIONS grant; iOS uses the Firebase messaging prompt.
+ * Show a system tray / banner popup even while the app is open.
  */
+export const displayForegroundNotification = async (
+  remoteMessage: FirebaseMessagingTypes.RemoteMessage,
+) => {
+  const title =
+    String(
+      remoteMessage.notification?.title ||
+        remoteMessage.data?.title ||
+        'Japa Siddhi',
+    ).trim() || 'Japa Siddhi';
+  const body =
+    String(
+      remoteMessage.notification?.body ||
+        remoteMessage.data?.body ||
+        remoteMessage.data?.message ||
+        '',
+    ).trim() || 'You have a new notification.';
+
+  await ensureAndroidChannel();
+
+  await notifee.displayNotification({
+    title,
+    body,
+    data: Object.fromEntries(
+      Object.entries(remoteMessage.data || {}).map(([key, value]) => [
+        key,
+        String(value ?? ''),
+      ]),
+    ),
+    android: {
+      channelId: CHANNEL_ID,
+      importance: AndroidImportance.HIGH,
+      pressAction: {id: 'default'},
+    },
+    ios: {
+      sound: 'default',
+      foregroundPresentationOptions: {
+        banner: true,
+        list: true,
+        sound: true,
+        badge: true,
+      },
+    },
+  });
+};
+
 const requestPermission = async () => {
   if (Platform.OS === 'ios') {
-    // iOS will not return an FCM token until the device is registered for APNs.
     try {
       await messaging().registerDeviceForRemoteMessages();
     } catch {
@@ -61,8 +125,7 @@ const uploadToken = async (fcmToken: string) => {
     });
     lastUploadedToken = fcmToken;
   } catch {
-    // Stay silent — a failed upload must never block the devotee. The next
-    // foreground / token refresh will try again.
+    // Stay silent — a failed upload must never block the devotee.
   }
 };
 
@@ -72,7 +135,8 @@ const registerCurrentToken = async () => {
     return;
   }
 
-  // On a cold start FCM can briefly return null before Play Services is ready.
+  await ensureAndroidChannel();
+
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
       const fcmToken = await messaging().getToken();
@@ -87,11 +151,6 @@ const registerCurrentToken = async () => {
   }
 };
 
-/**
- * Call once the devotee has a JWT. Safe to call repeatedly — listeners are
- * attached only the first time. Works the same for debug APKs, Play Store,
- * and App Store builds once Firebase (and APNs on iOS) are configured.
- */
 export const startPushNotifications = async () => {
   if (started) {
     await registerCurrentToken();
@@ -102,25 +161,24 @@ export const startPushNotifications = async () => {
   try {
     await messaging().setAutoInitEnabled(true);
   } catch {
-    // Older native builds may not expose this; registration still proceeds.
+    // Older native builds may not expose this.
   }
 
   unsubscribeRefresh = messaging().onTokenRefresh(token => {
     uploadToken(token).catch(() => undefined);
   });
 
-  // Keep the listener registered so iOS continues delivering. Foreground
-  // banners are shown by AppDelegate (UNUserNotificationCenter). Background /
-  // killed-state use the FCM notification payload. In-app list still comes
-  // from the API row.
-  unsubscribeForeground = messaging().onMessage(async () => {
-    // no-op
+  unsubscribeForeground = messaging().onMessage(async remoteMessage => {
+    try {
+      await displayForegroundNotification(remoteMessage);
+    } catch (error) {
+      console.warn('Foreground notification display failed:', error);
+    }
   });
 
   await registerCurrentToken();
 };
 
-/** Re-register when the app returns to the foreground with a live session. */
 export const refreshPushRegistration = async () => {
   const sessionToken = await getToken();
   if (!sessionToken) {
@@ -138,14 +196,10 @@ export const stopPushNotifications = () => {
   lastUploadedToken = '';
 };
 
-/**
- * Must be registered from index.js (outside React) so Android can wake the
- * JS runtime for a data message while the app is backgrounded.
- */
 export const registerBackgroundHandler = () => {
   try {
     messaging().setBackgroundMessageHandler(async () => {
-      // Notification+data messages are displayed by the OS; nothing to do here.
+      // Notification+data messages are displayed by the OS.
     });
   } catch {
     // Native module unavailable in some test environments.

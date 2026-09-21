@@ -1,6 +1,6 @@
 import {randomUUID} from 'crypto';
 import {compare as bcryptCompare, hash as bcryptHash} from 'bcrypt';
-import { admin } from '../../firebase/firebase';
+import {admin, isFirebaseReady} from '../../firebase/firebase';
 
 import authRepository from './auth.repository';
 import otpRepository from './otp.repository';
@@ -208,17 +208,107 @@ class AuthService {
 
 
     return {
-
       token,
-
       user,
-
     };
 
   }
 
+  /**
+   * Google / Apple social sign-in via a verified Firebase ID token (email-based).
+   */
+  async socialLogin(
+    data: {
+      firebaseToken: string;
+      provider?: string;
+      deviceType?: 'ANDROID' | 'IOS';
+      deviceModel?: string;
+      deviceOs?: string;
+      appVersion?: string;
+    },
+  ): Promise<LoginResponse & {isNewUser: boolean}> {
+    if (!isFirebaseReady()) {
+      throw new AppError(
+        'Google sign-in is not configured on the server yet.',
+        503,
+      );
+    }
 
+    let decoded: any;
+    try {
+      decoded = await admin.auth().verifyIdToken(String(data.firebaseToken || ''));
+    } catch {
+      throw new AppError('Invalid Google sign-in token.', 401);
+    }
 
+    const firebaseUid = String(decoded.uid || '').trim();
+    const email = String(decoded.email || '')
+      .trim()
+      .toLowerCase();
+    const fullName =
+      String(decoded.name || '').trim() ||
+      (email.includes('@') ? email.split('@')[0] : 'Devotee');
+
+    if (!firebaseUid || !email || !email.includes('@')) {
+      throw new AppError('Google account must include a valid email.', 400);
+    }
+
+    let user =
+      (await authRepository.findUserByFirebaseUid(firebaseUid)) ||
+      (await authRepository.findUserByEmail(email));
+
+    let isNewUser = false;
+
+    if (!user) {
+      // Unique placeholder mobile so Google accounts can finish profile later.
+      const digits = firebaseUid.replace(/\D/g, '');
+      const mobileNumber = (`9${digits}0000000000`).slice(0, 10);
+      const userId = await authRepository.createUser({
+        firebaseUid,
+        email,
+        fullName,
+        mobileCountryCode: '91',
+        mobileNumber,
+        deviceType: data.deviceType === 'IOS' ? 'IOS' : 'ANDROID',
+        deviceModel: data.deviceModel,
+        deviceOs: data.deviceOs,
+        appVersion: data.appVersion,
+        firebaseToken: data.firebaseToken,
+      });
+      user = await authRepository.findUserById(userId);
+      if (!user) {
+        throw new AppError('Unable to create Google account.', 500);
+      }
+      try {
+        await this.setupNewUser(user);
+      } catch (error) {
+        console.warn('Google signup setup skipped:', error);
+      }
+      isNewUser = true;
+    } else {
+      if (String(user.firebaseUid || '') !== firebaseUid) {
+        try {
+          await authRepository.linkFirebaseUid(user.id, firebaseUid);
+        } catch (error) {
+          console.warn('Could not link Firebase UID:', error);
+        }
+      }
+      await authRepository.updateLastLogin(
+        user.id,
+        data.firebaseToken,
+        data.deviceModel,
+        data.deviceOs,
+        data.appVersion,
+      );
+      user = (await authRepository.findUserById(user.id)) as AuthUser;
+    }
+
+    return {
+      token: issueToken(user),
+      user,
+      isNewUser,
+    };
+  }
 
   private async setupNewUser(user: AuthUser): Promise<void> {
     const {default: japaGoalRepository} = await import(
