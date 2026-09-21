@@ -261,7 +261,12 @@ class AuthService {
 
     if (!user) {
       // Unique placeholder mobile so Google accounts can finish profile later.
-      const digits = firebaseUid.replace(/\D/g, '');
+      // Derive digits from the whole UID (base36-ish) so two UIDs with few
+      // numeric chars do not collide on 9000000000.
+      const digits = Array.from(firebaseUid)
+        .map(ch => (/\d/.test(ch) ? ch : String(ch.charCodeAt(0) % 10)))
+        .join('')
+        .replace(/\D/g, '');
       const mobileNumber = (`9${digits}0000000000`).slice(0, 10);
       const userId = await authRepository.createUser({
         firebaseUid,

@@ -54,6 +54,7 @@ apiService.interceptors.response.use(
       url.includes('/auth/signin') ||
       url.includes('/auth/login') ||
       url.includes('/auth/password-login') ||
+      url.includes('/auth/social') ||
       url.includes('/auth/forgot') ||
       url.includes('/auth/phone') ||
       url.includes('/auth/dev-login') ||
