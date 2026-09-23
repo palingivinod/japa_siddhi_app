@@ -1,8 +1,8 @@
-import React, {useCallback, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import {useLanguage} from '../../i18n/LanguageContext';
+import { useLanguage } from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
@@ -16,7 +16,7 @@ type Visibility = {
 
 const DonateScreen = () => {
   const navigation = useNavigation<any>();
-  const {t} = useLanguage();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [visibility, setVisibility] = useState<Visibility>({
     japa: true,
@@ -43,7 +43,7 @@ const DonateScreen = () => {
         })
         .catch(() => {
           if (active) {
-            setVisibility({japa: true, general: true, campaigns: true});
+            setVisibility({ japa: true, general: true, campaigns: true });
           }
         })
         .finally(() => {
@@ -117,7 +117,7 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 16,
   },
-  center: {paddingVertical: 16, alignItems: 'center'},
+  center: { paddingVertical: 16, alignItems: 'center' },
   empty: {
     marginBottom: 14,
     color: Colors.textSecondary,

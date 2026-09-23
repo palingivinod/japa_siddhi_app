@@ -33,7 +33,7 @@ const fallbackHome: HomeResponse = {
     {
       id: 3,
       title: 'Annadanam',
-      description: 'Sponsor food seva and donations',
+      description: 'Sponsor food seva and offerings',
       icon: 'donation',
       route: 'DONATE',
     },

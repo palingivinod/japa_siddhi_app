@@ -134,19 +134,19 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
   {order: 44, name: 'General Annadanam', route: 'GeneralAnnadanam'},
   {
     order: 45,
-    name: 'Donation Form',
+    name: 'Seva Form',
     route: 'DonationForm',
     params: {kind: 'GENERAL', amount: 1008, itemName: 'General Annadanam'},
   },
   {
     order: 46,
-    name: 'UPI QR Payment Donation',
+    name: 'UPI QR Payment Seva',
     route: 'DonationPayment',
     params: {
       kind: 'ANNADANAM',
       title: 'Proceed to Pay',
       heading: 'Scan the UPI QR',
-      itemName: 'Annadanam Donation',
+      itemName: 'Annadanam Seva',
       subtitle: 'Scan this QR with any UPI app.',
       amount: 1008,
       button: 'I HAVE PAID',
@@ -154,7 +154,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
   },
   {
     order: 47,
-    name: 'Donation Confirmation',
+    name: 'Seva Confirmation',
     route: 'DonationConfirmation',
     params: {itemName: 'Annadanam', confirmationId: 'ANN10281'},
   },

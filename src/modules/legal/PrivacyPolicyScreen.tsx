@@ -17,15 +17,15 @@ const PrivacyPolicyScreen = () => {
       <Text style={styles.body}>
         We collect your name, mobile number, email address, date of birth,
         gender, address, language, and optional spiritual details such as
-        gothram and nakshatram. We also store japa counts, donations you record,
+        gothram and nakshatram. We also store japa counts, seva participation you record,
         orders, feedback, and support messages.
       </Text>
       <Text style={styles.heading}>How we use it</Text>
       <Text style={styles.body}>
         We use this information to create your account, send a login OTP to your
         email, save your japa progress, process seva requests, and contact you
-        about your account. Seva payments are completed in your UPI app as a
-        donation to Bilva Patra Trust and are not Google Play purchases. We do
+        about your account. Seva offerings are completed as voluntary
+        contributions to Bilva Patra Trust and are not Google Play purchases. We do
         not sell your personal data and we do not use advertising IDs.
       </Text>
       <Text style={styles.heading}>Account deletion</Text>
