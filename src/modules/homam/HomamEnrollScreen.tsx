@@ -1,11 +1,13 @@
 import React, {useState} from 'react';
-import {Alert} from 'react-native';
+import {Alert, Linking} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {MOBILE_DIGITS, digitsOnly} from '../../utils/validators';
+
+const PAYMENTS_URL = 'https://japasiddhi.com/payments';
 
 const HomamEnrollScreen = () => {
   const navigation = useNavigation<any>();
@@ -15,34 +17,12 @@ const HomamEnrollScreen = () => {
   const [nakshatram, setNakshatram] = useState('');
   const [purpose, setPurpose] = useState('');
 
-  const continuePay = () => {
-    if (!fullName.trim() || !mobile.trim()) {
-      Alert.alert('Nithya Homam', 'Name and mobile are required.');
-      return;
+  const continuePay = async () => {
+    try {
+      await Linking.openURL(PAYMENTS_URL);
+    } catch {
+      Alert.alert('Payment', 'Could not open payments page.');
     }
-    if (!isMobile(mobile)) {
-      Alert.alert(
-        'Nithya Homam',
-        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
-      );
-      return;
-    }
-    navigation.navigate('HomamPayment', {
-      kind: 'NITHYA_HOMAM',
-      amount: 1008,
-      fullName,
-      mobile,
-      gothram,
-      nakshatram,
-      purpose,
-      title: 'Homam Payment',
-      heading: 'Scan the UPI QR',
-      itemName: 'Nithya Homam Enrollment',
-      subtitle: 'Scan this QR to complete enrollment.',
-      showSummary: true,
-      methodLabel: 'METHOD',
-      button: 'SUBMIT PAYMENT FOR VERIFICATION',
-    });
   };
 
   return (

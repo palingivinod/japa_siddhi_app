@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, StyleSheet, Text} from 'react-native';
+import {Alert, Linking, StyleSheet, Text} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -9,6 +9,8 @@ import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+
+const PAYMENTS_URL = 'https://japasiddhi.com/payments';
 
 const GeneralAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
@@ -26,26 +28,12 @@ const GeneralAnnadanamScreen = () => {
       .catch(() => setEnabled(true));
   }, []);
 
-  const continuePay = () => {
-    if (!fullName.trim()) {
-      Alert.alert(t('tileAnnadanam'), t('pleaseEnterName'));
-      return;
+  const continuePay = async () => {
+    try {
+      await Linking.openURL(PAYMENTS_URL);
+    } catch {
+      Alert.alert('Payment', 'Could not open payments page.');
     }
-    if (!isMobile(mobile)) {
-      Alert.alert(
-        t('tileAnnadanam'),
-        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
-      );
-      return;
-    }
-    navigation.navigate('DonationForm', {
-      kind: 'GENERAL',
-      amount: Number(String(amount).replace(/[^\d]/g, '')) || 1008,
-      fullName,
-      mobile,
-      occasion,
-      itemName: t('generalAnnadanam'),
-    });
   };
 
   return (

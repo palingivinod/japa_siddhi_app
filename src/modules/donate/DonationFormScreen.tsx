@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {Alert} from 'react-native';
+import {Alert, Linking} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -7,7 +7,9 @@ import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {MOBILE_DIGITS, digitsOnly} from '../../utils/validators';
+
+const PAYMENTS_URL = 'https://japasiddhi.com/payments';
 
 const DonationFormScreen = () => {
   const navigation = useNavigation<any>();
@@ -21,34 +23,12 @@ const DonationFormScreen = () => {
   const [occasion, setOccasion] = useState(params.occasion || 'Annadanam');
   const [amount, setAmount] = useState(String(params.amount || 1008));
 
-  const pay = () => {
-    const value = Number(String(amount).replace(/[^\d.]/g, '')) || 0;
-    const number = digitsOnly(mobile);
-    if (!fullName.trim() || !number || value < 1) {
-      Alert.alert(t('donate'), t('nameMobileAmountRequired'));
-      return;
+  const pay = async () => {
+    try {
+      await Linking.openURL(PAYMENTS_URL);
+    } catch {
+      Alert.alert('Payment', 'Could not open payments page.');
     }
-    if (!isMobile(number)) {
-      Alert.alert(
-        t('donate'),
-        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
-      );
-      return;
-    }
-    navigation.navigate('DonationPayment', {
-      ...params,
-      kind: params.kind || 'ANNADANAM',
-      title: t('proceedToPay'),
-      heading: t('proceedToPay'),
-      itemName: params.itemName || t('japaAnnadanam'),
-      subtitle: occasion,
-      amount: value,
-      fullName,
-      mobile: number,
-      occasion,
-      showSummary: false,
-      button: t('proceedToPay'),
-    });
   };
 
   return (

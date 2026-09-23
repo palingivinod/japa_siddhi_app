@@ -109,7 +109,7 @@ const en = {
     'Consider sponsoring Annadanam for greater spiritual benefit.',
   offerFoodSeva: 'Offer food seva',
   supportAnnadanam: 'Support Annadanam for devotees and festivals.',
-  donateNow: 'Donate Now →',
+  donateNow: 'Support Now →',
   nithyaHomam: 'NITHYA HOMAM',
   enrollDailyHomam: 'Enroll for daily homam',
   participateHomam: 'Participate in Nithya Homam with your name and gothram.',
@@ -219,7 +219,7 @@ const en = {
     'Repeat sacred mantras, count your japa, and stay consistent in your daily sadhana.',
   familyJapaDesc:
     'Invite family members, chant together, and grow your shared spiritual count.',
-  donate: 'Donate',
+  donate: 'Support',
   donateDesc:
     'Support Bilva Patra Trust and contribute to seva, temples, and spiritual activities.',
   festivalsDesc: 'See upcoming Hindu festivals and special japa events you can join.',
@@ -236,7 +236,7 @@ const en = {
   yourJapaMilestone: 'Your Japa milestone',
   suggestedOffering: 'Suggested offering',
   customAmount: 'Custom',
-  donateNowAction: 'DONATE NOW',
+  donateNowAction: 'SUPPORT NOW',
   pleaseEnterName: 'Please enter your name.',
   nameLabel: 'Name',
   fullName: 'Full name',

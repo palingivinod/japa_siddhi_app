@@ -101,7 +101,7 @@ export const mr: TranslationDict = {
   considerAnnadanam: 'अधिक आध्यात्मिक लाभासाठी अन्नदानाचा विचार करा.',
   offerFoodSeva: 'अन्न सेवा अर्पण करा',
   supportAnnadanam: 'भक्त आणि सणांसाठी अन्नदानाला पाठिंबा द्या.',
-  donateNow: 'आता दान करा →',
+  donateNow: 'आता सहकार्य करा →',
   nithyaHomam: 'नित्य होम',
   enrollDailyHomam: 'दैनिक होमासाठी नोंदणी करा',
   participateHomam: 'तुमच्या नावाने आणि गोत्राने नित्य होमात सहभागी व्हा.',
@@ -193,7 +193,7 @@ export const mr: TranslationDict = {
     'पवित्र मंत्रांचा जप करा, मोजणी ठेवा आणि दैनिक साधनेत सातत्य राखा.',
   familyJapaDesc:
     'कुटुंबाला आमंत्रित करा, एकत्र जप करा आणि सामायिक आध्यात्मिक मोजणी वाढवा.',
-  donate: 'दान',
+  donate: 'सहकार्य',
   donateDesc:
     'बिल्व पत्र ट्रस्टला पाठिंबा द्या आणि सेवा, मंदिर आणि आध्यात्मिक कार्यांना योगदान द्या.',
   festivalsDesc: 'येणारे हिंदू सण आणि विशेष जप कार्यक्रम पहा.',
@@ -209,7 +209,7 @@ export const mr: TranslationDict = {
   yourJapaMilestone: 'तुमचा जप टप्पा',
   suggestedOffering: 'सुचवलेले अर्पण',
   customAmount: 'सानुकूल',
-  donateNowAction: 'आता दान करा',
+  donateNowAction: 'आता सहकार्य करा',
   pleaseEnterName: 'कृपया तुमचे नाव प्रविष्ट करा.',
   nameLabel: 'नाव',
   fullName: 'पूर्ण नाव',

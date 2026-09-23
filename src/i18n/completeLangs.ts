@@ -101,7 +101,7 @@ export const kn: TranslationDict = {
   considerAnnadanam: 'ಹೆಚ್ಚಿನ ಆಧ್ಯಾತ್ಮಿಕ ಲಾಭಕ್ಕಾಗಿ ಅನ್ನದಾನ ಪರಿಗಣಿಸಿ.',
   offerFoodSeva: 'ಅನ್ನ ಸೇವೆ ಅರ್ಪಿಸಿ',
   supportAnnadanam: 'ಭಕ್ತರು ಮತ್ತು ಹಬ್ಬಗಳಿಗೆ ಅನ್ನದಾನ ಬೆಂಬಲಿಸಿ.',
-  donateNow: 'ಈಗ ದಾನ ಮಾಡಿ →',
+  donateNow: 'ಈಗ ಬೆಂಬಲಿಸಿ →',
   nithyaHomam: 'ನಿತ್ಯ ಹೋಮ',
   enrollDailyHomam: 'ನಿತ್ಯ ಹೋಮಕ್ಕೆ ನೋಂದಾಯಿಸಿ',
   participateHomam: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು ಗೋತ್ರದೊಂದಿಗೆ ನಿತ್ಯ ಹೋಮದಲ್ಲಿ ಭಾಗವಹಿಸಿ.',
@@ -193,7 +193,7 @@ export const kn: TranslationDict = {
     'ಪವಿತ್ರ ಮಂತ್ರಗಳನ್ನು ಜಪಿಸಿ, ಎಣಿಕೆ ಇರಿಸಿ, ನಿತ್ಯ ಸಾಧನೆಯಲ್ಲಿ ನಿರಂತರರಾಗಿ.',
   familyJapaDesc:
     'ಕುಟುಂಬವನ್ನು ಆಹ್ವಾನಿಸಿ, ಒಟ್ಟಿಗೆ ಜಪಿಸಿ, ಹಂಚಿದ ಆಧ್ಯಾತ್ಮಿಕ ಎಣಿಕೆ ಹೆಚ್ಚಿಸಿ.',
-  donate: 'ದಾನ',
+  donate: 'ಬೆಂಬಲ',
   donateDesc:
     'ಬಿಲ್ವ ಪತ್ರ ಟ್ರಸ್ಟ್‌ಗೆ ಬೆಂಬಲಿಸಿ, ಸೇವೆ, ದೇವಾಲಯ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಕಾರ್ಯಗಳಿಗೆ ನೆರವಾಗಿ.',
   festivalsDesc: 'ಮುಂಬರುವ ಹಿಂದೂ ಹಬ್ಬಗಳು ಮತ್ತು ವಿಶೇಷ ಜಪ ಕಾರ್ಯಕ್ರಮಗಳನ್ನು ನೋಡಿ.',
@@ -209,7 +209,7 @@ export const kn: TranslationDict = {
   yourJapaMilestone: 'ನಿಮ್ಮ ಜಪ ಮೈಲಿಗಲ್ಲು',
   suggestedOffering: 'ಸೂಚಿತ ಅರ್ಪಣೆ',
   customAmount: 'ಕಸ್ಟಮ್',
-  donateNowAction: 'ಈಗ ದಾನ ಮಾಡಿ',
+  donateNowAction: 'ಈಗ ಬೆಂಬಲಿಸಿ',
   pleaseEnterName: 'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಹೆಸರು ನಮೂದಿಸಿ.',
   nameLabel: 'ಹೆಸರು',
   fullName: 'ಪೂರ್ಣ ಹೆಸರು',

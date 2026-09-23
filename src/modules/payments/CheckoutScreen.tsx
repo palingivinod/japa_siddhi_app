@@ -19,6 +19,9 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
 
+const PAYMENTS_URL = 'https://japasiddhi.com/payments';
+
+/*
 const TRUST_UPI_ID = 'q007640149@ybl';
 
 const PAY_APPS = [
@@ -44,109 +47,23 @@ const PAY_APPS = [
     schemes: ['paytmmp://pay', 'paytmmp://upi/pay'],
   },
 ];
+*/
 
 const CheckoutScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const params = route.params || {};
   const [saving, setSaving] = useState(false);
-  const [upiId, setUpiId] = useState(TRUST_UPI_ID);
-  const [payeeName, setPayeeName] = useState('Bilva Patra Trust');
-  const [utr, setUtr] = useState('');
   const title = params.title || 'Proceed to Pay';
   const itemName = params.itemName || 'Annadanam Donation';
-  const subtitle = params.subtitle || 'Scan the QR with any UPI app.';
+  const subtitle = params.subtitle || 'Complete payment at https://japasiddhi.com/payments';
   const amount = Number(params.amount || 1008);
-  const isHomam = String(params.kind || '').toUpperCase() === 'NITHYA_HOMAM';
-
-  useEffect(() => {
-    apiService
-      .get('/donations/payment-details')
-      .then(response => {
-        const data = response.data.data || {};
-        setUpiId(TRUST_UPI_ID);
-        if (data.accountHolderName) {
-          setPayeeName(String(data.accountHolderName));
-        }
-      })
-      .catch(() => undefined);
-  }, []);
-
-  const payQuery = () => {
-    const parts = [
-      `pa=${encodeURIComponent(upiId || TRUST_UPI_ID)}`,
-      `pn=${encodeURIComponent(payeeName)}`,
-      amount > 0 ? `am=${amount}` : '',
-      'cu=INR',
-      `tn=${encodeURIComponent(itemName)}`,
-    ].filter(Boolean);
-    return parts.join('&');
-  };
-
-  const openPayApp = async (app: (typeof PAY_APPS)[number]) => {
-    const query = payQuery();
-    const urls = [
-      Platform.OS === 'android'
-        ? `intent://pay?${query}#Intent;scheme=upi;package=${app.packageName};end`
-        : '',
-      ...app.schemes.map(base => `${base}?${query}`),
-      `upi://pay?${query}`,
-    ].filter(Boolean);
-    for (const url of urls) {
-      try {
-        await Linking.openURL(url);
-        return;
-      } catch {
-        undefined;
-      }
-    }
-    Alert.alert(
-      app.label,
-      `Could not open ${app.label}. Install the app or scan the QR to pay ₹${amount.toLocaleString()}.`,
-    );
-  };
 
   const pay = async () => {
-    if (isHomam) {
-      const cleaned = utr.trim().replace(/\s+/g, '');
-      if (cleaned.length < 8) {
-        Alert.alert(
-          'Payment UTR required',
-          'After paying in your UPI app, enter the UTR / Transaction ID shown in the payment success screen. Admin will verify this before activating enrollment.',
-        );
-        return;
-      }
-    }
-    setSaving(true);
     try {
-      const response = await apiService.post('/donations/checkout', {
-        kind: params.kind || 'ANNADANAM',
-        amount,
-        fullName: params.fullName,
-        mobile: params.mobile,
-        address: params.address,
-        occasion: params.occasion,
-        nakshatram: params.nakshatram,
-        gothram: params.gothram,
-        remarks: params.remarks || params.purpose,
-        paymentMethod: 'UPI',
-        transactionId: utr.trim().replace(/\s+/g, ''),
-        utr: utr.trim().replace(/\s+/g, ''),
-      });
-      const data = response.data.data || {};
-      if (params.kind === 'NITHYA_HOMAM') {
-        navigation.replace('HomamConfirmation', data);
-        return;
-      }
-      if (params.kind === 'BANA_LINGAM') {
-        navigation.replace('PaymentConfirmation', data);
-        return;
-      }
-      navigation.replace('DonationConfirmation', data);
-    } catch (error) {
-      Alert.alert('Payment', getApiError(error, 'Could not record this payment.'));
-    } finally {
-      setSaving(false);
+      await Linking.openURL(PAYMENTS_URL);
+    } catch {
+      Alert.alert('Payment', 'Could not open payments page.');
     }
   };
 
@@ -157,9 +74,10 @@ const CheckoutScreen = () => {
       <StatCards
         items={[
           {label: 'AMOUNT', value: `₹ ${amount.toLocaleString()}`},
-          {label: params.methodLabel || 'METHOD', value: 'UPI QR'},
+          {label: params.methodLabel || 'METHOD', value: 'Online Payment'},
         ]}
       />
+      {/* Payment screen QR codes, PhonePe, and GPay options hidden/commented out
       <View style={styles.scanner}>
         <Image
           source={require('../../assets/images/phonepe_upi_qr.png')}
@@ -180,39 +98,12 @@ const CheckoutScreen = () => {
           </TouchableOpacity>
         ))}
       </View>
-      {upiId ? <Text style={styles.upiId}>UPI ID: {upiId}</Text> : null}
-      {isHomam ? (
-        <>
-          <Text style={styles.utrLabel}>UTR / Transaction ID *</Text>
-          <TextInput
-            style={styles.utrInput}
-            value={utr}
-            onChangeText={setUtr}
-            placeholder="Enter UPI UTR after payment"
-            placeholderTextColor={Colors.placeholder}
-            autoCapitalize="characters"
-            autoCorrect={false}
-          />
-          <Text style={styles.utrHint}>
-            Pay first in PhonePe / GPay / Paytm, copy the UTR from the success
-            screen, then submit. Enrollment activates only after admin verifies
-            the UTR.
-          </Text>
-        </>
-      ) : null}
+      */}
       <Text style={styles.hint}>
-        This is a voluntary offering to Bilva Patra Trust, not a Google Play
-        purchase. Open PhonePe, GPay, Paytm or any UPI app, scan this QR, then
-        tap {isHomam ? 'Submit after entering UTR' : 'Proceed to Pay after the UPI app confirms success'}.
+        Tap below to continue to the secure online payments page.
       </Text>
       <PrimaryButton
-        title={
-          saving
-            ? 'SUBMITTING...'
-            : isHomam
-              ? 'SUBMIT PAYMENT FOR VERIFICATION'
-              : params.button || 'PROCEED TO PAY'
-        }
+        title={params.button || 'CONTINUE TO PAYMENT'}
         onPress={pay}
         disabled={saving}
       />

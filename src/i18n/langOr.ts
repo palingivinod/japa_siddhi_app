@@ -101,7 +101,7 @@ export const or: TranslationDict = {
   considerAnnadanam: 'ଅଧିକ ଆଧ୍ୟାତ୍ମିକ ଲାଭ ପାଇଁ ଅନ୍ନଦାନ ବିଚାର କରନ୍ତୁ।',
   offerFoodSeva: 'ଅନ୍ନ ସେବା ଅର୍ପଣ କରନ୍ତୁ',
   supportAnnadanam: 'ଭକ୍ତ ଓ ଉତ୍ସବ ପାଇଁ ଅନ୍ନଦାନକୁ ସହାୟତା କରନ୍ତୁ।',
-  donateNow: 'ଏବେ ଦାନ କରନ୍ତୁ →',
+  donateNow: 'ଏବେ ସହଯୋଗ କରନ୍ତୁ →',
   nithyaHomam: 'ନିତ୍ୟ ହୋମ',
   enrollDailyHomam: 'ଦୈନିକ ହୋମରେ ନାମ ଲେଖାନ୍ତୁ',
   participateHomam: 'ଆପଣଙ୍କ ନାମ ଓ ଗୋତ୍ର ସହିତ ନିତ୍ୟ ହୋମରେ ଅଂଶଗ୍ରହଣ କରନ୍ତୁ।',
@@ -193,7 +193,7 @@ export const or: TranslationDict = {
     'ପବିତ୍ର ମନ୍ତ୍ର ଜପ କରନ୍ତୁ, ଗଣନା ରଖନ୍ତୁ ଏବଂ ଦୈନିକ ସାଧନାରେ ଧାରାବାହିକ ରୁହନ୍ତୁ।',
   familyJapaDesc:
     'ପରିବାରକୁ ଆମନ୍ତ୍ରଣ କରନ୍ତୁ, ଏକତ୍ର ଜପ କରନ୍ତୁ ଏବଂ ଭାଗିଦାରି ଆଧ୍ୟାତ୍ମିକ ଗଣନା ବୃଦ୍ଧି କରନ୍ତୁ।',
-  donate: 'ଦାନ',
+  donate: 'ସହଯୋଗ',
   donateDesc:
     'ବିଲ୍ୱ ପତ୍ର ଟ୍ରଷ୍ଟକୁ ସହାୟତା କରନ୍ତୁ ଏବଂ ସେବା, ମନ୍ଦିର ଓ ଆଧ୍ୟାତ୍ମିକ କାର୍ଯ୍ୟରେ ଅବଦାନ ଦିଅନ୍ତୁ।',
   festivalsDesc: 'ଆସନ୍ନ ହିନ୍ଦୁ ଉତ୍ସବ ଓ ବିଶେଷ ଜପ କାର୍ଯ୍ୟକ୍ରମ ଦେଖନ୍ତୁ।',
@@ -209,7 +209,7 @@ export const or: TranslationDict = {
   yourJapaMilestone: 'ଆପଣଙ୍କ ଜପ ମାଇଲଷ୍ଟୋନ୍',
   suggestedOffering: 'ପ୍ରସ୍ତାବିତ ଅର୍ପଣ',
   customAmount: 'କଷ୍ଟମ୍',
-  donateNowAction: 'ଏବେ ଦାନ କରନ୍ତୁ',
+  donateNowAction: 'ଏବେ ସହଯୋଗ କରନ୍ତୁ',
   pleaseEnterName: 'ଦୟାକରି ଆପଣଙ୍କ ନାମ ଲେଖନ୍ତୁ।',
   nameLabel: 'ନାମ',
   fullName: 'ପୂର୍ଣ୍ଣ ନାମ',

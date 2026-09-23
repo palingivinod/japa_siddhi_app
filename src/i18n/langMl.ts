@@ -101,7 +101,7 @@ export const ml: TranslationDict = {
   considerAnnadanam: 'കൂടുതൽ ആത്മീയ ഗുണത്തിനായി Annadanam പരിഗണിക്കുക.',
   offerFoodSeva: 'ഭക്ഷണ സേവ നൽകുക',
   supportAnnadanam: 'ഭക്തരും ഉത്സവങ്ങളും Annadanam-ന് പിന്തുണ നൽകുക.',
-  donateNow: 'ഇപ്പോൾ ദാനം നൽകുക →',
+  donateNow: 'ഇപ്പോൾ പിന്തുണയ്ക്കുക →',
   nithyaHomam: 'നിത്യ Homam',
   enrollDailyHomam: 'നിത്യ Homam-ൽ രജിസ്റ്റർ ചെയ്യുക',
   participateHomam: 'നിങ്ങളുടെ പേരും Gothram ഉപയോഗിച്ച് നിത്യ Homam-ൽ പങ്കെടുക്കുക.',
@@ -193,7 +193,7 @@ export const ml: TranslationDict = {
     'പവിത്ര മന്ത്രങ്ങൾ ജപിക്കുക, എണ്ണം നിലനിർത്തുക, ദൈനംദിന പരിശീലനത്തിൽ തുടരുക.',
   familyJapaDesc:
     'കുടുംബത്തെ ക്ഷണിച്ച് ഒരുമിച്ച് ജപിക്കുക, പങ്കിട്ട ആത്മീയ എണ്ണം വർദ്ധിപ്പിക്കുക.',
-  donate: 'ദാനം',
+  donate: 'പിന്തുണ',
   donateDesc:
     'ബിൽവ പത്ര ട്രസ്റ്റിനെ പിന്തുണയ്ക്കുക, സേവ, ക്ഷേത്രം, ആത്മീയ പ്രവർത്തനങ്ങൾക്ക് സഹായിക്കുക.',
   festivalsDesc:
@@ -211,7 +211,7 @@ export const ml: TranslationDict = {
   yourJapaMilestone: 'നിങ്ങളുടെ ജപ മൈൽസ്റ്റോൺ',
   suggestedOffering: 'നിർദ്ദേശിത അർപ്പണം',
   customAmount: 'ഇഷ്ടാനുസൃത',
-  donateNowAction: 'ഇപ്പോൾ ദാനം നൽകുക',
+  donateNowAction: 'ഇപ്പോൾ പിന്തുണയ്ക്കുക',
   pleaseEnterName: 'നിങ്ങളുടെ പേര് നൽകുക.',
   nameLabel: 'പേര്',
   fullName: 'പൂർണ്ണ പേര്',
