@@ -5,11 +5,11 @@ import {
   isSuccessResponse,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
-import {Platform} from 'react-native';
+import { Platform } from 'react-native';
 
 import ENV from '../../../env';
 import apiService from '../../../services/apiService';
-import {saveSession} from '../../../services/session';
+import { saveSession } from '../../../services/session';
 
 let configured = false;
 
@@ -23,6 +23,8 @@ const ensureGoogleConfigured = () => {
   if (!configured) {
     GoogleSignin.configure({
       webClientId,
+      // Firebase only needs the ID token. offlineAccess asks Google for a
+      // server auth code and returns error 10 on Play-signed builds.
       offlineAccess: false,
       scopes: ['profile', 'email'],
     });
@@ -64,7 +66,7 @@ const mapGoogleError = (error: unknown): Error => {
 export const signInWithGoogle = async () => {
   ensureGoogleConfigured();
 
-  await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
   // Clear a stale Google session so the account picker always returns a fresh token.
   try {
@@ -131,7 +133,7 @@ export const signInWithGoogle = async () => {
     const profileResponse = await apiService.get('/auth/profile');
     const profile = profileResponse.data?.data;
     if (profile) {
-      await saveSession(data.token, {...data.user, ...profile});
+      await saveSession(data.token, { ...data.user, ...profile });
     }
   } catch {
     // Session from social login is enough if profile refresh fails.

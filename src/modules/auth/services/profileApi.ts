@@ -130,14 +130,21 @@ class ProfileApi {
   async register(data: CompleteProfileRequest & {
     mobileCountryCode: string;
     mobileNumber: string;
-    password: string;
+    password?: string;
+    firebaseToken?: string;
+    firebaseUid?: string;
+    authProvider?: string;
   }) {
     const response = await apiService.post('/auth/register', {
       mobileCountryCode: data.mobileCountryCode,
       mobileNumber: data.mobileNumber,
       fullName: data.fullName,
       email: data.email,
-      password: data.password,
+      password: data.password || undefined,
+      firebaseToken: data.firebaseToken || undefined,
+      firebaseUid: data.firebaseUid || undefined,
+      authProvider: data.authProvider || undefined,
+      provider: data.authProvider || undefined,
       gender: data.gender,
       dateOfBirth: data.dob,
       dob: data.dob,

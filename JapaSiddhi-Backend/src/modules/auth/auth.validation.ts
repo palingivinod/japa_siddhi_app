@@ -148,10 +148,21 @@ export const registerValidation = [
   ...phoneAuthValidation,
   strictMobileNumber,
   body('password')
-    .notEmpty()
-    .withMessage('Password is required.')
-    .isLength({min: 6})
-    .withMessage('Password must be at least 6 characters.'),
+    .custom((value, {req}) => {
+      const isSocial = Boolean(
+        req.body?.firebaseToken ||
+        req.body?.firebaseUid ||
+        req.body?.authProvider === 'google' ||
+        req.body?.provider === 'google',
+      );
+      if (isSocial && !value) {
+        return true;
+      }
+      if (!value || String(value).length < 6) {
+        throw new Error('Password must be at least 6 characters.');
+      }
+      return true;
+    }),
   body('fullName')
     .trim()
     .notEmpty()

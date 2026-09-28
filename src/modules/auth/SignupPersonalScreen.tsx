@@ -31,7 +31,7 @@ type DateField = 'dob' | 'spouseDob' | 'anniversary';
 const SignupPersonalScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(route.params?.fullName || '');
   const [email, setEmail] = useState(route.params?.email || '');
   const [countryCode, setCountryCode] = useState(
     String(route.params?.mobileCountryCode || '91').replace(/\D/g, '') || '91',

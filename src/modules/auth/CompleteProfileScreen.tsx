@@ -65,7 +65,7 @@ const CompleteProfileScreen = ({
     useState<string | null>(null);
   const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
 
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(route?.params?.fullName || '');
 
   const [email, setEmail] = useState(registeredEmail);
 
@@ -249,7 +249,13 @@ const CompleteProfileScreen = ({
         }
       } else {
         const password = String(route?.params?.password || '');
-        if (password.length < 6) {
+        const isSocial = Boolean(
+          route?.params?.isGoogleSignup ||
+          route?.params?.authProvider === 'google' ||
+          route?.params?.firebaseToken ||
+          route?.params?.firebaseUid,
+        );
+        if (!isSocial && password.length < 6) {
           Alert.alert(
             'Password required',
             'Please create your account with email, password and mobile first.',
@@ -261,7 +267,10 @@ const CompleteProfileScreen = ({
           ...profilePayload,
           mobileCountryCode: code,
           mobileNumber: number,
-          password,
+          password: password || undefined,
+          firebaseToken: route?.params?.firebaseToken,
+          firebaseUid: route?.params?.firebaseUid,
+          authProvider: isSocial ? 'google' : undefined,
         });
         const token = result?.data?.token;
         const user = result?.data?.user;

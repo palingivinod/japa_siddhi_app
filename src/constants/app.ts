@@ -8,6 +8,6 @@ export const DEFAULT_LANGUAGE = 'en';
 
 export const DEFAULT_COUNTRY = 'IN';
 
-export const PLAYSTORE_URL = '';
+export const PLAYSTORE_URL = 'https://play.google.com/store/apps/details?id=com.japasiddhi';
 
 export const APPSTORE_URL = '';

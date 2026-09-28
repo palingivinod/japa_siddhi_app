@@ -260,26 +260,24 @@ class AuthService {
     let isNewUser = false;
 
     if (!user) {
-      // Unique placeholder mobile so Google accounts can finish profile later.
-      // Derive digits from the whole UID (base36-ish) so two UIDs with few
-      // numeric chars do not collide on 9000000000.
-      const digits = Array.from(firebaseUid)
-        .map(ch => (/\d/.test(ch) ? ch : String(ch.charCodeAt(0) % 10)))
-        .join('')
-        .replace(/\D/g, '');
-      const mobileNumber = (`9${digits}0000000000`).slice(0, 10);
+      // Create user with Google name, email, photo.
+      // NO random phone numbers (mobileCountryCode & mobileNumber are null).
+      // NO fake gender or fake DOB — devotee can fill them from Profile -> Personal Details anytime.
       const userId = await authRepository.createUser({
         firebaseUid,
         email,
         fullName,
-        mobileCountryCode: '91',
-        mobileNumber,
+        mobileCountryCode: null,
+        mobileNumber: null,
         deviceType: data.deviceType === 'IOS' ? 'IOS' : 'ANDROID',
         deviceModel: data.deviceModel,
         deviceOs: data.deviceOs,
         appVersion: data.appVersion,
         firebaseToken: data.firebaseToken,
+        profileCompleted: 1,
+        profilePhoto: decoded.picture || null,
       });
+
       user = await authRepository.findUserById(userId);
       if (!user) {
         throw new AppError('Unable to create Google account.', 500);
@@ -370,13 +368,42 @@ class AuthService {
     profilePhoto?: string;
     profileImage?: string;
     deviceType?: 'ANDROID' | 'IOS';
+    firebaseToken?: string;
+    firebaseUid?: string;
+    authProvider?: string;
+    provider?: string;
   }): Promise<LoginResponse & {isNewUser: boolean}> {
     const mobileCountryCode = normalizePhone(data.mobileCountryCode);
     const mobileNumber = normalizePhone(data.mobileNumber);
     const email = String(data.email || '').trim().toLowerCase();
     const fullName = String(data.fullName || '').trim();
-    const password = assertPassword(String(data.password || ''));
-    const passwordHash = await hashPassword(password);
+    const isSocial = Boolean(
+      data.firebaseToken ||
+      data.firebaseUid ||
+      data.authProvider === 'google' ||
+      data.provider === 'google',
+    );
+
+    let passwordHash: string | null = null;
+    if (!isSocial || data.password) {
+      const password = assertPassword(String(data.password || ''));
+      passwordHash = await hashPassword(password);
+    }
+
+    let firebaseUid = String(data.firebaseUid || '').trim();
+    if (!firebaseUid && data.firebaseToken && isFirebaseReady()) {
+      try {
+        const decoded = await admin.auth().verifyIdToken(String(data.firebaseToken));
+        if (decoded?.uid) {
+          firebaseUid = decoded.uid;
+        }
+      } catch (error) {
+        console.warn('Could not verify firebaseToken during register:', error);
+      }
+    }
+    if (!firebaseUid) {
+      firebaseUid = `email:${email}`;
+    }
 
     if (
       !mobileCountryCode ||
@@ -403,7 +430,12 @@ class AuthService {
           mobileCountryCode,
           mobileNumber,
         );
-        await authRepository.setPasswordHash(deleted.id, passwordHash);
+        if (passwordHash) {
+          await authRepository.setPasswordHash(deleted.id, passwordHash);
+        }
+        if (firebaseUid && String(deleted.firebaseUid || '') !== firebaseUid) {
+          await authRepository.linkFirebaseUid(deleted.id, firebaseUid).catch(() => undefined);
+        }
         await authRepository.completeProfile(
           deleted.id,
           profileFields({
@@ -430,16 +462,22 @@ class AuthService {
       }
     }
     if (existingEmail) {
-      const existingHash = await authRepository.getPasswordHashByEmail(email);
-      if (existingHash) {
-        throw new AppError(
-          'An account with this email already exists. Please sign in with email and password.',
-          409,
-        );
+      if (!isSocial) {
+        const existingHash = await authRepository.getPasswordHashByEmail(email);
+        if (existingHash) {
+          throw new AppError(
+            'An account with this email already exists. Please sign in with email and password.',
+            409,
+          );
+        }
       }
 
-      // Legacy account without password — finish profile and set password once.
-      await authRepository.setPasswordHash(existingEmail.id, passwordHash);
+      if (passwordHash) {
+        await authRepository.setPasswordHash(existingEmail.id, passwordHash);
+      }
+      if (firebaseUid && String(existingEmail.firebaseUid || '') !== firebaseUid) {
+        await authRepository.linkFirebaseUid(existingEmail.id, firebaseUid).catch(() => undefined);
+      }
       await authRepository.completeProfile(
         existingEmail.id,
         profileFields({
@@ -472,9 +510,10 @@ class AuthService {
         mobileNumber,
         email,
         fullName,
-        passwordHash,
-        firebaseUid: `email:${email}`,
+        passwordHash: passwordHash || undefined,
+        firebaseUid,
         deviceType: data.deviceType ?? 'ANDROID',
+        firebaseToken: data.firebaseToken,
       });
     } catch (error: any) {
       const message = String(error?.message || error?.sqlMessage || '');
@@ -495,7 +534,9 @@ class AuthService {
             mobileCountryCode,
             mobileNumber,
           );
-          await authRepository.setPasswordHash(deleted.id, passwordHash);
+          if (passwordHash) {
+            await authRepository.setPasswordHash(deleted.id, passwordHash);
+          }
           await authRepository.completeProfile(
             deleted.id,
             profileFields({
@@ -519,9 +560,10 @@ class AuthService {
           mobileNumber,
           email,
           fullName,
-          passwordHash,
+          passwordHash: passwordHash || undefined,
           firebaseUid: `usr:${randomUUID()}`,
           deviceType: data.deviceType ?? 'ANDROID',
+          firebaseToken: data.firebaseToken,
         });
       } else {
         throw error;

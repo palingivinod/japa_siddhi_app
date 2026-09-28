@@ -35,8 +35,8 @@ android {
         applicationId "com.japasiddhi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        versionCode 8
+        versionName "1.0.4"
     }
     signingConfigs {
         debug {
@@ -47,14 +47,10 @@ android {
         }
         release {
             if (keystorePropertiesFile.exists()) {
-                // Point securely to your newly generated binary file
                 storeFile file("japasiddhi-release.keystore")
                 storePassword keystoreProperties['storePassword']
                 keyAlias keystoreProperties['keyAlias']
                 keyPassword keystoreProperties['keyPassword']
-                
-                // Let Java auto-detect the fresh store structure 
-                // or enforce standard PKCS12 depending on your JDK environment
                 storeType 'pkcs12'
             }
         }
@@ -64,9 +60,13 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            signingConfig keystorePropertiesFile.exists()
-                ? signingConfigs.release
-                : signingConfigs.debug
+            // Never fall back to debug.keystore. Play resigns the upload
+            // certificate; a debug-signed "release" fails Google Sign-In
+            // with DEVELOPER_ERROR (code 10).
+            if (!keystorePropertiesFile.exists() || !file("japasiddhi-release.keystore").exists()) {
+                throw new GradleException("Play release requires android/keystore.properties and android/app/japasiddhi-release.keystore. Refusing to sign with the debug key.")
+            }
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"

@@ -14,11 +14,19 @@
       },
       "oauth_client": [
         {
-          "client_id": "89483752433-7o0h8a7ahpp57qsml5u0rebb37cu180a.apps.googleusercontent.com",
+          "client_id": "89483752433-6d31so58kreqob90vu38de5kkrqsj02v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.japasiddhi",
-            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+            "certificate_hash": "fd2cb7e805a2f91ec1e13333938bc98487291948"
+          }
+        },
+        {
+          "client_id": "89483752433-qr6q18bo93vlca5ecca0oq6qoqb8o6ln.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.japasiddhi",
+            "certificate_hash": "df8c246b5ee0e40992447fadbefb33afae151431"
           }
         },
         {

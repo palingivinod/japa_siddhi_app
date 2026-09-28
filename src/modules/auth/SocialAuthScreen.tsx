@@ -41,31 +41,15 @@ const SocialAuthScreen = () => {
     // Do not flip busy until after the account picker closes — a loading
     // overlay during the native Google UI can leave Activity null on return.
     try {
-      const result = await signInWithGoogle();
+      await signInWithGoogle();
       setBusy(true);
       resetAuthGate();
-      const incomplete =
-        !result.user?.profileCompleted ||
-        Number(result.user?.profileCompleted) === 0 ||
-        result.isNewUser;
       setTimeout(() => {
         navigation.reset({
           index: 0,
-          routes: [
-            {
-              name: incomplete ? 'SignupPersonal' : 'Home',
-              params: incomplete
-                ? {
-                    email: result.user?.email,
-                    fullName: result.user?.fullName,
-                    mobileCountryCode: result.user?.mobileCountryCode,
-                    mobileNumber: result.user?.mobileNumber,
-                  }
-                : undefined,
-            },
-          ],
+          routes: [{name: 'Home'}],
         });
-      }, 200);
+      }, 150);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);
       if (

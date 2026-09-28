@@ -5,18 +5,18 @@ import { AuthUser } from './auth.types';
 
 interface CreateUserData {
   firebaseUid?: string;
-  mobileCountryCode: string;
-  mobileNumber: string;
-  email?: string;
+  mobileCountryCode?: string | null;
+  mobileNumber?: string | null;
+  email?: string | null;
   fullName?: string;
   passwordHash?: string;
-
   deviceType: 'ANDROID' | 'IOS';
-
   deviceModel?: string;
   deviceOs?: string;
   appVersion?: string;
   firebaseToken?: string;
+  profileCompleted?: number;
+  profilePhoto?: string | null;
 }
 
 const mapUser = (row: any): AuthUser | null => {
@@ -296,7 +296,8 @@ class AuthRepository {
           device_os,
           app_version,
           firebase_token,
-          profile_completed
+          profile_completed,
+          profile_photo
         )
         VALUES
         (
@@ -312,7 +313,8 @@ class AuthRepository {
           ?,
           ?,
           ?,
-          0
+          ?,
+          ?
         )
         `,
         [
@@ -321,8 +323,8 @@ class AuthRepository {
             (data.email
               ? `email:${String(data.email).trim().toLowerCase()}`
               : `usr:${randomUUID()}`),
-          data.mobileCountryCode,
-          data.mobileNumber,
+          data.mobileCountryCode ?? null,
+          data.mobileNumber ?? null,
           data.email ? data.email.toLowerCase() : null,
           data.fullName ?? 'Devotee',
           data.passwordHash ?? null,
@@ -331,6 +333,8 @@ class AuthRepository {
           data.deviceOs ?? null,
           data.appVersion ?? null,
           data.firebaseToken ?? null,
+          data.profileCompleted ?? 0,
+          data.profilePhoto ?? null,
         ],
       );
 

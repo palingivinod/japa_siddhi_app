@@ -61,6 +61,12 @@ const SignupPhotoScreen = () => {
     );
     const mobileNumber = String(params.mobileNumber || '').replace(/\D/g, '');
     const password = String(params.password || '');
+    const isGoogleSignup = Boolean(
+      params.isGoogleSignup ||
+      params.authProvider === 'google' ||
+      params.firebaseToken ||
+      params.firebaseUid,
+    );
     if (!isMobile(mobileNumber) || /^0+$/.test(mobileNumber)) {
       Alert.alert(
         'Mobile required',
@@ -68,7 +74,7 @@ const SignupPhotoScreen = () => {
       );
       return;
     }
-    if (password.length < 6) {
+    if (!isGoogleSignup && password.length < 6) {
       Alert.alert(
         'Password required',
         'Go back to Create Account and set your password before creating your profile.',
@@ -104,7 +110,10 @@ const SignupPhotoScreen = () => {
         ...payload,
         mobileCountryCode,
         mobileNumber,
-        password,
+        password: password || undefined,
+        firebaseToken: params.firebaseToken,
+        firebaseUid: params.firebaseUid,
+        authProvider: isGoogleSignup ? 'google' : undefined,
       });
       if (result?.data?.token) {
         await saveSession(result.data.token, result.data.user);
