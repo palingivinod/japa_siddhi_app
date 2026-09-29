@@ -17,7 +17,27 @@ interface CreateUserData {
   firebaseToken?: string;
   profileCompleted?: number;
   profilePhoto?: string | null;
-}
+export const isPlaceholderMobile = (
+  firebaseUid?: string | null,
+  mobileNumber?: string | null,
+): boolean => {
+  if (!mobileNumber) {
+    return false;
+  }
+  const cleanMobile = String(mobileNumber).replace(/\D/g, '');
+  if (!cleanMobile || cleanMobile === '0000000000' || cleanMobile === '9999999999') {
+    return true;
+  }
+  if (!firebaseUid) {
+    return false;
+  }
+  const digits = Array.from(firebaseUid)
+    .map(ch => (/\d/.test(ch) ? ch : String(ch.charCodeAt(0) % 10)))
+    .join('')
+    .replace(/\D/g, '');
+  const generated = (`9${digits}0000000000`).slice(0, 10);
+  return cleanMobile === generated;
+};
 
 const mapUser = (row: any): AuthUser | null => {
   if (!row) {
@@ -30,11 +50,19 @@ const mapUser = (row: any): AuthUser | null => {
     ...safeRow
   } = row;
 
+  const rawMobile = row.mobileNumber ?? row.mobile_number ?? '';
+  const firebaseUid = row.firebaseUid ?? row.firebase_uid ?? '';
+  const isDummy = isPlaceholderMobile(firebaseUid, rawMobile);
+  const mobileNumber = isDummy ? '' : rawMobile;
+  const mobileCountryCode = isDummy
+    ? ''
+    : (row.mobileCountryCode ?? row.mobile_country_code ?? '');
+
   return {
     ...safeRow,
-    firebaseUid: row.firebaseUid ?? row.firebase_uid,
-    mobileCountryCode: row.mobileCountryCode ?? row.mobile_country_code,
-    mobileNumber: row.mobileNumber ?? row.mobile_number,
+    firebaseUid,
+    mobileCountryCode,
+    mobileNumber,
     fullName: row.fullName ?? row.full_name,
     dateOfBirth: row.dateOfBirth ?? row.date_of_birth,
     profilePhoto: row.profilePhoto ?? row.profile_photo,
@@ -323,8 +351,8 @@ class AuthRepository {
             (data.email
               ? `email:${String(data.email).trim().toLowerCase()}`
               : `usr:${randomUUID()}`),
-          data.mobileCountryCode ?? null,
-          data.mobileNumber ?? null,
+          data.mobileCountryCode || '',
+          data.mobileNumber || '',
           data.email ? data.email.toLowerCase() : null,
           data.fullName ?? 'Devotee',
           data.passwordHash ?? null,
@@ -590,6 +618,20 @@ class AuthRepository {
       AND deleted_at IS NULL
       `,
       [`deleted-uid-${userId}-${Date.now()}`, anonymizedEmail, anonymizedMobile, userId],
+    );
+  }
+
+  async clearPlaceholderMobile(userId: number): Promise<void> {
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET
+        mobile_number = '',
+        mobile_country_code = '',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [userId],
     );
   }
 }

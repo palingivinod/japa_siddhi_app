@@ -42,15 +42,43 @@ export interface UpdateProfileRequest {
   nakshatram?: string;
 }
 
+const isPlaceholderMobile = (
+  firebaseUid?: string | null,
+  mobileNumber?: string | null,
+): boolean => {
+  if (!mobileNumber) {
+    return false;
+  }
+  const cleanMobile = String(mobileNumber).replace(/\D/g, '');
+  if (!cleanMobile || cleanMobile === '0000000000' || cleanMobile === '9999999999') {
+    return true;
+  }
+  if (!firebaseUid) {
+    return false;
+  }
+  const digits = Array.from(firebaseUid)
+    .map(ch => (/\d/.test(ch) ? ch : String(ch.charCodeAt(0) % 10)))
+    .join('')
+    .replace(/\D/g, '');
+  const generated = (`9${digits}0000000000`).slice(0, 10);
+  return cleanMobile === generated;
+};
+
 export const mapProfile = (data: any) => {
   if (!data) {
     return null;
   }
 
+  const rawMobile = data.mobileNumber ?? data.mobile_number ?? '';
+  const firebaseUid = data.firebaseUid ?? data.firebase_uid ?? '';
+  const mobileNumber = isPlaceholderMobile(firebaseUid, rawMobile)
+    ? ''
+    : rawMobile;
+
   return {
     id: data.id,
     fullName: data.fullName ?? data.full_name ?? 'Devotee',
-    mobileNumber: data.mobileNumber ?? data.mobile_number ?? '',
+    mobileNumber,
     email: data.email ?? '',
     gender: data.gender ?? '',
     dateOfBirth: data.dateOfBirth ?? data.date_of_birth ?? '',

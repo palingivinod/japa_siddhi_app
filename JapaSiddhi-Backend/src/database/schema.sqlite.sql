@@ -77,7 +77,7 @@ CREATE TABLE IF NOT EXISTS users (
   uuid TEXT NOT NULL UNIQUE,
   firebase_uid TEXT UNIQUE,
   mobile_country_code TEXT NOT NULL DEFAULT '91',
-  mobile_number TEXT NOT NULL,
+  mobile_number TEXT NOT NULL DEFAULT '',
   full_name TEXT NOT NULL DEFAULT 'Devotee',
   email TEXT,
   gender TEXT DEFAULT 'Prefer Not To Say',

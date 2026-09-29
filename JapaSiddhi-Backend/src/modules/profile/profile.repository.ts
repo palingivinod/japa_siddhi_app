@@ -7,6 +7,7 @@ import mysql from '../../database/mysql';
 import {
   UpdateProfileRequest,
 } from './profile.types';
+import {isPlaceholderMobile} from '../auth/auth.repository';
 
 
 
@@ -110,9 +111,25 @@ class ProfileRepository {
       );
 
 
-    return rows.length
-      ? rows[0]
-      : null;
+    if (!rows.length) {
+      return null;
+    }
+
+    const row = rows[0];
+    const rawMobile = row.mobileNumber ?? row.mobile_number ?? '';
+    const firebaseUid = row.firebaseUid ?? row.firebase_uid ?? '';
+    if (isPlaceholderMobile(firebaseUid, rawMobile)) {
+      row.mobileNumber = '';
+      row.mobile_number = '';
+      mysql
+        .query(
+          'UPDATE users SET mobile_number = \'\', mobile_country_code = \'\' WHERE id = ?',
+          [userId],
+        )
+        .catch(() => undefined);
+    }
+
+    return row;
 
   }
 

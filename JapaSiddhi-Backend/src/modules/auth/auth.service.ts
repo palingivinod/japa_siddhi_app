@@ -2,7 +2,7 @@ import {randomUUID} from 'crypto';
 import {compare as bcryptCompare, hash as bcryptHash} from 'bcrypt';
 import {admin, isFirebaseReady} from '../../firebase/firebase';
 
-import authRepository from './auth.repository';
+import authRepository, {isPlaceholderMobile} from './auth.repository';
 import otpRepository from './otp.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import environment from '../../config/environment';
@@ -295,6 +295,10 @@ class AuthService {
         } catch (error) {
           console.warn('Could not link Firebase UID:', error);
         }
+      }
+      if (user.mobileNumber && isPlaceholderMobile(firebaseUid, user.mobileNumber)) {
+        user.mobileNumber = '';
+        authRepository.clearPlaceholderMobile(user.id).catch(() => undefined);
       }
       await authRepository.updateLastLogin(
         user.id,
