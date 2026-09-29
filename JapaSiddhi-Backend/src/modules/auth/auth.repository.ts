@@ -17,6 +17,8 @@ interface CreateUserData {
   firebaseToken?: string;
   profileCompleted?: number;
   profilePhoto?: string | null;
+}
+
 export const isPlaceholderMobile = (
   firebaseUid?: string | null,
   mobileNumber?: string | null,
