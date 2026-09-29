@@ -58,7 +58,7 @@ const formatDay = (raw?: string | null) => {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleDateString('en-GB', {day: 'numeric', month: 'short'});
+  return date.toLocaleDateString('en-GB', {day: 'numeric', month: 'long'});
 };
 
 const mantraLabel = (item: any) => {

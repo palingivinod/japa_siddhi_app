@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
@@ -8,12 +7,12 @@ import {
   emptyPanchang,
   festivalDateLabel,
   festivalName,
+  formatPanchangDisplayDate,
   PanchangPayload,
 } from '../../services/panchang';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import PanchangDetails from '../common/PanchangDetails';
-import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 interface Festival {
@@ -25,8 +24,7 @@ interface Festival {
 }
 
 const FestivalsScreen = () => {
-  const navigation = useNavigation<any>();
-  const {t, language} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [festivals, setFestivals] = useState<Festival[]>([]);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [loading, setLoading] = useState(true);
@@ -68,44 +66,51 @@ const FestivalsScreen = () => {
   }, [load]);
 
   return (
-    <ScreenLayout title="Festivals">
+    <ScreenLayout title="">
       {loading ? <ActivityIndicator color={Colors.primary} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
+
       <View style={styles.card}>
         <Text style={styles.kicker}>{t('todayPanchangam')}</Text>
         <Text style={styles.date}>
-          {panchang.displayDate || t('loadingToday')}
+          {formatPanchangDisplayDate(panchang, t) ||
+            panchang.displayDate ||
+            t('loadingToday')}
         </Text>
         {panchang.festival ? (
           <>
-            <Text style={styles.name}>{festivalName(panchang.festival)}</Text>
+            <Text style={styles.name}>{tt(festivalName(panchang.festival))}</Text>
             {panchang.festival.description ? (
               <Text style={styles.description}>
-                {panchang.festival.description}
+                {tt(panchang.festival.description)}
               </Text>
             ) : null}
           </>
         ) : null}
         {panchang.nextFestival && !panchang.festival ? (
           <Text style={styles.description}>
-            {t('next')}: {festivalName(panchang.nextFestival)} ·{' '}
-            {festivalDateLabel(panchang.nextFestival.festivalDate)}
+            {t('next')}: {tt(festivalName(panchang.nextFestival))} ·{' '}
+            {festivalDateLabel(panchang.nextFestival.festivalDate, t)}
           </Text>
         ) : null}
         <PanchangDetails panchang={panchang} />
       </View>
+
+      {festivals.length > 0 ? (
+        <Text style={styles.sectionHeading}>{t('upcomingFestivals')}</Text>
+      ) : null}
+
       {festivals.map(item => (
         <View key={item.id} style={styles.card}>
-          <Text style={styles.date}>{festivalDateLabel(item.festivalDate)}</Text>
-          <Text style={styles.name}>{item.festivalName}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-          <View style={styles.gap} />
-          <PrimaryButton
-            title="JOIN FESTIVAL JAPA"
-            onPress={() => navigation.navigate('Challenges')}
-          />
+          <Text style={styles.date}>
+            {festivalDateLabel(item.festivalDate, t)}
+          </Text>
+          <Text style={styles.name}>{tt(item.festivalName)}</Text>
+          {item.description ? (
+            <Text style={styles.description}>{tt(item.description)}</Text>
+          ) : null}
         </View>
       ))}
     </ScreenLayout>
@@ -115,6 +120,17 @@ const FestivalsScreen = () => {
 export default FestivalsScreen;
 
 const styles = StyleSheet.create({
+  sectionHeading: {
+    fontSize: 22,
+    lineHeight: 34,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginTop: 10,
+    marginBottom: 10,
+    letterSpacing: 0.3,
+    paddingVertical: 4,
+    includeFontPadding: true,
+  },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 18,
@@ -128,24 +144,34 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: 0.6,
     fontSize: 12,
+    lineHeight: 18,
+    paddingVertical: 2,
+    includeFontPadding: true,
   },
   date: {
-    marginTop: 6,
-    color: Colors.mutedText,
+    marginTop: 4,
+    color: Colors.textSecondary,
     fontStyle: 'italic',
+    fontSize: 14,
+    lineHeight: 22,
+    paddingVertical: 2,
+    includeFontPadding: true,
   },
   name: {
     marginTop: 4,
     color: Colors.sacredBrown,
     fontSize: 20,
     fontWeight: '800',
+    lineHeight: 32,
+    paddingVertical: 4,
+    includeFontPadding: true,
   },
   description: {
-    marginTop: 8,
-    color: Colors.mutedText,
-    lineHeight: 20,
-  },
-  gap: {
-    height: 12,
+    marginTop: 6,
+    color: Colors.textSecondary,
+    lineHeight: 24,
+    fontSize: 14,
+    paddingVertical: 4,
+    includeFontPadding: true,
   },
 });

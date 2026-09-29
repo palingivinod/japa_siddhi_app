@@ -35,14 +35,21 @@ const styles = StyleSheet.create({
   check: {color: Colors.white, fontSize: 42, fontWeight: '800'},
   title: {
     fontSize: 26,
+    lineHeight: 36,
     fontWeight: '800',
     color: Colors.sacredBrown,
     textAlign: 'center',
+    includeFontPadding: true,
+    paddingVertical: 2,
   },
   sub: {
     marginTop: 8,
     color: Colors.leafGreen,
     fontWeight: '700',
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: 'center',
+    includeFontPadding: true,
+    paddingVertical: 2,
   },
 });

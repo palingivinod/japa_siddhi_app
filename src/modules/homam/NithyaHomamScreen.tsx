@@ -2,16 +2,18 @@ import React, {useCallback, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {TranslationKey} from '../../i18n';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
-const BENEFITS = [
-  {emoji: '📜', text: 'Daily sankalpam'},
-  {emoji: '🙏', text: 'Spiritual participation'},
-  {emoji: '🔔', text: 'Personalized reminders'},
+const BENEFITS: {emoji: string; key: TranslationKey}[] = [
+  {emoji: '📜', key: 'benefitDailySankalpam'},
+  {emoji: '🙏', key: 'benefitSpiritualParticipation'},
+  {emoji: '🔔', key: 'benefitPersonalizedReminders'},
 ];
 
 type EnrollmentState = {
@@ -22,6 +24,7 @@ type EnrollmentState = {
 
 const NithyaHomamScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
 
@@ -96,26 +99,19 @@ const NithyaHomamScreen = () => {
 
       {!loading && enrollment ? (
         <View style={styles.statusCard}>
-          <Text style={styles.statusLabel}>Your enrollment</Text>
+          <Text style={styles.statusLabel}>{t('yourEnrollment')}</Text>
           <Text style={styles.statusCode}>{enrollment.code}</Text>
           <Text style={styles.statusMeta}>
             {enrollment.stage} • {enrollment.status}
           </Text>
           {enrollment.status === 'Pending' ? (
-            <Text style={styles.hint}>
-              Payment UTR is with admin for verification. You will be active
-              after it is confirmed.
-            </Text>
+            <Text style={styles.hint}>{t('homamPendingHint')}</Text>
           ) : null}
           {enrollment.status === 'Inactive' ? (
-            <Text style={styles.hint}>
-              Your enrollment is inactive. Contact support or enroll again.
-            </Text>
+            <Text style={styles.hint}>{t('homamInactiveHint')}</Text>
           ) : null}
           {enrollment.status === 'Active' ? (
-            <Text style={styles.hint}>
-              You are enrolled for daily Nithya Homam.
-            </Text>
+            <Text style={styles.hint}>{t('homamActiveHint')}</Text>
           ) : null}
         </View>
       ) : null}
@@ -124,11 +120,11 @@ const NithyaHomamScreen = () => {
         <>
           {!enrollment ? (
             <>
-              <Text style={styles.section}>Benefits</Text>
+              <Text style={styles.section}>{t('benefitsLabel')}</Text>
               {BENEFITS.map(item => (
-                <View key={item.text} style={styles.row}>
+                <View key={item.key} style={styles.row}>
                   <Text style={styles.benefitEmoji}>{item.emoji}</Text>
-                  <Text style={styles.item}>{item.text}</Text>
+                  <Text style={styles.item}>{t(item.key)}</Text>
                 </View>
               ))}
             </>
@@ -151,18 +147,30 @@ const styles = StyleSheet.create({
   section: {
     color: Colors.leafGreen,
     fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 24,
     marginBottom: 10,
     marginTop: 8,
+    includeFontPadding: true,
+    paddingVertical: 2,
   },
   row: {flexDirection: 'row', alignItems: 'center', marginBottom: 10},
   benefitEmoji: {
     width: 28,
     fontSize: 18,
-    lineHeight: 22,
+    lineHeight: 24,
     textAlign: 'center',
     marginRight: 8,
   },
-  item: {color: Colors.sacredBrown, fontWeight: '600'},
+  item: {
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 22,
+    includeFontPadding: true,
+    paddingVertical: 2,
+    flex: 1,
+  },
   gap: {height: 20},
   statusCard: {
     marginTop: 12,
@@ -177,22 +185,33 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 12,
+    lineHeight: 18,
     letterSpacing: 0.6,
+    includeFontPadding: true,
   },
   statusCode: {
     marginTop: 6,
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 20,
+    lineHeight: 26,
+    includeFontPadding: true,
   },
   statusMeta: {
     marginTop: 4,
     color: Colors.textSecondary,
     fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
+    includeFontPadding: true,
   },
   hint: {
     marginTop: 10,
     color: Colors.sacredBrown,
     fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 22,
+    includeFontPadding: true,
+    paddingVertical: 2,
   },
 });

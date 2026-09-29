@@ -17,6 +17,7 @@ import {
   emptyPanchang,
   festivalDateLabel,
   festivalName,
+  formatPanchangDisplayDate,
   PanchangPayload,
 } from '../../../services/panchang';
 import {getStoredUser} from '../../../services/session';
@@ -29,7 +30,7 @@ import HomeBanner from '../components/HomeBanner';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
-  const {t, language} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [name, setName] = useState('Devotee');
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
@@ -221,10 +222,10 @@ const HomeScreen = () => {
           {homeBanners.map(item => (
             <View key={String(item.id)} style={styles.noticeCard}>
               <View style={styles.noticeCopy}>
-                <Text style={styles.noticeKicker}>{t('notice')}</Text>
-                <Text style={styles.noticeTitle}>{item.title}</Text>
+                <Text style={styles.noticeKicker}>{t('announcement')}</Text>
+                <Text style={styles.noticeTitle}>{tt(item.title)}</Text>
                 {item.subtitle ? (
-                  <Text style={styles.noticeSub}>{item.subtitle}</Text>
+                  <Text style={styles.noticeSub}>{tt(item.subtitle)}</Text>
                 ) : null}
               </View>
             </View>
@@ -237,24 +238,26 @@ const HomeScreen = () => {
               {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
             </Text>
             <Text style={styles.dateLine}>
-              {panchang.displayDate || t('loadingToday')}
+              {formatPanchangDisplayDate(panchang, t) ||
+                panchang.displayDate ||
+                t('loadingToday')}
             </Text>
             {panchang.festival ? (
               <>
                 <Text style={styles.cardTitle}>
-                  {festivalName(panchang.festival)}
+                  {tt(festivalName(panchang.festival))}
                 </Text>
                 {panchang.festival.description ? (
                   <Text style={styles.cardMeta}>
-                    {panchang.festival.description}
+                    {tt(panchang.festival.description)}
                   </Text>
                 ) : null}
               </>
             ) : null}
             {panchang.nextFestival && !panchang.festival ? (
               <Text style={styles.nextFestival}>
-                {t('next')}: {festivalName(panchang.nextFestival)} ·{' '}
-                {festivalDateLabel(panchang.nextFestival.festivalDate)}
+                {t('next')}: {tt(festivalName(panchang.nextFestival))} ·{' '}
+                {festivalDateLabel(panchang.nextFestival.festivalDate, t)}
               </Text>
             ) : null}
             <PanchangDetails panchang={panchang} compact />

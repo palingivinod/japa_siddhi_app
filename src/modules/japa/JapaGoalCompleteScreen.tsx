@@ -230,8 +230,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: Colors.templeGold,
     borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    minHeight: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
     backgroundColor: Colors.white,
   },
   chipOn: {
@@ -241,6 +244,8 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 13,
+    lineHeight: 18,
+    textAlignVertical: 'center',
   },
   input: {
     borderWidth: 1.5,

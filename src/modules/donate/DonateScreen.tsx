@@ -113,9 +113,12 @@ export default DonateScreen;
 const styles = StyleSheet.create({
   heading: {
     fontSize: 24,
+    lineHeight: 36,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 16,
+    includeFontPadding: true,
+    paddingVertical: 4,
   },
   center: { paddingVertical: 16, alignItems: 'center' },
   empty: {

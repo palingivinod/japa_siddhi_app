@@ -30,7 +30,10 @@ const styles = StyleSheet.create({
   label: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    marginBottom: 8,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 6,
+    paddingBottom: 2,
   },
   input: {
     backgroundColor: Colors.white,
@@ -38,8 +41,10 @@ const styles = StyleSheet.create({
     borderColor: Colors.inputBorder,
     borderRadius: 14,
     paddingHorizontal: 14,
-    paddingVertical: 14,
+    paddingVertical: 12,
     fontSize: 16,
+    lineHeight: 22,
+    minHeight: 52,
     color: Colors.sacredBrown,
   },
 });

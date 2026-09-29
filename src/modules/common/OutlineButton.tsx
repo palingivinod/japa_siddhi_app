@@ -46,10 +46,10 @@ const styles = StyleSheet.create({
     width: '100%',
     color: Colors.templeGold,
     fontWeight: '800',
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 15.5,
+    lineHeight: 24,
     letterSpacing: 0,
-    includeFontPadding: false,
     textAlign: 'center',
+    textAlignVertical: 'center',
   },
 });

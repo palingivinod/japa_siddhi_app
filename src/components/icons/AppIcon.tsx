@@ -85,7 +85,7 @@ const AppIcon: React.FC<Props> = ({
             height: size,
             borderRadius: size / 2,
           },
-          style,
+          style as any,
         ]}
         resizeMode="cover"
       />

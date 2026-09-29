@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
@@ -10,6 +11,7 @@ import ScreenLayout from '../common/ScreenLayout';
 const MantraSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t, tt} = useLanguage();
   const passedId = Number(route.params?.mantraId || 0) || null;
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<number | null>(passedId);
@@ -32,10 +34,10 @@ const MantraSelectScreen = () => {
     String(route.params?.mantraName || '');
 
   return (
-    <ScreenLayout title="Select Mantra" showBack tab="JapaHub">
+    <ScreenLayout title={t('selectMantra')} showBack tab="JapaHub">
       {picking ? (
         <>
-          <Text style={styles.hint}>Choose one mantra to chant</Text>
+          <Text style={styles.hint}>{t('chooseOneMantra')}</Text>
           {mantras.map(item => {
             const active = item.id === selected;
             return (
@@ -46,29 +48,31 @@ const MantraSelectScreen = () => {
                 <View style={[styles.radio, active && styles.radioOn]}>
                   {active ? <Text style={styles.check}>✓</Text> : null}
                 </View>
-                <Text style={styles.name}>{item.mantraName}</Text>
+                <Text style={styles.name}>
+                  {tt(item.mantraName || item.transliteration)}
+                </Text>
               </TouchableOpacity>
             );
           })}
         </>
       ) : (
         <>
-          <Text style={styles.hint}>Your selected mantra</Text>
+          <Text style={styles.hint}>{t('yourSelectedMantra')}</Text>
           <View style={[styles.card, styles.active]}>
             <View style={[styles.radio, styles.radioOn]}>
               <Text style={styles.check}>✓</Text>
             </View>
-            <Text style={styles.name}>{chosenName}</Text>
+            <Text style={styles.name}>{tt(chosenName)}</Text>
           </View>
           <TouchableOpacity
             style={styles.changeBtn}
             onPress={() => setPicking(true)}>
-            <Text style={styles.changeText}>Change mantra</Text>
+            <Text style={styles.changeText}>{t('changeMantra')}</Text>
           </TouchableOpacity>
         </>
       )}
       <PrimaryButton
-        title="SET GOAL"
+        title={t('setGoalBtn')}
         onPress={() =>
           navigation.navigate('GoalSelect', {
             mode: route.params?.mode || 'community',
@@ -93,6 +97,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
+    minHeight: 56,
   },
   active: {
     borderColor: Colors.selectedOrange,
@@ -114,7 +119,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.selectedOrange,
   },
   check: {color: Colors.white, fontWeight: '800', fontSize: 12},
-  name: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
+  name: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    fontSize: 16,
+    lineHeight: 24,
+    flex: 1,
+  },
   changeBtn: {
     alignSelf: 'center',
     paddingVertical: 10,

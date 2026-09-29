@@ -72,6 +72,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 16,
+    paddingVertical: 4,
+    minHeight: 48,
   },
   back: {
     width: 36,
@@ -87,11 +89,12 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center',
     fontSize: 22,
-    lineHeight: 32,
+    lineHeight: 36,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
     paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   logo: {
     width: 40,

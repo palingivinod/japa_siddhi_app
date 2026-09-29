@@ -23,7 +23,7 @@ type TicketItem = {
   createdAt?: string;
 };
 
-const statusLabel = (status: string, t: (key: string) => string) => {
+const statusLabel = (status: string, t: (key: any) => string) => {
   const value = String(status || '').toUpperCase();
   if (value === 'RESOLVED' || value === 'CLOSED') {
     return t('ticketSolved');

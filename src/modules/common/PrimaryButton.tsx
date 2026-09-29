@@ -52,11 +52,10 @@ const styles = StyleSheet.create({
     width: '100%',
     color: Colors.white,
     fontWeight: '800',
-    fontSize: 16,
-    lineHeight: 22,
-    // letterSpacing breaks mid-word wraps on some Android widths.
+    fontSize: 15.5,
+    lineHeight: 24,
     letterSpacing: 0,
-    includeFontPadding: false,
     textAlign: 'center',
+    textAlignVertical: 'center',
   },
 });

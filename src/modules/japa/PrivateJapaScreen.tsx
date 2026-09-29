@@ -107,11 +107,14 @@ const PrivateJapaScreen = () => {
       />
       <View style={styles.orRow}>
         <View style={styles.rule} />
-        <Text style={styles.orText}>OR</Text>
+        <Text style={styles.orText}>{(t('or') || 'OR').toUpperCase()}</Text>
         <View style={styles.rule} />
       </View>
-      <OutlineButton title="MANTRAS" onPress={startWithListedMantra} />
-      <Text style={styles.hint}>Chant a listed mantra instead.</Text>
+      <OutlineButton
+        title={t('mantrasBtn')}
+        onPress={startWithListedMantra}
+      />
+      <Text style={styles.hint}>{t('chantListedMantraHint')}</Text>
       {message ? <Text style={styles.error}>{message}</Text> : null}
     </ScreenLayout>
   );
@@ -148,9 +151,26 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   copy: {flex: 1},
-  title: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
-  meta: {marginTop: 4, color: Colors.textSecondary},
-  label: {color: Colors.leafGreen, fontWeight: '700', marginBottom: 8},
+  title: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    fontSize: 16,
+    lineHeight: 23,
+  },
+  meta: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 6,
+    paddingBottom: 2,
+  },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 1,
@@ -176,13 +196,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
     color: Colors.textSecondary,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
+    lineHeight: 18,
     letterSpacing: 1,
   },
   hint: {
     marginTop: 10,
     color: Colors.textSecondary,
     textAlign: 'center',
+    fontSize: 14,
+    lineHeight: 22,
+    paddingBottom: 4,
   },
   error: {
     marginTop: 14,

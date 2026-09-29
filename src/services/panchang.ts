@@ -72,10 +72,40 @@ export const emptyPanchang = (): PanchangPayload => ({
   choghadiya: {current: null, periods: []},
 });
 
+import {TranslationKey} from '../i18n/en';
+
+const DAY_KEYS: TranslationKey[] = [
+  'daySun',
+  'dayMon',
+  'dayTue',
+  'dayWed',
+  'dayThu',
+  'dayFri',
+  'daySat',
+];
+
+const MONTH_KEYS: TranslationKey[] = [
+  'monthJan',
+  'monthFeb',
+  'monthMar',
+  'monthApr',
+  'monthMay',
+  'monthJun',
+  'monthJul',
+  'monthAug',
+  'monthSep',
+  'monthOct',
+  'monthNov',
+  'monthDec',
+];
+
 export const festivalName = (item?: FestivalSummary | null) =>
   item?.festivalName || item?.name || '';
 
-export const festivalDateLabel = (value?: string) => {
+export const festivalDateLabel = (
+  value?: string,
+  t?: (key: TranslationKey, vars?: any) => string,
+) => {
   if (!value) {
     return '';
   }
@@ -84,12 +114,41 @@ export const festivalDateLabel = (value?: string) => {
   if (Number.isNaN(parsed.getTime())) {
     return day;
   }
+  const d = parsed.getDate();
+  const m = parsed.getMonth();
+  const y = parsed.getFullYear();
+  if (t && MONTH_KEYS[m]) {
+    return `${d} ${t(MONTH_KEYS[m])} ${y}`;
+  }
   return new Intl.DateTimeFormat('en-IN', {
     day: 'numeric',
-    month: 'short',
+    month: 'long',
     year: 'numeric',
     timeZone: 'Asia/Kolkata',
   }).format(parsed);
+};
+
+export const formatPanchangDisplayDate = (
+  panchang?: PanchangPayload | null,
+  t?: (key: TranslationKey, vars?: any) => string,
+) => {
+  if (!panchang) {
+    return '';
+  }
+  const dateStr = panchang.date || '';
+  if (dateStr && t) {
+    const parsed = new Date(`${dateStr.slice(0, 10)}T12:00:00+05:30`);
+    if (!Number.isNaN(parsed.getTime())) {
+      const weekdayKey = DAY_KEYS[parsed.getDay()];
+      const monthKey = MONTH_KEYS[parsed.getMonth()];
+      const dayNum = parsed.getDate();
+      const year = parsed.getFullYear();
+      if (weekdayKey && monthKey) {
+        return `${t(weekdayKey)}, ${dayNum} ${t(monthKey)} ${year}`;
+      }
+    }
+  }
+  return panchang.displayDate || '';
 };
 
 export const currentChoghadiya = (
