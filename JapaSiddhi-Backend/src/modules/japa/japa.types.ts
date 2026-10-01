@@ -136,6 +136,8 @@ export interface JapaSummary {
     levels: Array<{target: number; title: string; key: string; reached: boolean}>;
   };
 
+  adminDailyGoal?: number;
+  dailyTarget?: number;
 }
 
 

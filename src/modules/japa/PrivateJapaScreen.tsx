@@ -159,6 +159,15 @@ const PrivateJapaScreen = () => {
     });
   };
 
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const filteredSuggestions = recentMantras.filter(item => {
+    if (!mantra.trim()) {
+      return true;
+    }
+    return item.name.toLowerCase().includes(mantra.trim().toLowerCase());
+  });
+
   return (
     <ScreenLayout title="My Japa" showBack tab="JapaHub">
       <View style={styles.card}>
@@ -171,60 +180,76 @@ const PrivateJapaScreen = () => {
         </View>
       </View>
       <Text style={styles.label}>{t('enterYourMantra')}</Text>
-      <TextInput
-        style={styles.input}
-        value={mantra}
-        onChangeText={text => {
-          setMantra(text);
-          setMessage('');
-        }}
-        placeholder={t('keptPrivateReports')}
-        placeholderTextColor={Colors.placeholder}
-      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          value={mantra}
+          onFocus={() => setShowSuggestions(true)}
+          onChangeText={text => {
+            setMantra(text);
+            setMessage('');
+            setShowSuggestions(true);
+          }}
+          placeholder={t('keptPrivateReports')}
+          placeholderTextColor={Colors.placeholder}
+        />
 
-      {recentMantras.length > 0 ? (
-        <View style={styles.suggestionsContainer}>
-          <Text style={styles.suggestionsLabel}>{t('recentMantras')}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.suggestionsScroll}>
-            {recentMantras.map(item => {
-              const isSelected =
-                mantra.trim().toLowerCase() === item.name.toLowerCase();
-              return (
-                <TouchableOpacity
-                  key={item.id ? `pm-${item.id}` : `m-${item.name}`}
-                  style={[
-                    styles.suggestionChip,
-                    isSelected && styles.suggestionChipActive,
-                  ]}
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    setMantra(item.name);
-                    if (item.preferredJapaCount) {
-                      setGoal(String(item.preferredJapaCount));
-                    }
-                    setMessage('');
-                  }}>
-                  <Text style={styles.suggestionIcon}>📿</Text>
-                  <Text
+        {showSuggestions && filteredSuggestions.length > 0 ? (
+          <View style={styles.suggestionsPopup}>
+            <View style={styles.popupHeader}>
+              <Text style={styles.popupHeaderText}>{t('recentMantras')}</Text>
+              <TouchableOpacity
+                hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                onPress={() => setShowSuggestions(false)}>
+                <Text style={styles.popupClose}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              nestedScrollEnabled
+              keyboardShouldPersistTaps="handled"
+              style={styles.popupScroll}>
+              {filteredSuggestions.slice(0, 5).map(item => {
+                const isSelected =
+                  mantra.trim().toLowerCase() === item.name.toLowerCase();
+                return (
+                  <TouchableOpacity
+                    key={item.id ? `pm-${item.id}` : `m-${item.name}`}
                     style={[
-                      styles.suggestionText,
-                      isSelected && styles.suggestionTextActive,
+                      styles.popupItem,
+                      isSelected && styles.popupItemActive,
                     ]}
-                    numberOfLines={1}>
-                    {item.name}
-                  </Text>
-                  {isSelected ? (
-                    <Text style={styles.suggestionCheck}>✓</Text>
-                  ) : null}
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setMantra(item.name);
+                      if (item.preferredJapaCount) {
+                        setGoal(String(item.preferredJapaCount));
+                      }
+                      setShowSuggestions(false);
+                      setMessage('');
+                    }}>
+                    <View style={styles.popupItemLeft}>
+                      <Text style={styles.suggestionIcon}>📿</Text>
+                      <Text
+                        style={[
+                          styles.popupItemText,
+                          isSelected && styles.popupItemTextActive,
+                        ]}
+                        numberOfLines={1}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    {item.preferredJapaCount ? (
+                      <Text style={styles.popupGoalHint}>
+                        {item.preferredJapaCount.toLocaleString()} Japas
+                      </Text>
+                    ) : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        ) : null}
+      </View>
 
       <Text style={styles.label}>{t('setGoal')}</Text>
       <TextInput
@@ -326,6 +351,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     paddingBottom: 2,
   },
+  inputContainer: {
+    position: 'relative',
+    zIndex: 10,
+    marginBottom: 8,
+  },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 1,
@@ -335,64 +365,81 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: Colors.sacredBrown,
-    marginBottom: 8,
   },
-  suggestionsContainer: {
-    marginTop: -2,
-    marginBottom: 12,
-  },
-  suggestionsLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.textSecondary,
-    marginBottom: 6,
-    includeFontPadding: true,
-  },
-  suggestionsScroll: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingVertical: 2,
-  },
-  suggestionChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  suggestionsPopup: {
+    marginTop: 4,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    borderRadius: 14,
+    paddingVertical: 6,
     shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    shadowOffset: {width: 0, height: 1},
-    elevation: 1,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 3},
+    elevation: 4,
   },
-  suggestionChipActive: {
+  popupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3EEE2',
+  },
+  popupHeaderText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  popupClose: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    padding: 2,
+  },
+  popupScroll: {
+    maxHeight: 180,
+  },
+  popupItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#FDFBF7',
+  },
+  popupItemActive: {
     backgroundColor: Colors.selectedTint,
-    borderColor: Colors.selectedOrange,
-    borderWidth: 1.5,
+  },
+  popupItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
   },
   suggestionIcon: {
     fontSize: 13,
-    marginRight: 6,
+    marginRight: 8,
   },
-  suggestionText: {
-    fontSize: 13,
+  popupItemText: {
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.sacredBrown,
-    maxWidth: 160,
+    flex: 1,
   },
-  suggestionTextActive: {
+  popupItemTextActive: {
     color: Colors.selectedOrange,
     fontWeight: '800',
   },
-  suggestionCheck: {
-    fontSize: 12,
-    color: Colors.selectedOrange,
-    fontWeight: '800',
-    marginLeft: 5,
+  popupGoalHint: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Colors.leafGreen,
   },
   presetsRow: {
     flexDirection: 'row',

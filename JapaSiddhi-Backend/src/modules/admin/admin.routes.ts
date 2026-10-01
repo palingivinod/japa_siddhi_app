@@ -3905,4 +3905,42 @@ router.put('/support-tickets/:id/reply', async (req: Request, res: Response) => 
   }
 });
 
+router.get('/daily-goal', async (_req: Request, res: Response) => {
+  try {
+    const appSettingsService = (
+      await import('./appSettings.service')
+    ).default;
+    const dailyGoal = await appSettingsService.getDailyGoal();
+    return res.json({
+      success: true,
+      data: {dailyGoal},
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load daily goal.',
+    });
+  }
+});
+
+router.put('/daily-goal', async (req: Request, res: Response) => {
+  try {
+    const appSettingsService = (
+      await import('./appSettings.service')
+    ).default;
+    const goal = Number(req.body?.dailyGoal ?? req.body?.goal ?? 2000);
+    const updated = await appSettingsService.setDailyGoal(goal);
+    return res.json({
+      success: true,
+      message: `Daily japa goal updated to ${updated.toLocaleString()}`,
+      data: {dailyGoal: updated},
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update daily goal.',
+    });
+  }
+});
+
 export default router;

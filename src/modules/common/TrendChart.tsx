@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 
 export type TrendPoint = number | {label?: string; value: number};
@@ -13,12 +14,13 @@ const toPoints = (values: TrendPoint[]) =>
   );
 
 const TrendChart = ({values}: {values: TrendPoint[]}) => {
+  const {t} = useLanguage();
   const points = toPoints(values);
   const max = Math.max(...points.map(item => item.value), 0);
   if (!points.length || max <= 0) {
     return (
       <View style={styles.card}>
-        <Text style={styles.empty}>No saved Japa yet for this period.</Text>
+        <Text style={styles.empty}>{t('noSavedJapaForPeriod')}</Text>
       </View>
     );
   }

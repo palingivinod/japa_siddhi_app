@@ -10,6 +10,7 @@ import challengeRepository from '../challenge/challenge.repository';
 import notificationService from '../notification/notification.service';
 import mysql from '../../database/mysql';
 import AppError from '../../utils/appError';
+import appSettingsService from '../admin/appSettings.service';
 import {
   buildMilestoneProgress,
   SPIRITUAL_MILESTONES,
@@ -302,6 +303,7 @@ class JapaService {
       globalJapaCount,
       byMantra,
       milestoneTotal,
+      adminDailyGoal,
     ] = await Promise.all([
       japaRepository.getUserTotalJapa(userId),
       japaRepository.getTodayJapa(userId),
@@ -310,6 +312,7 @@ class JapaService {
       japaRepository.getGlobalJapaCount(),
       japaRepository.getMantraTotals(userId),
       japaRepository.getUserMilestoneJapa(userId),
+      appSettingsService.getDailyGoal(),
     ]);
 
     return {
@@ -322,6 +325,8 @@ class JapaService {
       byMantra,
       milestoneTotal,
       milestone: buildMilestoneProgress(milestoneTotal),
+      adminDailyGoal,
+      dailyTarget: adminDailyGoal,
     };
 
   }
@@ -526,9 +531,7 @@ class JapaService {
       value: number;
     }>;
     const monthTrend = this.fillCurrentMonthWeeks(counts);
-    const lifeTrend = targetYear
-      ? this.fillMonthsForYear(targetYear, counts)
-      : this.fillMonths(12, counts);
+    const lifeTrend = this.fillMonthsForYear(selectedYear, counts);
     const weekValues = weekTrend.map(item => item.value);
     const monthValues = monthTrend.map(item => item.value);
     const weekTotal = weekValues.reduce((sum, value) => sum + value, 0);
@@ -780,7 +783,7 @@ class JapaService {
       japaRepository.getWeeklyBreakdown(userId),
       japaGoalRepository.getUserGoals(userId),
     ]);
-    const goal = Number(goals?.[0]?.dailyTarget ?? goals?.[0]?.targetCount ?? 2000);
+    const goal = Number(goals?.[0]?.targetCount ?? goals?.[0]?.dailyTarget ?? 2000);
     const today = Number(summary.todayJapaCount ?? 0);
     return {
       todayCount: today,

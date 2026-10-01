@@ -74,6 +74,7 @@ const ChantScreen = () => {
   const [challengeMantra, setChallengeMantra] = useState(
     String(route.params?.challengeMantra || '').trim(),
   );
+  const [showMantraPicker, setShowMantraPicker] = useState(false);
   const ownMantra = String(route.params?.privateMantra || '').trim();
   const personalMantraId =
     Number(route.params?.personalMantraId || 0) || undefined;
@@ -150,6 +151,13 @@ const ChantScreen = () => {
       setMantras(items);
 
       const preferredId = Number(route.params?.mantraId || 0);
+      const isExplicitMantra =
+        Boolean(ownMantra) ||
+        Boolean(personalMantraId) ||
+        Boolean(preferredId) ||
+        Boolean(challengeId) ||
+        mode === 'community';
+
       const preferred =
         (ownMantra &&
           items.find(item => item.own && item.name === ownMantra)) ||
@@ -157,10 +165,12 @@ const ChantScreen = () => {
           items.find(item => item.own && item.id === personalMantraId)) ||
         (preferredId &&
           items.find(item => !item.own && item.id === preferredId)) ||
-        items.find(item => !item.own) ||
-        items[0] ||
-        null;
+        (mode === 'community'
+          ? items.find(item => !item.own) || items[0] || null
+          : null);
+
       setSelected(current => current ?? preferred);
+      setShowMantraPicker(!preferred && mode === 'private');
       const data = summaryResponse.data.data ?? {};
       const {presets: totals, personal} = applyMantraTotals(
         data.byMantra || [],
@@ -303,6 +313,7 @@ const ChantScreen = () => {
   };
 
   const selectMantra = async (item: ChantMantra) => {
+    setShowMantraPicker(false);
     if (selectedRef.current?.key === item.key) {
       return;
     }
@@ -503,6 +514,11 @@ const ChantScreen = () => {
     if (completingRef.current || goalReached) {
       return;
     }
+    if (mode === 'private' && !selected) {
+      setShowMantraPicker(true);
+      setMessage(t('chooseOneMantra'));
+      return;
+    }
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
@@ -618,41 +634,64 @@ const ChantScreen = () => {
       </Text>
       {challengeId ? (
         <Text style={styles.challengeHint}>{t('challengeCountingHint')}</Text>
-      ) : mode === 'private' ? (
-        <View style={styles.chipRow}>
-          {mantras.map(item => (
-            <TouchableOpacity
-              key={item.key}
-              style={[
-                styles.chip,
-                item.own && styles.chipOwn,
-                selected?.key === item.key && styles.chipActive,
-              ]}
-              onPress={() => selectMantra(item)}>
-              <Text
-                style={[
-                  styles.chipText,
-                  selected?.key === item.key && styles.chipTextActive,
-                ]}>
-                {mantraLabel(item)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       ) : null}
-      <Text
-        style={[
-          styles.mantra,
-          mode === 'community' && !challengeId && styles.mantraCommunity,
-        ]}>
-        {challengeId
-          ? (challengeMantra && tt(challengeMantra)) ||
-            (selected && mantraLabel(selected)) ||
-            t('myJapa')
-          : (selected && mantraLabel(selected)) ||
-            route.params?.privateMantra ||
-            t('myJapa')}
-      </Text>
+
+      {mode === 'private' ? (
+        showMantraPicker || !selected ? (
+          <View style={styles.mantraCloudCard}>
+            <Text style={styles.mantraCloudHeading}>
+              {t('chooseOneMantra')}
+            </Text>
+            <View style={styles.chipRow}>
+              {mantras.map(item => (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[
+                    styles.chip,
+                    item.own && styles.chipOwn,
+                    selected?.key === item.key && styles.chipActive,
+                  ]}
+                  onPress={() => selectMantra(item)}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected?.key === item.key && styles.chipTextActive,
+                    ]}>
+                    {mantraLabel(item)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View style={styles.selectedMantraContainer}>
+            <Text style={styles.selectedMantraText} numberOfLines={2}>
+              {mantraLabel(selected)}
+            </Text>
+            <TouchableOpacity
+              style={styles.changeMantraButton}
+              activeOpacity={0.7}
+              onPress={() => setShowMantraPicker(true)}>
+              <Text style={styles.changeMantraText}>{t('changeMantra')}</Text>
+              <Text style={styles.changeMantraChevron}>▾</Text>
+            </TouchableOpacity>
+          </View>
+        )
+      ) : (
+        <Text
+          style={[
+            styles.mantra,
+            mode === 'community' && !challengeId && styles.mantraCommunity,
+          ]}>
+          {challengeId
+            ? (challengeMantra && tt(challengeMantra)) ||
+              (selected && mantraLabel(selected)) ||
+              t('myJapa')
+            : (selected && mantraLabel(selected)) ||
+              route.params?.privateMantra ||
+              t('myJapa')}
+        </Text>
+      )}
       <Pressable
         onPress={tapChant}
         disabled={goalReached || saving}
@@ -796,6 +835,63 @@ const styles = StyleSheet.create({
   },
   chipTextActive: {
     color: Colors.white,
+  },
+  mantraCloudCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 14,
+    marginBottom: 12,
+  },
+  mantraCloudHeading: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 10,
+    textAlign: 'center',
+    includeFontPadding: true,
+  },
+  selectedMantraContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    paddingHorizontal: 8,
+  },
+  selectedMantraText: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+    lineHeight: 28,
+    marginBottom: 6,
+    includeFontPadding: true,
+  },
+  changeMantraButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 1,
+  },
+  changeMantraText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.templeGold,
+    marginRight: 4,
+  },
+  changeMantraChevron: {
+    fontSize: 12,
+    color: Colors.templeGold,
+    fontWeight: '800',
   },
   mantra: {
     fontSize: 21,

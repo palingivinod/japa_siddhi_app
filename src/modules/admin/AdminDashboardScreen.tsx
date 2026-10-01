@@ -2,8 +2,10 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -38,6 +40,10 @@ const StatCard = ({label, value}: {label: string; value: string}) => (
 const AdminDashboardScreen = () => {
   const navigation = useNavigation<any>();
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
+  const [dailyGoal, setDailyGoal] = useState<number>(2000);
+  const [newGoalText, setNewGoalText] = useState<string>('2000');
+  const [goalModalVisible, setGoalModalVisible] = useState(false);
+  const [savingGoal, setSavingGoal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -45,14 +51,21 @@ const AdminDashboardScreen = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiService.get('/admin/dashboard-stats');
-      const data = response.data?.data || {};
+      const [statsRes, goalRes] = await Promise.all([
+        apiService.get('/admin/dashboard-stats'),
+        apiService.get('/admin/daily-goal').catch(() => ({data: {data: {dailyGoal: 2000}}})),
+      ]);
+      const data = statsRes.data?.data || {};
+      const goalData = goalRes.data?.data || {};
       setStats({
         users: Number(data.users) || 0,
         japa: Number(data.japa) || 0,
         orders: Number(data.orders) || 0,
         donationsLabel: String(data.donationsLabel || '₹0'),
       });
+      const currentGoal = Number(goalData.dailyGoal) || 2000;
+      setDailyGoal(currentGoal);
+      setNewGoalText(String(currentGoal));
     } catch (err) {
       setStats(EMPTY_STATS);
       setError(getApiError(err, 'Could not load live dashboard stats.'));
@@ -66,6 +79,26 @@ const AdminDashboardScreen = () => {
       loadStats();
     }, [loadStats]),
   );
+
+  const saveGoal = async () => {
+    const val = Number(newGoalText.replace(/[^\d]/g, ''));
+    if (!val || val < 1) {
+      Alert.alert('Invalid goal', 'Please enter a valid count (e.g. 2000, 10800).');
+      return;
+    }
+    setSavingGoal(true);
+    try {
+      const res = await apiService.put('/admin/daily-goal', {dailyGoal: val});
+      const updated = Number(res.data?.data?.dailyGoal || val);
+      setDailyGoal(updated);
+      setGoalModalVisible(false);
+      Alert.alert('Goal Updated', `Platform Daily Japa Goal is now ${updated.toLocaleString('en-IN')} Japas.`);
+    } catch (err) {
+      Alert.alert('Update Failed', getApiError(err, 'Could not update daily goal.'));
+    } finally {
+      setSavingGoal(false);
+    }
+  };
 
   const openControl = (route?: string, title?: string) => {
     if (!route) {
@@ -115,6 +148,23 @@ const AdminDashboardScreen = () => {
         </TouchableOpacity>
       ) : null}
 
+      <View style={styles.goalCard}>
+        <View style={styles.goalCopy}>
+          <Text style={styles.goalLabel}>PLATFORM DAILY JAPA GOAL</Text>
+          <Text style={styles.goalValue}>{dailyGoal.toLocaleString('en-IN')} Japas</Text>
+          <Text style={styles.goalSub}>Target displayed on all devotees' Home screens</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.goalEditBtn}
+          activeOpacity={0.8}
+          onPress={() => {
+            setNewGoalText(String(dailyGoal));
+            setGoalModalVisible(true);
+          }}>
+          <Text style={styles.goalEditText}>SET GOAL</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.section}>Admin Controls</Text>
       <Text style={styles.hint}>Tap a row to open that module.</Text>
       {ADMIN_CONTROL_ITEMS.map(item => (
@@ -133,6 +183,54 @@ const AdminDashboardScreen = () => {
         </TouchableOpacity>
       ))}
       <View style={styles.bottomSpacer} />
+
+      <Modal
+        visible={goalModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGoalModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Set Platform Daily Goal</Text>
+            <Text style={styles.modalDesc}>
+              Enter the daily japa target count shown to devotees on their Home screen:
+            </Text>
+            <TextInput
+              style={styles.goalInput}
+              value={newGoalText}
+              onChangeText={setNewGoalText}
+              keyboardType="numeric"
+              placeholder="e.g. 2000 or 10800"
+              placeholderTextColor={Colors.placeholder}
+            />
+            <View style={styles.presetGoalsRow}>
+              {[108, 1008, 2000, 5000, 10800].map(val => (
+                <TouchableOpacity
+                  key={val}
+                  style={styles.presetGoalChip}
+                  onPress={() => setNewGoalText(String(val))}>
+                  <Text style={styles.presetGoalText}>{val.toLocaleString('en-IN')}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.modalBtnRow}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setGoalModalVisible(false)}>
+                <Text style={styles.modalCancelText}>CANCEL</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSaveBtn, savingGoal && styles.btnDisabled]}
+                disabled={savingGoal}
+                onPress={saveGoal}>
+                <Text style={styles.modalSaveText}>
+                  {savingGoal ? 'SAVING...' : 'SAVE GOAL'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </AdminScreenLayout>
   );
 };
@@ -233,6 +331,142 @@ const styles = StyleSheet.create({
   openText: {
     color: Colors.leafGreen,
     fontWeight: '800',
+  },
+  goalCard: {
+    backgroundColor: '#FFFDF9',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 16,
+    marginBottom: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
+  },
+  goalCopy: {
+    flex: 1,
+    marginRight: 12,
+  },
+  goalLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    letterSpacing: 0.5,
+  },
+  goalValue: {
+    marginTop: 4,
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  goalSub: {
+    marginTop: 2,
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  goalEditBtn: {
+    backgroundColor: Colors.templeGold,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalEditText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 22,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+  },
+  modalDesc: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  goalInput: {
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    backgroundColor: '#FFFEFA',
+    marginBottom: 12,
+  },
+  presetGoalsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  presetGoalChip: {
+    backgroundColor: Colors.selectedTint,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  presetGoalText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  modalBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    justifyContent: 'flex-end',
+  },
+  modalCancelBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  modalCancelText: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  modalSaveBtn: {
+    backgroundColor: Colors.templeGold,
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  modalSaveText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
   bottomSpacer: {height: 28},
 });

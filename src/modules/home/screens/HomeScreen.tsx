@@ -21,6 +21,7 @@ import {
   PanchangPayload,
 } from '../../../services/panchang';
 import {getStoredUser} from '../../../services/session';
+import {getJapaDraft} from '../../../services/japaDraft';
 import Colors from '../../../theme/colors';
 import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
@@ -35,6 +36,7 @@ const HomeScreen = () => {
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [goal, setGoal] = useState(2000);
+  const [adminDailyGoal, setAdminDailyGoal] = useState(2000);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
   const [milestone, setMilestone] = useState<any>(null);
@@ -126,6 +128,9 @@ const HomeScreen = () => {
         setLifetime(Number(data.totalJapaCount ?? data.lifetimeCount ?? 0));
         setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
         setMilestone(data.milestone || null);
+        if (data.adminDailyGoal || data.dailyTarget) {
+          setAdminDailyGoal(Number(data.adminDailyGoal || data.dailyTarget) || 2000);
+        }
       }
       if (goals.status === 'fulfilled') {
         const firstGoal = (goals.value.data.data ?? [])[0];
@@ -182,7 +187,51 @@ const HomeScreen = () => {
     setRefreshing(false);
   };
 
-  const progress = Math.min(100, Math.round((today / Math.max(goal, 1)) * 100));
+  const formatCountShort = (num: number) => {
+    if (num >= 1000) {
+      const k = num / 1000;
+      return k % 1 === 0 ? `${k}k` : `${k.toFixed(1)}k`;
+    }
+    return num.toLocaleString('en-IN');
+  };
+
+  const dailyProgress = Math.min(
+    100,
+    Math.round((today / Math.max(adminDailyGoal, 1)) * 100),
+  );
+  const userProgress = Math.min(
+    100,
+    Math.round((today / Math.max(goal, 1)) * 100),
+  );
+
+  const handleContinueJapaPress = async () => {
+    if (today >= goal && goal > 0) {
+      navigation.navigate('JapaHub');
+      return;
+    }
+    try {
+      const draft = await getJapaDraft();
+      if (draft && !Number(draft.challengeId || 0)) {
+        navigation.navigate('Chant', {
+          mode: draft.mode || 'community',
+          mantraId: draft.mantraId,
+          privateMantra: draft.privateMantra,
+          personalMantraId: draft.personalMantraId,
+          goal: draft.goal || goal,
+          japaGoalId: draft.japaGoalId,
+          resume: true,
+        });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+    navigation.navigate('Chant', {
+      goal,
+      resume: true,
+    });
+  };
+
   const showJapaAnnadanam =
     annadanamVisibility.japa && lifetime >= 10000;
   const visibleTiles = tiles.filter(item => {
@@ -265,20 +314,79 @@ const HomeScreen = () => {
 
           <TouchableOpacity
             style={styles.progressCard}
-            onPress={() => navigation.navigate('JapaHub')}>
-            <Text style={styles.progressTitle}>{t('continueJapa')}</Text>
-            <Text style={styles.progressMeta}>
-              {t('chantsToday', {count: today.toLocaleString()})}
-            </Text>
-            <Text style={styles.progressMeta}>
-              {t('goalChants', {count: goal.toLocaleString()})}
-            </Text>
-            <Text style={styles.todayLabel}>{t('todaysProgress')}</Text>
-            <View style={styles.barRow}>
-              <View style={styles.barTrack}>
-                <View style={[styles.barFill, {width: `${progress}%`}]} />
+            activeOpacity={0.85}
+            onPress={handleContinueJapaPress}>
+            {/* Top Section: Daily Goal */}
+            <View style={styles.cardSection}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.progressTitle}>{t('dailyGoal')}</Text>
+                <View
+                  style={[
+                    styles.sectionBadge,
+                    today >= adminDailyGoal && styles.sectionBadgeDone,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.sectionBadgeText,
+                      today >= adminDailyGoal && styles.sectionBadgeTextDone,
+                    ]}>
+                    {today >= adminDailyGoal
+                      ? `✓ ${t('goalCompleted')}`
+                      : t('goalNotCompleted')}
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.percent}>{progress}%</Text>
+              <Text style={styles.progressMeta}>
+                {t('chantsToday', {count: today.toLocaleString('en-IN')})}
+              </Text>
+              <Text style={styles.progressMeta}>
+                {t('goalChants', {count: adminDailyGoal.toLocaleString('en-IN')})}
+              </Text>
+              <View style={styles.barRow}>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {width: `${dailyProgress}%`},
+                      today >= adminDailyGoal && styles.barFillCompleted,
+                    ]}
+                  />
+                </View>
+                <Text style={styles.percent}>
+                  {today.toLocaleString('en-IN')} / {formatCountShort(adminDailyGoal)} · {dailyProgress}%
+                </Text>
+              </View>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.cardDivider} />
+
+            {/* Bottom Section: Continue Japa */}
+            <View style={styles.cardSection}>
+              <View style={styles.sectionHeaderRow}>
+                <Text style={styles.progressTitle}>{t('continueJapa')}</Text>
+                <Text style={styles.resumeChevron}>➔</Text>
+              </View>
+              <Text style={styles.progressMeta}>
+                {t('chantsToday', {count: today.toLocaleString('en-IN')})}
+              </Text>
+              <Text style={styles.progressMeta}>
+                {t('goalChants', {count: goal.toLocaleString('en-IN')})}
+              </Text>
+              <View style={styles.barRow}>
+                <View style={styles.barTrack}>
+                  <View
+                    style={[
+                      styles.barFill,
+                      {width: `${userProgress}%`},
+                      today >= goal && styles.barFillCompleted,
+                    ]}
+                  />
+                </View>
+                <Text style={styles.percent}>
+                  {today.toLocaleString('en-IN')} / {formatCountShort(goal)} · {userProgress}%
+                </Text>
+              </View>
             </View>
           </TouchableOpacity>
 
@@ -458,22 +566,63 @@ const styles = StyleSheet.create({
   progressCard: {
     backgroundColor: Colors.white,
     borderRadius: 18,
-    padding: 18,
+    padding: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     marginBottom: 14,
   },
+  cardSection: {
+    paddingVertical: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
   progressTitle: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 17,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
+  sectionBadge: {
+    backgroundColor: '#FFF8EC',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 0.5,
+    borderColor: '#E8D8C0',
+  },
+  sectionBadgeDone: {
+    backgroundColor: '#E8F5E9',
+    borderColor: '#A5D6A7',
+  },
+  sectionBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  sectionBadgeTextDone: {
+    color: '#2E7D32',
+    fontWeight: '800',
+  },
+  resumeChevron: {
+    fontSize: 14,
+    color: Colors.templeGold,
+    fontWeight: '800',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F2EBE0',
+    marginVertical: 12,
+  },
   progressMeta: {
-    marginTop: 6,
+    marginTop: 4,
     color: Colors.textSecondary,
-    lineHeight: 22,
+    fontSize: 13,
+    lineHeight: 20,
     includeFontPadding: true,
   },
   todayLabel: {
@@ -500,10 +649,14 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: Colors.sacredBrown,
   },
+  barFillCompleted: {
+    backgroundColor: '#2E7D32',
+  },
   percent: {
     fontWeight: '800',
     color: Colors.sacredBrown,
-    lineHeight: 22,
+    fontSize: 12,
+    lineHeight: 18,
     includeFontPadding: true,
   },
   row: {flexDirection: 'row', gap: 10, marginBottom: 14},
