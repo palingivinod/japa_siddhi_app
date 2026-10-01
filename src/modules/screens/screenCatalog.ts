@@ -186,6 +186,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
   {order: 53, name: 'Order Details', route: 'OrderDetails', params: {id: 1}},
   {order: 54, name: 'Order Tracking', route: 'OrderTracking', params: {id: 1}},
   {order: 55, name: 'Delivery Status', route: 'DeliveryStatus', params: {id: 1}},
+  {order: 55.5, name: 'Available Rewards', route: 'AvailableRewards'},
   {order: 56, name: 'Customer Care', route: 'CustomerCare'},
   {order: 57, name: 'Raise Ticket', route: 'RaiseTicket'},
   {order: 58, name: 'WhatsApp Support', route: 'WhatsAppSupport'},

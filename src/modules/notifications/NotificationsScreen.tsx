@@ -1,5 +1,12 @@
 import React, {useCallback, useState} from 'react';
-import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -46,9 +53,29 @@ const notificationEmoji = (item: any) => {
   return '🔔';
 };
 
+const formatNotificationDate = (dateStr?: string) => {
+  if (!dateStr) {
+    return '';
+  }
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) {
+      return '';
+    }
+    return d.toLocaleDateString('en-IN', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '';
+  }
+};
+
 const NotificationsScreen = () => {
   const navigation = useNavigation<any>();
-  const {t} = useLanguage();
+  const {t, tt} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -87,7 +114,7 @@ const NotificationsScreen = () => {
     }, [load]),
   );
 
-  const openNotification = async (item: any) => {
+  const markAsRead = (item: any) => {
     if (item?.id && !item.isRead) {
       apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
       setItems(current =>
@@ -96,57 +123,6 @@ const NotificationsScreen = () => {
         ),
       );
     }
-
-    const action = String(item.actionType || '');
-    const text = `${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
-    const challengeId =
-      Number(item.extraData?.challengeId) ||
-      (action === 'CHALLENGE_COMPLETED' || action === 'CHALLENGE_REWARD_READY'
-        ? Number(item.actionId)
-        : 0);
-
-    if (action === 'JAPA_MILESTONE' || text.includes('milestone')) {
-      navigation.navigate('MilestoneNotifications');
-      return;
-    }
-    if (
-      action === 'CHALLENGE_DEADLINE' ||
-      action === 'CHALLENGE_COMPLETED' ||
-      action === 'CHALLENGE_REWARD_READY' ||
-      text.includes('challenge')
-    ) {
-      if (challengeId > 0) {
-        navigation.navigate('ChallengeDetails', {id: challengeId});
-        return;
-      }
-      navigation.navigate('Challenges');
-      return;
-    }
-    if (action === 'GOAL_DEADLINE' || text.includes('goal')) {
-      navigation.navigate('JapaHub');
-      return;
-    }
-    if (
-      action === 'DAILY_JAPA_REMINDER' ||
-      text.includes('daily japa') ||
-      text.includes('chanted today')
-    ) {
-      navigation.navigate('JapaHub');
-      return;
-    }
-    if (text.includes('order') || text.includes('gift')) {
-      navigation.navigate('Orders');
-      return;
-    }
-    if (text.includes('homam')) {
-      navigation.navigate('NithyaHomam');
-      return;
-    }
-    if (text.includes('annadan') || text.includes('japa')) {
-      navigation.navigate('MilestoneNotifications');
-      return;
-    }
-    navigation.navigate('Home');
   };
 
   const clearNotifications = () => {
@@ -214,15 +190,40 @@ const NotificationsScreen = () => {
       {!loading && !error && items.length === 0 ? (
         <Text style={styles.empty}>{t('noNotificationsYet')}</Text>
       ) : null}
-      {items.map(item => (
-        <MenuCard
-          key={item.id}
-          emoji={notificationEmoji(item)}
-          title={item.title}
-          subtitle={item.message || item.body}
-          onPress={() => openNotification(item)}
-        />
-      ))}
+      {items.map(item => {
+        const isUnread = !item.isRead;
+        return (
+          <TouchableOpacity
+            key={item.id}
+            activeOpacity={0.75}
+            style={[styles.card, isUnread && styles.cardUnread]}
+            onPress={() => markAsRead(item)}>
+            <View style={[styles.dot, isUnread && styles.dotUnread]}>
+              <Text style={styles.emoji}>{notificationEmoji(item)}</Text>
+            </View>
+            <View style={styles.copy}>
+              <View style={styles.titleRow}>
+                <Text
+                  style={[styles.title, isUnread && styles.titleUnread]}
+                  numberOfLines={2}>
+                  {tt(item.title)}
+                </Text>
+                {isUnread ? <View style={styles.unreadDot} /> : null}
+              </View>
+              {item.message || item.body ? (
+                <Text style={styles.subtitle}>
+                  {tt(item.message || item.body)}
+                </Text>
+              ) : null}
+              {item.createdAt ? (
+                <Text style={styles.time}>
+                  {formatNotificationDate(item.createdAt)}
+                </Text>
+              ) : null}
+            </View>
+          </TouchableOpacity>
+        );
+      })}
       {!loading && items.length > 0 ? (
         <View style={styles.clearBtnWrap}>
           <PrimaryButton
@@ -247,16 +248,77 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     includeFontPadding: true,
   },
+  card: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardUnread: {
+    backgroundColor: '#FFFCF5',
+    borderColor: Colors.lightGold,
+  },
+  dot: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.lightGold,
+    marginRight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dotUnread: {
+    backgroundColor: '#FFF0D0',
+  },
+  emoji: {
+    fontSize: 22,
+  },
+  copy: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    lineHeight: 22,
+    includeFontPadding: true,
+    flex: 1,
+  },
+  titleUnread: {
+    fontWeight: '800',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.selectedOrange,
+    marginLeft: 8,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    marginTop: 3,
+    lineHeight: 18,
+    includeFontPadding: true,
+  },
+  time: {
+    fontSize: 11,
+    color: Colors.placeholder,
+    marginTop: 4,
+    fontWeight: '500',
+  },
   clearBtnWrap: {
     marginTop: 16,
     marginBottom: 12,
-  },
-  card: {
-    backgroundColor: Colors.cream,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
 });

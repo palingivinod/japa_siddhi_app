@@ -148,25 +148,25 @@ const AdminDashboardScreen = () => {
         </TouchableOpacity>
       ) : null}
 
-      <View style={styles.goalCard}>
-        <View style={styles.goalCopy}>
-          <Text style={styles.goalLabel}>PLATFORM DAILY JAPA GOAL</Text>
-          <Text style={styles.goalValue}>{dailyGoal.toLocaleString('en-IN')} Japas</Text>
-          <Text style={styles.goalSub}>Target displayed on all devotees' Home screens</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.goalEditBtn}
-          activeOpacity={0.8}
-          onPress={() => {
-            setNewGoalText(String(dailyGoal));
-            setGoalModalVisible(true);
-          }}>
-          <Text style={styles.goalEditText}>SET GOAL</Text>
-        </TouchableOpacity>
-      </View>
-
       <Text style={styles.section}>Admin Controls</Text>
       <Text style={styles.hint}>Tap a row to open that module.</Text>
+      <TouchableOpacity
+        style={styles.controlCard}
+        activeOpacity={0.85}
+        onPress={() => {
+          setNewGoalText(String(dailyGoal));
+          setGoalModalVisible(true);
+        }}>
+        <View style={styles.controlCopy}>
+          <Text style={styles.controlTitle}>Platform Daily Japa Goal</Text>
+          <Text style={styles.controlSub}>
+            Target: {dailyGoal.toLocaleString('en-IN')} Japas / day
+          </Text>
+        </View>
+        <View style={styles.openBtn}>
+          <Text style={styles.openText}>Set Goal</Text>
+        </View>
+      </TouchableOpacity>
       {ADMIN_CONTROL_ITEMS.map(item => (
         <TouchableOpacity
           key={item.title}
@@ -331,56 +331,6 @@ const styles = StyleSheet.create({
   openText: {
     color: Colors.leafGreen,
     fontWeight: '800',
-  },
-  goalCard: {
-    backgroundColor: '#FFFDF9',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.templeGold,
-    padding: 16,
-    marginBottom: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    shadowColor: Colors.templeGold,
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    shadowOffset: {width: 0, height: 2},
-    elevation: 2,
-  },
-  goalCopy: {
-    flex: 1,
-    marginRight: 12,
-  },
-  goalLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: Colors.leafGreen,
-    letterSpacing: 0.5,
-  },
-  goalValue: {
-    marginTop: 4,
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
-  goalSub: {
-    marginTop: 2,
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-  goalEditBtn: {
-    backgroundColor: Colors.templeGold,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goalEditText: {
-    color: Colors.white,
-    fontWeight: '800',
-    fontSize: 13,
   },
   modalOverlay: {
     flex: 1,

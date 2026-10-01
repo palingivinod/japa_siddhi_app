@@ -249,6 +249,21 @@ class ChallengeController {
     }
   }
 
+  async listAvailableRewards(req: Request, res: Response, next: NextFunction) {
+    try {
+      const rows = await challengeRepository.listRewards();
+      return apiResponse.success(res, 'Available rewards fetched', {
+        rewards: (rows || []).map((row: any) => ({
+          id: Number(row.id),
+          name: String(row.name || ''),
+          stock: Number(row.stock || 0),
+          inStock: Number(row.stock || 0) > 0,
+        })),
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 
   async listRewards(req: Request, res: Response, next: NextFunction) {
     try {

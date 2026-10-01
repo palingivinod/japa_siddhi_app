@@ -527,6 +527,12 @@ export const hi: TranslationDict = {
   rewardSelected:
     'पुरस्कार चुना गया{{name}}। ऑर्डर करने के लिए डिलीवरी विवरण जोड़ें।',
   couldNotLoadChallengeProgress: 'चुनौती प्रगति लोड नहीं हो सकी।',
+  availableRewards: 'उपलब्ध पुरस्कार',
+  rewards: 'पुरस्कार',
+  rewardsCatalog: 'उपलब्ध पुरस्कार',
+  spiritualRewardsTitle: 'पवित्र आध्यात्मिक पुरस्कार',
+  spiritualRewardsSubtitle:
+    'इन पवित्र आशीर्वादों को प्राप्त करने के लिए अपने दैनिक जप लक्ष्यों और सामूहिक चुनौतियों को पूरा करें।',
   photoPickerNeedsRebuild:
     'फ़ोटो पिकर के लिए ऐप फिर से इंस्टॉल करना होगा। एक बार npm run android चलाएँ, फिर प्रयास करें।',
 
@@ -1119,6 +1125,12 @@ export const te: TranslationDict = {
   rewardSelected:
     'బహుమతి ఎంచుకోబడింది{{name}}. ఆర్డర్ చేయడానికి డెలివరీ వివరాలు జోడించండి.',
   couldNotLoadChallengeProgress: 'సవాలు ప్రగతి లోడ్ కాలేదు.',
+  availableRewards: 'లభ్యమయ్యే బహుమతులు',
+  rewards: 'బహుమతులు',
+  rewardsCatalog: 'లభ్యమయ్యే బహుమతులు',
+  spiritualRewardsTitle: 'పవిత్ర ఆధ్యాత్మిక బహుమతులు',
+  spiritualRewardsSubtitle:
+    'ఈ పవిత్రమైన బహుమతులను పొందడానికి మీ రోజువారీ జప లక్ష్యాలను మరియు సవాళ్లను పూర్తి చేయండి.',
 
   // Preset mantras in Telugu script. Devotee-created mantras stay as typed.
   mantraOmNamahShivaya: 'ఓం నమః శివాయ',

@@ -21,6 +21,12 @@ router.get(
 );
 
 router.get(
+  '/rewards',
+  authenticate,
+  challengeController.listAvailableRewards,
+);
+
+router.get(
   '/:id',
   authenticate,
   challengeController.getById,

@@ -30,6 +30,7 @@ export type RootStackParamList = {
   PersonalDetails: {profile?: any} | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
+  AvailableRewards: undefined;
   BanaLingam: undefined;
   NithyaHomam: undefined;
   Orders: undefined;

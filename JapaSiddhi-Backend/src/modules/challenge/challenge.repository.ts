@@ -424,6 +424,26 @@ class ChallengeRepository {
   }
 
   async listRewards() {
+    try {
+      const countRows = await mysql.query<any[]>(
+        `SELECT COUNT(*) AS total FROM challenge_rewards WHERE is_active = 1`,
+      );
+      if (Number(countRows?.[0]?.total || 0) === 0) {
+        await mysql.query(
+          `
+          INSERT INTO challenge_rewards (name, stock, is_active, display_order)
+          VALUES
+            ('Rudraksha', 50, 1, 1),
+            ('Mala', 50, 1, 2),
+            ('Gita Book', 50, 1, 3),
+            ('Prasadam', 50, 1, 4)
+          `,
+        );
+      }
+    } catch {
+      // ignore seed error
+    }
+
     return mysql.query<any[]>(
       `
       SELECT

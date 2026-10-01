@@ -556,6 +556,12 @@ const en = {
   rewardSelected:
     'Reward selected{{name}}. Add delivery details to place the order.',
   couldNotLoadChallengeProgress: 'Could not load challenge progress.',
+  availableRewards: 'Available Rewards',
+  rewards: 'Rewards',
+  rewardsCatalog: 'Available Rewards',
+  spiritualRewardsTitle: 'Sacred Spiritual Rewards',
+  spiritualRewardsSubtitle:
+    'Complete your daily Japa goals and Samuhika Challenges to earn and claim these consecrated blessings.',
 
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',
