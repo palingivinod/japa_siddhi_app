@@ -33,6 +33,16 @@ const formatWhen = (value: string | null, justNow: string) => {
   return new Date(value).toLocaleString();
 };
 
+const formatMilestoneBadge = (target: number) => {
+  if (target >= 1000000) {
+    return `${target / 1000000}M`;
+  }
+  if (target >= 1000) {
+    return `${target / 1000}K`;
+  }
+  return String(target);
+};
+
 const MilestoneNotificationsScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
@@ -172,24 +182,33 @@ const MilestoneNotificationsScreen = () => {
           {upcoming.length === 0 ? (
             <Text style={styles.empty}>{t('allMilestonesComplete')}</Text>
           ) : (
-            upcoming.map(item => (
-              <View key={item.target} style={styles.row}>
-                <View style={styles.circle}>
-                  <Text style={styles.circleText}>
-                    {item.target >= 1000
-                      ? `${item.target / 1000}K`
-                      : item.target}
-                  </Text>
+            upcoming.map(item => {
+              const badge = formatMilestoneBadge(item.target);
+              return (
+                <View key={item.target} style={styles.row}>
+                  <View style={styles.circle}>
+                    <Text
+                      style={[
+                        styles.circleText,
+                        badge.length >= 5 && styles.circleTextSmall,
+                      ]}
+                      numberOfLines={1}
+                      ellipsizeMode="clip"
+                      adjustsFontSizeToFit
+                      minimumFontScale={0.5}>
+                      {badge}
+                    </Text>
+                  </View>
+                  <View style={styles.copy}>
+                    <Text style={styles.rowTitle}>
+                      {milestoneTitle(item)}
+                    </Text>
+                    <Text style={styles.sub}>{milestoneSub(item)}</Text>
+                  </View>
+                  <Text style={styles.chevron}>›</Text>
                 </View>
-                <View style={styles.copy}>
-                  <Text style={styles.rowTitle}>
-                    {milestoneTitle(item)}
-                  </Text>
-                  <Text style={styles.sub}>{milestoneSub(item)}</Text>
-                </View>
-                <Text style={styles.chevron}>›</Text>
-              </View>
-            ))
+              );
+            })
           )}
           <View style={styles.toggle}>
             <View style={styles.copy}>
@@ -271,15 +290,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   circle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.lightGold,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
+    flexShrink: 0,
+    paddingHorizontal: 2,
   },
-  circleText: {fontWeight: '800', color: Colors.templeGold},
+  circleText: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: Colors.templeGold,
+    textAlign: 'center',
+    includeFontPadding: false,
+  },
+  circleTextSmall: {
+    fontSize: 10,
+    letterSpacing: -0.3,
+  },
   rowTitle: {fontWeight: '800', color: Colors.sacredBrown},
   chevron: {fontSize: 22, color: Colors.textLight},
   toggle: {

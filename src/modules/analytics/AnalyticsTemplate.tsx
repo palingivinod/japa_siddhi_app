@@ -1,5 +1,13 @@
 import React, {useCallback, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
@@ -66,28 +74,52 @@ const AnalyticsTemplate = ({
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState<number>(
+    new Date().getFullYear(),
+  );
+  const [availableYears, setAvailableYears] = useState<number[]>([]);
+  const [yearModalVisible, setYearModalVisible] = useState(false);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    setError('');
-    setRawError(null);
-    apiService
-      .get('/japa/analytics')
-      .then(response => {
-        const all = response.data.data || {};
-        const periodData = all[period] || all.overview || {};
-        setData({
-          ...periodData,
-          byMantra: periodData.byMantra || all.byMantra || [],
-          milestone: all.milestone || periodData.milestone || null,
-        });
-      })
-      .catch(err => {
-        setRawError(err);
-        setError(getApiError(err, t('couldNotLoadAnalytics')));
-      })
-      .finally(() => setLoading(false));
-  }, [period]);
+  const showYearSelector = period === 'overview' || period === 'lifetime';
+
+  const load = useCallback(
+    (yearToFetch?: number) => {
+      setLoading(true);
+      setError('');
+      setRawError(null);
+      const targetYear = yearToFetch || selectedYear;
+      apiService
+        .get('/japa/analytics', {
+          params: targetYear ? {year: targetYear} : undefined,
+        })
+        .then(response => {
+          const all = response.data.data || {};
+          const periodData = all[period] || all.overview || {};
+          setData({
+            ...periodData,
+            byMantra: periodData.byMantra || all.byMantra || [],
+            milestone: all.milestone || periodData.milestone || null,
+          });
+          const years =
+            periodData.availableYears || all.overview?.availableYears || [];
+          if (years && years.length > 0) {
+            setAvailableYears(years);
+          } else {
+            const cur = new Date().getFullYear();
+            setAvailableYears([cur, cur - 1, cur - 2]);
+          }
+          if (periodData.selectedYear) {
+            setSelectedYear(periodData.selectedYear);
+          }
+        })
+        .catch(err => {
+          setRawError(err);
+          setError(getApiError(err, t('couldNotLoadAnalytics')));
+        })
+        .finally(() => setLoading(false));
+    },
+    [period, selectedYear, t],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -95,11 +127,17 @@ const AnalyticsTemplate = ({
     }, [load]),
   );
 
+  const handleSelectYear = (year: number) => {
+    setSelectedYear(year);
+    setYearModalVisible(false);
+    load(year);
+  };
+
   return (
     <ScreenLayout title={title} showBack tab="JapaHub">
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
-        <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
+        <ApiErrorPanel error={error} rawError={rawError} onRetry={() => load()} />
       ) : null}
       {data ? (
         <View>
@@ -109,9 +147,29 @@ const AnalyticsTemplate = ({
             onPress={() => navigation.navigate('MilestoneNotifications')}
           />
           <StatCards items={data.stats || []} />
-          <Text style={styles.section}>{t('progressTrend')}</Text>
-          <Text style={styles.caption}>{t(CHART_CAPTION[period])}</Text>
+
+          <View style={styles.trendHeaderRow}>
+            <View style={styles.trendHeaderTitles}>
+              <Text style={styles.section}>{t('progressTrend')}</Text>
+              <Text style={styles.caption}>
+                {showYearSelector && selectedYear
+                  ? t('chartYearMonths', {year: selectedYear})
+                  : t(CHART_CAPTION[period])}
+              </Text>
+            </View>
+            {showYearSelector ? (
+              <TouchableOpacity
+                style={styles.yearDropdownButton}
+                activeOpacity={0.7}
+                onPress={() => setYearModalVisible(true)}>
+                <Text style={styles.yearDropdownText}>{selectedYear}</Text>
+                <Text style={styles.yearDropdownChevron}>▾</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           <TrendChart values={data.trend || []} />
+
           <Text style={styles.section}>{t('byMantra')}</Text>
           <Text style={styles.caption}>{t(BY_MANTRA_CAPTION[period])}</Text>
           {(data.byMantra || []).length ? (
@@ -120,7 +178,9 @@ const AnalyticsTemplate = ({
               mantraName: string;
               total: number;
             }>).map(item => (
-              <View key={`${item.mantraId}-${item.mantraName}`} style={styles.mantraRow}>
+              <View
+                key={`${item.mantraId}-${item.mantraName}`}
+                style={styles.mantraRow}>
                 <Text style={styles.mantraName}>{item.mantraName}</Text>
                 <Text style={styles.mantraTotal}>
                   {Number(item.total || 0).toLocaleString()}
@@ -136,6 +196,52 @@ const AnalyticsTemplate = ({
             title={t(NEXT[period].titleKey)}
             onPress={() => navigation.navigate(NEXT[period].route)}
           />
+
+          {showYearSelector ? (
+            <Modal
+              transparent
+              animationType="fade"
+              visible={yearModalVisible}
+              onRequestClose={() => setYearModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.modalBackdrop}
+                activeOpacity={1}
+                onPress={() => setYearModalVisible(false)}>
+                <View style={styles.modalSheet}>
+                  <Text style={styles.modalTitle}>{t('selectYear')}</Text>
+                  <ScrollView bounces={false} style={styles.modalScroll}>
+                    {(availableYears.length
+                      ? availableYears
+                      : [selectedYear, selectedYear - 1, selectedYear - 2]
+                    ).map(year => {
+                      const active = year === selectedYear;
+                      return (
+                        <TouchableOpacity
+                          key={year}
+                          style={[
+                            styles.yearOption,
+                            active && styles.yearOptionActive,
+                          ]}
+                          activeOpacity={0.7}
+                          onPress={() => handleSelectYear(year)}>
+                          <Text
+                            style={[
+                              styles.yearOptionText,
+                              active && styles.yearOptionTextActive,
+                            ]}>
+                            {year}
+                          </Text>
+                          {active ? (
+                            <Text style={styles.yearTick}>✓</Text>
+                          ) : null}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+          ) : null}
         </View>
       ) : null}
     </ScreenLayout>
@@ -150,6 +256,42 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginBottom: 12,
+  },
+  trendHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  trendHeaderTitles: {
+    flex: 1,
+    marginRight: 10,
+  },
+  yearDropdownButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 1,
+  },
+  yearDropdownText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    marginRight: 4,
+  },
+  yearDropdownChevron: {
+    fontSize: 13,
+    color: Colors.templeGold,
+    fontWeight: '800',
   },
   section: {
     color: Colors.leafGreen,
@@ -184,4 +326,60 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
   },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 28,
+  },
+  modalSheet: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    paddingVertical: 8,
+    maxHeight: '60%',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.cardBorder,
+  },
+  modalScroll: {
+    maxHeight: 260,
+  },
+  yearOption: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3EEE2',
+  },
+  yearOptionActive: {
+    backgroundColor: '#FFF8EC',
+  },
+  yearOptionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: Colors.sacredBrown,
+  },
+  yearOptionTextActive: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+  },
+  yearTick: {
+    fontSize: 16,
+    color: Colors.templeGold,
+    fontWeight: '800',
+  },
 });
+

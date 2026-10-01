@@ -287,6 +287,8 @@ export const ml: TranslationDict = {
   highlights: 'പ്രധാന കാര്യങ്ങൾ',
   updatedFromSavedJapa: 'നിങ്ങളുടെ സേവ് ചെയ്ത ജപ സെഷനുകളിൽ നിന്ന് പുതുക്കിയത്',
   noSavedJapaByMantra: 'ഇനിയും മന്ത്രം അനുസരിച്ച് സേവ് ചെയ്ത ജപം ഇല്ല.',
+  selectYear: 'വർഷം തിരഞ്ഞെടുക്കുക',
+  chartYearMonths: '{{year}} വർഷത്തിൽ സേവ് ചെയ്ത ജപം',
   chartLast12Months: 'സേവ് ചെയ്ത ജപത്തിൽ നിന്ന് കഴിഞ്ഞ 12 മാസം',
   chartLast7Days: 'സേവ് ചെയ്ത ജപത്തിൽ നിന്ന് കഴിഞ്ഞ 7 ദിവസം',
   chartThisMonthWeeks: 'ഈ മാസം, ആഴ്ച അനുസരിച്ച്',
@@ -414,6 +416,7 @@ export const ml: TranslationDict = {
   mantraHiddenSecure:
     'നിങ്ങളുടെ സ്വന്തം മന്ത്രം അക്കൗണ്ടിൽ സൂക്ഷിച്ച് എണ്ണപ്പെടും.',
   enterYourMantra: 'നിങ്ങളുടെ മന്ത്രം നൽകുക',
+  recentMantras: 'സമീപകാലത്ത് ഉപയോഗിച്ച മന്ത്രങ്ങൾ',
   keptPrivateReports: 'നിങ്ങളുടെ മന്ത്രം ടൈപ്പ് ചെയ്യുക',
   setGoal: 'ലക്ഷ്യം നിശ്ചയിക്കുക',
   reportsPrivateJapaOnly: 'റിപ്പോർട്ടുകളിൽ "സ്വകാര്യ ജപം" മാത്രം കാണും.',

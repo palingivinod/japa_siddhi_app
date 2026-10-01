@@ -251,7 +251,8 @@ class JapaController {
       if (!userId) {
         return apiResponse.error(res, 'User not authenticated', 401);
       }
-      const result = await japaService.getAnalytics(userId);
+      const year = req.query.year ? Number(req.query.year) : undefined;
+      const result = await japaService.getAnalytics(userId, year);
       return apiResponse.success(res, 'Japa analytics fetched', result);
     } catch (error) {
       next(error);

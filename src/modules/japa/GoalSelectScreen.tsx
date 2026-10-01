@@ -49,6 +49,8 @@ const daysUntil = (value?: Date | null) => {
   );
 };
 
+const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
+
 const GoalSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -195,6 +197,29 @@ const GoalSelectScreen = () => {
         <Text style={styles.japas}>{t('japasLabel')}</Text>
       </View>
 
+      <View style={styles.presetsRow}>
+        {PRESET_GOALS.map(preset => {
+          const isSelected = goal === preset;
+          return (
+            <TouchableOpacity
+              key={preset}
+              style={[
+                styles.presetChip,
+                isSelected && styles.presetChipActive,
+              ]}
+              onPress={() => setGoalText(String(preset))}>
+              <Text
+                style={[
+                  styles.presetText,
+                  isSelected && styles.presetTextActive,
+                ]}>
+                {preset.toLocaleString('en-IN')}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {goalType === 'date' ? (
         <>
           <TouchableOpacity
@@ -326,5 +351,40 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: -4,
+    marginBottom: 20,
+  },
+  presetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    minHeight: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  presetChipActive: {
+    backgroundColor: Colors.selectedTint,
+    borderColor: Colors.selectedOrange,
+    borderWidth: 1.5,
+  },
+  presetText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: true,
+  },
+  presetTextActive: {
+    color: Colors.selectedOrange,
+    fontWeight: '800',
   },
 });

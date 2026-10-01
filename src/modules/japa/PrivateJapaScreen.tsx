@@ -1,5 +1,13 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TextInput, View} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -9,6 +17,14 @@ import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
+const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
+
+type SavedMantra = {
+  id?: number;
+  name: string;
+  preferredJapaCount?: number;
+};
+
 const PrivateJapaScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
@@ -16,6 +32,75 @@ const PrivateJapaScreen = () => {
   const [goal, setGoal] = useState('1008');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const [recentMantras, setRecentMantras] = useState<SavedMantra[]>([]);
+
+  const loadRecentMantras = useCallback(async () => {
+    try {
+      // 1. Get from AsyncStorage
+      let localList: SavedMantra[] = [];
+      const stored = await AsyncStorage.getItem('recent_custom_mantras');
+      if (stored) {
+        try {
+          localList = JSON.parse(stored);
+        } catch {
+          localList = [];
+        }
+      }
+
+      // 2. Get from Backend API
+      let remoteList: SavedMantra[] = [];
+      try {
+        const res = await apiService.get('/personal-mantras');
+        const rows = res.data?.data ?? [];
+        remoteList = rows.map((item: any) => ({
+          id: Number(item.id),
+          name: String(item.mantraName || item.mantraText || '').trim(),
+          preferredJapaCount: Number(item.preferredJapaCount || 0) || undefined,
+        }));
+      } catch {
+        remoteList = [];
+      }
+
+      // Merge and deduplicate by name (case-insensitive)
+      const map = new Map<string, SavedMantra>();
+      [...localList, ...remoteList].forEach(item => {
+        const key = item.name.trim().toLowerCase();
+        if (key && !map.has(key)) {
+          map.set(key, item);
+        }
+      });
+      setRecentMantras(Array.from(map.values()).slice(0, 8));
+    } catch {
+      undefined;
+    }
+  }, []);
+
+  useEffect(() => {
+    loadRecentMantras();
+  }, [loadRecentMantras]);
+
+  const saveToRecent = async (name: string, pGoal: number, pmId?: number) => {
+    try {
+      const entry: SavedMantra = {
+        name: name.trim(),
+        preferredJapaCount: pGoal,
+        id: pmId,
+      };
+      const updated = [
+        entry,
+        ...recentMantras.filter(
+          m => m.name.trim().toLowerCase() !== name.trim().toLowerCase(),
+        ),
+      ].slice(0, 10);
+      setRecentMantras(updated);
+      await AsyncStorage.setItem(
+        'recent_custom_mantras',
+        JSON.stringify(updated),
+      );
+    } catch {
+      undefined;
+    }
+  };
 
   /** Reuse the saved mantra if the user typed it before, else create it. */
   const resolvePersonalMantraId = async (name: string) => {
@@ -49,18 +134,20 @@ const PrivateJapaScreen = () => {
     }
     setSaving(true);
     setMessage('');
+    const targetGoal = Number(String(goal).replace(/,/g, '')) || 1008;
     let personalMantraId: number | undefined;
     try {
       personalMantraId = await resolvePersonalMantraId(name);
     } catch {
       personalMantraId = undefined;
     }
+    await saveToRecent(name, targetGoal, personalMantraId);
     setSaving(false);
     navigation.navigate('GoalSelect', {
       mode: 'private',
       privateMantra: name,
       personalMantraId,
-      goal: Number(String(goal).replace(/,/g, '')) || 1008,
+      goal: targetGoal,
     });
   };
 
@@ -94,6 +181,51 @@ const PrivateJapaScreen = () => {
         placeholder={t('keptPrivateReports')}
         placeholderTextColor={Colors.placeholder}
       />
+
+      {recentMantras.length > 0 ? (
+        <View style={styles.suggestionsContainer}>
+          <Text style={styles.suggestionsLabel}>{t('recentMantras')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.suggestionsScroll}>
+            {recentMantras.map(item => {
+              const isSelected =
+                mantra.trim().toLowerCase() === item.name.toLowerCase();
+              return (
+                <TouchableOpacity
+                  key={item.id ? `pm-${item.id}` : `m-${item.name}`}
+                  style={[
+                    styles.suggestionChip,
+                    isSelected && styles.suggestionChipActive,
+                  ]}
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    setMantra(item.name);
+                    if (item.preferredJapaCount) {
+                      setGoal(String(item.preferredJapaCount));
+                    }
+                    setMessage('');
+                  }}>
+                  <Text style={styles.suggestionIcon}>📿</Text>
+                  <Text
+                    style={[
+                      styles.suggestionText,
+                      isSelected && styles.suggestionTextActive,
+                    ]}
+                    numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {isSelected ? (
+                    <Text style={styles.suggestionCheck}>✓</Text>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      ) : null}
+
       <Text style={styles.label}>{t('setGoal')}</Text>
       <TextInput
         style={styles.input}
@@ -101,6 +233,29 @@ const PrivateJapaScreen = () => {
         onChangeText={setGoal}
         keyboardType="numeric"
       />
+      <View style={styles.presetsRow}>
+        {PRESET_GOALS.map(preset => {
+          const isSelected =
+            Number(String(goal).replace(/[^\d]/g, '')) === preset;
+          return (
+            <TouchableOpacity
+              key={preset}
+              style={[
+                styles.presetChip,
+                isSelected && styles.presetChipActive,
+              ]}
+              onPress={() => setGoal(String(preset))}>
+              <Text
+                style={[
+                  styles.presetText,
+                  isSelected && styles.presetTextActive,
+                ]}>
+                {preset.toLocaleString('en-IN')}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
       <PrimaryButton
         title={saving ? t('loading') : t('startPrivateJapa')}
         onPress={start}
@@ -180,7 +335,98 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: Colors.sacredBrown,
+    marginBottom: 8,
+  },
+  suggestionsContainer: {
+    marginTop: -2,
+    marginBottom: 12,
+  },
+  suggestionsLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    marginBottom: 6,
+    includeFontPadding: true,
+  },
+  suggestionsScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  suggestionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    shadowColor: '#000',
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 1,
+  },
+  suggestionChipActive: {
+    backgroundColor: Colors.selectedTint,
+    borderColor: Colors.selectedOrange,
+    borderWidth: 1.5,
+  },
+  suggestionIcon: {
+    fontSize: 13,
+    marginRight: 6,
+  },
+  suggestionText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    maxWidth: 160,
+  },
+  suggestionTextActive: {
+    color: Colors.selectedOrange,
+    fontWeight: '800',
+  },
+  suggestionCheck: {
+    fontSize: 12,
+    color: Colors.selectedOrange,
+    fontWeight: '800',
+    marginLeft: 5,
+  },
+  presetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
     marginBottom: 18,
+  },
+  presetChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 16,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    minHeight: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  presetChipActive: {
+    backgroundColor: Colors.selectedTint,
+    borderColor: Colors.selectedOrange,
+    borderWidth: 1.5,
+  },
+  presetText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: true,
+  },
+  presetTextActive: {
+    color: Colors.selectedOrange,
+    fontWeight: '800',
   },
   orRow: {
     flexDirection: 'row',

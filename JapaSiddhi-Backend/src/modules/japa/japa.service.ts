@@ -423,6 +423,19 @@ class JapaService {
     return points;
   }
 
+  private fillMonthsForYear(year: number, counts: Record<string, number>) {
+    const points: Array<{label: string; value: number}> = [];
+    for (let m = 1; m <= 12; m += 1) {
+      const monthStr = String(m).padStart(2, '0');
+      const key = `${year}-${monthStr}`;
+      const value = Object.entries(counts).reduce((sum, [day, count]) => {
+        return day.startsWith(key) ? sum + count : sum;
+      }, 0);
+      points.push({label: this.monthLabel(key), value});
+    }
+    return points;
+  }
+
   private insightFor(total: number, streak: number, today: number) {
     if (total <= 0) {
       return 'Begin your daily Japa and save a session. Streaks and graphs will grow from your saved counts.';
@@ -474,7 +487,7 @@ class JapaService {
     };
   }
 
-  async getAnalytics(userId: number) {
+  async getAnalytics(userId: number, targetYear?: number) {
     const [summary, weekly, goals, sessionRows, streak, byMantra] =
       await Promise.all([
         this.getSummary(userId),
@@ -500,12 +513,22 @@ class JapaService {
     ] = byMantra;
 
     const counts = this.dailyCounts(sessionRows);
+    const currentYear = Number(this.istDay(new Date()).slice(0, 4)) || new Date().getFullYear();
+    const sessionYears = Object.keys(counts)
+      .map(day => Number(day.slice(0, 4)))
+      .filter(y => !isNaN(y) && y > 2000);
+    const yearSet = new Set<number>([currentYear, currentYear - 1, ...sessionYears]);
+    const availableYears = Array.from(yearSet).sort((a, b) => b - a);
+    const selectedYear = targetYear || currentYear;
+
     const weekTrend = this.fillDays(7, counts, true) as Array<{
       label: string;
       value: number;
     }>;
     const monthTrend = this.fillCurrentMonthWeeks(counts);
-    const lifeTrend = this.fillMonths(12, counts);
+    const lifeTrend = targetYear
+      ? this.fillMonthsForYear(targetYear, counts)
+      : this.fillMonths(12, counts);
     const weekValues = weekTrend.map(item => item.value);
     const monthValues = monthTrend.map(item => item.value);
     const weekTotal = weekValues.reduce((sum, value) => sum + value, 0);
@@ -532,6 +555,8 @@ class JapaService {
         trend: lifeTrend,
         insight,
         byMantra: byMantraAll,
+        availableYears,
+        selectedYear,
       },
       daily: {
         stats: [
@@ -599,6 +624,8 @@ class JapaService {
         trend: lifeTrend,
         insight,
         byMantra: byMantraAll,
+        availableYears,
+        selectedYear,
       },
       goals: {
         stats: [

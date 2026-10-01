@@ -285,6 +285,8 @@ export const ta: TranslationDict = {
   highlights: 'முக்கிய அம்சங்கள்',
   updatedFromSavedJapa: 'உங்கள் சேமிக்கப்பட்ட ஜப அமர்வுகளிலிருந்து புதுப்பிக்கப்பட்டது',
   noSavedJapaByMantra: 'இன்னும் மந்திரத்தின் படி சேமிக்கப்பட்ட ஜபம் இல்லை.',
+  selectYear: 'ஆண்டைத் தேர்ந்தெடுக்கவும்',
+  chartYearMonths: '{{year}} ஆண்டில் சேமிக்கப்பட்ட ஜபம்',
   chartLast12Months: 'சேமிக்கப்பட்ட ஜபத்திலிருந்து கடந்த 12 மாதங்கள்',
   chartLast7Days: 'சேமிக்கப்பட்ட ஜபத்திலிருந்து கடந்த 7 நாட்கள்',
   chartThisMonthWeeks: 'இந்த மாதம், வார வாரமாக',
@@ -432,6 +434,7 @@ export const ta: TranslationDict = {
   mantraHiddenSecure:
     'உங்கள் சொந்த மந்திரம் கணக்கில் சேமிக்கப்பட்டு எண்ணப்படும்.',
   enterYourMantra: 'உங்கள் மந்திரத்தை உள்ளிடவும்',
+  recentMantras: 'சமீபத்தில் பயன்படுத்திய மந்திரங்கள்',
   keptPrivateReports: 'உங்கள் மந்திரத்தை தட்டச்சு செய்யுங்கள்',
   setGoal: 'இலக்கை அமை',
   mantrasBtn: 'மந்திரங்கள்',

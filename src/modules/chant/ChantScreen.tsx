@@ -618,7 +618,7 @@ const ChantScreen = () => {
       </Text>
       {challengeId ? (
         <Text style={styles.challengeHint}>{t('challengeCountingHint')}</Text>
-      ) : (
+      ) : mode === 'private' ? (
         <View style={styles.chipRow}>
           {mantras.map(item => (
             <TouchableOpacity
@@ -639,8 +639,12 @@ const ChantScreen = () => {
             </TouchableOpacity>
           ))}
         </View>
-      )}
-      <Text style={styles.mantra}>
+      ) : null}
+      <Text
+        style={[
+          styles.mantra,
+          mode === 'community' && !challengeId && styles.mantraCommunity,
+        ]}>
         {challengeId
           ? (challengeMantra && tt(challengeMantra)) ||
             (selected && mantraLabel(selected)) ||
@@ -654,11 +658,27 @@ const ChantScreen = () => {
         disabled={goalReached || saving}
         style={({pressed}) => [
           styles.countZone,
+          mode === 'community' && !challengeId && styles.countZoneCommunity,
           pressed && !goalReached && !saving ? styles.countZonePressed : null,
         ]}>
-        <View style={[styles.ring, goalReached && styles.ringPaused]}>
-          <View style={styles.innerRing}>
-            <Text style={styles.count}>{count.toLocaleString()}</Text>
+        <View
+          style={[
+            styles.ring,
+            mode === 'community' && !challengeId && styles.ringCommunity,
+            goalReached && styles.ringPaused,
+          ]}>
+          <View
+            style={[
+              styles.innerRing,
+              mode === 'community' && !challengeId && styles.innerRingCommunity,
+            ]}>
+            <Text
+              style={[
+                styles.count,
+                mode === 'community' && !challengeId && styles.countCommunity,
+              ]}>
+              {count.toLocaleString()}
+            </Text>
             <Text style={styles.japas}>{t('japasLabel')}</Text>
           </View>
         </View>
@@ -730,6 +750,9 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     marginBottom: 10,
+    fontSize: 16,
+    lineHeight: 24,
+    includeFontPadding: true,
   },
   challengeHint: {
     marginTop: -4,
@@ -769,6 +792,7 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     textAlignVertical: 'center',
+    includeFontPadding: true,
   },
   chipTextActive: {
     color: Colors.white,
@@ -778,15 +802,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.leafGreen,
     textAlign: 'center',
-    lineHeight: 30,
+    lineHeight: 32,
     marginVertical: 10,
     paddingHorizontal: 10,
+    paddingVertical: 2,
+    includeFontPadding: true,
+  },
+  mantraCommunity: {
+    fontSize: 26,
+    lineHeight: 36,
+    color: Colors.sacredBrown,
+    marginVertical: 16,
   },
   countZone: {
     width: '100%',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 4,
+  },
+  countZoneCommunity: {
+    paddingVertical: 20,
   },
   countZonePressed: {
     opacity: 0.92,
@@ -801,6 +836,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ringCommunity: {
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    borderWidth: 4,
+  },
   ringPaused: {
     opacity: 0.75,
   },
@@ -813,21 +854,38 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  innerRingCommunity: {
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 3,
+  },
   count: {
     fontSize: 42,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
+  },
+  countCommunity: {
+    fontSize: 50,
+    lineHeight: 58,
   },
   japas: {
     marginTop: 4,
     color: Colors.leafGreen,
     fontWeight: '800',
     letterSpacing: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    includeFontPadding: true,
   },
   goal: {
     marginTop: 18,
     color: Colors.leafGreen,
     fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   barRow: {
     flexDirection: 'row',
@@ -846,7 +904,13 @@ const styles = StyleSheet.create({
     height: 10,
     backgroundColor: Colors.templeGold,
   },
-  percent: {fontWeight: '800', color: Colors.sacredBrown},
+  percent: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    fontSize: 14,
+    lineHeight: 20,
+    includeFontPadding: true,
+  },
   tapCircle: {
     alignSelf: 'stretch',
     width: '100%',
@@ -863,7 +927,8 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    includeFontPadding: true,
   },
   tapCirclePaused: {
     opacity: 0.7,
@@ -876,6 +941,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveText: {color: Colors.white, fontWeight: '800'},
-  message: {marginTop: 14, fontWeight: '600', lineHeight: 22},
+  saveText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
+  message: {
+    marginTop: 14,
+    fontWeight: '600',
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
 });
