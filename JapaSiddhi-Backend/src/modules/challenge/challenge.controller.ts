@@ -5,6 +5,7 @@ import {
 } from 'express';
 
 import challengeService from './challenge.service';
+import challengeRepository from './challenge.repository';
 
 import apiResponse from '../../utils/apiResponse';
 

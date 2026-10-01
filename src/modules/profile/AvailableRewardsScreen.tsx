@@ -191,7 +191,7 @@ const AvailableRewardsScreen = () => {
                 <View style={styles.badgeRow}>
                   <View style={styles.statusBadge}>
                     <Text style={styles.statusText}>
-                      {t('available') || 'Available'}
+                      Available
                     </Text>
                   </View>
                 </View>
