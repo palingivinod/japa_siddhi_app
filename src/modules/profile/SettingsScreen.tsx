@@ -101,12 +101,6 @@ const SettingsScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
-        onPress={() => navigation.navigate('AvailableRewards')}>
-        <Text style={styles.label}>{t('rewards') || 'Rewards'}</Text>
-        <Text style={styles.value}>{t('view') || 'View'}</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.row}
         onPress={() => navigation.navigate('PrivacyPolicy')}>
         <Text style={styles.label}>{t('privacy')}</Text>
         <Text style={styles.value}>{t('manage')}</Text>

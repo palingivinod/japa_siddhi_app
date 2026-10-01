@@ -227,6 +227,11 @@ const ProfileViewScreen = () => {
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
+        icon="trophy"
+        title={t('availableRewards') || 'Available Rewards'}
+        onPress={() => navigation.navigate('AvailableRewards')}
+      />
+      <MenuCard
         icon="feedback"
         title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}
