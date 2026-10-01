@@ -19,9 +19,9 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     sub: 'Create and send notifications',
   },
   {
-    title: 'Languages',
+    title: 'Choose Language',
     route: 'AdminLanguages',
-    sub: 'Manage app languages',
+    sub: 'Select admin panel and app language',
   },
   {
     title: 'Export Reports',

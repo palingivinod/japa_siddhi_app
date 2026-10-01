@@ -155,7 +155,7 @@ export const ADMIN_FRAMES: AdminFrame[] = [
   },
   {
     id: '28',
-    title: 'Language Management',
+    title: 'Choose Language',
     route: 'AdminLanguages',
     status: 'done',
   },

@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -7,89 +7,80 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
 import {APP_LANGUAGES} from '../../services/language';
 import apiService, {getApiError} from '../../services/apiService';
-import PrimaryButton from '../common/PrimaryButton';
 import AdminScreenLayout from './AdminScreenLayout';
 
-type LangItem = {
-  id: string;
+type LangOption = {
   code: string;
   name: string;
   nativeName: string;
-  active: boolean;
 };
 
 const AdminLanguagesScreen = () => {
-  const {language, setAppLanguage} = useLanguage();
-  const [languages, setLanguages] = useState<LangItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState('');
+  const {t, language, setAppLanguage} = useLanguage();
+  const [selected, setSelected] = useState(language || 'en');
+  const [languages, setLanguages] = useState<LangOption[]>(APP_LANGUAGES);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await apiService.get('/admin/languages');
-      const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-      setLanguages(
-        rows.map((row: any) => ({
-          id: String(row.id),
-          code: String(row.code || ''),
-          name: String(row.name || ''),
-          nativeName: String(row.nativeName || row.name || ''),
-          active: Boolean(row.active),
-        })),
-      );
-    } catch (err) {
-      setLanguages([]);
-      Alert.alert('Error', getApiError(err, 'Could not load languages.'));
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (language) {
+      setSelected(language);
     }
+  }, [language]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const response = await apiService.get('/master/languages');
+        const rows = Array.isArray(response.data?.data)
+          ? response.data.data
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+        if (!mounted || !rows.length) {
+          return;
+        }
+        const mapped = rows
+          .map((row: any) => {
+            const code = String(row.code || '').toLowerCase();
+            const fallback = APP_LANGUAGES.find(item => item.code === code);
+            return {
+              code,
+              name: String(row.name || fallback?.name || code),
+              nativeName: String(
+                row.nativeName ||
+                  row.native_name ||
+                  fallback?.nativeName ||
+                  row.name ||
+                  code,
+              ),
+            };
+          })
+          .filter((item: LangOption) => item.code);
+        if (mapped.length) {
+          setLanguages(mapped);
+        }
+      } catch {
+        // keep APP_LANGUAGES fallback
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  useFocusEffect(
-    useCallback(() => {
-      load();
-    }, [load]),
-  );
-
-  const toggle = async (item: LangItem) => {
-    setBusyId(item.id);
-    try {
-      const response = await apiService.put(`/admin/languages/${item.id}/status`, {
-        active: !item.active,
-      });
-      const updated = response.data?.data;
-      setLanguages(current =>
-        current.map(row =>
-          row.id === item.id
-            ? {
-                ...row,
-                active: updated ? Boolean(updated.active) : !item.active,
-              }
-            : row,
-        ),
-      );
-    } catch (err) {
-      Alert.alert('Update failed', getApiError(err, 'Could not update language.'));
-    } finally {
-      setBusyId('');
-    }
-  };
-
-  const selectLanguage = async (item: LangItem) => {
-    if (!item.active) {
-      Alert.alert(
-        'Inactive language',
-        'Activate this language first, then select it for the app.',
-      );
+  const selectLanguage = async (item: LangOption) => {
+    if (saving || item.code === selected) {
       return;
     }
+    setSaving(true);
+    setSelected(item.code);
     try {
       await setAppLanguage(item.code);
       try {
@@ -97,78 +88,27 @@ const AdminLanguagesScreen = () => {
       } catch {
         // local language still applied
       }
-      Alert.alert('Language changed', `App language set to ${item.name}.`);
     } catch (err) {
       Alert.alert(
-        'Language failed',
+        'Error',
         getApiError(err, 'Could not change app language.'),
       );
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const addLanguage = () => {
-    const existing = new Set(languages.map(item => item.code));
-    const options = APP_LANGUAGES.filter(item => !existing.has(item.code)).slice(
-      0,
-      5,
-    );
-    if (!options.length) {
-      // Re-enable inactive ones from list picker of inactive
-      const inactive = languages.filter(item => !item.active);
-      if (!inactive.length) {
-        Alert.alert('Add language', 'All supported languages are already added.');
-        return;
-      }
-      Alert.alert(
-        'Enable language',
-        'Choose a language to activate.',
-        [
-          ...inactive.slice(0, 5).map(item => ({
-            text: item.name,
-            onPress: () => toggle({...item, active: false}),
-          })),
-          {text: 'Cancel', style: 'cancel' as const},
-        ],
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Add language',
-      'Choose a language to add.',
-      [
-        ...options.map(item => ({
-          text: item.name,
-          onPress: async () => {
-            try {
-              await apiService.post('/admin/languages', {
-                code: item.code,
-                name: item.name,
-                nativeName: item.nativeName,
-              });
-              await load();
-            } catch (err) {
-              Alert.alert(
-                'Add failed',
-                getApiError(err, 'Could not add language.'),
-              );
-            }
-          },
-        })),
-        {text: 'Cancel', style: 'cancel' as const},
-      ],
-    );
   };
 
   return (
     <AdminScreenLayout
-      title="Language Management"
+      title={t('chooseLanguage') || 'Choose Language'}
       tab="AdminDashboard"
       showBack>
-      <Text style={styles.heading}>Language Management</Text>
+      <Text style={styles.heading}>
+        {t('chooseLanguage') || 'Choose Language'}
+      </Text>
       <Text style={styles.sub}>
-        Tap a language to change the app language. Use Active/Inactive to control
-        what users can choose.
+        {t('selectPreferredLanguage') ||
+          'Select your preferred language for the admin panel and app.'}
       </Text>
 
       {loading ? (
@@ -178,41 +118,41 @@ const AdminLanguagesScreen = () => {
       ) : null}
 
       {languages.map(item => {
-        const selected = item.code === language;
+        const isSelected = item.code === selected;
         return (
           <TouchableOpacity
-            key={item.id}
-            style={[styles.card, selected && styles.cardSelected]}
+            key={item.code}
+            style={[styles.card, isSelected && styles.cardSelected]}
             onPress={() => selectLanguage(item)}
             activeOpacity={0.85}>
             <View style={styles.copy}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.meta}>
-                {item.nativeName !== item.name ? `${item.nativeName} · ` : ''}
-                {selected ? 'Selected' : item.active ? 'Available' : 'Hidden'}
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.pill, item.active ? styles.pillOn : styles.pillOff]}
-              disabled={busyId === item.id}
-              onPress={() => toggle(item)}>
               <Text
                 style={[
-                  styles.pillText,
-                  item.active ? styles.pillTextOn : styles.pillTextOff,
+                  styles.name,
+                  isSelected && styles.nameSelected,
                 ]}>
-                {busyId === item.id
-                  ? '...'
-                  : item.active
-                    ? 'Active'
-                    : 'Inactive'}
+                {item.name}
               </Text>
-            </TouchableOpacity>
+              {item.nativeName !== item.name ? (
+                <Text style={styles.native}>{item.nativeName}</Text>
+              ) : null}
+            </View>
+            <View
+              style={[
+                styles.markWrap,
+                isSelected && styles.markWrapSelected,
+              ]}>
+              <Text
+                style={[
+                  styles.markText,
+                  isSelected && styles.markTextSelected,
+                ]}>
+                {isSelected ? '✓' : '›'}
+              </Text>
+            </View>
           </TouchableOpacity>
         );
       })}
-
-      <PrimaryButton title="ADD LANGUAGE" onPress={addLanguage} />
     </AdminScreenLayout>
   );
 };
@@ -240,6 +180,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
   cardSelected: {
     borderColor: Colors.leafGreen,
@@ -251,19 +192,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
-  meta: {
-    marginTop: 4,
+  nameSelected: {
+    color: Colors.leafGreen,
+  },
+  native: {
+    marginTop: 3,
     color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  markWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F7F2E8',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
   },
-  pillOn: {borderColor: Colors.leafGreen},
-  pillOff: {borderColor: Colors.error},
-  pillText: {fontWeight: '800', fontSize: 13},
-  pillTextOn: {color: Colors.leafGreen},
-  pillTextOff: {color: Colors.error},
+  markWrapSelected: {
+    backgroundColor: Colors.leafGreen,
+  },
+  markText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.textLight,
+  },
+  markTextSelected: {
+    color: Colors.white,
+  },
 });
