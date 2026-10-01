@@ -228,7 +228,6 @@ const PrivateJapaScreen = () => {
                       setMessage('');
                     }}>
                     <View style={styles.popupItemLeft}>
-                      <Text style={styles.suggestionIcon}>📿</Text>
                       <Text
                         style={[
                           styles.popupItemText,
@@ -420,10 +419,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
-    marginRight: 8,
-  },
-  suggestionIcon: {
-    fontSize: 13,
     marginRight: 8,
   },
   popupItemText: {

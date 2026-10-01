@@ -38,48 +38,58 @@ const MantraSelectScreen = () => {
       {picking ? (
         <>
           <Text style={styles.hint}>{t('chooseOneMantra')}</Text>
-          {mantras.map(item => {
-            const active = item.id === selected;
-            return (
-              <TouchableOpacity
-                key={item.id}
-                style={[styles.card, active && styles.active]}
-                onPress={() => setSelected(item.id)}>
-                <View style={[styles.radio, active && styles.radioOn]}>
-                  {active ? <Text style={styles.check}>✓</Text> : null}
-                </View>
-                <Text style={styles.name}>
-                  {tt(item.mantraName || item.transliteration)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          <View style={styles.chipRow}>
+            {mantras.map(item => {
+              const active = item.id === selected;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  style={[styles.chip, active && styles.chipActive]}
+                  activeOpacity={0.7}
+                  onPress={() => setSelected(item.id)}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      active && styles.chipTextActive,
+                    ]}>
+                    {tt(item.mantraName || item.transliteration)}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </>
       ) : (
-        <>
+        <View style={styles.selectedContainer}>
           <Text style={styles.hint}>{t('yourSelectedMantra')}</Text>
-          <View style={[styles.card, styles.active]}>
-            <View style={[styles.radio, styles.radioOn]}>
-              <Text style={styles.check}>✓</Text>
-            </View>
-            <Text style={styles.name}>{tt(chosenName)}</Text>
+          <View style={[styles.chip, styles.chipActive, styles.selectedChip]}>
+            <Text
+              style={[
+                styles.chipText,
+                styles.chipTextActive,
+                styles.selectedChipText,
+              ]}>
+              {tt(chosenName)}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.changeBtn}
             onPress={() => setPicking(true)}>
             <Text style={styles.changeText}>{t('changeMantra')}</Text>
           </TouchableOpacity>
-        </>
+        </View>
       )}
-      <PrimaryButton
-        title={t('setGoalBtn')}
-        onPress={() =>
-          navigation.navigate('GoalSelect', {
-            mode: route.params?.mode || 'community',
-            mantraId: selected,
-          })
-        }
-      />
+      <View style={styles.buttonContainer}>
+        <PrimaryButton
+          title={t('setGoalBtn')}
+          onPress={() =>
+            navigation.navigate('GoalSelect', {
+              mode: route.params?.mode || 'community',
+              mantraId: selected,
+            })
+          }
+        />
+      </View>
     </ScreenLayout>
   );
 };
@@ -87,48 +97,59 @@ const MantraSelectScreen = () => {
 export default MantraSelectScreen;
 
 const styles = StyleSheet.create({
-  hint: {color: Colors.sacredBrown, marginBottom: 14, fontSize: 16},
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
+  hint: {
+    color: Colors.sacredBrown,
+    marginBottom: 14,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 20,
+  },
+  chip: {
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: 56,
-  },
-  active: {
-    borderColor: Colors.selectedOrange,
-    borderWidth: 2,
-    backgroundColor: Colors.selectedTint,
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: Colors.templeGold,
-    marginRight: 12,
-    alignItems: 'center',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    minHeight: 42,
     justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
   },
-  radioOn: {
-    backgroundColor: Colors.selectedOrange,
-    borderColor: Colors.selectedOrange,
+  chipActive: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
   },
-  check: {color: Colors.white, fontWeight: '800', fontSize: 12},
-  name: {
-    fontWeight: '800',
+  chipText: {
     color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: 'center',
+  },
+  chipTextActive: {
+    color: Colors.white,
+  },
+  selectedContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  selectedChip: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 12,
+  },
+  selectedChipText: {
     fontSize: 16,
-    lineHeight: 24,
-    flex: 1,
+    fontWeight: '800',
   },
   changeBtn: {
     alignSelf: 'center',
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     marginBottom: 8,
   },
@@ -136,5 +157,8 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
     fontWeight: '800',
     textDecorationLine: 'underline',
+  },
+  buttonContainer: {
+    marginTop: 10,
   },
 });

@@ -638,30 +638,25 @@ const ChantScreen = () => {
 
       {mode === 'private' ? (
         showMantraPicker || !selected ? (
-          <View style={styles.mantraCloudCard}>
-            <Text style={styles.mantraCloudHeading}>
-              {t('chooseOneMantra')}
-            </Text>
-            <View style={styles.chipRow}>
-              {mantras.map(item => (
-                <TouchableOpacity
-                  key={item.key}
+          <View style={styles.chipRow}>
+            {mantras.map(item => (
+              <TouchableOpacity
+                key={item.key}
+                style={[
+                  styles.chip,
+                  item.own && styles.chipOwn,
+                  selected?.key === item.key && styles.chipActive,
+                ]}
+                onPress={() => selectMantra(item)}>
+                <Text
                   style={[
-                    styles.chip,
-                    item.own && styles.chipOwn,
-                    selected?.key === item.key && styles.chipActive,
-                  ]}
-                  onPress={() => selectMantra(item)}>
-                  <Text
-                    style={[
-                      styles.chipText,
-                      selected?.key === item.key && styles.chipTextActive,
-                    ]}>
-                    {mantraLabel(item)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+                    styles.chipText,
+                    selected?.key === item.key && styles.chipTextActive,
+                  ]}>
+                  {mantraLabel(item)}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         ) : (
           <View style={styles.selectedMantraContainer}>
@@ -697,18 +692,21 @@ const ChantScreen = () => {
         disabled={goalReached || saving}
         style={({pressed}) => [
           styles.countZone,
+          !showMantraPicker && selected ? styles.countZoneExpanded : null,
           mode === 'community' && !challengeId && styles.countZoneCommunity,
           pressed && !goalReached && !saving ? styles.countZonePressed : null,
         ]}>
         <View
           style={[
             styles.ring,
+            !showMantraPicker && selected ? styles.ringExpanded : null,
             mode === 'community' && !challengeId && styles.ringCommunity,
             goalReached && styles.ringPaused,
           ]}>
           <View
             style={[
               styles.innerRing,
+              !showMantraPicker && selected ? styles.innerRingExpanded : null,
               mode === 'community' && !challengeId && styles.innerRingCommunity,
             ]}>
             <Text
@@ -836,22 +834,6 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: Colors.white,
   },
-  mantraCloudCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 14,
-    marginBottom: 12,
-  },
-  mantraCloudHeading: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-    marginBottom: 10,
-    textAlign: 'center',
-    includeFontPadding: true,
-  },
   selectedMantraContainer: {
     alignItems: 'center',
     justifyContent: 'center',
@@ -916,6 +898,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 4,
   },
+  countZoneExpanded: {
+    paddingVertical: 22,
+  },
   countZoneCommunity: {
     paddingVertical: 20,
   },
@@ -931,6 +916,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.templeGold,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  ringExpanded: {
+    width: 246,
+    height: 246,
+    borderRadius: 123,
+    borderWidth: 3.5,
   },
   ringCommunity: {
     width: 250,
@@ -949,6 +940,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.lightGold,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  innerRingExpanded: {
+    width: 212,
+    height: 212,
+    borderRadius: 106,
   },
   innerRingCommunity: {
     width: 220,
