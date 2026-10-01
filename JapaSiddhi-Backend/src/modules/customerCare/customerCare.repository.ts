@@ -131,6 +131,16 @@ class CustomerCareRepository {
       [reply, status, id],
     );
   }
+
+  async delete(id: number): Promise<void> {
+    await mysql.query(
+      `
+      DELETE FROM customer_care
+      WHERE id = ?
+      `,
+      [id],
+    );
+  }
 }
 
 export default new CustomerCareRepository();

@@ -231,6 +231,15 @@ class CustomerCareService {
       ];
     }
   }
+
+  async delete(id: number) {
+    const ticket = await customerCareRepository.getById(id);
+    if (!ticket) {
+      throw new Error('Support ticket not found');
+    }
+    await customerCareRepository.delete(id);
+    return {id};
+  }
 }
 
 export default new CustomerCareService();

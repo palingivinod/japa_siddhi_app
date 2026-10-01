@@ -43,6 +43,7 @@ const AdminSupportScreen = () => {
   const [loading, setLoading] = useState(true);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,6 +92,40 @@ const AdminSupportScreen = () => {
     }, [load]),
   );
 
+  const confirmDelete = (item: TicketRow) => {
+    Alert.alert(
+      'Delete Ticket',
+      `Permanently delete ticket ${item.code}?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingId(item.id);
+            try {
+              await apiService.delete(`/admin/support-tickets/${item.id}`);
+              setTickets(prev => prev.filter(t => t.id !== item.id));
+              setDrafts(prev => {
+                const next = {...prev};
+                delete next[item.id];
+                return next;
+              });
+              Alert.alert('Support', 'Ticket deleted successfully.');
+            } catch (err) {
+              Alert.alert(
+                'Delete failed',
+                getApiError(err, 'Could not delete support ticket.'),
+              );
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const sendReply = async (item: TicketRow, status: 'IN_PROGRESS' | 'RESOLVED') => {
     const reply = String(drafts[item.id] || '').trim();
     if (!reply) {
@@ -138,19 +173,30 @@ const AdminSupportScreen = () => {
 
       {tickets.map(item => {
         const busy = savingId === item.id;
+        const deleting = deletingId === item.id;
         const solved =
           item.status === 'RESOLVED' || item.status === 'CLOSED';
         return (
           <View key={item.id} style={styles.card}>
             <View style={styles.row}>
               <Text style={styles.name}>{item.code}</Text>
-              <Text
-                style={[
-                  styles.badge,
-                  solved ? styles.badgeSolved : styles.badgeOpen,
-                ]}>
-                {statusLabel(item.status)}
-              </Text>
+              <View style={styles.badgeWrap}>
+                <Text
+                  style={[
+                    styles.badge,
+                    solved ? styles.badgeSolved : styles.badgeOpen,
+                  ]}>
+                  {statusLabel(item.status)}
+                </Text>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  disabled={busy || deleting}
+                  onPress={() => confirmDelete(item)}>
+                  <Text style={styles.deleteBtnText}>
+                    {deleting ? '...' : 'Delete'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
             <Text style={styles.meta}>
               User ID: {item.userId != null ? String(item.userId) : '—'}
@@ -252,6 +298,24 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     borderRadius: 999,
     overflow: 'hidden',
+  },
+  badgeWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  deleteBtn: {
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    backgroundColor: '#FFF5F5',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  deleteBtnText: {
+    color: Colors.error,
+    fontWeight: '800',
+    fontSize: 12,
   },
   badgeOpen: {
     backgroundColor: '#FFF4E5',

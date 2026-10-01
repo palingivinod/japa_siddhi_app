@@ -3942,6 +3942,31 @@ router.put('/support-tickets/:id/reply', async (req: Request, res: Response) => 
   }
 });
 
+router.delete('/support-tickets/:id', async (req: Request, res: Response) => {
+  try {
+    const customerCareService = (
+      await import('../customerCare/customerCare.service')
+    ).default;
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ticket id.',
+      });
+    }
+    await customerCareService.delete(id);
+    return res.json({
+      success: true,
+      message: 'Support ticket deleted successfully.',
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Unable to delete support ticket.',
+    });
+  }
+});
+
 router.get('/daily-goal', async (_req: Request, res: Response) => {
   try {
     const appSettingsService = (
