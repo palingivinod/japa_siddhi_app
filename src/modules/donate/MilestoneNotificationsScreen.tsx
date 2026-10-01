@@ -205,7 +205,6 @@ const MilestoneNotificationsScreen = () => {
                     </Text>
                     <Text style={styles.sub}>{milestoneSub(item)}</Text>
                   </View>
-                  <Text style={styles.chevron}>›</Text>
                 </View>
               );
             })
