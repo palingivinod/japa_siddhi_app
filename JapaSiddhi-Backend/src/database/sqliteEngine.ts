@@ -527,12 +527,36 @@ class SqliteEngine {
     this.ensureRewardClaimColumns();
     this.ensureFeedbackSupportColumns();
     this.ensurePersonalMantraColumns();
+    this.ensureMultilingualColumns();
     this.seedChallenges();
     this.seedFaqs();
     this.seedRewards();
     this.seedProducts();
     this.seedAdminAccounts();
     this.persist();
+  }
+
+  private ensureMultilingualColumns(): void {
+    if (!this.db) {
+      return;
+    }
+    const addColumn = (table: string, name: string, definition: string) => {
+      try {
+        const info = this.db?.exec(`PRAGMA table_info(${table})`);
+        const names = new Set(
+          (info?.[0]?.values || []).map((row: any[]) => String(row[1] || '')),
+        );
+        if (!names.has(name)) {
+          this.db?.run(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+        }
+      } catch {
+        // Table might not exist yet or column already exists
+      }
+    };
+    addColumn('mantras', 'translations', 'TEXT');
+    addColumn('challenges', 'translations', 'TEXT');
+    addColumn('notifications', 'translations', 'TEXT');
+    addColumn('admin_notification_queue', 'translations', 'TEXT');
   }
 
   private seedAdminAccounts(): void {

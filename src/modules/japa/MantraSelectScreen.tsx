@@ -7,11 +7,12 @@ import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {getLocalizedMantra} from '../../utils/localizedContent';
 
 const MantraSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const {t, tt} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const passedId = Number(route.params?.mantraId || 0) || null;
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<number | null>(passedId);
@@ -28,7 +29,9 @@ const MantraSelectScreen = () => {
   }, []);
 
   const chosen = mantras.find(item => item.id === selected);
+  const localizedChosen = chosen ? getLocalizedMantra(chosen, language).name : '';
   const chosenName =
+    localizedChosen ||
     chosen?.mantraName ||
     chosen?.transliteration ||
     String(route.params?.mantraName || '');
@@ -41,6 +44,8 @@ const MantraSelectScreen = () => {
           <View style={styles.chipRow}>
             {mantras.map(item => {
               const active = item.id === selected;
+              const loc = getLocalizedMantra(item, language).name;
+              const displayName = loc || tt(item.mantraName || item.transliteration);
               return (
                 <TouchableOpacity
                   key={item.id}
@@ -52,7 +57,7 @@ const MantraSelectScreen = () => {
                       styles.chipText,
                       active && styles.chipTextActive,
                     ]}>
-                    {tt(item.mantraName || item.transliteration)}
+                    {displayName}
                   </Text>
                 </TouchableOpacity>
               );
@@ -69,7 +74,7 @@ const MantraSelectScreen = () => {
                 styles.chipTextActive,
                 styles.selectedChipText,
               ]}>
-              {tt(chosenName)}
+              {localizedChosen || tt(chosenName)}
             </Text>
           </View>
           <TouchableOpacity

@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
+import {getLocalizedChallenge} from '../../utils/localizedContent';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import OutlineButton from '../common/OutlineButton';
@@ -78,6 +80,7 @@ const mantraLabel = (item: any) => {
 const ChallengeDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t, tt, language} = useLanguage();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -143,6 +146,7 @@ const ChallengeDetailsScreen = () => {
     );
   }
 
+  const loc = getLocalizedChallenge(item, language);
   const target = Number(item.targetValue || 0);
   const current = Number(item.currentValue || 0);
   const percent = Number(item.progressPercent || 0);
@@ -151,15 +155,16 @@ const ChallengeDetailsScreen = () => {
     Boolean(item.completed) || (target > 0 && current >= target) || percent >= 100;
   const rewardClaimed = Boolean(item.rewardClaimed);
   const rewardDeliverySubmitted = Boolean(item.rewardDeliverySubmitted);
+  const rawDesc = loc.description || item.description;
   const description =
-    item.description ||
+    rawDesc ||
     (target
       ? `Complete ${target.toLocaleString()} chants. Progress and streak are tracked automatically.`
       : 'Join this community challenge.');
 
   return (
     <ScreenLayout title="Challenge Details" showBack tab="JapaHub">
-      <Text style={styles.title}>{item.title}</Text>
+      <Text style={styles.title}>{loc.title || tt(item.title)}</Text>
       <Text style={styles.badge}>Admin-created challenge</Text>
 
       <View style={styles.card}>
@@ -175,7 +180,7 @@ const ChallengeDetailsScreen = () => {
       <View style={styles.grid}>
         <View style={styles.cell}>
           <Text style={styles.label}>Mantra</Text>
-          <Text style={styles.value}>{mantraLabel(item)}</Text>
+          <Text style={styles.value}>{loc.mantra || mantraLabel(item)}</Text>
         </View>
         <View style={styles.cell}>
           <Text style={styles.label}>Target Count</Text>

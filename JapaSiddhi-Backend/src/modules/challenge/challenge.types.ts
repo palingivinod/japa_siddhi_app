@@ -32,6 +32,8 @@ export interface CreateChallengeRequest {
 
   endDate: Date;
 
+  translations?: string | Record<string, any> | null;
+
 }
 
 export interface JoinChallengeRequest {
@@ -75,6 +77,8 @@ export interface ChallengeResponse {
   endDate: Date;
 
   isActive: boolean;
+
+  translations?: string | null;
 
   createdAt: Date;
 

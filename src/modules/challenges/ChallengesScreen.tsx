@@ -8,6 +8,7 @@ import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
+import {getLocalizedChallenge} from '../../utils/localizedContent';
 
 type Translate = ReturnType<typeof useLanguage>['t'];
 
@@ -59,7 +60,7 @@ const mantraOf = (item: any) => {
 
 const ChallengesScreen = () => {
   const navigation = useNavigation<any>();
-  const {t, tt} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [resumeIds, setResumeIds] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -119,10 +120,12 @@ const ChallengesScreen = () => {
 
       {!loading &&
         items.map((item, index) => {
+          const loc = getLocalizedChallenge(item, language);
           const target = Number(item.targetValue || item.target || 0);
-          const mantra = mantraOf(item);
-          const description = item.description
-            ? describe(t, tt, item.description)
+          const mantra = loc.mantra || mantraOf(item);
+          const rawDesc = loc.description || item.description;
+          const description = rawDesc
+            ? describe(t, tt, rawDesc)
             : target
               ? t('completeChants', {count: target.toLocaleString()})
               : t('joinCommunityChallenge');
@@ -138,7 +141,7 @@ const ChallengesScreen = () => {
                   <View style={styles.dotInner} />
                 </View>
                 <View style={styles.copy}>
-                  <Text style={styles.title}>{tt(item.title)}</Text>
+                  <Text style={styles.title}>{loc.title || tt(item.title)}</Text>
                   <Text style={styles.description}>{description}</Text>
                   {mantra ? (
                     <Text style={styles.meta}>

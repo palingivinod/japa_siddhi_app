@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   Alert,
   StyleSheet,
@@ -14,26 +14,55 @@ import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminLanguageTabs, {
+  ADMIN_LANGUAGES,
+  AdminSupportedLang,
+} from './components/AdminLanguageTabs';
+import {parseTranslationsMap} from '../../utils/localizedContent';
+
+interface ChallengeLangFields {
+  title: string;
+  description: string;
+  mantra: string;
+}
+
+const emptyFields = (): ChallengeLangFields => ({
+  title: '',
+  description: '',
+  mantra: '',
+});
+
+const defaultTranslations = (): Record<AdminSupportedLang, ChallengeLangFields> => ({
+  en: emptyFields(),
+  te: emptyFields(),
+  hi: emptyFields(),
+  ta: emptyFields(),
+  kn: emptyFields(),
+});
 
 const Field = ({
   label,
   value,
   onChangeText,
   placeholder = 'Enter here',
+  multiline = false,
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  multiline?: boolean;
 }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      style={styles.input}
+      style={[styles.input, multiline && styles.inputMultiline]}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={Colors.placeholder}
+      multiline={multiline}
+      textAlignVertical={multiline ? 'top' : 'center'}
     />
   </View>
 );
@@ -95,13 +124,11 @@ const AdminChallengeCreateScreen = () => {
   const editId = String(route.params?.id || '').trim();
   const isEdit = Boolean(editId);
 
-  const [name, setName] = useState(String(route.params?.title || ''));
-  const [description, setDescription] = useState(
-    String(route.params?.description || route.params?.detail || ''),
-  );
-  const [mantra, setMantra] = useState(
-    String(route.params?.mantra || mantraFromReward(route.params?.rewardName)),
-  );
+  const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
+  const [translations, setTranslations] = useState<
+    Record<AdminSupportedLang, ChallengeLangFields>
+  >(defaultTranslations);
+
   const [target, setTarget] = useState(
     String(route.params?.targetValue || route.params?.target || '10000'),
   );
@@ -123,6 +150,39 @@ const AdminChallengeCreateScreen = () => {
   const [loading, setLoading] = useState(isEdit && !route.params?.title);
 
   useEffect(() => {
+    if (route.params?.title) {
+      const parsedTrans = parseTranslationsMap<ChallengeLangFields>(
+        route.params.translations,
+      );
+      const nextTrans = defaultTranslations();
+      ADMIN_LANGUAGES.forEach(item => {
+        const raw = parsedTrans[item.code];
+        if (raw) {
+          nextTrans[item.code] = {
+            title: String(raw.title || ''),
+            description: String(raw.description || ''),
+            mantra: String(raw.mantra || ''),
+          };
+        }
+      });
+      if (!nextTrans.en.title) {
+        nextTrans.en = {
+          title: String(route.params.title || ''),
+          description: String(
+            route.params.description || route.params.detail || '',
+          ),
+          mantra: String(
+            route.params.mantra ||
+              mantraFromReward(route.params.rewardName) ||
+              '',
+          ),
+        };
+      }
+      setTranslations(nextTrans);
+    }
+  }, [route.params]);
+
+  useEffect(() => {
     if (!isEdit || route.params?.title) {
       return;
     }
@@ -142,9 +202,29 @@ const AdminChallengeCreateScreen = () => {
           Alert.alert('Not found', 'Challenge could not be loaded.');
           return;
         }
-        setName(String(match.title || ''));
-        setDescription(String(match.description || match.detail || ''));
-        setMantra(mantraFromReward(match.rewardName));
+
+        const parsedTrans = parseTranslationsMap<ChallengeLangFields>(
+          match.translations,
+        );
+        const nextTrans = defaultTranslations();
+        ADMIN_LANGUAGES.forEach(item => {
+          const raw = parsedTrans[item.code];
+          if (raw) {
+            nextTrans[item.code] = {
+              title: String(raw.title || ''),
+              description: String(raw.description || ''),
+              mantra: String(raw.mantra || ''),
+            };
+          }
+        });
+        if (!nextTrans.en.title) {
+          nextTrans.en = {
+            title: String(match.title || ''),
+            description: String(match.description || match.detail || ''),
+            mantra: mantraFromReward(match.rewardName),
+          };
+        }
+        setTranslations(nextTrans);
         setTarget(String(match.targetValue || '10000'));
         setStartDate(parseDateValue(match.startDate) || new Date());
         setEndDate(
@@ -172,6 +252,43 @@ const AdminChallengeCreateScreen = () => {
     };
   }, [editId, isEdit, route.params?.title]);
 
+  const currentFields = translations[activeLang] || emptyFields();
+
+  const updateField = (key: keyof ChallengeLangFields, val: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        ...(prev[activeLang] || emptyFields()),
+        [key]: val,
+      },
+    }));
+  };
+
+  const completedMap = useMemo(() => {
+    const map: Partial<Record<AdminSupportedLang, boolean>> = {};
+    ADMIN_LANGUAGES.forEach(item => {
+      const f = translations[item.code];
+      map[item.code] = Boolean(f && f.title.trim().length > 0);
+    });
+    return map;
+  }, [translations]);
+
+  const copyFromEnglish = () => {
+    const en = translations.en;
+    if (!en.title.trim()) {
+      Alert.alert('Notice', 'Enter English challenge title first.');
+      return;
+    }
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        title: prev[activeLang].title || en.title,
+        description: prev[activeLang].description || en.description,
+        mantra: prev[activeLang].mantra || en.mantra,
+      },
+    }));
+  };
+
   const onStartChange = (selected: Date) => {
     setStartDate(selected);
     if (endDate && selected > endDate) {
@@ -186,8 +303,10 @@ const AdminChallengeCreateScreen = () => {
   };
 
   const save = async () => {
-    if (!name.trim()) {
-      Alert.alert('Required', 'Enter a challenge name.');
+    const primaryTitle =
+      translations.en.title.trim() || translations[activeLang].title.trim();
+    if (!primaryTitle) {
+      Alert.alert('Required', 'Enter at least an English or primary Challenge Name.');
       return;
     }
     if (!startDate || !endDate) {
@@ -201,16 +320,21 @@ const AdminChallengeCreateScreen = () => {
     setSaving(true);
     try {
       const payload = {
-        title: name.trim(),
-        description: description.trim(),
-        mantra: mantra.trim(),
+        title: primaryTitle,
+        description:
+          translations.en.description.trim() ||
+          translations[activeLang].description.trim(),
+        mantra:
+          translations.en.mantra.trim() ||
+          translations[activeLang].mantra.trim(),
         target,
         startDate: toYmd(startDate),
         endDate: toYmd(endDate),
+        translations: JSON.stringify(translations),
       };
       if (isEdit) {
         await apiService.put(`/admin/challenges/${editId}`, payload);
-        Alert.alert('Challenge updated', 'Changes saved for users.', [
+        Alert.alert('Challenge updated', 'Changes and multilingual translations saved.', [
           {
             text: 'View challenges',
             onPress: () => navigation.navigate('AdminChallenges'),
@@ -221,7 +345,7 @@ const AdminChallengeCreateScreen = () => {
         await apiService.post('/admin/challenges', payload);
         Alert.alert(
           'Challenge created',
-          'Saved to the database. Users will see it in Challenges.',
+          'Challenge created with 5-language translation support.',
           [
             {
               text: 'View challenges',
@@ -246,6 +370,8 @@ const AdminChallengeCreateScreen = () => {
     }
   };
 
+  const activeLangOption = ADMIN_LANGUAGES.find(l => l.code === activeLang);
+
   return (
     <AdminScreenLayout
       title={isEdit ? 'Edit Challenge' : 'Challenge Creation'}
@@ -255,23 +381,74 @@ const AdminChallengeCreateScreen = () => {
         {isEdit ? 'Edit Challenge' : 'Challenge Creation'}
       </Text>
       <Text style={styles.sub}>
-        {isEdit
-          ? 'Update challenge details shown to users.'
-          : 'Configure challenge details.'}
+        Configure challenge details in 5 languages. Devotees see the challenge in
+        their chosen language.
       </Text>
 
       {loading ? (
         <Text style={styles.sub}>Loading challenge...</Text>
       ) : (
         <>
-          <Field label="Challenge Name" value={name} onChangeText={setName} />
-          <Field
-            label="Description"
-            value={description}
-            onChangeText={setDescription}
+          <AdminLanguageTabs
+            activeLang={activeLang}
+            onSelectLang={setActiveLang}
+            completedMap={completedMap}
+            onCopyFromEnglish={copyFromEnglish}
           />
-          <Field label="Mantra" value={mantra} onChangeText={setMantra} />
-          <Field label="Target Count" value={target} onChangeText={setTarget} />
+
+          <View style={styles.langHeaderCard}>
+            <Text style={styles.langHeaderTitle}>
+              Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
+            </Text>
+            <Text style={styles.langHeaderHint}>
+              {activeLang === 'en'
+                ? 'Primary fallback language for all devotees.'
+                : `Custom ${activeLangOption?.label} content for devotees using ${activeLangOption?.nativeName}.`}
+            </Text>
+          </View>
+
+          <Field
+            label={`Challenge Name (${activeLangOption?.nativeName || 'Name'})`}
+            value={currentFields.title}
+            onChangeText={v => updateField('title', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'e.g. Navaratri 108 Challenge'
+                : `Challenge name in ${activeLangOption?.nativeName}`
+            }
+          />
+          <Field
+            label="Description / Instructions"
+            value={currentFields.description}
+            onChangeText={v => updateField('description', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'e.g. Complete 108 chants daily during Navaratri'
+                : `Description in ${activeLangOption?.nativeName}`
+            }
+            multiline
+          />
+          <Field
+            label="Mantra Hint / Focus"
+            value={currentFields.mantra}
+            onChangeText={v => updateField('mantra', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'e.g. Durga Mantra / Gayatri Mantra'
+                : `Mantra name in ${activeLangOption?.nativeName}`
+            }
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionHeading}>Schedule & Targets</Text>
+
+          <Field
+            label="Target Count"
+            value={target}
+            onChangeText={setTarget}
+            placeholder="10000"
+          />
 
           <View style={styles.field}>
             <Text style={styles.label}>Start Date</Text>
@@ -352,15 +529,47 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  langHeaderCard: {
+    backgroundColor: '#F7FAF4',
+    borderWidth: 1,
+    borderColor: '#E2EBDC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  langHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  langHeaderHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.cardBorder,
+    marginVertical: 16,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
   },
   field: {marginBottom: 14},
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
     marginBottom: 8,
+    fontSize: 14,
   },
   input: {
-    height: 54,
+    minHeight: 54,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
@@ -369,6 +578,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
     justifyContent: 'center',
+  },
+  inputMultiline: {
+    minHeight: 80,
+    paddingVertical: 12,
   },
   dateText: {
     fontSize: 16,

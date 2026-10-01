@@ -29,10 +29,12 @@ class ChallengeRepository {
           reward_name,
           reward_quantity,
           start_date,
-          end_date
+          end_date,
+          translations
         )
         VALUES
         (
+          ?,
           ?,
           ?,
           ?,
@@ -54,6 +56,9 @@ class ChallengeRepository {
           data.rewardQuantity,
           data.startDate,
           data.endDate,
+          typeof data.translations === 'object'
+            ? JSON.stringify(data.translations)
+            : data.translations ?? null,
         ],
       );
 
@@ -92,6 +97,8 @@ class ChallengeRepository {
 
           is_active AS isActive,
 
+          translations,
+
           created_at AS createdAt,
 
           updated_at AS updatedAt
@@ -126,7 +133,8 @@ class ChallengeRepository {
         reward_quantity AS rewardQuantity,
         start_date AS startDate,
         end_date AS endDate,
-        is_active AS isActive
+        is_active AS isActive,
+        translations
       FROM challenges
       WHERE is_active = 1
       ORDER BY id DESC

@@ -1168,6 +1168,17 @@ router.put('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
+const parseJsonSafely = (val: any) => {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  try {
+    const res = JSON.parse(val);
+    return typeof res === 'object' && res !== null ? res : null;
+  } catch {
+    return null;
+  }
+};
+
 const mapMantraRow = (row: any) => ({
   id: String(row.id),
   name: row.mantraName || '',
@@ -1178,6 +1189,7 @@ const mapMantraRow = (row: any) => ({
   target: num(row.defaultJapaCount) || 108,
   active: Number(row.isActive) === 1 || row.isActive === true,
   isFeatured: Number(row.isFeatured) === 1 || row.isFeatured === true,
+  translations: parseJsonSafely(row.translations),
 });
 
 router.get('/mantras', async (_req: Request, res: Response) => {
@@ -1238,6 +1250,7 @@ router.post('/mantras', async (req: Request, res: Response) => {
       defaultJapaCount: Number(req.body?.defaultJapaCount || req.body?.target || 10000),
       isActive: req.body?.isActive !== false && req.body?.active !== false,
       isFeatured: Boolean(req.body?.isFeatured),
+      translations: req.body?.translations,
     });
     return res.status(201).json({
       success: true,
@@ -1271,7 +1284,8 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
       req.body?.transliteration == null &&
       req.body?.defaultJapaCount == null &&
       req.body?.target == null &&
-      req.body?.isFeatured == null;
+      req.body?.isFeatured == null &&
+      req.body?.translations == null;
 
     const nextActive =
       req.body?.isActive != null || req.body?.active != null
@@ -1295,6 +1309,7 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
             req.body?.isFeatured != null
               ? Boolean(req.body.isFeatured)
               : undefined,
+          translations: req.body?.translations,
         });
     if (!updated) {
       return res.status(404).json({success: false, message: 'Mantra not found.'});
@@ -1406,6 +1421,7 @@ const mapChallengeRow = (row: any) => {
       pct76to99: Number(row.bucket99 || 0),
       pct100: Number(row.bucket100 || 0),
     },
+    translations: parseJsonSafely(row.translations),
   };
 };
 
@@ -1434,6 +1450,7 @@ router.get('/challenges', async (_req: Request, res: Response) => {
         c.start_date AS startDate,
         c.end_date AS endDate,
         c.is_active AS isActive,
+        c.translations,
         COUNT(cp.id) AS participants,
         SUM(
           CASE
@@ -1464,7 +1481,8 @@ router.get('/challenges', async (_req: Request, res: Response) => {
         c.reward_quantity,
         c.start_date,
         c.end_date,
-        c.is_active
+        c.is_active,
+        c.translations
       ORDER BY c.id DESC
     `);
     return res.json({
@@ -1524,6 +1542,11 @@ router.post('/challenges', async (req: Request, res: Response) => {
       String(req.body?.rewardName || '').trim() ||
       (mantraHint ? `${mantraHint} Certificate` : 'Certificate');
 
+    const translations =
+      typeof req.body?.translations === 'object'
+        ? JSON.stringify(req.body.translations)
+        : req.body?.translations || null;
+
     await mysql.query(
       `
       INSERT INTO challenges (
@@ -1536,8 +1559,9 @@ router.post('/challenges', async (req: Request, res: Response) => {
         reward_quantity,
         start_date,
         end_date,
+        translations,
         is_active
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
       `,
       [
         title,
@@ -1549,6 +1573,7 @@ router.post('/challenges', async (req: Request, res: Response) => {
         Number(req.body?.rewardQuantity) || 1,
         startDate,
         endDate,
+        translations,
       ],
     );
 
@@ -1564,6 +1589,7 @@ router.post('/challenges', async (req: Request, res: Response) => {
         reward_quantity AS rewardQuantity,
         start_date AS startDate,
         end_date AS endDate,
+        translations,
         is_active AS isActive
       FROM challenges
       ORDER BY id DESC
@@ -1700,6 +1726,13 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
       Number(req.body?.rewardQuantity ?? current.rewardQuantity ?? 1) || 1,
     );
 
+    const translations =
+      req.body?.translations !== undefined
+        ? typeof req.body.translations === 'object'
+          ? JSON.stringify(req.body.translations)
+          : req.body.translations || null
+        : current.translations;
+
     await mysql.query(
       `
       UPDATE challenges
@@ -1713,6 +1746,7 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
         reward_quantity = ?,
         start_date = ?,
         end_date = ?,
+        translations = ?,
         is_active = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -1727,6 +1761,7 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
         rewardQuantity,
         startDate,
         endDate,
+        translations,
         isActive,
         id,
       ],
@@ -1744,6 +1779,7 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
         reward_quantity AS rewardQuantity,
         start_date AS startDate,
         end_date AS endDate,
+        translations,
         is_active AS isActive
       FROM challenges
       WHERE id = ?
@@ -1789,6 +1825,7 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     const result = await sendAdminNotification({
       title: String(req.body?.title || ''),
       message: String(req.body?.message || ''),
+      translations: req.body?.translations,
       targetRaw: String(req.body?.target || req.body?.targetGroup || 'All users'),
       scheduleRaw: String(req.body?.schedule || 'Now'),
       scheduledAt: req.body?.scheduledAt

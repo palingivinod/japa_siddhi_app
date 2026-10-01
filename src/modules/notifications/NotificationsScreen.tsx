@@ -17,6 +17,7 @@ import ApiErrorPanel from '../common/ApiErrorPanel';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {getLocalizedNotification} from '../../utils/localizedContent';
 
 const notificationEmoji = (item: any) => {
   const action = String(item.actionType || '');
@@ -75,7 +76,7 @@ const formatNotificationDate = (dateStr?: string) => {
 
 const NotificationsScreen = () => {
   const navigation = useNavigation<any>();
-  const {t, tt} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -206,13 +207,14 @@ const NotificationsScreen = () => {
                 <Text
                   style={[styles.title, isUnread && styles.titleUnread]}
                   numberOfLines={2}>
-                  {tt(item.title)}
+                  {getLocalizedNotification(item, language).title || tt(item.title)}
                 </Text>
                 {isUnread ? <View style={styles.unreadDot} /> : null}
               </View>
               {item.message || item.body ? (
                 <Text style={styles.subtitle}>
-                  {tt(item.message || item.body)}
+                  {getLocalizedNotification(item, language).message ||
+                    tt(item.message || item.body)}
                 </Text>
               ) : null}
               {item.createdAt ? (

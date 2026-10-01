@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,16 +14,45 @@ import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminLanguageTabs, {
+  ADMIN_LANGUAGES,
+  AdminSupportedLang,
+} from './components/AdminLanguageTabs';
+import {parseTranslationsMap} from '../../utils/localizedContent';
+
+interface MantraLangFields {
+  name: string;
+  deity: string;
+  sanskrit: string;
+  transliteration: string;
+}
+
+const emptyFields = (): MantraLangFields => ({
+  name: '',
+  deity: '',
+  sanskrit: '',
+  transliteration: '',
+});
+
+const defaultTranslations = (): Record<AdminSupportedLang, MantraLangFields> => ({
+  en: {name: '', deity: 'Community', sanskrit: '', transliteration: ''},
+  te: emptyFields(),
+  hi: emptyFields(),
+  ta: emptyFields(),
+  kn: emptyFields(),
+});
 
 const Field = ({
   label,
   value,
   onChangeText,
+  placeholder = 'Enter here',
   keyboardType = 'default',
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
+  placeholder?: string;
   keyboardType?: 'default' | 'numeric';
 }) => (
   <View style={styles.field}>
@@ -32,7 +61,7 @@ const Field = ({
       style={styles.input}
       value={value}
       onChangeText={onChangeText}
-      placeholder="Enter here"
+      placeholder={placeholder}
       placeholderTextColor={Colors.placeholder}
       keyboardType={keyboardType}
     />
@@ -49,10 +78,10 @@ const AdminMantraEditScreen = () => {
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
-  const [name, setName] = useState('');
-  const [deity, setDeity] = useState('Community');
-  const [sanskrit, setSanskrit] = useState('');
-  const [transliteration, setTransliteration] = useState('');
+  const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
+  const [translations, setTranslations] = useState<
+    Record<AdminSupportedLang, MantraLangFields>
+  >(defaultTranslations);
   const [target, setTarget] = useState('10000');
   const [active, setActive] = useState(true);
 
@@ -65,10 +94,34 @@ const AdminMantraEditScreen = () => {
     try {
       const response = await apiService.get(`/admin/mantras/${mantraId}`);
       const data = response.data?.data || {};
-      setName(String(data.name || ''));
-      setDeity(String(data.deityName || data.subtitle || 'Community'));
-      setSanskrit(String(data.sanskritText || ''));
-      setTransliteration(String(data.transliteration || ''));
+      const parsedTrans = parseTranslationsMap<MantraLangFields>(
+        data.translations,
+      );
+
+      const nextTrans = defaultTranslations();
+      ADMIN_LANGUAGES.forEach(item => {
+        const raw = parsedTrans[item.code];
+        if (raw) {
+          nextTrans[item.code] = {
+            name: String(raw.name || ''),
+            deity: String(raw.deity || ''),
+            sanskrit: String(raw.sanskrit || ''),
+            transliteration: String(raw.transliteration || ''),
+          };
+        }
+      });
+
+      // Default English if not explicitly set in translations
+      if (!nextTrans.en.name && data.name) {
+        nextTrans.en = {
+          name: String(data.name || ''),
+          deity: String(data.deityName || data.subtitle || 'Community'),
+          sanskrit: String(data.sanskritText || ''),
+          transliteration: String(data.transliteration || ''),
+        };
+      }
+
+      setTranslations(nextTrans);
       setTarget(String(data.target || 108));
       setActive(Boolean(data.active));
     } catch (err) {
@@ -84,21 +137,73 @@ const AdminMantraEditScreen = () => {
     }, [load]),
   );
 
-  const save = async () => {
-    if (!name.trim()) {
-      Alert.alert('Required', 'Enter mantra name.');
+  const currentFields = translations[activeLang] || emptyFields();
+
+  const updateField = (key: keyof MantraLangFields, val: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        ...(prev[activeLang] || emptyFields()),
+        [key]: val,
+      },
+    }));
+  };
+
+  const completedMap = useMemo(() => {
+    const map: Partial<Record<AdminSupportedLang, boolean>> = {};
+    ADMIN_LANGUAGES.forEach(item => {
+      const f = translations[item.code];
+      map[item.code] = Boolean(f && f.name.trim().length > 0);
+    });
+    return map;
+  }, [translations]);
+
+  const copyFromEnglish = () => {
+    const en = translations.en;
+    if (!en.name.trim()) {
+      Alert.alert('Notice', 'Enter English mantra details first.');
       return;
     }
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        name: prev[activeLang].name || en.name,
+        deity: prev[activeLang].deity || en.deity,
+        sanskrit: prev[activeLang].sanskrit || en.sanskrit,
+        transliteration: prev[activeLang].transliteration || en.transliteration,
+      },
+    }));
+  };
+
+  const save = async () => {
+    const primaryName =
+      translations.en.name.trim() || translations[activeLang].name.trim();
+    if (!primaryName) {
+      Alert.alert('Required', 'Enter at least an English or primary Mantra Name.');
+      return;
+    }
+
     const targetNum = Number(String(target).replace(/,/g, '')) || 108;
     setSaving(true);
     try {
       const payload = {
-        mantraName: name.trim(),
-        deityName: deity.trim() || 'Community',
-        sanskritText: sanskrit.trim() || name.trim(),
-        transliteration: transliteration.trim() || name.trim(),
+        mantraName:
+          translations.en.name.trim() || translations[activeLang].name.trim(),
+        deityName:
+          translations.en.deity.trim() ||
+          translations[activeLang].deity.trim() ||
+          'Community',
+        sanskritText:
+          translations.en.sanskrit.trim() ||
+          translations[activeLang].sanskrit.trim() ||
+          primaryName,
+        transliteration:
+          translations.en.transliteration.trim() ||
+          translations[activeLang].transliteration.trim() ||
+          primaryName,
         defaultJapaCount: targetNum,
         isActive: active,
+        translations: JSON.stringify(translations),
       };
       if (isEdit) {
         await apiService.put(`/admin/mantras/${mantraId}`, payload);
@@ -108,8 +213,8 @@ const AdminMantraEditScreen = () => {
       Alert.alert(
         'Saved',
         isEdit
-          ? 'Mantra updated. Users will see the change.'
-          : 'Mantra created. Users can select it now.',
+          ? 'Mantra and multilingual translations updated.'
+          : 'Mantra created with multilingual translations.',
         [{text: 'OK', onPress: () => navigation.goBack()}],
       );
     } catch (err) {
@@ -118,6 +223,8 @@ const AdminMantraEditScreen = () => {
       setSaving(false);
     }
   };
+
+  const activeLangOption = ADMIN_LANGUAGES.find(l => l.code === activeLang);
 
   return (
     <AdminScreenLayout
@@ -128,7 +235,8 @@ const AdminMantraEditScreen = () => {
         {isEdit ? 'Edit Mantra' : 'Create Mantra'}
       </Text>
       <Text style={styles.sub}>
-        Changes are saved to the database and shown to users.
+        Configure mantra information in 5 languages. Devotees see the mantra in
+        their selected language.
       </Text>
 
       {loading ? (
@@ -137,23 +245,67 @@ const AdminMantraEditScreen = () => {
         </View>
       ) : (
         <>
-          <Field label="Mantra name" value={name} onChangeText={setName} />
-          <Field label="Deity / subtitle" value={deity} onChangeText={setDeity} />
+          <AdminLanguageTabs
+            activeLang={activeLang}
+            onSelectLang={setActiveLang}
+            completedMap={completedMap}
+            onCopyFromEnglish={copyFromEnglish}
+          />
+
+          <View style={styles.langHeaderCard}>
+            <Text style={styles.langHeaderTitle}>
+              Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
+            </Text>
+            <Text style={styles.langHeaderHint}>
+              {activeLang === 'en'
+                ? 'Primary fallback language for all devotees.'
+                : `Custom ${activeLangOption?.label} text for devotees using ${activeLangOption?.nativeName}.`}
+            </Text>
+          </View>
+
           <Field
-            label="Sanskrit text"
-            value={sanskrit}
-            onChangeText={setSanskrit}
+            label={`Mantra Name (${activeLangOption?.nativeName || 'Name'})`}
+            value={currentFields.name}
+            onChangeText={v => updateField('name', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'e.g. Om Namah Shivaya'
+                : `Enter in ${activeLangOption?.nativeName}`
+            }
           />
           <Field
-            label="Transliteration"
-            value={transliteration}
-            onChangeText={setTransliteration}
+            label="Deity / Subtitle"
+            value={currentFields.deity}
+            onChangeText={v => updateField('deity', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'e.g. Lord Shiva / Community'
+                : `Deity name in ${activeLangOption?.nativeName}`
+            }
           />
           <Field
-            label="Target"
+            label="Sanskrit / Original Script"
+            value={currentFields.sanskrit}
+            onChangeText={v => updateField('sanskrit', v)}
+            placeholder="e.g. ॐ नमः शिवाय"
+          />
+          <Field
+            label="Transliteration / Meaning"
+            value={currentFields.transliteration}
+            onChangeText={v => updateField('transliteration', v)}
+            placeholder="e.g. Om Namah Shivaya"
+          />
+
+          <View style={styles.divider} />
+
+          <Text style={styles.sectionHeading}>General Settings</Text>
+
+          <Field
+            label="Target Japa Count"
             value={target}
             onChangeText={setTarget}
             keyboardType="numeric"
+            placeholder="10000"
           />
 
           <Text style={styles.label}>Status</Text>
@@ -174,7 +326,13 @@ const AdminMantraEditScreen = () => {
           </View>
 
           <PrimaryButton
-            title={saving ? 'SAVING...' : isEdit ? 'SAVE MANTRA' : 'CREATE MANTRA'}
+            title={
+              saving
+                ? 'SAVING...'
+                : isEdit
+                  ? 'SAVE MANTRA'
+                  : 'CREATE MANTRA'
+            }
             onPress={save}
             disabled={saving}
           />
@@ -196,19 +354,51 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
   },
   centerBox: {
     paddingVertical: 24,
     alignItems: 'center',
+  },
+  langHeaderCard: {
+    backgroundColor: '#F7FAF4',
+    borderWidth: 1,
+    borderColor: '#E2EBDC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  langHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  langHeaderHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.cardBorder,
+    marginVertical: 16,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
   },
   field: {marginBottom: 14},
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
     marginBottom: 8,
+    fontSize: 14,
   },
   input: {
-    height: 54,
+    minHeight: 54,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,

@@ -32,6 +32,7 @@ const ensureQueueTable = async () => {
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         message TEXT NOT NULL,
+        translations TEXT NULL,
         target_group VARCHAR(40) NOT NULL,
         send_at DATETIME NOT NULL,
         status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
@@ -46,6 +47,7 @@ const ensureQueueTable = async () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         title TEXT NOT NULL,
         message TEXT NOT NULL,
+        translations TEXT,
         target_group TEXT NOT NULL,
         send_at TEXT NOT NULL,
         status TEXT NOT NULL DEFAULT 'PENDING',
@@ -127,26 +129,48 @@ const mapTarget = (raw: string): AdminNotifyTarget => {
   return 'all';
 };
 
+const parseJsonSafely = (val: any) => {
+  if (!val) return {};
+  if (typeof val === 'object') return val;
+  try {
+    const res = JSON.parse(val);
+    return typeof res === 'object' && res !== null ? res : {};
+  } catch {
+    return {};
+  }
+};
+
 /**
- * Device push tokens live in fcm_token. users.firebase_token stores the
- * Firebase Auth id token used at login and must never be sent to FCM.
+ * Device push tokens live in fcm_token. Also look up user preferred language code.
  */
 const loadRecipients = async (target: AdminNotifyTarget) => {
   await ensureFcmColumn();
 
+  const selectCols = `
+    u.id,
+    u.fcm_token AS fcmToken,
+    COALESCE(us.language_code, l.code, 'en') AS langCode
+  `;
+  const joins = `
+    LEFT JOIN user_settings us ON us.user_id = u.id
+    LEFT JOIN languages l ON l.id = u.preferred_language_id
+  `;
+
   if (target === 'blocked') {
     return mysql.query<any[]>(`
-      SELECT id, fcm_token AS fcmToken
-      FROM users
-      WHERE deleted_at IS NULL
-        AND UPPER(IFNULL(account_status, 'ACTIVE')) IN ('BLOCKED', 'SUSPENDED')
+      SELECT ${selectCols}
+      FROM users u
+      ${joins}
+      WHERE u.deleted_at IS NULL
+        AND UPPER(IFNULL(u.account_status, 'ACTIVE')) IN ('BLOCKED', 'SUSPENDED')
     `);
   }
 
   if (target === 'active_japa') {
     return mysql.query<any[]>(`
-      SELECT u.id, u.fcm_token AS fcmToken
+      SELECT ${selectCols}
       FROM users u
+      ${joins}
       WHERE u.deleted_at IS NULL
         AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
         AND IFNULL((
@@ -158,10 +182,11 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
   }
 
   return mysql.query<any[]>(`
-    SELECT id, fcm_token AS fcmToken
-    FROM users
-    WHERE deleted_at IS NULL
-      AND UPPER(IFNULL(account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
+    SELECT ${selectCols}
+    FROM users u
+    ${joins}
+    WHERE u.deleted_at IS NULL
+      AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
   `);
 };
 
@@ -202,8 +227,6 @@ const tryPush = async (
         priority: 'high',
         notification: {
           sound: 'default',
-          // Use Firebase's built-in fallback channel so we do not depend on a
-          // custom channel that the APK never created.
           channelId: 'fcm_fallback_notification_channel',
           defaultSound: true,
           defaultVibrateTimings: true,
@@ -260,44 +283,76 @@ export const deliverAdminNotification = async (input: {
   title: string;
   message: string;
   target: AdminNotifyTarget;
+  translations?: Record<string, any> | string | null;
   extraData?: Record<string, any>;
 }) => {
   const recipients = await loadRecipients(input.target);
-  const userIds = (recipients || []).map(row => Number(row.id)).filter(Boolean);
+  const parsedTrans = parseJsonSafely(input.translations);
 
-  for (const userId of userIds) {
+  const tokensByLang: Record<string, string[]> = {};
+
+  for (const user of recipients || []) {
+    const userId = Number(user.id);
+    if (!userId) continue;
+
+    const userLang = String(user.langCode || 'en').toLowerCase();
+    const userTrans = parsedTrans[userLang] || parsedTrans['en'] || {};
+    const title = String(userTrans.title || input.title || '').trim();
+    const message = String(userTrans.message || input.message || '').trim();
+
     await notificationService.create({
       userId,
-      title: input.title,
-      message: input.message,
+      title,
+      message,
       notificationType: 'SYSTEM',
       actionType: 'ADMIN_BROADCAST',
       actionId: null,
       extraData: {
         target: input.target,
+        translations: parsedTrans,
         ...(input.extraData || {}),
       },
     });
+
+    const fcm = String(user.fcmToken || '').trim();
+    if (fcm) {
+      if (!tokensByLang[userLang]) {
+        tokensByLang[userLang] = [];
+      }
+      tokensByLang[userLang].push(fcm);
+    }
   }
 
-  const tokens = (recipients || [])
-    .map(row => String(row.fcmToken || '').trim())
-    .filter(Boolean);
-  const push = await tryPush(tokens, input.title, input.message);
+  let totalPushSent = 0;
+  let totalPushFailed = 0;
+  let lastPushSkipped: string | null = null;
+
+  for (const [langCode, tokens] of Object.entries(tokensByLang)) {
+    const langTrans = parsedTrans[langCode] || parsedTrans['en'] || {};
+    const pushTitle = String(langTrans.title || input.title || '').trim();
+    const pushMessage = String(langTrans.message || input.message || '').trim();
+    const pushResult = await tryPush(tokens, pushTitle, pushMessage);
+    totalPushSent += pushResult.pushSent;
+    totalPushFailed += pushResult.pushFailed;
+    if (pushResult.pushSkipped) {
+      lastPushSkipped = pushResult.pushSkipped;
+    }
+  }
 
   return {
-    recipientCount: userIds.length,
-    ...push,
+    recipientCount: (recipients || []).length,
+    pushSent: totalPushSent,
+    pushFailed: totalPushFailed,
+    pushSkipped: totalPushSent > 0 ? null : lastPushSkipped,
   };
 };
 
 export const flushDueAdminNotifications = async () => {
   await ensureQueueTable();
   const now = nowIstStamp();
-  // Compare wall-clock IST strings so Render UTC does not delay or skip jobs.
   const due = await mysql.query<any[]>(
     `
-      SELECT id, title, message, target_group AS targetGroup
+      SELECT id, title, message, translations, target_group AS targetGroup
       FROM admin_notification_queue
       WHERE status = 'PENDING'
         AND send_at <= ?
@@ -312,6 +367,7 @@ export const flushDueAdminNotifications = async () => {
       const result = await deliverAdminNotification({
         title: job.title,
         message: job.message,
+        translations: job.translations,
         target: mapTarget(job.targetGroup),
         extraData: {queuedId: job.id},
       });
@@ -345,6 +401,7 @@ export const flushDueAdminNotifications = async () => {
 export const sendAdminNotification = async (input: {
   title: string;
   message: string;
+  translations?: Record<string, any> | string;
   targetRaw: string;
   scheduleRaw: string;
   scheduledAt?: string;
@@ -363,6 +420,10 @@ export const sendAdminNotification = async (input: {
   const target = mapTarget(input.targetRaw);
   const schedule = String(input.scheduleRaw || 'now').trim().toLowerCase();
   const sendNow = schedule !== 'later';
+  const translations =
+    typeof input.translations === 'object'
+      ? JSON.stringify(input.translations)
+      : input.translations || null;
 
   if (!sendNow) {
     const sendAt = normalizeScheduleStamp(String(input.scheduledAt || ''));
@@ -386,10 +447,10 @@ export const sendAdminNotification = async (input: {
     const insert = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO admin_notification_queue (
-        title, message, target_group, send_at, status
-      ) VALUES (?, ?, ?, ?, 'PENDING')
+        title, message, translations, target_group, send_at, status
+      ) VALUES (?, ?, ?, ?, ?, 'PENDING')
       `,
-      [title, message, target, sendAt],
+      [title, message, translations, target, sendAt],
     );
 
     return {
@@ -399,11 +460,16 @@ export const sendAdminNotification = async (input: {
       sendAt,
       recipientCount: 0,
       pushSent: 0,
-      message: `Scheduled for ${sendAt} IST. It will send automatically around that time.`,
+      message: `Scheduled for ${sendAt} IST in all languages. It will send automatically around that time.`,
     };
   }
 
-  const delivered = await deliverAdminNotification({title, message, target});
+  const delivered = await deliverAdminNotification({
+    title,
+    message,
+    translations,
+    target,
+  });
   const pushNote = delivered.pushSent
     ? ` and ${delivered.pushSent} push popup(s)`
     : delivered.pushSkipped
@@ -416,7 +482,7 @@ export const sendAdminNotification = async (input: {
     ...delivered,
     message:
       delivered.recipientCount > 0
-        ? `Sent to ${delivered.recipientCount} user(s) in-app${pushNote}.`
+        ? `Sent to ${delivered.recipientCount} user(s) in-app in their language${pushNote}.`
         : 'No matching users found for this target group.',
   };
 };

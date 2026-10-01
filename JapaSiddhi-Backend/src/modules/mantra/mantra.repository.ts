@@ -9,6 +9,17 @@ export type MantraInput = {
   isActive?: boolean;
   isFeatured?: boolean;
   displayOrder?: number;
+  translations?: string | Record<string, any>;
+};
+
+const normalizeTranslations = (raw?: string | Record<string, any>) => {
+  if (!raw) {
+    return null;
+  }
+  if (typeof raw === 'object') {
+    return JSON.stringify(raw);
+  }
+  return String(raw).trim() || null;
 };
 
 class MantraRepository {
@@ -23,6 +34,7 @@ class MantraRepository {
         transliteration,
         default_japa_count AS defaultJapaCount,
         image_url AS imageUrl,
+        translations,
         is_featured AS isFeatured
       FROM mantras
       WHERE is_active = 1
@@ -42,6 +54,7 @@ class MantraRepository {
         transliteration,
         default_japa_count AS defaultJapaCount,
         image_url AS imageUrl,
+        translations,
         is_featured AS isFeatured,
         is_active AS isActive,
         display_order AS displayOrder
@@ -62,6 +75,7 @@ class MantraRepository {
         transliteration,
         default_japa_count AS defaultJapaCount,
         image_url AS imageUrl,
+        translations,
         is_featured AS isFeatured,
         is_active AS isActive,
         display_order AS displayOrder
@@ -83,6 +97,7 @@ class MantraRepository {
     const target = Math.max(1, Number(input.defaultJapaCount) || 108);
     const isActive = input.isActive === false ? 0 : 1;
     const isFeatured = input.isFeatured ? 1 : 0;
+    const translations = normalizeTranslations(input.translations);
 
     const orderRows = await mysql.query<any[]>(
       `SELECT IFNULL(MAX(display_order), 0) + 1 AS nextOrder FROM mantras`,
@@ -100,8 +115,9 @@ class MantraRepository {
         default_japa_count,
         is_featured,
         is_active,
-        display_order
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        display_order,
+        translations
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         name,
@@ -112,6 +128,7 @@ class MantraRepository {
         isFeatured,
         isActive,
         displayOrder,
+        translations,
       ],
     );
 
@@ -160,6 +177,10 @@ class MantraRepository {
     const displayOrder = Number(
       input.displayOrder ?? existing.displayOrder ?? 1,
     );
+    const translations =
+      input.translations !== undefined
+        ? normalizeTranslations(input.translations)
+        : existing.translations;
 
     await mysql.query(
       `
@@ -173,6 +194,7 @@ class MantraRepository {
         is_featured = ?,
         is_active = ?,
         display_order = ?,
+        translations = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
@@ -185,6 +207,7 @@ class MantraRepository {
         isFeatured,
         isActive,
         displayOrder,
+        translations,
         id,
       ],
     );

@@ -14,26 +14,55 @@ import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminLanguageTabs, {
+  ADMIN_LANGUAGES,
+  AdminSupportedLang,
+} from './components/AdminLanguageTabs';
+
+interface NotificationLangFields {
+  title: string;
+  message: string;
+}
+
+const emptyFields = (): NotificationLangFields => ({
+  title: '',
+  message: '',
+});
+
+const defaultTranslations = (): Record<
+  AdminSupportedLang,
+  NotificationLangFields
+> => ({
+  en: emptyFields(),
+  te: emptyFields(),
+  hi: emptyFields(),
+  ta: emptyFields(),
+  kn: emptyFields(),
+});
 
 const Field = ({
   label,
   value,
   onChangeText,
   placeholder = 'Enter here',
+  multiline = false,
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
+  multiline?: boolean;
 }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      style={styles.input}
+      style={[styles.input, multiline && styles.inputMultiline]}
       value={value}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={Colors.placeholder}
+      multiline={multiline}
+      textAlignVertical={multiline ? 'top' : 'center'}
     />
   </View>
 );
@@ -99,8 +128,11 @@ const formatTimeLabel = (date: Date) =>
   });
 
 const AdminNotificationsScreen = () => {
-  const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
+  const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
+  const [translations, setTranslations] = useState<
+    Record<AdminSupportedLang, NotificationLangFields>
+  >(defaultTranslations);
+
   const [target, setTarget] = useState('All users');
   const [schedule, setSchedule] = useState('Now');
   const [scheduledAt, setScheduledAt] = useState(defaultLater);
@@ -114,9 +146,55 @@ const AdminNotificationsScreen = () => {
     return d;
   }, []);
 
+  const currentFields = translations[activeLang] || emptyFields();
+
+  const updateField = (key: keyof NotificationLangFields, val: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        ...(prev[activeLang] || emptyFields()),
+        [key]: val,
+      },
+    }));
+  };
+
+  const completedMap = useMemo(() => {
+    const map: Partial<Record<AdminSupportedLang, boolean>> = {};
+    ADMIN_LANGUAGES.forEach(item => {
+      const f = translations[item.code];
+      map[item.code] = Boolean(
+        f && f.title.trim().length > 0 && f.message.trim().length > 0,
+      );
+    });
+    return map;
+  }, [translations]);
+
+  const copyFromEnglish = () => {
+    const en = translations.en;
+    if (!en.title.trim() && !en.message.trim()) {
+      Alert.alert('Notice', 'Enter English notification title and message first.');
+      return;
+    }
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        title: prev[activeLang].title || en.title,
+        message: prev[activeLang].message || en.message,
+      },
+    }));
+  };
+
   const send = async () => {
-    if (!title.trim() || !message.trim()) {
-      Alert.alert('Required', 'Enter title and message.');
+    const primaryTitle =
+      translations.en.title.trim() || translations[activeLang].title.trim();
+    const primaryMessage =
+      translations.en.message.trim() || translations[activeLang].message.trim();
+
+    if (!primaryTitle || !primaryMessage) {
+      Alert.alert(
+        'Required',
+        'Enter at least an English or primary notification title and message.',
+      );
       return;
     }
     if (schedule === 'Later' && scheduledAt.getTime() <= Date.now() + 60_000) {
@@ -126,8 +204,9 @@ const AdminNotificationsScreen = () => {
     setSending(true);
     try {
       const response = await apiService.post('/admin/notifications/send', {
-        title: title.trim(),
-        message: message.trim(),
+        title: primaryTitle,
+        message: primaryMessage,
+        translations,
         target,
         schedule,
         scheduledAt:
@@ -150,10 +229,9 @@ const AdminNotificationsScreen = () => {
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
-        }\n\nTip: put the user app in background/closed to see the system popup.`,
+        }\n\nDevotees will receive this in their preferred language.`,
       );
-      setTitle('');
-      setMessage('');
+      setTranslations(defaultTranslations());
       setSchedule('Now');
       setScheduledAt(defaultLater());
     } catch (err) {
@@ -166,6 +244,8 @@ const AdminNotificationsScreen = () => {
     }
   };
 
+  const activeLangOption = ADMIN_LANGUAGES.find(l => l.code === activeLang);
+
   return (
     <AdminScreenLayout
       title="Notification Management"
@@ -173,12 +253,54 @@ const AdminNotificationsScreen = () => {
       showBack>
       <Text style={styles.heading}>Notification Management</Text>
       <Text style={styles.sub}>
-        Sends in-app notifications to users. Push alerts need Firebase configured
-        on the server.
+        Sends notifications in 5 languages to devotees. Each devotee receives the
+        message in their selected language.
       </Text>
 
-      <Field label="Title" value={title} onChangeText={setTitle} />
-      <Field label="Message" value={message} onChangeText={setMessage} />
+      <AdminLanguageTabs
+        activeLang={activeLang}
+        onSelectLang={setActiveLang}
+        completedMap={completedMap}
+        onCopyFromEnglish={copyFromEnglish}
+      />
+
+      <View style={styles.langHeaderCard}>
+        <Text style={styles.langHeaderTitle}>
+          Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
+        </Text>
+        <Text style={styles.langHeaderHint}>
+          {activeLang === 'en'
+            ? 'Primary fallback message sent to all users.'
+            : `Custom message for devotees using ${activeLangOption?.nativeName}.`}
+        </Text>
+      </View>
+
+      <Field
+        label={`Title (${activeLangOption?.nativeName || 'Title'})`}
+        value={currentFields.title}
+        onChangeText={v => updateField('title', v)}
+        placeholder={
+          activeLang === 'en'
+            ? 'e.g. Daily Japa Reminder'
+            : `Title in ${activeLangOption?.nativeName}`
+        }
+      />
+      <Field
+        label={`Message (${activeLangOption?.nativeName || 'Message'})`}
+        value={currentFields.message}
+        onChangeText={v => updateField('message', v)}
+        placeholder={
+          activeLang === 'en'
+            ? 'e.g. Complete your daily 108 chants today.'
+            : `Message in ${activeLangOption?.nativeName}`
+        }
+        multiline
+      />
+
+      <View style={styles.divider} />
+
+      <Text style={styles.sectionHeading}>Delivery Settings</Text>
+
       <SelectField
         label="Target Group"
         value={target}
@@ -282,6 +404,37 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 16,
     color: Colors.textSecondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  langHeaderCard: {
+    backgroundColor: '#F7FAF4',
+    borderWidth: 1,
+    borderColor: '#E2EBDC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  langHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  langHeaderHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.cardBorder,
+    marginVertical: 16,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
   },
   scheduleBox: {marginBottom: 14},
   hint: {
@@ -319,7 +472,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   input: {
-    height: 54,
+    minHeight: 54,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
@@ -327,6 +480,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: Colors.textPrimary,
+  },
+  inputMultiline: {
+    minHeight: 80,
+    paddingVertical: 12,
   },
   selectRow: {
     flexDirection: 'row',
