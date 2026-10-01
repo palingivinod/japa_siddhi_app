@@ -92,6 +92,20 @@ jobs:
             --bundle-output /tmp/japa-android.bundle \
             --assets-dest /tmp/japa-android-assets
 
+      - name: Setup Keystore from Secrets (if configured)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+          KEYSTORE_PROPS: ${{ secrets.KEYSTORE_PROPERTIES }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "Decoding release keystore from secrets..."
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/japasiddhi-release.keystore
+          fi
+          if [ -n "$KEYSTORE_PROPS" ]; then
+            echo "Writing keystore.properties from secrets..."
+            echo "$KEYSTORE_PROPS" > android/keystore.properties
+          fi
+
       - name: Build Release APK
         working-directory: android
         run: |

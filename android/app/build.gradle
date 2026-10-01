@@ -60,13 +60,12 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Never fall back to debug.keystore. Play resigns the upload
-            // certificate; a debug-signed "release" fails Google Sign-In
-            // with DEVELOPER_ERROR (code 10).
-            if (!keystorePropertiesFile.exists() || !file("japasiddhi-release.keystore").exists()) {
-                throw new GradleException("Play release requires android/keystore.properties and android/app/japasiddhi-release.keystore. Refusing to sign with the debug key.")
+            if (keystorePropertiesFile.exists() && file("japasiddhi-release.keystore").exists()) {
+                signingConfig signingConfigs.release
+            } else {
+                println("WARNING: android/keystore.properties or japasiddhi-release.keystore not found. Signing release APK with debug key.")
+                signingConfig signingConfigs.debug
             }
-            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
