@@ -7,7 +7,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const CallSupportScreen = () => {
-  const [phone, setPhone] = useState('+916281585599');
+  const [phone, setPhone] = useState('+919849535599');
   const [hours, setHours] = useState('9 AM – 6 PM');
 
   useEffect(() => {

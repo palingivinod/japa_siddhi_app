@@ -88,7 +88,7 @@ const PrivateJapaScreen = () => {
   const effectiveTodayTarget = useMemo(() => {
     if (isTodayCustom && todayTargetInput !== '') {
       const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
-      if (parsed > 0) return parsed;
+      if (parsed >= defaultDailyTarget) return parsed;
     }
     return defaultDailyTarget;
   }, [isTodayCustom, todayTargetInput, defaultDailyTarget]);
@@ -201,6 +201,16 @@ const PrivateJapaScreen = () => {
       setMessage(t('pickGoalDateFromCalendar') || 'Please select a deadline date');
       return;
     }
+    if (isTodayCustom && todayTargetInput !== '') {
+      const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
+      if (parsed < defaultDailyTarget) {
+        setMessage(
+          t('customTargetMinError', {count: defaultDailyTarget}) ||
+            `Must be at least ${defaultDailyTarget} Japas per day.`,
+        );
+        return;
+      }
+    }
     setSaving(true);
     setMessage('');
 
@@ -222,6 +232,7 @@ const PrivateJapaScreen = () => {
         personalMantraId,
         goalName: name.slice(0, 80),
         targetCount: rawGoal,
+        dailyTarget: effectiveTodayTarget,
         days: remDays,
         startDate: startDateStr,
         endDate: endDateStr,
@@ -486,7 +497,17 @@ const PrivateJapaScreen = () => {
               </View>
 
               {isTodayCustom &&
-              effectiveTodayTarget !== defaultDailyTarget &&
+              todayTargetInput !== '' &&
+              Number(todayTargetInput.replace(/[^\d]/g, '')) < defaultDailyTarget ? (
+                <Text style={styles.targetWarningText}>
+                  ⚠️{' '}
+                  {t('customTargetMinHint', {count: defaultDailyTarget}) ||
+                    `Must be at least ${defaultDailyTarget} Japas per day`}
+                </Text>
+              ) : null}
+
+              {isTodayCustom &&
+              effectiveTodayTarget > defaultDailyTarget &&
               remainingDays > 1 ? (
                 <Text style={styles.futureSplitHint}>
                   ✨{' '}
@@ -850,6 +871,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     paddingBottom: 4,
+  },
+  targetWarningText: {
+    marginTop: 6,
+    color: '#D9534F',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   error: {
     marginBottom: 12,

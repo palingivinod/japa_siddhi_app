@@ -34,6 +34,7 @@ export type AppIconName =
   | 'feedback'
   | 'settingsPhoto'
   | 'language'
+  | 'whatsapp'
   | 'logoutDoor';
 
 interface Props {
@@ -64,6 +65,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   feedback: require('../../assets/images/menu_feedback.png'),
   settingsPhoto: require('../../assets/images/menu_settings.png'),
   language: require('../../assets/images/menu_language.png'),
+  whatsapp: require('../../assets/images/whatsapp_logo.png'),
   logoutDoor: require('../../assets/images/menu_logout.png'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };

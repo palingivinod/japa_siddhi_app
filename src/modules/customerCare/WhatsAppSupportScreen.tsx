@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {Linking, StyleSheet, Text, View} from 'react-native';
+import {Image, Linking, StyleSheet, Text, View} from 'react-native';
 
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
@@ -7,7 +7,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const WhatsAppSupportScreen = () => {
-  const [url, setUrl] = useState('https://wa.me/916281585599');
+  const [url, setUrl] = useState('https://wa.me/919849535599');
 
   useEffect(() => {
     apiService
@@ -23,7 +23,11 @@ const WhatsAppSupportScreen = () => {
   return (
     <ScreenLayout title="WhatsApp Support" showBack tab="Profile">
       <View style={styles.center}>
-        <View style={styles.icon} />
+        <Image
+          source={require('../../assets/images/whatsapp_logo.png')}
+          style={styles.icon}
+          resizeMode="contain"
+        />
         <Text style={styles.title}>Chat with our support team</Text>
         <Text style={styles.sub}>Available for service and order help.</Text>
       </View>
@@ -40,10 +44,9 @@ export default WhatsAppSupportScreen;
 const styles = StyleSheet.create({
   center: {alignItems: 'center', marginVertical: 40},
   icon: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: Colors.leafGreen,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     marginBottom: 18,
   },
   title: {

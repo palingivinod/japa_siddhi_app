@@ -12,6 +12,8 @@ export interface CreateJapaGoalRequest {
 
   days: number;
 
+  dailyTarget?: number;
+
   startDate: string;
 
   endDate?: string;

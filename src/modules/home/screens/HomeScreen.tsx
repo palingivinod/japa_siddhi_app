@@ -38,6 +38,7 @@ type ActiveGoal = {
   mantraName?: string;
   targetCount: number;
   completedCount: number;
+  dailyTarget?: number;
   remainingCount: number;
   startDate?: string;
   endDate?: string;
@@ -168,6 +169,8 @@ const HomeScreen = () => {
             Number(active.targetCount ?? active.target_count) || 108;
           const completedCount =
             Number(active.completedCount ?? active.completed_count) || 0;
+          const dailyTarget =
+            Number(active.dailyTarget ?? active.daily_target) || 0;
           setActiveJapaGoal({
             id: Number(active.id),
             goalName: String(
@@ -180,6 +183,7 @@ const HomeScreen = () => {
             mantraName: active.mantraName ?? active.mantra_name ?? '',
             targetCount,
             completedCount,
+            dailyTarget,
             remainingCount: Math.max(0, targetCount - completedCount),
             startDate: active.startDate ?? active.start_date,
             endDate: active.endDate ?? active.end_date,
@@ -246,27 +250,33 @@ const HomeScreen = () => {
     return num.toLocaleString('en-IN');
   };
 
-  const daysUntilGoalEnd = (endDateStr?: string) => {
+  const totalGoalDays = (startDateStr?: string, endDateStr?: string) => {
     if (!endDateStr) {
       return 1;
     }
-    const iso = String(endDateStr).slice(0, 10);
-    const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!match) {
+    const endIso = String(endDateStr).slice(0, 10);
+    const endMatch = endIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!endMatch) {
       return 1;
     }
-    const start = new Date();
+    const startIso = startDateStr ? String(startDateStr).slice(0, 10) : '';
+    const startMatch = startIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    const start = startMatch
+      ? new Date(Number(startMatch[1]), Number(startMatch[2]) - 1, Number(startMatch[3]))
+      : new Date();
     start.setHours(0, 0, 0, 0);
-    const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const end = new Date(Number(endMatch[1]), Number(endMatch[2]) - 1, Number(endMatch[3]));
     end.setHours(0, 0, 0, 0);
     return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 
   const userDailyGoal = useMemo(() => {
     if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
-      const remainingCount = Math.max(0, activeJapaGoal.targetCount - activeJapaGoal.completedCount);
-      const daysLeft = daysUntilGoalEnd(activeJapaGoal.endDate);
-      return Math.max(1, Math.ceil(remainingCount / daysLeft));
+      if (activeJapaGoal.dailyTarget && activeJapaGoal.dailyTarget > 0) {
+        return activeJapaGoal.dailyTarget;
+      }
+      const totalDays = totalGoalDays(activeJapaGoal.startDate, activeJapaGoal.endDate);
+      return Math.max(1, Math.ceil(activeJapaGoal.targetCount / Math.max(1, totalDays)));
     }
     return 108;
   }, [activeJapaGoal]);
@@ -333,7 +343,49 @@ const HomeScreen = () => {
   };
 
   const handleBannerStartJapa = async () => {
-    // 1. Check for active/pending draft
+    // 1. Check if user has already completed today's daily goal
+    const isDailyGoalCompleted =
+      (userDailyGoal > 0 && today >= userDailyGoal) ||
+      (activeJapaGoal &&
+        activeJapaGoal.targetCount > 0 &&
+        activeJapaGoal.completedCount >= activeJapaGoal.targetCount);
+
+    if (isDailyGoalCompleted) {
+      // Completed for today -> open Chant with previous mantras in cloud, no auto-resume
+      navigation.navigate('Chant', {
+        mode: 'private',
+        fromHome: true,
+        recentOnly: true,
+        resume: false,
+      });
+      return;
+    }
+
+    // 2. Check for active/pending daily goal in progress
+    if (
+      activeJapaGoal &&
+      activeJapaGoal.targetCount > 0 &&
+      activeJapaGoal.completedCount < activeJapaGoal.targetCount
+    ) {
+      navigation.navigate('Chant', {
+        mode:
+          activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
+        mantraId: activeJapaGoal.mantraId ?? undefined,
+        personalMantraId: activeJapaGoal.personalMantraId ?? undefined,
+        privateMantra:
+          activeJapaGoal.mantraType === 'PERSONAL'
+            ? activeJapaGoal.mantraName
+            : undefined,
+        goal: activeJapaGoal.targetCount,
+        initialCount: activeJapaGoal.completedCount,
+        japaGoalId: activeJapaGoal.id,
+        resume: true,
+        fromHome: true,
+      });
+      return;
+    }
+
+    // 3. Check for active/pending draft only if daily goal is not completed
     try {
       const draft = await getJapaDraft();
       if (
@@ -364,31 +416,7 @@ const HomeScreen = () => {
       // ignore
     }
 
-    // 2. Check for active/pending daily goal
-    if (
-      activeJapaGoal &&
-      activeJapaGoal.targetCount > 0 &&
-      activeJapaGoal.completedCount < activeJapaGoal.targetCount
-    ) {
-      navigation.navigate('Chant', {
-        mode:
-          activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
-        mantraId: activeJapaGoal.mantraId ?? undefined,
-        personalMantraId: activeJapaGoal.personalMantraId ?? undefined,
-        privateMantra:
-          activeJapaGoal.mantraType === 'PERSONAL'
-            ? activeJapaGoal.mantraName
-            : undefined,
-        goal: activeJapaGoal.targetCount,
-        initialCount: activeJapaGoal.completedCount,
-        japaGoalId: activeJapaGoal.id,
-        resume: true,
-        fromHome: true,
-      });
-      return;
-    }
-
-    // 3. If goal completed / no pending goal: open Chant screen with previous mantras
+    // 4. Default: open Chant screen with previous mantras in cloud
     navigation.navigate('Chant', {
       mode: 'private',
       fromHome: true,
@@ -478,11 +506,8 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.progressCard}>
-            {/* Top Section: Daily Goal */}
-            <TouchableOpacity
-              style={styles.cardSection}
-              activeOpacity={0.85}
-              onPress={handleDailyGoalPress}>
+            {/* Top Section: Daily Goal (Non-clickable status view) */}
+            <View style={styles.cardSection}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.progressTitle}>{t('dailyGoal')}</Text>
                 <View
@@ -521,49 +546,48 @@ const HomeScreen = () => {
                   {today.toLocaleString('en-IN')} / {formatCountShort(userDailyGoal)} · {dailyProgress}%
                 </Text>
               </View>
-            </TouchableOpacity>
+            </View>
 
-            {/* Bottom Section: Continue Japa (Visible only when an active Japa Goal is ongoing) */}
-            {activeJapaGoal ? (
-              <>
-                <View style={styles.cardDivider} />
-                <TouchableOpacity
-                  style={styles.cardSection}
-                  activeOpacity={0.85}
-                  onPress={handleContinueJapaPress}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.progressTitle}>
-                      {activeJapaGoal.goalName || t('continueJapa')}
-                    </Text>
-                    <Text style={styles.resumeChevron}>➔</Text>
-                  </View>
-                  <Text style={styles.progressMeta}>
-                    {activeJapaGoal.mantraName
-                      ? activeJapaGoal.mantraName
-                      : t('tabJapa')}
+            {/* Bottom Section: Continue Japa (Visible ONLY when an active Japa Goal is in progress) */}
+            {activeJapaGoal &&
+            activeJapaGoal.targetCount > 0 &&
+            activeJapaGoal.completedCount < activeJapaGoal.targetCount ? (
+              <TouchableOpacity
+                style={[styles.cardSection, {marginTop: 14}]}
+                activeOpacity={0.85}
+                onPress={handleContinueJapaPress}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.progressTitle}>
+                    {activeJapaGoal.goalName || t('continueJapa')}
                   </Text>
-                  <Text style={styles.progressMeta}>
-                    {t('goalChants', {
-                      count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
-                    })}
-                  </Text>
-                  <View style={styles.barRow}>
-                    <View style={styles.barTrack}>
-                      <View
-                        style={[
-                          styles.barFill,
-                          {width: `${goalProgress}%`},
-                          goalCompleted >= goalTarget && styles.barFillCompleted,
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.percent}>
-                      {goalCompleted.toLocaleString('en-IN')} /{' '}
-                      {formatCountShort(goalTarget)} · {goalProgress}%
-                    </Text>
+                  <Text style={styles.resumeChevron}>➔</Text>
+                </View>
+                <Text style={styles.progressMeta}>
+                  {activeJapaGoal.mantraName
+                    ? activeJapaGoal.mantraName
+                    : t('tabJapa')}
+                </Text>
+                <Text style={styles.progressMeta}>
+                  {t('goalChants', {
+                    count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
+                  })}
+                </Text>
+                <View style={styles.barRow}>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {width: `${goalProgress}%`},
+                        goalCompleted >= goalTarget && styles.barFillCompleted,
+                      ]}
+                    />
                   </View>
-                </TouchableOpacity>
-              </>
+                  <Text style={styles.percent}>
+                    {goalCompleted.toLocaleString('en-IN')} /{' '}
+                    {formatCountShort(goalTarget)} · {goalProgress}%
+                  </Text>
+                </View>
+              </TouchableOpacity>
             ) : null}
           </View>
 

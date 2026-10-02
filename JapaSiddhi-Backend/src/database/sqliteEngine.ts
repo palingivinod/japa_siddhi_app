@@ -291,14 +291,16 @@ class SqliteEngine {
     this.db.run(
       `
       UPDATE app_settings
-      SET setting_value = '+916281585599'
+      SET setting_value = '+919849535599'
       WHERE setting_key IN ('support_phone', 'support_whatsapp')
       AND (
         IFNULL(setting_value, '') = ''
         OR REPLACE(REPLACE(setting_value, '+', ''), ' ', '') IN (
           '9999999999',
           '7349483937',
-          '917349483937'
+          '917349483937',
+          '6281585599',
+          '916281585599'
         )
       )
       `,

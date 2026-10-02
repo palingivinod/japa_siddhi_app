@@ -24,7 +24,7 @@ const CustomerCareScreen = () => {
         onPress={() => navigation.navigate('MyTickets')}
       />
       <MenuCard
-        emoji="💬"
+        icon="whatsapp"
         title={t('whatsappSupport')}
         subtitle={t('chatWithSupport')}
         onPress={() => navigation.navigate('WhatsAppSupport')}

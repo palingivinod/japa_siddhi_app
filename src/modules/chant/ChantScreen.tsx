@@ -229,8 +229,11 @@ const ChantScreen = () => {
         ? await getJapaDraft(mode, presetDraftId, challengeId, ownDraftId)
         : route.params?.resume
           ? await getJapaDraft()
-          : await getJapaDraft(mode, presetDraftId, undefined, ownDraftId);
+          : isRecentOnly
+            ? null
+            : await getJapaDraft(mode, presetDraftId, undefined, ownDraftId);
       const restore =
+        !isRecentOnly &&
         !!resumeDraft &&
         resumeDraft.count > 0 &&
         resumeDraft.count < resumeDraft.goal &&
@@ -663,16 +666,6 @@ const ChantScreen = () => {
                   ? t('yourPracticedMantras') || 'Your Practiced Mantras'
                   : t('chooseMantra') || 'Choose Mantra'}
               </Text>
-              {route.params?.recentOnly ? (
-                <TouchableOpacity
-                  style={styles.exploreLinkBtn}
-                  onPress={() => navigation.navigate('JapaHub')}
-                  activeOpacity={0.75}>
-                  <Text style={styles.exploreLinkText}>
-                    + {t('newMantra') || 'New Mantra'} (Japa Hub)
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
             </View>
             <View style={styles.chipRow}>
               {mantras.map(item => (
@@ -836,19 +829,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  exploreLinkBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    backgroundColor: '#F3EFE6',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  exploreLinkText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: Colors.sacredBrown,
-  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -946,71 +926,77 @@ const styles = StyleSheet.create({
   },
   countZone: {
     width: '100%',
-    backgroundColor: '#1B1612',
+    minHeight: 380,
+    backgroundColor: '#EDE3CE',
     borderWidth: 1.5,
-    borderColor: '#4E3E28',
-    borderRadius: 22,
+    borderColor: '#D5C4A0',
+    borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 26,
+    paddingVertical: 34,
     paddingHorizontal: 16,
-    marginVertical: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
+    marginVertical: 12,
+    shadowColor: '#4A3525',
+    shadowOpacity: 0.12,
     shadowRadius: 10,
     shadowOffset: {width: 0, height: 4},
     elevation: 4,
   },
   countZonePressed: {
-    backgroundColor: '#262019',
+    backgroundColor: '#E3D7BF',
     borderColor: Colors.templeGold,
   },
   ring: {
     alignSelf: 'center',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    borderWidth: 3,
+    width: 176,
+    height: 176,
+    borderRadius: 88,
+    borderWidth: 3.5,
     borderColor: Colors.templeGold,
-    backgroundColor: '#120F0D',
+    backgroundColor: '#FAF5EA',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
   },
   ringPaused: {
     opacity: 0.75,
   },
   innerRing: {
-    width: 118,
-    height: 118,
-    borderRadius: 59,
-    borderWidth: 1.5,
-    borderColor: 'rgba(218, 165, 32, 0.35)',
-    backgroundColor: '#171310',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 2,
+    borderColor: 'rgba(196, 154, 69, 0.45)',
+    backgroundColor: '#FFFDF9',
     alignItems: 'center',
     justifyContent: 'center',
   },
   count: {
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 44,
+    lineHeight: 50,
     fontWeight: '800',
-    color: '#FFF8EC',
+    color: Colors.sacredBrown,
     includeFontPadding: true,
   },
   japas: {
     marginTop: 2,
     color: Colors.templeGold,
     fontWeight: '800',
-    letterSpacing: 1,
-    fontSize: 11,
-    lineHeight: 16,
+    letterSpacing: 1.2,
+    fontSize: 12,
+    lineHeight: 18,
     includeFontPadding: true,
   },
   goal: {
-    marginTop: 16,
-    color: '#E0D6C3',
+    marginTop: 20,
+    color: Colors.sacredBrown,
     fontWeight: '700',
-    fontSize: 13,
-    lineHeight: 20,
+    fontSize: 14,
+    lineHeight: 22,
     textAlign: 'center',
     includeFontPadding: true,
   },
@@ -1019,49 +1005,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginTop: 8,
+    marginTop: 10,
   },
   barTrack: {
     flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#2F261D',
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#D8CAB0',
     overflow: 'hidden',
   },
   barFill: {
-    height: 8,
+    height: 10,
     backgroundColor: Colors.templeGold,
   },
   percent: {
     fontWeight: '800',
-    color: '#E0D6C3',
-    fontSize: 12,
-    lineHeight: 18,
+    color: Colors.sacredBrown,
+    fontSize: 13,
+    lineHeight: 20,
     includeFontPadding: true,
   },
   tapPromptContainer: {
-    marginTop: 16,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: 'rgba(196, 154, 69, 0.12)',
+    marginTop: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    backgroundColor: '#E2D3B8',
     borderWidth: 1,
-    borderColor: 'rgba(196, 154, 69, 0.28)',
+    borderColor: '#CBB896',
   },
   tapPromptContainerDone: {
     backgroundColor: 'rgba(46, 125, 50, 0.15)',
-    borderColor: 'rgba(76, 175, 80, 0.35)',
+    borderColor: 'rgba(76, 175, 80, 0.4)',
   },
   tapPromptText: {
-    color: Colors.templeGold,
+    color: Colors.sacredBrown,
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
     letterSpacing: 0.5,
     includeFontPadding: true,
   },
   tapPromptTextDone: {
-    color: '#81C784',
+    color: '#2E7D32',
   },
   save: {
     marginTop: 18,

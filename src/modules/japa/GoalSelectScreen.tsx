@@ -90,7 +90,7 @@ const GoalSelectScreen = () => {
     if (goalType !== 'date') return goal;
     if (isTodayCustom && todayTargetInput !== '') {
       const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
-      if (parsed > 0) return parsed;
+      if (parsed >= defaultDailyTarget) return parsed;
     }
     return defaultDailyTarget;
   }, [goalType, isTodayCustom, todayTargetInput, defaultDailyTarget, goal]);
@@ -165,6 +165,17 @@ const GoalSelectScreen = () => {
       Alert.alert(t('setYourGoal'), t('pickGoalDateFromCalendar'));
       return;
     }
+    if (goalType === 'date' && isTodayCustom && todayTargetInput !== '') {
+      const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
+      if (parsed < defaultDailyTarget) {
+        Alert.alert(
+          t('setYourGoal'),
+          t('customTargetMinError', {count: defaultDailyTarget}) ||
+            `Must be at least ${defaultDailyTarget} Japas per day.`,
+        );
+        return;
+      }
+    }
     const challengeId = Number(route.params?.challengeId || 0) || undefined;
     if (!challengeId) {
       try {
@@ -177,6 +188,7 @@ const GoalSelectScreen = () => {
               ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
               : 'Daily Japa',
           targetCount: goal,
+          dailyTarget: effectiveTodayTarget,
           days: goalType === 'date' ? remainingDays : 1,
           startDate: new Date().toISOString().slice(0, 10),
           endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
@@ -366,7 +378,17 @@ const GoalSelectScreen = () => {
                   </View>
 
                   {isTodayCustom &&
-                  effectiveTodayTarget !== defaultDailyTarget &&
+                  todayTargetInput !== '' &&
+                  Number(todayTargetInput.replace(/[^\d]/g, '')) < defaultDailyTarget ? (
+                    <Text style={styles.targetWarningText}>
+                      ⚠️{' '}
+                      {t('customTargetMinHint', {count: defaultDailyTarget}) ||
+                        `Must be at least ${defaultDailyTarget} Japas per day`}
+                    </Text>
+                  ) : null}
+
+                  {isTodayCustom &&
+                  effectiveTodayTarget > defaultDailyTarget &&
                   remainingDays > 1 ? (
                     <Text style={styles.futureSplitHint}>
                       ✨{' '}
@@ -608,6 +630,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
     color: Colors.selectedOrange,
+  },
+  targetWarningText: {
+    marginTop: 6,
+    color: '#D9534F',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 16,
   },
   buttonSpacing: {
     marginTop: 6,

@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   kicker: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 12,
     lineHeight: 18,
     letterSpacing: 0,
     includeFontPadding: true,
@@ -93,16 +93,17 @@ const styles = StyleSheet.create({
   meta: {
     marginTop: 6,
     color: Colors.sacredBrown,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '800',
     lineHeight: 22,
     includeFontPadding: true,
   },
   remaining: {
     marginTop: 4,
     color: Colors.textSecondary,
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '700',
     includeFontPadding: true,
   },
   barRow: {

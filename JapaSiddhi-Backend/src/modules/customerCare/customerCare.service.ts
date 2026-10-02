@@ -170,15 +170,16 @@ class CustomerCareService {
     });
 
     // Canonical customer-care number for Call and WhatsApp. Older placeholders
-    // (empty / 9999… / previous 7349…) are ignored so both options always open
-    // this line after deploy.
-    const SUPPORT_PHONE = '+916281585599';
+    // are ignored so both options always open this line after deploy.
+    const SUPPORT_PHONE = '+919849535599';
     const stored = String(map.support_phone || '').replace(/[^\d]/g, '');
     const isPlaceholder =
       !stored ||
       stored === '9999999999' ||
       stored === '917349483937' ||
-      stored === '7349483937';
+      stored === '7349483937' ||
+      stored === '916281585599' ||
+      stored === '6281585599';
     const phone = isPlaceholder ? SUPPORT_PHONE : String(map.support_phone);
     const digits = phone.replace(/[^\d]/g, '');
     return {

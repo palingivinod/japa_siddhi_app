@@ -547,6 +547,8 @@ const en = {
   youNeedToDoJapasPerDay:
     'You need to do {{count}} Japas per day to complete this goal on time ({{days}} days).',
   todayTargetLabel: "Customize Today's Target (Optional)",
+  customTargetMinError: 'Must be at least {{count}} Japas per day.',
+  customTargetMinHint: 'Must be at least {{count}} Japas per day',
   futureDailyHint:
     'For the remaining {{days}} days, your daily goal will be ~{{count}} Japas/day.',
   deadlineDate: 'Goal End Date / Deadline',
