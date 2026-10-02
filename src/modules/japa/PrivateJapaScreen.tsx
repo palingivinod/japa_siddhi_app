@@ -29,7 +29,7 @@ const PrivateJapaScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [mantra, setMantra] = useState('');
-  const [goal, setGoal] = useState('1008');
+  const [goal, setGoal] = useState('');
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [recentMantras, setRecentMantras] = useState<SavedMantra[]>([]);
@@ -121,7 +121,7 @@ const PrivateJapaScreen = () => {
     const created = await apiService.post('/personal-mantras', {
       mantraName: name,
       mantraText: name,
-      preferredJapaCount: Number(String(goal).replace(/,/g, '')) || 1008,
+      preferredJapaCount: Number(String(goal).replace(/[^\d]/g, '')) || 108,
     });
     return Number(created.data?.data?.id || 0) || undefined;
   };
@@ -134,28 +134,30 @@ const PrivateJapaScreen = () => {
     }
     setSaving(true);
     setMessage('');
-    const targetGoal = Number(String(goal).replace(/,/g, '')) || 1008;
+    const rawGoal = Number(String(goal).replace(/[^\d]/g, ''));
+    const targetGoal = rawGoal > 0 ? rawGoal : undefined;
     let personalMantraId: number | undefined;
     try {
       personalMantraId = await resolvePersonalMantraId(name);
     } catch {
       personalMantraId = undefined;
     }
-    await saveToRecent(name, targetGoal, personalMantraId);
+    await saveToRecent(name, targetGoal || 108, personalMantraId);
     setSaving(false);
     navigation.navigate('GoalSelect', {
       mode: 'private',
       privateMantra: name,
       personalMantraId,
-      goal: targetGoal,
+      ...(targetGoal ? {goal: targetGoal} : {}),
     });
   };
 
   /** Not everyone chants their own mantra — go straight to the listed ones. */
   const startWithListedMantra = () => {
+    const rawGoal = Number(String(goal).replace(/[^\d]/g, ''));
     navigation.navigate('Chant', {
       mode: 'private',
-      goal: Number(String(goal).replace(/,/g, '')) || 1008,
+      ...(rawGoal > 0 ? {goal: rawGoal} : {}),
     });
   };
 
@@ -255,6 +257,8 @@ const PrivateJapaScreen = () => {
         style={styles.input}
         value={goal}
         onChangeText={setGoal}
+        placeholder={t('enterJapaCount') || 'Enter your japa count'}
+        placeholderTextColor={Colors.placeholder}
         keyboardType="numeric"
       />
       <View style={styles.presetsRow}>

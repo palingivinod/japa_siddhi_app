@@ -472,6 +472,7 @@ const en = {
   recentMantras: 'Recent Mantras',
   keptPrivateReports: 'Type your mantra',
   setGoal: 'Set Goal',
+  enterJapaCount: 'Enter your japa count',
   setGoalBtn: 'SET GOAL',
   chooseOneMantra: 'Choose one mantra to chant',
   yourSelectedMantra: 'Your selected mantra',
