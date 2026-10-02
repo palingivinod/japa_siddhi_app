@@ -4,6 +4,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -15,6 +16,7 @@ interface MantraStat {
 
 const CommunityJapaScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [stats, setStats] = useState<Record<number, MantraStat>>({});
@@ -72,7 +74,25 @@ const CommunityJapaScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Community Japa" showBack tab="JapaHub">
+    <ScreenLayout
+      title={t('communityJapa') || 'Samuhika Japa'}
+      showBack
+      tab="JapaHub">
+      <View style={styles.stats}>
+        <View style={styles.stat}>
+          <Text style={styles.label}>TOTAL CHANTS</Text>
+          <Text style={styles.value}>{total.toLocaleString()}</Text>
+        </View>
+        <View style={styles.stat}>
+          <Text style={styles.label}>DEVOTEES</Text>
+          <Text style={styles.value}>{devotees.toLocaleString()}</Text>
+        </View>
+      </View>
+
+      <View style={styles.joinBtnWrap}>
+        <PrimaryButton title="JOIN" onPress={join} />
+      </View>
+
       <Text style={styles.heading}>Select a mantra</Text>
       {mantras.map(item => (
         <MenuCard
@@ -85,17 +105,6 @@ const CommunityJapaScreen = () => {
           onPress={() => setSelected(item)}
         />
       ))}
-      <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Text style={styles.label}>TOTAL CHANTS</Text>
-          <Text style={styles.value}>{total.toLocaleString()}</Text>
-        </View>
-        <View style={styles.stat}>
-          <Text style={styles.label}>DEVOTEES</Text>
-          <Text style={styles.value}>{devotees.toLocaleString()}</Text>
-        </View>
-      </View>
-      <PrimaryButton title="JOIN SAMUHIKA JAPA" onPress={join} />
     </ScreenLayout>
   );
 };
@@ -103,13 +112,11 @@ const CommunityJapaScreen = () => {
 export default CommunityJapaScreen;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
+  stats: {
+    flexDirection: 'row',
+    gap: 10,
     marginBottom: 12,
   },
-  stats: {flexDirection: 'row', gap: 10, marginTop: 16, marginBottom: 20},
   stat: {
     flex: 1,
     backgroundColor: Colors.white,
@@ -124,5 +131,14 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  joinBtnWrap: {
+    marginBottom: 16,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
   },
 });
