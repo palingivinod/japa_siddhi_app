@@ -14,6 +14,8 @@ export interface CreateJapaGoalRequest {
 
   startDate: string;
 
+  endDate?: string;
+
   notes?: string | null;
 
 }

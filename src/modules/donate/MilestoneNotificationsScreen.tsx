@@ -2,12 +2,10 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
-  Switch,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -46,7 +44,6 @@ const formatMilestoneBadge = (target: number) => {
 const MilestoneNotificationsScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
-  const [enabled, setEnabled] = useState(true);
   const [total, setTotal] = useState(0);
   const [latest, setLatest] = useState(0);
   const [next, setNext] = useState(500);
@@ -78,7 +75,6 @@ const MilestoneNotificationsScreen = () => {
         setUnreadCount(Number(data.unreadCount || 0));
         setLatestAt(data.latestAt || null);
         setEligible(Boolean(data.eligibleForAnnadanam));
-        setEnabled(data.notificationsOn !== false);
         if (Number(data.unreadCount || 0) > 0) {
           apiService.put('/notifications/milestones/read').catch(() => undefined);
         }
@@ -95,16 +91,6 @@ const MilestoneNotificationsScreen = () => {
       load();
     }, [load]),
   );
-
-  const toggleNotifications = async (value: boolean) => {
-    setEnabled(value);
-    await AsyncStorage.setItem('notify_on', value ? '1' : '0');
-    try {
-      await apiService.put('/profile/settings', {notificationsOn: value});
-    } catch {
-      undefined;
-    }
-  };
 
   const milestoneTitle = (item: MilestoneItem) =>
     item.title || t('japasCountLabel', {count: item.target.toLocaleString()});
@@ -209,19 +195,6 @@ const MilestoneNotificationsScreen = () => {
               );
             })
           )}
-          <View style={styles.toggle}>
-            <View style={styles.copy}>
-              <Text style={styles.rowTitle}>
-                {t('milestoneNotificationsTitle')}
-              </Text>
-              <Text style={styles.sub}>{t('getNotifiedMilestones')}</Text>
-            </View>
-            <Switch
-              value={enabled}
-              onValueChange={toggleNotifications}
-              trackColor={{true: Colors.leafGreen}}
-            />
-          </View>
         </>
       ) : null}
     </ScreenLayout>
@@ -312,14 +285,4 @@ const styles = StyleSheet.create({
   },
   rowTitle: {fontWeight: '800', color: Colors.sacredBrown},
   chevron: {fontSize: 22, color: Colors.textLight},
-  toggle: {
-    marginTop: 8,
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
 });

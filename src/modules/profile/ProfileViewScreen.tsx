@@ -37,8 +37,24 @@ const ProfileViewScreen = () => {
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
 
-  const logout = async () => {
-    await logoutToLogin(navigation);
+  const logout = () => {
+    Alert.alert(
+      t('logout') || 'Logout',
+      t('logoutConfirmMsg') || 'Do you really want to logout?',
+      [
+        {
+          text: t('cancel') || 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: t('yes') || 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            await logoutToLogin(navigation);
+          },
+        },
+      ],
+    );
   };
 
   const applyProfile = (data: any, stored?: any) => ({

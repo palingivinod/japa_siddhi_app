@@ -16,10 +16,7 @@ class OrderService {
     data: CreateOrderRequest,
   ) {
 
-    const orderNumber =
-      `JS-${Date.now()}-${randomUUID()
-        .substring(0, 6)
-        .toUpperCase()}`;
+    const orderNumber = await orderRepository.getNextOrderNumber();
 
     const id =
       await orderRepository.create(
@@ -91,18 +88,29 @@ class OrderService {
       date.setDate(date.getDate() + days);
       return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
     };
-    const status = String(order.orderStatus || 'PENDING').toUpperCase();
+    const status = String(order.orderStatus || 'UNDER_REVIEW').toUpperCase();
     const rank =
       status === 'DELIVERED'
         ? 4
         : status === 'SHIPPED'
           ? 3
-          : status === 'PROCESSING' || status === 'READY'
+          : status === 'CONFIRMED' || status === 'PROCESSING' || status === 'READY'
             ? 2
             : 1;
+    const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
     const steps = [
-      {key: 'placed', label: 'Order placed', date: addDays(0), done: rank >= 1},
-      {key: 'processing', label: 'Processing', date: addDays(0), done: rank >= 2},
+      {
+        key: 'under_review',
+        label: isUnderReview ? 'Under Review' : 'Order Placed',
+        date: addDays(0),
+        done: rank >= 1,
+      },
+      {
+        key: 'confirmed',
+        label: 'Order Confirmed',
+        date: rank >= 2 ? addDays(1) : 'Awaiting confirmation',
+        done: rank >= 2,
+      },
       {
         key: 'shipped',
         label: 'Shipped',
@@ -124,8 +132,8 @@ class OrderService {
           : rank >= 3
             ? 'Out for delivery'
             : rank >= 2
-              ? 'Processing'
-              : 'Order placed',
+              ? 'Order Confirmed'
+              : 'Under Review',
       eta: addDays(4),
       steps,
     };

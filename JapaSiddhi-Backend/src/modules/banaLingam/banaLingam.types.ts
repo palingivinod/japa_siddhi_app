@@ -10,6 +10,8 @@ export interface CreateBanaLingamRequest {
 
   orderId?: number | null;
 
+  orderNumber?: string | null;
+
   fullName: string;
 
   mobile: string;

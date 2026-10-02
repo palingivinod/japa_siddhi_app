@@ -51,7 +51,6 @@ const HomeScreen = () => {
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [activeJapaGoal, setActiveJapaGoal] = useState<ActiveGoal | null>(null);
-  const [adminDailyGoal, setAdminDailyGoal] = useState(2000);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
   const [milestone, setMilestone] = useState<any>(null);
@@ -143,9 +142,6 @@ const HomeScreen = () => {
         setLifetime(Number(data.totalJapaCount ?? data.lifetimeCount ?? 0));
         setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
         setMilestone(data.milestone || null);
-        if (data.adminDailyGoal || data.dailyTarget) {
-          setAdminDailyGoal(Number(data.adminDailyGoal || data.dailyTarget) || 2000);
-        }
       }
       if (goals.status === 'fulfilled') {
         const goalList: any[] = Array.isArray(goals.value.data?.data)
@@ -169,7 +165,7 @@ const HomeScreen = () => {
 
         if (active) {
           const targetCount =
-            Number(active.targetCount ?? active.target_count) || 2000;
+            Number(active.targetCount ?? active.target_count) || 108;
           const completedCount =
             Number(active.completedCount ?? active.completed_count) || 0;
           setActiveJapaGoal({
@@ -250,9 +246,34 @@ const HomeScreen = () => {
     return num.toLocaleString('en-IN');
   };
 
+  const daysUntilGoalEnd = (endDateStr?: string) => {
+    if (!endDateStr) {
+      return 1;
+    }
+    const iso = String(endDateStr).slice(0, 10);
+    const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) {
+      return 1;
+    }
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    end.setHours(0, 0, 0, 0);
+    return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+  };
+
+  const userDailyGoal = useMemo(() => {
+    if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
+      const remainingCount = Math.max(0, activeJapaGoal.targetCount - activeJapaGoal.completedCount);
+      const daysLeft = daysUntilGoalEnd(activeJapaGoal.endDate);
+      return Math.max(1, Math.ceil(remainingCount / daysLeft));
+    }
+    return 108;
+  }, [activeJapaGoal]);
+
   const dailyProgress = Math.min(
     100,
-    Math.round((today / Math.max(adminDailyGoal, 1)) * 100),
+    Math.round((today / Math.max(userDailyGoal, 1)) * 100),
   );
 
   const goalTarget = activeJapaGoal ? activeJapaGoal.targetCount : 0;
@@ -311,6 +332,71 @@ const HomeScreen = () => {
     });
   };
 
+  const handleBannerStartJapa = async () => {
+    // 1. Check for active/pending draft
+    try {
+      const draft = await getJapaDraft();
+      if (
+        draft &&
+        !Number(draft.challengeId || 0) &&
+        Number(draft.count || 0) > 0 &&
+        Number(draft.count || 0) < Number(draft.goal || 0)
+      ) {
+        navigation.navigate('Chant', {
+          mode:
+            draft.mode ||
+            (activeJapaGoal?.mantraType === 'PERSONAL'
+              ? 'private'
+              : 'community'),
+          mantraId: draft.mantraId ?? activeJapaGoal?.mantraId ?? undefined,
+          privateMantra: draft.privateMantra,
+          personalMantraId:
+            draft.personalMantraId ?? activeJapaGoal?.personalMantraId ?? undefined,
+          goal: draft.goal || activeJapaGoal?.targetCount,
+          initialCount: draft.count,
+          japaGoalId: draft.japaGoalId || activeJapaGoal?.id,
+          resume: true,
+          fromHome: true,
+        });
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    // 2. Check for active/pending daily goal
+    if (
+      activeJapaGoal &&
+      activeJapaGoal.targetCount > 0 &&
+      activeJapaGoal.completedCount < activeJapaGoal.targetCount
+    ) {
+      navigation.navigate('Chant', {
+        mode:
+          activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
+        mantraId: activeJapaGoal.mantraId ?? undefined,
+        personalMantraId: activeJapaGoal.personalMantraId ?? undefined,
+        privateMantra:
+          activeJapaGoal.mantraType === 'PERSONAL'
+            ? activeJapaGoal.mantraName
+            : undefined,
+        goal: activeJapaGoal.targetCount,
+        initialCount: activeJapaGoal.completedCount,
+        japaGoalId: activeJapaGoal.id,
+        resume: true,
+        fromHome: true,
+      });
+      return;
+    }
+
+    // 3. If goal completed / no pending goal: open Chant screen with previous mantras
+    navigation.navigate('Chant', {
+      mode: 'private',
+      fromHome: true,
+      recentOnly: true,
+      resume: false,
+    });
+  };
+
   const showJapaAnnadanam =
     annadanamVisibility.japa && lifetime >= 10000;
   const visibleTiles = tiles.filter(item => {
@@ -344,7 +430,7 @@ const HomeScreen = () => {
               imageUrl: '',
               buttonText: t('startChanting'),
             }}
-            onPress={() => navigation.navigate('JapaHub')}
+            onPress={handleBannerStartJapa}
           />
 
           {homeBanners.map(item => (
@@ -402,14 +488,14 @@ const HomeScreen = () => {
                 <View
                   style={[
                     styles.sectionBadge,
-                    today >= adminDailyGoal && styles.sectionBadgeDone,
+                    today >= userDailyGoal && styles.sectionBadgeDone,
                   ]}>
                   <Text
                     style={[
                       styles.sectionBadgeText,
-                      today >= adminDailyGoal && styles.sectionBadgeTextDone,
+                      today >= userDailyGoal && styles.sectionBadgeTextDone,
                     ]}>
-                    {today >= adminDailyGoal
+                    {today >= userDailyGoal
                       ? `✓ ${t('goalCompleted')}`
                       : t('goalNotCompleted')}
                   </Text>
@@ -419,7 +505,7 @@ const HomeScreen = () => {
                 {t('chantsToday', {count: today.toLocaleString('en-IN')})}
               </Text>
               <Text style={styles.progressMeta}>
-                {t('goalChants', {count: adminDailyGoal.toLocaleString('en-IN')})}
+                {t('goalChants', {count: userDailyGoal.toLocaleString('en-IN')})}
               </Text>
               <View style={styles.barRow}>
                 <View style={styles.barTrack}>
@@ -427,12 +513,12 @@ const HomeScreen = () => {
                     style={[
                       styles.barFill,
                       {width: `${dailyProgress}%`},
-                      today >= adminDailyGoal && styles.barFillCompleted,
+                      today >= userDailyGoal && styles.barFillCompleted,
                     ]}
                   />
                 </View>
                 <Text style={styles.percent}>
-                  {today.toLocaleString('en-IN')} / {formatCountShort(adminDailyGoal)} · {dailyProgress}%
+                  {today.toLocaleString('en-IN')} / {formatCountShort(userDailyGoal)} · {dailyProgress}%
                 </Text>
               </View>
             </TouchableOpacity>

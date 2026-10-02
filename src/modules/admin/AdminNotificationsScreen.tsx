@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -18,6 +18,10 @@ import AdminLanguageTabs, {
   ADMIN_LANGUAGES,
   AdminSupportedLang,
 } from './components/AdminLanguageTabs';
+import {
+  autoTranslateNotification,
+  translateText,
+} from '../../services/translationService';
 
 interface NotificationLangFields {
   title: string;
@@ -139,6 +143,11 @@ const AdminNotificationsScreen = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [sending, setSending] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(null);
+
+  const latestEnRef = useRef({title: '', message: ''});
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const minDate = useMemo(() => {
     const d = new Date();
@@ -157,6 +166,69 @@ const AdminNotificationsScreen = () => {
       },
     }));
   };
+
+  // Automatic translation effect when English title or message changes
+  const enTitle = translations.en.title;
+  const enMessage = translations.en.message;
+
+  useEffect(() => {
+    const trimmedTitle = enTitle.trim();
+    const trimmedMsg = enMessage.trim();
+
+    // Check if the English content has actually changed from what we last translated
+    if (
+      trimmedTitle === latestEnRef.current.title &&
+      trimmedMsg === latestEnRef.current.message
+    ) {
+      return;
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!trimmedTitle && !trimmedMsg) {
+      return;
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      latestEnRef.current = {title: trimmedTitle, message: trimmedMsg};
+      setTranslating(true);
+      try {
+        const targetCodes = ADMIN_LANGUAGES.filter(l => l.code !== 'en').map(
+          l => l.code,
+        );
+        const translatedMap = await autoTranslateNotification(
+          trimmedTitle,
+          trimmedMsg,
+          targetCodes,
+        );
+        setTranslations(prev => {
+          const next = {...prev};
+          targetCodes.forEach(code => {
+            if (translatedMap[code]) {
+              next[code as AdminSupportedLang] = {
+                title: translatedMap[code].title,
+                message: translatedMap[code].message,
+              };
+            }
+          });
+          return next;
+        });
+        setLastAutoTranslatedAt(Date.now());
+      } catch {
+        // Translation network failure handled gracefully in background
+      } finally {
+        setTranslating(false);
+      }
+    }, 700);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [enTitle, enMessage]);
 
   const completedMap = useMemo(() => {
     const map: Partial<Record<AdminSupportedLang, boolean>> = {};
@@ -232,6 +304,8 @@ const AdminNotificationsScreen = () => {
         }\n\nDevotees will receive this in their preferred language.`,
       );
       setTranslations(defaultTranslations());
+      latestEnRef.current = {title: '', message: ''};
+      setLastAutoTranslatedAt(null);
       setSchedule('Now');
       setScheduledAt(defaultLater());
     } catch (err) {
@@ -253,8 +327,7 @@ const AdminNotificationsScreen = () => {
       showBack>
       <Text style={styles.heading}>Notification Management</Text>
       <Text style={styles.sub}>
-        Sends notifications in 5 languages to devotees. Each devotee receives the
-        message in their selected language.
+        Type in English, and it automatically translates into Telugu, Hindi, Tamil, and Kannada. You can switch tabs to review or edit anytime.
       </Text>
 
       <AdminLanguageTabs
@@ -265,14 +338,30 @@ const AdminNotificationsScreen = () => {
       />
 
       <View style={styles.langHeaderCard}>
-        <Text style={styles.langHeaderTitle}>
-          Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
-        </Text>
-        <Text style={styles.langHeaderHint}>
-          {activeLang === 'en'
-            ? 'Primary fallback message sent to all users.'
-            : `Custom message for devotees using ${activeLangOption?.nativeName}.`}
-        </Text>
+        <View style={styles.langHeaderTop}>
+          <View style={styles.langHeaderCopy}>
+            <Text style={styles.langHeaderTitle}>
+              {activeLang === 'en'
+                ? 'English (Primary)'
+                : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
+            </Text>
+            <Text style={styles.langHeaderHint}>
+              {activeLang === 'en'
+                ? 'Type here — automatically translates into all 4 other languages.'
+                : `Auto-translated from English. You can edit any words here before sending.`}
+            </Text>
+          </View>
+          {translating ? (
+            <View style={styles.translatingBadge}>
+              <ActivityIndicator size="small" color={Colors.leafGreen} />
+              <Text style={styles.translatingText}>Translating...</Text>
+            </View>
+          ) : lastAutoTranslatedAt ? (
+            <View style={styles.translatedBadge}>
+              <Text style={styles.translatedText}>✓ Auto-translated</Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       <Field
@@ -414,6 +503,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
+  },
+  langHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langHeaderCopy: {
+    flex: 1,
+    marginRight: 8,
+  },
+  translatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F3E4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  translatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    marginLeft: 6,
+  },
+  translatedBadge: {
+    backgroundColor: '#EDF7E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  translatedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
   },
   langHeaderTitle: {
     fontSize: 14,

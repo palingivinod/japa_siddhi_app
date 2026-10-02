@@ -6,22 +6,30 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
 
-export type TabKey = 'Home' | 'JapaHub' | 'SevaHub' | 'Orders' | 'Profile';
+export type TabKey =
+  | 'Home'
+  | 'JapaHub'
+  | 'SevaHub'
+  | 'Rewards'
+  | 'AvailableRewards'
+  | 'Orders'
+  | 'Profile';
 
 interface Props {
   active: TabKey;
 }
 
 const TABS: Array<{
-  key: TabKey;
+  key: string;
+  tabKey: TabKey;
   labelKey: TranslationKey;
   emoji: string;
 }> = [
-  {key: 'Home', labelKey: 'tabHome', emoji: '🏠'},
-  {key: 'JapaHub', labelKey: 'tabJapa', emoji: '🕉️'},
-  {key: 'SevaHub', labelKey: 'tabSeva', emoji: '🤲'},
-  {key: 'Orders', labelKey: 'tabOrders', emoji: '📦'},
-  {key: 'Profile', labelKey: 'tabProfile', emoji: '👤'},
+  {key: 'Home', tabKey: 'Home', labelKey: 'tabHome', emoji: '🏠'},
+  {key: 'JapaHub', tabKey: 'JapaHub', labelKey: 'tabJapa', emoji: '🕉️'},
+  {key: 'SevaHub', tabKey: 'SevaHub', labelKey: 'tabSeva', emoji: '🤲'},
+  {key: 'AvailableRewards', tabKey: 'Rewards', labelKey: 'tabRewards', emoji: '🏆'},
+  {key: 'Profile', tabKey: 'Profile', labelKey: 'tabProfile', emoji: '👤'},
 ];
 
 const BottomTabs: React.FC<Props> = ({active}) => {
@@ -31,7 +39,11 @@ const BottomTabs: React.FC<Props> = ({active}) => {
   return (
     <View style={styles.bar}>
       {TABS.map(tab => {
-        const isActive = tab.key === active;
+        const isActive =
+          tab.tabKey === active ||
+          tab.key === active ||
+          (tab.tabKey === 'Rewards' &&
+            (active === 'Rewards' || active === 'AvailableRewards'));
         return (
           <TouchableOpacity
             key={tab.key}

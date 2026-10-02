@@ -21,3 +21,29 @@ export const resetToLogin = () => {
 
   setTimeout(goToLogin, 0);
 };
+
+export const navigateTo = (name: keyof RootStackParamList, params?: any) => {
+  const doNavigate = () => {
+    if (navigationRef.isReady()) {
+      (navigationRef as any).navigate(name, params);
+      return true;
+    }
+    return false;
+  };
+
+  if (doNavigate()) {
+    return;
+  }
+
+  let attempts = 0;
+  const timer = setInterval(() => {
+    attempts += 1;
+    if (doNavigate() || attempts > 25) {
+      clearInterval(timer);
+    }
+  }, 200);
+};
+
+export const navigateToNotifications = () => {
+  navigateTo('Notifications');
+};

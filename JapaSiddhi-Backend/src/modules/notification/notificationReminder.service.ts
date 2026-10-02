@@ -189,6 +189,33 @@ const goalDeadlineCopy = (
   };
 };
 
+export const notifyDailyGoalCompleted = async (input: {
+  userId: number;
+  todayCount: number;
+  dailyTarget: number;
+  goalName?: string;
+}) => {
+  const today = todayYmdIst();
+  const dayKey = Number(today.replace(/-/g, ''));
+  const target = Number(input.dailyTarget || 0);
+  const count = Number(input.todayCount || target);
+  return notifyOnce({
+    userId: input.userId,
+    title: 'Daily goal completed!',
+    message: `You completed your daily target of ${count.toLocaleString('en-IN')} Japas today${input.goalName ? ` for "${input.goalName}"` : ''}. Keep up your sadhana!`,
+    notificationType: 'REWARD',
+    actionType: 'DAILY_GOAL_COMPLETED',
+    actionId: dayKey,
+    extraData: {
+      date: today,
+      todayCount: count,
+      dailyTarget: target,
+      goalName: input.goalName,
+    },
+    expiresAt: endOfDayStamp(today),
+  });
+};
+
 export const notifyGoalCompleted = async (input: {
   userId: number;
   goalId: number;
@@ -436,6 +463,69 @@ export const flushDeadlineReminders = async () => {
     }
   } catch (error) {
     console.warn('Challenge reward reminders failed:', error);
+  }
+
+  try {
+    // Check pending daily goal for users with active goals
+    const activeGoalUsers = await mysql.query<any[]>(
+      `
+      SELECT
+        jg.id AS goalId,
+        jg.user_id AS userId,
+        jg.goal_name AS goalName,
+        jg.end_date AS endDate,
+        IFNULL(jg.target_count, 0) AS targetCount,
+        IFNULL(jg.completed_count, 0) AS completedCount,
+        IFNULL(
+          (SELECT SUM(session_count) FROM japa_sessions js WHERE js.user_id = jg.user_id AND date(js.created_at) = date(?)),
+          0
+        ) AS todayCount
+      FROM japa_goals jg
+      WHERE jg.status = 'ACTIVE'
+      `,
+      [today],
+    );
+
+    const dayKey = Number(today.replace(/-/g, ''));
+    for (const row of activeGoalUsers || []) {
+      const target = Number(row.targetCount || 0);
+      const completed = Number(row.completedCount || 0);
+      const todayCount = Number(row.todayCount || 0);
+      const remainingTotal = Math.max(0, target - completed);
+      if (remainingTotal <= 0) {
+        continue;
+      }
+
+      const endDate = toYmd(row.endDate);
+      const remDays = endDate ? Math.max(1, (daysUntil(today, endDate) ?? 0) + 1) : 1;
+      const dailyTarget = Math.max(1, Math.ceil(remainingTotal / remDays));
+
+      if (todayCount < dailyTarget) {
+        const pending = dailyTarget - todayCount;
+        const goalName = String(row.goalName || 'Japa goal');
+        const ok = await notifyOnce({
+          userId: Number(row.userId),
+          title: 'Daily Japa Pending',
+          message: `You have ${pending.toLocaleString('en-IN')} Japas pending today for "${goalName}". Complete your daily goal before midnight.`,
+          notificationType: 'JAPA_REMINDER',
+          actionType: 'DAILY_JAPA_PENDING',
+          actionId: deadlineActionId(Number(row.goalId), dayKey % 1000),
+          extraData: {
+            goalId: Number(row.goalId),
+            pendingCount: pending,
+            dailyTarget,
+            todayCount,
+            date: today,
+          },
+          expiresAt: endOfDayStamp(today),
+        });
+        if (ok) {
+          created += 1;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('Daily pending goal reminders failed:', error);
   }
 
   try {

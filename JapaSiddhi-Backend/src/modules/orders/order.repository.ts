@@ -12,10 +12,38 @@ import {
 
 class OrderRepository {
 
+  async getNextOrderNumber(): Promise<string> {
+    try {
+      const rows = await mysql.query<any[]>(`
+        SELECT order_number FROM orders WHERE order_number LIKE 'BL-%' ORDER BY id DESC LIMIT 50
+      `);
+      let maxSeq = 0;
+      for (const row of rows || []) {
+        const match = String(row.order_number || '').match(/^BL-(\d+)/i);
+        if (match) {
+          const parsed = parseInt(match[1], 10);
+          if (parsed > maxSeq) {
+            maxSeq = parsed;
+          }
+        }
+      }
+      if (maxSeq === 0) {
+        const totalRows = await mysql.query<any[]>(`SELECT COUNT(*) AS total FROM orders`);
+        maxSeq = Number(totalRows?.[0]?.total || 0);
+      }
+      const nextSeq = maxSeq + 1;
+      return `BL-${String(nextSeq).padStart(4, '0')}`;
+    } catch {
+      return `BL-${String(Date.now()).slice(-4)}`;
+    }
+  }
+
   async create(
     data: CreateOrderRequest,
     orderNumber: string,
   ): Promise<number> {
+
+    const initialStatus: OrderStatus = data.orderStatus || 'UNDER_REVIEW';
 
     const result =
       await mysql.query<ResultSetHeader>(
@@ -29,10 +57,12 @@ class OrderRepository {
           item_name,
           quantity,
           payment_id,
+          order_status,
           remarks
         )
         VALUES
         (
+          ?,
           ?,
           ?,
           ?,
@@ -51,6 +81,7 @@ class OrderRepository {
           data.itemName,
           data.quantity,
           data.paymentId ?? null,
+          initialStatus,
           data.remarks ?? null,
         ],
       );

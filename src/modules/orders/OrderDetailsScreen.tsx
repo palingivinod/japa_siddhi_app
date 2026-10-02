@@ -46,7 +46,13 @@ const OrderDetailsScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <Text style={styles.order}>
-        Order #{item?.orderNumber || item?.confirmationId || id || 'JS10028'}
+        {item?.orderNumber
+          ? item.orderNumber.startsWith('BL-')
+            ? `Order ${item.orderNumber}`
+            : item.orderNumber.startsWith('#')
+              ? item.orderNumber
+              : `Order #${item.orderNumber}`
+          : `Order #${item?.confirmationId || id || 'BL-0001'}`}
       </Text>
       <MenuCard
         emoji="📦"

@@ -13,6 +13,7 @@ import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
+import {getLocalizedReward} from '../../utils/rewardContent';
 
 type RewardItem = {
   id: number | string;
@@ -24,82 +25,17 @@ type RewardItem = {
 };
 
 const DEFAULT_REWARDS: RewardItem[] = [
-  {
-    id: 1,
-    name: 'Rudraksha',
-    emoji: '📿',
-    description:
-      'Sacred Rudraksha bead consecrated for spiritual protection, peace, and meditation focus.',
-    inStock: true,
-  },
-  {
-    id: 2,
-    name: 'Japa Mala',
-    emoji: '📿',
-    description:
-      'Traditional 108-bead chanting rosary crafted for daily mantra counting and spiritual discipline.',
-    inStock: true,
-  },
-  {
-    id: 3,
-    name: 'Bhagavad Gita',
-    emoji: '📖',
-    description:
-      'Authentic scripture containing the timeless divine wisdom and teachings of Lord Krishna.',
-    inStock: true,
-  },
-  {
-    id: 4,
-    name: 'Temple Prasadam',
-    emoji: '🍯',
-    description:
-      'Holy consecrated prasadam prepared with devotion and blessed at sacred temple sanctums.',
-    inStock: true,
-  },
+  {id: 1, name: 'Rudraksha', inStock: true},
+  {id: 2, name: 'Spatik Mala', inStock: true},
+  {id: 3, name: 'Pasupu Kommula Mala', inStock: true},
+  {id: 4, name: 'Green Agate', inStock: true},
+  {id: 5, name: 'Yellow Agate', inStock: true},
+  {id: 6, name: 'Bhagavad Gita', inStock: true},
+  {id: 7, name: 'Temple Prasadam', inStock: true},
 ];
 
-const getRewardEmoji = (name: string): string => {
-  const lower = name.toLowerCase();
-  if (lower.includes('rudraksha') || lower.includes('bead')) {
-    return '📿';
-  }
-  if (lower.includes('mala') || lower.includes('rosary')) {
-    return '📿';
-  }
-  if (lower.includes('gita') || lower.includes('book') || lower.includes('scripture')) {
-    return '📖';
-  }
-  if (lower.includes('prasadam') || lower.includes('sweet') || lower.includes('food')) {
-    return '🍯';
-  }
-  if (lower.includes('diya') || lower.includes('lamp') || lower.includes('deepam')) {
-    return '🪔';
-  }
-  if (lower.includes('lingam') || lower.includes('shiva')) {
-    return '🕉️';
-  }
-  return '🎁';
-};
-
-const getRewardDescription = (name: string): string => {
-  const lower = name.toLowerCase();
-  if (lower.includes('rudraksha')) {
-    return 'Sacred Rudraksha bead consecrated for spiritual protection, peace, and meditation focus.';
-  }
-  if (lower.includes('mala')) {
-    return 'Traditional 108-bead chanting rosary crafted for daily mantra counting and spiritual discipline.';
-  }
-  if (lower.includes('gita') || lower.includes('book')) {
-    return 'Authentic scripture containing the timeless divine wisdom and teachings of Lord Krishna.';
-  }
-  if (lower.includes('prasadam')) {
-    return 'Holy consecrated prasadam prepared with devotion and blessed at sacred temple sanctums.';
-  }
-  return 'Sacred spiritual reward gifted upon completing japa challenges and spiritual milestones.';
-};
-
 const AvailableRewardsScreen = () => {
-  const {t, tt} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -129,8 +65,8 @@ const AvailableRewardsScreen = () => {
             name: String(row.name || ''),
             stock: Number(row.stock || 0),
             inStock: Number(row.stock ?? 1) > 0,
-            emoji: getRewardEmoji(String(row.name || '')),
-            description: getRewardDescription(String(row.name || '')),
+            emoji: row.emoji,
+            description: row.description,
           })),
         );
       } else {
@@ -152,7 +88,7 @@ const AvailableRewardsScreen = () => {
   );
 
   return (
-    <ScreenLayout title={t('availableRewards') || 'Available Rewards'} showBack tab="Profile">
+    <ScreenLayout title={t('availableRewards') || 'Available Rewards'} tab="Rewards">
       {/* Banner / Info Header */}
       <View style={styles.banner}>
         <View style={styles.bannerIconWrap}>
@@ -164,7 +100,7 @@ const AvailableRewardsScreen = () => {
           </Text>
           <Text style={styles.bannerSubtitle}>
             {t('spiritualRewardsSubtitle') ||
-              'Complete your daily Japa goals and Samuhika Challenges to earn and claim these consecrated blessings.'}
+              'Explore our authentic collection of consecrated spiritual items and sacred divine offerings.'}
           </Text>
         </View>
       </View>
@@ -180,28 +116,33 @@ const AvailableRewardsScreen = () => {
       </Text>
 
       <View style={styles.listContainer}>
-        {rewards.map(item => (
-          <View key={String(item.id)} style={styles.rewardCard}>
-            <View style={styles.cardHeader}>
-              <View style={styles.dot}>
-                <Text style={styles.emoji}>{item.emoji || getRewardEmoji(item.name)}</Text>
-              </View>
-              <View style={styles.headerInfo}>
-                <Text style={styles.rewardName}>{tt(item.name)}</Text>
-                <View style={styles.badgeRow}>
-                  <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>
-                      Available
-                    </Text>
+        {rewards.map(item => {
+          const localized = getLocalizedReward(item.name, language);
+          return (
+            <View key={String(item.id)} style={styles.rewardCard}>
+              <View style={styles.cardHeader}>
+                <View style={styles.dot}>
+                  <Text style={styles.emoji}>
+                    {item.emoji || localized.emoji}
+                  </Text>
+                </View>
+                <View style={styles.headerInfo}>
+                  <Text style={styles.rewardName}>
+                    {localized.title || tt(item.name)}
+                  </Text>
+                  <View style={styles.badgeRow}>
+                    <View style={styles.statusBadge}>
+                      <Text style={styles.statusText}>{tt('Available')}</Text>
+                    </View>
                   </View>
                 </View>
               </View>
+              <Text style={styles.description}>
+                {localized.description || tt(item.description || '')}
+              </Text>
             </View>
-            <Text style={styles.description}>
-              {tt(item.description || getRewardDescription(item.name))}
-            </Text>
-          </View>
-        ))}
+          );
+        })}
       </View>
     </ScreenLayout>
   );

@@ -2206,21 +2206,33 @@ const toAdminOrderStatus = (raw: string) => {
   if (value === 'DELIVERED') {
     return 'Delivered';
   }
-  if (value === 'SHIPPED' || value === 'READY') {
+  if (value === 'SHIPPED') {
     return 'Shipped';
   }
-  return 'Processing';
+  if (value === 'CONFIRMED' || value === 'PROCESSING' || value === 'READY') {
+    return 'Confirmed';
+  }
+  if (value === 'UNDER_REVIEW' || value === 'PENDING') {
+    return 'Under Review';
+  }
+  return 'Under Review';
 };
 
 const fromAdminOrderStatus = (raw: string) => {
-  const value = String(raw || '').toLowerCase();
+  const value = String(raw || '').trim().toLowerCase();
   if (value === 'delivered') {
     return 'DELIVERED';
   }
   if (value === 'shipped') {
     return 'SHIPPED';
   }
-  return 'PROCESSING';
+  if (value === 'confirmed' || value === 'confirm' || value === 'processing' || value === 'ready') {
+    return 'CONFIRMED';
+  }
+  if (value === 'under review' || value === 'under_review' || value === 'pending') {
+    return 'UNDER_REVIEW';
+  }
+  return 'CONFIRMED';
 };
 
 const mapOrderRow = (row: any) => {
@@ -2474,6 +2486,51 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to update order status.',
+    });
+  }
+});
+
+router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid order id.'});
+    }
+    const existing = await mysql.query<any[]>(`
+      SELECT id FROM orders WHERE id = ? LIMIT 1
+    `, [id]);
+    if (!existing?.length) {
+      return res.status(404).json({success: false, message: 'Order not found.'});
+    }
+
+    await mysql.query(
+      `
+      UPDATE orders
+      SET order_status = 'CONFIRMED', updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [id],
+    );
+
+    await ensureOrderDetailJoins();
+    const rows = await mysql.query<any[]>(
+      `
+      ${orderDetailSelect}
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+
+    return res.json({
+      success: true,
+      message: 'Order confirmed successfully.',
+      data: mapOrderDetail(rows[0]),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to confirm order.',
     });
   }
 });

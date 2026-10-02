@@ -101,6 +101,12 @@ const SettingsScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
+        onPress={() => navigation.navigate('Orders')}>
+        <Text style={styles.label}>{t('orderHistory') || 'Orders'}</Text>
+        <Text style={styles.value}>{t('open') || 'View'}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
         onPress={() => navigation.navigate('PrivacyPolicy')}>
         <Text style={styles.label}>{t('privacy')}</Text>
         <Text style={styles.value}>{t('manage')}</Text>

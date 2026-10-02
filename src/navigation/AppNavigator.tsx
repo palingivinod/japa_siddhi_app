@@ -189,11 +189,14 @@ export type RootStackParamList = {
     goal?: number;
     challengeId?: number;
     privateMantra?: string;
+    personalMantraId?: number;
     japaGoalId?: number;
     durationMs?: number;
     resume?: boolean;
     initialCount?: number;
     challengeMantra?: string;
+    fromHome?: boolean;
+    recentOnly?: boolean;
   } | undefined;
   Challenges: undefined;
   ChallengeDetails: {id?: number} | undefined;
@@ -259,6 +262,7 @@ export type RootStackParamList = {
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   AvailableRewards: undefined;
+  Rewards: undefined;
   BanaLingam: undefined;
   BanaLingamPayment: any;
   PaymentConfirmation: any;
@@ -614,6 +618,10 @@ const AppNavigator = () => {
         <Stack.Screen name="Settings" component={ProtectedSettings} />
         <Stack.Screen
           name="AvailableRewards"
+          component={ProtectedAvailableRewards}
+        />
+        <Stack.Screen
+          name="Rewards"
           component={ProtectedAvailableRewards}
         />
         <Stack.Screen name="BanaLingam" component={ProtectedBanaLingam} />

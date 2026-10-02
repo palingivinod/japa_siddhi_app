@@ -44,7 +44,13 @@ const OrderTrackingScreen = () => {
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <Text style={styles.order}>
-        Order #{item?.orderNumber || id || 'JS10028'}
+        {item?.orderNumber
+          ? item.orderNumber.startsWith('BL-')
+            ? `Order ${item.orderNumber}`
+            : item.orderNumber.startsWith('#')
+              ? item.orderNumber
+              : `Order #${item.orderNumber}`
+          : `Order #${id || 'BL-0001'}`}
       </Text>
       {(item?.steps || []).map((step: any) => (
         <View key={step.key} style={styles.step}>

@@ -424,58 +424,33 @@ class AuthService {
     }
 
     const existingEmail = await authRepository.findUserByEmail(email);
-    if (!existingEmail) {
-      // Same email was soft-deleted earlier — restore that account + history.
-      const deleted = await authRepository.findDeletedUserByEmail(email);
-      if (deleted) {
-        await authRepository.restoreUser(
-          deleted.id,
-          email,
-          mobileCountryCode,
-          mobileNumber,
+    const existingMobile =
+      mobileNumber && !isPlaceholderMobile(null, mobileNumber)
+        ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
+        : null;
+
+    if (!isSocial) {
+      if (existingEmail && existingMobile) {
+        throw new AppError(
+          'An account with this email and mobile number already exists. Please sign in with your email and password, or use different details.',
+          409,
         );
-        if (passwordHash) {
-          await authRepository.setPasswordHash(deleted.id, passwordHash);
-        }
-        if (firebaseUid && String(deleted.firebaseUid || '') !== firebaseUid) {
-          await authRepository.linkFirebaseUid(deleted.id, firebaseUid).catch(() => undefined);
-        }
-        await authRepository.completeProfile(
-          deleted.id,
-          profileFields({
-            ...data,
-            fullName: fullName || deleted.fullName,
-            email,
-          }),
+      }
+      if (existingEmail) {
+        throw new AppError(
+          'This email is already registered. Please try another email or sign in with your password.',
+          409,
         );
-        // Free the old firebase uid collision risk after restore.
-        await authRepository.updateMobileIfChanged(
-          deleted.id,
-          mobileCountryCode,
-          mobileNumber,
+      }
+      if (existingMobile) {
+        throw new AppError(
+          'This mobile number is already registered. Please try another mobile number or sign in with your account.',
+          409,
         );
-        const restored = await authRepository.findUserById(deleted.id);
-        if (!restored) {
-          throw new AppError('Could not restore your previous account.', 500);
-        }
-        return {
-          token: issueToken(restored),
-          user: restored,
-          isNewUser: false,
-        };
       }
     }
-    if (existingEmail) {
-      if (!isSocial) {
-        const existingHash = await authRepository.getPasswordHashByEmail(email);
-        if (existingHash) {
-          throw new AppError(
-            'An account with this email already exists. Please sign in with email and password.',
-            409,
-          );
-        }
-      }
 
+    if (existingEmail) {
       if (passwordHash) {
         await authRepository.setPasswordHash(existingEmail.id, passwordHash);
       }
@@ -1055,16 +1030,29 @@ class AuthService {
       );
     }
 
-    const existingUser = await authRepository.findUserByEmail(destinationEmail);
-    if (existingUser) {
-      const existingHash =
-        await authRepository.getPasswordHashByEmail(destinationEmail);
-      if (existingHash) {
-        throw new AppError(
-          'An account with this email already exists. Please sign in with email and password.',
-          409,
-        );
-      }
+    const existingByEmail = await authRepository.findUserByEmail(destinationEmail);
+    const existingByMobile =
+      mobileNumber && !isPlaceholderMobile(null, mobileNumber)
+        ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
+        : null;
+
+    if (existingByEmail && existingByMobile) {
+      throw new AppError(
+        'An account with this email and mobile number already exists. Please sign in with your email and password, or use different details.',
+        409,
+      );
+    }
+    if (existingByEmail) {
+      throw new AppError(
+        'This email is already registered. Please try another email or sign in with your password.',
+        409,
+      );
+    }
+    if (existingByMobile) {
+      throw new AppError(
+        'This mobile number is already registered. Please try another mobile number or sign in with your account.',
+        409,
+      );
     }
 
     const existing = await otpRepository.findActiveByEmail(destinationEmail);
@@ -1153,15 +1141,29 @@ class AuthService {
       throw new AppError('Enter a valid mobile number to create your account.', 400);
     }
 
-    const user = await authRepository.findUserByEmail(email);
-    if (user) {
-      const existingHash = await authRepository.getPasswordHashByEmail(email);
-      if (existingHash) {
-        throw new AppError(
-          'An account with this email already exists. Please sign in with email and password.',
-          409,
-        );
-      }
+    const existingUserByEmail = await authRepository.findUserByEmail(email);
+    const existingUserByMobile =
+      mobileNumber && !isPlaceholderMobile(null, mobileNumber)
+        ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
+        : null;
+
+    if (existingUserByEmail && existingUserByMobile) {
+      throw new AppError(
+        'An account with this email and mobile number already exists. Please sign in with your email and password, or use different details.',
+        409,
+      );
+    }
+    if (existingUserByEmail) {
+      throw new AppError(
+        'This email is already registered. Please try another email or sign in with your password.',
+        409,
+      );
+    }
+    if (existingUserByMobile) {
+      throw new AppError(
+        'This mobile number is already registered. Please try another mobile number or sign in with your account.',
+        409,
+      );
     }
 
     // Registration OTP only unlocks signup — never issues a login session here.

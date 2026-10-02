@@ -14,24 +14,19 @@ class JapaGoalService {
   ) {
 
 
-    const dailyTarget =
-      Math.ceil(
-        data.targetCount / data.days,
-      );
-
-
-    const startDate =
-      new Date(data.startDate);
-
-
-    const endDate =
-      new Date(startDate);
-
-
-    endDate.setDate(
-      endDate.getDate() + data.days,
+    const days = Math.max(1, Number(data.days) || 1);
+    const dailyTarget = Math.max(
+      1,
+      Math.ceil(Number(data.targetCount) / days),
     );
 
+    const startDate = new Date(data.startDate || new Date().toISOString().slice(0, 10));
+    let endDateStr = data.endDate ? String(data.endDate).slice(0, 10) : '';
+    if (!endDateStr) {
+      const end = new Date(startDate);
+      end.setDate(end.getDate() + (days - 1));
+      endDateStr = end.toISOString().split('T')[0];
+    }
 
     const goalId =
       await japaGoalRepository.createGoal({
@@ -64,9 +59,7 @@ class JapaGoalService {
             .split('T')[0],
 
         endDate:
-          endDate
-            .toISOString()
-            .split('T')[0],
+          endDateStr,
 
         notes:
           data.notes ?? null,

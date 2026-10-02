@@ -19,18 +19,21 @@ const TABS: Array<{id: string; key: TranslationKey}> = [
 const statusOf = (item: any) =>
   String(item.orderStatus || item.status || '').toLowerCase();
 
-const statusKey = (raw: string): TranslationKey => {
-  const value = raw.toLowerCase();
+const formatStatus = (raw: string, t: any) => {
+  const value = String(raw || '').toLowerCase();
   if (value.includes('deliver')) {
-    return 'orderTabDelivered';
+    return t('orderTabDelivered');
   }
   if (value.includes('ship')) {
-    return 'orderTabShipped';
+    return t('orderTabShipped');
   }
-  if (value.includes('pend')) {
-    return 'orderTabPending';
+  if (value.includes('confirm')) {
+    return 'Order Confirmed';
   }
-  return 'statusProcessing';
+  if (value.includes('review') || value.includes('pend')) {
+    return 'Under Review';
+  }
+  return 'Processing';
 };
 
 const OrdersScreen = () => {
@@ -64,6 +67,12 @@ const OrdersScreen = () => {
     if (tab === 'All') {
       return orders;
     }
+    if (tab === 'Pending') {
+      return orders.filter(item => {
+        const s = statusOf(item);
+        return s.includes('pend') || s.includes('review');
+      });
+    }
     return orders.filter(item => statusOf(item).includes(tab.toLowerCase()));
   }, [orders, tab]);
 
@@ -96,7 +105,7 @@ const OrdersScreen = () => {
             </Text>
             <Text style={styles.meta}>
               {tt(String(item.itemName || item.productName || item.donationType || t('seva')))}{' '}
-              • {t(statusKey(String(item.orderStatus || item.status || '')))}
+              • {formatStatus(String(item.orderStatus || item.status || ''), t)}
             </Text>
           </View>
           <TouchableOpacity

@@ -271,7 +271,7 @@ export const kn: TranslationDict = {
   goalAnalytics: 'ಗುರಿ ವಿಶ್ಲೇಷಣೆ',
   streakAnalytics: 'ಸರಣಿ ವಿಶ್ಲೇಷಣೆ',
   spiritualMilestone: 'ಆಧ್ಯಾತ್ಮಿಕ ಮೈಲಿಗಲ್ಲು',
-  japasToGo: 'ಇನ್ನೂ {{count}} ಜಪ',
+  japasToGo: 'ಬಹುಮಾನ ಪಡೆಯಲು ಇನ್ನೂ {{count}} ಜಪ',
   japasProgressCount: '{{current}} / {{next}} ಜಪ',
   allMilestonesReached: 'ಎಲ್ಲಾ ಮೈಲಿಗಲ್ಲುಗಳು ತಲುಪಿವೆ · {{count}} ಜಪ',
   nextMilestone: 'ಮುಂದಿನ ಮೈಲಿಗಲ್ಲು',

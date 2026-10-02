@@ -9,14 +9,16 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
 
-const AMOUNTS = [501, 1008, 2001];
+import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 
 const JapaAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
-  const [amount, setAmount] = useState(1008);
+  const [persons, setPersons] = useState(5);
   const [completed, setCompleted] = useState(0);
   const [enabled, setEnabled] = useState(true);
+
+  const totalAmount = persons * RATE_PER_PERSON;
 
   useEffect(() => {
     apiService
@@ -44,28 +46,19 @@ const JapaAnnadanamScreen = () => {
               {label: t('offerLabel'), value: t('tileAnnadanam')},
             ]}
           />
-          <Text style={styles.section}>{t('suggestedOffering')}</Text>
-          <View style={styles.grid}>
-            {AMOUNTS.map(value => (
-              <TouchableOpacity
-                key={value}
-                style={[styles.chip, amount === value && styles.chipOn]}
-                onPress={() => setAmount(value)}>
-                <Text style={styles.chipText}>₹ {value.toLocaleString()}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity
-              style={[styles.chip, amount === 0 && styles.chipOn]}
-              onPress={() => setAmount(0)}>
-              <Text style={styles.chipText}>{t('customAmount')}</Text>
-            </TouchableOpacity>
-          </View>
+          <AnnadanamMembersSelector
+            persons={persons}
+            onChangePersons={setPersons}
+            title="Sponsor Annadanam for Devotees"
+          />
           <PrimaryButton
-            title={t('donateNowAction')}
+            title={persons > 0 ? `DONATE ₹${totalAmount.toLocaleString()} (${persons} ${persons === 1 ? 'PERSON' : 'PERSONS'})` : 'ENTER NUMBER OF PERSONS'}
+            disabled={persons <= 0}
             onPress={() =>
               navigation.navigate('DonationForm', {
                 kind: 'JAPA_ANNADANAM',
-                amount: amount || 1008,
+                persons,
+                amount: totalAmount,
                 itemName: t('japaAnnadanam'),
               })
             }
@@ -93,27 +86,5 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  grid: {flexDirection: 'row', flexWrap: 'wrap', marginBottom: 16},
-  chip: {
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    minHeight: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-    marginBottom: 8,
-    backgroundColor: Colors.white,
-  },
-  chipOn: {borderColor: Colors.templeGold, backgroundColor: '#FFF4E0'},
-  chipText: {
-    color: Colors.sacredBrown,
-    fontWeight: '700',
-    fontSize: 14.5,
-    lineHeight: 20,
-    textAlignVertical: 'center',
   },
 });

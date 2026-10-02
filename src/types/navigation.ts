@@ -20,7 +20,23 @@ export type RootStackParamList = {
   Home: undefined;
   JapaHub: undefined;
   SevaHub: undefined;
-  Chant: {mode?: 'community' | 'private'} | undefined;
+  Chant:
+    | {
+        mode?: 'community' | 'private';
+        mantraId?: number;
+        goal?: number;
+        challengeId?: number;
+        privateMantra?: string;
+        personalMantraId?: number;
+        japaGoalId?: number;
+        durationMs?: number;
+        resume?: boolean;
+        initialCount?: number;
+        challengeMantra?: string;
+        fromHome?: boolean;
+        recentOnly?: boolean;
+      }
+    | undefined;
   Challenges: undefined;
   FamilyJapa: undefined;
   Donate: undefined;
@@ -31,6 +47,7 @@ export type RootStackParamList = {
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   AvailableRewards: undefined;
+  Rewards: undefined;
   BanaLingam: undefined;
   NithyaHomam: undefined;
   Orders: undefined;

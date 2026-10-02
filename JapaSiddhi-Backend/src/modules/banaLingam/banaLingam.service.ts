@@ -11,16 +11,21 @@ class BanaLingamService {
   async create(data: CreateBanaLingamRequest) {
     const id = await banaLingamRepository.create(data);
 
+    const orderRef = data.orderNumber || (data.orderId ? `Order #${data.orderId}` : `Request ID: ${id}`);
     await emailOtpService.notifyAdmin(
-      'New Baanalingam application',
+      'New Baanalingam order - Under Review',
       [
-        'A new Baanalingam application was submitted.',
+        'A new Baanalingam order was submitted and is currently Under Review.',
+        `Order ID: ${orderRef}`,
         `Name: ${data.fullName}`,
         `Mobile: ${data.mobile}`,
         `Address: ${data.address}`,
         `Gothram: ${data.gothram || '-'}`,
         `Nakshatram: ${data.nakshatram || '-'}`,
-        `Request ID: ${id}`,
+        `Quantity: ${data.quantity || 1}`,
+        `Status: Under Review`,
+        '',
+        'Please review and confirm this order in Admin Panel -> Orders.',
       ].join('\n'),
     );
 

@@ -142,6 +142,46 @@ class JapaService {
       }
     }
 
+    // Daily goal completion notification check
+    if (!challengeId) {
+      try {
+        const todayAfter = await japaRepository.getTodayJapa(userId);
+        const todayBefore = todayAfter - Number(data.sessionCount || 0);
+
+        let targetDaily = 108;
+        let goalName: string | undefined;
+
+        if (japaGoalId) {
+          const japaGoalRepository = (
+            await import('../japaGoal/japaGoal.repository')
+          ).default;
+          const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
+          if (goal) {
+            goalName = goal.goal_name || goal.goalName;
+            const targetCount = Number(goal.target_count || goal.targetCount || 0);
+            const completedCount = Number(goal.completed_count || goal.completedCount || 0);
+            const remainingCount = Math.max(0, targetCount - (completedCount - Number(data.sessionCount || 0)));
+            const days = Number(goal.days || 1);
+            targetDaily = Math.max(1, Math.ceil(remainingCount / Math.max(1, days)));
+          }
+        }
+
+        if (todayBefore < targetDaily && todayAfter >= targetDaily) {
+          const {notifyDailyGoalCompleted} = await import(
+            '../notification/notificationReminder.service'
+          );
+          await notifyDailyGoalCompleted({
+            userId,
+            todayCount: todayAfter,
+            dailyTarget: targetDaily,
+            goalName,
+          });
+        }
+      } catch (err) {
+        console.warn('Daily goal completion check error:', err);
+      }
+    }
+
 
     const [globalCount, userTotal, milestoneTotal, challengeUpdates] =
       await Promise.all([

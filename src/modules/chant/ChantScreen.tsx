@@ -148,7 +148,26 @@ const ChantScreen = () => {
       if (ownMantra && !items.some(item => item.own && item.name === ownMantra)) {
         items.push(ownChip(Number(personalMantraId || 0), ownMantra));
       }
-      setMantras(items);
+      const data = summaryResponse.data.data ?? {};
+      const {presets: totals, personal} = applyMantraTotals(
+        data.byMantra || [],
+      );
+
+      const isRecentOnly = Boolean(route.params?.recentOnly);
+      let listItems = items;
+      if (isRecentOnly) {
+        const previousDone = items.filter(item => {
+          if (item.own) {
+            return (
+              (personal[item.id] || 0) > 0 ||
+              ownRows.some(r => Number(r.id) === item.id)
+            );
+          }
+          return (totals[item.id] || 0) > 0;
+        });
+        listItems = previousDone.length > 0 ? previousDone : items;
+      }
+      setMantras(listItems);
 
       const preferredId = Number(route.params?.mantraId || 0);
       const isExplicitMantra =
@@ -160,21 +179,19 @@ const ChantScreen = () => {
 
       const preferred =
         (ownMantra &&
-          items.find(item => item.own && item.name === ownMantra)) ||
+          listItems.find(item => item.own && item.name === ownMantra)) ||
         (personalMantraId &&
-          items.find(item => item.own && item.id === personalMantraId)) ||
+          listItems.find(item => item.own && item.id === personalMantraId)) ||
         (preferredId &&
-          items.find(item => !item.own && item.id === preferredId)) ||
-        (mode === 'community'
-          ? items.find(item => !item.own) || items[0] || null
-          : null);
+          listItems.find(item => !item.own && item.id === preferredId)) ||
+        (isRecentOnly
+          ? listItems[0] || null
+          : mode === 'community'
+            ? listItems.find(item => !item.own) || listItems[0] || null
+            : null);
 
       setSelected(current => current ?? preferred);
-      setShowMantraPicker(!preferred && mode === 'private');
-      const data = summaryResponse.data.data ?? {};
-      const {presets: totals, personal} = applyMantraTotals(
-        data.byMantra || [],
-      );
+      setShowMantraPicker(isRecentOnly || (!preferred && mode === 'private'));
       let initialCount = Number(route.params?.initialCount || 0);
       let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
 
@@ -235,6 +252,7 @@ const ChantScreen = () => {
         if (draftMatch) {
           active = draftMatch;
           setSelected(draftMatch);
+          setShowMantraPicker(false);
         }
         applyDraftToCount(resumeDraft);
       } else if (challengeId) {
@@ -638,25 +656,44 @@ const ChantScreen = () => {
 
       {mode === 'private' ? (
         showMantraPicker || !selected ? (
-          <View style={styles.chipRow}>
-            {mantras.map(item => (
-              <TouchableOpacity
-                key={item.key}
-                style={[
-                  styles.chip,
-                  item.own && styles.chipOwn,
-                  selected?.key === item.key && styles.chipActive,
-                ]}
-                onPress={() => selectMantra(item)}>
-                <Text
+          <View style={styles.mantraPickerSection}>
+            <View style={styles.mantraHeaderRow}>
+              <Text style={styles.mantraHeaderTitle}>
+                {route.params?.recentOnly
+                  ? t('yourPracticedMantras') || 'Your Practiced Mantras'
+                  : t('chooseMantra') || 'Choose Mantra'}
+              </Text>
+              {route.params?.recentOnly ? (
+                <TouchableOpacity
+                  style={styles.exploreLinkBtn}
+                  onPress={() => navigation.navigate('JapaHub')}
+                  activeOpacity={0.75}>
+                  <Text style={styles.exploreLinkText}>
+                    + {t('newMantra') || 'New Mantra'} (Japa Hub)
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <View style={styles.chipRow}>
+              {mantras.map(item => (
+                <TouchableOpacity
+                  key={item.key}
                   style={[
-                    styles.chipText,
-                    selected?.key === item.key && styles.chipTextActive,
-                  ]}>
-                  {mantraLabel(item)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                    styles.chip,
+                    item.own && styles.chipOwn,
+                    selected?.key === item.key && styles.chipActive,
+                  ]}
+                  onPress={() => selectMantra(item)}>
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selected?.key === item.key && styles.chipTextActive,
+                    ]}>
+                    {mantraLabel(item)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         ) : (
           <View style={styles.selectedMantraContainer}>
@@ -692,28 +729,15 @@ const ChantScreen = () => {
         disabled={goalReached || saving}
         style={({pressed}) => [
           styles.countZone,
-          !showMantraPicker && selected ? styles.countZoneExpanded : null,
-          mode === 'community' && !challengeId && styles.countZoneCommunity,
           pressed && !goalReached && !saving ? styles.countZonePressed : null,
         ]}>
         <View
           style={[
             styles.ring,
-            !showMantraPicker && selected ? styles.ringExpanded : null,
-            mode === 'community' && !challengeId && styles.ringCommunity,
             goalReached && styles.ringPaused,
           ]}>
-          <View
-            style={[
-              styles.innerRing,
-              !showMantraPicker && selected ? styles.innerRingExpanded : null,
-              mode === 'community' && !challengeId && styles.innerRingCommunity,
-            ]}>
-            <Text
-              style={[
-                styles.count,
-                mode === 'community' && !challengeId && styles.countCommunity,
-              ]}>
+          <View style={styles.innerRing}>
+            <Text style={styles.count}>
               {count.toLocaleString()}
             </Text>
             <Text style={styles.japas}>{t('japasLabel')}</Text>
@@ -735,14 +759,13 @@ const ChantScreen = () => {
           </View>
           <Text style={styles.percent}>{progress}%</Text>
         </View>
-        <View
-          style={[styles.tapCircle, goalReached && styles.tapCirclePaused]}>
-          <Text style={styles.tapCircleText}>
+        <View style={[styles.tapPromptContainer, goalReached && styles.tapPromptContainerDone]}>
+          <Text style={[styles.tapPromptText, goalReached && styles.tapPromptTextDone]}>
             {goalReached
               ? challengeId
-                ? t('challengeCompleteLabel')
-                : t('goalReachedLabel')
-              : t('clickToCountChant')}
+                ? `✓ ${t('challengeCompleteLabel') || 'Challenge Complete'}`
+                : `✓ ${t('goalReachedLabel') || 'Goal Reached'}`
+              : `📿 ${t('tapAnywhereToChant') || 'Tap anywhere to chant'}`}
           </Text>
         </View>
       </Pressable>
@@ -796,6 +819,35 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     color: Colors.textSecondary,
     fontWeight: '600',
+  },
+  mantraPickerSection: {
+    marginBottom: 6,
+  },
+  mantraHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  mantraHeaderTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  exploreLinkBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#F3EFE6',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  exploreLinkText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
   chipRow: {
     flexDirection: 'row',
@@ -894,92 +946,76 @@ const styles = StyleSheet.create({
   },
   countZone: {
     width: '100%',
+    backgroundColor: '#1B1612',
+    borderWidth: 1.5,
+    borderColor: '#4E3E28',
+    borderRadius: 22,
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 4,
-  },
-  countZoneExpanded: {
-    paddingVertical: 22,
-  },
-  countZoneCommunity: {
-    paddingVertical: 20,
+    justifyContent: 'center',
+    paddingVertical: 26,
+    paddingHorizontal: 16,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: {width: 0, height: 4},
+    elevation: 4,
   },
   countZonePressed: {
-    opacity: 0.92,
+    backgroundColor: '#262019',
+    borderColor: Colors.templeGold,
   },
   ring: {
     alignSelf: 'center',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
     borderWidth: 3,
     borderColor: Colors.templeGold,
+    backgroundColor: '#120F0D',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ringExpanded: {
-    width: 246,
-    height: 246,
-    borderRadius: 123,
-    borderWidth: 3.5,
-  },
-  ringCommunity: {
-    width: 250,
-    height: 250,
-    borderRadius: 125,
-    borderWidth: 4,
   },
   ringPaused: {
     opacity: 0.75,
   },
   innerRing: {
-    width: 190,
-    height: 190,
-    borderRadius: 95,
-    borderWidth: 2,
-    borderColor: Colors.lightGold,
+    width: 118,
+    height: 118,
+    borderRadius: 59,
+    borderWidth: 1.5,
+    borderColor: 'rgba(218, 165, 32, 0.35)',
+    backgroundColor: '#171310',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  innerRingExpanded: {
-    width: 212,
-    height: 212,
-    borderRadius: 106,
-  },
-  innerRingCommunity: {
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    borderWidth: 3,
-  },
   count: {
-    fontSize: 42,
+    fontSize: 34,
+    lineHeight: 40,
     fontWeight: '800',
-    color: Colors.sacredBrown,
+    color: '#FFF8EC',
     includeFontPadding: true,
   },
-  countCommunity: {
-    fontSize: 50,
-    lineHeight: 58,
-  },
   japas: {
-    marginTop: 4,
-    color: Colors.leafGreen,
+    marginTop: 2,
+    color: Colors.templeGold,
     fontWeight: '800',
     letterSpacing: 1,
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 11,
+    lineHeight: 16,
     includeFontPadding: true,
   },
   goal: {
-    marginTop: 18,
-    color: Colors.leafGreen,
-    fontWeight: '800',
-    fontSize: 14,
-    lineHeight: 22,
+    marginTop: 16,
+    color: '#E0D6C3',
+    fontWeight: '700',
+    fontSize: 13,
+    lineHeight: 20,
+    textAlign: 'center',
     includeFontPadding: true,
   },
   barRow: {
+    width: '88%',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -987,43 +1023,45 @@ const styles = StyleSheet.create({
   },
   barTrack: {
     flex: 1,
-    height: 10,
-    borderRadius: 6,
-    backgroundColor: Colors.lightGold,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#2F261D',
     overflow: 'hidden',
   },
   barFill: {
-    height: 10,
+    height: 8,
     backgroundColor: Colors.templeGold,
   },
   percent: {
     fontWeight: '800',
-    color: Colors.sacredBrown,
-    fontSize: 14,
-    lineHeight: 20,
+    color: '#E0D6C3',
+    fontSize: 12,
+    lineHeight: 18,
     includeFontPadding: true,
   },
-  tapCircle: {
-    alignSelf: 'stretch',
-    width: '100%',
-    minHeight: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.templeGold,
-    marginTop: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
+  tapPromptContainer: {
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: 'rgba(196, 154, 69, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(196, 154, 69, 0.28)',
   },
-  tapCircleText: {
-    color: Colors.white,
+  tapPromptContainerDone: {
+    backgroundColor: 'rgba(46, 125, 50, 0.15)',
+    borderColor: 'rgba(76, 175, 80, 0.35)',
+  },
+  tapPromptText: {
+    color: Colors.templeGold,
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 13,
     textAlign: 'center',
-    lineHeight: 22,
+    letterSpacing: 0.5,
     includeFontPadding: true,
   },
-  tapCirclePaused: {
-    opacity: 0.7,
+  tapPromptTextDone: {
+    color: '#81C784',
   },
   save: {
     marginTop: 18,

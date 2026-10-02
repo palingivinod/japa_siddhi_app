@@ -363,6 +363,7 @@ class DonationService {
       orderSource: 'PURCHASE',
       itemName,
       quantity: 1,
+      orderStatus: 'UNDER_REVIEW',
       remarks: remarks || `Paid ₹${amount} via UPI QR`,
     });
 
@@ -393,6 +394,7 @@ class DonationService {
       const request = await banaLingamService.create({
         userId,
         orderId: order.id,
+        orderNumber: order.orderNumber,
         fullName: data.fullName || 'Devotee',
         mobile,
         address: data.address || 'Temple delivery',
@@ -411,18 +413,18 @@ class DonationService {
       }
     }
 
-    const prefix =
-      kind === 'NITHYA_HOMAM'
-        ? 'NH'
-        : kind === 'BANA_LINGAM'
-          ? 'JS'
-          : 'ANN';
+    const confirmationId =
+      kind === 'BANA_LINGAM'
+        ? order.orderNumber
+        : kind === 'NITHYA_HOMAM'
+          ? `NH${order.id}${String(Date.now()).slice(-3)}`
+          : `ANN${order.id}${String(Date.now()).slice(-3)}`;
     return {
       donationId,
       requestId,
       orderId: order.id,
       orderNumber: order.orderNumber,
-      confirmationId: `${prefix}${order.id}${String(Date.now()).slice(-3)}`,
+      confirmationId,
       itemName,
       amount,
       method: 'Razorpay',

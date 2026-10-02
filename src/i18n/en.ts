@@ -22,6 +22,7 @@ const en = {
   tabHome: 'Home',
   tabJapa: 'Japa',
   tabSeva: 'Seva',
+  tabRewards: 'Rewards',
   tabOrders: 'Orders',
   tabProfile: 'Profile',
 
@@ -154,6 +155,8 @@ const en = {
   settings: 'Settings',
   language: 'Language',
   logout: 'Logout',
+  logoutConfirmMsg: 'Do you really want to logout?',
+  yes: 'Yes',
   devoteeName: 'Devotee Name',
   autoLockJapa: 'Auto-lock during Japa',
   privacy: 'Privacy',
@@ -300,7 +303,7 @@ const en = {
   goalAnalytics: 'Goal Analytics',
   streakAnalytics: 'Streak Analytics',
   spiritualMilestone: 'Spiritual milestone',
-  japasToGo: '{{count}} Japas to go',
+  japasToGo: '{{count}} Japas to grab reward',
   japasProgressCount: '{{current}} / {{next}} Japas',
   allMilestonesReached: 'All milestones reached · {{count}} Japas',
   nextMilestone: 'Next milestone',
@@ -477,6 +480,9 @@ const en = {
   chooseOneMantra: 'Choose one mantra to chant',
   yourSelectedMantra: 'Your selected mantra',
   changeMantra: 'Change mantra',
+  yourPracticedMantras: 'Your Practiced Mantras',
+  chooseMantra: 'Choose Mantra',
+  newMantra: 'New Mantra',
   mantrasBtn: 'MANTRAS',
   chantListedMantraHint: 'Chant a listed mantra instead.',
   reportsPrivateJapaOnly: 'Reports will display only "Private Japa".',
@@ -538,6 +544,15 @@ const en = {
   daysLeftDailyTarget: '{{days}} days left · {{count}} chants each day',
   goalCountSummary: 'Goal count : {{count}}',
   dateGoalSummary: 'Date goal : {{date}}',
+  youNeedToDoJapasPerDay:
+    'You need to do {{count}} Japas per day to complete this goal on time ({{days}} days).',
+  todayTargetLabel: "Customize Today's Target (Optional)",
+  futureDailyHint:
+    'For the remaining {{days}} days, your daily goal will be ~{{count}} Japas/day.',
+  deadlineDate: 'Goal End Date / Deadline',
+  pickDeadlineDate: 'Pick End Date 📅',
+  dailyBreakdownTitle: 'Daily Goal Breakdown',
+  tapAnywhereToChant: 'Tap anywhere to chant',
 
   // Challenge progress screen
   progressTracking: 'Progress Tracking',
@@ -562,7 +577,7 @@ const en = {
   rewardsCatalog: 'Available Rewards',
   spiritualRewardsTitle: 'Sacred Spiritual Rewards',
   spiritualRewardsSubtitle:
-    'Complete your daily Japa goals and Samuhika Challenges to earn and claim these consecrated blessings.',
+    'Explore our authentic collection of consecrated spiritual items and sacred divine offerings.',
 
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',

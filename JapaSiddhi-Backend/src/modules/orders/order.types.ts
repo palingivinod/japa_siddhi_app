@@ -17,6 +17,8 @@ export type PaymentStatus =
 
 export type OrderStatus =
   | 'PENDING'
+  | 'UNDER_REVIEW'
+  | 'CONFIRMED'
   | 'PROCESSING'
   | 'READY'
   | 'SHIPPED'
@@ -38,6 +40,8 @@ export interface CreateOrderRequest {
   quantity: number;
 
   paymentId?: number | null;
+
+  orderStatus?: OrderStatus;
 
   remarks?: string | null;
 

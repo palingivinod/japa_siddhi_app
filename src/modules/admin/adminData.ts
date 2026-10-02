@@ -111,7 +111,7 @@ export type AdminBanner = {
   status: AdminBannerStatus;
 };
 
-export type AdminOrderStatus = 'Processing' | 'Shipped' | 'Delivered';
+export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered';
 
 export type AdminOrder = {
   id: string;

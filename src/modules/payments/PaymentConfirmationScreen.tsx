@@ -14,13 +14,23 @@ const PaymentConfirmationScreen = () => {
   return (
     <ScreenLayout title="Placed Successful" showBack tab="Orders">
       <SuccessHero
-        title="Order Confirmed"
-        subtitle={`Order #${data.orderNumber || data.confirmationId || 'JS10028'}`}
+        title={data.kind === 'BANA_LINGAM' ? 'Order Under Review' : 'Order Placed'}
+        subtitle={
+          data.orderNumber
+            ? data.orderNumber.startsWith('BL-')
+              ? `Order ${data.orderNumber}`
+              : `Order #${data.orderNumber}`
+            : `Order #${data.confirmationId || 'BL-0001'}`
+        }
       />
       <MenuCard
         emoji="✅"
         title={data.itemName || 'Baanalingam'}
-        subtitle="Your order has been created automatically."
+        subtitle={
+          data.kind === 'BANA_LINGAM'
+            ? 'Your application has been submitted and is under review.'
+            : 'Your order has been created successfully.'
+        }
       />
       <PrimaryButton
         title="VIEW ORDER"

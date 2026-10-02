@@ -1,15 +1,18 @@
 import messaging, {FirebaseMessagingTypes} from '@react-native-firebase/messaging';
-import notifee, {AndroidImportance} from '@notifee/react-native';
+import notifee, {AndroidImportance, EventType} from '@notifee/react-native';
 import {AppState, PermissionsAndroid, Platform} from 'react-native';
 
 import apiService from './apiService';
 import {getToken} from './session';
+import {navigateToNotifications} from '../navigation/navigationRef';
 
 let started = false;
 let channelReady = false;
 let lastUploadedToken = '';
 let unsubscribeRefresh: (() => void) | null = null;
 let unsubscribeForeground: (() => void) | null = null;
+let unsubscribeNotifee: (() => void) | null = null;
+let unsubscribeFcmOpened: (() => void) | null = null;
 
 const CHANNEL_ID = 'fcm_fallback_notification_channel';
 
@@ -66,7 +69,10 @@ export const displayForegroundNotification = async (
     android: {
       channelId: CHANNEL_ID,
       importance: AndroidImportance.HIGH,
-      pressAction: {id: 'default'},
+      pressAction: {
+        id: 'default',
+        launchActivity: 'default',
+      },
     },
     ios: {
       sound: 'default',
@@ -176,6 +182,32 @@ export const startPushNotifications = async () => {
     }
   });
 
+  // When notification is pressed in foreground / background via Notifee
+  unsubscribeNotifee = notifee.onForegroundEvent(({type}) => {
+    if (type === EventType.PRESS) {
+      navigateToNotifications();
+    }
+  });
+
+  // When app is in background and opened by pressing an FCM notification
+  unsubscribeFcmOpened = messaging().onNotificationOpenedApp(_remoteMessage => {
+    navigateToNotifications();
+  });
+
+  // Check if app was opened from quit state by clicking an FCM notification
+  messaging().getInitialNotification().then(remoteMessage => {
+    if (remoteMessage) {
+      navigateToNotifications();
+    }
+  }).catch(() => undefined);
+
+  // Check if app was opened from quit state by clicking a Notifee notification
+  notifee.getInitialNotification().then(initialNotification => {
+    if (initialNotification) {
+      navigateToNotifications();
+    }
+  }).catch(() => undefined);
+
   await registerCurrentToken();
 };
 
@@ -190,8 +222,12 @@ export const refreshPushRegistration = async () => {
 export const stopPushNotifications = () => {
   unsubscribeRefresh?.();
   unsubscribeForeground?.();
+  unsubscribeNotifee?.();
+  unsubscribeFcmOpened?.();
   unsubscribeRefresh = null;
   unsubscribeForeground = null;
+  unsubscribeNotifee = null;
+  unsubscribeFcmOpened = null;
   started = false;
   lastUploadedToken = '';
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
@@ -33,13 +33,29 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
 const AdminMoreScreen = () => {
   const navigation = useNavigation<any>();
 
-  const logout = async () => {
-    resetAdminAuthGate();
-    await clearAdminSession();
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Login', params: {forceLoginForm: true}}],
-    });
+  const logout = () => {
+    Alert.alert(
+      'Sign Out',
+      'Do you really want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          style: 'destructive',
+          onPress: async () => {
+            resetAdminAuthGate();
+            await clearAdminSession();
+            navigation.reset({
+              index: 0,
+              routes: [{name: 'Login', params: {forceLoginForm: true}}],
+            });
+          },
+        },
+      ],
+    );
   };
 
   return (

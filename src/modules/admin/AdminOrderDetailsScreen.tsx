@@ -15,7 +15,7 @@ import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrderStatus} from './adminData';
 
-const CYCLE: AdminOrderStatus[] = ['Processing', 'Shipped', 'Delivered'];
+const CYCLE: AdminOrderStatus[] = ['Under Review', 'Confirmed', 'Shipped', 'Delivered'];
 
 type OrderDetail = {
   id: string;
@@ -93,7 +93,11 @@ const AdminOrderDetailsScreen = () => {
         ? 'Delivered'
         : data.status === 'Shipped'
           ? 'Shipped'
-          : 'Processing',
+          : data.status === 'Confirmed'
+            ? 'Confirmed'
+            : data.status === 'Under Review'
+              ? 'Under Review'
+              : 'Processing',
     orderType: data.orderType || '',
     orderSource: data.orderSource || '',
     paymentStatus: data.paymentStatus || '',
@@ -134,12 +138,29 @@ const AdminOrderDetailsScreen = () => {
     }, [loadOrder]),
   );
 
-  const updateStatus = async () => {
+  const confirmOrder = async () => {
     if (!order) {
       return;
     }
-    const index = CYCLE.indexOf(order.status);
-    const next = CYCLE[(index + 1) % CYCLE.length];
+    setSaving(true);
+    try {
+      const response = await apiService.put(`/admin/orders/${order.id}/confirm`);
+      setOrder(applyOrder(response.data?.data || {}));
+      Alert.alert('Order Confirmed', `Order ${order.orderNo} is now confirmed.`);
+    } catch (err) {
+      Alert.alert(
+        'Confirmation failed',
+        getApiError(err, 'Could not confirm order.'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const advanceStatus = async (next: AdminOrderStatus) => {
+    if (!order) {
+      return;
+    }
     setSaving(true);
     try {
       const response = await apiService.put(`/admin/orders/${order.id}/status`, {
@@ -212,8 +233,30 @@ const AdminOrderDetailsScreen = () => {
             <Text style={styles.cardLabel}>Devotee</Text>
             <View style={styles.row}>
               <Text style={styles.customer}>{order.customer}</Text>
-              <View style={styles.pill}>
-                <Text style={styles.pillText}>{order.status.toUpperCase()}</Text>
+              <View
+                style={[
+                  styles.pill,
+                  order.status === 'Under Review'
+                    ? styles.pillReview
+                    : order.status === 'Confirmed'
+                      ? styles.pillConfirmed
+                      : order.status === 'Delivered'
+                        ? styles.pillDelivered
+                        : styles.pillShipped,
+                ]}>
+                <Text
+                  style={[
+                    styles.pillText,
+                    order.status === 'Under Review'
+                      ? styles.pillTextReview
+                      : order.status === 'Confirmed'
+                        ? styles.pillTextConfirmed
+                        : order.status === 'Delivered'
+                          ? styles.pillTextDelivered
+                          : styles.pillTextShipped,
+                  ]}>
+                  {order.status.toUpperCase()}
+                </Text>
               </View>
             </View>
             <DetailRow label="User id" value={order.userId} />
@@ -244,11 +287,31 @@ const AdminOrderDetailsScreen = () => {
             ) : null}
           </View>
 
-          <PrimaryButton
-            title={saving ? 'UPDATING...' : 'UPDATE STATUS'}
-            onPress={updateStatus}
-            disabled={saving}
-          />
+          {order.status === 'Under Review' ? (
+            <PrimaryButton
+              title={saving ? 'CONFIRMING...' : '✓ CONFIRM / APPROVE ORDER'}
+              onPress={confirmOrder}
+              disabled={saving}
+            />
+          ) : order.status === 'Confirmed' ? (
+            <PrimaryButton
+              title={saving ? 'UPDATING...' : '🚚 MARK AS SHIPPED'}
+              onPress={() => advanceStatus('Shipped')}
+              disabled={saving}
+            />
+          ) : order.status === 'Shipped' ? (
+            <PrimaryButton
+              title={saving ? 'UPDATING...' : '📦 MARK AS DELIVERED'}
+              onPress={() => advanceStatus('Delivered')}
+              disabled={saving}
+            />
+          ) : (
+            <PrimaryButton
+              title={saving ? 'UPDATING...' : '✓ ORDER DELIVERED (COMPLETED)'}
+              onPress={() => Alert.alert('Order Completed', 'This order has already been delivered.')}
+              disabled={saving}
+            />
+          )}
         </>
       ) : null}
     </AdminScreenLayout>
@@ -302,10 +365,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
+  pillReview: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#D97706',
+  },
+  pillConfirmed: {
+    backgroundColor: '#E0F2FE',
+    borderColor: '#0284C7',
+  },
+  pillShipped: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#9333EA',
+  },
+  pillDelivered: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+  },
   pillText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 12,
+  },
+  pillTextReview: {
+    color: '#B45309',
+  },
+  pillTextConfirmed: {
+    color: '#0369A1',
+  },
+  pillTextShipped: {
+    color: '#7E22CE',
+  },
+  pillTextDelivered: {
+    color: '#15803D',
   },
   detailRow: {
     marginBottom: 10,
