@@ -161,7 +161,32 @@ class JapaGoalRepository {
   async getUserGoals(
     userId: number,
   ) {
-
+    try {
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+          AND status = 'ACTIVE'
+          AND end_date < CURRENT_DATE
+          AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
+        `,
+        [userId],
+      );
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+          AND status = 'ACTIVE'
+          AND COALESCE(completed_count, 0) >= COALESCE(target_count, 0)
+          AND COALESCE(target_count, 0) > 0
+        `,
+        [userId],
+      );
+    } catch {
+      // ignore
+    }
 
     return mysql.query<any[]>(
       `

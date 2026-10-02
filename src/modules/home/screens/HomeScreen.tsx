@@ -29,13 +29,28 @@ import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
 
+type ActiveGoal = {
+  id: number;
+  goalName: string;
+  mantraId?: number | null;
+  personalMantraId?: number | null;
+  mantraType?: string;
+  mantraName?: string;
+  targetCount: number;
+  completedCount: number;
+  remainingCount: number;
+  startDate?: string;
+  endDate?: string;
+  status: string;
+};
+
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const {t, tt, language} = useLanguage();
   const [name, setName] = useState('Devotee');
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
-  const [goal, setGoal] = useState(2000);
+  const [activeJapaGoal, setActiveJapaGoal] = useState<ActiveGoal | null>(null);
   const [adminDailyGoal, setAdminDailyGoal] = useState(2000);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
@@ -133,9 +148,49 @@ const HomeScreen = () => {
         }
       }
       if (goals.status === 'fulfilled') {
-        const firstGoal = (goals.value.data.data ?? [])[0];
-        if (firstGoal?.targetCount) {
-          setGoal(Number(firstGoal.targetCount) || 2000);
+        const goalList: any[] = Array.isArray(goals.value.data?.data)
+          ? goals.value.data.data
+          : [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const active = goalList.find((item: any) => {
+          if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
+            return false;
+          }
+          const completed = Number(item.completedCount ?? item.completed_count ?? 0);
+          const target = Number(item.targetCount ?? item.target_count ?? 0);
+          if (target > 0 && completed >= target) {
+            return false;
+          }
+          if (item.endDate && String(item.endDate).slice(0, 10) < todayStr) {
+            return false;
+          }
+          return true;
+        });
+
+        if (active) {
+          const targetCount =
+            Number(active.targetCount ?? active.target_count) || 2000;
+          const completedCount =
+            Number(active.completedCount ?? active.completed_count) || 0;
+          setActiveJapaGoal({
+            id: Number(active.id),
+            goalName: String(
+              active.goalName || active.goal_name || t('continueJapa'),
+            ),
+            mantraId: active.mantraId ?? active.mantra_id ?? null,
+            personalMantraId:
+              active.personalMantraId ?? active.personal_mantra_id ?? null,
+            mantraType: active.mantraType ?? active.mantra_type ?? 'DEFAULT',
+            mantraName: active.mantraName ?? active.mantra_name ?? '',
+            targetCount,
+            completedCount,
+            remainingCount: Math.max(0, targetCount - completedCount),
+            startDate: active.startDate ?? active.start_date,
+            endDate: active.endDate ?? active.end_date,
+            status: String(active.status || 'ACTIVE').toUpperCase(),
+          });
+        } else {
+          setActiveJapaGoal(null);
         }
       }
       if (challenges.status === 'fulfilled') {
@@ -199,13 +254,27 @@ const HomeScreen = () => {
     100,
     Math.round((today / Math.max(adminDailyGoal, 1)) * 100),
   );
-  const userProgress = Math.min(
-    100,
-    Math.round((today / Math.max(goal, 1)) * 100),
-  );
+
+  const goalTarget = activeJapaGoal ? activeJapaGoal.targetCount : 0;
+  const goalCompleted = activeJapaGoal ? activeJapaGoal.completedCount : 0;
+  const goalProgress =
+    goalTarget > 0
+      ? Math.min(100, Math.round((goalCompleted / goalTarget) * 100))
+      : 0;
+
+  const handleDailyGoalPress = () => {
+    navigation.navigate('JapaHub');
+  };
 
   const handleContinueJapaPress = async () => {
-    if (today >= goal && goal > 0) {
+    if (!activeJapaGoal) {
+      navigation.navigate('JapaHub');
+      return;
+    }
+    if (
+      activeJapaGoal.completedCount >= activeJapaGoal.targetCount &&
+      activeJapaGoal.targetCount > 0
+    ) {
       navigation.navigate('JapaHub');
       return;
     }
@@ -213,12 +282,17 @@ const HomeScreen = () => {
       const draft = await getJapaDraft();
       if (draft && !Number(draft.challengeId || 0)) {
         navigation.navigate('Chant', {
-          mode: draft.mode || 'community',
-          mantraId: draft.mantraId,
+          mode:
+            draft.mode ||
+            (activeJapaGoal.mantraType === 'PERSONAL'
+              ? 'private'
+              : 'community'),
+          mantraId: draft.mantraId ?? activeJapaGoal.mantraId,
           privateMantra: draft.privateMantra,
-          personalMantraId: draft.personalMantraId,
-          goal: draft.goal || goal,
-          japaGoalId: draft.japaGoalId,
+          personalMantraId:
+            draft.personalMantraId ?? activeJapaGoal.personalMantraId,
+          goal: draft.goal || activeJapaGoal.targetCount,
+          japaGoalId: draft.japaGoalId || activeJapaGoal.id,
           resume: true,
         });
         return;
@@ -227,7 +301,12 @@ const HomeScreen = () => {
       // ignore
     }
     navigation.navigate('Chant', {
-      goal,
+      mode:
+        activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
+      mantraId: activeJapaGoal.mantraId,
+      personalMantraId: activeJapaGoal.personalMantraId,
+      goal: activeJapaGoal.targetCount,
+      japaGoalId: activeJapaGoal.id,
       resume: true,
     });
   };
@@ -312,12 +391,12 @@ const HomeScreen = () => {
             <PanchangDetails panchang={panchang} compact />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.progressCard}
-            activeOpacity={0.85}
-            onPress={handleContinueJapaPress}>
+          <View style={styles.progressCard}>
             {/* Top Section: Daily Goal */}
-            <View style={styles.cardSection}>
+            <TouchableOpacity
+              style={styles.cardSection}
+              activeOpacity={0.85}
+              onPress={handleDailyGoalPress}>
               <View style={styles.sectionHeaderRow}>
                 <Text style={styles.progressTitle}>{t('dailyGoal')}</Text>
                 <View
@@ -356,39 +435,51 @@ const HomeScreen = () => {
                   {today.toLocaleString('en-IN')} / {formatCountShort(adminDailyGoal)} · {dailyProgress}%
                 </Text>
               </View>
-            </View>
+            </TouchableOpacity>
 
-            {/* Divider */}
-            <View style={styles.cardDivider} />
-
-            {/* Bottom Section: Continue Japa */}
-            <View style={styles.cardSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.progressTitle}>{t('continueJapa')}</Text>
-                <Text style={styles.resumeChevron}>➔</Text>
-              </View>
-              <Text style={styles.progressMeta}>
-                {t('chantsToday', {count: today.toLocaleString('en-IN')})}
-              </Text>
-              <Text style={styles.progressMeta}>
-                {t('goalChants', {count: goal.toLocaleString('en-IN')})}
-              </Text>
-              <View style={styles.barRow}>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      {width: `${userProgress}%`},
-                      today >= goal && styles.barFillCompleted,
-                    ]}
-                  />
-                </View>
-                <Text style={styles.percent}>
-                  {today.toLocaleString('en-IN')} / {formatCountShort(goal)} · {userProgress}%
-                </Text>
-              </View>
-            </View>
-          </TouchableOpacity>
+            {/* Bottom Section: Continue Japa (Visible only when an active Japa Goal is ongoing) */}
+            {activeJapaGoal ? (
+              <>
+                <View style={styles.cardDivider} />
+                <TouchableOpacity
+                  style={styles.cardSection}
+                  activeOpacity={0.85}
+                  onPress={handleContinueJapaPress}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.progressTitle}>
+                      {activeJapaGoal.goalName || t('continueJapa')}
+                    </Text>
+                    <Text style={styles.resumeChevron}>➔</Text>
+                  </View>
+                  <Text style={styles.progressMeta}>
+                    {activeJapaGoal.mantraName
+                      ? activeJapaGoal.mantraName
+                      : t('tabJapa')}
+                  </Text>
+                  <Text style={styles.progressMeta}>
+                    {t('goalChants', {
+                      count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
+                    })}
+                  </Text>
+                  <View style={styles.barRow}>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          {width: `${goalProgress}%`},
+                          goalCompleted >= goalTarget && styles.barFillCompleted,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.percent}>
+                      {goalCompleted.toLocaleString('en-IN')} /{' '}
+                      {formatCountShort(goalTarget)} · {goalProgress}%
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            ) : null}
+          </View>
 
           <MilestoneProgressCard
             milestone={milestone}

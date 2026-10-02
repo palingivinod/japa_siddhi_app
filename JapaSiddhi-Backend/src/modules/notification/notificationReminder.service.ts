@@ -189,6 +189,56 @@ const goalDeadlineCopy = (
   };
 };
 
+export const notifyGoalCompleted = async (input: {
+  userId: number;
+  goalId: number;
+  goalName?: string;
+  completedCount?: number;
+  targetCount?: number;
+}) => {
+  const name = String(input.goalName || 'Japa goal').trim() || 'Japa goal';
+  const target = Number(input.targetCount || 0);
+  const completed = Number(input.completedCount || target);
+  return notifyOnce({
+    userId: input.userId,
+    title: 'Japa goal completed!',
+    message: `You completed your goal "${name}". Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Congratulations on your sadhana!`,
+    notificationType: 'REWARD',
+    actionType: 'GOAL_COMPLETED',
+    actionId: Number(input.goalId),
+    extraData: {
+      goalId: input.goalId,
+      completedCount: completed,
+      targetCount: target,
+    },
+  });
+};
+
+export const notifyGoalExpired = async (input: {
+  userId: number;
+  goalId: number;
+  goalName?: string;
+  completedCount?: number;
+  targetCount?: number;
+}) => {
+  const name = String(input.goalName || 'Japa goal').trim() || 'Japa goal';
+  const completed = Number(input.completedCount || 0);
+  const target = Number(input.targetCount || 0);
+  return notifyOnce({
+    userId: input.userId,
+    title: 'Your Japa goal has expired',
+    message: `"${name}" has expired. Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Set a new goal to continue your sadhana.`,
+    notificationType: 'JAPA_REMINDER',
+    actionType: 'GOAL_EXPIRED',
+    actionId: Number(input.goalId),
+    extraData: {
+      goalId: input.goalId,
+      completedCount: completed,
+      targetCount: target,
+    },
+  });
+};
+
 export const notifyChallengeCompleted = async (input: {
   userId: number;
   challengeId: number;
@@ -279,40 +329,78 @@ export const flushDeadlineReminders = async () => {
         IFNULL(completed_count, 0) AS completedCount
       FROM japa_goals
       WHERE status = 'ACTIVE'
-        AND IFNULL(completed_count, 0) < IFNULL(target_count, 0)
     `);
 
     for (const row of goalRows || []) {
+      const goalId = Number(row.goalId);
+      const userId = Number(row.userId);
+      const completed = Number(row.completedCount || 0);
+      const target = Number(row.targetCount || 0);
+      const goalName = String(row.goalName || 'Japa goal');
+
+      // 1. Completed check
+      if (target > 0 && completed >= target) {
+        await mysql.query(
+          `UPDATE japa_goals SET status = 'COMPLETED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [goalId],
+        );
+        const ok = await notifyGoalCompleted({
+          userId,
+          goalId,
+          goalName,
+          completedCount: completed,
+          targetCount: target,
+        });
+        if (ok) {
+          created += 1;
+        }
+        continue;
+      }
+
+      // 2. Expired check
       const endDate = toYmd(row.endDate);
       if (!endDate) {
         continue;
       }
       const left = daysUntil(today, endDate);
-      if (left == null || !DEADLINE_WINDOWS.includes(left as any)) {
+      if (left != null && left < 0) {
+        await mysql.query(
+          `UPDATE japa_goals SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [goalId],
+        );
+        const ok = await notifyGoalExpired({
+          userId,
+          goalId,
+          goalName,
+          completedCount: completed,
+          targetCount: target,
+        });
+        if (ok) {
+          created += 1;
+        }
         continue;
       }
-      const copy = goalDeadlineCopy(
-        String(row.goalName || 'Japa goal'),
-        left,
-        Number(row.completedCount || 0),
-        Number(row.targetCount || 0),
-      );
-      const ok = await notifyOnce({
-        userId: Number(row.userId),
-        title: copy.title,
-        message: copy.message,
-        notificationType: 'JAPA_REMINDER',
-        actionType: 'GOAL_DEADLINE',
-        actionId: deadlineActionId(Number(row.goalId), left),
-        extraData: {
-          goalId: Number(row.goalId),
-          daysLeft: left,
-          endDate,
-        },
-        expiresAt: endOfDayStamp(endDate),
-      });
-      if (ok) {
-        created += 1;
+
+      // 3. Approaching deadline
+      if (left != null && DEADLINE_WINDOWS.includes(left as any)) {
+        const copy = goalDeadlineCopy(goalName, left, completed, target);
+        const ok = await notifyOnce({
+          userId,
+          title: copy.title,
+          message: copy.message,
+          notificationType: 'JAPA_REMINDER',
+          actionType: 'GOAL_DEADLINE',
+          actionId: deadlineActionId(goalId, left),
+          extraData: {
+            goalId,
+            daysLeft: left,
+            endDate,
+          },
+          expiresAt: endOfDayStamp(endDate),
+        });
+        if (ok) {
+          created += 1;
+        }
       }
     }
   } catch (error) {

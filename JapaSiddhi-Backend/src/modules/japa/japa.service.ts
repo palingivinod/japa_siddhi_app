@@ -116,6 +116,30 @@ class JapaService {
         data.sessionCount,
         userId,
       );
+      try {
+        const japaGoalRepository = (
+          await import('../japaGoal/japaGoal.repository')
+        ).default;
+        const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
+        if (
+          goal &&
+          (goal.status === 'COMPLETED' ||
+            Number(goal.completed_count || 0) >= Number(goal.target_count || 0))
+        ) {
+          const {notifyGoalCompleted} = await import(
+            '../notification/notificationReminder.service'
+          );
+          await notifyGoalCompleted({
+            userId,
+            goalId: japaGoalId,
+            goalName: goal.goal_name || goal.goalName || 'Japa goal',
+            completedCount: Number(goal.completed_count || 0),
+            targetCount: Number(goal.target_count || 0),
+          });
+        }
+      } catch (err) {
+        console.warn('Goal completion check error:', err);
+      }
     }
 
 
