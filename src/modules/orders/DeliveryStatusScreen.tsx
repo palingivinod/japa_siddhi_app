@@ -1,12 +1,11 @@
 import React, {useEffect, useState} from 'react';
-import {ActivityIndicator, Linking} from 'react-native';
+import {ActivityIndicator} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import MenuCard from '../common/MenuCard';
-import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
 
@@ -54,16 +53,6 @@ const DeliveryStatusScreen = () => {
           {label: 'STATUS', value: item?.orderStatus || 'Shipped'},
           {label: 'ETA', value: item?.eta || 'Aug 22'},
         ]}
-      />
-      <PrimaryButton
-        title="TRACK LIVE"
-        onPress={() =>
-          Linking.openURL(
-            `https://www.google.com/search?q=${encodeURIComponent(
-              item?.orderNumber || 'order tracking',
-            )}`,
-          )
-        }
       />
     </ScreenLayout>
   );
