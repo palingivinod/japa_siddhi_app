@@ -58,6 +58,12 @@ const ProfileViewScreen = () => {
   };
 
   const applyProfile = (data: any, stored?: any) => ({
+    userCode:
+      data?.userCode ||
+      data?.user_code ||
+      stored?.userCode ||
+      stored?.user_code ||
+      (stored?.id ? `BPJS${String(stored.id).padStart(2, '0')}` : null),
     fullName:
       data?.fullName ||
       stored?.fullName ||
@@ -221,6 +227,11 @@ const ProfileViewScreen = () => {
         </View>
       </TouchableOpacity>
       <Text style={styles.name}>{profile?.fullName || t('devoteeName')}</Text>
+      {profile?.userCode ? (
+        <View style={styles.userCodeBadge}>
+          <Text style={styles.userCodeText}>ID: {profile.userCode}</Text>
+        </View>
+      ) : null}
       {achievedMilestone ? (
         <View style={styles.milestoneBadge}>
           <Text style={styles.milestoneLabel}>{t('achievedMilestone')}</Text>
@@ -304,8 +315,24 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 10,
+    marginBottom: 4,
     includeFontPadding: true,
+  },
+  userCodeBadge: {
+    alignSelf: 'center',
+    backgroundColor: '#FFF4E0',
+    borderColor: Colors.templeGold,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginBottom: 12,
+  },
+  userCodeText: {
+    color: Colors.sacredBrown,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
   milestoneBadge: {
     alignSelf: 'center',

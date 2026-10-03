@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS users (
 
     uuid CHAR(36) NOT NULL,
 
+    user_code VARCHAR(20) DEFAULT NULL,
+
     firebase_uid VARCHAR(128) DEFAULT NULL,
 
     mobile_country_code VARCHAR(10) NOT NULL,
@@ -117,6 +119,8 @@ CREATE TABLE IF NOT EXISTS users (
         PRIMARY KEY (id),
 
     UNIQUE KEY uk_users_uuid (uuid),
+
+    UNIQUE KEY uk_users_user_code (user_code),
 
     UNIQUE KEY uk_users_firebase_uid (firebase_uid),
 

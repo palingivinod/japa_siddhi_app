@@ -59,9 +59,16 @@ const mapUser = (row: any): AuthUser | null => {
   const mobileCountryCode = isDummy
     ? ''
     : (row.mobileCountryCode ?? row.mobile_country_code ?? '');
+  const idNum = Number(row.id ?? 0);
+  const userCode =
+    row.userCode ??
+    row.user_code ??
+    (idNum > 0 ? `BPJS${String(idNum).padStart(2, '0')}` : null);
 
   return {
     ...safeRow,
+    id: idNum || safeRow.id,
+    userCode,
     firebaseUid,
     mobileCountryCode,
     mobileNumber,
@@ -368,7 +375,20 @@ class AuthRepository {
         ],
       );
 
-    return result.insertId;
+    const insertedId = result.insertId;
+    if (insertedId) {
+      const generatedCode = `BPJS${String(insertedId).padStart(2, '0')}`;
+      try {
+        await mysql.query(
+          `UPDATE users SET user_code = ? WHERE id = ? AND (user_code IS NULL OR user_code = '')`,
+          [generatedCode, insertedId],
+        );
+      } catch {
+        // Ignored
+      }
+    }
+
+    return insertedId;
   }
 
   async getPasswordHashByEmail(email: string): Promise<string | null> {

@@ -228,6 +228,7 @@ class SqliteEngine {
 
     const names = this.tableColumns('users');
     const columns: Array<[string, string]> = [
+      ['user_code', 'TEXT'],
       ['address', 'TEXT'],
       ['marital_status', "TEXT DEFAULT 'Bachelor'"],
       ['spouse_name', 'TEXT'],
@@ -244,6 +245,17 @@ class SqliteEngine {
         this.db?.run(`ALTER TABLE users ADD COLUMN ${name} ${definition}`);
       }
     });
+
+    try {
+      this.db?.run(`
+        UPDATE users 
+        SET user_code = printf('BPJS%02d', id) 
+        WHERE user_code IS NULL OR user_code = '' OR user_code LIKE 'BPJS000%'
+      `);
+    } catch {
+      // Ignored
+    }
+
     this.persist();
   }
 

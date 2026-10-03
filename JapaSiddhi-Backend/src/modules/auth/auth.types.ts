@@ -39,6 +39,7 @@ export interface CompleteProfileRequest {
 export interface JwtUser {
   id: number;
   uuid: string;
+  userCode?: string;
   firebaseUid: string;
   mobileNumber: string;
   role: string;
@@ -47,6 +48,7 @@ export interface JwtUser {
 export interface AuthUser {
   id: number;
   uuid: string;
+  userCode?: string | null;
 
   firebaseUid: string;
 

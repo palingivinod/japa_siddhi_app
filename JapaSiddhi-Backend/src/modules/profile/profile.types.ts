@@ -21,6 +21,7 @@ export interface UpdateProfileRequest {
 
 export interface ProfileResponse {
   id: number;
+  userCode?: string | null;
   firebaseUid: string;
   mobileNumber: string;
   fullName: string;

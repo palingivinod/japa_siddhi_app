@@ -32,10 +32,13 @@ const formatWhen = (value: string | null, justNow: string) => {
 };
 
 const formatMilestoneBadge = (target: number) => {
-  if (target >= 1000000) {
-    return `${target / 1000000}M`;
+  if (target === 2498) {
+    return '2498';
   }
-  if (target >= 1000) {
+  if (target >= 1000000) {
+    return target % 1000000 === 0 ? `${target / 1000000}M` : `${target / 1000000}M`;
+  }
+  if (target >= 1000 && target % 1000 === 0) {
     return `${target / 1000}K`;
   }
   return String(target);
@@ -176,7 +179,7 @@ const MilestoneNotificationsScreen = () => {
                     <Text
                       style={[
                         styles.circleText,
-                        badge.length >= 5 && styles.circleTextSmall,
+                        badge.length >= 4 && styles.circleTextSmall,
                       ]}
                       numberOfLines={1}
                       ellipsizeMode="clip"
@@ -280,7 +283,7 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   circleTextSmall: {
-    fontSize: 10,
+    fontSize: 11,
     letterSpacing: -0.3,
   },
   rowTitle: {fontWeight: '800', color: Colors.sacredBrown},

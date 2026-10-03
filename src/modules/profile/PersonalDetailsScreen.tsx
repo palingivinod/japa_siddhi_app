@@ -209,9 +209,15 @@ const PersonalDetailsScreen = () => {
     .filter(Boolean)
     .join(', ');
 
+  const userCode =
+    profile?.userCode ||
+    profile?.user_code ||
+    (profile?.id ? `BPJS${String(profile.id).padStart(2, '0')}` : '');
+
   if (!editing) {
     return (
       <ScreenLayout title="Personal Details" showBack tab="Profile">
+        {userCode ? <Row label="Devotee ID" value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
         <Row label="Email" value={email} />

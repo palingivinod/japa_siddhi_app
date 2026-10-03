@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS cities (
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT NOT NULL UNIQUE,
+  user_code TEXT UNIQUE,
   firebase_uid TEXT UNIQUE,
   mobile_country_code TEXT NOT NULL DEFAULT '91',
   mobile_number TEXT NOT NULL DEFAULT '',

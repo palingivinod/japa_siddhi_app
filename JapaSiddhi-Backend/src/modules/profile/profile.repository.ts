@@ -26,6 +26,8 @@ class ProfileRepository {
 
           u.id,
 
+          u.user_code AS userCode,
+
           u.firebase_uid AS firebaseUid,
 
           u.mobile_number AS mobileNumber,
@@ -127,6 +129,11 @@ class ProfileRepository {
           [userId],
         )
         .catch(() => undefined);
+    }
+
+    const idNum = Number(row.id ?? userId ?? 0);
+    if (!row.userCode && idNum > 0) {
+      row.userCode = `BPJS${String(idNum).padStart(2, '0')}`;
     }
 
     return row;
