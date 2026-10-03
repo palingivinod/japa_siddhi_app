@@ -590,6 +590,12 @@ export const runReminderSweep = async () => {
   if (reminderRunning) {
     return;
   }
+  const {isWithinNotificationHoursIST} = await import(
+    '../admin/adminNotification.service'
+  );
+  if (!isWithinNotificationHoursIST()) {
+    return;
+  }
   reminderRunning = true;
   try {
     const {flushDueAdminNotifications} = await import(

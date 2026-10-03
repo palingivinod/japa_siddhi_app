@@ -616,8 +616,6 @@ const ChantScreen = () => {
     }
   };
 
-  const progress = Math.min(100, Math.round((count / Math.max(goal, 1)) * 100));
-
   // Preset mantra names live in the dictionary, so they follow the chosen
   // language. A devotee's own mantra is always shown exactly as they typed it.
   const mantraLabel = (item: ChantMantra) =>
@@ -736,12 +734,6 @@ const ChantScreen = () => {
                 })
               : t('goalWithCount', {count: goal.toLocaleString()})}
         </Text>
-        <View style={styles.barRow}>
-          <View style={styles.barTrack}>
-            <View style={[styles.barFill, {width: `${progress}%`}]} />
-          </View>
-          <Text style={styles.percent}>{progress}%</Text>
-        </View>
         <View style={[styles.tapPromptContainer, goalReached && styles.tapPromptContainerDone]}>
           <Text style={[styles.tapPromptText, goalReached && styles.tapPromptTextDone]}>
             {goalReached
@@ -752,31 +744,34 @@ const ChantScreen = () => {
           </Text>
         </View>
       </Pressable>
-      <TouchableOpacity
-        style={styles.save}
-        onPress={saveSession}
-        disabled={saving}>
-        <Text style={styles.saveText}>
-          {saving ? t('savingLabel') : t('saveSession')}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.save}
-        onPress={() => {
-          if (challengeId) {
-            navigation.navigate('ChallengeProgress', {id: challengeId});
-            return;
-          }
-          navigation.navigate('JapaProgress', {
-            count: savedTotal + count,
-            goal,
-            sessionCount: count,
-          });
-        }}>
-        <Text style={styles.saveText}>
-          {challengeId ? t('viewChallengeProgress') : t('viewProgress')}
-        </Text>
-      </TouchableOpacity>
+
+      <View style={styles.bottomActions}>
+        <TouchableOpacity
+          style={styles.save}
+          onPress={saveSession}
+          disabled={saving}>
+          <Text style={styles.saveText}>
+            {saving ? t('savingLabel') : t('saveSession')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.progressBtn}
+          onPress={() => {
+            if (challengeId) {
+              navigation.navigate('ChallengeProgress', {id: challengeId});
+              return;
+            }
+            navigation.navigate('JapaProgress', {
+              count: savedTotal + count,
+              goal,
+              sessionCount: count,
+            });
+          }}>
+          <Text style={styles.progressBtnText}>
+            {challengeId ? t('viewChallengeProgress') : t('viewProgress')}
+          </Text>
+        </TouchableOpacity>
+      </View>
       {message ? (
         <Text style={[styles.message, {color: formMessageColor(message)}]}>
           {message}
@@ -916,14 +911,14 @@ const styles = StyleSheet.create({
   },
   countZone: {
     width: '100%',
-    minHeight: 380,
+    minHeight: 460,
     backgroundColor: '#EDE3CE',
-    borderRadius: 26,
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 34,
-    paddingHorizontal: 16,
-    marginVertical: 12,
+    paddingVertical: 40,
+    paddingHorizontal: 20,
+    marginVertical: 14,
     shadowColor: '#4A3525',
     shadowOpacity: 0.12,
     shadowRadius: 10,
@@ -935,9 +930,9 @@ const styles = StyleSheet.create({
   },
   ring: {
     alignSelf: 'center',
-    width: 176,
-    height: 176,
-    borderRadius: 88,
+    width: 196,
+    height: 196,
+    borderRadius: 98,
     borderWidth: 3.5,
     borderColor: Colors.templeGold,
     backgroundColor: '#FAF5EA',
@@ -953,9 +948,9 @@ const styles = StyleSheet.create({
     opacity: 0.75,
   },
   innerRing: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
+    width: 168,
+    height: 168,
+    borderRadius: 84,
     borderWidth: 2,
     borderColor: 'rgba(196, 154, 69, 0.45)',
     backgroundColor: '#FFFDF9',
@@ -963,60 +958,35 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   count: {
-    fontSize: 44,
-    lineHeight: 50,
+    fontSize: 48,
+    lineHeight: 54,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
   japas: {
-    marginTop: 2,
+    marginTop: 4,
     color: Colors.templeGold,
     fontWeight: '800',
-    letterSpacing: 1.2,
-    fontSize: 12,
+    letterSpacing: 1.5,
+    fontSize: 13,
     lineHeight: 18,
     includeFontPadding: true,
   },
   goal: {
-    marginTop: 20,
+    marginTop: 22,
     color: Colors.sacredBrown,
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
     includeFontPadding: true,
   },
-  barRow: {
-    width: '88%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-  },
-  barTrack: {
-    flex: 1,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#D8CAB0',
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: 10,
-    backgroundColor: Colors.templeGold,
-  },
-  percent: {
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-    fontSize: 13,
-    lineHeight: 20,
-    includeFontPadding: true,
-  },
   tapPromptContainer: {
-    marginTop: 20,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 22,
+    marginTop: 24,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 24,
     backgroundColor: '#E2D3B8',
     borderWidth: 1,
     borderColor: '#CBB896',
@@ -1028,7 +998,7 @@ const styles = StyleSheet.create({
   tapPromptText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 15,
     textAlign: 'center',
     letterSpacing: 0.5,
     includeFontPadding: true,
@@ -1036,16 +1006,40 @@ const styles = StyleSheet.create({
   tapPromptTextDone: {
     color: '#2E7D32',
   },
-  save: {
+  bottomActions: {
     marginTop: 18,
+    gap: 12,
+  },
+  save: {
     backgroundColor: Colors.templeGold,
+    borderRadius: 30,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
+  },
+  saveText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
+  progressBtn: {
+    backgroundColor: Colors.white,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
     borderRadius: 30,
     minHeight: 50,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  saveText: {
-    color: Colors.white,
+  progressBtnText: {
+    color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 15,
     lineHeight: 22,

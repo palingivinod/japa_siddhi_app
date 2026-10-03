@@ -184,7 +184,7 @@ class CustomerCareService {
     const digits = phone.replace(/[^\d]/g, '');
     return {
       supportPhone: phone.startsWith('+') ? phone : `+${digits}`,
-      supportEmail: map.support_email || 'kailaasavaasi@gmail.com',
+      supportEmail: map.support_email || 'bilvapatratrust@gmail.com',
       whatsappUrl: `https://wa.me/${digits}`,
       hours: '9 AM – 6 PM',
     };

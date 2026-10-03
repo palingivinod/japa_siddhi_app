@@ -238,13 +238,15 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 4,
-    color: Colors.textSecondary,
+    color: '#3E3024',
+    fontSize: 13.5,
     lineHeight: 20,
   },
   meta: {
     marginTop: 6,
     color: Colors.sacredBrown,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   actions: {
     flexDirection: 'row',

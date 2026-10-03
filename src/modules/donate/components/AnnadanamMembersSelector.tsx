@@ -63,8 +63,8 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
           style={styles.dropdownBtn}
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}>
-          <Text style={styles.dropdownBtnText}>
-            {currentCount > 0 ? `${currentCount} ${currentCount === 1 ? 'Person' : 'Persons'}` : 'Select Persons'}
+          <Text style={styles.dropdownBtnText} numberOfLines={1}>
+            {currentCount > 0 ? `${currentCount}` : 'Select'}
           </Text>
           <Text style={styles.dropdownArrow}>▾</Text>
         </TouchableOpacity>
@@ -74,10 +74,10 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
             style={styles.textInput}
             value={currentCount > 0 ? String(currentCount) : ''}
             onChangeText={handleTextChange}
-            placeholder="Qty"
+            placeholder="Enter no of persons"
             placeholderTextColor={Colors.placeholder}
             keyboardType="number-pad"
-            maxLength={5}
+            maxLength={6}
           />
         </View>
       </View>
@@ -194,29 +194,30 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dropdownBtn: {
-    flex: 1,
+    width: 95,
     height: 52,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
   dropdownBtnText: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.sacredBrown,
   },
   dropdownArrow: {
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.templeGold,
     fontWeight: '800',
+    marginLeft: 4,
   },
   textInputWrap: {
-    width: 90,
+    flex: 1,
   },
   textInput: {
     height: 52,
@@ -224,11 +225,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
-    paddingHorizontal: 12,
-    fontSize: 16,
+    paddingHorizontal: 14,
+    fontSize: 15,
     fontWeight: '700',
     color: Colors.sacredBrown,
-    textAlign: 'center',
   },
   calcCard: {
     backgroundColor: Colors.white,

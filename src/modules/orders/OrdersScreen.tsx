@@ -4,6 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
+import AppIcon from '../../components/icons/AppIcon';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -94,29 +95,38 @@ const OrdersScreen = () => {
       {!loading && !error && visible.length === 0 ? (
         <Text style={styles.empty}>{t('noOrdersYet')}</Text>
       ) : null}
-      {visible.map(item => (
-        <View key={item.id} style={styles.card}>
-          <View style={styles.dot}>
-            <Text style={styles.emoji}>📦</Text>
+      {visible.map(item => {
+        const itemText = `${item.itemName || ''} ${item.productName || ''} ${item.donationType || ''} ${item.orderNumber || ''}`.toLowerCase();
+        const isBaanalingam = itemText.includes('banalingam') || itemText.includes('baanalingam') || itemText.includes('lingam') || itemText.includes('shiva');
+
+        return (
+          <View key={item.id} style={styles.card}>
+            <View style={styles.dot}>
+              {isBaanalingam ? (
+                <AppIcon name="banalingam" size={30} />
+              ) : (
+                <Text style={styles.emoji}>📦</Text>
+              )}
+            </View>
+            <View style={styles.copy}>
+              <Text style={styles.name}>
+                {item.orderNumber || `Order #${item.id}`}
+              </Text>
+              <Text style={styles.meta}>
+                {tt(String(item.itemName || item.productName || item.donationType || t('seva')))}{' '}
+                • {formatStatus(String(item.orderStatus || item.status || ''), t)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.view}
+              onPress={() =>
+                navigation.navigate('OrderDetails', {id: item.id, order: item})
+              }>
+              <Text style={styles.viewText}>{t('view')}</Text>
+            </TouchableOpacity>
           </View>
-          <View style={styles.copy}>
-            <Text style={styles.name}>
-              {item.orderNumber || `Order #${item.id}`}
-            </Text>
-            <Text style={styles.meta}>
-              {tt(String(item.itemName || item.productName || item.donationType || t('seva')))}{' '}
-              • {formatStatus(String(item.orderStatus || item.status || ''), t)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.view}
-            onPress={() =>
-              navigation.navigate('OrderDetails', {id: item.id, order: item})
-            }>
-            <Text style={styles.viewText}>{t('view')}</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+        );
+      })}
     </ScreenLayout>
   );
 };
@@ -160,6 +170,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   emoji: {
     fontSize: 16,
@@ -169,7 +180,7 @@ const styles = StyleSheet.create({
   },
   copy: {flex: 1},
   name: {fontSize: 15, fontWeight: '800', color: Colors.sacredBrown},
-  meta: {marginTop: 4, color: Colors.textSecondary},
+  meta: {marginTop: 4, color: '#4A3B2C', fontSize: 13, lineHeight: 18},
   view: {
     backgroundColor: Colors.lightGold,
     borderRadius: 10,

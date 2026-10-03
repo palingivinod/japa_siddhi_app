@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -71,6 +72,74 @@ const DetailRow = ({label, value}: {label: string; value?: string | number | nul
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <Text style={styles.detailValue}>{text}</Text>
+    </View>
+  );
+};
+
+const handleCall = (mobile?: string) => {
+  if (!mobile) return;
+  const clean = mobile.replace(/[^\d+]/g, '');
+  Linking.openURL(`tel:${clean}`).catch(() => {
+    Alert.alert('Call Error', 'Unable to open phone dialer.');
+  });
+};
+
+const handleWhatsApp = (mobile?: string) => {
+  if (!mobile) return;
+  let clean = mobile.replace(/[^\d]/g, '');
+  if (clean.length === 10) {
+    clean = `91${clean}`;
+  }
+  Linking.openURL(`https://wa.me/${clean}`).catch(() => {
+    Alert.alert('WhatsApp Error', 'Unable to open WhatsApp.');
+  });
+};
+
+const MobileDetailRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) => {
+  const text =
+    value === undefined || value === null || value === ''
+      ? '—'
+      : String(value);
+  const hasNumber = Boolean(
+    value &&
+      value.trim() &&
+      value.trim() !== '—' &&
+      value.replace(/[^\d]/g, '').length >= 5,
+  );
+
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <View style={styles.mobileValueRow}>
+        <Text style={styles.detailValue}>{text}</Text>
+        {hasNumber ? (
+          <View style={styles.contactActions}>
+            <TouchableOpacity
+              style={[styles.contactBtn, styles.phoneBtn]}
+              onPress={() => handleCall(value!)}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              <Text style={styles.contactBtnIcon}>📞</Text>
+              <Text style={styles.contactBtnText}>Call</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.contactBtn, styles.whatsappBtn]}
+              onPress={() => handleWhatsApp(value!)}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              <Text style={styles.contactBtnIcon}>💬</Text>
+              <Text style={styles.contactBtnText}>WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -178,6 +247,14 @@ const AdminOrderDetailsScreen = () => {
     }
   };
 
+  const isBaanalingam =
+    String(order?.product || '').toLowerCase().includes('banalingam') ||
+    String(order?.product || '').toLowerCase().includes('baanalingam') ||
+    String(order?.orderType || '').toLowerCase().includes('banalingam') ||
+    String(order?.orderType || '').toLowerCase().includes('baanalingam') ||
+    String(order?.rewardName || '').toLowerCase().includes('banalingam') ||
+    String(order?.rewardName || '').toLowerCase().includes('baanalingam');
+
   const delivery = order?.delivery || {};
   const fullAddress = [
     delivery.address,
@@ -217,7 +294,9 @@ const AdminOrderDetailsScreen = () => {
             <DetailRow label="Quantity" value={order.quantity} />
             <DetailRow label="Order type" value={order.orderType} />
             <DetailRow label="Source" value={order.orderSource} />
-            <DetailRow label="Payment status" value={order.paymentStatus} />
+            {!isBaanalingam ? (
+              <DetailRow label="Payment status" value={order.paymentStatus} />
+            ) : null}
             <DetailRow label="Order status" value={order.status} />
             <DetailRow label="Placed at" value={formatWhen(order.createdAt)} />
             <DetailRow label="Updated at" value={formatWhen(order.updatedAt)} />
@@ -261,7 +340,10 @@ const AdminOrderDetailsScreen = () => {
             </View>
             <DetailRow label="User id" value={order.userId} />
             <DetailRow label="Email" value={order.customerEmail} />
-            <DetailRow label="Mobile" value={order.customerMobile} />
+            <MobileDetailRow
+              label="Mobile"
+              value={order.customerMobile}
+            />
           </View>
 
           <View style={styles.card}>
@@ -270,7 +352,10 @@ const AdminOrderDetailsScreen = () => {
               label="Full name"
               value={delivery.fullName || order.customer}
             />
-            <DetailRow label="Mobile" value={delivery.mobile} />
+            <MobileDetailRow
+              label="Mobile"
+              value={delivery.mobile}
+            />
             <DetailRow label="Email" value={delivery.email} />
             <DetailRow label="Address" value={delivery.address} />
             <DetailRow label="City" value={delivery.city} />
@@ -412,5 +497,43 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 15,
     lineHeight: 21,
+  },
+  mobileValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 2,
+  },
+  contactActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+  },
+  phoneBtn: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  whatsappBtn: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  contactBtnIcon: {
+    fontSize: 13,
+  },
+  contactBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
 });

@@ -19,12 +19,20 @@ const JapaHubScreen = () => {
   const items = useMemo(
     () => [
       {
+        key: 'yourJapas',
+        icon: 'prayer' as AppIconName,
+        title: t('yourJapas') || 'Your Japas',
+        sub: t('ongoingJapasSub') || 'View ongoing mantras & dynamic goals',
+        route: 'YourJapas',
+        tone: 'gold' as const,
+      },
+      {
         key: 'community',
         icon: 'om' as AppIconName,
         title: t('communityJapa'),
         sub: t('communityJapaSub'),
         route: 'CommunityJapa',
-        tone: 'gold' as const,
+        tone: 'green' as const,
       },
       {
         key: 'private',

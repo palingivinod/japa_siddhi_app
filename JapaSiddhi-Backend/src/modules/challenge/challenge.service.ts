@@ -7,6 +7,7 @@ import orderService from '../orders/order.service';
 import mysql from '../../database/mysql';
 import emailOtpService from '../../services/emailOtp.service';
 import authRepository from '../auth/auth.repository';
+import japaRepository from '../japa/japa.repository';
 
 class ChallengeService {
   private async userSummary(userId: number) {
@@ -357,6 +358,38 @@ class ChallengeService {
     if (Number(reward.stock || 0) < 1) {
       throw new Error('Selected reward is out of stock');
     }
+
+    const rewardNameLower = String(reward.name || '').toLowerCase();
+    const userTotalJapa = await japaRepository.getUserTotalJapa(userId);
+
+    // Yellow Agate / Green Agate requires 2,00,000 Japas
+    if (
+      (rewardNameLower.includes('yellow') || rewardNameLower.includes('green')) &&
+      (rewardNameLower.includes('agate') || rewardNameLower.includes('hakik'))
+    ) {
+      if (userTotalJapa < 200000) {
+        const remaining = 200000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 2,00,000 (2 Lakhs) Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
+    // Spatika Mala requires 1,00,000 Japas
+    if (
+      rewardNameLower.includes('spatik') ||
+      rewardNameLower.includes('sphatik') ||
+      rewardNameLower.includes('crystal') ||
+      rewardNameLower.includes('quartz')
+    ) {
+      if (userTotalJapa < 100000) {
+        const remaining = 100000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 1,00,000 (1 Lakh) Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
     await challengeRepository.claimReward(
       challengeId,
       userId,

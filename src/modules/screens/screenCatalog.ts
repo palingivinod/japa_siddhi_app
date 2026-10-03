@@ -35,6 +35,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
   {order: 15, name: 'Settings', route: 'Settings'},
   {order: 16, name: 'Language Settings', route: 'LanguageSelect', params: {fromSettings: true}},
   {order: 17, name: 'Japa Category Selection', route: 'JapaHub'},
+  {order: 17.5, name: 'Your Japas Ongoing', route: 'YourJapas'},
   {order: 18, name: 'Community Japa', route: 'CommunityJapa'},
   {order: 19, name: 'Mantra Selection', route: 'MantraSelect', params: {mode: 'community'}},
   {order: 20, name: 'Goal Selection', route: 'GoalSelect', params: {mode: 'community', goal: 10800}},

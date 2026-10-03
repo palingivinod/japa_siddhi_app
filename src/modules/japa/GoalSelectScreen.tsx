@@ -320,6 +320,11 @@ const GoalSelectScreen = () => {
               })}
             </View>
 
+            <Text style={styles.quickDaysHint}>
+              {t('quickDaysHint') ||
+                'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+            </Text>
+
             <TouchableOpacity
               style={styles.calendarBtn}
               onPress={() => setShowCalendar(true)}
@@ -358,9 +363,10 @@ const GoalSelectScreen = () => {
                 <Text style={styles.breakdownMessage}>
                   {t('youNeedToDoJapasPerDay', {
                     count: defaultDailyTarget.toLocaleString('en-IN'),
+                    date: formatDate(endDate),
                     days: remainingDays,
                   }) ||
-                    `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete this goal on time (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
+                    `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete your Japa on or before ${formatDate(endDate)} (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
                 </Text>
 
                 <View style={styles.todayTargetContainer}>
@@ -510,6 +516,13 @@ const styles = StyleSheet.create({
   quickDayTextActive: {
     color: Colors.selectedOrange,
     fontWeight: '800',
+  },
+  quickDaysHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginBottom: 10,
+    marginTop: -2,
+    lineHeight: 17,
   },
   calendarBtn: {
     backgroundColor: Colors.white,

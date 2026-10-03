@@ -57,8 +57,7 @@ const DonateScreen = () => {
     }, []),
   );
 
-  const hasAny =
-    visibility.japa || visibility.general || visibility.campaigns;
+  const hasAny = visibility.japa || visibility.general;
 
   return (
     <ScreenLayout title={t('tileAnnadanam')} showBack tab="SevaHub">
@@ -93,15 +92,6 @@ const DonateScreen = () => {
           subtitle={t('generalAnnadanamSub')}
           tone="green"
           onPress={() => navigation.navigate('GeneralAnnadanam')}
-        />
-      ) : null}
-
-      {visibility.campaigns ? (
-        <MenuCard
-          icon="festivalCampaign"
-          title={t('festivalCampaigns')}
-          subtitle={t('seasonalAnnadanamCampaigns')}
-          onPress={() => navigation.navigate('Festivals')}
         />
       ) : null}
     </ScreenLayout>

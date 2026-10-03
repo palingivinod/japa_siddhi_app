@@ -1,7 +1,10 @@
+import {AppIconName} from '../components/icons/AppIcon';
+
 export interface LocalizedReward {
   title: Record<string, string>;
   description: Record<string, string>;
   emoji: string;
+  imageName?: AppIconName;
 }
 
 const REWARD_LOCALIZATIONS: Array<{
@@ -95,6 +98,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
     content: {
       emoji: '💎',
+      imageName: 'greenAgate',
       title: {
         en: 'Green Agate',
         te: 'గ్రీన్ అగేట్ (పచ్చ హకీక్)',
@@ -132,6 +136,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
     content: {
       emoji: '💎',
+      imageName: 'yellowAgate',
       title: {
         en: 'Yellow Agate',
         te: 'ఎల్లో అగేట్ (పసుపు హకీక్)',
@@ -664,7 +669,7 @@ const FALLBACK_CONTENT: LocalizedReward = {
 export const getLocalizedReward = (
   rawName: string,
   lang: string = 'en',
-): {title: string; description: string; emoji: string} => {
+): {title: string; description: string; emoji: string; imageName?: AppIconName} => {
   const name = String(rawName || '').trim();
   const matched = REWARD_LOCALIZATIONS.find(item => item.match(name));
   const content = matched ? matched.content : FALLBACK_CONTENT;
@@ -679,6 +684,57 @@ export const getLocalizedReward = (
     content.description['en'] ||
     FALLBACK_CONTENT.description['en'];
   const emoji = content.emoji;
+  const imageName = content.imageName;
 
-  return {title, description, emoji};
+  return {title, description, emoji, imageName};
+};
+
+export interface RewardEligibility {
+  requiredJapas: number;
+  requiredLabel: string;
+  isEligible: boolean;
+  remainingJapas: number;
+}
+
+export const getRewardRequirement = (
+  rewardName: string,
+): {count: number; label: string} => {
+  const lower = String(rewardName || '').toLowerCase();
+  // Yellow Agate or Green Agate => 2,00,000 Japas (2 Lakhs)
+  if (
+    lower.includes('yellow agate') ||
+    lower.includes('green agate') ||
+    (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट'))) ||
+    (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट')))
+  ) {
+    return {count: 200000, label: '2,00,000 (2 Lakhs)'};
+  }
+  // Spatika Mala => 1,00,000 Japas (1 Lakh)
+  if (
+    lower.includes('spatik') ||
+    lower.includes('sphatik') ||
+    lower.includes('crystal') ||
+    lower.includes('quartz') ||
+    lower.includes('స్పటిక') ||
+    lower.includes('स्फटिक')
+  ) {
+    return {count: 100000, label: '1,00,000 (1 Lakh)'};
+  }
+  return {count: 0, label: 'Standard'};
+};
+
+export const checkRewardEligibility = (
+  rewardName: string,
+  userJapaCount: number = 0,
+): RewardEligibility => {
+  const req = getRewardRequirement(rewardName);
+  const count = Number(userJapaCount) || 0;
+  const isEligible = req.count <= 0 || count >= req.count;
+  const remainingJapas = isEligible ? 0 : Math.max(0, req.count - count);
+  return {
+    requiredJapas: req.count,
+    requiredLabel: req.label,
+    isEligible,
+    remainingJapas,
+  };
 };

@@ -11,8 +11,13 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import AppIcon from '../../components/icons/AppIcon';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {
+  checkRewardEligibility,
+  getLocalizedReward,
+} from '../../utils/rewardContent';
 
 type RewardItem = {
   id: number;
@@ -30,14 +35,20 @@ const ChallengeRewardSelectScreen = () => {
   const [claimedName, setClaimedName] = useState('');
   const [deliverySubmitted, setDeliverySubmitted] = useState(false);
   const [claimedOrderId, setClaimedOrderId] = useState<number | null>(null);
+  const [userTotalJapas, setUserTotalJapas] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    apiService
-      .get(`/challenges/${challengeId}/rewards`)
-      .then(response => {
+    Promise.all([
+      apiService.get(`/challenges/${challengeId}/rewards`),
+      apiService.get('/japa/milestones').catch(() => null),
+    ])
+      .then(([response, milestoneRes]) => {
         const data = response.data?.data || {};
+        const milestoneData = milestoneRes?.data?.data || {};
+        const total = Number(milestoneData.total || milestoneData.milestoneTotal || 0);
+        setUserTotalJapas(total);
         setRewards(data.rewards || []);
         setDeliverySubmitted(Boolean(data.deliverySubmitted));
         if (data.claimed && data.claimedReward?.name) {
@@ -64,6 +75,26 @@ const ChallengeRewardSelectScreen = () => {
 
   const selected = rewards.find(item => item.id === selectedId);
 
+  const handleRewardPress = (item: RewardItem) => {
+    if (claimedName) {
+      return;
+    }
+    const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+    if (!eligibility.isEligible) {
+      Alert.alert(
+        'Reward Locked',
+        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward. (Current Japas: ${userTotalJapas.toLocaleString()})`,
+        [{text: 'OK'}],
+      );
+      return;
+    }
+    if (!item.inStock) {
+      Alert.alert('Out of Stock', 'This reward item is currently out of stock.');
+      return;
+    }
+    setSelectedId(item.id);
+  };
+
   const continueConfirm = () => {
     if (claimedName && deliverySubmitted) {
       if (claimedOrderId) {
@@ -83,8 +114,20 @@ const ChallengeRewardSelectScreen = () => {
       });
       return;
     }
-    if (!selected || !selected.inStock) {
-      Alert.alert('Select reward', 'Choose an in-stock Mala to continue.');
+    if (!selected) {
+      Alert.alert('Select reward', 'Choose a sacred reward to continue.');
+      return;
+    }
+    const eligibility = checkRewardEligibility(selected.name, userTotalJapas);
+    if (!eligibility.isEligible) {
+      Alert.alert(
+        'Reward Locked',
+        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.`,
+      );
+      return;
+    }
+    if (!selected.inStock) {
+      Alert.alert('Out of stock', 'Choose an in-stock reward to continue.');
       return;
     }
     navigation.navigate('ChallengeRewardConfirm', {
@@ -98,7 +141,7 @@ const ChallengeRewardSelectScreen = () => {
     <ScreenLayout title="Choose Your Reward" showBack tab="JapaHub">
       <Text style={styles.heading}>Reward unlocked</Text>
       <Text style={styles.sub}>
-        Select one Mala after completing the challenge.
+        Select your consecrated spiritual reward. Total Japas completed: {userTotalJapas.toLocaleString()}
       </Text>
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
@@ -113,23 +156,47 @@ const ChallengeRewardSelectScreen = () => {
 
       <View style={styles.grid}>
         {rewards.map(item => {
-          const selected = selectedId === item.id;
-          const disabled = !item.inStock || Boolean(claimedName);
+          const isSelected = selectedId === item.id;
+          const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+          const localized = getLocalizedReward(item.name, 'en');
+          const isLocked = !eligibility.isEligible;
+          const disabled = Boolean(claimedName);
+
           return (
             <TouchableOpacity
               key={item.id}
               style={[
                 styles.card,
-                selected && styles.cardSelected,
+                isSelected && styles.cardSelected,
                 !item.inStock && styles.cardOut,
+                isLocked && styles.cardLocked,
               ]}
               activeOpacity={0.85}
               disabled={disabled}
-              onPress={() => setSelectedId(item.id)}>
-              <View
-                style={[styles.radio, selected && styles.radioOn]}
-              />
+              onPress={() => handleRewardPress(item)}>
+              <View style={styles.cardHeaderRow}>
+                <View
+                  style={[styles.radio, isSelected && styles.radioOn]}
+                />
+                {localized.imageName ? (
+                  <View style={styles.rewardIconWrap}>
+                    <AppIcon name={localized.imageName} size={32} />
+                  </View>
+                ) : null}
+                {isLocked ? (
+                  <View style={styles.lockBadge}>
+                    <Text style={styles.lockBadgeText}>🔒 Locked</Text>
+                  </View>
+                ) : null}
+              </View>
               <Text style={styles.name}>{item.name}</Text>
+              
+              {isLocked ? (
+                <Text style={styles.requirementHint}>
+                  Requires {eligibility.requiredLabel} Japas
+                </Text>
+              ) : null}
+
               <Text
                 style={[
                   styles.stock,
@@ -176,12 +243,15 @@ const styles = StyleSheet.create({
   sub: {
     marginTop: 6,
     marginBottom: 18,
-    color: Colors.textSecondary,
+    color: '#4A3B2C',
+    fontSize: 13.5,
+    lineHeight: 19,
   },
   claimed: {
     marginBottom: 12,
     color: Colors.leafGreen,
     fontWeight: '700',
+    fontSize: 13.5,
   },
   grid: {
     flexDirection: 'row',
@@ -197,7 +267,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.sacredBrown,
     padding: 14,
     marginBottom: 12,
-    minHeight: 110,
+    minHeight: 120,
   },
   cardSelected: {
     borderColor: Colors.templeGold,
@@ -206,6 +276,42 @@ const styles = StyleSheet.create({
   cardOut: {
     opacity: 0.55,
     borderColor: Colors.cardBorder,
+  },
+  cardLocked: {
+    borderColor: '#D4C4AA',
+    backgroundColor: '#F7F3EA',
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  rewardIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    overflow: 'hidden',
+    backgroundColor: '#FFF4E0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lockBadge: {
+    backgroundColor: '#F0E6D2',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  lockBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#8C6F48',
+  },
+  requirementHint: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#B45309',
+    marginTop: 4,
   },
   radio: {
     width: 18,

@@ -343,7 +343,12 @@ const styles = StyleSheet.create({
   },
   cardCopy: {flex: 1},
   cardTitle: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
-  meta: {marginTop: 6, color: Colors.textSecondary, lineHeight: 20},
+  meta: {
+    marginTop: 6,
+    color: '#3E3024',
+    fontSize: 13.5,
+    lineHeight: 20,
+  },
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -357,6 +362,7 @@ const styles = StyleSheet.create({
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
+    fontSize: 13,
     marginBottom: 4,
   },
   value: {
@@ -367,6 +373,7 @@ const styles = StyleSheet.create({
   section: {
     color: Colors.leafGreen,
     fontWeight: '800',
+    fontSize: 14,
     marginBottom: 8,
     marginTop: 4,
   },
@@ -388,7 +395,9 @@ const styles = StyleSheet.create({
   percent: {fontWeight: '800', color: Colors.sacredBrown, minWidth: 40},
   hint: {
     marginTop: 8,
-    color: Colors.textSecondary,
+    color: '#5C4A38',
+    fontSize: 13,
+    lineHeight: 18,
   },
   links: {
     flexDirection: 'row',

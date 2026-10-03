@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   },
   description: {
     marginTop: 6,
-    color: Colors.textSecondary,
+    color: '#3E3024',
     lineHeight: 24,
     fontSize: 14,
     paddingVertical: 4,

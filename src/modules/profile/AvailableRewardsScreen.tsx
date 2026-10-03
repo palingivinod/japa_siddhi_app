@@ -1,19 +1,25 @@
 import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
+import AppIcon from '../../components/icons/AppIcon';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
-import {getLocalizedReward} from '../../utils/rewardContent';
+import {
+  checkRewardEligibility,
+  getLocalizedReward,
+} from '../../utils/rewardContent';
 
 type RewardItem = {
   id: number | string;
@@ -37,6 +43,7 @@ const DEFAULT_REWARDS: RewardItem[] = [
 const AvailableRewardsScreen = () => {
   const {t, tt, language} = useLanguage();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
+  const [userTotalJapas, setUserTotalJapas] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -46,9 +53,16 @@ const AvailableRewardsScreen = () => {
     setError('');
     setRawError(null);
     try {
-      const response = await apiService
-        .get('/challenges/rewards')
-        .catch(() => apiService.get('/admin/rewards'));
+      const [response, milestoneRes] = await Promise.all([
+        apiService
+          .get('/challenges/rewards')
+          .catch(() => apiService.get('/admin/rewards')),
+        apiService.get('/japa/milestones').catch(() => null),
+      ]);
+
+      const milestoneData = milestoneRes?.data?.data || {};
+      const total = Number(milestoneData.total || milestoneData.milestoneTotal || 0);
+      setUserTotalJapas(total);
 
       const raw =
         response.data?.data?.rewards ||
@@ -87,6 +101,23 @@ const AvailableRewardsScreen = () => {
     }, [load]),
   );
 
+  const handleCardPress = (item: RewardItem, localized: any) => {
+    const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+    if (!eligibility.isEligible) {
+      Alert.alert(
+        'Reward Locked',
+        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.\n\nYour current completed Japas: ${userTotalJapas.toLocaleString()}`,
+        [{text: 'OK'}],
+      );
+    } else {
+      Alert.alert(
+        localized.title || tt(item.name),
+        `${localized.description || ''}\n\n✓ Eligible: You have completed ${userTotalJapas.toLocaleString()} Japas. Complete challenges or milestones to claim this reward for delivery.`,
+        [{text: 'OK'}],
+      );
+    }
+  };
+
   return (
     <ScreenLayout title={t('availableRewards') || 'Available Rewards'} tab="Rewards">
       {/* Banner / Info Header */}
@@ -100,7 +131,8 @@ const AvailableRewardsScreen = () => {
           </Text>
           <Text style={styles.bannerSubtitle}>
             {t('spiritualRewardsSubtitle') ||
-              'Explore our authentic collection of consecrated spiritual items and sacred divine offerings.'}
+              'Explore our authentic collection of consecrated spiritual items. Total completed Japas: ' +
+                userTotalJapas.toLocaleString()}
           </Text>
         </View>
       </View>
@@ -118,29 +150,57 @@ const AvailableRewardsScreen = () => {
       <View style={styles.listContainer}>
         {rewards.map(item => {
           const localized = getLocalizedReward(item.name, language);
+          const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+          const isLocked = !eligibility.isEligible;
+
           return (
-            <View key={String(item.id)} style={styles.rewardCard}>
+            <TouchableOpacity
+              key={String(item.id)}
+              style={[styles.rewardCard, isLocked && styles.rewardCardLocked]}
+              activeOpacity={0.85}
+              onPress={() => handleCardPress(item, localized)}>
               <View style={styles.cardHeader}>
-                <View style={styles.dot}>
-                  <Text style={styles.emoji}>
-                    {item.emoji || localized.emoji}
-                  </Text>
+                <View style={[styles.dot, isLocked && styles.dotLocked]}>
+                  {localized.imageName ? (
+                    <AppIcon name={localized.imageName} size={48} />
+                  ) : (
+                    <Text style={styles.emoji}>
+                      {item.emoji || localized.emoji}
+                    </Text>
+                  )}
                 </View>
                 <View style={styles.headerInfo}>
                   <Text style={styles.rewardName}>
                     {localized.title || tt(item.name)}
                   </Text>
                   <View style={styles.badgeRow}>
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>{tt('Available')}</Text>
-                    </View>
+                    {isLocked ? (
+                      <View style={styles.lockedBadge}>
+                        <Text style={styles.lockedBadgeText}>
+                          🔒 Unlocks at {eligibility.requiredLabel}
+                        </Text>
+                      </View>
+                    ) : (
+                      <View style={styles.statusBadge}>
+                        <Text style={styles.statusText}>
+                          {eligibility.requiredJapas > 0
+                            ? `✓ Unlocked (${eligibility.requiredLabel})`
+                            : tt('Available')}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 </View>
               </View>
               <Text style={styles.description}>
                 {localized.description || tt(item.description || '')}
               </Text>
-            </View>
+              {isLocked ? (
+                <Text style={styles.remainingHint}>
+                  Need {eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward
+                </Text>
+              ) : null}
+            </TouchableOpacity>
           );
         })}
       </View>
@@ -184,9 +244,9 @@ const styles = StyleSheet.create({
     includeFontPadding: true,
   },
   bannerSubtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    lineHeight: 17,
+    fontSize: 13,
+    color: '#5C4A38',
+    lineHeight: 19,
     includeFontPadding: true,
   },
   sectionHeading: {
@@ -228,6 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
+    overflow: 'hidden',
   },
   emoji: {
     fontSize: 24,
@@ -255,13 +316,45 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: Colors.leafGreen,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
+  lockedBadge: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#D97706',
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  lockedBadgeText: {
+    color: '#B45309',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  rewardCardLocked: {
+    backgroundColor: '#FAF7F0',
+    borderColor: '#D8CAB0',
+  },
+  dotLocked: {
+    backgroundColor: '#EBE2D2',
+  },
   description: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 19,
+    fontSize: 13.5,
+    color: '#3E3024',
+    lineHeight: 20,
     includeFontPadding: true,
+  },
+  remainingHint: {
+    marginTop: 8,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#B45309',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
 });

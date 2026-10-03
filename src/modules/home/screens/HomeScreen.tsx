@@ -52,6 +52,7 @@ const HomeScreen = () => {
   const [today, setToday] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [activeJapaGoal, setActiveJapaGoal] = useState<ActiveGoal | null>(null);
+  const [allActiveGoals, setAllActiveGoals] = useState<any[]>([]);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
   const [milestone, setMilestone] = useState<any>(null);
@@ -149,7 +150,7 @@ const HomeScreen = () => {
           ? goals.value.data.data
           : [];
         const todayStr = new Date().toISOString().slice(0, 10);
-        const active = goalList.find((item: any) => {
+        const activeGoals = goalList.filter((item: any) => {
           if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
             return false;
           }
@@ -163,6 +164,9 @@ const HomeScreen = () => {
           }
           return true;
         });
+
+        setAllActiveGoals(activeGoals);
+        const active = activeGoals[0];
 
         if (active) {
           const targetCount =
@@ -259,18 +263,27 @@ const HomeScreen = () => {
     if (!endMatch) {
       return 1;
     }
-    const startIso = startDateStr ? String(startDateStr).slice(0, 10) : '';
-    const startMatch = startIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    const start = startMatch
-      ? new Date(Number(startMatch[1]), Number(startMatch[2]) - 1, Number(startMatch[3]))
-      : new Date();
-    start.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const end = new Date(Number(endMatch[1]), Number(endMatch[2]) - 1, Number(endMatch[3]));
     end.setHours(0, 0, 0, 0);
-    return Math.max(1, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    return Math.max(1, Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 
   const userDailyGoal = useMemo(() => {
+    if (allActiveGoals.length > 0) {
+      let totalDaily = 0;
+      allActiveGoals.forEach(g => {
+        const target = Number(g.targetCount ?? g.target_count) || 0;
+        let daily = Number(g.dailyTarget ?? g.daily_target) || 0;
+        if (daily <= 0 && target > 0) {
+          const days = totalGoalDays(g.startDate ?? g.start_date, g.endDate ?? g.end_date);
+          daily = Math.max(1, Math.ceil(target / days));
+        }
+        totalDaily += daily;
+      });
+      return Math.max(1, totalDaily);
+    }
     if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
       if (activeJapaGoal.dailyTarget && activeJapaGoal.dailyTarget > 0) {
         return activeJapaGoal.dailyTarget;
@@ -279,7 +292,7 @@ const HomeScreen = () => {
       return Math.max(1, Math.ceil(activeJapaGoal.targetCount / Math.max(1, totalDays)));
     }
     return 108;
-  }, [activeJapaGoal]);
+  }, [allActiveGoals, activeJapaGoal]);
 
   const dailyProgress = Math.min(
     100,
@@ -294,123 +307,15 @@ const HomeScreen = () => {
       : 0;
 
   const handleDailyGoalPress = () => {
-    navigation.navigate('JapaHub');
+    navigation.navigate('YourJapas');
   };
 
-  const handleContinueJapaPress = async () => {
-    if (!activeJapaGoal) {
-      navigation.navigate('JapaHub');
-      return;
-    }
-    if (
-      activeJapaGoal.completedCount >= activeJapaGoal.targetCount &&
-      activeJapaGoal.targetCount > 0
-    ) {
-      navigation.navigate('JapaHub');
-      return;
-    }
-    try {
-      const draft = await getJapaDraft();
-      if (draft && !Number(draft.challengeId || 0)) {
-        navigation.navigate('Chant', {
-          mode:
-            draft.mode ||
-            (activeJapaGoal.mantraType === 'PERSONAL'
-              ? 'private'
-              : 'community'),
-          mantraId: draft.mantraId ?? activeJapaGoal.mantraId,
-          privateMantra: draft.privateMantra,
-          personalMantraId:
-            draft.personalMantraId ?? activeJapaGoal.personalMantraId,
-          goal: draft.goal || activeJapaGoal.targetCount,
-          japaGoalId: draft.japaGoalId || activeJapaGoal.id,
-          resume: true,
-        });
-        return;
-      }
-    } catch {
-      // ignore
-    }
-    navigation.navigate('Chant', {
-      mode:
-        activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
-      mantraId: activeJapaGoal.mantraId,
-      personalMantraId: activeJapaGoal.personalMantraId,
-      goal: activeJapaGoal.targetCount,
-      japaGoalId: activeJapaGoal.id,
-      resume: true,
-    });
+  const handleContinueJapaPress = () => {
+    navigation.navigate('YourJapas');
   };
 
-  const handleBannerStartJapa = async () => {
-    // 1. If user has an active ongoing daily goal in progress -> Resume chanting directly
-    if (
-      activeJapaGoal &&
-      activeJapaGoal.targetCount > 0 &&
-      activeJapaGoal.completedCount < activeJapaGoal.targetCount
-    ) {
-      navigation.navigate('Chant', {
-        mode:
-          activeJapaGoal.mantraType === 'PERSONAL' ? 'private' : 'community',
-        mantraId: activeJapaGoal.mantraId ?? undefined,
-        personalMantraId: activeJapaGoal.personalMantraId ?? undefined,
-        privateMantra:
-          activeJapaGoal.mantraType === 'PERSONAL'
-            ? activeJapaGoal.mantraName
-            : undefined,
-        goal: activeJapaGoal.targetCount,
-        initialCount: activeJapaGoal.completedCount,
-        japaGoalId: activeJapaGoal.id,
-        resume: true,
-        fromHome: true,
-      });
-      return;
-    }
-
-    // 2. If user has an active ongoing draft in progress -> Resume draft
-    try {
-      const draft = await getJapaDraft();
-      if (
-        draft &&
-        !Number(draft.challengeId || 0) &&
-        Number(draft.count || 0) > 0 &&
-        Number(draft.count || 0) < Number(draft.goal || 0)
-      ) {
-        navigation.navigate('Chant', {
-          mode:
-            draft.mode ||
-            (activeJapaGoal?.mantraType === 'PERSONAL'
-              ? 'private'
-              : 'community'),
-          mantraId: draft.mantraId ?? activeJapaGoal?.mantraId ?? undefined,
-          privateMantra: draft.privateMantra,
-          personalMantraId:
-            draft.personalMantraId ?? activeJapaGoal?.personalMantraId ?? undefined,
-          goal: draft.goal || activeJapaGoal?.targetCount,
-          initialCount: draft.count,
-          japaGoalId: draft.japaGoalId || activeJapaGoal?.id,
-          resume: true,
-          fromHome: true,
-        });
-        return;
-      }
-    } catch {
-      // ignore
-    }
-
-    // 3. For existing users (who have practiced mantras before) -> Open Chant screen with previous mantras shown at the top
-    if (lifetime > 0 || today > 0) {
-      navigation.navigate('Chant', {
-        mode: 'private',
-        fromHome: true,
-        recentOnly: true,
-        resume: false,
-      });
-      return;
-    }
-
-    // 4. For brand new / fresh users (0 history) -> Open Japa Screen (Japa Hub)
-    navigation.navigate('JapaHub');
+  const handleBannerStartJapa = () => {
+    navigation.navigate('YourJapas');
   };
 
   const showJapaAnnadanam =
@@ -428,6 +333,7 @@ const HomeScreen = () => {
         <AppHeader title="Japa Siddhi" showBell />
         <ScrollView
           showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -684,6 +590,7 @@ export default HomeScreen;
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
   body: {flex: 1, paddingHorizontal: 20},
+  scrollContent: {paddingBottom: 40},
   greet: {
     fontSize: 22,
     lineHeight: 32,

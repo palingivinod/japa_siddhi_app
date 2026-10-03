@@ -40,6 +40,11 @@ const PanchangDetails = ({panchang, compact}: Props) => {
     {key: 'paksha', label: t('labelPaksha'), text: value(panchang.paksha)},
     {key: 'yoga', label: t('labelYoga'), text: value(panchang.yoga)},
     {key: 'karana', label: t('labelKarana'), text: value(panchang.karana)},
+    {
+      key: 'rahu',
+      label: t('labelRahuKalam') || 'RAHU KALAM',
+      text: value(panchang.rahuKalam),
+    },
   ];
 
   if (!compact) {
@@ -116,7 +121,7 @@ const styles = StyleSheet.create({
   label: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    fontSize: 11,
+    fontSize: 12.5,
     lineHeight: 18,
     letterSpacing: 0,
     includeFontPadding: true,
@@ -125,7 +130,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     color: Colors.sacredBrown,
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 14.5,
     lineHeight: 22,
     includeFontPadding: true,
   },

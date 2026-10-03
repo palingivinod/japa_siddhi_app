@@ -296,7 +296,7 @@ class SqliteEngine {
     this.db.run(
       `
       UPDATE app_settings
-      SET setting_value = 'kailaasavaasi@gmail.com'
+      SET setting_value = 'bilvapatratrust@gmail.com'
       WHERE setting_key = 'support_email'
       `,
     );

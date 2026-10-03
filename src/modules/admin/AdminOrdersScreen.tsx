@@ -101,6 +101,15 @@ const AdminOrdersScreen = () => {
     }
   };
 
+  const orderCounts = useMemo(() => {
+    const total = orders.length;
+    const underReview = orders.filter(o => o.status === 'Under Review').length;
+    const confirmed = orders.filter(o => o.status === 'Confirmed').length;
+    const shipped = orders.filter(o => o.status === 'Shipped').length;
+    const delivered = orders.filter(o => o.status === 'Delivered').length;
+    return {total, underReview, confirmed, shipped, delivered};
+  }, [orders]);
+
   const visibleOrders = useMemo(() => {
     if (tab === 'All') {
       return orders;
@@ -108,26 +117,80 @@ const AdminOrdersScreen = () => {
     return orders.filter(o => o.status === tab);
   }, [orders, tab]);
 
+  const tabCount = (tabId: string) => {
+    if (tabId === 'All') return orderCounts.total;
+    if (tabId === 'Under Review') return orderCounts.underReview;
+    if (tabId === 'Confirmed') return orderCounts.confirmed;
+    if (tabId === 'Shipped') return orderCounts.shipped;
+    if (tabId === 'Delivered') return orderCounts.delivered;
+    return 0;
+  };
+
   return (
     <AdminScreenLayout title="Order Management" tab="AdminOrders" showBack={false}>
       <Text style={styles.heading}>Order Management</Text>
       <Text style={styles.sub}>Review and approve devotee orders.</Text>
 
-      <View style={styles.tabBar}>
-        {TABS.map(item => (
-          <TouchableOpacity
-            key={item.id}
-            style={[styles.tabButton, tab === item.id && styles.tabButtonActive]}
-            onPress={() => setTab(item.id)}>
-            <Text
-              style={[
-                styles.tabButtonText,
-                tab === item.id && styles.tabButtonTextActive,
-              ]}>
-              {item.label}
+      {/* Top Total Orders Summary Card */}
+      <View style={styles.statsSummaryCard}>
+        <View style={styles.totalOrdersHeader}>
+          <View>
+            <Text style={styles.totalOrdersLabel}>TOTAL ORDERS</Text>
+            <Text style={styles.totalOrdersCount}>{orderCounts.total}</Text>
+          </View>
+          <View style={styles.totalOrdersBadge}>
+            <Text style={styles.totalOrdersBadgeText}>📦 Live Orders</Text>
+          </View>
+        </View>
+        <View style={styles.miniStatsRow}>
+          <View style={styles.miniStatItem}>
+            <Text style={[styles.miniStatCount, {color: '#B45309'}]}>
+              {orderCounts.underReview}
             </Text>
-          </TouchableOpacity>
-        ))}
+            <Text style={styles.miniStatLabel}>Review</Text>
+          </View>
+          <View style={styles.miniStatDivider} />
+          <View style={styles.miniStatItem}>
+            <Text style={[styles.miniStatCount, {color: '#0369A1'}]}>
+              {orderCounts.confirmed}
+            </Text>
+            <Text style={styles.miniStatLabel}>Confirmed</Text>
+          </View>
+          <View style={styles.miniStatDivider} />
+          <View style={styles.miniStatItem}>
+            <Text style={[styles.miniStatCount, {color: '#7E22CE'}]}>
+              {orderCounts.shipped}
+            </Text>
+            <Text style={styles.miniStatLabel}>Shipped</Text>
+          </View>
+          <View style={styles.miniStatDivider} />
+          <View style={styles.miniStatItem}>
+            <Text style={[styles.miniStatCount, {color: '#15803D'}]}>
+              {orderCounts.delivered}
+            </Text>
+            <Text style={styles.miniStatLabel}>Delivered</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.tabBar}>
+        {TABS.map(item => {
+          const count = tabCount(item.id);
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={[styles.tabButton, tab === item.id && styles.tabButtonActive]}
+              onPress={() => setTab(item.id)}>
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  tab === item.id && styles.tabButtonTextActive,
+                ]}>
+                {item.label} ({count})
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       {loading ? (
@@ -216,6 +279,79 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 14,
     color: Colors.textSecondary,
+  },
+  statsSummaryCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
+  },
+  totalOrdersHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  totalOrdersLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  totalOrdersCount: {
+    fontSize: 28,
+    lineHeight: 34,
+    fontWeight: '900',
+    color: Colors.sacredBrown,
+    marginTop: 2,
+  },
+  totalOrdersBadge: {
+    backgroundColor: '#FFF4E0',
+    borderColor: Colors.templeGold,
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  totalOrdersBadgeText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  miniStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FAF5EA',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+  },
+  miniStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  miniStatCount: {
+    fontSize: 16,
+    fontWeight: '900',
+    marginBottom: 2,
+  },
+  miniStatLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  miniStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E5D8C3',
   },
   tabBar: {
     flexDirection: 'row',

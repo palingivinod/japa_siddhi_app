@@ -35,8 +35,8 @@ class EmailOtpService {
   adminInbox(): string {
     return (
       process.env.NOTIFY_EMAIL ||
-      environment.SMTP_USER ||
-      ''
+      process.env.ADMIN_NOTIFY_EMAIL ||
+      'bilvapatratrust@gmail.com'
     ).trim();
   }
 

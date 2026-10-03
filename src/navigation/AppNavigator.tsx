@@ -27,6 +27,7 @@ import JapaPausedScreen from '../modules/japa/JapaPausedScreen';
 import JapaProgressScreen from '../modules/japa/JapaProgressScreen';
 import JapaGoalCompleteScreen from '../modules/japa/JapaGoalCompleteScreen';
 import PrivateJapaScreen from '../modules/japa/PrivateJapaScreen';
+import YourJapasScreen from '../modules/japa/YourJapasScreen';
 import SevaHubScreen from '../modules/seva/SevaHubScreen';
 import ChantScreen from '../modules/chant/ChantScreen';
 import ChallengesScreen from '../modules/challenges/ChallengesScreen';
@@ -182,6 +183,7 @@ export type RootStackParamList = {
       }
     | undefined;
   PrivateJapa: undefined;
+  YourJapas: undefined;
   SevaHub: undefined;
   Chant: {
     mode?: 'community' | 'private';
@@ -357,6 +359,7 @@ const ProtectedPaused = withAuth(JapaPausedScreen);
 const ProtectedJapaProgress = withAuth(JapaProgressScreen);
 const ProtectedJapaGoalComplete = withAuth(JapaGoalCompleteScreen);
 const ProtectedPrivate = withAuth(PrivateJapaScreen);
+const ProtectedYourJapas = withAuth(YourJapasScreen);
 const ProtectedSevaHub = withAuth(SevaHubScreen);
 const ProtectedChant = withAuth(ChantScreen);
 const ProtectedChallenges = withAuth(ChallengesScreen);
@@ -525,6 +528,7 @@ const AppNavigator = () => {
           component={ProtectedJapaGoalComplete}
         />
         <Stack.Screen name="PrivateJapa" component={ProtectedPrivate} />
+        <Stack.Screen name="YourJapas" component={ProtectedYourJapas} />
         <Stack.Screen name="SevaHub" component={ProtectedSevaHub} />
         <Stack.Screen name="Chant" component={ProtectedChant} />
         <Stack.Screen name="Challenges" component={ProtectedChallenges} />

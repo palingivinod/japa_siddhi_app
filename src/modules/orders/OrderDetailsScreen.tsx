@@ -54,11 +54,19 @@ const OrderDetailsScreen = () => {
               : `Order #${item.orderNumber}`
           : `Order #${item?.confirmationId || id || 'BL-0001'}`}
       </Text>
-      <MenuCard
-        emoji="📦"
-        title={item?.itemName || item?.productName || 'Baanalingam'}
-        subtitle={`Quantity: ${item?.quantity || 1}`}
-      />
+      {(() => {
+        const itemText = `${item?.itemName || ''} ${item?.productName || ''} ${item?.orderNumber || ''}`.toLowerCase();
+        const isBaanalingam = itemText.includes('banalingam') || itemText.includes('baanalingam') || itemText.includes('lingam') || itemText.includes('shiva');
+
+        return (
+          <MenuCard
+            icon={isBaanalingam ? 'banalingam' : undefined}
+            emoji={isBaanalingam ? undefined : '📦'}
+            title={item?.itemName || item?.productName || 'Baanalingam'}
+            subtitle={`Quantity: ${item?.quantity || 1}`}
+          />
+        );
+      })()}
       <Text style={styles.section}>Status</Text>
       {(item?.steps || []).map((step: any) => (
         <View key={step.key} style={styles.step}>
@@ -84,7 +92,7 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 14,
   },
-  section: {color: Colors.leafGreen, fontWeight: '800', marginBottom: 10},
+  section: {color: Colors.leafGreen, fontWeight: '800', fontSize: 14.5, marginBottom: 10},
   step: {flexDirection: 'row', alignItems: 'center', marginBottom: 16},
   dot: {
     width: 16,
@@ -94,6 +102,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   dotOn: {backgroundColor: Colors.templeGold},
-  stepText: {color: Colors.sacredBrown, fontWeight: '700'},
+  stepText: {color: Colors.sacredBrown, fontWeight: '700', fontSize: 14, lineHeight: 20},
   gap: {height: 16},
 });

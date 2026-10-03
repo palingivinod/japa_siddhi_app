@@ -36,11 +36,38 @@ const ensureAndroidChannel = async () => {
 };
 
 /**
- * Show a system tray / banner popup even while the app is open.
+ * Check if the current time is within allowed notification hours (7:00 AM to 10:00 PM IST).
+ * Outside 7 AM - 10 PM Indian Standard Time, notifications are suppressed.
+ */
+export const isWithinNotificationHoursIST = (): boolean => {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    });
+    const hour = parseInt(formatter.format(new Date()), 10);
+    return hour >= 7 && hour < 22;
+  } catch {
+    const now = new Date();
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+    const istMinutes = utcHours * 60 + utcMinutes + 330;
+    const istHour = Math.floor((istMinutes / 60) % 24);
+    return istHour >= 7 && istHour < 22;
+  }
+};
+
+/**
+ * Show a system tray / banner popup even while the app is open (7 AM - 10 PM IST only).
  */
 export const displayForegroundNotification = async (
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
 ) => {
+  if (!isWithinNotificationHoursIST()) {
+    return;
+  }
+
   const title =
     String(
       remoteMessage.notification?.title ||

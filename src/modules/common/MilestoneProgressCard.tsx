@@ -19,6 +19,16 @@ type Props = {
   onPress?: () => void;
 };
 
+const getRewardOrdinal = (total: number, t: (key: any, params?: any) => string): string => {
+  if (total < 2498) return t('firstReward') || 'first reward';
+  if (total < 10000) return t('secondReward') || 'second reward';
+  if (total < 30000) return t('thirdReward') || 'third reward';
+  if (total < 50000) return t('fourthReward') || 'fourth reward';
+  if (total < 75000) return t('fifthReward') || 'fifth reward';
+  if (total < 100000) return t('sixthReward') || 'sixth reward';
+  return t('nextReward') || 'next reward';
+};
+
 const MilestoneProgressCard = ({milestone, onPress}: Props) => {
   const {t, tt} = useLanguage();
   if (!milestone) {
@@ -38,17 +48,25 @@ const MilestoneProgressCard = ({milestone, onPress}: Props) => {
         next: next.toLocaleString(),
       });
 
+  const rewardOrdinal = getRewardOrdinal(total, t);
+  const remainingCount = Number(milestone.remaining || 0);
+
   const content = (
     <View style={styles.card}>
       <Text style={styles.kicker}>{t('spiritualMilestone')}</Text>
       <Text style={styles.meta}>{subtitle}</Text>
       {!milestone.allComplete ? (
         <Text style={styles.remaining}>
-          {t('japasToGo', {
-            count: Number(milestone.remaining || 0).toLocaleString(),
-          })}
+          {t('japasLeftForReward', {
+            count: remainingCount.toLocaleString(),
+            reward: rewardOrdinal,
+          }) || `${remainingCount.toLocaleString()} japas left to grab your ${rewardOrdinal}`}
         </Text>
-      ) : null}
+      ) : (
+        <Text style={styles.remainingDone}>
+          {t('allRewardsUnlocked') || '✓ All rewards unlocked!'}
+        </Text>
+      )}
       <View style={styles.barRow}>
         <View style={styles.barTrack}>
           <View style={[styles.barFill, {width: `${percent}%`}]} />
@@ -104,6 +122,14 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
     fontWeight: '700',
+    includeFontPadding: true,
+  },
+  remainingDone: {
+    marginTop: 4,
+    color: Colors.leafGreen,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
     includeFontPadding: true,
   },
   barRow: {

@@ -229,7 +229,8 @@ const ProfileViewScreen = () => {
       <Text style={styles.name}>{profile?.fullName || t('devoteeName')}</Text>
       {profile?.userCode ? (
         <View style={styles.userCodeBadge}>
-          <Text style={styles.userCodeText}>ID: {profile.userCode}</Text>
+          <Text style={styles.userCodeLabel}>{t('userId') || 'Devotee ID'}</Text>
+          <Text style={styles.userCodeValue}>{profile.userCode}</Text>
         </View>
       ) : null}
       {achievedMilestone ? (
@@ -320,19 +321,37 @@ const styles = StyleSheet.create({
   },
   userCodeBadge: {
     alignSelf: 'center',
-    backgroundColor: '#FFF4E0',
+    backgroundColor: '#FFF5E4',
     borderColor: Colors.templeGold,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    marginBottom: 12,
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingHorizontal: 22,
+    paddingVertical: 8,
+    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    elevation: 2,
   },
-  userCodeText: {
-    color: Colors.sacredBrown,
-    fontSize: 12,
+  userCodeLabel: {
+    color: Colors.leafGreen,
+    fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: 2,
+    includeFontPadding: true,
+  },
+  userCodeValue: {
+    color: Colors.sacredBrown,
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    includeFontPadding: true,
   },
   milestoneBadge: {
     alignSelf: 'center',

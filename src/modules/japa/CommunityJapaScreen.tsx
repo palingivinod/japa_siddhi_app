@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
@@ -77,34 +77,45 @@ const CommunityJapaScreen = () => {
     <ScreenLayout
       title={t('communityJapa') || 'Samuhika Japa'}
       showBack
-      tab="JapaHub">
-      <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Text style={styles.label}>TOTAL CHANTS</Text>
-          <Text style={styles.value}>{total.toLocaleString()}</Text>
+      tab="JapaHub"
+      scroll={false}>
+      {/* Frozen / Sticky Top Section with Stats and Join Button */}
+      <View style={styles.topFixedSection}>
+        <View style={styles.stats}>
+          <View style={styles.stat}>
+            <Text style={styles.label}>TOTAL CHANTS</Text>
+            <Text style={styles.value}>{total.toLocaleString()}</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.label}>DEVOTEES</Text>
+            <Text style={styles.value}>{devotees.toLocaleString()}</Text>
+          </View>
         </View>
-        <View style={styles.stat}>
-          <Text style={styles.label}>DEVOTEES</Text>
-          <Text style={styles.value}>{devotees.toLocaleString()}</Text>
+
+        <View style={styles.joinBtnWrap}>
+          <PrimaryButton title={t('joinCommunityJapa') || 'JOIN'} onPress={join} />
         </View>
+
+        <Text style={styles.heading}>{t('selectMantra') || 'Select a mantra'}</Text>
       </View>
 
-      <View style={styles.joinBtnWrap}>
-        <PrimaryButton title="JOIN" onPress={join} />
-      </View>
-
-      <Text style={styles.heading}>Select a mantra</Text>
-      {mantras.map(item => (
-        <MenuCard
-          key={item.id}
-          emoji="🕉️"
-          title={item.mantraName || item.transliteration}
-          subtitle={selected?.id === item.id ? 'Selected' : 'Tap to select'}
-          tone="gold"
-          selected={selected?.id === item.id}
-          onPress={() => setSelected(item)}
-        />
-      ))}
+      {/* Scrollable list of mantras below */}
+      <ScrollView
+        style={styles.mantraScroll}
+        contentContainerStyle={styles.mantraScrollContent}
+        showsVerticalScrollIndicator={false}>
+        {mantras.map(item => (
+          <MenuCard
+            key={item.id}
+            emoji="🕉️"
+            title={item.mantraName || item.transliteration}
+            subtitle={selected?.id === item.id ? (t('selected') || 'Selected') : (t('tapToSelect') || 'Tap to select')}
+            tone="gold"
+            selected={selected?.id === item.id}
+            onPress={() => setSelected(item)}
+          />
+        ))}
+      </ScrollView>
     </ScreenLayout>
   );
 };
@@ -112,6 +123,9 @@ const CommunityJapaScreen = () => {
 export default CommunityJapaScreen;
 
 const styles = StyleSheet.create({
+  topFixedSection: {
+    paddingBottom: 4,
+  },
   stats: {
     flexDirection: 'row',
     gap: 10,
@@ -121,24 +135,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 16,
+    padding: 14,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  label: {color: Colors.leafGreen, fontWeight: '700'},
+  label: {color: Colors.leafGreen, fontWeight: '700', fontSize: 12},
   value: {
-    marginTop: 8,
+    marginTop: 6,
     fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
   joinBtnWrap: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   heading: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 12,
+    marginBottom: 8,
+  },
+  mantraScroll: {
+    flex: 1,
+  },
+  mantraScrollContent: {
+    paddingBottom: 40,
   },
 });

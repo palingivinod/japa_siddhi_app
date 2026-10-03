@@ -190,12 +190,43 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
   `);
 };
 
+/**
+ * Check if the current time is within allowed notification hours (7:00 AM to 10:00 PM IST).
+ * Outside 7 AM - 10 PM Indian Standard Time, notifications are suppressed.
+ */
+export const isWithinNotificationHoursIST = (): boolean => {
+  try {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Kolkata',
+      hour: 'numeric',
+      hourCycle: 'h23',
+    });
+    const hour = parseInt(formatter.format(new Date()), 10);
+    return hour >= 7 && hour < 22;
+  } catch {
+    const now = new Date();
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+    const istMinutes = utcHours * 60 + utcMinutes + 330;
+    const istHour = Math.floor((istMinutes / 60) % 24);
+    return istHour >= 7 && istHour < 22;
+  }
+};
+
 const tryPush = async (
   tokens: string[],
   title: string,
   message: string,
   dataType = 'ADMIN_BROADCAST',
 ) => {
+  if (!isWithinNotificationHoursIST()) {
+    return {
+      pushSent: 0,
+      pushFailed: 0,
+      pushSkipped: 'quiet_hours_7am_to_10pm_ist' as string | null,
+    };
+  }
+
   const unique = [...new Set(tokens.filter(Boolean))];
   if (!unique.length) {
     return {
@@ -348,6 +379,9 @@ export const deliverAdminNotification = async (input: {
 };
 
 export const flushDueAdminNotifications = async () => {
+  if (!isWithinNotificationHoursIST()) {
+    return;
+  }
   await ensureQueueTable();
   const now = nowIstStamp();
   const due = await mysql.query<any[]>(

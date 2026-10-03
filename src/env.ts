@@ -37,7 +37,7 @@ const ENV = {
 
   APPSTORE_URL: '',
 
-  SUPPORT_EMAIL: 'kailaasavaasi@gmail.com',
+  SUPPORT_EMAIL: 'bilvapatratrust@gmail.com',
 
   SUPPORT_PHONE: '',
 

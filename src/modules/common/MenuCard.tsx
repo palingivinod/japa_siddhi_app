@@ -131,8 +131,9 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 2,
-    color: Colors.textSecondary,
-    lineHeight: 22,
+    fontSize: 13.5,
+    color: '#4A3B2C',
+    lineHeight: 20,
     includeFontPadding: true,
   },
   subSelected: {
