@@ -343,25 +343,7 @@ const HomeScreen = () => {
   };
 
   const handleBannerStartJapa = async () => {
-    // 1. Check if user has already completed today's daily goal
-    const isDailyGoalCompleted =
-      (userDailyGoal > 0 && today >= userDailyGoal) ||
-      (activeJapaGoal &&
-        activeJapaGoal.targetCount > 0 &&
-        activeJapaGoal.completedCount >= activeJapaGoal.targetCount);
-
-    if (isDailyGoalCompleted) {
-      // Completed for today -> open Chant with previous mantras in cloud, no auto-resume
-      navigation.navigate('Chant', {
-        mode: 'private',
-        fromHome: true,
-        recentOnly: true,
-        resume: false,
-      });
-      return;
-    }
-
-    // 2. Check for active/pending daily goal in progress
+    // 1. If user has an active ongoing daily goal in progress -> Resume chanting directly
     if (
       activeJapaGoal &&
       activeJapaGoal.targetCount > 0 &&
@@ -385,7 +367,7 @@ const HomeScreen = () => {
       return;
     }
 
-    // 3. Check for active/pending draft only if daily goal is not completed
+    // 2. If user has an active ongoing draft in progress -> Resume draft
     try {
       const draft = await getJapaDraft();
       if (
@@ -416,13 +398,19 @@ const HomeScreen = () => {
       // ignore
     }
 
-    // 4. Default: open Chant screen with previous mantras in cloud
-    navigation.navigate('Chant', {
-      mode: 'private',
-      fromHome: true,
-      recentOnly: true,
-      resume: false,
-    });
+    // 3. For existing users (who have practiced mantras before) -> Open Chant screen with previous mantras shown at the top
+    if (lifetime > 0 || today > 0) {
+      navigation.navigate('Chant', {
+        mode: 'private',
+        fromHome: true,
+        recentOnly: true,
+        resume: false,
+      });
+      return;
+    }
+
+    // 4. For brand new / fresh users (0 history) -> Open Japa Screen (Japa Hub)
+    navigation.navigate('JapaHub');
   };
 
   const showJapaAnnadanam =

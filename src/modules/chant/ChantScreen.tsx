@@ -75,6 +75,7 @@ const ChantScreen = () => {
     String(route.params?.challengeMantra || '').trim(),
   );
   const [showMantraPicker, setShowMantraPicker] = useState(false);
+  const [hasPracticedMantras, setHasPracticedMantras] = useState(false);
   const ownMantra = String(route.params?.privateMantra || '').trim();
   const personalMantraId =
     Number(route.params?.personalMantraId || 0) || undefined;
@@ -155,6 +156,7 @@ const ChantScreen = () => {
 
       const isRecentOnly = Boolean(route.params?.recentOnly);
       let listItems = items;
+      let hadPrevious = false;
       if (isRecentOnly) {
         const previousDone = items.filter(item => {
           if (item.own) {
@@ -165,8 +167,10 @@ const ChantScreen = () => {
           }
           return (totals[item.id] || 0) > 0;
         });
-        listItems = previousDone.length > 0 ? previousDone : items;
+        hadPrevious = previousDone.length > 0;
+        listItems = hadPrevious ? previousDone : items;
       }
+      setHasPracticedMantras(hadPrevious);
       setMantras(listItems);
 
       const preferredId = Number(route.params?.mantraId || 0);
@@ -621,14 +625,14 @@ const ChantScreen = () => {
 
   if (loading) {
     return (
-      <ScreenLayout title="Smart Japa" showBack tab="JapaHub">
+      <ScreenLayout title={t('japaChanting') || 'Japa Chanting'} showBack tab="JapaHub">
         <ActivityIndicator color={Colors.templeGold} />
       </ScreenLayout>
     );
   }
 
   return (
-    <ScreenLayout title="Smart Japa" showBack tab="JapaHub">
+    <ScreenLayout title={t('japaChanting') || 'Japa Chanting'} showBack tab="JapaHub">
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
@@ -648,7 +652,7 @@ const ChantScreen = () => {
           <View style={styles.mantraPickerSection}>
             <View style={styles.mantraHeaderRow}>
               <Text style={styles.mantraHeaderTitle}>
-                {route.params?.recentOnly
+                {route.params?.recentOnly && hasPracticedMantras
                   ? t('yourPracticedMantras') || 'Your Practiced Mantras'
                   : t('chooseMantra') || 'Choose Mantra'}
               </Text>
