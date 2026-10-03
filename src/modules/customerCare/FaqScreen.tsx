@@ -35,18 +35,29 @@ const FaqScreen = () => {
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
-      {items.map(item => (
-        <TouchableOpacity
-          key={item.id}
-          style={styles.card}
-          onPress={() => setOpen(open === item.id ? null : item.id)}>
-          <View style={styles.row}>
-            <Text style={styles.q}>{item.question}</Text>
-            <Text style={styles.plus}>{open === item.id ? '−' : '+'}</Text>
-          </View>
-          {open === item.id ? <Text style={styles.a}>{item.answer}</Text> : null}
-        </TouchableOpacity>
-      ))}
+      {items.map(item => {
+        const questionText = String(item.question || '')
+          .replace(/\bSmart Japa\b/gi, 'Japa')
+          .replace(/\bSmart\b/gi, '');
+        const answerText = String(item.answer || '')
+          .replace(/\bSmart Japa\b/gi, 'Japa')
+          .replace(/\bSmart\b/gi, '')
+          .replace(/or voice chant /gi, '')
+          .replace(/or voice /gi, '')
+          .replace(/voice chant/gi, 'tap');
+        return (
+          <TouchableOpacity
+            key={item.id}
+            style={styles.card}
+            onPress={() => setOpen(open === item.id ? null : item.id)}>
+            <View style={styles.row}>
+              <Text style={styles.q}>{questionText}</Text>
+              <Text style={styles.plus}>{open === item.id ? '−' : '+'}</Text>
+            </View>
+            {open === item.id ? <Text style={styles.a}>{answerText}</Text> : null}
+          </TouchableOpacity>
+        );
+      })}
     </ScreenLayout>
   );
 };

@@ -730,12 +730,18 @@ class SqliteEngine {
     const rows = this.db.exec('SELECT COUNT(*) AS total FROM support_faqs');
     const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
     if (total > 0) {
+      this.db.run(`
+        UPDATE support_faqs
+        SET question = 'How does Japa work?',
+            answer = 'Japa counts each valid tap against your selected mantra and daily goal.'
+        WHERE question LIKE '%Smart Japa%' OR question LIKE '%Japa work%' OR answer LIKE '%voice%'
+      `);
       return;
     }
     this.db.run(
       `
       INSERT INTO support_faqs (question, answer, display_order) VALUES
-        ('How does Smart Japa work?', 'Smart Japa counts each valid tap or voice chant against your selected mantra and daily goal.', 1),
+        ('How does Japa work?', 'Japa counts each valid tap against your selected mantra and daily goal.', 1),
         ('How are Japa counts protected?', 'Each session is saved to your account with a timestamp so your progress stays with you across devices.', 2),
         ('How do I donate Annadanam?', 'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.', 3),
         ('How do I track my order?', 'Open Orders, tap VIEW on an order, then use Track Order to see delivery status.', 4),

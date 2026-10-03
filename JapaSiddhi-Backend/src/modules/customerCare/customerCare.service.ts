@@ -203,9 +203,9 @@ class CustomerCareService {
       return [
         {
           id: 1,
-          question: 'How does Smart Japa work?',
+          question: 'How does Japa work?',
           answer:
-            'Smart Japa counts each valid tap or voice chant against your selected mantra and daily goal.',
+            'Japa counts each valid tap against your selected mantra and daily goal.',
         },
         {
           id: 2,
