@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -79,47 +79,51 @@ const JapaHubScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
         <AppHeader title="Japa Chanting" />
-        <Text style={styles.heading}>{t('chooseYourJapa')}</Text>
-        {items.map(item => (
-          <TouchableOpacity
-            key={item.key}
-            style={styles.card}
-            activeOpacity={0.85}
-            onPress={() => navigation.navigate(item.route)}>
-            <View
-              style={[
-                styles.iconWrap,
-                item.tone === 'green' ? styles.iconGreen : styles.iconGold,
-              ]}>
-              <AppIcon name={item.icon} size={48} color={Colors.sacredBrown} />
-            </View>
-            <View style={styles.copy}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.sub}>{item.sub}</Text>
-            </View>
-            <Text style={styles.chevron}>›</Text>
-          </TouchableOpacity>
-        ))}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.heading}>{t('chooseYourJapa')}</Text>
+          {items.map(item => (
+            <TouchableOpacity
+              key={item.key}
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(item.route)}>
+              <View
+                style={[
+                  styles.iconWrap,
+                  item.tone === 'green' ? styles.iconGreen : styles.iconGold,
+                ]}>
+                <AppIcon name={item.icon} size={44} color={Colors.sacredBrown} />
+              </View>
+              <View style={styles.copy}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.sub}>{item.sub}</Text>
+              </View>
+              <Text style={styles.chevron}>›</Text>
+            </TouchableOpacity>
+          ))}
 
-        <Text style={styles.recent}>{t('recentProgress')}</Text>
-        <View style={styles.stats}>
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => navigation.navigate('JapaProgress')}>
-            <AppIcon name="prayer" size={22} color={Colors.sacredBrown} />
-            <Text style={styles.statLabel}>{t('today')}</Text>
-            <Text style={styles.statValue}>{today.toLocaleString()}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.statCard}
-            onPress={() => navigation.navigate('StreakAnalytics')}>
-            <AppIcon name="flame" size={22} color={Colors.sacredBrown} />
-            <Text style={styles.statLabel}>{t('streak')}</Text>
-            <Text style={styles.statValue}>
-              {streak} {t('days')}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          <Text style={styles.recent}>{t('recentProgress')}</Text>
+          <View style={styles.stats}>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => navigation.navigate('JapaProgress')}>
+              <AppIcon name="prayer" size={22} color={Colors.sacredBrown} />
+              <Text style={styles.statLabel}>{t('today')}</Text>
+              <Text style={styles.statValue}>{today.toLocaleString()}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.statCard}
+              onPress={() => navigation.navigate('StreakAnalytics')}>
+              <AppIcon name="flame" size={22} color={Colors.sacredBrown} />
+              <Text style={styles.statLabel}>{t('streak')}</Text>
+              <Text style={styles.statValue}>
+                {streak} {t('days')}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </View>
       <BottomTabs active="JapaHub" />
     </SafeAreaView>
@@ -131,29 +135,30 @@ export default JapaHubScreen;
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
   body: {flex: 1, paddingHorizontal: 20},
+  scrollContent: {paddingBottom: 36},
   heading: {
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 12,
+    marginBottom: 10,
     includeFontPadding: true,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    paddingVertical: 18,
-    paddingHorizontal: 14,
-    marginBottom: 12,
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginBottom: 9,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
   iconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -165,32 +170,32 @@ const styles = StyleSheet.create({
   iconGreen: {
     backgroundColor: '#E4EFDF',
   },
-  copy: {flex: 1, paddingVertical: 2},
+  copy: {flex: 1, paddingVertical: 1},
   title: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
   sub: {
     marginTop: 2,
-    color: Colors.textSecondary,
-    lineHeight: 22,
+    color: '#4A3B2C',
+    fontSize: 13,
+    lineHeight: 18,
     includeFontPadding: true,
   },
   chevron: {
-    fontSize: 28,
+    fontSize: 24,
     color: Colors.lightGold,
     fontWeight: '300',
-    marginLeft: 6,
-    marginTop: -2,
+    marginLeft: 4,
   },
   recent: {
-    marginTop: 8,
-    marginBottom: 10,
-    fontSize: 16,
-    lineHeight: 24,
+    marginTop: 10,
+    marginBottom: 8,
+    fontSize: 15.5,
+    lineHeight: 22,
     fontWeight: '800',
     color: Colors.leafGreen,
     includeFontPadding: true,
@@ -199,11 +204,11 @@ const styles = StyleSheet.create({
   statCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 14,
+    padding: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    gap: 6,
+    gap: 4,
   },
   statLabel: {
     color: Colors.leafGreen,
@@ -214,8 +219,8 @@ const styles = StyleSheet.create({
   },
   statValue: {
     marginTop: 2,
-    fontSize: 22,
-    lineHeight: 32,
+    fontSize: 20,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,

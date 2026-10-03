@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -64,21 +64,25 @@ const SevaHubScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
         <AppHeader title="Seva" />
-        <Text style={styles.heading}>{t('spiritualServices')}</Text>
-        {items.map(item => (
-          <TouchableOpacity
-            key={item.route}
-            style={styles.card}
-            onPress={() => navigation.navigate(item.route)}>
-            <View style={styles.dot}>
-              <AppIcon name={item.icon} size={44} color={Colors.sacredBrown} />
-            </View>
-            <View style={styles.copy}>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.sub}>{item.sub}</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}>
+          <Text style={styles.heading}>{t('spiritualServices')}</Text>
+          {items.map(item => (
+            <TouchableOpacity
+              key={item.route}
+              style={styles.card}
+              onPress={() => navigation.navigate(item.route)}>
+              <View style={styles.dot}>
+                <AppIcon name={item.icon} size={44} color={Colors.sacredBrown} />
+              </View>
+              <View style={styles.copy}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.sub}>{item.sub}</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
       <BottomTabs active="SevaHub" />
     </SafeAreaView>
@@ -90,19 +94,21 @@ export default SevaHubScreen;
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
   body: {flex: 1, paddingHorizontal: 20},
+  scrollContent: {paddingBottom: 36},
   heading: {
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 18,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 12,
+    marginBottom: 10,
     includeFontPadding: true,
   },
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 18,
-    marginBottom: 12,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
@@ -120,18 +126,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  copy: {flex: 1, paddingVertical: 2},
+  copy: {flex: 1, paddingVertical: 1},
   title: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
   sub: {
     marginTop: 2,
-    color: Colors.textSecondary,
-    lineHeight: 22,
+    color: '#4A3B2C',
+    fontSize: 13,
+    lineHeight: 18,
     includeFontPadding: true,
   },
 });
