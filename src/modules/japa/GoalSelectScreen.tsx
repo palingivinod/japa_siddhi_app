@@ -110,16 +110,25 @@ const GoalSelectScreen = () => {
           const rows = response.data?.data ?? [];
           const mode = route.params?.mode;
           const mantraId = route.params?.mantraId;
+          const personalMantraId = route.params?.personalMantraId;
           const saved =
             rows.find((item: any) => {
               if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
                 return false;
               }
-              if (mode === 'private') {
-                return item.mantraType === 'PERSONAL';
+              if (personalMantraId) {
+                return (
+                  Number(item.personalMantraId ?? item.personal_mantra_id) ===
+                  Number(personalMantraId)
+                );
               }
               if (mantraId) {
-                return Number(item.mantraId) === Number(mantraId);
+                return (
+                  Number(item.mantraId ?? item.mantra_id) === Number(mantraId)
+                );
+              }
+              if (mode === 'private') {
+                return item.mantraType === 'PERSONAL';
               }
               return true;
             }) ||

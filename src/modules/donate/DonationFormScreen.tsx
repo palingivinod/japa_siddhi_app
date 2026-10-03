@@ -80,7 +80,7 @@ const DonationFormScreen = () => {
       <AnnadanamMembersSelector
         persons={persons}
         onChangePersons={setPersons}
-        title="Sponsor Annadanam for Devotees"
+        title={t('selectNoOfPersons')}
       />
       <PrimaryButton
         title={persons > 0 ? `PROCEED TO PAY (₹${totalAmount.toLocaleString()})` : 'ENTER NUMBER OF PERSONS'}

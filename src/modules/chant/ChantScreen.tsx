@@ -335,29 +335,15 @@ const ChantScreen = () => {
 
   const selectMantra = async (item: ChantMantra) => {
     setShowMantraPicker(false);
-    if (selectedRef.current?.key === item.key) {
-      return;
-    }
     if (countRef.current > 0) {
       await persistDraft(countRef.current, postedCountRef.current);
     }
-    setSelected(item);
-    selectedRef.current = item;
-    setSavedTotal(
-      (item.own ? personalTotals[item.id] : mantraTotals[item.id]) || 0,
-    );
-    const ids = draftIds(item);
-    const draft = await getJapaDraft(
-      mode,
-      ids.mantraId,
-      challengeId || undefined,
-      ids.personalMantraId,
-    );
-    if (draft) {
-      applyDraftToCount(draft);
-    } else {
-      resetSessionCount();
-    }
+    navigation.navigate('GoalSelect', {
+      mode: item.own ? 'private' : 'community',
+      mantraId: item.own ? undefined : item.id,
+      personalMantraId: item.own ? item.id : undefined,
+      privateMantra: item.name,
+    });
   };
 
   const afterSessionSaved = (
@@ -928,8 +914,6 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 380,
     backgroundColor: '#EDE3CE',
-    borderWidth: 1.5,
-    borderColor: '#D5C4A0',
     borderRadius: 26,
     alignItems: 'center',
     justifyContent: 'center',
@@ -944,7 +928,6 @@ const styles = StyleSheet.create({
   },
   countZonePressed: {
     backgroundColor: '#E3D7BF',
-    borderColor: Colors.templeGold,
   },
   ring: {
     alignSelf: 'center',

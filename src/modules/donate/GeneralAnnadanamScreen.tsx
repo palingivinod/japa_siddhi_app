@@ -42,7 +42,7 @@ const GeneralAnnadanamScreen = () => {
       return;
     }
     if (persons <= 0) {
-      Alert.alert('Required', 'Please select or enter the number of persons to sponsor.');
+      Alert.alert('Required', 'Please select or enter the number of persons.');
       return;
     }
 
@@ -86,7 +86,7 @@ const GeneralAnnadanamScreen = () => {
           <AnnadanamMembersSelector
             persons={persons}
             onChangePersons={setPersons}
-            title="Sponsor Annadanam for Devotees"
+            title={t('selectNoOfPersons')}
           />
           <PrimaryButton
             title={persons > 0 ? `CONTINUE TO PAYMENT (₹${totalAmount.toLocaleString()})` : 'ENTER NUMBER OF PERSONS'}

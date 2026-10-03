@@ -132,7 +132,7 @@ export const hi: TranslationDict = {
   communityJapa: 'सामुदायिक जप',
   communityJapaSub: 'सामूहिक जप में शामिल हों।',
   myJapa: 'अंतरंग जप',
-  myJapaSub: 'निजी मंत्र।',
+  myJapaSub: 'अपना स्वयं का जप करें।',
   challengeJapa: 'संकल्प जप',
   challengeJapaSub: 'आध्यात्मिक चुनौती लें।',
   japaAnalytics: 'जप विश्लेषण',
@@ -231,6 +231,7 @@ export const hi: TranslationDict = {
   fullName: 'पूरा नाम',
   occasionLabel: 'अवसर',
   occasionPlaceholder: 'जन्मदिन / वर्षगाँठ / अन्य',
+  selectNoOfPersons: 'व्यक्तियों की संख्या चुनें',
   donationAmount: 'सहयोग राशि',
   continueToPayment: 'भुगतान जारी रखें',
   proceedToPay: 'भुगतान करें',
@@ -727,7 +728,7 @@ export const te: TranslationDict = {
   communityJapa: 'సామూహిక జపం',
   communityJapaSub: 'సమూహ జపంలో చేరండి.',
   myJapa: 'అంతరంగ జపం',
-  myJapaSub: 'వ్యక్తిగత మంత్రం.',
+  myJapaSub: 'మీ స్వంత జపం చేయండి.',
   challengeJapa: 'సంకల్ప జపం',
   challengeJapaSub: 'ఆధ్యాత్మిక సవాలు తీసుకోండి.',
   japaAnalytics: 'జప విశ్లేషణ',
@@ -788,6 +789,7 @@ export const te: TranslationDict = {
   fullName: 'పూర్తి పేరు',
   occasionLabel: 'సందర్భం',
   occasionPlaceholder: 'పుట్టినరోజు / వార్షికోత్సవం / ఇతరం',
+  selectNoOfPersons: 'వ్యక్తుల సంఖ్యను ఎంచుకోండి',
   donationAmount: 'సమర్పణ మొత్తం',
   continueToPayment: 'చెల్లింపుకు కొనసాగండి',
   proceedToPay: 'చెల్లించండి',
@@ -1220,6 +1222,8 @@ export const dictionaries: Record<string, TranslationDict> = {
 };
 
 export const TITLE_TO_KEY: Record<string, TranslationKey> = {
+  'Select No of Persons': 'selectNoOfPersons',
+  'Sponsor Annadanam for Devotees': 'selectNoOfPersons',
   'Choose Language': 'chooseLanguage',
   'Welcome to Japa Siddhi': 'welcomeToJapaSiddhi',
   'Verify Mobile Number': 'verifyMobileNumber',

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../../theme/colors';
+import {useLanguage} from '../../../i18n/LanguageContext';
 
 export const RATE_PER_PERSON = 80;
 
@@ -29,11 +30,13 @@ type Props = {
 const AnnadanamMembersSelector: React.FC<Props> = ({
   persons,
   onChangePersons,
-  title = 'Number of Devotees / Persons',
+  title,
 }) => {
+  const {t} = useLanguage();
   const [modalVisible, setModalVisible] = useState(false);
   const currentCount = Math.max(0, persons);
   const totalAmount = currentCount * RATE_PER_PERSON;
+  const headerTitle = title || t('selectNoOfPersons');
 
   const handleTextChange = (text: string) => {
     const digits = text.replace(/\D/g, '');
@@ -49,7 +52,7 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Text style={styles.label}>{title}</Text>
+        <Text style={styles.label}>{headerTitle}</Text>
         <View style={styles.rateBadge}>
           <Text style={styles.rateText}>₹{RATE_PER_PERSON} / person</Text>
         </View>
@@ -105,7 +108,7 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
             <TouchableWithoutFeedback onPress={e => e.stopPropagation()}>
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Select Number of Persons</Text>
+                  <Text style={styles.modalTitle}>{t('selectNoOfPersons')}</Text>
                   <Text style={styles.modalSubtitle}>Rate: ₹{RATE_PER_PERSON} per person</Text>
                 </View>
 

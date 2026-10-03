@@ -49,7 +49,7 @@ const JapaAnnadanamScreen = () => {
           <AnnadanamMembersSelector
             persons={persons}
             onChangePersons={setPersons}
-            title="Sponsor Annadanam for Devotees"
+            title={t('selectNoOfPersons')}
           />
           <PrimaryButton
             title={persons > 0 ? `DONATE ₹${totalAmount.toLocaleString()} (${persons} ${persons === 1 ? 'PERSON' : 'PERSONS'})` : 'ENTER NUMBER OF PERSONS'}
