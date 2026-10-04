@@ -35,7 +35,7 @@ const JapaAnnadanamScreen = () => {
     <ScreenLayout title={t('japaAnnadanam')} showBack tab="SevaHub">
       {!enabled ? (
         <Text style={styles.disabled}>
-          Japa Annadanam is currently unavailable.
+          Japa Anna Santharpanam is currently unavailable.
         </Text>
       ) : (
         <>

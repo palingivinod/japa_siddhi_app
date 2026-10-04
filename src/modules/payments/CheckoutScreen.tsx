@@ -55,7 +55,7 @@ const CheckoutScreen = () => {
   const params = route.params || {};
   const [saving, setSaving] = useState(false);
   const title = params.title || 'Proceed to Pay';
-  const itemName = params.itemName || 'Annadanam Seva';
+  const itemName = params.itemName || 'Anna Santharpanam Seva';
   const subtitle = params.subtitle || 'Complete payment at https://japasiddhi.com/payments';
   const amount = Number(params.amount || 1008);
 

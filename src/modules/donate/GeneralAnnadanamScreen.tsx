@@ -57,7 +57,7 @@ const GeneralAnnadanamScreen = () => {
     <ScreenLayout title={t('generalAnnadanam')} showBack tab="SevaHub">
       {!enabled ? (
         <Text style={styles.disabled}>
-          General Annadanam is currently unavailable.
+          General Anna Santharpanam is currently unavailable.
         </Text>
       ) : (
         <>
