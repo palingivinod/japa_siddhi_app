@@ -23,7 +23,7 @@ const DonationFormScreen = () => {
   );
   const [occasion, setOccasion] = useState(params.occasion || 'Annadanam');
   const [persons, setPersons] = useState(
-    Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 5),
+    Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),
   );
 
   const totalAmount = persons * RATE_PER_PERSON;
@@ -83,7 +83,7 @@ const DonationFormScreen = () => {
         title={t('selectNoOfPersons')}
       />
       <PrimaryButton
-        title={persons > 0 ? `PROCEED TO PAY (₹${totalAmount.toLocaleString()})` : 'ENTER NUMBER OF PERSONS'}
+        title={persons > 0 ? `PROCEED TO PAY (₹${totalAmount.toLocaleString('en-IN')})` : 'SELECT OR ENTER NO OF PERSONS'}
         disabled={persons <= 0}
         onPress={pay}
       />

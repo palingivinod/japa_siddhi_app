@@ -131,15 +131,15 @@ const NotificationsScreen = () => {
       return;
     }
     Alert.alert(
-      t('clearNotificationsConfirmTitle'),
-      t('clearNotificationsConfirmMsg'),
+      (t as any)('clearNotificationsConfirmTitle') || 'Clear Notifications',
+      (t as any)('clearNotificationsConfirmMsg') || 'Are you sure you want to clear all notifications?',
       [
         {
-          text: t('cancel'),
+          text: t('cancel') || 'Cancel',
           style: 'cancel',
         },
         {
-          text: t('delete'),
+          text: (t as any)('clearAll') || 'Clear All',
           style: 'destructive',
           onPress: async () => {
             const currentIds = items.map(item => String(item.id));
@@ -177,19 +177,37 @@ const NotificationsScreen = () => {
   };
 
   return (
-    <ScreenLayout title={t('notifications')} showBack>
+    <ScreenLayout title={(t as any)('notifications') || 'Notifications'} showBack>
       <MenuCard
         emoji="🏅"
-        title={t('japaMilestones')}
-        subtitle={t('celebrateProgress')}
+        title={t('japaMilestones') || 'Japa Milestones'}
+        subtitle={t('celebrateProgress') || 'Celebrate your spiritual progress and seva milestones.'}
         onPress={() => navigation.navigate('MilestoneNotifications')}
       />
-      {loading ? <ActivityIndicator color={Colors.primary} /> : null}
+
+      {/* Top Action Row: Header + Medium Sized Clear Button */}
+      {!loading && items.length > 0 ? (
+        <View style={styles.topActionRow}>
+          <Text style={styles.sectionHeading}>
+            {(t as any)('recentNotifications') || 'Notifications'} ({items.length})
+          </Text>
+          <TouchableOpacity
+            style={styles.clearBtnTop}
+            activeOpacity={0.8}
+            onPress={clearNotifications}>
+            <Text style={styles.clearBtnTopText}>
+              {(t as any)('clearAll') || 'Clear All'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
+      {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       {!loading && !error && items.length === 0 ? (
-        <Text style={styles.empty}>{t('noNotificationsYet')}</Text>
+        <Text style={styles.empty}>{t('noNotificationsYet') || 'No notifications yet'}</Text>
       ) : null}
       {items.map(item => {
         const isUnread = !item.isRead;
@@ -226,14 +244,6 @@ const NotificationsScreen = () => {
           </TouchableOpacity>
         );
       })}
-      {!loading && items.length > 0 ? (
-        <View style={styles.clearBtnWrap}>
-          <PrimaryButton
-            title={t('clearNotifications')}
-            onPress={clearNotifications}
-          />
-        </View>
-      ) : null}
     </ScreenLayout>
   );
 };
@@ -241,6 +251,36 @@ const NotificationsScreen = () => {
 export default NotificationsScreen;
 
 const styles = StyleSheet.create({
+  topActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 14,
+    marginBottom: 10,
+    paddingHorizontal: 2,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  clearBtnTop: {
+    backgroundColor: Colors.templeGold,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 18,
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 2,
+  },
+  clearBtnTopText: {
+    color: Colors.white,
+    fontSize: 12.5,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
   empty: {
     color: Colors.textSecondary,
     fontSize: 15,
@@ -318,9 +358,5 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
     marginTop: 4,
     fontWeight: '500',
-  },
-  clearBtnWrap: {
-    marginTop: 16,
-    marginBottom: 12,
   },
 });

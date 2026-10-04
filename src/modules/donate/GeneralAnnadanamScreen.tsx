@@ -19,7 +19,7 @@ const GeneralAnnadanamScreen = () => {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [occasion, setOccasion] = useState('');
-  const [persons, setPersons] = useState(5);
+  const [persons, setPersons] = useState(0);
   const [enabled, setEnabled] = useState(true);
 
   const totalAmount = persons * RATE_PER_PERSON;
@@ -89,7 +89,7 @@ const GeneralAnnadanamScreen = () => {
             title={t('selectNoOfPersons')}
           />
           <PrimaryButton
-            title={persons > 0 ? `CONTINUE TO PAYMENT (₹${totalAmount.toLocaleString()})` : 'ENTER NUMBER OF PERSONS'}
+            title={persons > 0 ? `CONTINUE TO PAYMENT (₹${totalAmount.toLocaleString('en-IN')})` : 'SELECT OR ENTER NO OF PERSONS'}
             disabled={persons <= 0}
             onPress={continuePay}
           />

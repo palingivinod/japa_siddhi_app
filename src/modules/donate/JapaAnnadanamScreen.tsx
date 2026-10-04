@@ -14,7 +14,7 @@ import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamM
 const JapaAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
-  const [persons, setPersons] = useState(5);
+  const [persons, setPersons] = useState(0);
   const [completed, setCompleted] = useState(0);
   const [enabled, setEnabled] = useState(true);
 
@@ -52,7 +52,7 @@ const JapaAnnadanamScreen = () => {
             title={t('selectNoOfPersons')}
           />
           <PrimaryButton
-            title={persons > 0 ? `DONATE ₹${totalAmount.toLocaleString()} (${persons} ${persons === 1 ? 'PERSON' : 'PERSONS'})` : 'ENTER NUMBER OF PERSONS'}
+            title={persons > 0 ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${persons === 1 ? 'PERSON' : 'PERSONS'})` : 'SELECT OR ENTER NO OF PERSONS'}
             disabled={persons <= 0}
             onPress={() =>
               navigation.navigate('DonationForm', {

@@ -112,7 +112,7 @@ const YourJapasScreen = () => {
 
           let sourceType: JapaSourceType = 'CATALOG';
           let sourceLabel = t('sourceCatalog') || 'Japa Mantra';
-          let sourceIcon = '📿';
+          let sourceIcon = '';
 
           if (isPersonal) {
             sourceType = 'PERSONAL';
@@ -271,7 +271,7 @@ const YourJapasScreen = () => {
         ) : japas.length === 0 ? (
           /* Empty State */
           <View style={styles.emptyCard}>
-            <Text style={styles.emptyIcon}>📿</Text>
+            <Text style={styles.emptyIcon}>🕉️</Text>
             <Text style={styles.emptyTitle}>
               {t('noActiveJapasTitle') || 'No Ongoing Japas Yet'}
             </Text>
@@ -330,7 +330,7 @@ const YourJapasScreen = () => {
                               ? styles.sourceBadgeTextChallenge
                               : styles.sourceBadgeTextDefault,
                       ]}>
-                      {item.sourceIcon} {item.sourceLabel}
+                      {item.sourceIcon ? `${item.sourceIcon} ` : ''}{item.sourceLabel}
                     </Text>
                   </View>
 
@@ -392,7 +392,7 @@ const YourJapasScreen = () => {
                   style={styles.chantBtn}
                   activeOpacity={0.85}
                   onPress={() => handleChantPress(item)}>
-                  <Text style={styles.chantBtnText}>CHANT NOW 📿</Text>
+                  <Text style={styles.chantBtnText}>CHANT NOW</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
   addBtn: {
-    backgroundColor: Colors.sacredBrown,
+    backgroundColor: Colors.templeGold,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   chantBtn: {
-    backgroundColor: Colors.sacredBrown,
+    backgroundColor: Colors.templeGold,
     borderRadius: 14,
     paddingVertical: 13,
     alignItems: 'center',

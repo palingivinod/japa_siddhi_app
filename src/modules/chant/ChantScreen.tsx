@@ -678,7 +678,10 @@ const ChantScreen = () => {
           </View>
         ) : (
           <View style={styles.selectedMantraContainer}>
-            <Text style={styles.selectedMantraText} numberOfLines={2}>
+            <Text
+              style={styles.selectedMantraText}
+              numberOfLines={1}
+              ellipsizeMode="tail">
               {mantraLabel(selected)}
             </Text>
             <TouchableOpacity
@@ -740,7 +743,7 @@ const ChantScreen = () => {
               ? challengeId
                 ? `✓ ${t('challengeCompleteLabel') || 'Challenge Complete'}`
                 : `✓ ${t('goalReachedLabel') || 'Goal Reached'}`
-              : `📿 ${t('tapAnywhereToChant') || 'Tap anywhere to chant'}`}
+              : (t('tapAnywhereToChant') || 'Tap anywhere to chant')}
           </Text>
         </View>
       </Pressable>
@@ -852,18 +855,19 @@ const styles = StyleSheet.create({
     color: Colors.white,
   },
   selectedMantraContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 8,
+    justifyContent: 'space-between',
+    marginBottom: 6,
+    paddingHorizontal: 4,
+    gap: 8,
   },
   selectedMantraText: {
-    fontSize: 22,
+    flex: 1,
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    textAlign: 'center',
-    lineHeight: 28,
-    marginBottom: 6,
+    lineHeight: 26,
     includeFontPadding: true,
   },
   changeMantraButton: {
@@ -873,8 +877,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     shadowColor: '#000',
     shadowOpacity: 0.04,
     shadowRadius: 2,
@@ -898,27 +902,27 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     textAlign: 'center',
     lineHeight: 32,
-    marginVertical: 10,
+    marginVertical: 8,
     paddingHorizontal: 10,
     paddingVertical: 2,
     includeFontPadding: true,
   },
   mantraCommunity: {
-    fontSize: 26,
-    lineHeight: 36,
+    fontSize: 24,
+    lineHeight: 32,
     color: Colors.sacredBrown,
-    marginVertical: 16,
+    marginVertical: 10,
   },
   countZone: {
     width: '100%',
-    minHeight: 460,
+    minHeight: 440,
     backgroundColor: '#EDE3CE',
     borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 40,
+    paddingVertical: 32,
     paddingHorizontal: 20,
-    marginVertical: 14,
+    marginVertical: 10,
     shadowColor: '#4A3525',
     shadowOpacity: 0.12,
     shadowRadius: 10,

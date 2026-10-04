@@ -274,7 +274,7 @@ const PrivateJapaScreen = () => {
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.dot}>
-            <Text style={styles.emoji}>📿</Text>
+            <Text style={styles.emoji}>🕉️</Text>
           </View>
           <View style={styles.copy}>
             <Text style={styles.title}>{t('privateMantra')}</Text>
