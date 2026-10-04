@@ -102,18 +102,25 @@ const AvailableRewardsScreen = () => {
   );
 
   const handleCardPress = (item: RewardItem, localized: any) => {
-    const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+    const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
     if (!eligibility.isEligible) {
       Alert.alert(
-        'Reward Locked',
-        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.\n\nYour current completed Japas: ${userTotalJapas.toLocaleString()}`,
-        [{text: 'OK'}],
+        t('rewardLockedTitle') || 'Reward Locked',
+        t('rewardLockedMsg', {
+          required: eligibility.requiredLabel,
+          remaining: eligibility.remainingJapas.toLocaleString('en-IN'),
+          current: userTotalJapas.toLocaleString('en-IN'),
+        }) ||
+          `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.\n\nYour current completed Japas: ${userTotalJapas.toLocaleString()}`,
+        [{text: t('ok') || 'OK'}],
       );
     } else {
       Alert.alert(
         localized.title || tt(item.name),
-        `${localized.description || ''}\n\n✓ Eligible: You have completed ${userTotalJapas.toLocaleString()} Japas. Complete challenges or milestones to claim this reward for delivery.`,
-        [{text: 'OK'}],
+        `${localized.description || ''}\n\n${t('rewardEligibleMsg', {
+          count: userTotalJapas.toLocaleString('en-IN'),
+        }) || `✓ Eligible: You have completed ${userTotalJapas.toLocaleString()} Japas. Complete challenges or milestones to claim this reward for delivery.`}`,
+        [{text: t('ok') || 'OK'}],
       );
     }
   };
@@ -132,7 +139,7 @@ const AvailableRewardsScreen = () => {
           <Text style={styles.bannerSubtitle}>
             {t('spiritualRewardsSubtitle') ||
               'Explore our authentic collection of consecrated spiritual items. Total completed Japas: ' +
-                userTotalJapas.toLocaleString()}
+                userTotalJapas.toLocaleString('en-IN')}
           </Text>
         </View>
       </View>
@@ -150,7 +157,7 @@ const AvailableRewardsScreen = () => {
       <View style={styles.listContainer}>
         {rewards.map(item => {
           const localized = getLocalizedReward(item.name, language);
-          const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+          const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
           const isLocked = !eligibility.isEligible;
 
           return (
@@ -177,15 +184,15 @@ const AvailableRewardsScreen = () => {
                     {isLocked ? (
                       <View style={styles.lockedBadge}>
                         <Text style={styles.lockedBadgeText}>
-                          🔒 Unlocks at {eligibility.requiredLabel}
+                          🔒 {t('unlocksAt', {target: eligibility.requiredLabel}) || `Unlocks at ${eligibility.requiredLabel}`}
                         </Text>
                       </View>
                     ) : (
                       <View style={styles.statusBadge}>
                         <Text style={styles.statusText}>
                           {eligibility.requiredJapas > 0
-                            ? `✓ Unlocked (${eligibility.requiredLabel})`
-                            : tt('Available')}
+                            ? `✓ ${t('unlocked') || 'Unlocked'} (${eligibility.requiredLabel})`
+                            : t('available') || tt('Available')}
                         </Text>
                       </View>
                     )}
@@ -197,7 +204,9 @@ const AvailableRewardsScreen = () => {
               </Text>
               {isLocked ? (
                 <Text style={styles.remainingHint}>
-                  Need {eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward
+                  {t('needMoreJapasReward', {
+                    count: eligibility.remainingJapas.toLocaleString('en-IN'),
+                  }) || `Need ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward`}
                 </Text>
               ) : null}
             </TouchableOpacity>
@@ -298,6 +307,7 @@ const styles = StyleSheet.create({
   },
   rewardName: {
     fontSize: 17,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 4,
@@ -309,29 +319,33 @@ const styles = StyleSheet.create({
   },
   statusBadge: {
     backgroundColor: '#EBF7EE',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   statusText: {
     color: Colors.leafGreen,
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '700',
+    includeFontPadding: true,
   },
   lockedBadge: {
     backgroundColor: '#FEF3C7',
     borderColor: '#D97706',
     borderWidth: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: 8,
     alignSelf: 'flex-start',
   },
   lockedBadgeText: {
     color: '#B45309',
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '800',
+    includeFontPadding: true,
   },
   rewardCardLocked: {
     backgroundColor: '#FAF7F0',
@@ -343,18 +357,20 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13.5,
     color: '#3E3024',
-    lineHeight: 20,
+    lineHeight: 22,
     includeFontPadding: true,
   },
   remainingHint: {
     marginTop: 8,
     fontSize: 13,
+    lineHeight: 20,
     fontWeight: '700',
     color: '#B45309',
     backgroundColor: '#FFFBEB',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 6,
     overflow: 'hidden',
+    includeFontPadding: true,
   },
 });

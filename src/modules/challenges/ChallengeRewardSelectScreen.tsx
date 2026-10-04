@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import AppIcon from '../../components/icons/AppIcon';
@@ -28,6 +29,7 @@ type RewardItem = {
 
 const ChallengeRewardSelectScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, tt, language} = useLanguage();
   const route = useRoute<any>();
   const challengeId = Number(route.params?.id || 0);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
@@ -79,12 +81,17 @@ const ChallengeRewardSelectScreen = () => {
     if (claimedName) {
       return;
     }
-    const eligibility = checkRewardEligibility(item.name, userTotalJapas);
+    const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
     if (!eligibility.isEligible) {
       Alert.alert(
-        'Reward Locked',
-        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward. (Current Japas: ${userTotalJapas.toLocaleString()})`,
-        [{text: 'OK'}],
+        t('rewardLockedTitle') || 'Reward Locked',
+        t('rewardLockedMsg', {
+          required: eligibility.requiredLabel,
+          remaining: eligibility.remainingJapas.toLocaleString('en-IN'),
+          current: userTotalJapas.toLocaleString('en-IN'),
+        }) ||
+          `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward. (Current Japas: ${userTotalJapas.toLocaleString()})`,
+        [{text: t('ok') || 'OK'}],
       );
       return;
     }
@@ -118,11 +125,16 @@ const ChallengeRewardSelectScreen = () => {
       Alert.alert('Select reward', 'Choose a sacred reward to continue.');
       return;
     }
-    const eligibility = checkRewardEligibility(selected.name, userTotalJapas);
+    const eligibility = checkRewardEligibility(selected.name, userTotalJapas, language);
     if (!eligibility.isEligible) {
       Alert.alert(
-        'Reward Locked',
-        `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.`,
+        t('rewardLockedTitle') || 'Reward Locked',
+        t('rewardLockedMsg', {
+          required: eligibility.requiredLabel,
+          remaining: eligibility.remainingJapas.toLocaleString('en-IN'),
+          current: userTotalJapas.toLocaleString('en-IN'),
+        }) ||
+          `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.`,
       );
       return;
     }
@@ -138,10 +150,11 @@ const ChallengeRewardSelectScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Choose Your Reward" showBack tab="JapaHub">
-      <Text style={styles.heading}>Reward unlocked</Text>
+    <ScreenLayout title={t('chooseReward') || 'Choose Your Reward'} showBack tab="JapaHub">
+      <Text style={styles.heading}>{t('unlocked') || 'Reward unlocked'}</Text>
       <Text style={styles.sub}>
-        Select your consecrated spiritual reward. Total Japas completed: {userTotalJapas.toLocaleString()}
+        {t('spiritualRewardsSubtitle') ||
+          `Select your consecrated spiritual reward. Total Japas completed: ${userTotalJapas.toLocaleString('en-IN')}`}
       </Text>
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
@@ -157,8 +170,8 @@ const ChallengeRewardSelectScreen = () => {
       <View style={styles.grid}>
         {rewards.map(item => {
           const isSelected = selectedId === item.id;
-          const eligibility = checkRewardEligibility(item.name, userTotalJapas);
-          const localized = getLocalizedReward(item.name, 'en');
+          const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
+          const localized = getLocalizedReward(item.name, language);
           const isLocked = !eligibility.isEligible;
           const disabled = Boolean(claimedName);
 
@@ -185,15 +198,15 @@ const ChallengeRewardSelectScreen = () => {
                 ) : null}
                 {isLocked ? (
                   <View style={styles.lockBadge}>
-                    <Text style={styles.lockBadgeText}>🔒 Locked</Text>
+                    <Text style={styles.lockBadgeText}>🔒 {t('unlocksAt', {target: eligibility.requiredLabel}) || `Unlocks at ${eligibility.requiredLabel}`}</Text>
                   </View>
                 ) : null}
               </View>
-              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.name}>{localized.title || tt(item.name)}</Text>
               
               {isLocked ? (
                 <Text style={styles.requirementHint}>
-                  Requires {eligibility.requiredLabel} Japas
+                  {t('unlocksAt', {target: eligibility.requiredLabel}) || `Requires ${eligibility.requiredLabel} Japas`}
                 </Text>
               ) : null}
 
@@ -202,7 +215,7 @@ const ChallengeRewardSelectScreen = () => {
                   styles.stock,
                   item.inStock ? styles.inStock : styles.outStock,
                 ]}>
-                {item.inStock ? 'IN STOCK' : 'OUT OF STOCK'}
+                {item.inStock ? (t('available') || 'IN STOCK') : 'OUT OF STOCK'}
               </Text>
               {!item.inStock ? <Text style={styles.x}>×</Text> : null}
             </TouchableOpacity>
@@ -220,10 +233,10 @@ const ChallengeRewardSelectScreen = () => {
       <PrimaryButton
         title={
           claimedName && !deliverySubmitted
-            ? 'ENTER DELIVERY DETAILS'
+            ? (t('enterDeliveryDetails') || 'ENTER DELIVERY DETAILS')
             : claimedName && deliverySubmitted
-              ? 'VIEW ORDER'
-              : 'CONFIRM REWARD'
+              ? (t('viewOrder') || 'VIEW ORDER')
+              : (t('chooseReward') || 'CONFIRM REWARD')
         }
         onPress={continueConfirm}
         disabled={!claimedName && !selectedId}

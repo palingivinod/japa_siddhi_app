@@ -63,10 +63,35 @@ const calcDaysRemaining = (endDateStr?: string | null) => {
 
 const YourJapasScreen = () => {
   const navigation = useNavigation<any>();
-  const {t, language} = useLanguage();
+  const {t, tt, language} = useLanguage();
   const [japas, setJapas] = useState<ActiveJapaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const getSourceBadge = (type: JapaSourceType) => {
+    switch (type) {
+      case 'PERSONAL':
+        return {
+          icon: '🕉️',
+          label: t('sourceOwnMantra') || 'Antharanga Japa (Own Mantra)',
+        };
+      case 'COMMUNITY':
+        return {
+          icon: '👥',
+          label: t('sourceCommunity') || 'Samuhika Japa',
+        };
+      case 'CHALLENGE':
+        return {
+          icon: '🏆',
+          label: t('sourceChallenge') || 'Sankalpa / Challenge Japa',
+        };
+      default:
+        return {
+          icon: '',
+          label: t('sourceCatalog') || 'Japa Mantra',
+        };
+    }
+  };
 
   const loadActiveJapas = useCallback(async () => {
     try {
@@ -252,8 +277,9 @@ const YourJapasScreen = () => {
             </Text>
             <Text style={styles.topSubtitle}>
               {japas.length > 0
-                ? `${japas.length} ${japas.length === 1 ? 'Japa' : 'Japas'} currently in progress. Select a mantra to continue chanting.`
-                : 'Manage and chant your active personal and community mantras.'}
+                ? (t('japasInProgressCount', {count: japas.length}) ||
+                  `${japas.length} ${japas.length === 1 ? 'Japa' : 'Japas'} currently in progress. Select a mantra to continue chanting.`)
+                : (t('manageAndChantActive') || 'Manage and chant your active personal and community mantras.')}
             </Text>
           </View>
           <TouchableOpacity
@@ -303,6 +329,7 @@ const YourJapasScreen = () => {
             const isPersonal = item.sourceType === 'PERSONAL';
             const isCommunity = item.sourceType === 'COMMUNITY';
             const isChallenge = item.sourceType === 'CHALLENGE';
+            const badge = getSourceBadge(item.sourceType);
 
             return (
               <View key={item.id} style={styles.japaCard}>
@@ -330,34 +357,36 @@ const YourJapasScreen = () => {
                               ? styles.sourceBadgeTextChallenge
                               : styles.sourceBadgeTextDefault,
                       ]}>
-                      {item.sourceIcon ? `${item.sourceIcon} ` : ''}{item.sourceLabel}
+                      {badge.icon ? `${badge.icon} ` : ''}{badge.label}
                     </Text>
                   </View>
 
                   <View style={styles.daysLeftBadge}>
                     <Text style={styles.daysLeftText}>
-                      ⏳ {item.remainingDays} {item.remainingDays === 1 ? 'Day' : 'Days'} Left
+                      ⏳ {item.remainingDays === 1
+                        ? (t('oneDayLeft') || '1 Day Left')
+                        : (t('daysLeftCount', {count: item.remainingDays}) || `${item.remainingDays} Days Left`)}
                     </Text>
                   </View>
                 </View>
 
                 {/* Mantra Name */}
                 <Text style={styles.mantraTitle} numberOfLines={2}>
-                  {item.mantraName}
+                  {tt(item.mantraName)}
                 </Text>
 
                 {/* Dynamic Daily Goal Highlight */}
                 <View style={styles.dailyGoalBox}>
                   <View style={styles.dailyGoalLeft}>
-                    <Text style={styles.dailyGoalTitle}>🎯 DAILY GOAL</Text>
+                    <Text style={styles.dailyGoalTitle}>🎯 {t('dailyGoalLabel') || 'DAILY GOAL'}</Text>
                     <Text style={styles.dailyGoalValue}>
                       {item.dailyTarget.toLocaleString('en-IN')}{' '}
-                      <Text style={styles.dailyGoalUnit}>Japas / day</Text>
+                      <Text style={styles.dailyGoalUnit}>{t('japasPerDay') || 'Japas / day'}</Text>
                     </Text>
                   </View>
                   {item.endDate ? (
                     <View style={styles.deadlineRight}>
-                      <Text style={styles.deadlineTitle}>📅 DEADLINE</Text>
+                      <Text style={styles.deadlineTitle}>📅 {t('deadlineLabel') || 'DEADLINE'}</Text>
                       <Text style={styles.deadlineValue}>
                         {formatDate(item.endDate)}
                       </Text>
@@ -369,8 +398,11 @@ const YourJapasScreen = () => {
                 <View style={styles.progressSection}>
                   <View style={styles.progressLabelRow}>
                     <Text style={styles.progressText}>
-                      Overall: {item.completedCount.toLocaleString('en-IN')} /{' '}
-                      {item.targetCount.toLocaleString('en-IN')} Japas
+                      {t('overallProgressJapas', {
+                        completed: item.completedCount.toLocaleString('en-IN'),
+                        target: item.targetCount.toLocaleString('en-IN'),
+                      }) ||
+                        `Overall: ${item.completedCount.toLocaleString('en-IN')} / ${item.targetCount.toLocaleString('en-IN')} Japas`}
                     </Text>
                     <Text style={styles.progressPercentText}>
                       {item.progressPercent}%
@@ -392,7 +424,7 @@ const YourJapasScreen = () => {
                   style={styles.chantBtn}
                   activeOpacity={0.85}
                   onPress={() => handleChantPress(item)}>
-                  <Text style={styles.chantBtnText}>CHANT NOW</Text>
+                  <Text style={styles.chantBtnText}>{t('chantNow') || 'CHANT NOW'}</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -403,23 +435,23 @@ const YourJapasScreen = () => {
         {japas.length > 0 ? (
           <View style={styles.bottomSection}>
             <Text style={styles.bottomHint}>
-              Want to chant a different mantra or start a new challenge?
+              {t('wantDifferentMantra') || 'Want to chant a different mantra or start a new challenge?'}
             </Text>
             <View style={styles.bottomLinksRow}>
               <TouchableOpacity
                 style={styles.bottomLinkChip}
                 onPress={() => navigation.navigate('PrivateJapa')}>
-                <Text style={styles.bottomLinkText}>🕉️ Own Mantra</Text>
+                <Text style={styles.bottomLinkText}>🕉️ {t('ownMantra') || 'Own Mantra'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.bottomLinkChip}
                 onPress={() => navigation.navigate('CommunityJapa')}>
-                <Text style={styles.bottomLinkText}>👥 Samuhika</Text>
+                <Text style={styles.bottomLinkText}>👥 {t('samuhika') || 'Samuhika'}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.bottomLinkChip}
                 onPress={() => navigation.navigate('Challenges')}>
-                <Text style={styles.bottomLinkText}>🏆 Challenges</Text>
+                <Text style={styles.bottomLinkText}>🏆 {t('challengesTab') || 'Challenges'}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -450,14 +482,17 @@ const styles = StyleSheet.create({
   },
   topTitle: {
     fontSize: 18,
+    lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   topSubtitle: {
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 3,
-    lineHeight: 17,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
   addBtn: {
     backgroundColor: Colors.templeGold,
@@ -469,6 +504,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '800',
     fontSize: 13,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
   loadingBox: {
     paddingVertical: 40,
@@ -493,13 +530,15 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 8,
     textAlign: 'center',
+    includeFontPadding: true,
   },
   emptyDesc: {
     fontSize: 14,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 21,
+    lineHeight: 22,
     marginBottom: 20,
+    includeFontPadding: true,
   },
   emptyActions: {
     width: '100%',
@@ -549,7 +588,9 @@ const styles = StyleSheet.create({
   },
   sourceBadgeText: {
     fontSize: 11.5,
+    lineHeight: 17,
     fontWeight: '800',
+    includeFontPadding: true,
   },
   sourceBadgeTextPersonal: {
     color: '#B45309',
@@ -571,15 +612,19 @@ const styles = StyleSheet.create({
   },
   daysLeftText: {
     fontSize: 11.5,
+    lineHeight: 17,
     fontWeight: '700',
     color: Colors.textSecondary,
+    includeFontPadding: true,
   },
   mantraTitle: {
     fontSize: 18,
-    lineHeight: 26,
+    lineHeight: 28,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 12,
+    includeFontPadding: true,
+    paddingVertical: 2,
   },
   dailyGoalBox: {
     flexDirection: 'row',
@@ -597,36 +642,46 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   dailyGoalTitle: {
-    fontSize: 10.5,
+    fontSize: 11,
+    lineHeight: 17,
     fontWeight: '800',
     color: Colors.leafGreen,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    includeFontPadding: true,
   },
   dailyGoalValue: {
     fontSize: 16,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginTop: 2,
+    includeFontPadding: true,
   },
   dailyGoalUnit: {
     fontSize: 12,
+    lineHeight: 18,
     fontWeight: '600',
     color: Colors.textSecondary,
+    includeFontPadding: true,
   },
   deadlineRight: {
     alignItems: 'flex-end',
   },
   deadlineTitle: {
-    fontSize: 10.5,
+    fontSize: 11,
+    lineHeight: 17,
     fontWeight: '800',
     color: Colors.textSecondary,
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
+    includeFontPadding: true,
   },
   deadlineValue: {
     fontSize: 13.5,
+    lineHeight: 22,
     fontWeight: '700',
     color: Colors.sacredBrown,
     marginTop: 2,
+    includeFontPadding: true,
   },
   progressSection: {
     marginBottom: 14,
@@ -638,13 +693,17 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 12.5,
+    lineHeight: 20,
     fontWeight: '700',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
   progressPercentText: {
     fontSize: 12.5,
+    lineHeight: 20,
     fontWeight: '800',
     color: Colors.leafGreen,
+    includeFontPadding: true,
   },
   progressBarTrack: {
     height: 8,
@@ -667,8 +726,10 @@ const styles = StyleSheet.create({
   chantBtnText: {
     color: Colors.white,
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: '800',
     letterSpacing: 0.5,
+    includeFontPadding: true,
   },
   bottomSection: {
     marginTop: 10,
@@ -677,10 +738,12 @@ const styles = StyleSheet.create({
   },
   bottomHint: {
     fontSize: 13,
+    lineHeight: 20,
     fontWeight: '600',
     color: Colors.textSecondary,
     marginBottom: 10,
     textAlign: 'center',
+    includeFontPadding: true,
   },
   bottomLinksRow: {
     flexDirection: 'row',
@@ -698,7 +761,9 @@ const styles = StyleSheet.create({
   },
   bottomLinkText: {
     fontSize: 12.5,
+    lineHeight: 18,
     fontWeight: '700',
     color: Colors.sacredBrown,
+    includeFontPadding: true,
   },
 });

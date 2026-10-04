@@ -596,6 +596,15 @@ const en = {
   spiritualRewardsTitle: 'Sacred Spiritual Rewards',
   spiritualRewardsSubtitle:
     'Explore our authentic collection of consecrated spiritual items and sacred divine offerings.',
+  available: 'Available',
+  unlocksAt: 'Unlocks at {{target}}',
+  unlocked: 'Unlocked',
+  needMoreJapasReward: 'Need {{count}} more Japas to grab this reward',
+  rewardLockedTitle: 'Reward Locked',
+  rewardLockedMsg:
+    'This reward is available after {{required}} Japas.\n\nYou need to complete {{remaining}} more Japas to grab this reward.\n\nYour current completed Japas: {{current}}',
+  rewardEligibleMsg:
+    '✓ Eligible: You have completed {{count}} Japas. Complete challenges or milestones to claim this reward for delivery.',
 
   // Your Japas Screen
   yourJapas: 'Your Japas',
@@ -609,6 +618,22 @@ const en = {
   noActiveJapasTitle: 'No Ongoing Japas Yet',
   noActiveJapasDesc:
     'You do not have any active japa in progress. Start an Antharanga Japa with your own mantra or join a Samuhika Japa to begin!',
+  japasInProgressCount:
+    '{{count}} Japas currently in progress. Select a mantra to continue chanting.',
+  manageAndChantActive:
+    'Manage and chant your active personal and community mantras.',
+  daysLeftCount: '{{count}} Days Left',
+  oneDayLeft: '1 Day Left',
+  dailyGoalLabel: 'DAILY GOAL',
+  japasPerDay: 'Japas / day',
+  deadlineLabel: 'DEADLINE',
+  overallProgressJapas: 'Overall: {{completed}} / {{target}} Japas',
+  chantNow: 'CHANT NOW',
+  wantDifferentMantra:
+    'Want to chant a different mantra or start a new challenge?',
+  ownMantra: 'Own Mantra',
+  samuhika: 'Samuhika',
+  challengesTab: 'Challenges',
 
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',

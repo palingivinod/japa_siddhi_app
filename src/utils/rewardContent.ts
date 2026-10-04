@@ -696,10 +696,25 @@ export interface RewardEligibility {
   remainingJapas: number;
 }
 
+const LAKH_LABELS: Record<string, {one: string; two: string}> = {
+  te: {one: '1,00,000 (1 లక్ష)', two: '2,00,000 (2 లక్షలు)'},
+  hi: {one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
+  ta: {one: '1,00,000 (1 லட்சம்)', two: '2,00,000 (2 லட்சம்)'},
+  kn: {one: '1,00,000 (1 ಲಕ್ಷ)', two: '2,00,000 (2 ಲಕ್ಷ)'},
+  ml: {one: '1,00,000 (1 ലക്ഷം)', two: '2,00,000 (2 ലക്ഷം)'},
+  mr: {one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
+  bn: {one: '1,00,000 (1 লাখ)', two: '2,00,000 (2 লাখ)'},
+  or: {one: '1,00,000 (1 ଲକ୍ଷ)', two: '2,00,000 (2 ଲକ୍ଷ)'},
+  en: {one: '1,00,000 (1 Lakh)', two: '2,00,000 (2 Lakhs)'},
+};
+
 export const getRewardRequirement = (
   rewardName: string,
+  lang: string = 'en',
 ): {count: number; label: string} => {
   const lower = String(rewardName || '').toLowerCase();
+  const lakhText = LAKH_LABELS[lang] || LAKH_LABELS.en;
+
   // Yellow Agate or Green Agate => 2,00,000 Japas (2 Lakhs)
   if (
     lower.includes('yellow agate') ||
@@ -707,7 +722,7 @@ export const getRewardRequirement = (
     (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट'))) ||
     (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट')))
   ) {
-    return {count: 200000, label: '2,00,000 (2 Lakhs)'};
+    return {count: 200000, label: lakhText.two};
   }
   // Spatika Mala => 1,00,000 Japas (1 Lakh)
   if (
@@ -718,7 +733,7 @@ export const getRewardRequirement = (
     lower.includes('స్పటిక') ||
     lower.includes('स्फटिक')
   ) {
-    return {count: 100000, label: '1,00,000 (1 Lakh)'};
+    return {count: 100000, label: lakhText.one};
   }
   return {count: 0, label: 'Standard'};
 };
@@ -726,8 +741,9 @@ export const getRewardRequirement = (
 export const checkRewardEligibility = (
   rewardName: string,
   userJapaCount: number = 0,
+  lang: string = 'en',
 ): RewardEligibility => {
-  const req = getRewardRequirement(rewardName);
+  const req = getRewardRequirement(rewardName, lang);
   const count = Number(userJapaCount) || 0;
   const isEligible = req.count <= 0 || count >= req.count;
   const remainingJapas = isEligible ? 0 : Math.max(0, req.count - count);

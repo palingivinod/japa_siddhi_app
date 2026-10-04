@@ -107,13 +107,13 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   label: {
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',
     color: Colors.leafGreen,
     includeFontPadding: true,
     textAlign: 'center',
-    paddingBottom: 1,
+    paddingHorizontal: 2,
   },
   active: {
     color: Colors.templeGold,

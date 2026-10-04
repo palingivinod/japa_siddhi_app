@@ -582,4 +582,44 @@ export const ta: TranslationDict = {
   festDescKartikaPurnima: 'சிவ மற்றும் விஷ்ணு ஜபத்திற்கான புனித கார்த்திகை பௌர்ணமி.',
   festDescMahaShivaratri: 'சிவபெருமானின் இரவு முழுவதும் வழிபாடு மற்றும் ஜாகரணை.',
   festDescKartikaMasam: 'சிவ மற்றும் விஷ்ணுவுக்கு அர்ப்பணிக்கப்பட்ட புனித மாதம்.',
+
+  // Rewards
+  available: 'கிடைக்கிறது',
+  unlocksAt: '{{target}}-ல் திறக்கப்படும்',
+  unlocked: 'திறக்கப்பட்டது',
+  needMoreJapasReward: 'இந்த வெகுமதியைப் பெற இன்னும் {{count}} ஜபங்கள் தேவை',
+  rewardLockedTitle: 'வெகுமதி பூட்டப்பட்டுள்ளது',
+  rewardLockedMsg:
+    'இந்த வெகுமதி {{required}} ஜபங்களுக்குப் பிறகு கிடைக்கும்.\n\nஇதைப் பெற இன்னும் {{remaining}} ஜபங்களை முடிக்க வேண்டும்.\n\nஉங்கள் தற்போதைய ஜபங்கள்: {{current}}',
+  rewardEligibleMsg:
+    '✓ தகுதி உள்ளது: நீங்கள் {{count}} ஜபங்களை முடித்துள்ளீர்கள். டெலிவரிக்கு இந்த வெகுமதியைப் பெற சவால்கள் அல்லது மைல்கற்களை முடிக்கவும்.',
+
+  // Your Japas
+  yourJapas: 'உங்கள் ஜபங்கள்',
+  ongoingJapas: 'நடைபெறும் ஜபங்கள்',
+  ongoingJapasSub: 'தற்போதைய மந்திரங்கள் & இலக்குகளைப் பார்க்கவும்',
+  addNewJapa: 'ஜபம் சேர்க்க',
+  sourceOwnMantra: 'அந்தரங்க ஜபம் (சொந்த மந்திரம்)',
+  sourceCommunity: 'சாமுஹிக ஜபம்',
+  sourceChallenge: 'சங்கல்ப / சவால் ஜபம்',
+  sourceCatalog: 'ஜப மந்திரம்',
+  noActiveJapasTitle: 'செயலில் உள்ள ஜபங்கள் இல்லை',
+  noActiveJapasDesc:
+    'உங்களிடம் எந்த செயலில் உள்ள ஜபமும் இல்லை. உங்கள் சொந்த மந்திரத்துடன் அந்தரங்க ஜபத்தைத் தொடங்கவும் அல்லது சாமுஹிக ஜபத்தில் இணையவும்!',
+  japasInProgressCount:
+    'தற்போது {{count}} ஜபங்கள் செயலில் உள்ளன. ஜபத்தைத் தொடர மந்திரத்தைத் தேர்ந்தெடுக்கவும்.',
+  manageAndChantActive:
+    'உங்கள் சொந்த மற்றும் சாமுஹிக மந்திரங்களை நிர்வகித்து ஜபிக்கவும்.',
+  daysLeftCount: '{{count}} நாட்கள் மீதமுள்ளன',
+  oneDayLeft: '1 நாள் மீதமுள்ளது',
+  dailyGoalLabel: 'தினசரி இலக்கு',
+  japasPerDay: 'ஜபங்கள் / நாள்',
+  deadlineLabel: 'கடைசி தேதி',
+  overallProgressJapas: 'மொத்தம்: {{completed}} / {{target}} ஜபங்கள்',
+  chantNow: 'இப்போதே ஜபிக்கவும்',
+  wantDifferentMantra:
+    'வேறு மந்திரத்தை ஜபிக்க வேண்டுமா அல்லது புதிய சவாலைத் தொடங்க வேண்டுமா?',
+  ownMantra: 'சொந்த மந்திரம்',
+  samuhika: 'சாமுஹிக',
+  challengesTab: 'சவால்கள்',
 };

@@ -611,6 +611,46 @@ export const hi: TranslationDict = {
   festDescKartikaPurnima: 'शिव और विष्णु जप के लिए पावन पूर्णिमा।',
   festDescMahaShivaratri: 'भगवान शिव की रात्रि-पर्यन्त आराधना व जागरण।',
   festDescKartikaMasam: 'भगवान शिव और विष्णु को समर्पित पवित्र मास।',
+
+  // Rewards
+  available: 'उपलब्ध',
+  unlocksAt: '{{target}} पर अनलॉक होगा',
+  unlocked: 'अनलॉक हुआ',
+  needMoreJapasReward: 'यह पुरस्कार पाने के लिए {{count}} और जप पूरे करने होंगे',
+  rewardLockedTitle: 'पुरस्कार लॉक है',
+  rewardLockedMsg:
+    'यह पुरस्कार {{required}} जप के बाद उपलब्ध होगा।\n\nइसे पाने के लिए आपको {{remaining}} और जप पूरे करने होंगे।\n\nआपके वर्तमान पूर्ण जप: {{current}}',
+  rewardEligibleMsg:
+    '✓ पात्र: आपने {{count}} जप पूरे किए हैं। डिलीवरी के लिए इस पुरस्कार को क्लेम करने के लिए चुनौतियाँ या मील के पत्थर पूरे करें।',
+
+  // Your Japas
+  yourJapas: 'आपके जप',
+  ongoingJapas: 'चालू जप',
+  ongoingJapasSub: 'चालू मंत्र और गतिशील लक्ष्य देखें',
+  addNewJapa: 'नया जप जोड़ें',
+  sourceOwnMantra: 'अन्तरंग जप (स्वयं का मंत्र)',
+  sourceCommunity: 'सामूहिक जप',
+  sourceChallenge: 'संकल्प / चुनौती जप',
+  sourceCatalog: 'जप मंत्र',
+  noActiveJapasTitle: 'अभी कोई चालू जप नहीं है',
+  noActiveJapasDesc:
+    'आपके पास कोई सक्रिय जप प्रगति में नहीं है। अपने स्वयं के मंत्र के साथ अन्तरंग जप शुरू करें या शुरू करने के लिए सामूहिक जप में शामिल हों!',
+  japasInProgressCount:
+    'वर्तमान में {{count}} जप प्रगति पर हैं। जप जारी रखने के लिए मंत्र चुनें।',
+  manageAndChantActive:
+    'अपने सक्रिय व्यक्तिगत और सामूहिक मंत्रों का प्रबंधन करें और जप करें।',
+  daysLeftCount: '{{count}} दिन शेष',
+  oneDayLeft: '1 दिन शेष',
+  dailyGoalLabel: 'दैनिक लक्ष्य',
+  japasPerDay: 'जप / दिन',
+  deadlineLabel: 'अंतिम तिथि',
+  overallProgressJapas: 'कुल: {{completed}} / {{target}} जप',
+  chantNow: 'अभी जप करें',
+  wantDifferentMantra:
+    'कोई अन्य मंत्र जपना चाहते हैं या नई चुनौती शुरू करना चाहते हैं?',
+  ownMantra: 'स्वयं का मंत्र',
+  samuhika: 'सामूहिक',
+  challengesTab: 'चुनौतियाँ',
 };
 
 /** Telugu */
@@ -1223,6 +1263,46 @@ export const te: TranslationDict = {
   festDescKartikaPurnima: 'శివ, విష్ణు జపాలకు పవిత్రమైన కార్తీక పౌర్ణమి.',
   festDescMahaShivaratri: 'పరమశివుని జాగరణ మరియు పవిత్ర శివారాధన.',
   festDescKartikaMasam: 'శివకేశవులకు అంకితమైన పవిత్ర కార్తీక మాసం.',
+
+  // Rewards
+  available: 'అందుబాటులో ఉంది',
+  unlocksAt: '{{target}} వద్ద అన్‌లాక్ అవుతుంది',
+  unlocked: 'అన్‌లాక్ అయింది',
+  needMoreJapasReward: 'ఈ బహుమతి పొందడానికి ఇంకా {{count}} జపాలు పూర్తి చేయాలి',
+  rewardLockedTitle: 'బహుమతి లాక్ చేయబడింది',
+  rewardLockedMsg:
+    'ఈ బహుమతి {{required}} జపాల తర్వాత అందుబాటులోకి వస్తుంది.\n\nఈ బహుమతి పొందడానికి మీరు ఇంకా {{remaining}} జపాలు పూర్తి చేయాలి.\n\nమీ ప్రస్తుత జపాలు: {{current}}',
+  rewardEligibleMsg:
+    '✓ అర్హత ఉంది: మీరు {{count}} జపాలు పూర్తి చేశారు. డెలివరీ కోసం ఈ బహుమతిని క్లెయిమ్ చేయడానికి సవాళ్లు లేదా మైలురాళ్లను పూర్తి చేయండి.',
+
+  // Your Japas
+  yourJapas: 'మీ జపాలు',
+  ongoingJapas: 'కొనసాగుతున్న జపాలు',
+  ongoingJapasSub: 'కొనసాగుతున్న మంత్రాలు & డైనమిక్ లక్ష్యాలు చూడండి',
+  addNewJapa: 'జపం జోడించండి',
+  sourceOwnMantra: 'అంతరంగ జపం (స్వంత మంత్రం)',
+  sourceCommunity: 'సామూహిక జపం',
+  sourceChallenge: 'సంకల్ప / ఛాలెంజ్ జపం',
+  sourceCatalog: 'జప మంత్రం',
+  noActiveJapasTitle: 'ఇంకా కొనసాగుతున్న జపాలు లేవు',
+  noActiveJapasDesc:
+    'మీకు ప్రస్తుతం కొనసాగుతున్న జపం ఏదీ లేదు. మీ స్వంత మంత్రంతో అంతరంగ జపం ప్రారంభించండి లేదా ప్రారంభించడానికి సామూహిక జపంలో చేరండి!',
+  japasInProgressCount:
+    'ప్రస్తుతం {{count}} జపాలు కొనసాగుతున్నాయి. జపం చేయడానికి మంత్రాన్ని ఎంచుకోండి.',
+  manageAndChantActive:
+    'మీ అంతరంగ మరియు సామూహిక మంత్రాల సాధనను నిర్వహించండి, జపించండి.',
+  daysLeftCount: '{{count}} రోజులు మిగిలాయి',
+  oneDayLeft: '1 రోజు మిగిలింది',
+  dailyGoalLabel: 'రోజువారీ లక్ష్యం',
+  japasPerDay: 'జపాలు / రోజు',
+  deadlineLabel: 'గడువు తేదీ',
+  overallProgressJapas: 'మొత్తం: {{completed}} / {{target}} జపాలు',
+  chantNow: 'ఇప్పుడే జపించండి',
+  wantDifferentMantra:
+    'మరొక మంత్రం జపించాలనుకుంటున్నారా లేదా కొత్త ఛాలెంజ్ ప్రారంభించాలనుకుంటున్నారా?',
+  ownMantra: 'స్వంత మంత్రం',
+  samuhika: 'సామూహిక',
+  challengesTab: 'సవాళ్లు',
 };
 
 
@@ -1371,6 +1451,16 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Milestone reminders': 'milestoneReminders',
   Baanalingam: 'tileBaanalingam',
   'Japa Siddhi Design System': 'designSystem',
+  'Your Japas': 'yourJapas',
+  'Ongoing Japas': 'ongoingJapas',
+  'Available Rewards': 'availableRewards',
+  Available: 'available',
+  'CHANT NOW': 'chantNow',
+  'Chant Now': 'chantNow',
+  'DAILY GOAL': 'dailyGoalLabel',
+  'Daily Goal': 'dailyGoal',
+  DEADLINE: 'deadlineLabel',
+  Deadline: 'deadlineLabel',
 
   // Mantra names arrive from the API, so they are matched by title.
   'Om Namah Shivaya': 'mantraOmNamahShivaya',

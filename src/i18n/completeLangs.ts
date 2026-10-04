@@ -579,4 +579,44 @@ export const kn: TranslationDict = {
   festDescKartikaPurnima: 'ಶಿವ ಮತ್ತು ವಿಷ್ಣು ಜಪಕ್ಕಾಗಿ ಪವಿತ್ರವಾದ ಕಾರ್ತಿಕ ಹುಣ್ಣಿಮೆ.',
   festDescMahaShivaratri: 'ಪರಮಶಿವನ ರಾತ್ರಿಯಿಡೀ ಆರಾಧನೆ ಮತ್ತು ಜಾಗರಣೆ.',
   festDescKartikaMasam: 'ಶಿವ ಮತ್ತು ವಿಷ್ಣುವಿಗೆ ಸಮರ್ಪಿತವಾದ ಪವಿತ್ರ ಕಾರ್ತಿಕ ಮಾಸ.',
+
+  // Rewards
+  available: 'ಲಭ್ಯವಿದೆ',
+  unlocksAt: '{{target}} ರಲ್ಲಿ ಅನ್‌ಲಾಕ್ ಆಗುತ್ತದೆ',
+  unlocked: 'ಅನ್‌ಲಾಕ್ ಆಗಿದೆ',
+  needMoreJapasReward: 'ಈ ಬಹುಮಾನವನ್ನು ಪಡೆಯಲು ಇನ್ನೂ {{count}} ಜಪಗಳು ಬೇಕು',
+  rewardLockedTitle: 'ಬಹುಮಾನ ಲಾಕ್ ಆಗಿದೆ',
+  rewardLockedMsg:
+    'ಈ ಬಹುಮಾನವು {{required}} ಜಪಗಳ ನಂತರ ಲಭ್ಯವಿದೆ.\n\nಇದನ್ನು ಪಡೆಯಲು ನೀವು ಇನ್ನೂ {{remaining}} ಜಪಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಬೇಕು.\n\nನಿಮ್ಮ ಪ್ರಸ್ತುತ ಜಪಗಳು: {{current}}',
+  rewardEligibleMsg:
+    '✓ ಅರ್ಹತೆ ಇದೆ: ನೀವು {{count}} ಜಪಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದ್ದೀರಿ. ಡೆಲಿವರಿಗಾಗಿ ಈ ಬಹುಮಾನವನ್ನು ಕ್ಲೈಮ್ ಮಾಡಲು ಸವಾಲುಗಳನ್ನು ಅಥವಾ ಮೈಲಿಗಲ್ಲುಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ.',
+
+  // Your Japas
+  yourJapas: 'ನಿಮ್ಮ ಜಪಗಳು',
+  ongoingJapas: 'ಪ್ರಸ್ತುತ ಜಪಗಳು',
+  ongoingJapasSub: 'ಚಾಲ್ತಿಯಲ್ಲಿರುವ ಮಂತ್ರಗಳು ಮತ್ತು ಗುರಿಗಳನ್ನು ವೀಕ್ಷಿಸಿ',
+  addNewJapa: 'ಜಪ ಸೇರಿಸಿ',
+  sourceOwnMantra: 'ಅಂತರಂಗ ಜಪ (ಸ್ವಂತ ಮಂತ್ರ)',
+  sourceCommunity: 'ಸಾಮೂಹಿಕ ಜಪ',
+  sourceChallenge: 'ಸಂಕಲ್ಪ / ಚಾಲೆಂಜ್ ಜಪ',
+  sourceCatalog: 'ಜಪ ಮಂತ್ರ',
+  noActiveJapasTitle: 'ಯಾವುದೇ ಚಾಲ್ತಿ ಜಪಗಳಿಲ್ಲ',
+  noActiveJapasDesc:
+    'ನಿಮ್ಮಲ್ಲಿ ಯಾವುದೇ ಸಕ್ರಿಯ ಜಪ ನಡೆಯುತ್ತಿಲ್ಲ. ನಿಮ್ಮ ಸ್ವಂತ ಮಂತ್ರದೊಂದಿಗೆ ಅಂತರಂಗ ಜಪವನ್ನು ಪ್ರಾರಂಭಿಸಿ ಅಥವಾ ಸಾಮೂಹಿಕ ಜಪವನ್ನು ಸೇರಿಕೊಳ್ಳಿ!',
+  japasInProgressCount:
+    'ಪ್ರಸ್ತುತ {{count}} ಜಪಗಳು ಚಾಲ್ತಿಯಲ್ಲಿವೆ. ಜಪ ಮುಂದುವರಿಸಲು ಮಂತ್ರವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
+  manageAndChantActive:
+    'ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಮತ್ತು ಸಾಮುದಾಯಿಕ ಮಂತ್ರಗಳನ್ನು ನಿರ್ವಹಿಸಿ ಮತ್ತು ಜಪಿಸಿ.',
+  daysLeftCount: '{{count}} ದಿನಗಳು ಉಳಿದಿವೆ',
+  oneDayLeft: '1 ದಿನ ಉಳಿದಿದೆ',
+  dailyGoalLabel: 'ದೈನಂದಿನ ಗುರಿ',
+  japasPerDay: 'ಜಪಗಳು / ದಿನ',
+  deadlineLabel: 'ಅಂತಿಮ ದಿನಾಂಕ',
+  overallProgressJapas: 'ಒಟ್ಟು: {{completed}} / {{target}} ಜಪಗಳು',
+  chantNow: 'ಈಗಲೇ ಜಪಿಸಿ',
+  wantDifferentMantra:
+    'ಬೇರೆ ಮಂತ್ರವನ್ನು ಜಪಿಸಲು ಅಥವಾ ಹೊಸ ಸವಾಲನ್ನು ಪ್ರಾರಂಭಿಸಲು ಬಯಸುವಿರಾ?',
+  ownMantra: 'ಸ್ವಂತ ಮಂತ್ರ',
+  samuhika: 'ಸಾಮೂಹಿಕ',
+  challengesTab: 'ಸವಾಲುಗಳು',
 };

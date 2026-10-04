@@ -559,4 +559,44 @@ export const bn: TranslationDict = {
   festDescKartikaPurnima: 'শিব ও বিষ্ণু জপের জন্য পবিত্র কার্তিক পূর্ণিমা।',
   festDescMahaShivaratri: 'ভগবান শিবের রাত্রি জাগরণ ও আরাধনা।',
   festDescKartikaMasam: 'ভগবান শিব ও বিষ্ণুর উদ্দেশ্যে নিবেদিত পবিত্র মাস।',
+
+  // Rewards
+  available: 'উপলব্ধ',
+  unlocksAt: '{{target}}-এ আনলক হবে',
+  unlocked: 'আনলক হয়েছে',
+  needMoreJapasReward: 'এই পুরষ্কার পেতে আরও {{count}} জপ সম্পূর্ণ করতে হবে',
+  rewardLockedTitle: 'পুরস্কার লক করা আছে',
+  rewardLockedMsg:
+    'এই পুরষ্কারটি {{required}} জপের পর উপলব্ধ হবে।\n\nএটি পেতে আপনাকে আরও {{remaining}} জপ সম্পূর্ণ করতে হবে।\n\nআপনার বর্তমান সমাপ্ত জপ: {{current}}',
+  rewardEligibleMsg:
+    '✓ যোগ্য: আপনি {{count}} জপ সম্পন্ন করেছেন। ডেলিভারির জন্য এই পুরষ্কার দাবি করতে চ্যালেঞ্জ বা মাইলফলক সম্পন্ন করুন।',
+
+  // Your Japas
+  yourJapas: 'আপনার জপ',
+  ongoingJapas: 'চলমান জপ',
+  ongoingJapasSub: 'চলমান মন্ত্র ও লক্ষ্য দেখুন',
+  addNewJapa: 'জপ যোগ করুন',
+  sourceOwnMantra: 'অন্তরঙ্গ জপ (নিজের মন্ত্র)',
+  sourceCommunity: 'সামূহিক জপ',
+  sourceChallenge: 'সংকল্প / চ্যালেঞ্জ জপ',
+  sourceCatalog: 'জপ মন্ত্র',
+  noActiveJapasTitle: 'এখনও কোনো চলমান জপ নেই',
+  noActiveJapasDesc:
+    'আপনার কোনো সক্রিয় জপ চলছে না। আপনার নিজের মন্ত্র দিয়ে অন্তরঙ্গ জপ শুরু করুন বা শুরু করতে সামূহিক জপে যোগ দিন!',
+  japasInProgressCount:
+    'বর্তমানে {{count}}টি জপ চলছে। জপ চালিয়ে যেতে একটি মন্ত্র নির্বাচন করুন।',
+  manageAndChantActive:
+    'আপনার ব্যক্তিগত ও সমষ্টিগত মন্ত্র পরিচালনা করুন এবং জপ করুন।',
+  daysLeftCount: '{{count}} দিন বাকি',
+  oneDayLeft: '1 দিন বাকি',
+  dailyGoalLabel: 'দৈনিক লক্ষ্য',
+  japasPerDay: 'জপ / দিন',
+  deadlineLabel: 'শেষ তারিখ',
+  overallProgressJapas: 'মোট: {{completed}} / {{target}} জপ',
+  chantNow: 'এখনই জপ করুন',
+  wantDifferentMantra:
+    'অন্য কোনো মন্ত্র জপ করতে বা নতুন চ্যালেঞ্জ শুরু করতে চান?',
+  ownMantra: 'নিজের মন্ত্র',
+  samuhika: 'সামূহিক',
+  challengesTab: 'চ্যালেঞ্জ',
 };

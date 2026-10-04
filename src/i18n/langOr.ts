@@ -559,4 +559,44 @@ export const or: TranslationDict = {
   festDescKartikaPurnima: 'ଶିବ ଏବଂ ବିଷ୍ଣୁ ଜପ ପାଇଁ ପବିତ୍ର କାର୍ତ୍ତିକ ପୂର୍ଣ୍ଣିମା।',
   festDescMahaShivaratri: 'ଭଗବାନ ଶିବଙ୍କ ରାତ୍ରି ସାରା ଆରାଧନା ଏବଂ ଜାଗରଣ।',
   festDescKartikaMasam: 'ଭଗବାନ ଶିବ ଏବଂ ବିଷ୍ଣୁଙ୍କୁ ସମର୍ପିତ ପବିତ୍ର ମାସ।',
+
+  // Rewards
+  available: 'ଉପଲବ୍ଧ',
+  unlocksAt: '{{target}} ରେ ଅନଲକ୍ ହେବ',
+  unlocked: 'ଅନଲକ୍ ହୋଇଛି',
+  needMoreJapasReward: 'ଏହି ପୁରସ୍କାର ପାଇବାକୁ ଆହୁରି {{count}} ଜପ ଆବଶ୍ୟକ',
+  rewardLockedTitle: 'ପୁରସ୍କାର ଲକ୍ ହୋଇଛି',
+  rewardLockedMsg:
+    'ଏହି ପୁରସ୍କାର {{required}} ଜପ ପରେ ଉପଲବ୍ଧ ହେବ।\n\nଏହା ପାଇବା ପାଇଁ ଆପଣଙ୍କୁ ଆହୁରି {{remaining}} ଜପ ପୂରଣ କରିବାକୁ ହେବ।\n\nଆପଣଙ୍କର ବର୍ତ୍ତମାନର ଜପ: {{current}}',
+  rewardEligibleMsg:
+    '✓ ଯୋଗ୍ୟ: ଆପଣ {{count}} ଜପ ପୂରଣ କରିଛନ୍ତି। ଡେଲିଭରି ପାଇଁ ଏହି ପୁରସ୍କାର ଦାବି କରିବାକୁ ଚ୍ୟାଲେଞ୍ଜ କିମ୍ବା ମାଇଲଷ୍ଟୋନ୍ ପୂରଣ କରନ୍ତୁ।',
+
+  // Your Japas
+  yourJapas: 'ଆପଣଙ୍କ ଜପ',
+  ongoingJapas: 'ଚାଲୁଥିବା ଜପ',
+  ongoingJapasSub: 'ଚାଲୁଥିବା ମନ୍ତ୍ର ଏବଂ ଲକ୍ଷ୍ୟ ଦେଖନ୍ତୁ',
+  addNewJapa: 'ଜପ ଯୋଡନ୍ତୁ',
+  sourceOwnMantra: 'ଅନ୍ତରଙ୍ଗ ଜପ (ନିଜ ମନ୍ତ୍ର)',
+  sourceCommunity: 'ସାମୂହିକ ଜପ',
+  sourceChallenge: 'ସଂକଳ୍ପ / ଚ୍ୟାଲେଞ୍ଜ ଜପ',
+  sourceCatalog: 'ଜପ ମନ୍ତ୍ର',
+  noActiveJapasTitle: 'ବର୍ତ୍ତମାନ କୌଣସି ଚାଲୁଥିବା ଜପ ନାହିଁ',
+  noActiveJapasDesc:
+    'ଆପଣଙ୍କର କୌଣସି ସକ୍ରିୟ ଜପ ଚାଲିନାହିଁ। ନିଜ ମନ୍ତ୍ର ସହିତ ଅନ୍ତରଙ୍ଗ ଜପ ଆରମ୍ଭ କରନ୍ତୁ କିମ୍ବା ସାମୂହିକ ଜପରେ ଯୋଗ ଦିଅନ୍ତୁ!',
+  japasInProgressCount:
+    'ବର୍ତ୍ତମାନ {{count}} ଜପ ଚାଲିଛି। ଜପ ଜାରି ରଖିବା ପାଇଁ ମନ୍ତ୍ର ଚୟନ କରନ୍ତୁ।',
+  manageAndChantActive:
+    'ଆପଣଙ୍କ ବ୍ୟକ୍ତିଗତ ଏବଂ ସାମୂହିକ ମନ୍ତ୍ର ପରିଚାଳନା କରନ୍ତୁ ଏବଂ ଜପ କରନ୍ତୁ।',
+  daysLeftCount: '{{count}} ଦିନ ବାକି ଅଛି',
+  oneDayLeft: '1 ଦିନ ବାକି ଅଛି',
+  dailyGoalLabel: 'ଦୈନିକ ଲକ୍ଷ୍ୟ',
+  japasPerDay: 'ଜପ / ଦିନ',
+  deadlineLabel: 'ଶେଷ ତାରିଖ',
+  overallProgressJapas: 'ସର୍ବମୋଟ: {{completed}} / {{target}} ଜପ',
+  chantNow: 'ବର୍ତ୍ତମାନ ଜପ କରନ୍ତୁ',
+  wantDifferentMantra:
+    'ଅନ୍ୟ ଏକ ମନ୍ତ୍ର ଜପ କରିବାକୁ କିମ୍ବା ନୂତନ ଚ୍ୟାଲେଞ୍ଜ ଆରମ୍ଭ କରିବାକୁ ଚାହୁଁଛନ୍ତି କି?',
+  ownMantra: 'ନିଜ ମନ୍ତ୍ର',
+  samuhika: 'ସାମୂହିକ',
+  challengesTab: 'ଚ୍ୟାଲେଞ୍ଜ',
 };

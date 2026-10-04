@@ -562,4 +562,44 @@ export const ml: TranslationDict = {
   festDescKartikaPurnima: 'ശിവ, വിഷ്ണു ജപങ്ങൾക്കായി പുണ്യ കാർത്തിക പൗർണ്ണമി.',
   festDescMahaShivaratri: 'ശിവഭഗവാന്റെ രാത്രി മുഴുവനുള്ള ആരാധന.',
   festDescKartikaMasam: 'ശിവനും വിഷ്ണുവിനും സമർപ്പിച്ച പുണ്യ മാസം.',
+
+  // Rewards
+  available: 'ലഭ്യമാണ്',
+  unlocksAt: '{{target}}-ൽ അൺലോക്ക് ആകുന്നു',
+  unlocked: 'അൺലോക്ക് ചെയ്തു',
+  needMoreJapasReward: 'ഈ റിവാർഡ് നേടാൻ ഇനിയും {{count}} ജപങ്ങൾ ആവശ്യമാണ്',
+  rewardLockedTitle: 'റിവാർഡ് ലോക്ക് ചെയ്തു',
+  rewardLockedMsg:
+    'ഈ റിവാർഡ് {{required}} ജപങ്ങൾക്ക് ശേഷം ലഭ്യമാകും.\n\nഇത് നേടാൻ നിങ്ങൾ ഇനിയും {{remaining}} ജപങ്ങൾ പൂർത്തിയാക്കണം.\n\nനിങ്ങളുടെ നിലവിലെ ജപങ്ങൾ: {{current}}',
+  rewardEligibleMsg:
+    '✓ അർഹതയുണ്ട്: നിങ്ങൾ {{count}} ജപങ്ങൾ പൂർത്തിയാക്കി. ഡെലിവറിക്കായി ഈ റിവാർഡ് ക്ലെയിം ചെയ്യാൻ വെല്ലുവിളികളോ മൈൽസ്റ്റോണുകളോ പൂർത്തിയാക്കുക.',
+
+  // Your Japas
+  yourJapas: 'നിങ്ങളുടെ ജപങ്ങൾ',
+  ongoingJapas: 'നടന്നുകൊണ്ടിരിക്കുന്ന ജപങ്ങൾ',
+  ongoingJapasSub: 'തുടരുന്ന മന്ത്രങ്ങളും ലക്ഷ്യങ്ങളും കാണുക',
+  addNewJapa: 'ജപം ചേർക്കുക',
+  sourceOwnMantra: 'അന്തരംഗ ജപം (സ്വന്തം മന്ത്രം)',
+  sourceCommunity: 'സാമൂഹിക ജപം',
+  sourceChallenge: 'സങ്കല്പ / ചലഞ്ച് ജപം',
+  sourceCatalog: 'ജപ മന്ത്രം',
+  noActiveJapasTitle: 'നിലവിൽ ജപങ്ങൾ ഒന്നുമില്ല',
+  noActiveJapasDesc:
+    'നിങ്ങൾക്ക് നിലവിൽ സജീവമായ ജപങ്ങൾ ഒന്നുമില്ല. സ്വന്തം മന്ത്രത്തോടെ അന്തരംഗ ജപം ആരംഭിക്കുക അല്ലെങ്കിൽ സാമൂഹിക ജപത്തിൽ പങ്കുചേരുക!',
+  japasInProgressCount:
+    'നിലവിൽ {{count}} ജപങ്ങൾ പുരോഗമിക്കുന്നു. ജപം തുടരാൻ മന്ത്രം തിരഞ്ഞെടുക്കുക.',
+  manageAndChantActive:
+    'നിങ്ങളുടെ വ്യക്തിഗതവും കൂട്ടായതുമായ മന്ത്രങ്ങൾ നിയന്ത്രിക്കുകയും ജപിക്കുകയും ചെയ്യുക.',
+  daysLeftCount: '{{count}} ദിവസങ്ങൾ ബാക്കി',
+  oneDayLeft: '1 ദിവസം ബാക്കി',
+  dailyGoalLabel: 'ദൈനംദിന ലക്ഷ്യം',
+  japasPerDay: 'ജപങ്ങൾ / ദിവസം',
+  deadlineLabel: 'അവസാന തീയതി',
+  overallProgressJapas: 'ആകെ: {{completed}} / {{target}} ജപങ്ങൾ',
+  chantNow: 'ഇപ്പോൾ ജപിക്കുക',
+  wantDifferentMantra:
+    'മറ്റൊരു മന്ത്രം ജപിക്കണോ അതോ പുതിയ ചലഞ്ച് ആരംഭിക്കണോ?',
+  ownMantra: 'സ്വന്തം മന്ത്രം',
+  samuhika: 'സാമൂഹികം',
+  challengesTab: 'വെല്ലുവിളികൾ',
 };

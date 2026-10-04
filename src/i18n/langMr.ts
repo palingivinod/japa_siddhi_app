@@ -558,4 +558,44 @@ export const mr: TranslationDict = {
   festDescKartikaPurnima: 'शिव आणि विष्णू जपासाठी पवित्र कार्तिक पौर्णिमा.',
   festDescMahaShivaratri: 'भगवान शंकराची रात्रभर पूजा आणि जागरण.',
   festDescKartikaMasam: 'शिव आणि विष्णूंना समर्पित पवित्र महिना.',
+
+  // Rewards
+  available: 'उपलब्ध',
+  unlocksAt: '{{target}} वर अनलॉक होईल',
+  unlocked: 'अनलॉक झाले',
+  needMoreJapasReward: 'हा रिवॉर्ड मिळवण्यासाठी आणखी {{count}} जप आवश्यक आहेत',
+  rewardLockedTitle: 'रिवॉर्ड लॉक आहे',
+  rewardLockedMsg:
+    'हा रिवॉर्ड {{required}} जप पूर्ण झाल्यावर उपलब्ध होईल.\n\nहा रिवॉर्ड मिळवण्यासाठी तुम्हाला आणखी {{remaining}} जप करावे लागतील.\n\nतुमचे सध्याचे जप: {{current}}',
+  rewardEligibleMsg:
+    '✓ पात्र: तुम्ही {{count}} जप पूर्ण केले आहेत. डिलिव्हरीसाठी हा रिवॉर्ड क्लेम करण्यासाठी आव्हाने किंवा टप्पे पूर्ण करा.',
+
+  // Your Japas
+  yourJapas: 'तुमचे जप',
+  ongoingJapas: 'चालू जप',
+  ongoingJapasSub: 'चालू मंत्र आणि ध्येय पहा',
+  addNewJapa: 'जप जोडा',
+  sourceOwnMantra: 'अंतरंग जप (स्वतःचा मंत्र)',
+  sourceCommunity: 'सामूहिक जप',
+  sourceChallenge: 'संकल्प / चॅलेंज जप',
+  sourceCatalog: 'जप मंत्र',
+  noActiveJapasTitle: 'सध्या कोणतेही चालू जप नाहीत',
+  noActiveJapasDesc:
+    'तुमचा कोणताही सक्रिय जप सुरू नाही. तुमच्या स्वतःच्या मंत्राने अंतरंग जप सुरू करा किंवा सामूहिक जपात सहभागी व्हा!',
+  japasInProgressCount:
+    'सध्या {{count}} जप सुरू आहेत. जप चालू ठेवण्यासाठी मंत्र निवडा.',
+  manageAndChantActive:
+    'तुमच्या वैयक्तिक आणि सामूहिक मंत्रांचे व्यवस्थापन करा आणि जप करा.',
+  daysLeftCount: '{{count}} दिवस शिल्लक',
+  oneDayLeft: '1 दिवस शिल्लक',
+  dailyGoalLabel: 'दैनिक ध्येय',
+  japasPerDay: 'जप / दिवस',
+  deadlineLabel: 'अंतिम मुदत',
+  overallProgressJapas: 'एकूण: {{completed}} / {{target}} जप',
+  chantNow: 'आता जप करा',
+  wantDifferentMantra:
+    'दुसरा मंत्र जपायचा आहे किंवा नवीन आव्हान सुरू करायचे आहे का?',
+  ownMantra: 'स्वतःचा मंत्र',
+  samuhika: 'सामूहिक',
+  challengesTab: 'आव्हाने',
 };
