@@ -598,4 +598,10 @@ export const mr: TranslationDict = {
   ownMantra: 'स्वतःचा मंत्र',
   samuhika: 'सामूहिक',
   challengesTab: 'आव्हाने',
+  dailyGoalCompletedTitle: 'दैनिक ध्येय पूर्ण झाले! 🎉',
+  dailyGoalCompletedMsg:
+    'तुम्ही {{count}} जपांचे तुमचे दैनिक ध्येय पूर्ण केले आहे! तुम्हाला आणखी जप करायचा आहे की सत्र जतन करायचे आहे?',
+  chantMore: 'आणखी जप करा',
+  saveAndFinish: 'जतन करा आणि पूर्ण करा',
+  dailyGoalAchieved: 'दैनिक ध्येय साध्य झाले',
 };

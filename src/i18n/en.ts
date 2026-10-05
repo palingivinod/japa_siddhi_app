@@ -635,6 +635,14 @@ const en = {
   samuhika: 'Samuhika',
   challengesTab: 'Challenges',
 
+  // Daily Goal Completion
+  dailyGoalCompletedTitle: 'Daily Goal Completed! 🎉',
+  dailyGoalCompletedMsg:
+    'You have completed your daily goal of {{count}} Japas! Would you like to chant more or save your session?',
+  chantMore: 'Chant More',
+  saveAndFinish: 'Save & Finish',
+  dailyGoalAchieved: 'Daily Goal Achieved',
+
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',
   mantraMahaMrityunjaya: 'Maha Mrityunjaya Mantra',

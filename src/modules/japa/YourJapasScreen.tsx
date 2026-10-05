@@ -118,10 +118,14 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          // Compute dynamic daily target based on target & remaining days
-          let dailyTarget = Number(goal.dailyTarget) || 0;
-          if (dailyTarget <= 0 && targetCount > 0) {
-            dailyTarget = Math.max(1, Math.ceil(targetCount / remainingDays));
+          // Compute dynamic daily target based on remaining japas & remaining days
+          let dailyTarget = 0;
+          if (remainingCount > 0) {
+            if (remainingDays <= 1) {
+              dailyTarget = remainingCount;
+            } else {
+              dailyTarget = Math.max(1, Math.ceil(remainingCount / remainingDays));
+            }
           }
 
           const isPersonal =
@@ -190,7 +194,12 @@ const YourJapasScreen = () => {
             targetCount > 0
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
-          const dailyTarget = Math.max(1, Math.ceil(targetCount / durationDays));
+          const dailyTarget =
+            remainingCount <= 0
+              ? 0
+              : remainingDays <= 1
+                ? remainingCount
+                : Math.max(1, Math.ceil(remainingCount / remainingDays));
 
           items.push({
             id: `challenge-${ch.id}`,

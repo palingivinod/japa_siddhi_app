@@ -622,4 +622,10 @@ export const ta: TranslationDict = {
   ownMantra: 'சொந்த மந்திரம்',
   samuhika: 'சாமுஹிக',
   challengesTab: 'சவால்கள்',
+  dailyGoalCompletedTitle: 'தினசரி இலக்கு முடிந்தது! 🎉',
+  dailyGoalCompletedMsg:
+    'நீங்கள் {{count}} ஜபங்களின் தினசரி இலக்கை முடித்துவிட்டீர்கள்! மேலும் ஜபம் செய்ய விரும்புகிறீர்களா அல்லது அமர்வைச் சேமிக்க விரும்புகிறீர்களா?',
+  chantMore: 'மேலும் ஜபிக்கவும்',
+  saveAndFinish: 'சேமித்து முடிக்கவும்',
+  dailyGoalAchieved: 'தினசரி இலக்கு எட்டப்பட்டது',
 };

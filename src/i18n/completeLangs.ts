@@ -619,4 +619,10 @@ export const kn: TranslationDict = {
   ownMantra: 'ಸ್ವಂತ ಮಂತ್ರ',
   samuhika: 'ಸಾಮೂಹಿಕ',
   challengesTab: 'ಸವಾಲುಗಳು',
+  dailyGoalCompletedTitle: 'ದೈನಂದಿನ ಗುರಿ ಪೂರ್ಣಗೊಂಡಿದೆ! 🎉',
+  dailyGoalCompletedMsg:
+    'ನೀವು {{count}} ಜಪಗಳ ನಿಮ್ಮ ದೈನಂದಿನ ಗುರಿಯನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದ್ದೀರಿ! ನೀವು ಇನ್ನಷ್ಟು ಜಪಿಸಲು ಬಯಸುವಿರಾ ಅಥವಾ ಸೆಷನ್ ಉಳಿಸಲು ಬಯಸುವಿರಾ?',
+  chantMore: 'ಇನ್ನಷ್ಟು ಜಪಿಸಿ',
+  saveAndFinish: 'ಉಳಿಸಿ ಮತ್ತು ಮುಗಿಸಿ',
+  dailyGoalAchieved: 'ದೈನಂದಿನ ಗುರಿ ತಲುಪಿದೆ',
 };

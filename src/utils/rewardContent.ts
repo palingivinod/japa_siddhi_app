@@ -61,6 +61,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
     content: {
       emoji: '🌿',
+      imageName: 'pasupuKommulaMala',
       title: {
         en: 'Pasupu Kommula Mala',
         te: 'పసుపు కొమ్ముల మాల',

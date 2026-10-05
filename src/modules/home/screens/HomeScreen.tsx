@@ -20,7 +20,7 @@ import {
   formatPanchangDisplayDate,
   PanchangPayload,
 } from '../../../services/panchang';
-import {getStoredUser} from '../../../services/session';
+import {getLastChantedJapa, getStoredUser} from '../../../services/session';
 import {getJapaDraft} from '../../../services/japaDraft';
 import Colors from '../../../theme/colors';
 import AppHeader from '../../common/AppHeader';
@@ -166,7 +166,46 @@ const HomeScreen = () => {
         });
 
         setAllActiveGoals(activeGoals);
-        const active = activeGoals[0];
+
+        // Prioritize the devotee's most recently chanted & saved mantra if it's still ongoing
+        const lastChanted = await getLastChantedJapa();
+        let active: any = null;
+
+        if (lastChanted && activeGoals.length > 0) {
+          active = activeGoals.find((g: any) => {
+            if (lastChanted.goalId && Number(g.id) === Number(lastChanted.goalId)) {
+              return true;
+            }
+            if (
+              lastChanted.personalMantraId &&
+              Number(g.personalMantraId ?? g.personal_mantra_id) ===
+                Number(lastChanted.personalMantraId)
+            ) {
+              return true;
+            }
+            if (
+              lastChanted.mantraId &&
+              Number(g.mantraId ?? g.mantra_id) === Number(lastChanted.mantraId)
+            ) {
+              return true;
+            }
+            if (
+              lastChanted.mantraName &&
+              (String(g.mantraName ?? g.mantra_name ?? '').trim().toLowerCase() ===
+                String(lastChanted.mantraName).trim().toLowerCase() ||
+                String(g.goalName ?? g.goal_name ?? '').trim().toLowerCase() ===
+                  String(lastChanted.mantraName).trim().toLowerCase())
+            ) {
+              return true;
+            }
+            return false;
+          });
+        }
+
+        // If recently chanted mantra is completed or not found, fall back to the first ongoing active goal
+        if (!active && activeGoals.length > 0) {
+          active = activeGoals[0];
+        }
 
         if (active) {
           const targetCount =
@@ -271,28 +310,38 @@ const HomeScreen = () => {
   };
 
   const userDailyGoal = useMemo(() => {
+    if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
+      const remainingDays = totalGoalDays(
+        activeJapaGoal.startDate,
+        activeJapaGoal.endDate,
+      );
+      const remainingCount = Math.max(
+        0,
+        activeJapaGoal.targetCount - activeJapaGoal.completedCount,
+      );
+      if (remainingCount <= 0) return 0;
+      if (remainingDays <= 1) return remainingCount;
+      return Math.max(1, Math.ceil(remainingCount / remainingDays));
+    }
     if (allActiveGoals.length > 0) {
       let totalDaily = 0;
       allActiveGoals.forEach(g => {
         const target = Number(g.targetCount ?? g.target_count) || 0;
-        let daily = Number(g.dailyTarget ?? g.daily_target) || 0;
-        if (daily <= 0 && target > 0) {
-          const days = totalGoalDays(g.startDate ?? g.start_date, g.endDate ?? g.end_date);
-          daily = Math.max(1, Math.ceil(target / days));
-        }
+        const completed = Number(g.completedCount ?? g.completed_count) || 0;
+        const remaining = Math.max(0, target - completed);
+        const days = totalGoalDays(g.startDate ?? g.start_date, g.endDate ?? g.end_date);
+        const daily =
+          remaining <= 0
+            ? 0
+            : days <= 1
+              ? remaining
+              : Math.max(1, Math.ceil(remaining / days));
         totalDaily += daily;
       });
       return Math.max(1, totalDaily);
     }
-    if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
-      if (activeJapaGoal.dailyTarget && activeJapaGoal.dailyTarget > 0) {
-        return activeJapaGoal.dailyTarget;
-      }
-      const totalDays = totalGoalDays(activeJapaGoal.startDate, activeJapaGoal.endDate);
-      return Math.max(1, Math.ceil(activeJapaGoal.targetCount / Math.max(1, totalDays)));
-    }
     return 108;
-  }, [allActiveGoals, activeJapaGoal]);
+  }, [activeJapaGoal, allActiveGoals]);
 
   const dailyProgress = Math.min(
     100,
@@ -311,7 +360,25 @@ const HomeScreen = () => {
   };
 
   const handleContinueJapaPress = () => {
-    navigation.navigate('YourJapas');
+    if (activeJapaGoal) {
+      const isPersonal =
+        activeJapaGoal.mantraType === 'PERSONAL' ||
+        Boolean(activeJapaGoal.personalMantraId);
+      navigation.navigate('Chant', {
+        mode: isPersonal ? 'private' : 'community',
+        mantraId: isPersonal ? undefined : (activeJapaGoal.mantraId || undefined),
+        personalMantraId: activeJapaGoal.personalMantraId || undefined,
+        privateMantra: isPersonal ? activeJapaGoal.mantraName : undefined,
+        goal: activeJapaGoal.targetCount,
+        initialCount: activeJapaGoal.completedCount,
+        dailyTarget: activeJapaGoal.dailyTarget,
+        japaGoalId: activeJapaGoal.id,
+        resume: true,
+        fromHome: true,
+      });
+    } else {
+      navigation.navigate('YourJapas');
+    }
   };
 
   const handleBannerStartJapa = () => {
@@ -400,21 +467,25 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.progressCard}>
-            {/* Top Section: Daily Goal (Non-clickable status view) */}
+            {/* Top Section: Daily Goal for the active / recently chanted mantra */}
             <View style={styles.cardSection}>
               <View style={styles.sectionHeaderRow}>
-                <Text style={styles.progressTitle}>{t('dailyGoal')}</Text>
+                <Text style={styles.progressTitle}>
+                  {activeJapaGoal
+                    ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
+                    : t('dailyGoal')}
+                </Text>
                 <View
                   style={[
                     styles.sectionBadge,
-                    today >= userDailyGoal && styles.sectionBadgeDone,
+                    userDailyGoal > 0 && today >= userDailyGoal && styles.sectionBadgeDone,
                   ]}>
                   <Text
                     style={[
                       styles.sectionBadgeText,
-                      today >= userDailyGoal && styles.sectionBadgeTextDone,
+                      userDailyGoal > 0 && today >= userDailyGoal && styles.sectionBadgeTextDone,
                     ]}>
-                    {today >= userDailyGoal
+                    {userDailyGoal > 0 && today >= userDailyGoal
                       ? `✓ ${t('goalCompleted')}`
                       : t('goalNotCompleted')}
                   </Text>
@@ -432,7 +503,7 @@ const HomeScreen = () => {
                     style={[
                       styles.barFill,
                       {width: `${dailyProgress}%`},
-                      today >= userDailyGoal && styles.barFillCompleted,
+                      userDailyGoal > 0 && today >= userDailyGoal && styles.barFillCompleted,
                     ]}
                   />
                 </View>
@@ -452,13 +523,13 @@ const HomeScreen = () => {
                 onPress={handleContinueJapaPress}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.progressTitle}>
-                    {activeJapaGoal.goalName || t('continueJapa')}
+                    {activeJapaGoal.goalName ? tt(activeJapaGoal.goalName) : t('continueJapa')}
                   </Text>
                   <Text style={styles.resumeChevron}>➔</Text>
                 </View>
                 <Text style={styles.progressMeta}>
                   {activeJapaGoal.mantraName
-                    ? activeJapaGoal.mantraName
+                    ? tt(activeJapaGoal.mantraName)
                     : t('tabJapa')}
                 </Text>
                 <Text style={styles.progressMeta}>

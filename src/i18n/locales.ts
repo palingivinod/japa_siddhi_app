@@ -651,6 +651,12 @@ export const hi: TranslationDict = {
   ownMantra: 'स्वयं का मंत्र',
   samuhika: 'सामूहिक',
   challengesTab: 'चुनौतियाँ',
+  dailyGoalCompletedTitle: 'दैनिक लक्ष्य पूरा हुआ! 🎉',
+  dailyGoalCompletedMsg:
+    'आपने {{count}} जप का अपना दैनिक लक्ष्य पूरा कर लिया है! क्या आप और जप करना चाहते हैं या सत्र सहेजना चाहते हैं?',
+  chantMore: 'और जप करें',
+  saveAndFinish: 'सत्र सहेजें और समाप्त करें',
+  dailyGoalAchieved: 'दैनिक लक्ष्य प्राप्त हुआ',
 };
 
 /** Telugu */
@@ -1303,6 +1309,12 @@ export const te: TranslationDict = {
   ownMantra: 'స్వంత మంత్రం',
   samuhika: 'సామూహిక',
   challengesTab: 'సవాళ్లు',
+  dailyGoalCompletedTitle: 'రోజువారీ లక్ష్యం పూర్తయింది! 🎉',
+  dailyGoalCompletedMsg:
+    'మీరు నేటి {{count}} జపాల రోజువారీ లక్ష్యాన్ని పూర్తి చేశారు! మరింత జపం చేయాలనుకుంటున్నారా లేదా సెషన్ సేవ్ చేయాలనుకుంటున్నారా?',
+  chantMore: 'మరింత జపించండి',
+  saveAndFinish: 'సేవ్ చేసి ముగించండి',
+  dailyGoalAchieved: 'రోజువారీ లక్ష్యం సాధించబడింది',
 };
 
 

@@ -599,4 +599,10 @@ export const or: TranslationDict = {
   ownMantra: 'ନିଜ ମନ୍ତ୍ର',
   samuhika: 'ସାମୂହିକ',
   challengesTab: 'ଚ୍ୟାଲେଞ୍ଜ',
+  dailyGoalCompletedTitle: 'ଦୈନିକ ଲକ୍ଷ୍ୟ ପୂରଣ ହେଲା! 🎉',
+  dailyGoalCompletedMsg:
+    'ଆପଣ {{count}} ଜପର ଦୈନିକ ଲକ୍ଷ୍ୟ ପୂରଣ କରିଛନ୍ତି! ଆପଣ ଆହୁରି ଜପ କରିବାକୁ ଚାହାଁନ୍ତି କିମ୍ବା ସେସନ୍ ସେଭ୍ କରିବାକୁ ଚାହାଁନ୍ତି କି?',
+  chantMore: 'ଆହୁରି ଜପ କରନ୍ତୁ',
+  saveAndFinish: 'ସେଭ୍ କରି ସମାପ୍ତ କରନ୍ତୁ',
+  dailyGoalAchieved: 'ଦୈନିକ ଲକ୍ଷ୍ୟ ହାସଲ ହେଲା',
 };

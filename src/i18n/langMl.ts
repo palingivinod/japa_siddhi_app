@@ -602,4 +602,10 @@ export const ml: TranslationDict = {
   ownMantra: 'സ്വന്തം മന്ത്രം',
   samuhika: 'സാമൂഹികം',
   challengesTab: 'വെല്ലുവിളികൾ',
+  dailyGoalCompletedTitle: 'ദൈനംദിന ലക്ഷ്യം പൂർത്തിയായി! 🎉',
+  dailyGoalCompletedMsg:
+    'നിങ്ങൾ {{count}} ജപങ്ങളുടെ ദൈനംദിന ലക്ഷ്യം പൂർത്തിയാക്കി! കൂടുതൽ ജപിക്കാൻ ആഗ്രഹിക്കുന്നുണ്ടോ അതോ സെഷൻ സേവ് ചെയ്യണോ?',
+  chantMore: 'കൂടുതൽ ജപിക്കുക',
+  saveAndFinish: 'സേവ് ചെയ്ത് പൂർത്തിയാക്കുക',
+  dailyGoalAchieved: 'ദൈനംദിന ലക്ഷ്യം നേടി',
 };

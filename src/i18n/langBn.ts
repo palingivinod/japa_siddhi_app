@@ -599,4 +599,10 @@ export const bn: TranslationDict = {
   ownMantra: 'নিজের মন্ত্র',
   samuhika: 'সামূহিক',
   challengesTab: 'চ্যালেঞ্জ',
+  dailyGoalCompletedTitle: 'দৈনিক লক্ষ্য সম্পন্ন হয়েছে! 🎉',
+  dailyGoalCompletedMsg:
+    'আপনি {{count}} জপের আপনার দৈনিক লক্ষ্য সম্পন্ন করেছেন! আপনি কি আরও জপ করতে চান বা সেশন সংরক্ষণ করতে চান?',
+  chantMore: 'আরও জপ করুন',
+  saveAndFinish: 'সংরক্ষণ ও সমাপ্ত করুন',
+  dailyGoalAchieved: 'দৈনিক লক্ষ্য অর্জিত',
 };

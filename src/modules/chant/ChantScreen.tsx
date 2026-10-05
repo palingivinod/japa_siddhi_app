@@ -3,6 +3,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
+import {saveLastChantedJapa} from '../../services/session';
 import {
   clearJapaDraft,
   getJapaDraft,
@@ -66,6 +68,11 @@ const ChantScreen = () => {
   );
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
+  const [dailyTarget, setDailyTarget] = useState(
+    Number(route.params?.dailyTarget || 0) || 0,
+  );
+  const [dailyGoalCompletedShown, setDailyGoalCompletedShown] = useState(false);
+  const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -198,6 +205,11 @@ const ChantScreen = () => {
       setShowMantraPicker(isRecentOnly || (!preferred && mode === 'private'));
       let initialCount = Number(route.params?.initialCount || 0);
       let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
+      let resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
+      if (!resolvedDailyTarget && data.dailyTarget) {
+        resolvedDailyTarget = Number(data.dailyTarget) || 0;
+      }
+      setDailyTarget(resolvedDailyTarget);
 
       // Challenge japa uses its own target/progress — never Antharanga draft/goal.
       if (challengeId) {
@@ -378,6 +390,19 @@ const ChantScreen = () => {
       countRef.current = 0;
     }
     setMessage(`Saved ${savedCount.toLocaleString()} japas to your account.`);
+
+    // Persist most recently chanted & saved mantra
+    void saveLastChantedJapa({
+      goalId: challengeId ? undefined : route.params?.japaGoalId,
+      challengeId: challengeId || undefined,
+      mantraId: chip?.own ? undefined : chip?.id,
+      personalMantraId: chip?.own ? chip.id : undefined,
+      mantraName:
+        chip?.name || route.params?.privateMantra || route.params?.challengeMantra,
+      mantraType: chip?.own ? 'PERSONAL' : 'DEFAULT',
+      mode,
+      timestamp: Date.now(),
+    });
     const goProgress = () =>
       navigation.navigate('JapaProgress', {
         count: userTotal,
@@ -564,6 +589,17 @@ const ChantScreen = () => {
     setMessage('');
     if (next >= goalRef.current) {
       void finishGoal(next);
+      return;
+    }
+    if (
+      dailyTarget > 0 &&
+      dailyTarget < goalRef.current &&
+      !dailyGoalCompletedShown &&
+      next >= dailyTarget
+    ) {
+      setDailyGoalCompletedShown(true);
+      setShowDailyGoalModal(true);
+      void persistDraft(next, postedCountRef.current);
       return;
     }
     void persistDraft(next, postedCountRef.current);
@@ -780,6 +816,48 @@ const ChantScreen = () => {
           {message}
         </Text>
       ) : null}
+
+      <Modal
+        visible={showDailyGoalModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDailyGoalModal(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalIconCircle}>
+              <Text style={styles.modalIcon}>🎉</Text>
+            </View>
+            <Text style={styles.modalTitle}>
+              {t('dailyGoalCompletedTitle') || 'Daily Goal Completed! 🎉'}
+            </Text>
+            <Text style={styles.modalMessage}>
+              {t('dailyGoalCompletedMsg', {count: dailyTarget}) ||
+                `You have completed your daily goal of ${dailyTarget} Japas! Would you like to chant more or save your session?`}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalChantMoreBtn}
+              activeOpacity={0.85}
+              onPress={() => setShowDailyGoalModal(false)}>
+              <Text style={styles.modalChantMoreBtnText}>
+                {t('chantMore') || 'Chant More'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalSaveFinishBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                setShowDailyGoalModal(false);
+                void saveSession();
+              }}>
+              <Text style={styles.modalSaveFinishBtnText}>
+                {t('saveAndFinish') || 'Save & Finish'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -1053,6 +1131,101 @@ const styles = StyleSheet.create({
     marginTop: 14,
     fontWeight: '600',
     lineHeight: 22,
+    includeFontPadding: true,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 18, 9, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 380,
+    backgroundColor: '#FFFDF9',
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: Colors.templeGold,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 6},
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFF3D6',
+    borderWidth: 2,
+    borderColor: Colors.templeGold,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIcon: {
+    fontSize: 32,
+  },
+  modalTitle: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+    marginBottom: 10,
+    includeFontPadding: true,
+  },
+  modalMessage: {
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: 24,
+    paddingHorizontal: 8,
+    includeFontPadding: true,
+  },
+  modalChantMoreBtn: {
+    width: '100%',
+    backgroundColor: Colors.templeGold,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: Colors.templeGold,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modalChantMoreBtnText: {
+    color: Colors.sacredBrown,
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    includeFontPadding: true,
+  },
+  modalSaveFinishBtn: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalSaveFinishBtnText: {
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
     includeFontPadding: true,
   },
 });

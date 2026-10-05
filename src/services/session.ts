@@ -152,6 +152,36 @@ export const getValidSession = async () => {
   return session;
 };
 
+export type LastChantedJapa = {
+  goalId?: number;
+  challengeId?: number;
+  mantraId?: number;
+  personalMantraId?: number;
+  mantraName?: string;
+  mantraType?: string;
+  mode?: 'private' | 'community';
+  timestamp: number;
+};
+
+export const saveLastChantedJapa = async (item: LastChantedJapa) => {
+  try {
+    const key = await userScopedKey('last_chanted_japa');
+    await AsyncStorage.setItem(key, JSON.stringify(item));
+  } catch {
+    // Ignore storage errors
+  }
+};
+
+export const getLastChantedJapa = async (): Promise<LastChantedJapa | null> => {
+  try {
+    const key = await userScopedKey('last_chanted_japa');
+    const raw = await AsyncStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as LastChantedJapa) : null;
+  } catch {
+    return null;
+  }
+};
+
 /**
  * Credentials written by the older redux auth thunk. Nothing reads them now,
  * but leaving them behind would let a previous account be restored.
@@ -162,6 +192,7 @@ export const clearSession = async () => {
   const scopedKeys = await Promise.all([
     userScopedKey('japa_goal_drafts'),
     userScopedKey('saved_delivery_addresses'),
+    userScopedKey('last_chanted_japa'),
   ]);
   memoryUser = null;
   notify(null);
@@ -173,6 +204,7 @@ export const clearSession = async () => {
     'japa_goal_drafts',
     'japa_goal_draft',
     'saved_delivery_addresses',
+    'last_chanted_japa',
     ...scopedKeys,
   ];
   // AsyncStorage v3 renamed multiRemove to removeMany; fall back per key so a
