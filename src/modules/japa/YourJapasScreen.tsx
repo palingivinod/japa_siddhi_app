@@ -136,12 +136,14 @@ const YourJapasScreen = () => {
             String(goal.goalName || '').toLowerCase().includes('my japa');
 
           const isCommunity =
-            String(goal.goalName || '').toLowerCase().includes('samuhika') ||
-            String(goal.goalName || '').toLowerCase().includes('community');
+            !isPersonal &&
+            (String(goal.goalName || '').toLowerCase().includes('samuhika') ||
+              String(goal.goalName || '').toLowerCase().includes('community') ||
+              String(goal.notes || '').toLowerCase().includes('samuhika'));
 
           let sourceType: JapaSourceType = 'CATALOG';
           let sourceLabel = t('sourceCatalog') || 'Japa Mantra';
-          let sourceIcon = '';
+          let sourceIcon = '📿';
 
           if (isPersonal) {
             sourceType = 'PERSONAL';
@@ -153,6 +155,16 @@ const YourJapasScreen = () => {
             sourceIcon = '👥';
           }
 
+          let cleanMantraName = String(goal.mantraName || '').trim();
+          if (!cleanMantraName) {
+            cleanMantraName = String(goal.goalName || 'My Japa')
+              .replace(
+                /^(Samuhika Japa|Daily Japa|Private Japa|Personal Japa)\s*·\s*/i,
+                '',
+              )
+              .trim();
+          }
+
           items.push({
             id: `goal-${goal.id}`,
             goalId: Number(goal.id),
@@ -160,9 +172,7 @@ const YourJapasScreen = () => {
             personalMantraId: goal.personalMantraId
               ? Number(goal.personalMantraId)
               : undefined,
-            mantraName:
-              String(goal.mantraName || goal.goalName || 'My Japa').trim() ||
-              'Personal Mantra',
+            mantraName: cleanMantraName || 'Personal Mantra',
             sourceType,
             sourceLabel,
             sourceIcon,

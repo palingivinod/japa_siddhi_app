@@ -186,22 +186,35 @@ const GoalSelectScreen = () => {
       }
     }
     const challengeId = Number(route.params?.challengeId || 0) || undefined;
-    if (!challengeId) {
+    let createdGoalId: number | undefined;
+    const isPersonal = route.params?.mode === 'private';
+    const isCommunity = route.params?.mode === 'community';
+    const mName = String(
+      route.params?.mantraName || route.params?.privateMantra || '',
+    ).trim();
+    const calculatedGoalName = isPersonal
+      ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
+      : isCommunity
+        ? `Samuhika Japa · ${mName || 'Mantra'}`.slice(0, 80)
+        : `Daily Japa · ${mName || 'Mantra'}`.slice(0, 80);
+
+    if (!challengeId && goal > 0) {
       try {
-        await apiService.post('/japa-goals', {
-          mantraType: route.params?.mode === 'private' ? 'PERSONAL' : 'DEFAULT',
+        const goalRes = await apiService.post('/japa-goals', {
+          mantraType: isPersonal ? 'PERSONAL' : 'DEFAULT',
           mantraId: route.params?.mantraId,
           personalMantraId: route.params?.personalMantraId,
-          goalName:
-            route.params?.mode === 'private'
-              ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
-              : 'Daily Japa',
+          goalName: calculatedGoalName,
           targetCount: goal,
           dailyTarget: effectiveTodayTarget,
           days: goalType === 'date' ? remainingDays : 1,
           startDate: new Date().toISOString().slice(0, 10),
           endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
+          notes: isCommunity ? 'Samuhika japa' : undefined,
         });
+        createdGoalId =
+          Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
+          undefined;
       } catch {
         undefined;
       }
@@ -211,11 +224,12 @@ const GoalSelectScreen = () => {
       mantraId: route.params?.mantraId,
       privateMantra: route.params?.privateMantra,
       personalMantraId: route.params?.personalMantraId,
-      goal: effectiveTodayTarget,
+      goal: goal,
       totalGoal: goal,
       goalType,
       endDate: formatDate(endDate),
       dailyTarget: effectiveTodayTarget,
+      japaGoalId: createdGoalId,
       challengeId,
       initialCount: route.params?.initialCount,
       durationMs: 2500,

@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
+import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
@@ -20,6 +20,7 @@ const CommunityJapaScreen = () => {
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<any>(null);
   const [stats, setStats] = useState<Record<number, MantraStat>>({});
+  const [activeGoals, setActiveGoals] = useState<any[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -51,6 +52,15 @@ const CommunityJapaScreen = () => {
             {id: 4, mantraName: 'Gayatri Mantra'},
           ]);
         });
+
+      apiService
+        .get('/japa-goals')
+        .then(res => {
+          setActiveGoals(res.data?.data ?? []);
+        })
+        .catch(() => {
+          setActiveGoals([]);
+        });
     }, []),
   );
 
@@ -58,7 +68,7 @@ const CommunityJapaScreen = () => {
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
 
-  const join = async () => {
+  const doJoin = async () => {
     try {
       await apiService.post('/japa/community/join', {
         mantraId: selected?.id,
@@ -71,6 +81,46 @@ const CommunityJapaScreen = () => {
       mantraId: selected?.id,
       mantraName: selected?.mantraName || selected?.transliteration,
     });
+  };
+
+  const join = async () => {
+    if (!selected?.id) return;
+
+    if (activeGoals.length > 0) {
+      const hasActiveIndividual = activeGoals.some(g => {
+        const status = String(g.status || 'ACTIVE').toUpperCase();
+        if (status !== 'ACTIVE') return false;
+        const isSam =
+          String(g.goalName || '').toLowerCase().includes('samuhika') ||
+          String(g.goal_name || '').toLowerCase().includes('samuhika') ||
+          String(g.notes || '').toLowerCase().includes('samuhika');
+        const gMantraId = Number(g.mantraId ?? g.mantra_id ?? 0);
+        return !isSam && gMantraId === Number(selected.id);
+      });
+
+      if (hasActiveIndividual) {
+        const mName =
+          selected?.mantraName || selected?.transliteration || 'this mantra';
+        Alert.alert(
+          t('alreadyInIndividualTitle') || 'Active in Individual Japa',
+          t('alreadyInIndividualMsg', {mantra: mName}) ||
+            `You already have an active individual Japa for "${mName}". Are you sure you want to join Samuhika Japa for it?`,
+          [
+            {
+              text: t('cancel') || 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: t('continue') || 'Continue',
+              onPress: doJoin,
+            },
+          ],
+        );
+        return;
+      }
+    }
+
+    await doJoin();
   };
 
   return (

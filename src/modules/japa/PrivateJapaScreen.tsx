@@ -226,8 +226,9 @@ const PrivateJapaScreen = () => {
     const startDateStr = new Date().toISOString().slice(0, 10);
     const endDateStr = endDate.toISOString().slice(0, 10);
 
+    let createdGoalId: number | undefined;
     try {
-      await apiService.post('/japa-goals', {
+      const goalRes = await apiService.post('/japa-goals', {
         mantraType: 'PERSONAL',
         personalMantraId,
         goalName: name.slice(0, 80),
@@ -237,6 +238,9 @@ const PrivateJapaScreen = () => {
         startDate: startDateStr,
         endDate: endDateStr,
       });
+      createdGoalId =
+        Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
+        undefined;
     } catch (err) {
       console.warn('Could not save japa goal:', err);
     }
@@ -246,9 +250,10 @@ const PrivateJapaScreen = () => {
       mode: 'private',
       privateMantra: name,
       personalMantraId,
-      goal: effectiveTodayTarget,
+      goal: rawGoal,
       totalGoal: rawGoal,
       dailyTarget: effectiveTodayTarget,
+      japaGoalId: createdGoalId,
       goalType: 'date',
       endDate: formatDate(endDate),
       remainingDays: remDays,

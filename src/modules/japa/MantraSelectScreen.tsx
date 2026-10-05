@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -16,6 +16,7 @@ const MantraSelectScreen = () => {
   const passedId = Number(route.params?.mantraId || 0) || null;
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<number | null>(passedId);
+  const [activeGoals, setActiveGoals] = useState<any[]>([]);
   // Arriving with a mantra already chosen (community japa) only needs
   // confirming, so the full list stays collapsed until it is asked for.
   const [picking, setPicking] = useState(!passedId);
@@ -26,6 +27,14 @@ const MantraSelectScreen = () => {
       setMantras(items);
       setSelected(current => current ?? items[0]?.id ?? null);
     });
+    apiService
+      .get('/japa-goals')
+      .then(res => {
+        setActiveGoals(res.data?.data ?? []);
+      })
+      .catch(() => {
+        setActiveGoals([]);
+      });
   }, []);
 
   const chosen = mantras.find(item => item.id === selected);
@@ -35,6 +44,55 @@ const MantraSelectScreen = () => {
     chosen?.mantraName ||
     chosen?.transliteration ||
     String(route.params?.mantraName || '');
+
+  const doNavigate = () => {
+    navigation.navigate('GoalSelect', {
+      mode: route.params?.mode || 'default',
+      mantraId: selected,
+      mantraName: chosenName,
+      ...(route.params?.goal ? {goal: route.params.goal} : {}),
+    });
+  };
+
+  const handleSetGoal = () => {
+    if (!selected) return;
+    const isCommunity = route.params?.mode === 'community';
+
+    if (!isCommunity && activeGoals.length > 0) {
+      const hasActiveSamuhika = activeGoals.some(g => {
+        const status = String(g.status || 'ACTIVE').toUpperCase();
+        if (status !== 'ACTIVE') return false;
+        const isSam =
+          String(g.goalName || '').toLowerCase().includes('samuhika') ||
+          String(g.goal_name || '').toLowerCase().includes('samuhika') ||
+          String(g.notes || '').toLowerCase().includes('samuhika');
+        const gMantraId = Number(g.mantraId ?? g.mantra_id ?? 0);
+        return isSam && gMantraId === selected;
+      });
+
+      if (hasActiveSamuhika) {
+        const displayName = localizedChosen || tt(chosenName);
+        Alert.alert(
+          t('alreadyInSamuhikaTitle') || 'Active in Samuhika Japa',
+          t('alreadyInSamuhikaMsg', {mantra: displayName}) ||
+            `You already have an active Samuhika Japa for "${displayName}". Are you sure you want to start a separate individual Japa for this mantra?`,
+          [
+            {
+              text: t('cancel') || 'Cancel',
+              style: 'cancel',
+            },
+            {
+              text: t('continue') || 'Continue',
+              onPress: doNavigate,
+            },
+          ],
+        );
+        return;
+      }
+    }
+
+    doNavigate();
+  };
 
   return (
     <ScreenLayout title={t('selectMantra')} showBack tab="JapaHub">
@@ -87,12 +145,7 @@ const MantraSelectScreen = () => {
       <View style={styles.buttonContainer}>
         <PrimaryButton
           title={t('setGoalBtn')}
-          onPress={() =>
-            navigation.navigate('GoalSelect', {
-              mode: route.params?.mode || 'community',
-              mantraId: selected,
-            })
-          }
+          onPress={handleSetGoal}
         />
       </View>
     </ScreenLayout>

@@ -652,11 +652,13 @@ export const hi: TranslationDict = {
   samuhika: 'सामूहिक',
   challengesTab: 'चुनौतियाँ',
   dailyGoalCompletedTitle: 'दैनिक लक्ष्य पूरा हुआ! 🎉',
-  dailyGoalCompletedMsg:
-    'आपने {{count}} जप का अपना दैनिक लक्ष्य पूरा कर लिया है! क्या आप और जप करना चाहते हैं या सत्र सहेजना चाहते हैं?',
-  chantMore: 'और जप करें',
-  saveAndFinish: 'सत्र सहेजें और समाप्त करें',
   dailyGoalAchieved: 'दैनिक लक्ष्य प्राप्त हुआ',
+  alreadyInSamuhikaTitle: 'सामूहिक जप में सक्रिय',
+  alreadyInSamuhikaMsg:
+    'आपने इस मंत्र को पहले ही सामूहिक जप में चुना हुआ है। क्या आप इसके लिए अलग से व्यक्तिगत जप शुरू करना चाहते हैं?',
+  alreadyInIndividualTitle: 'व्यक्तिगत जप में सक्रिय',
+  alreadyInIndividualMsg:
+    'आपके पास इस मंत्र के लिए पहले से ही एक सक्रिय व्यक्तिगत जप है। क्या आप इसके लिए सामूहिक जप में शामिल होना चाहते हैं?',
 };
 
 /** Telugu */
@@ -1315,6 +1317,12 @@ export const te: TranslationDict = {
   chantMore: 'మరింత జపించండి',
   saveAndFinish: 'సేవ్ చేసి ముగించండి',
   dailyGoalAchieved: 'రోజువారీ లక్ష్యం సాధించబడింది',
+  alreadyInSamuhikaTitle: 'సామూహిక జపంలో చురుకుగా ఉంది',
+  alreadyInSamuhikaMsg:
+    'మీరు ఇప్పటికే ఈ మంత్రాన్ని సామూహిక జపంలో ఎంచుకున్నారు. దీని కోసం ప్రత్యేక వ్యక్తిగత జపం ప్రారంభించాలనుకుంటున్నారా?',
+  alreadyInIndividualTitle: 'వ్యక్తిగత జపంలో చురుకుగా ఉంది',
+  alreadyInIndividualMsg:
+    'ఈ మంత్రం కోసం మీకు ఇప్పటికే వ్యక్తిగత జపం ఉంది. సామూహిక జపంలో చేరాలనుకుంటున్నారా?',
 };
 
 

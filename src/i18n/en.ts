@@ -643,6 +643,14 @@ const en = {
   saveAndFinish: 'Save & Finish',
   dailyGoalAchieved: 'Daily Goal Achieved',
 
+  // Duplicate active mantra alerts
+  alreadyInSamuhikaTitle: 'Active in Samuhika Japa',
+  alreadyInSamuhikaMsg:
+    'You already have an active Samuhika Japa for "{{mantra}}". Are you sure you want to start a separate individual Japa for it?',
+  alreadyInIndividualTitle: 'Active in Individual Japa',
+  alreadyInIndividualMsg:
+    'You already have an active individual Japa for "{{mantra}}". Are you sure you want to join Samuhika Japa for it?',
+
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',
   mantraMahaMrityunjaya: 'Maha Mrityunjaya Mantra',

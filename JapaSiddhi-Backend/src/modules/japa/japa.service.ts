@@ -44,6 +44,16 @@ class JapaService {
       if (!ownedGoal) {
         throw new AppError('Japa goal not found for this user', 403);
       }
+    } else if (data.mantraType === 'PERSONAL' && data.personalMantraId) {
+      japaGoalId = await japaGoalRepository.findActiveGoalForPersonalMantra(
+        userId,
+        Number(data.personalMantraId),
+      );
+    } else if (data.mantraType !== 'PERSONAL' && data.mantraId) {
+      japaGoalId = await japaGoalRepository.findOrCreateActiveGoalForMantra(
+        userId,
+        Number(data.mantraId),
+      );
     } else if (data.mantraType !== 'PERSONAL') {
       japaGoalId = await japaGoalRepository.findOrCreateActiveGoal(
         userId,

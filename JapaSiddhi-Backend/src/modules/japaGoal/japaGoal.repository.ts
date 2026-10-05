@@ -158,6 +158,31 @@ class JapaGoalRepository {
     });
   }
 
+  async findActiveGoalForPersonalMantra(
+    userId: number,
+    personalMantraId: number,
+  ): Promise<number | undefined> {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM japa_goals
+      WHERE user_id = ?
+      AND status = 'ACTIVE'
+      AND mantra_type = 'PERSONAL'
+      AND personal_mantra_id = ?
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [userId, personalMantraId],
+    );
+
+    if (rows.length) {
+      return Number(rows[0].id);
+    }
+
+    return undefined;
+  }
+
   async getUserGoals(
     userId: number,
   ) {
