@@ -44,6 +44,6 @@ export const navigateTo = (name: keyof RootStackParamList, params?: any) => {
   }, 200);
 };
 
-export const navigateToNotifications = () => {
-  navigateTo('Notifications');
+export const navigateToNotifications = (notificationId?: string | number) => {
+  navigateTo('Notifications', notificationId ? {highlightId: notificationId} : undefined);
 };

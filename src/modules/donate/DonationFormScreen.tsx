@@ -1,8 +1,10 @@
-import React, {useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {Alert, Linking} from 'react-native';
-import {useNavigation, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
+import ProfileApi from '../auth/services/profileApi';
+import {getStoredUser} from '../../services/session';
 import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
@@ -24,6 +26,37 @@ const DonationFormScreen = () => {
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpanam');
   const [persons, setPersons] = useState(
     Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const loadProfile = async () => {
+        try {
+          const [stored, profile] = await Promise.all([
+            getStoredUser(),
+            ProfileApi.getProfile().catch(() => null),
+          ]);
+          if (!active) return;
+          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
+          const phone = profile?.mobileNumber || stored?.mobileNumber || stored?.mobile_number || stored?.phone || '';
+
+          if (!fullName && name) {
+            setFullName(String(name));
+          }
+          if (!mobile && phone) {
+            setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          }
+        } catch {
+          // ignore profile load error
+        }
+      };
+
+      loadProfile();
+      return () => {
+        active = false;
+      };
+    }, [fullName, mobile]),
   );
 
   const totalAmount = persons * RATE_PER_PERSON;

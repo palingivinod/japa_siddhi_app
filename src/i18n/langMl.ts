@@ -217,7 +217,7 @@ export const ml: TranslationDict = {
   nameLabel: 'പേര്',
   fullName: 'പൂർണ്ണ പേര്',
   occasionLabel: 'അവസരം',
-  occasionPlaceholder: 'ജന്മദിനം / വാർഷികം / മറ്റുള്ളവ',
+  occasionPlaceholder: 'ജന്മദിനം, വാർഷികം, ജയന്തി, വർധന്തി',
   donationAmount: 'സേവാ തുക',
   selectNoOfPersons: 'ആളുകളുടെ എണ്ണം തിരഞ്ഞെടുക്കുക',
   continueToPayment: 'പേയ്‌മെന്റിലേക്ക് തുടരുക',

@@ -38,6 +38,7 @@ type ActiveGoal = {
   mantraName?: string;
   targetCount: number;
   completedCount: number;
+  todayCompletedCount?: number;
   dailyTarget?: number;
   remainingCount: number;
   startDate?: string;
@@ -212,6 +213,8 @@ const HomeScreen = () => {
             Number(active.targetCount ?? active.target_count) || 108;
           const completedCount =
             Number(active.completedCount ?? active.completed_count) || 0;
+          const todayCompletedCount =
+            Number(active.todayCompletedCount ?? active.today_completed_count) || 0;
           const dailyTarget =
             Number(active.dailyTarget ?? active.daily_target) || 0;
           setActiveJapaGoal({
@@ -226,6 +229,7 @@ const HomeScreen = () => {
             mantraName: active.mantraName ?? active.mantra_name ?? '',
             targetCount,
             completedCount,
+            todayCompletedCount,
             dailyTarget,
             remainingCount: Math.max(0, targetCount - completedCount),
             startDate: active.startDate ?? active.start_date,
@@ -309,43 +313,40 @@ const HomeScreen = () => {
     return Math.max(1, Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1);
   };
 
+  const hasActiveGoal = Boolean(activeJapaGoal && activeJapaGoal.targetCount > 0);
+
+  const activeMantraTodayCount = useMemo(() => {
+    if (activeJapaGoal) {
+      return Number(activeJapaGoal.todayCompletedCount || 0);
+    }
+    return 0;
+  }, [activeJapaGoal]);
+
   const userDailyGoal = useMemo(() => {
     if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
       const remainingDays = totalGoalDays(
         activeJapaGoal.startDate,
         activeJapaGoal.endDate,
       );
+      const todayChants = Number(activeJapaGoal.todayCompletedCount || 0);
       const remainingCount = Math.max(
         0,
         activeJapaGoal.targetCount - activeJapaGoal.completedCount,
       );
-      if (remainingCount <= 0) return 0;
-      if (remainingDays <= 1) return remainingCount;
-      return Math.max(1, Math.ceil(remainingCount / remainingDays));
+      const effectiveRemainingForToday = remainingCount + todayChants;
+      if (effectiveRemainingForToday <= 0) return 0;
+      if (remainingDays <= 1) return effectiveRemainingForToday;
+      const computed = Math.ceil(effectiveRemainingForToday / remainingDays);
+      return Math.max(activeJapaGoal.dailyTarget || 1, computed);
     }
-    if (allActiveGoals.length > 0) {
-      let totalDaily = 0;
-      allActiveGoals.forEach(g => {
-        const target = Number(g.targetCount ?? g.target_count) || 0;
-        const completed = Number(g.completedCount ?? g.completed_count) || 0;
-        const remaining = Math.max(0, target - completed);
-        const days = totalGoalDays(g.startDate ?? g.start_date, g.endDate ?? g.end_date);
-        const daily =
-          remaining <= 0
-            ? 0
-            : days <= 1
-              ? remaining
-              : Math.max(1, Math.ceil(remaining / days));
-        totalDaily += daily;
-      });
-      return Math.max(1, totalDaily);
-    }
-    return 108;
-  }, [activeJapaGoal, allActiveGoals]);
+    return 0;
+  }, [activeJapaGoal]);
 
   const dailyProgress = Math.min(
     100,
-    Math.round((today / Math.max(userDailyGoal, 1)) * 100),
+    userDailyGoal > 0
+      ? Math.round((activeMantraTodayCount / userDailyGoal) * 100)
+      : 0,
   );
 
   const goalTarget = activeJapaGoal ? activeJapaGoal.targetCount : 0;
@@ -467,93 +468,137 @@ const HomeScreen = () => {
           </TouchableOpacity>
 
           <View style={styles.progressCard}>
-            {/* Top Section: Daily Goal for the active / recently chanted mantra */}
-            <View style={styles.cardSection}>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={styles.progressTitle}>
-                  {activeJapaGoal
-                    ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
-                    : t('dailyGoal')}
-                </Text>
-                <View
-                  style={[
-                    styles.sectionBadge,
-                    userDailyGoal > 0 && today >= userDailyGoal && styles.sectionBadgeDone,
-                  ]}>
-                  <Text
-                    style={[
-                      styles.sectionBadgeText,
-                      userDailyGoal > 0 && today >= userDailyGoal && styles.sectionBadgeTextDone,
-                    ]}>
-                    {userDailyGoal > 0 && today >= userDailyGoal
-                      ? `✓ ${t('goalCompleted')}`
-                      : t('goalNotCompleted')}
-                  </Text>
-                </View>
-              </View>
-              <Text style={styles.progressMeta}>
-                {t('chantsToday', {count: today.toLocaleString('en-IN')})}
-              </Text>
-              <Text style={styles.progressMeta}>
-                {t('goalChants', {count: userDailyGoal.toLocaleString('en-IN')})}
-              </Text>
-              <View style={styles.barRow}>
-                <View style={styles.barTrack}>
-                  <View
-                    style={[
-                      styles.barFill,
-                      {width: `${dailyProgress}%`},
-                      userDailyGoal > 0 && today >= userDailyGoal && styles.barFillCompleted,
-                    ]}
-                  />
-                </View>
-                <Text style={styles.percent}>
-                  {today.toLocaleString('en-IN')} / {formatCountShort(userDailyGoal)} · {dailyProgress}%
-                </Text>
-              </View>
-            </View>
-
-            {/* Bottom Section: Continue Japa (Visible ONLY when an active Japa Goal is in progress) */}
-            {activeJapaGoal &&
-            activeJapaGoal.targetCount > 0 &&
-            activeJapaGoal.completedCount < activeJapaGoal.targetCount ? (
-              <TouchableOpacity
-                style={[styles.cardSection, {marginTop: 14}]}
-                activeOpacity={0.85}
-                onPress={handleContinueJapaPress}>
-                <View style={styles.sectionHeaderRow}>
-                  <Text style={styles.progressTitle}>
-                    {activeJapaGoal.goalName ? tt(activeJapaGoal.goalName) : t('continueJapa')}
-                  </Text>
-                  <Text style={styles.resumeChevron}>➔</Text>
-                </View>
-                <Text style={styles.progressMeta}>
-                  {activeJapaGoal.mantraName
-                    ? tt(activeJapaGoal.mantraName)
-                    : t('tabJapa')}
-                </Text>
-                <Text style={styles.progressMeta}>
-                  {t('goalChants', {
-                    count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
-                  })}
-                </Text>
-                <View style={styles.barRow}>
-                  <View style={styles.barTrack}>
+            {hasActiveGoal ? (
+              <>
+                {/* Top Section: Daily Goal for the active / recently chanted mantra */}
+                <View style={styles.cardSection}>
+                  <View style={styles.sectionHeaderRow}>
+                    <Text style={styles.progressTitle} numberOfLines={2}>
+                      {activeJapaGoal
+                        ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
+                        : t('dailyGoal')}
+                    </Text>
                     <View
                       style={[
-                        styles.barFill,
-                        {width: `${goalProgress}%`},
-                        goalCompleted >= goalTarget && styles.barFillCompleted,
-                      ]}
-                    />
+                        styles.sectionBadge,
+                        userDailyGoal > 0 &&
+                          activeMantraTodayCount >= userDailyGoal &&
+                          styles.sectionBadgeDone,
+                      ]}>
+                      <Text
+                        style={[
+                          styles.sectionBadgeText,
+                          userDailyGoal > 0 &&
+                            activeMantraTodayCount >= userDailyGoal &&
+                            styles.sectionBadgeTextDone,
+                        ]}>
+                        {userDailyGoal > 0 &&
+                        activeMantraTodayCount >= userDailyGoal
+                          ? `✓ ${t('goalCompleted')}`
+                          : t('goalNotCompleted')}
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={styles.percent}>
-                    {goalCompleted.toLocaleString('en-IN')} /{' '}
-                    {formatCountShort(goalTarget)} · {goalProgress}%
+                  <Text style={styles.progressMeta}>
+                    {t('chantsToday', {
+                      count: activeMantraTodayCount.toLocaleString('en-IN'),
+                    })}
                   </Text>
+                  <Text style={styles.progressMeta}>
+                    {t('goalChants', {
+                      count: userDailyGoal.toLocaleString('en-IN'),
+                    })}
+                  </Text>
+                  <View style={styles.barRow}>
+                    <View style={styles.barTrack}>
+                      <View
+                        style={[
+                          styles.barFill,
+                          {width: `${dailyProgress}%`},
+                          userDailyGoal > 0 &&
+                            activeMantraTodayCount >= userDailyGoal &&
+                            styles.barFillCompleted,
+                        ]}
+                      />
+                    </View>
+                    <Text style={styles.percent}>
+                      {activeMantraTodayCount.toLocaleString('en-IN')} /{' '}
+                      {formatCountShort(userDailyGoal)} · {dailyProgress}%
+                    </Text>
+                  </View>
                 </View>
-              </TouchableOpacity>
-            ) : null}
+
+                {/* Bottom Section: Continue Japa (Visible ONLY when an active Japa Goal is in progress) */}
+                {activeJapaGoal &&
+                activeJapaGoal.targetCount > 0 &&
+                activeJapaGoal.completedCount < activeJapaGoal.targetCount ? (
+                  <TouchableOpacity
+                    style={[styles.cardSection, {marginTop: 14}]}
+                    activeOpacity={0.85}
+                    onPress={handleContinueJapaPress}>
+                    <View style={styles.sectionHeaderRow}>
+                      <Text style={styles.progressTitle} numberOfLines={2}>
+                        {activeJapaGoal.goalName
+                          ? tt(activeJapaGoal.goalName)
+                          : t('continueJapa')}
+                      </Text>
+                      <Text style={styles.resumeChevron}>➔</Text>
+                    </View>
+                    <Text style={styles.progressMeta}>
+                      {activeJapaGoal.mantraName
+                        ? tt(activeJapaGoal.mantraName)
+                        : t('tabJapa')}
+                    </Text>
+                    <Text style={styles.progressMeta}>
+                      {t('goalChants', {
+                        count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
+                      })}
+                    </Text>
+                    <View style={styles.barRow}>
+                      <View style={styles.barTrack}>
+                        <View
+                          style={[
+                            styles.barFill,
+                            {width: `${goalProgress}%`},
+                            goalCompleted >= goalTarget && styles.barFillCompleted,
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.percent}>
+                        {goalCompleted.toLocaleString('en-IN')} /{' '}
+                        {formatCountShort(goalTarget)} · {goalProgress}%
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                ) : null}
+              </>
+            ) : (
+              /* Clean state for fresh user with NO active goals */
+              <View style={styles.cardSection}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.progressTitle}>
+                    {t('dailyGoal')}
+                  </Text>
+                  <View style={styles.sectionBadge}>
+                    <Text style={styles.sectionBadgeText}>
+                      {t('goalNotCompleted') || 'Not Started'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.progressMeta}>
+                  {t('noActiveJapasDesc') ||
+                    'Start an Antharanga Japa with your own mantra or join a Samuhika Japa to begin!'}
+                </Text>
+                <TouchableOpacity
+                  style={styles.startGoalBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('YourJapas')}>
+                  <Text style={styles.startGoalBtnText}>
+                    ✨ {t('startJapa') || 'Start Japa'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           <MilestoneProgressCard
@@ -745,22 +790,27 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
+    marginBottom: 4,
+    gap: 8,
   },
   progressTitle: {
-    fontSize: 17,
-    lineHeight: 26,
+    flex: 1,
+    marginRight: 8,
+    fontSize: 16,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
   sectionBadge: {
     backgroundColor: '#FFF8EC',
-    paddingHorizontal: 7,
+    paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     borderWidth: 0.5,
     borderColor: '#E8D8C0',
+    alignSelf: 'flex-start',
+    flexShrink: 0,
   },
   sectionBadgeDone: {
     backgroundColor: '#E8F5E9',
@@ -775,10 +825,27 @@ const styles = StyleSheet.create({
     color: '#2E7D32',
     fontWeight: '800',
   },
+  startGoalBtn: {
+    marginTop: 10,
+    backgroundColor: '#FFF8EC',
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    alignSelf: 'flex-start',
+  },
+  startGoalBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 13,
+  },
   resumeChevron: {
     fontSize: 14,
     color: Colors.templeGold,
     fontWeight: '800',
+    flexShrink: 0,
+    marginLeft: 8,
   },
   cardDivider: {
     height: 1,

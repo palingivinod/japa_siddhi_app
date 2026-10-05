@@ -42,27 +42,38 @@ const BanaLingamScreen = () => {
           profile?.fullName ||
           stored?.fullName ||
           stored?.full_name ||
-          t('devotee');
+          '';
         const phone =
           profile?.mobileNumber ||
           stored?.mobileNumber ||
           stored?.mobile_number ||
+          stored?.phone ||
           '';
-        setFullName(current => current || String(name));
-        setMobile(
-          current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS),
-        );
-        setGothram(current => current || String(profile?.gothram || ''));
-        setNakshatram(current => current || String(profile?.nakshatram || ''));
+        if (name) {
+          setFullName(current => current || String(name));
+        }
+        if (phone) {
+          setMobile(
+            current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS),
+          );
+        }
+        if (profile?.gothram || stored?.gothram) {
+          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
+        }
+        if (profile?.nakshatram || stored?.nakshatram) {
+          setNakshatram(current => current || String(profile?.nakshatram || stored?.nakshatram || ''));
+        }
         setSavedAddresses(addresses);
-        const latest = addresses[0] || String(profile?.address || '');
-        setAddress(current => current || latest);
+        const latest = addresses[0] || String(profile?.address || stored?.address || '');
+        if (latest) {
+          setAddress(current => current || latest);
+        }
       };
       load();
       return () => {
         active = false;
       };
-    }, [t]),
+    }, []),
   );
 
   const submit = async () => {

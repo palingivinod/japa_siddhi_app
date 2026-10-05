@@ -762,12 +762,13 @@ class SqliteEngine {
     this.db.run(
       `
       INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES
-        ('Rudraksha', 12, 1, 1),
-        ('Spatik mala', 5, 1, 2),
-        ('Pasupu kommuka maa', 0, 1, 3),
-        ('Green agate', 8, 1, 4),
-        ('Yellow agate', 3, 1, 5),
-        ('Tulasi mala', 7, 1, 6)
+        ('Rudrakshi Mala', 50, 1, 1),
+        ('Tulasi Mala', 50, 1, 2),
+        ('Pasupu Mala', 50, 1, 3),
+        ('Karungali Mala', 50, 1, 4),
+        ('Spatik Mala', 50, 1, 5),
+        ('Green Agate', 50, 1, 6),
+        ('Yellow Agate', 50, 1, 7)
       `,
     );
   }

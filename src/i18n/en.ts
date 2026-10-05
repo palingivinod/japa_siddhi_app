@@ -247,7 +247,7 @@ const en = {
   nameLabel: 'Name',
   fullName: 'Full name',
   occasionLabel: 'Occasion',
-  occasionPlaceholder: 'Birthday / Anniversary / Other',
+  occasionPlaceholder: 'Birthday, Anniversary, Jayanthi, Vardhanti',
   selectNoOfPersons: 'Select No of Persons',
   donationAmount: 'Offering Amount',
   continueToPayment: 'CONTINUE TO PAYMENT',

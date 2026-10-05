@@ -69,6 +69,8 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
           <Text style={styles.dropdownArrow}>▾</Text>
         </TouchableOpacity>
 
+        <Text style={styles.orText}>or</Text>
+
         <View style={styles.textInputWrap}>
           <TextInput
             style={styles.textInput}
@@ -215,6 +217,13 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
     fontWeight: '800',
     marginLeft: 4,
+  },
+  orText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    paddingHorizontal: 2,
+    alignSelf: 'center',
   },
   textInputWrap: {
     flex: 1,

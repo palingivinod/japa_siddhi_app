@@ -209,6 +209,29 @@ class JapaGoalRepository {
         `,
         [userId],
       );
+      // Auto-cleanup dummy 10800 duplicate goals with 0 progress when user has an active custom goal for the same mantra
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+          AND status = 'ACTIVE'
+          AND target_count = 10800
+          AND COALESCE(completed_count, 0) = 0
+          AND (
+            SELECT COUNT(*)
+            FROM japa_goals other
+            WHERE other.user_id = japa_goals.user_id
+              AND other.status = 'ACTIVE'
+              AND other.id != japa_goals.id
+              AND (
+                (japa_goals.mantra_id IS NOT NULL AND other.mantra_id = japa_goals.mantra_id)
+                OR (japa_goals.personal_mantra_id IS NOT NULL AND other.personal_mantra_id = japa_goals.personal_mantra_id)
+              )
+          ) > 0
+        `,
+        [userId],
+      );
     } catch {
       // ignore
     }
@@ -240,6 +263,18 @@ class JapaGoalRepository {
           WHERE js.japa_goal_id = j.id
           AND js.user_id = j.user_id
         ), 0) AS completedCount,
+
+        COALESCE((
+          SELECT SUM(js.session_count)
+          FROM japa_sessions js
+          WHERE js.user_id = j.user_id
+          AND (
+            (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
+            OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id AND js.mantra_type = j.mantra_type)
+            OR (js.japa_goal_id = j.id)
+          )
+          AND DATE(js.created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')
+        ), 0) AS todayCompletedCount,
 
         CASE
           WHEN j.target_count - COALESCE((

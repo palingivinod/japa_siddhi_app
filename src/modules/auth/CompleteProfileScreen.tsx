@@ -18,17 +18,26 @@ import AppHeader from '../common/AppHeader';
 import DatePickerModal from '../common/DatePickerModal';
 import SelectField from '../common/SelectField';
 import CountryPickerField from './components/CountryPickerField';
+import CountrySelector from './components/CountrySelector';
 import StateSelector from './components/StateSelector';
 import CitySelector from './components/CitySelector';
 import LanguageSelector from './components/LanguageSelector';
 import ContinueButton from './components/ContinueButton';
 
-import {CountryItem} from '../../constants/countries';
+import countries, {CountryItem} from '../../constants/countries';
 import {DEFAULT_LANGUAGE, Language} from '../../constants/languages';
 import ProfileApi, {CompleteProfileRequest} from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+
+const defaultIndia: CountryItem =
+  countries.find(c => c.code === 'IN') || {
+    name: 'India',
+    code: 'IN',
+    callingCode: '+91',
+    flag: '🇮🇳',
+  };
 
 interface StateModel {
   id: number;
@@ -56,7 +65,15 @@ const CompleteProfileScreen = ({
     (initialPhone.length >= 10 ? initialPhone.slice(-10) : '');
 
   const [loading, setLoading] = useState(false);
+  const [selectedMobileCountry, setSelectedMobileCountry] =
+    useState<CountryItem>(() => {
+      const matched = countries.find(
+        c => c.callingCode.replace(/\D/g, '') === initialCode,
+      );
+      return matched || defaultIndia;
+    });
   const [countryCode, setCountryCode] = useState(initialCode);
+  const [showMobileCountryPicker, setShowMobileCountryPicker] = useState(false);
   const [mobileNumber, setMobileNumber] = useState(
     initialMobileRaw === '0000000000' ? '' : initialMobileRaw,
   );
@@ -77,7 +94,7 @@ const CompleteProfileScreen = ({
     useState(false);
 
   const [country, setCountry] =
-  useState<CountryItem | null>(null);
+    useState<CountryItem | null>(() => defaultIndia);
 
   const [stateModel, setStateModel] =
     useState<StateModel | null>(null);
@@ -192,12 +209,22 @@ const CompleteProfileScreen = ({
     return;
   }
 
-  const code = countryCode.replace(/\D/g, '') || '91';
-  const number = mobileNumber.replace(/\D/g, '');
-  if (!isMobile(number) || /^0+$/.test(number)) {
-    Alert.alert('Validation', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
-    return;
-  }
+    const code =
+      selectedMobileCountry.callingCode.replace(/\D/g, '') ||
+      countryCode.replace(/\D/g, '') ||
+      '91';
+    const number = mobileNumber.replace(/\D/g, '');
+    if (code === '91') {
+      if (!isMobile(number) || /^0+$/.test(number)) {
+        Alert.alert('Validation', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
+        return;
+      }
+    } else {
+      if (number.length < 6 || number.length > 15 || /^0+$/.test(number)) {
+        Alert.alert('Validation', 'Enter a valid mobile number.');
+        return;
+      }
+    }
 
   if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
     Alert.alert('Validation', 'Spouse name is required for married devotees.');
@@ -392,32 +419,54 @@ const CompleteProfileScreen = ({
         </Text>
 
         <View style={styles.mobileRow}>
-          <TextInput
-            style={[styles.input, styles.codeInput]}
-            value={countryCode}
-            onChangeText={text =>
-              setCountryCode(text.replace(/\D/g, '').slice(0, 4))
-            }
-            keyboardType="phone-pad"
-            placeholder="91"
-            maxLength={4}
-          />
+          <TouchableOpacity
+            style={styles.countryBtn}
+            activeOpacity={0.7}
+            onPress={() => setShowMobileCountryPicker(true)}>
+            <Text style={styles.countryFlag}>{selectedMobileCountry.flag}</Text>
+            <Text style={styles.countryCallingCode}>
+              {selectedMobileCountry.callingCode}
+            </Text>
+            <Text style={styles.countryChevron}>▾</Text>
+          </TouchableOpacity>
           <TextInput
             style={[styles.input, styles.mobileInput]}
             value={mobileNumber}
             onChangeText={text =>
-              setMobileNumber(digitsOnly(text).slice(0, MOBILE_DIGITS))
+              setMobileNumber(
+                digitsOnly(text).slice(
+                  0,
+                  selectedMobileCountry.code === 'IN' ? MOBILE_DIGITS : 15,
+                ),
+              )
             }
             keyboardType="phone-pad"
-            placeholder={`Enter ${MOBILE_DIGITS}-digit mobile number`}
-            maxLength={MOBILE_DIGITS}
+            placeholder={
+              selectedMobileCountry.code === 'IN'
+                ? `Enter ${MOBILE_DIGITS}-digit mobile number`
+                : 'Enter mobile number'
+            }
+            placeholderTextColor={Colors.placeholder}
+            maxLength={selectedMobileCountry.code === 'IN' ? MOBILE_DIGITS : 15}
           />
         </View>
-        {mobileNumber.length > 0 && !isMobile(mobileNumber) ? (
+        {selectedMobileCountry.code === 'IN' &&
+        mobileNumber.length > 0 &&
+        !isMobile(mobileNumber) ? (
           <Text style={styles.errorText}>
-            Mobile number must be {MOBILE_DIGITS} digits.
+            Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
+            entered.
           </Text>
         ) : null}
+
+        <CountrySelector
+          visible={showMobileCountryPicker}
+          onClose={() => setShowMobileCountryPicker(false)}
+          onSelect={item => {
+            setSelectedMobileCountry(item);
+            setCountryCode(item.callingCode.replace(/\D/g, ''));
+          }}
+        />
 
         <Text style={styles.label}>
           Gender *
@@ -763,9 +812,29 @@ const styles = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
   },
-  codeInput: {
-    width: 72,
-    textAlign: 'center',
+  countryBtn: {
+    height: 55,
+    borderWidth: 1,
+    borderColor: '#D9D9D9',
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryCallingCode: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  countryChevron: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.textSecondary,
   },
   mobileInput: {
     flex: 1,

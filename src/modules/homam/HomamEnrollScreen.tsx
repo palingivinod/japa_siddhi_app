@@ -3,7 +3,7 @@ import {Alert, Linking} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
-import apiService from '../../services/apiService';
+import ProfileApi from '../auth/services/profileApi';
 import {getStoredUser} from '../../services/session';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
@@ -25,59 +25,47 @@ const HomamEnrollScreen = () => {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      getStoredUser().then(user => {
-        if (!active || !user) {
-          return;
-        }
-        if (!fullName && (user.fullName || user.full_name)) {
-          setFullName(user.fullName || user.full_name);
-        }
-        if (
-          !mobile &&
-          (user.mobileNumber || user.mobile_number || user.phone)
-        ) {
-          setMobile(
-            digitsOnly(
-              user.mobileNumber || user.mobile_number || user.phone,
-            ).slice(0, MOBILE_DIGITS),
-          );
-        }
-        if (!gothram && user.gothram) {
-          setGothram(user.gothram);
-        }
-        if (!nakshatram && user.nakshatram) {
-          setNakshatram(user.nakshatram);
-        }
-      });
-
-      apiService
-        .get('/profile')
-        .then(res => {
+      const load = async () => {
+        try {
+          const [stored, profile] = await Promise.all([
+            getStoredUser(),
+            ProfileApi.getProfile().catch(() => null),
+          ]);
           if (!active) {
             return;
           }
-          const data = res.data?.data || res.data || {};
-          if (data.fullName) {
-            setFullName(prev => prev || data.fullName);
-          }
-          if (data.mobileNumber) {
-            setMobile(prev =>
-              prev || digitsOnly(data.mobileNumber).slice(0, MOBILE_DIGITS),
-            );
-          }
-          if (data.gothram) {
-            setGothram(prev => prev || data.gothram);
-          }
-          if (data.nakshatram) {
-            setNakshatram(prev => prev || data.nakshatram);
-          }
-        })
-        .catch(() => undefined);
+          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
+          const phone =
+            profile?.mobileNumber ||
+            stored?.mobileNumber ||
+            stored?.mobile_number ||
+            stored?.phone ||
+            '';
+          const got = profile?.gothram || stored?.gothram || '';
+          const nak = profile?.nakshatram || stored?.nakshatram || '';
 
+          if (name) {
+            setFullName(prev => prev || String(name));
+          }
+          if (phone) {
+            setMobile(prev => prev || digitsOnly(String(phone)).slice(0, MOBILE_DIGITS));
+          }
+          if (got) {
+            setGothram(prev => prev || String(got));
+          }
+          if (nak) {
+            setNakshatram(prev => prev || String(nak));
+          }
+        } catch {
+          // ignore profile load error
+        }
+      };
+
+      load();
       return () => {
         active = false;
       };
-    }, [fullName, mobile, gothram, nakshatram]),
+    }, []),
   );
 
   const continuePay = async () => {

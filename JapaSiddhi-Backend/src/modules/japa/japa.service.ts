@@ -838,15 +838,13 @@ class JapaService {
   }
 
   async joinCommunity(userId: number, mantraId?: number) {
-    const goal = mantraId
-      ? await japaGoalRepository.findOrCreateActiveGoalForMantra(
-          userId,
-          Number(mantraId),
-        )
-      : await japaGoalRepository.findOrCreateActiveGoal(userId);
+    const goals = await japaGoalRepository.getUserGoals(userId);
+    const existingGoal = goals.find(
+      g => g.status === 'ACTIVE' && Number(g.mantraId) === Number(mantraId),
+    );
     return {
       joined: true,
-      japaGoalId: goal,
+      japaGoalId: existingGoal ? Number(existingGoal.id) : undefined,
       mode: 'community',
     };
   }

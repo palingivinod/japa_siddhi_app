@@ -15,6 +15,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminReward} from './adminData';
+import {sortRewardsCanonical} from '../../utils/rewardContent';
 
 const AdminRewardsScreen = () => {
   const navigation = useNavigation<any>();
@@ -31,13 +32,12 @@ const AdminRewardsScreen = () => {
     try {
       const response = await apiService.get('/admin/rewards');
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-      setRewards(
-        rows.map((row: any) => ({
-          id: String(row.id),
-          name: String(row.name || ''),
-          stock: Number(row.stock || 0),
-        })),
-      );
+      const mapped = rows.map((row: any) => ({
+        id: String(row.id),
+        name: String(row.name || ''),
+        stock: Number(row.stock || 0),
+      }));
+      setRewards(sortRewardsCanonical<AdminReward>(mapped));
     } catch (err) {
       setRewards([]);
       Alert.alert('Rewards', getApiError(err, 'Could not load rewards.'));

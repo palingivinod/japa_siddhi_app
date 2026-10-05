@@ -6,6 +6,16 @@ import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import CountrySelector from './components/CountrySelector';
+import countries, {CountryItem} from '../../constants/countries';
+
+const defaultIndia: CountryItem =
+  countries.find(c => c.code === 'IN') || {
+    name: 'India',
+    code: 'IN',
+    callingCode: '+91',
+    flag: '🇮🇳',
+  };
 
 /** The next steps expect DD/MM/YYYY, so the picker writes that shape back. */
 const formatDate = (date: Date) => {
@@ -33,9 +43,16 @@ const SignupPersonalScreen = () => {
   const route = useRoute<any>();
   const [fullName, setFullName] = useState(route.params?.fullName || '');
   const [email, setEmail] = useState(route.params?.email || '');
-  const [countryCode, setCountryCode] = useState(
-    String(route.params?.mobileCountryCode || '91').replace(/\D/g, '') || '91',
-  );
+  const initialCountryCode =
+    String(route.params?.mobileCountryCode || '91').replace(/\D/g, '') || '91';
+  const [selectedCountry, setSelectedCountry] = useState<CountryItem>(() => {
+    const matched = countries.find(
+      c => c.callingCode.replace(/\D/g, '') === initialCountryCode,
+    );
+    return matched || defaultIndia;
+  });
+  const [countryCode, setCountryCode] = useState(initialCountryCode);
+  const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [mobileNumber, setMobileNumber] = useState(() => {
     const raw = String(route.params?.mobileNumber || '').replace(/\D/g, '');
     return raw === '0000000000' ? '' : raw;
@@ -90,11 +107,21 @@ const SignupPersonalScreen = () => {
       Alert.alert('Required', 'Enter your full name.');
       return;
     }
-    const code = countryCode.replace(/\D/g, '') || '91';
+    const code =
+      selectedCountry.callingCode.replace(/\D/g, '') ||
+      countryCode.replace(/\D/g, '') ||
+      '91';
     const mobile = mobileNumber.replace(/\D/g, '');
-    if (!isMobile(mobile) || /^0+$/.test(mobile)) {
-      Alert.alert('Required', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
-      return;
+    if (code === '91') {
+      if (!isMobile(mobile) || /^0+$/.test(mobile)) {
+        Alert.alert('Required', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
+        return;
+      }
+    } else {
+      if (mobile.length < 6 || mobile.length > 15 || /^0+$/.test(mobile)) {
+        Alert.alert('Required', 'Enter a valid mobile number.');
+        return;
+      }
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
       Alert.alert('Required', 'Enter spouse name for married devotees.');
@@ -138,33 +165,54 @@ const SignupPersonalScreen = () => {
       />
       <Text style={styles.label}>Mobile Number</Text>
       <View style={styles.mobileRow}>
-        <TextInput
-          style={[styles.input, styles.codeInput]}
-          value={countryCode}
-          onChangeText={text => setCountryCode(text.replace(/\D/g, '').slice(0, 4))}
-          keyboardType="phone-pad"
-          placeholder="91"
-          placeholderTextColor={Colors.placeholder}
-          maxLength={4}
-        />
+        <TouchableOpacity
+          style={styles.countryBtn}
+          activeOpacity={0.7}
+          onPress={() => setShowCountryPicker(true)}>
+          <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
+          <Text style={styles.countryCallingCode}>
+            {selectedCountry.callingCode}
+          </Text>
+          <Text style={styles.countryChevron}>▾</Text>
+        </TouchableOpacity>
         <TextInput
           style={[styles.input, styles.mobileInput]}
           value={mobileNumber}
           onChangeText={text =>
-            setMobileNumber(digitsOnly(text).slice(0, MOBILE_DIGITS))
+            setMobileNumber(
+              digitsOnly(text).slice(
+                0,
+                selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15,
+              ),
+            )
           }
           keyboardType="phone-pad"
-          placeholder={`Enter ${MOBILE_DIGITS}-digit mobile number`}
+          placeholder={
+            selectedCountry.code === 'IN'
+              ? `Enter ${MOBILE_DIGITS}-digit mobile number`
+              : 'Enter mobile number'
+          }
           placeholderTextColor={Colors.placeholder}
-          maxLength={MOBILE_DIGITS}
+          maxLength={selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15}
         />
       </View>
-      {mobileNumber.length > 0 && !isMobile(mobileNumber) ? (
+      {selectedCountry.code === 'IN' &&
+      mobileNumber.length > 0 &&
+      !isMobile(mobileNumber) ? (
         <Text style={styles.fieldError}>
           Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
           entered.
         </Text>
       ) : null}
+
+      <CountrySelector
+        visible={showCountryPicker}
+        onClose={() => setShowCountryPicker(false)}
+        onSelect={item => {
+          setSelectedCountry(item);
+          setCountryCode(item.callingCode.replace(/\D/g, ''));
+        }}
+      />
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
@@ -311,7 +359,30 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   mobileRow: {flexDirection: 'row', gap: 10, alignItems: 'center'},
-  codeInput: {width: 72, textAlign: 'center'},
+  countryBtn: {
+    height: 55,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  countryFlag: {
+    fontSize: 20,
+  },
+  countryCallingCode: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  countryChevron: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.textSecondary,
+  },
   mobileInput: {flex: 1},
   chips: {flexDirection: 'row', flexWrap: 'wrap', gap: 8},
   chip: {

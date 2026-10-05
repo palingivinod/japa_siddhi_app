@@ -54,7 +54,7 @@ export type RootStackParamList = {
   OrderDetails: {order?: any} | undefined;
   CustomerCare: undefined;
   Faq: undefined;
-  Notifications: undefined;
+  Notifications: {highlightId?: string | number} | undefined;
   Feedback: undefined;
   PrivacyPolicy: undefined;
 };

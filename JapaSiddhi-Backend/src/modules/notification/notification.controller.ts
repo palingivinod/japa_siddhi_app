@@ -229,6 +229,44 @@ class NotificationController {
 
   }
 
+  async deleteById(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const notificationId = Number(req.params.id);
+      if (!notificationId) {
+        return apiResponse.error(res, 'Invalid notification ID', 400);
+      }
+      await notificationService.deleteById(notificationId, userId);
+      return apiResponse.success(res, 'Notification deleted successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async clearAll(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      await notificationService.clearAll(userId);
+      return apiResponse.success(res, 'All notifications cleared successfully');
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default new NotificationController();

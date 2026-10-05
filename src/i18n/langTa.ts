@@ -215,7 +215,7 @@ export const ta: TranslationDict = {
   nameLabel: 'பெயர்',
   fullName: 'முழு பெயர்',
   occasionLabel: 'சந்தர்ப்பம்',
-  occasionPlaceholder: 'பிறந்தநாள் / ஆண்டு விழா / மற்றவை',
+  occasionPlaceholder: 'பிறந்தநாள், ஆண்டு விழா, ஜெயந்தி, வர்தந்தி',
   selectNoOfPersons: 'நபர்களின் எண்ணிக்கையைத் தேர்ந்தெடுக்கவும்',
   donationAmount: 'அர்ப்பணிப்பு தொகை',
   continueToPayment: 'பணம் செலுத்த தொடரவும்',

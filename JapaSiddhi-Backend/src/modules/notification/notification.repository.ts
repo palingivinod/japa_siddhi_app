@@ -300,6 +300,26 @@ class NotificationRepository {
       [userId, actionType],
     );
   }
+
+  async deleteById(id: number, userId: number): Promise<void> {
+    await mysql.query(
+      `
+      DELETE FROM notifications
+      WHERE id = ? AND user_id = ?
+      `,
+      [id, userId],
+    );
+  }
+
+  async clearAll(userId: number): Promise<void> {
+    await mysql.query(
+      `
+      DELETE FROM notifications
+      WHERE user_id = ?
+      `,
+      [userId],
+    );
+  }
 }
 
 export default new NotificationRepository();

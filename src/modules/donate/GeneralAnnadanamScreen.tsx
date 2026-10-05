@@ -1,9 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {Alert, Linking, StyleSheet, Text} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
+import ProfileApi from '../auth/services/profileApi';
+import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
@@ -23,6 +25,33 @@ const GeneralAnnadanamScreen = () => {
   const [enabled, setEnabled] = useState(true);
 
   const totalAmount = persons * RATE_PER_PERSON;
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const loadProfile = async () => {
+        try {
+          const [stored, profile] = await Promise.all([
+            getStoredUser(),
+            ProfileApi.getProfile().catch(() => null),
+          ]);
+          if (!active) return;
+          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
+          const phone = profile?.mobileNumber || stored?.mobileNumber || stored?.mobile_number || stored?.phone || '';
+
+          setFullName(current => current || String(name));
+          setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+        } catch {
+          // ignore profile load error
+        }
+      };
+
+      loadProfile();
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   useEffect(() => {
     apiService

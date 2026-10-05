@@ -210,28 +210,42 @@ export const startPushNotifications = async () => {
   });
 
   // When notification is pressed in foreground / background via Notifee
-  unsubscribeNotifee = notifee.onForegroundEvent(({type}) => {
+  unsubscribeNotifee = notifee.onForegroundEvent(({type, detail}) => {
     if (type === EventType.PRESS) {
-      navigateToNotifications();
+      const nid =
+        detail?.notification?.data?.notificationId ||
+        detail?.notification?.data?.id ||
+        detail?.notification?.id;
+      navigateToNotifications(nid ? String(nid) : undefined);
     }
   });
 
   // When app is in background and opened by pressing an FCM notification
-  unsubscribeFcmOpened = messaging().onNotificationOpenedApp(_remoteMessage => {
-    navigateToNotifications();
+  unsubscribeFcmOpened = messaging().onNotificationOpenedApp(remoteMessage => {
+    const nid =
+      remoteMessage?.data?.notificationId ||
+      remoteMessage?.data?.id;
+    navigateToNotifications(nid ? String(nid) : undefined);
   });
 
   // Check if app was opened from quit state by clicking an FCM notification
   messaging().getInitialNotification().then(remoteMessage => {
     if (remoteMessage) {
-      navigateToNotifications();
+      const nid =
+        remoteMessage?.data?.notificationId ||
+        remoteMessage?.data?.id;
+      navigateToNotifications(nid ? String(nid) : undefined);
     }
   }).catch(() => undefined);
 
   // Check if app was opened from quit state by clicking a Notifee notification
   notifee.getInitialNotification().then(initialNotification => {
     if (initialNotification) {
-      navigateToNotifications();
+      const nid =
+        initialNotification?.notification?.data?.notificationId ||
+        initialNotification?.notification?.data?.id ||
+        initialNotification?.notification?.id;
+      navigateToNotifications(nid ? String(nid) : undefined);
     }
   }).catch(() => undefined);
 

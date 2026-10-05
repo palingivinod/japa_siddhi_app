@@ -140,8 +140,15 @@ class NotificationService {
     return {success: true};
   }
 
+  async deleteById(id: number, userId: number) {
+    await notificationRepository.deleteById(id, userId);
+    return {success: true};
+  }
 
+  async clearAll(userId: number) {
+    await notificationRepository.clearAll(userId);
+    return {success: true};
+  }
 }
-
 
 export default new NotificationService();

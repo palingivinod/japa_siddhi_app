@@ -42,5 +42,22 @@ router.post(
   notificationController.create,
 );
 
+router.delete(
+  '/clear',
+  authenticate,
+  notificationController.clearAll,
+);
+
+router.delete(
+  '/:id',
+  authenticate,
+  notificationController.deleteById,
+);
+
+router.delete(
+  '/',
+  authenticate,
+  notificationController.clearAll,
+);
 
 export default router;

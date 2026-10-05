@@ -215,7 +215,7 @@ export const mr: TranslationDict = {
   nameLabel: 'नाव',
   fullName: 'पूर्ण नाव',
   occasionLabel: 'प्रसंग',
-  occasionPlaceholder: 'वाढदिवस / वर्धापनदिन / इतर',
+  occasionPlaceholder: 'वाढदिवस, वर्धापनदिन, जयंती, वर्धंती',
   donationAmount: 'सेवा रक्कम',
   selectNoOfPersons: 'व्यक्तींची संख्या निवडा',
   continueToPayment: 'पेमेंटकडे पुढे जा',

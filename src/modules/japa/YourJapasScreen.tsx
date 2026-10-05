@@ -48,17 +48,15 @@ const formatDate = (raw?: string | null) => {
 };
 
 const calcDaysRemaining = (endDateStr?: string | null) => {
-  if (!endDateStr) return 1;
+  if (!endDateStr) return 999;
   const match = String(endDateStr).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return 1;
+  if (!match) return 999;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
   end.setHours(0, 0, 0, 0);
-  return Math.max(
-    1,
-    Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-  );
+  const diffDays = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+  return Math.max(1, diffDays);
 };
 
 const YourJapasScreen = () => {
@@ -105,10 +103,32 @@ const YourJapasScreen = () => {
       // 1. Process Japa Goals (Own / Antharanga & Community Goals)
       if (goalsRes.status === 'fulfilled') {
         const rawGoals = goalsRes.value.data?.data ?? [];
-        rawGoals.forEach((goal: any) => {
+        const validGoals = rawGoals.filter((goal: any) => {
           const status = String(goal.status || 'ACTIVE').toUpperCase();
-          if (status !== 'ACTIVE') return;
+          if (status !== 'ACTIVE') return false;
+          // Filter out dummy 10800 auto-goal with 0 chants if user has another active goal for the same mantra
+          if (
+            Number(goal.targetCount) === 10800 &&
+            Number(goal.completedCount || 0) === 0
+          ) {
+            const hasOtherGoal = rawGoals.some((other: any) => {
+              if (other.id === goal.id) return false;
+              if (String(other.status || 'ACTIVE').toUpperCase() !== 'ACTIVE')
+                return false;
+              if (goal.mantraId && other.mantraId === goal.mantraId) return true;
+              if (
+                goal.personalMantraId &&
+                other.personalMantraId === goal.personalMantraId
+              )
+                return true;
+              return false;
+            });
+            if (hasOtherGoal) return false;
+          }
+          return true;
+        });
 
+        validGoals.forEach((goal: any) => {
           const targetCount = Number(goal.targetCount) || 0;
           const completedCount = Number(goal.completedCount) || 0;
           const remainingDays = calcDaysRemaining(goal.endDate);
@@ -118,14 +138,13 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          // Compute dynamic daily target based on remaining japas & remaining days
-          let dailyTarget = 0;
-          if (remainingCount > 0) {
-            if (remainingDays <= 1) {
-              dailyTarget = remainingCount;
-            } else {
-              dailyTarget = Math.max(1, Math.ceil(remainingCount / remainingDays));
-            }
+          // Compute daily target based on configured target and remaining
+          let dailyTarget = Number(goal.dailyTarget || 0);
+          if (dailyTarget <= 0 && remainingCount > 0) {
+            dailyTarget =
+              remainingDays <= 1
+                ? remainingCount
+                : Math.max(1, Math.ceil(remainingCount / (remainingDays >= 900 ? 30 : remainingDays)));
           }
 
           const isPersonal =
@@ -198,7 +217,9 @@ const YourJapasScreen = () => {
           const targetCount = Number(ch.targetCount) || 0;
           const completedCount = Number(ch.currentValue) || 0;
           const durationDays = Number(ch.durationDays) || 30;
-          const remainingDays = durationDays;
+          const remainingDays = ch.endDate
+            ? calcDaysRemaining(ch.endDate)
+            : durationDays;
           const remainingCount = Math.max(0, targetCount - completedCount);
           const progressPercent =
             targetCount > 0
@@ -209,7 +230,7 @@ const YourJapasScreen = () => {
               ? 0
               : remainingDays <= 1
                 ? remainingCount
-                : Math.max(1, Math.ceil(remainingCount / remainingDays));
+                : Math.max(1, Math.ceil(remainingCount / (remainingDays >= 900 ? 30 : remainingDays)));
 
           items.push({
             id: `challenge-${ch.id}`,
@@ -222,12 +243,25 @@ const YourJapasScreen = () => {
             completedCount,
             remainingCount,
             dailyTarget,
+            startDate: ch.startDate,
+            endDate: ch.endDate,
             remainingDays,
             progressPercent,
             isChallenge: true,
           });
         });
       }
+
+      // Sort by earliest deadline (cards expiring soonest e.g. 2, 3, 4 days left come first)
+      items.sort((a, b) => {
+        if (a.remainingDays !== b.remainingDays) {
+          return a.remainingDays - b.remainingDays;
+        }
+        if (a.progressPercent !== b.progressPercent) {
+          return a.progressPercent - b.progressPercent;
+        }
+        return a.mantraName.localeCompare(b.mantraName);
+      });
 
       setJapas(items);
     } catch (error) {
@@ -384,7 +418,9 @@ const YourJapasScreen = () => {
                     <Text style={styles.daysLeftText}>
                       ⏳ {item.remainingDays === 1
                         ? (t('oneDayLeft') || '1 Day Left')
-                        : (t('daysLeftCount', {count: item.remainingDays}) || `${item.remainingDays} Days Left`)}
+                        : item.remainingDays >= 900
+                          ? (tt('Ongoing') || 'Ongoing')
+                          : (t('daysLeftCount', {count: item.remainingDays}) || `${item.remainingDays} Days Left`)}
                     </Text>
                   </View>
                 </View>

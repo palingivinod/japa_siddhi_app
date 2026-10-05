@@ -441,10 +441,13 @@ class ChallengeRepository {
           `
           INSERT INTO challenge_rewards (name, stock, is_active, display_order)
           VALUES
-            ('Rudraksha', 50, 1, 1),
-            ('Mala', 50, 1, 2),
-            ('Gita Book', 50, 1, 3),
-            ('Prasadam', 50, 1, 4)
+            ('Rudrakshi Mala', 50, 1, 1),
+            ('Tulasi Mala', 50, 1, 2),
+            ('Pasupu Mala', 50, 1, 3),
+            ('Karungali Mala', 50, 1, 4),
+            ('Spatik Mala', 50, 1, 5),
+            ('Green Agate', 50, 1, 6),
+            ('Yellow Agate', 50, 1, 7)
           `,
         );
       }

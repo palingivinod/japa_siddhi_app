@@ -31,7 +31,9 @@ const CountrySelector: React.FC<Props> = ({
     const keyword = search.trim().toLowerCase();
 
     if (!keyword) {
-      return countries;
+      const india = countries.find(c => c.code === 'IN');
+      const others = countries.filter(c => c.code !== 'IN');
+      return india ? [india, ...others] : countries;
     }
 
     return countries.filter(
@@ -55,13 +57,19 @@ const CountrySelector: React.FC<Props> = ({
       transparent={false}
       onRequestClose={onClose}>
       <View style={styles.container}>
-        <Text style={styles.title}>
-          Select Country
-        </Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>Select Country</Text>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onClose}
+            hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
+            <Text style={styles.closeText}>✕</Text>
+          </TouchableOpacity>
+        </View>
 
         <TextInput
           style={styles.search}
-          placeholder="Search Country"
+          placeholder="Search Country (e.g. India, +91)"
           placeholderTextColor={Colors.textSecondary}
           value={search}
           onChangeText={setSearch}
@@ -76,23 +84,14 @@ const CountrySelector: React.FC<Props> = ({
             <TouchableOpacity
               style={styles.row}
               onPress={() => handleSelect(item)}>
-              <Text style={styles.flag}>
-                {item.flag}
-              </Text>
+              <Text style={styles.flag}>{item.flag}</Text>
 
               <View style={styles.info}>
-                <Text style={styles.name}>
-                  {item.name}
-                </Text>
-
-                <Text style={styles.countryCode}>
-                  {item.code}
-                </Text>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.countryCode}>{item.code}</Text>
               </View>
 
-              <Text style={styles.callingCode}>
-                {item.callingCode}
-              </Text>
+              <Text style={styles.callingCode}>{item.callingCode}</Text>
             </TouchableOpacity>
           )}
         />
@@ -110,11 +109,32 @@ const styles = StyleSheet.create({
     padding: 20,
   },
 
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
   title: {
     fontSize: 22,
     fontWeight: '700',
     color: Colors.textPrimary,
-    marginBottom: 20,
+  },
+
+  closeBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#ECE7DE',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  closeText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
 
   search: {

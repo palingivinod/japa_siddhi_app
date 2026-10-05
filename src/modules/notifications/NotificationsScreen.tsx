@@ -1,14 +1,15 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
@@ -76,11 +77,18 @@ const formatNotificationDate = (dateStr?: string) => {
 
 const NotificationsScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t, tt, language} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const highlightTimerRef = useRef<any>(null);
+
+  const incomingHighlightId = route.params?.highlightId
+    ? String(route.params.highlightId)
+    : null;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -115,15 +123,103 @@ const NotificationsScreen = () => {
     }, [load]),
   );
 
-  const markAsRead = (item: any) => {
-    if (item?.id && !item.isRead) {
-      apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
-      setItems(current =>
-        current.map(row =>
-          row.id === item.id ? {...row, isRead: true} : row,
-        ),
-      );
+  // Handle incoming notification highlight from notification bar click
+  useEffect(() => {
+    if (!incomingHighlightId || items.length === 0) {
+      return;
     }
+
+    const matched = items.find(
+      it =>
+        String(it.id) === incomingHighlightId ||
+        String(it.actionId) === incomingHighlightId,
+    );
+
+    if (matched) {
+      setHighlightedId(String(matched.id));
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+      // Highlight for 3 seconds, then return to normal
+      highlightTimerRef.current = setTimeout(() => {
+        setHighlightedId(null);
+      }, 3000);
+    }
+
+    return () => {
+      if (highlightTimerRef.current) {
+        clearTimeout(highlightTimerRef.current);
+      }
+    };
+  }, [incomingHighlightId, items]);
+
+  const recordClearedId = async (id: string) => {
+    try {
+      const storedCleared = await AsyncStorage.getItem('cleared_notification_ids');
+      const existing: string[] = storedCleared ? JSON.parse(storedCleared) : [];
+      const combined = Array.from(new Set([...existing, id]));
+      await AsyncStorage.setItem('cleared_notification_ids', JSON.stringify(combined));
+    } catch {
+      // ignore
+    }
+  };
+
+  /**
+   * When user reads/taps a notification:
+   * 1. The dot disappears instantly.
+   * 2. The notification is completely deleted from the database and local state.
+   * 3. Any associated screen action is triggered.
+   */
+  const handleNotificationPress = async (item: any) => {
+    const itemId = String(item.id);
+
+    // 1. Immediately remove unread dot in UI
+    setItems(current =>
+      current.map(row => (row.id === item.id ? {...row, isRead: true} : row)),
+    );
+
+    // 2. Perform delete on backend & storage
+    try {
+      await apiService.delete(`/notifications/${item.id}`).catch(async () => {
+        await apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
+      });
+    } catch {
+      // ignore
+    }
+    await recordClearedId(itemId);
+
+    // 3. Completely delete from list
+    setItems(current => current.filter(row => row.id !== item.id));
+
+    // 4. Navigate if this notification has a specific action
+    const action = String(item.actionType || '');
+    if (action === 'JAPA_MILESTONE') {
+      navigation.navigate('MilestoneNotifications');
+    } else if (
+      action === 'CHALLENGE_DEADLINE' ||
+      action === 'CHALLENGE_COMPLETED' ||
+      action === 'CHALLENGE_REWARD_READY'
+    ) {
+      navigation.navigate('Challenges');
+    } else if (action === 'DAILY_JAPA_REMINDER' || action === 'GOAL_DEADLINE') {
+      navigation.navigate('Chant');
+    } else if (action === 'REWARD' || action === 'REWARD_READY') {
+      navigation.navigate('Rewards');
+    }
+  };
+
+  /**
+   * Delete a single notification directly
+   */
+  const deleteSingleNotification = async (item: any) => {
+    const itemId = String(item.id);
+    setItems(current => current.filter(row => row.id !== item.id));
+    try {
+      await apiService.delete(`/notifications/${item.id}`).catch(() => undefined);
+    } catch {
+      // ignore
+    }
+    await recordClearedId(itemId);
   };
 
   const clearNotifications = () => {
@@ -211,23 +307,43 @@ const NotificationsScreen = () => {
       ) : null}
       {items.map(item => {
         const isUnread = !item.isRead;
+        const isHighlighted = highlightedId === String(item.id);
         return (
           <TouchableOpacity
             key={item.id}
             activeOpacity={0.75}
-            style={[styles.card, isUnread && styles.cardUnread]}
-            onPress={() => markAsRead(item)}>
-            <View style={[styles.dot, isUnread && styles.dotUnread]}>
+            style={[
+              styles.card,
+              isUnread && styles.cardUnread,
+              isHighlighted && styles.cardHighlighted,
+            ]}
+            onPress={() => handleNotificationPress(item)}>
+            <View
+              style={[
+                styles.dot,
+                isUnread && styles.dotUnread,
+                isHighlighted && styles.dotHighlighted,
+              ]}>
               <Text style={styles.emoji}>{notificationEmoji(item)}</Text>
             </View>
             <View style={styles.copy}>
               <View style={styles.titleRow}>
                 <Text
-                  style={[styles.title, isUnread && styles.titleUnread]}
+                  style={[
+                    styles.title,
+                    isUnread && styles.titleUnread,
+                    isHighlighted && styles.titleHighlighted,
+                  ]}
                   numberOfLines={2}>
                   {getLocalizedNotification(item, language).title || tt(item.title)}
                 </Text>
-                {isUnread ? <View style={styles.unreadDot} /> : null}
+                {isHighlighted ? (
+                  <View style={styles.highlightBadge}>
+                    <Text style={styles.highlightBadgeText}>✨ New</Text>
+                  </View>
+                ) : isUnread ? (
+                  <View style={styles.unreadDot} />
+                ) : null}
               </View>
               {item.message || item.body ? (
                 <Text style={styles.subtitle}>
@@ -235,11 +351,19 @@ const NotificationsScreen = () => {
                     tt(item.message || item.body)}
                 </Text>
               ) : null}
-              {item.createdAt ? (
-                <Text style={styles.time}>
-                  {formatNotificationDate(item.createdAt)}
-                </Text>
-              ) : null}
+              <View style={styles.footerRow}>
+                {item.createdAt ? (
+                  <Text style={styles.time}>
+                    {formatNotificationDate(item.createdAt)}
+                  </Text>
+                ) : <View />}
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                  onPress={() => deleteSingleNotification(item)}>
+                  <Text style={styles.deleteBtnText}>✕</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </TouchableOpacity>
         );
@@ -304,6 +428,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFCF5',
     borderColor: Colors.lightGold,
   },
+  cardHighlighted: {
+    backgroundColor: '#FFF9EB',
+    borderColor: Colors.templeGold,
+    borderWidth: 2,
+    shadowColor: Colors.templeGold,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: {width: 0, height: 3},
+    elevation: 5,
+  },
   dot: {
     width: 44,
     height: 44,
@@ -315,6 +449,9 @@ const styles = StyleSheet.create({
   },
   dotUnread: {
     backgroundColor: '#FFF0D0',
+  },
+  dotHighlighted: {
+    backgroundColor: '#FFE6A5',
   },
   emoji: {
     fontSize: 22,
@@ -339,12 +476,28 @@ const styles = StyleSheet.create({
   titleUnread: {
     fontWeight: '800',
   },
+  titleHighlighted: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+  },
   unreadDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
     backgroundColor: Colors.selectedOrange,
     marginLeft: 8,
+  },
+  highlightBadge: {
+    backgroundColor: Colors.templeGold,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
+  highlightBadgeText: {
+    color: Colors.white,
+    fontSize: 11,
+    fontWeight: '800',
   },
   subtitle: {
     fontSize: 13,
@@ -353,10 +506,28 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     includeFontPadding: true,
   },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+  },
   time: {
     fontSize: 11,
     color: Colors.placeholder,
-    marginTop: 4,
     fontWeight: '500',
+  },
+  deleteBtn: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#F2EFE9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
 });

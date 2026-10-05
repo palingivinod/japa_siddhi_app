@@ -243,7 +243,7 @@ const ChantScreen = () => {
       const ownDraftId = preferred?.own ? preferred.id : undefined;
       const resumeDraft = challengeId
         ? await getJapaDraft(mode, presetDraftId, challengeId, ownDraftId)
-        : route.params?.resume
+        : route.params?.fromHome && !preferred
           ? await getJapaDraft()
           : isRecentOnly
             ? null
@@ -259,21 +259,30 @@ const ChantScreen = () => {
             (route.params?.resume || resumeDraft.mode === mode));
       let active = preferred;
       if (restore && resumeDraft) {
-        const draftMatch = resumeDraft.personalMantraId
-          ? items.find(
-              item => item.own && item.id === resumeDraft.personalMantraId,
-            )
-          : resumeDraft.mantraId
+        if (preferred) {
+          const isSame =
+            (preferred.own && resumeDraft.personalMantraId === preferred.id) ||
+            (!preferred.own && resumeDraft.mantraId === preferred.id);
+          if (isSame) {
+            applyDraftToCount(resumeDraft);
+          }
+        } else {
+          const draftMatch = resumeDraft.personalMantraId
             ? items.find(
-                item => !item.own && item.id === resumeDraft.mantraId,
+                item => item.own && item.id === resumeDraft.personalMantraId,
               )
-            : null;
-        if (draftMatch) {
-          active = draftMatch;
-          setSelected(draftMatch);
-          setShowMantraPicker(false);
+            : resumeDraft.mantraId
+              ? items.find(
+                  item => !item.own && item.id === resumeDraft.mantraId,
+                )
+              : null;
+          if (draftMatch) {
+            active = draftMatch;
+            setSelected(draftMatch);
+            setShowMantraPicker(false);
+          }
+          applyDraftToCount(resumeDraft);
         }
-        applyDraftToCount(resumeDraft);
       } else if (challengeId) {
         applyDraftToCount({
           count: Math.min(initialCount, paramGoal),
@@ -284,7 +293,8 @@ const ChantScreen = () => {
       } else if (
         initialCount > 0 &&
         paramGoal > initialCount &&
-        route.params?.resume
+        route.params?.resume &&
+        route.params?.fromHome
       ) {
         applyDraftToCount({
           count: initialCount,

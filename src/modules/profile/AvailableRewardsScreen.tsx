@@ -19,6 +19,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
 type RewardItem = {
@@ -31,13 +32,13 @@ type RewardItem = {
 };
 
 const DEFAULT_REWARDS: RewardItem[] = [
-  {id: 1, name: 'Rudraksha', inStock: true},
-  {id: 2, name: 'Spatik Mala', inStock: true},
-  {id: 3, name: 'Pasupu Kommula Mala', inStock: true},
-  {id: 4, name: 'Green Agate', inStock: true},
-  {id: 5, name: 'Yellow Agate', inStock: true},
-  {id: 6, name: 'Bhagavad Gita', inStock: true},
-  {id: 7, name: 'Temple Prasadam', inStock: true},
+  {id: 1, name: 'Rudrakshi Mala', inStock: true},
+  {id: 2, name: 'Tulasi Mala', inStock: true},
+  {id: 3, name: 'Pasupu Mala', inStock: true},
+  {id: 4, name: 'Karungali Mala', inStock: true},
+  {id: 5, name: 'Spatik Mala', inStock: true},
+  {id: 6, name: 'Green Agate', inStock: true},
+  {id: 7, name: 'Yellow Agate', inStock: true},
 ];
 
 const AvailableRewardsScreen = () => {
@@ -73,16 +74,15 @@ const AvailableRewardsScreen = () => {
       const rows: any[] = Array.isArray(raw) ? raw : [];
 
       if (rows.length > 0) {
-        setRewards(
-          rows.map((row: any) => ({
-            id: row.id,
-            name: String(row.name || ''),
-            stock: Number(row.stock || 0),
-            inStock: Number(row.stock ?? 1) > 0,
-            emoji: row.emoji,
-            description: row.description,
-          })),
-        );
+        const mapped = rows.map((row: any) => ({
+          id: row.id,
+          name: String(row.name || ''),
+          stock: Number(row.stock || 0),
+          inStock: Number(row.stock ?? 1) > 0,
+          emoji: row.emoji,
+          description: row.description,
+        }));
+        setRewards(sortRewardsCanonical(mapped));
       } else {
         setRewards(DEFAULT_REWARDS);
       }

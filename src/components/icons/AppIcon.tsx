@@ -38,7 +38,9 @@ export type AppIconName =
   | 'logoutDoor'
   | 'greenAgate'
   | 'yellowAgate'
-  | 'pasupuKommulaMala';
+  | 'pasupuKommulaMala'
+  | 'karungaliMala'
+  | 'spatikaMala';
 
 interface Props {
   name: AppIconName;
@@ -73,6 +75,8 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   greenAgate: require('../../assets/images/green_agate.jpg'),
   yellowAgate: require('../../assets/images/yellow_agate.jpg'),
   pasupuKommulaMala: require('../../assets/images/pasupu_kommula_mala.jpg'),
+  karungaliMala: require('../../assets/images/karungali_mala.jpg'),
+  spatikaMala: require('../../assets/images/spatika_mala.png'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 

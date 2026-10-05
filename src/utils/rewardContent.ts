@@ -19,11 +19,14 @@ const REWARD_LOCALIZATIONS: Array<{
         lower.includes('spatik') ||
         lower.includes('sphatik') ||
         lower.includes('crystal') ||
-        lower.includes('quartz')
+        lower.includes('quartz') ||
+        lower.includes('స్పటిక') ||
+        lower.includes('स्फटिक')
       );
     },
     content: {
       emoji: '📿',
+      imageName: 'spatikaMala',
       title: {
         en: 'Spatik Mala',
         te: 'స్పటిక మాల',
@@ -49,7 +52,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 2. Pasupu Kommula Mala / Turmeric
+  // 2. Pasupu Mala / Turmeric Mala
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -63,15 +66,15 @@ const REWARD_LOCALIZATIONS: Array<{
       emoji: '🌿',
       imageName: 'pasupuKommulaMala',
       title: {
-        en: 'Pasupu Kommula Mala',
-        te: 'పసుపు కొమ్ముల మాల',
-        hi: 'हल्दी गांठ माला',
-        ta: 'மஞ்சள் கிழங்கு மாலை',
-        kn: 'ಅರಿಶಿನ ಕೊಂಬಿನ ಮಾಲೆ',
+        en: 'Pasupu Mala',
+        te: 'పసుపు మాల',
+        hi: 'हल्दी माला',
+        ta: 'மஞ்சள் மாலை',
+        kn: 'ಅರಿಶಿನ ಮಾಲೆ',
         ml: 'മഞ്ഞൾ മാല',
         mr: 'हळदीची माळ',
-        bn: 'হলুদ গাঁট মালা',
-        or: 'ହଳଦୀ ଗଣ୍ଠି ମାଳା',
+        bn: 'হলুদ মালা',
+        or: 'ହଳଦୀ ମାଳା',
       },
       description: {
         en: 'Sacred natural whole turmeric beads embodying the divine blessings of Goddess Lakshmi, health, purity, and spiritual auspiciousness.',
@@ -87,7 +90,49 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 3. Green Agate / Green Hakik
+  // 3. Karungali Mala (Ebony Wood Mala)
+  {
+    match: name => {
+      const lower = name.toLowerCase();
+      return (
+        lower.includes('karungali') ||
+        lower.includes('ebony') ||
+        lower.includes('sacred japa mala') ||
+        lower.includes('black wood') ||
+        lower.includes('కరుంగాలి') ||
+        lower.includes('கருங்காலி') ||
+        lower.includes('करुंगली')
+      );
+    },
+    content: {
+      emoji: '📿',
+      imageName: 'karungaliMala',
+      title: {
+        en: 'Karungali Mala',
+        te: 'కరుంగాలి మాల',
+        hi: 'करुंगली माला',
+        ta: 'கருங்காலி மாலை',
+        kn: 'ಕರುಂಗಾಲಿ ಮಾಲೆ',
+        ml: 'കരുങ്കാലി മാല',
+        mr: 'करुंगली माळ',
+        bn: 'করুঙ্গালি মালা',
+        or: 'କରୁଙ୍ଗାଲି ମାଳା',
+      },
+      description: {
+        en: 'Sacred natural Ebony wood (Karungali) beads renowned for warding off negative energies, grounding cosmic vibrations, and enhancing spiritual discipline.',
+        te: 'ప్రతికూల శక్తులను నివారించి, గ్రహ దోషాలను తొలగించి ఆధ్యాత్మిక శక్తిని ప్రసాదించే సహజ నల్ల కరుంగాలి మాల.',
+        hi: 'नकारात्मक ऊर्जा और ग्रह दोषों को दूर कर आध्यात्मिक शक्ति व संकल्प प्रदान करने वाली पवित्र करुंगली माला।',
+        ta: 'எதிர்மறை ஆற்றல்களை நீக்கி, நவகிரக தோஷங்களைக் குறைத்து ஆன்மீக பலம் தரும் புனித கருங்காலி மாலை.',
+        kn: 'ನಕಾರಾತ್ಮಕ ಶಕ್ತಿಗಳನ್ನು ನಿವಾರಿಸಿ, ಆತ್ಮವಿಶ್ವಾಸ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಶಕ್ತಿಯನ್ನು ಹೆಚ್ಚಿಸುವ ಪವಿತ್ರ ಕರುಂಗಾಲಿ ಮಾಲೆ.',
+        ml: 'നെഗറ്റീവ് ഊർജ്ജങ്ങളെ അകറ്റി ആത്മീയ ഏകാഗ്രതയും അനുഗ്രഹവും നൽകുന്ന പവിത്രമായ കരുങ്കാലി മാല.',
+        mr: 'नकारात्मक ऊर्जा दूर करून सकारात्मक शक्ती व आध्यात्मिक सामर्थ्य देणारी पवित्र करुंगली माळ.',
+        bn: 'নেতিবাচক শক্তি দূর করে আত্মবিশ্বাস ও আধ্যাত্মিক শক্তি বৃদ্ধি করতে সহায়ক পবিত্র করুঙ্গালি মালা।',
+        or: 'ନକାରାତ୍ମକ ଶକ୍ତିକୁ ଦୂର କରି ଆଧ୍ୟାତ୍ମିକ ସାଧନା ଓ ସୁରକ୍ଷା ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର କରୁଙ୍ଗାଲି ମାଳା।',
+      },
+    },
+  },
+
+  // 4. Green Agate / Green Hakik
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -125,7 +170,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 4. Yellow Agate / Yellow Hakik
+  // 5. Yellow Agate / Yellow Hakik
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -163,150 +208,43 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 5. Red Agate / Red Hakik
+  // 6. Rudraksha Mala / Rudrakshi
   {
-    match: name => {
-      const lower = name.toLowerCase();
-      return (
-        lower.includes('red agate') ||
-        (lower.includes('red') && lower.includes('hakik')) ||
-        (lower.includes('red') && lower.includes('agate'))
-      );
-    },
-    content: {
-      emoji: '💎',
-      title: {
-        en: 'Red Agate',
-        te: 'రెడ్ అగేట్ (ఎరుపు హకీక్)',
-        hi: 'लाल अकीक (रेड अगेट)',
-        ta: 'சிவப்பு அகேட் கல்',
-        kn: 'ಕೆಂಪು ಅಗೇಟ್ (ರೆಡ್ ಹಕೀಕ್)',
-        ml: 'റെഡ് അഗേറ്റ്',
-        mr: 'लाल अकीक',
-        bn: 'লাল আকিক',
-        or: 'ଲାଲ୍ ଆକିକ',
-      },
-      description: {
-        en: 'Energizing red agate gemstone that inspires courage, vitality, self-confidence, and powerful grounding energy.',
-        te: 'ధైర్యం, ఉత్సాహం, ఆత్మవిశ్వాసం మరియు సానుకూల శక్తిని నింపే పవిత్ర రెడ్ అగేట్ (ఎరుపు హకీక్).',
-        hi: 'साहस, ऊर्जा, आत्मविश्वास और स्थिरता प्रदान करने वाला ऊर्जावान लाल अकीक (रेड अगेट)।',
-        ta: 'தைரியம், உற்சாகம், தன்னம்பிக்கை மற்றும் ஆற்றலைத் தரும் சிவப்பு அகேட் கல்.',
-        kn: 'ಧೈರ್ಯ, ಉತ್ಸಾಹ, ಆತ್ಮವಿಶ್ವಾಸ ಮತ್ತು ಶಕ್ತಿಯನ್ನು ನೀಡುವ ಪವಿತ್ರ ರೆಡ್ ಅಗೇಟ್ (ಕೆಂಪು ಹಕೀಕ್).',
-        ml: 'ധൈര്യവും ആത്മവിശ്വാസവും പോസിറ്റീവ് ഊർജ്ജവും പകരുന്ന ചുവന്ന അഗേറ്റ്.',
-        mr: 'साहस, सकारात्मक ऊर्जा आणि आत्मविश्वास वाढवणारा तेजस्वी लाल अकीक (रेड अगेट).',
-        bn: 'সাহস, শক্তি ও আত্মবিশ্বাস বৃদ্ধি করতে সহায়ক লাল আকিক (রেড অ্যাগেট)।',
-        or: 'ସାହସ, ଶକ୍ତି ଏବଂ ଆତ୍ମବିଶ୍ୱାସ ପ୍ରଦାନ କରୁଥିବା ଶୁଭ ଲାଲ୍ ଆକିକ (ରେଡ୍ ଆଗେଟ୍)।',
-      },
-    },
-  },
-
-  // 6. Black Agate / Black Hakik
-  {
-    match: name => {
-      const lower = name.toLowerCase();
-      return (
-        lower.includes('black agate') ||
-        (lower.includes('black') && lower.includes('hakik')) ||
-        (lower.includes('black') && lower.includes('agate'))
-      );
-    },
-    content: {
-      emoji: '💎',
-      title: {
-        en: 'Black Agate',
-        te: 'బ్లాక్ అగేట్ (నలుపు హకీక్)',
-        hi: 'काला अकीक (ब्लैक अगेट)',
-        ta: 'கருப்பு அகேட் கல்',
-        kn: 'ಕಪ್ಪು ಅಗೇಟ್ (ಬ್ಲ್ಯಾಕ್ ಹಕೀಕ್)',
-        ml: 'ബ്ലാക്ക് അഗേറ്റ്',
-        mr: 'काळा अकीक',
-        bn: 'কালো আকিক',
-        or: 'କଳା ଆକିକ',
-      },
-      description: {
-        en: 'Protective black agate stone historically revered for dispelling negative energies, shielding against the evil eye, and inner stability.',
-        te: 'దృష్టిదోషాలు, ప్రతికూల శక్తులను నివారించి రక్షణ మరియు స్థిరత్వాన్ని ప్రసాదించే బ్లాక్ అగేట్ (నలుపు హకీక్).',
-        hi: 'नकारात्मक ऊर्जा और बुरी नजर से सुरक्षा प्रदान करने वाला अत्यंत प्रभावशाली काला अकीक (ब्लैक अगेट)।',
-        ta: 'எதிர்மறை ஆற்றல்கள் மற்றும் திருஷ்டியிலிருந்து காக்கும் சக்திவாய்ந்த கருப்பு அகேட் கல்.',
-        kn: 'ದೃಷ್ಟಿದೋಷ ಮತ್ತು ನಕಾರಾತ್ಮಕ ಶಕ್ತಿಗಳಿಂದ ರಕ್ಷಣೆ ನೀಡುವ ಪವಿತ್ರ ಕಪ್ಪು ಅಗೇಟ್ (ಬ್ಲ್ಯಾಕ್ ಹಕೀಕ್).',
-        ml: 'ദൃഷ്ടിദോഷങ്ങളിൽ നിന്നും നെഗറ്റീവ് ഊർജ്ജങ്ങളിൽ നിന്നും സംരക്ഷണം നൽകുന്ന ബ്ലാക്ക് അഗേറ്റ്.',
-        mr: 'वाईट दृष्टी आणि नकारात्मक ऊर्जेपासून रक्षण करणारा शक्तिशाली काळा अकीक (ब्लॅक अगेट).',
-        bn: 'নেতিবাচক শক্তি ও কুনজর থেকে সুরক্ষা প্রদানকারী শক্তিশালী কালো আকিক (ব্ল্যাক অ্যাগেট)।',
-        or: 'ଦୃଷ୍ଟିଦୋଷ ଏବଂ ନକାରାତ୍ମକ ଶକ୍ତିରୁ ସୁରକ୍ଷା ପ୍ରଦାନ କରୁଥିବା ଶକ୍ତିଶାଳୀ କଳା ଆକିକ (ବ୍ଲାକ୍ ଆଗେଟ୍)।',
-      },
-    },
-  },
-
-  // 7. General Agate / Hakik
-  {
-    match: name => {
-      const lower = name.toLowerCase();
-      return lower.includes('agate') || lower.includes('hakik');
-    },
-    content: {
-      emoji: '💎',
-      title: {
-        en: 'Sacred Agate',
-        te: 'పవిత్ర అగేట్ (హకీక్)',
-        hi: 'पवित्र अकीक (अगेट)',
-        ta: 'புனித அகேட் கல்',
-        kn: 'ಪವಿತ್ರ ಅಗೇಟ್',
-        ml: 'വിശുദ്ധ അഗേറ്റ്',
-        mr: 'पवित्र अकीक',
-        bn: 'পবিত্র আকিক',
-        or: 'ପବିତ୍ର ଆକିକ',
-      },
-      description: {
-        en: 'Sacred gemstone renowned for grounding spiritual energies, balancing chakras, and bringing emotional harmony.',
-        te: 'ఆధ్యాత్మిక శక్తిని స్థిరపరిచి, చక్రాలను సమతుల్యం చేసి మానసిక శాంతిని ప్రసాదించే పవిత్ర రత్నం.',
-        hi: 'आध्यात्मिक ऊर्जा को संतुलित करने, चक्रों को जाग्रत करने और शांति देने वाला पावन रत्न।',
-        ta: 'ஆன்மீக ஆற்றலை நிலைநிறுத்தி, மன அமைதியைத் தரும் புனித ரத்தினம்.',
-        kn: 'ಆಧ್ಯಾತ್ಮಿಕ ಶಕ್ತಿಯನ್ನು ಸಮತೋಲನಗೊಳಿಸಿ, ಮನಃಶಾಂತಿ ನೀಡುವ ಪವಿತ್ರ ರತ್ನ.',
-        ml: 'ആത്മീയ ഊർജ്ജം സമതുലിതമാക്കി മാനസിക ശാന്തി നൽകുന്ന വിശുദ്ധ രത്നം.',
-        mr: 'आध्यात्मिक ऊर्जा संतुलित करून मनःशांती देणारे पवित्र रत्न.',
-        bn: 'আধ্যাত্মিক শক্তিকে সুষম করে মানসিক শান্তি প্রদানকারী পবিত্র রত্ন।',
-        or: 'ଆଧ୍ୟାତ୍ମିକ ଶକ୍ତିକୁ ସନ୍ତୁଳିତ କରି ମାନସିକ ଶାନ୍ତି ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ରତ୍ନ।',
-      },
-    },
-  },
-
-  // 8. Rudraksha
-  {
-    match: name => name.toLowerCase().includes('rudraksha'),
+    match: name => name.toLowerCase().includes('rudraksh'),
     content: {
       emoji: '📿',
       title: {
-        en: 'Rudraksha',
-        te: 'రుద్రాక్ష',
-        hi: 'रुद्राक्ष',
-        ta: 'ருத்ராட்சம்',
-        kn: 'ರುದ್ರಾಕ್ಷಿ',
-        ml: 'രുദ്രാക്ഷം',
-        mr: 'रुद्राक्ष',
-        bn: 'রুদ্রাক্ষ',
-        or: 'ରୁଦ୍ରାକ୍ଷ',
+        en: 'Rudrakshi Mala',
+        te: 'రుద్రాక్ష మాల',
+        hi: 'रुद्राक्ष माला',
+        ta: 'ருத்ராட்ச மாலை',
+        kn: 'ರುದ್ರಾಕ್ಷಿ ಮಾಲೆ',
+        ml: 'രുദ്രാക്ഷ മാല',
+        mr: 'रुद्राक्ष माळ',
+        bn: 'রুদ্রাক্ষ মালা',
+        or: 'ରୁଦ୍ରାକ୍ଷ ମାଳା',
       },
       description: {
-        en: 'Sacred divine seed blessed by Lord Shiva that fosters inner serenity, spiritual aura protection, and deep meditative focus.',
-        te: 'శివానుగ్రహం, మానసిక ప్రశాంతత, ఆధ్యాత్మిక రక్షణ మరియు ఏకాగ్రతను ప్రసాదించే పవిత్ర రుద్రాక్ష.',
-        hi: 'भगवान शिव के आशीर्वाद से युक्त, मानसिक शांति, आध्यात्मिक सुरक्षा और ध्यान-एकाग्रता देने वाला पवित्र रुद्राक्ष।',
-        ta: 'சிவபெருமானின் அருள், மன அமைதி மற்றும் ஆன்மீக பாதுகாப்பை அருளும் புனித ருத்ராட்சம்.',
-        kn: 'ಶಿವನ ಅನುಗ್ರಹ, ಮನಸ್ಸಿನ ಶಾಂತಿ, ಆಧ್ಯಾತ್ಮಿಕ ರಕ್ಷಣೆ ಮತ್ತು ಏಕಾಗ್ರತೆಯನ್ನು ಕರುಣಿಸುವ ಪವಿತ್ರ ರುದ್ರಾಕ್ಷಿ.',
-        ml: 'ശിവന്റെ അനുഗ്രഹവും മനസ്സിന് ശാന്തിയും ആത്മീയ സംരക്ഷണവും നൽകുന്ന പവിത്രമായ രുദ്രാക്ഷം.',
-        mr: 'भगवान शिवांचा कृपाप्रसाद, मनःशांती आणि आध्यात्मिक संरक्षण देणारा पवित्र रुद्राक्ष.',
-        bn: 'ভগবান শিবের আশীর্বাদপ্রাপ্ত, মানসিক শান্তি ও একাগ্রতা বৃদ্ধিকারী পবিত্র রুদ্রাক্ষ।',
-        or: 'ଭଗବାନ ଶିବଙ୍କ କୃପା, ମାନସିକ ଶାନ୍ତି ଏବଂ ଆଧ୍ୟାତ୍ମିକ ସୁରକ୍ଷା ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ରୁଦ୍ରାକ୍ଷ।',
+        en: 'Sacred divine seed beads blessed by Lord Shiva that foster inner serenity, spiritual aura protection, and deep meditative focus.',
+        te: 'శివానుగ్రహం, మానసిక ప్రశాంతత, ఆధ్యాత్మిక రక్షణ మరియు ఏకాగ్రతను ప్రసాదించే పవిత్ర రుద్రాక్ష మాల.',
+        hi: 'भगवान शिव के आशीर्वाद से युक्त, मानसिक शांति, आध्यात्मिक सुरक्षा और ध्यान-एकाग्रता देने वाली पवित्र रुद्राक्ष माला।',
+        ta: 'சிவபெருமானின் அருள், மன அமைதி மற்றும் ஆன்மீக பாதுகாப்பை அருளும் புனித ருத்ராட்ச மாலை.',
+        kn: 'ಶಿವನ ಅನುಗ್ರಹ, ಮನಸ್ಸಿನ ಶಾಂತಿ, ಆಧ್ಯಾತ್ಮಿಕ ರಕ್ಷಣೆ ಮತ್ತು ಏಕಾಗ್ರತೆಯನ್ನು ಕರುಣಿಸುವ ಪವಿತ್ರ ರುದ್ರಾಕ್ಷಿ ಮಾಲೆ.',
+        ml: 'ശിവന്റെ അനുഗ്രഹവും മനസ്സിന് ശാന്തിയും ആത്മീയ സംരക്ഷണവും നൽകുന്ന പവിത്രമായ രുദ്രാക്ഷ മാല.',
+        mr: 'भगवान शिवांचा कृपाप्रसाद, मनःशांती आणि आध्यात्मिक संरक्षण देणारी पवित्र रुद्राक्ष माळ.',
+        bn: 'ভগবান শিবের আশীর্বাদপ্রাপ্ত, মানসিক শান্তি ও একাগ্রতা বৃদ্ধিকারী পবিত্র রুদ্রাক্ষ মালা।',
+        or: 'ଭଗବାନ ଶିବଙ୍କ କୃପା, ମାନସିକ ଶାନ୍ତି ଏବଂ ଆଧ୍ୟାତ୍ମିକ ସୁରକ୍ଷା ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ରୁଦ୍ରାକ୍ଷ ମାଳା।',
       },
     },
   },
 
-  // 9. Tulsi Mala
+  // 7. Tulasi Mala / Tulsi
   {
-    match: name => name.toLowerCase().includes('tulsi'),
+    match: name => name.toLowerCase().includes('tulsi') || name.toLowerCase().includes('tulasi'),
     content: {
       emoji: '📿',
       title: {
-        en: 'Tulsi Mala',
+        en: 'Tulasi Mala',
         te: 'తులసి మాల',
         hi: 'तुलसी माला',
         ta: 'துளசி மாலை',
@@ -330,7 +268,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 10. Chandan / Sandalwood Mala
+  // 8. Chandan / Sandalwood Mala
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -363,7 +301,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 11. Kamal Gatta / Lotus Seed Mala
+  // 9. Kamal Gatta / Lotus Seed Mala
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -396,7 +334,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 12. Gomati Chakra
+  // 10. Gomati Chakra
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -429,7 +367,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 13. Shree Yantra
+  // 11. Shree Yantra
   {
     match: name => name.toLowerCase().includes('yantra'),
     content: {
@@ -459,7 +397,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 14. Bhagavad Gita / Holy Book
+  // 12. Bhagavad Gita / Holy Book
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -496,7 +434,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 15. Temple Prasadam
+  // 13. Temple Prasadam
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -533,7 +471,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 16. Baanalingam / Shiva Lingam
+  // 14. Baanalingam / Shiva Lingam
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -570,7 +508,7 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 17. Brass Diya / Deepam
+  // 15. Brass Diya / Deepam
   {
     match: name => {
       const lower = name.toLowerCase();
@@ -606,39 +544,6 @@ const REWARD_LOCALIZATIONS: Array<{
       },
     },
   },
-
-  // 18. General Prayer Mala
-  {
-    match: name => {
-      const lower = name.toLowerCase();
-      return lower.includes('mala') || lower.includes('rosary');
-    },
-    content: {
-      emoji: '📿',
-      title: {
-        en: 'Sacred Japa Mala',
-        te: 'పవిత్ర జపమాల',
-        hi: 'पवित्र जप माला',
-        ta: 'புனித ஜப மாலை',
-        kn: 'ಪವಿತ್ರ ಜಪಮಾಲೆ',
-        ml: 'പവിത്ര ജപമാല',
-        mr: 'पवित्र जपमाळ',
-        bn: 'পবিত্র জপমালা',
-        or: 'ପବିତ୍ର ଜପମାଳା',
-      },
-      description: {
-        en: 'Sacred consecrated spiritual prayer beads handcrafted with natural materials for spiritual sanctity and peace.',
-        te: 'ఆధ్యాత్మిక పవిత్రత, ప్రశాంతత కోసం సహజ పదార్థాలతో రూపొందించబడిన పవిత్ర జపమాల.',
-        hi: 'आध्यात्मिक शुद्धि और शांति के लिए प्राकृतिक तत्वों से निर्मित पावन जप माला।',
-        ta: 'ஆன்மீக தூய்மை மற்றும் அமைதிக்காக இயற்கை பொருட்களால் உருவாக்கப்பட்ட புனித மாலை.',
-        kn: 'ಆಧ್ಯಾತ್ಮಿಕ ಪಾವಿತ್ರ್ಯ ಮತ್ತು ಶಾಂತಿಗಾಗಿ ನೈಸರ್ಗಿಕ ಅಂಶಗಳಿಂದ ಸಿದ್ಧಪಡಿಸಿದ ಪವಿತ್ರ ಮಾಲೆ.',
-        ml: 'ആത്മീയ വിശുദ്ധിക്കും ശാന്തിക്കുമായി പ്രകൃതിദത്ത ഘടകങ്ങളാൽ നിർമ്മിച്ച പവിത്ര മാല.',
-        mr: 'आध्यात्मिक शुद्धता आणि शांतीसाठी नैसर्गिक घटकांपासून बनवलेली पवित्र माळ.',
-        bn: 'আধ্যাত্মিক পবিত্রতা ও শান্তির জন্য প্রাকৃতিক উপাদানে তৈরি পবিত্র জপমালা।',
-        or: 'ଆଧ୍ୟାତ୍ମିକ ପବିତ୍ରତା ଏବଂ ଶାନ୍ତି ପାଇଁ ପ୍ରାକୃତିକ ଉପାଦାନରେ ନିର୍ମିତ ପବିତ୍ର ମାଳା।',
-      },
-    },
-  },
 ];
 
 const FALLBACK_CONTENT: LocalizedReward = {
@@ -659,7 +564,7 @@ const FALLBACK_CONTENT: LocalizedReward = {
     te: 'దివ్య అనుగ్రహం, శాంతి మరియు మంగళాన్ని అందించే పవిత్ర ఆధ్యాత్మిక కానుక.',
     hi: 'सकारात्मक ऊर्जा, शांति और शुभाशीष से परिपूर्ण पावन आध्यात्मिक उपहार।',
     ta: 'நேர்மறை ஆற்றல், அமைதி மற்றும் மங்களம் தரும் புனித ஆன்மீக பரிசு.',
-    kn: 'ಧನಾತ್ಮಕ ಶಕ್ತಿ, ಶಾಂತಿ ಮತ್ತು ಶುಭವನ್ನು ತರುವ ಪವಿತ್ರ ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ.',
+    kn: 'ಧನಾತ್ಮಕ ಶಕ್ತಿ, ಶಾಂತಿ ಮತ್ತು ಶುಭವನ್ನು ತರುವ పవిತ್ರ ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ.',
     ml: 'ശാന്തിയും ഐശ്വര്യവും പ്രദാനം ചെയ്യുന്ന പവിത്രമായ ആത്മീയ സമ്മാനം.',
     mr: 'सकारात्मक ऊर्जा आणि मांगल्याचा आशीर्वाद देणारी पवित्र आध्यात्मिक भेट.',
     bn: 'ইতিবাচক শক্তি ও শুভাশিস যুক্ত পরম পবিত্র আধ্যাত্মিক উপহার।',
@@ -697,16 +602,16 @@ export interface RewardEligibility {
   remainingJapas: number;
 }
 
-const LAKH_LABELS: Record<string, {one: string; two: string}> = {
-  te: {one: '1,00,000 (1 లక్ష)', two: '2,00,000 (2 లక్షలు)'},
-  hi: {one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
-  ta: {one: '1,00,000 (1 லட்சம்)', two: '2,00,000 (2 லட்சம்)'},
-  kn: {one: '1,00,000 (1 ಲಕ್ಷ)', two: '2,00,000 (2 ಲಕ್ಷ)'},
-  ml: {one: '1,00,000 (1 ലക്ഷം)', two: '2,00,000 (2 ലക്ഷം)'},
-  mr: {one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
-  bn: {one: '1,00,000 (1 লাখ)', two: '2,00,000 (2 লাখ)'},
-  or: {one: '1,00,000 (1 ଲକ୍ଷ)', two: '2,00,000 (2 ଲକ୍ଷ)'},
-  en: {one: '1,00,000 (1 Lakh)', two: '2,00,000 (2 Lakhs)'},
+const REQUIREMENT_LABELS: Record<string, {fiftyK: string; one: string; two: string}> = {
+  te: {fiftyK: '50,000 (50 వేలు)', one: '1,00,000 (1 లక్ష)', two: '2,00,000 (2 లక్షలు)'},
+  hi: {fiftyK: '50,000 (50 हज़ार)', one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
+  ta: {fiftyK: '50,000 (50 ஆயிரம்)', one: '1,00,000 (1 லட்சம்)', two: '2,00,000 (2 லட்சம்)'},
+  kn: {fiftyK: '50,000 (50 ಸಾವಿರ)', one: '1,00,000 (1 ಲಕ್ಷ)', two: '2,00,000 (2 ಲಕ್ಷ)'},
+  ml: {fiftyK: '50,000 (50 ആയിരം)', one: '1,00,000 (1 ലക്ഷം)', two: '2,00,000 (2 ലക്ഷം)'},
+  mr: {fiftyK: '50,000 (50 हजार)', one: '1,00,000 (1 लाख)', two: '2,00,000 (2 लाख)'},
+  bn: {fiftyK: '50,000 (50 হাজার)', one: '1,00,000 (1 লাখ)', two: '2,00,000 (2 লাখ)'},
+  or: {fiftyK: '50,000 (50 ହଜାର)', one: '1,00,000 (1 ଲକ୍ଷ)', two: '2,00,000 (2 ଲକ୍ଷ)'},
+  en: {fiftyK: '50,000 (50k)', one: '1,00,000 (1 Lakh)', two: '2,00,000 (2 Lakhs)'},
 };
 
 export const getRewardRequirement = (
@@ -714,7 +619,7 @@ export const getRewardRequirement = (
   lang: string = 'en',
 ): {count: number; label: string} => {
   const lower = String(rewardName || '').toLowerCase();
-  const lakhText = LAKH_LABELS[lang] || LAKH_LABELS.en;
+  const reqText = REQUIREMENT_LABELS[lang] || REQUIREMENT_LABELS.en;
 
   // Yellow Agate or Green Agate => 2,00,000 Japas (2 Lakhs)
   if (
@@ -723,7 +628,7 @@ export const getRewardRequirement = (
     (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट'))) ||
     (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik') || lower.includes('అగేట్') || lower.includes('अगेट')))
   ) {
-    return {count: 200000, label: lakhText.two};
+    return {count: 200000, label: reqText.two};
   }
   // Spatika Mala => 1,00,000 Japas (1 Lakh)
   if (
@@ -734,7 +639,19 @@ export const getRewardRequirement = (
     lower.includes('స్పటిక') ||
     lower.includes('स्फटिक')
   ) {
-    return {count: 100000, label: lakhText.one};
+    return {count: 100000, label: reqText.one};
+  }
+  // Karungali Mala => 50,000 Japas (50k)
+  if (
+    lower.includes('karungali') ||
+    lower.includes('ebony') ||
+    lower.includes('black wood') ||
+    lower.includes('sacred japa mala') ||
+    lower.includes('కరుంగాలి') ||
+    lower.includes('கருங்காலி') ||
+    lower.includes('करुंगली')
+  ) {
+    return {count: 50000, label: reqText.fiftyK};
   }
   return {count: 0, label: 'Standard'};
 };
@@ -754,4 +671,63 @@ export const checkRewardEligibility = (
     isEligible,
     remainingJapas,
   };
+};
+
+/**
+ * Canonical display order:
+ * 1. Rudraksha Mala / Rudrakshi Mala
+ * 2. Tulasi Mala
+ * 3. Pasupu Mala
+ * 4. Karungali Mala (50k eligibility)
+ * 5. Spatik Mala (1 Lakh eligibility)
+ * 6. Green Agate (2 Lakhs eligibility)
+ * 7. Yellow Agate (2 Lakhs eligibility)
+ */
+export const getRewardSortRank = (rewardName: string): number => {
+  const lower = String(rewardName || '').toLowerCase();
+  if (lower.includes('rudraksh')) return 1;
+  if (lower.includes('tulasi') || lower.includes('tulsi')) return 2;
+  if (lower.includes('pasupu') || lower.includes('turmeric') || lower.includes('haldi')) return 3;
+  if (
+    lower.includes('karungali') ||
+    lower.includes('ebony') ||
+    lower.includes('black wood') ||
+    lower.includes('sacred japa mala')
+  ) {
+    return 4;
+  }
+  if (
+    lower.includes('spatik') ||
+    lower.includes('sphatik') ||
+    lower.includes('crystal') ||
+    lower.includes('quartz') ||
+    lower.includes('స్పటిక') ||
+    lower.includes('स्फटिक')
+  ) {
+    return 5;
+  }
+  if (
+    lower.includes('green agate') ||
+    (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik')))
+  ) {
+    return 6;
+  }
+  if (
+    lower.includes('yellow agate') ||
+    (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik')))
+  ) {
+    return 7;
+  }
+  return 99;
+};
+
+export const sortRewardsCanonical = <T extends {name?: string}>(list: T[]): T[] => {
+  return [...list].sort((a, b) => {
+    const rankA = getRewardSortRank(a.name || '');
+    const rankB = getRewardSortRank(b.name || '');
+    if (rankA !== rankB) {
+      return rankA - rankB;
+    }
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
 };

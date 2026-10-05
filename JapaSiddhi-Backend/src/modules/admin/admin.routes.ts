@@ -3488,30 +3488,57 @@ const mapRewardRow = (row: any) => ({
   active: Number(row.isActive ?? row.is_active ?? 1) === 1,
 });
 
+const CANONICAL_REWARDS = [
+  {name: 'Rudrakshi Mala', stock: 50, order: 1, aliases: ['rudraksh']},
+  {name: 'Tulasi Mala', stock: 50, order: 2, aliases: ['tulasi', 'tulsi']},
+  {name: 'Pasupu Mala', stock: 50, order: 3, aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
+  {name: 'Karungali Mala', stock: 50, order: 4, aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
+  {name: 'Spatik Mala', stock: 50, order: 5, aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
+  {name: 'Green Agate', stock: 50, order: 6, aliases: ['green agate', 'green hakik']},
+  {name: 'Yellow Agate', stock: 50, order: 7, aliases: ['yellow agate', 'yellow hakik']},
+];
+
 const ensureRewardSeed = async () => {
   try {
-    const countRows = await mysql.query<any[]>(
-      `SELECT COUNT(*) AS total FROM challenge_rewards`,
+    const existingRows = await mysql.query<any[]>(
+      `SELECT id, name, display_order FROM challenge_rewards`,
     );
-    if (Number(countRows?.[0]?.total || 0) > 0) {
+    const existingList = Array.isArray(existingRows) ? existingRows : [];
+
+    if (existingList.length === 0) {
+      for (const item of CANONICAL_REWARDS) {
+        await mysql.query(
+          `
+          INSERT INTO challenge_rewards (name, stock, is_active, display_order)
+          VALUES (?, ?, 1, ?)
+          `,
+          [item.name, item.stock, item.order],
+        );
+      }
       return;
     }
-    const defaults = [
-      ['Rudraksha', 12, 1],
-      ['Spatik mala', 5, 2],
-      ['Pasupu kommuka maa', 0, 3],
-      ['Green agate', 8, 4],
-      ['Yellow agate', 3, 5],
-      ['Tulasi mala', 7, 6],
-    ];
-    for (const [name, stock, order] of defaults) {
-      await mysql.query(
-        `
-        INSERT INTO challenge_rewards (name, stock, is_active, display_order)
-        VALUES (?, ?, 1, ?)
-        `,
-        [name, stock, order],
-      );
+
+    // Match each canonical reward with existing items or insert if missing
+    for (const item of CANONICAL_REWARDS) {
+      const match = existingList.find((r: any) => {
+        const rowName = String(r.name || '').toLowerCase().trim();
+        return (
+          rowName === item.name.toLowerCase() ||
+          item.aliases.some(alias => rowName.includes(alias))
+        );
+      });
+
+      if (match) {
+        await mysql.query(
+          `UPDATE challenge_rewards SET name = ?, display_order = ?, is_active = 1 WHERE id = ?`,
+          [item.name, item.order, match.id],
+        );
+      } else {
+        await mysql.query(
+          `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
+          [item.name, item.stock, item.order],
+        );
+      }
     }
   } catch {
     // Table may not exist yet on older MySQL deploys.

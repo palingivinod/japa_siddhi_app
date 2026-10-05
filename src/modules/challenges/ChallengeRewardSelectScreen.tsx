@@ -18,6 +18,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
 type RewardItem = {
@@ -51,7 +52,7 @@ const ChallengeRewardSelectScreen = () => {
         const milestoneData = milestoneRes?.data?.data || {};
         const total = Number(milestoneData.total || milestoneData.milestoneTotal || 0);
         setUserTotalJapas(total);
-        setRewards(data.rewards || []);
+        setRewards(sortRewardsCanonical<RewardItem>(data.rewards || []));
         setDeliverySubmitted(Boolean(data.deliverySubmitted));
         if (data.claimed && data.claimedReward?.name) {
           setClaimedName(String(data.claimedReward.name));

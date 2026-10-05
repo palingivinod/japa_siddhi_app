@@ -214,7 +214,7 @@ export const kn: TranslationDict = {
   nameLabel: 'ಹೆಸರು',
   fullName: 'ಪೂರ್ಣ ಹೆಸರು',
   occasionLabel: 'ಸಂದರ್ಭ',
-  occasionPlaceholder: 'ಜನ್ಮದಿನ / ವಾರ್ಷಿಕೋತ್ಸವ / ಇತರೆ',
+  occasionPlaceholder: 'ಜನ್ಮದಿನ, ವಾರ್ಷಿಕೋತ್ಸವ, ಜಯಂತಿ, ವರ್ಧಂತಿ',
   selectNoOfPersons: 'ವ್ಯಕ್ತಿಗಳ ಸಂಖ್ಯೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   donationAmount: 'ಸೇವಾ ಮೊತ್ತ',
   continueToPayment: 'ಪಾವತಿಗೆ ಮುಂದುವರಿಸಿ',

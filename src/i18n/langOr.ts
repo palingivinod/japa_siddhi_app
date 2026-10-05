@@ -215,7 +215,7 @@ export const or: TranslationDict = {
   nameLabel: 'ନାମ',
   fullName: 'ପୂର୍ଣ୍ଣ ନାମ',
   occasionLabel: 'ଅବସର',
-  occasionPlaceholder: 'ଜନ୍ମଦିନ / ବାର୍ଷିକୀ / ଅନ୍ୟ',
+  occasionPlaceholder: 'ଜନ୍ମଦିନ, ବାର୍ଷିକୀ, ଜୟନ୍ତୀ, ବର୍ଦ୍ଧନ୍ତୀ',
   donationAmount: 'ସେବା ପରିମାଣ',
   selectNoOfPersons: 'ବ୍ୟକ୍ତିଙ୍କ ସଂଖ୍ୟା ଚୟନ କରନ୍ତୁ',
   continueToPayment: 'ପେମେଣ୍ଟକୁ ଜାରି ରଖନ୍ତୁ',

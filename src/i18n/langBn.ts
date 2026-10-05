@@ -215,7 +215,7 @@ export const bn: TranslationDict = {
   nameLabel: 'নাম',
   fullName: 'পূর্ণ নাম',
   occasionLabel: 'উপলক্ষ',
-  occasionPlaceholder: 'জন্মদিন / বার্ষিকী / অন্যান্য',
+  occasionPlaceholder: 'জন্মদিন, বার্ষিকী, জয়ন্তী, বর্ধন্তী',
   donationAmount: 'সেবার পরিমাণ',
   selectNoOfPersons: 'ব্যক্তির সংখ্যা নির্বাচন করুন',
   continueToPayment: 'পেমেন্টে চালিয়ে যান',
