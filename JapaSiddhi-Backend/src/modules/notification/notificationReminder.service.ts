@@ -91,7 +91,7 @@ const notifyOnce = async (input: {
   if (exists) {
     return false;
   }
-  await notificationService.create({
+  const created = await notificationService.create({
     userId: input.userId,
     title: input.title,
     message: input.message,
@@ -124,6 +124,11 @@ const notifyOnce = async (input: {
         input.title,
         input.message,
         input.actionType,
+        {
+          notificationId: String(created?.id || ''),
+          actionType: input.actionType,
+          actionId: String(input.actionId ?? ''),
+        },
       );
     }
   } catch (error) {
@@ -135,6 +140,13 @@ const notifyOnce = async (input: {
 
 /** End of an IST calendar day — reminders leave the inbox after this. */
 const endOfDayStamp = (ymd: string) => `${ymd} 23:59:59`;
+
+/** About one day from now — used after read / for completion notices. */
+const plusOneDayStamp = () => {
+  const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+};
 
 const challengeDeadlineCopy = (
   title: string,
@@ -194,6 +206,9 @@ export const notifyDailyGoalCompleted = async (input: {
   todayCount: number;
   dailyTarget: number;
   goalName?: string;
+  goalId?: number;
+  mantraId?: number | null;
+  personalMantraId?: number | null;
 }) => {
   const today = todayYmdIst();
   const dayKey = Number(today.replace(/-/g, ''));
@@ -201,6 +216,7 @@ export const notifyDailyGoalCompleted = async (input: {
   const count = Number(input.todayCount || target);
   const name = input.goalName ? String(input.goalName).trim() : '';
   const title = name ? `Daily Goal Completed: ${name}` : 'Daily Goal Completed!';
+  // One completion notice per calendar day (no spam).
   return notifyOnce({
     userId: input.userId,
     title,
@@ -213,8 +229,11 @@ export const notifyDailyGoalCompleted = async (input: {
       todayCount: count,
       dailyTarget: target,
       goalName: name,
+      goalId: input.goalId || null,
+      mantraId: input.mantraId || null,
+      personalMantraId: input.personalMantraId || null,
     },
-    expiresAt: endOfDayStamp(today),
+    expiresAt: plusOneDayStamp(),
   });
 };
 
@@ -224,10 +243,13 @@ export const notifyGoalCompleted = async (input: {
   goalName?: string;
   completedCount?: number;
   targetCount?: number;
+  mantraId?: number | null;
+  personalMantraId?: number | null;
 }) => {
   const name = String(input.goalName || 'Japa goal').trim() || 'Japa goal';
   const target = Number(input.targetCount || 0);
   const completed = Number(input.completedCount || target);
+  // One completion notice per goal id (no spam).
   return notifyOnce({
     userId: input.userId,
     title: `Goal Completed: ${name}`,
@@ -239,7 +261,10 @@ export const notifyGoalCompleted = async (input: {
       goalId: input.goalId,
       completedCount: completed,
       targetCount: target,
+      mantraId: input.mantraId || null,
+      personalMantraId: input.personalMantraId || null,
     },
+    expiresAt: plusOneDayStamp(),
   });
 };
 
@@ -350,14 +375,19 @@ export const flushDeadlineReminders = async () => {
   try {
     const goalRows = await mysql.query<any[]>(`
       SELECT
-        id AS goalId,
-        user_id AS userId,
-        goal_name AS goalName,
-        end_date AS endDate,
-        IFNULL(target_count, 0) AS targetCount,
-        IFNULL(completed_count, 0) AS completedCount
-      FROM japa_goals
-      WHERE status = 'ACTIVE'
+        jg.id AS goalId,
+        jg.user_id AS userId,
+        jg.goal_name AS goalName,
+        jg.end_date AS endDate,
+        jg.mantra_id AS mantraId,
+        jg.personal_mantra_id AS personalMantraId,
+        COALESCE(m.mantra_name, upm.mantra_name, jg.goal_name) AS mantraName,
+        IFNULL(jg.target_count, 0) AS targetCount,
+        IFNULL(jg.completed_count, 0) AS completedCount
+      FROM japa_goals jg
+      LEFT JOIN mantras m ON m.id = jg.mantra_id
+      LEFT JOIN user_personal_mantras upm ON upm.id = jg.personal_mantra_id
+      WHERE jg.status = 'ACTIVE'
     `);
 
     for (const row of goalRows || []) {
@@ -366,6 +396,10 @@ export const flushDeadlineReminders = async () => {
       const completed = Number(row.completedCount || 0);
       const target = Number(row.targetCount || 0);
       const goalName = String(row.goalName || 'Japa goal');
+      const mantraId = Number(row.mantraId || 0) || null;
+      const personalMantraId = Number(row.personalMantraId || 0) || null;
+      const mantraName = String(row.mantraName || goalName).trim();
+      const mode = personalMantraId ? 'private' : 'community';
 
       // 1. Completed check
       if (target > 0 && completed >= target) {
@@ -379,6 +413,8 @@ export const flushDeadlineReminders = async () => {
           goalName,
           completedCount: completed,
           targetCount: target,
+          mantraId,
+          personalMantraId,
         });
         if (ok) {
           created += 1;
@@ -424,6 +460,12 @@ export const flushDeadlineReminders = async () => {
             goalId,
             daysLeft: left,
             endDate,
+            mantraId,
+            personalMantraId,
+            mantraName,
+            targetCount: target,
+            completedCount: completed,
+            mode,
           },
           expiresAt: endOfDayStamp(endDate),
         });
@@ -524,7 +566,18 @@ export const flushDeadlineReminders = async () => {
       if (todayCount < dailyTarget) {
         const pending = dailyTarget - todayCount;
         const mantraName = String(row.mantraName || row.goalName || 'Japa').trim();
+        const mantraId = Number(row.mantraId || 0) || null;
+        const personalMantraId = Number(row.personalMantraId || 0) || null;
+        const goalId = Number(row.goalId || 0);
+        // One pending reminder per mantra per calendar day (not per goal row).
+        const mantraKey =
+          personalMantraId && personalMantraId > 0
+            ? 100000 + personalMantraId
+            : mantraId && mantraId > 0
+              ? mantraId
+              : goalId;
         const isSamuhika = String(row.goalName || '').toLowerCase().includes('samuhika');
+        const isPersonal = Boolean(personalMantraId);
         const title = isSamuhika
           ? `Samuhika Japa: ${mantraName} Pending`
           : `${mantraName} Japa Pending`;
@@ -535,13 +588,18 @@ export const flushDeadlineReminders = async () => {
           message: `You have ${pending.toLocaleString('en-IN')} Japas pending today for "${mantraName}". Complete your daily goal before midnight.`,
           notificationType: 'JAPA_REMINDER',
           actionType: 'DAILY_JAPA_PENDING',
-          actionId: deadlineActionId(Number(row.goalId), dayKey % 1000),
+          actionId: deadlineActionId(mantraKey, dayKey % 1000),
           extraData: {
-            goalId: Number(row.goalId),
+            goalId,
+            mantraId,
+            personalMantraId,
             mantraName,
             pendingCount: pending,
             dailyTarget,
             todayCount,
+            targetCount: Number(row.targetCount || 0),
+            completedCount: Number(row.completedCount || 0),
+            mode: isPersonal ? 'private' : 'community',
             date: today,
           },
           expiresAt: endOfDayStamp(today),

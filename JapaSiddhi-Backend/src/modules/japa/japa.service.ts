@@ -145,6 +145,10 @@ class JapaService {
             goalName: goal.goal_name || goal.goalName || 'Japa goal',
             completedCount: Number(goal.completed_count || 0),
             targetCount: Number(goal.target_count || 0),
+            mantraId: Number(goal.mantra_id || goal.mantraId || 0) || null,
+            personalMantraId:
+              Number(goal.personal_mantra_id || goal.personalMantraId || 0) ||
+              null,
           });
         }
       } catch (err) {
@@ -180,11 +184,30 @@ class JapaService {
           const {notifyDailyGoalCompleted} = await import(
             '../notification/notificationReminder.service'
           );
+          let mantraId: number | null = null;
+          let personalMantraId: number | null = null;
+          if (japaGoalId) {
+            try {
+              const japaGoalRepository = (
+                await import('../japaGoal/japaGoal.repository')
+              ).default;
+              const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
+              mantraId = Number(goal?.mantra_id || goal?.mantraId || 0) || null;
+              personalMantraId =
+                Number(goal?.personal_mantra_id || goal?.personalMantraId || 0) ||
+                null;
+            } catch {
+              // optional
+            }
+          }
           await notifyDailyGoalCompleted({
             userId,
             todayCount: todayAfter,
             dailyTarget: targetDaily,
             goalName,
+            goalId: japaGoalId || undefined,
+            mantraId,
+            personalMantraId,
           });
         }
       } catch (err) {

@@ -69,8 +69,25 @@ class NotificationRepository {
     await mysql.query(
       `
       DELETE FROM notifications
-      WHERE action_type = 'DAILY_JAPA_REMINDER'
+      WHERE action_type IN ('DAILY_JAPA_REMINDER', 'DAILY_JAPA_PENDING')
         AND date(${dayCol}) < ${todayExpr}
+        ${userFilter}
+      `,
+      params,
+    );
+
+    // Read items leave the inbox about one day after they were opened.
+    const readOlderThan1Day =
+      engine === 'mysql'
+        ? `DATE_SUB(NOW(), INTERVAL 1 DAY)`
+        : `datetime('now', 'localtime', '-1 day')`;
+    await mysql.query(
+      `
+      DELETE FROM notifications
+      WHERE is_read = 1
+        AND read_at IS NOT NULL
+        AND read_at <= ${readOlderThan1Day}
+        AND IFNULL(action_type, '') <> 'JAPA_MILESTONE'
         ${userFilter}
       `,
       params,
@@ -197,12 +214,33 @@ class NotificationRepository {
   }
 
   async markAsRead(id: number, userId: number): Promise<void> {
+    await this.ensureExpiresColumn();
+    const engine = mysql.getEngineName() || 'sqlite';
+    // Keep the notification visible after open, then auto-delete in about a day
+    // (or sooner if a shorter expires_at was already set, e.g. end of day).
+    // Spiritual milestones keep their own lifetime — do not force expiry on them.
+    const plusOneDay =
+      engine === 'mysql'
+        ? `DATE_ADD(NOW(), INTERVAL 1 DAY)`
+        : `datetime('now', 'localtime', '+1 day')`;
+    const nowExpr =
+      engine === 'mysql' ? 'NOW()' : `datetime('now', 'localtime')`;
+
     await mysql.query(
       `
       UPDATE notifications
       SET
         is_read = 1,
-        read_at = CURRENT_TIMESTAMP
+        read_at = CURRENT_TIMESTAMP,
+        expires_at = CASE
+          WHEN IFNULL(action_type, '') = 'JAPA_MILESTONE' THEN expires_at
+          WHEN expires_at IS NOT NULL
+            AND expires_at <> ''
+            AND expires_at > ${nowExpr}
+            AND expires_at < ${plusOneDay}
+          THEN expires_at
+          ELSE ${plusOneDay}
+        END
       WHERE id = ?
       AND user_id = ?
       `,

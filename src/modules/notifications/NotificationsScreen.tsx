@@ -37,8 +37,14 @@ const notificationEmoji = (item: any) => {
   if (action === 'GOAL_DEADLINE' || text.includes('goal')) {
     return '🎯';
   }
-  if (action === 'DAILY_JAPA_REMINDER' || text.includes('daily japa')) {
+  if (action === 'DAILY_JAPA_PENDING' || text.includes('pending')) {
+    return '⏰';
+  }
+  if (action === 'DAILY_JAPA_REMINDER' || text.includes('daily japa') || text.includes('not chanted')) {
     return '🙏';
+  }
+  if (action === 'GOAL_COMPLETED' || action === 'DAILY_GOAL_COMPLETED') {
+    return '✅';
   }
   if (text.includes('order') || text.includes('gift') || text.includes('reward')) {
     return '📦';
@@ -188,45 +194,90 @@ const NotificationsScreen = () => {
   };
 
   /**
-   * When user reads/taps a notification:
-   * 1. The dot disappears instantly.
-   * 2. The notification is completely deleted from the database and local state.
-   * 3. Any associated screen action is triggered.
+   * When user taps a notification:
+   * 1. Mark as read (dot clears) but keep it visible.
+   * 2. Backend schedules auto-delete after about one day.
+   * 3. Navigate to the matching screen (completions stay here).
    */
   const handleNotificationPress = async (item: any) => {
-    const itemId = String(item.id);
-
-    // 1. Immediately remove unread dot in UI
+    // 1. Instantly clear unread dot in UI
     setItems(current =>
       current.map(row => (row.id === item.id ? {...row, isRead: true} : row)),
     );
 
-    // 2. Perform delete on backend & storage
+    // 2. Mark read on server (sets ~1 day expiry; does not delete yet)
     try {
-      await apiService.delete(`/notifications/${item.id}`).catch(async () => {
-        await apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
-      });
+      await apiService.put(`/notifications/${item.id}/read`);
     } catch {
       // ignore
     }
-    await recordClearedId(itemId);
 
-    // 3. Completely delete from list
-    setItems(current => current.filter(row => row.id !== item.id));
-
-    // 4. Navigate if this notification has a specific action
+    // 3. Navigate by action — completions and milestones keep existing behavior
     const action = String(item.actionType || '');
+    const extra =
+      item.extraData && typeof item.extraData === 'object'
+        ? item.extraData
+        : {};
+
     if (action === 'JAPA_MILESTONE') {
       navigation.navigate('MilestoneNotifications');
-    } else if (
+      return;
+    }
+
+    // Completions: mark read only, stay on Notifications (no deep jump).
+    if (
+      action === 'GOAL_COMPLETED' ||
+      action === 'DAILY_GOAL_COMPLETED' ||
+      action === 'CHALLENGE_COMPLETED'
+    ) {
+      return;
+    }
+
+    if (
       action === 'CHALLENGE_DEADLINE' ||
-      action === 'CHALLENGE_COMPLETED' ||
       action === 'CHALLENGE_REWARD_READY'
     ) {
       navigation.navigate('Challenges');
-    } else if (action === 'DAILY_JAPA_REMINDER' || action === 'GOAL_DEADLINE') {
-      navigation.navigate('Chant');
-    } else if (action === 'REWARD' || action === 'REWARD_READY') {
+      return;
+    }
+
+    // Daily pending / goal deadline → continue that mantra on the count page.
+    if (action === 'DAILY_JAPA_PENDING' || action === 'GOAL_DEADLINE') {
+      const mantraId = Number(extra.mantraId || 0) || undefined;
+      const personalMantraId = Number(extra.personalMantraId || 0) || undefined;
+      const goalId = Number(extra.goalId || item.actionId || 0) || undefined;
+      const isPersonal =
+        String(extra.mode || '').toLowerCase() === 'private' ||
+        Boolean(personalMantraId);
+      navigation.navigate('Chant', {
+        mode: isPersonal ? 'private' : 'community',
+        mantraId: isPersonal ? undefined : mantraId,
+        personalMantraId: personalMantraId || undefined,
+        privateMantra: isPersonal
+          ? String(extra.mantraName || '').trim() || undefined
+          : undefined,
+        goal: Number(extra.targetCount || 0) || undefined,
+        initialCount: Number(extra.completedCount || 0) || undefined,
+        dailyTarget: Number(extra.dailyTarget || 0) || undefined,
+        japaGoalId: goalId,
+        resume: true,
+        fromHome: false,
+      });
+      return;
+    }
+
+    // "You have not chanted today" → Your Japas list.
+    if (action === 'DAILY_JAPA_REMINDER') {
+      navigation.navigate('YourJapas');
+      return;
+    }
+
+    if (action === 'GOAL_EXPIRED') {
+      navigation.navigate('YourJapas');
+      return;
+    }
+
+    if (action === 'REWARD' || action === 'REWARD_READY') {
       navigation.navigate('Rewards');
     }
   };

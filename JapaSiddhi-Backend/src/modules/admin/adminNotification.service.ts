@@ -218,6 +218,7 @@ const tryPush = async (
   title: string,
   message: string,
   dataType = 'ADMIN_BROADCAST',
+  extraData?: Record<string, string>,
 ) => {
   if (!isWithinNotificationHoursIST()) {
     return {
@@ -246,6 +247,12 @@ const tryPush = async (
   }
 
   try {
+    const safeExtra: Record<string, string> = {};
+    Object.entries(extraData || {}).forEach(([key, value]) => {
+      if (value != null && String(value).trim() !== '') {
+        safeExtra[key] = String(value);
+      }
+    });
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
       notification: {title, body: message},
@@ -253,6 +260,7 @@ const tryPush = async (
         type: String(dataType || 'ADMIN_BROADCAST'),
         title,
         body: message,
+        ...safeExtra,
       },
       android: {
         priority: 'high',
@@ -308,7 +316,8 @@ export const sendPushToTokens = (
   title: string,
   message: string,
   dataType = 'REMINDER',
-) => tryPush(tokens, title, message, dataType);
+  extraData?: Record<string, string>,
+) => tryPush(tokens, title, message, dataType, extraData);
 
 export const deliverAdminNotification = async (input: {
   title: string;

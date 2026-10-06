@@ -70,7 +70,7 @@ const GoalSelectScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
-  const [goalType, setGoalType] = useState<'count' | 'date'>('date');
+  // Date goal only — count + deadline on one screen. No count/date toggle.
   const [goalText, setGoalText] = useState(
     route.params?.goal ? String(route.params.goal) : '',
   );
@@ -87,13 +87,12 @@ const GoalSelectScreen = () => {
   }, [goal, remainingDays]);
 
   const effectiveTodayTarget = useMemo(() => {
-    if (goalType !== 'date') return goal;
     if (isTodayCustom && todayTargetInput !== '') {
       const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
       if (parsed >= defaultDailyTarget) return parsed;
     }
     return defaultDailyTarget;
-  }, [goalType, isTodayCustom, todayTargetInput, defaultDailyTarget, goal]);
+  }, [isTodayCustom, todayTargetInput, defaultDailyTarget]);
 
   const futureDailyTarget = useMemo(() => {
     if (remainingDays <= 1) return 0;
@@ -139,20 +138,13 @@ const GoalSelectScreen = () => {
           if (!active || !saved) {
             return;
           }
-          if (!route.params?.goal && saved.targetCount) {
-            setGoalText(String(saved.targetCount));
-          }
-          const parsed = parseApiDate(saved.endDate);
-          if (parsed) {
-            setEndDate(parsed);
-          }
-          if (
-            Number(saved.days || 0) > 1 ||
-            (saved.startDate &&
-              saved.endDate &&
-              saved.startDate !== saved.endDate)
-          ) {
-            setGoalType('date');
+          // Do not prefill the count circle — user types total japas.
+          // Keep a saved end date only when opening without an explicit goal param.
+          if (!route.params?.goal) {
+            const parsed = parseApiDate(saved.endDate);
+            if (parsed) {
+              setEndDate(parsed);
+            }
           }
         } catch {
           undefined;
@@ -170,11 +162,11 @@ const GoalSelectScreen = () => {
       Alert.alert(t('setYourGoal'), t('setGoalCountToStart'));
       return;
     }
-    if (goalType === 'date' && !endDate) {
+    if (!endDate) {
       Alert.alert(t('setYourGoal'), t('pickGoalDateFromCalendar'));
       return;
     }
-    if (goalType === 'date' && isTodayCustom && todayTargetInput !== '') {
+    if (isTodayCustom && todayTargetInput !== '') {
       const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
       if (parsed < defaultDailyTarget) {
         Alert.alert(
@@ -207,7 +199,7 @@ const GoalSelectScreen = () => {
           goalName: calculatedGoalName,
           targetCount: goal,
           dailyTarget: effectiveTodayTarget,
-          days: goalType === 'date' ? remainingDays : 1,
+          days: remainingDays,
           startDate: new Date().toISOString().slice(0, 10),
           endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
           notes: isCommunity ? 'Samuhika japa' : undefined,
@@ -226,7 +218,7 @@ const GoalSelectScreen = () => {
       personalMantraId: route.params?.personalMantraId,
       goal: goal,
       totalGoal: goal,
-      goalType,
+      goalType: 'date',
       endDate: formatDate(endDate),
       dailyTarget: effectiveTodayTarget,
       japaGoalId: createdGoalId,
@@ -240,27 +232,11 @@ const GoalSelectScreen = () => {
   return (
     <ScreenLayout title="Set Your Goal" showBack tab="JapaHub">
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        <Text style={styles.hint}>
-          {goalType === 'count'
-            ? t('howManyChantsToday')
-            : t('completeCountByDate')}
-        </Text>
-        <View style={styles.chips}>
-          <TouchableOpacity
-            style={[styles.chip, goalType === 'count' && styles.chipOn]}
-            onPress={() => setGoalType('count')}>
-            <Text style={styles.chipText}>{t('countGoal')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.chip, goalType === 'date' && styles.chipOn]}
-            onPress={() => setGoalType('date')}>
-            <Text style={styles.chipText}>{t('dateGoal')}</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.hint}>{t('completeCountByDate')}</Text>
 
         <View style={styles.circle}>
           <TextInput
-            style={styles.countInput}
+            style={[styles.countInput, !goalText ? styles.countInputPlaceholder : null]}
             value={goalText}
             onChangeText={text => {
               setGoalText(text.replace(/[^\d]/g, ''));
@@ -268,9 +244,10 @@ const GoalSelectScreen = () => {
               setTodayTargetInput('');
             }}
             keyboardType="numeric"
-            placeholder="0"
+            placeholder="Enter your total count"
             placeholderTextColor={Colors.placeholder}
             textAlign="center"
+            multiline={false}
           />
           <Text style={styles.japas}>{t('japasLabel')}</Text>
         </View>
@@ -302,136 +279,132 @@ const GoalSelectScreen = () => {
           })}
         </View>
 
-        {goalType === 'date' ? (
-          <>
-            <Text style={styles.sectionLabel}>
-              {t('deadlineDate') || 'Goal End Date / Deadline'}
-            </Text>
-            <View style={styles.quickDaysRow}>
-              {QUICK_DEADLINE_DAYS.map(item => {
-                const isSelected = remainingDays === item.days;
-                return (
-                  <TouchableOpacity
-                    key={item.days}
-                    style={[
-                      styles.quickDayChip,
-                      isSelected && styles.quickDayChipActive,
-                    ]}
-                    onPress={() => {
-                      setEndDate(getDateFromDays(item.days));
-                      setIsTodayCustom(false);
-                      setTodayTargetInput('');
-                    }}>
-                    <Text
-                      style={[
-                        styles.quickDayText,
-                        isSelected && styles.quickDayTextActive,
-                      ]}>
-                      {item.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+        <Text style={styles.sectionLabel}>
+          {t('deadlineDate') || 'Goal End Date / Deadline'}
+        </Text>
+        <View style={styles.quickDaysRow}>
+          {QUICK_DEADLINE_DAYS.map(item => {
+            const isSelected = remainingDays === item.days;
+            return (
+              <TouchableOpacity
+                key={item.days}
+                style={[
+                  styles.quickDayChip,
+                  isSelected && styles.quickDayChipActive,
+                ]}
+                onPress={() => {
+                  setEndDate(getDateFromDays(item.days));
+                  setIsTodayCustom(false);
+                  setTodayTargetInput('');
+                }}>
+                <Text
+                  style={[
+                    styles.quickDayText,
+                    isSelected && styles.quickDayTextActive,
+                  ]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        <Text style={styles.quickDaysHint}>
+          {t('quickDaysHint') ||
+            'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+        </Text>
+
+        <TouchableOpacity
+          style={styles.calendarBtn}
+          onPress={() => setShowCalendar(true)}
+          activeOpacity={0.85}>
+          <Text style={styles.calendarLabel}>
+            📅 {endDate ? formatDate(endDate) : t('pickGoalDate')}
+          </Text>
+        </TouchableOpacity>
+
+        <DatePickerModal
+          visible={showCalendar}
+          value={endDate || new Date()}
+          minimumDate={new Date()}
+          onCancel={() => setShowCalendar(false)}
+          onConfirm={selected => {
+            setEndDate(selected);
+            setShowCalendar(false);
+            setIsTodayCustom(false);
+            setTodayTargetInput('');
+          }}
+        />
+
+        {goal > 0 && endDate ? (
+          <View style={styles.breakdownCard}>
+            <View style={styles.breakdownHeaderRow}>
+              <Text style={styles.breakdownHeaderTitle}>
+                🎯 {t('dailyBreakdownTitle') || 'Daily Goal Breakdown'}
+              </Text>
+              <View style={styles.daysBadge}>
+                <Text style={styles.daysBadgeText}>
+                  {remainingDays} {remainingDays === 1 ? 'Day' : 'Days'}
+                </Text>
+              </View>
             </View>
 
-            <Text style={styles.quickDaysHint}>
-              {t('quickDaysHint') ||
-                'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+            <Text style={styles.breakdownMessage}>
+              {t('youNeedToDoJapasPerDay', {
+                count: defaultDailyTarget.toLocaleString('en-IN'),
+                date: formatDate(endDate),
+                days: remainingDays,
+              }) ||
+                `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete your Japa on or before ${formatDate(endDate)} (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
             </Text>
 
-            <TouchableOpacity
-              style={styles.calendarBtn}
-              onPress={() => setShowCalendar(true)}
-              activeOpacity={0.85}>
-              <Text style={styles.calendarLabel}>
-                📅 {endDate ? formatDate(endDate) : t('pickGoalDate')}
+            <View style={styles.todayTargetContainer}>
+              <Text style={styles.todayTargetLabel}>
+                {t('todayTargetLabel') || "Customize Today's Target (Optional)"}:
               </Text>
-            </TouchableOpacity>
-
-            <DatePickerModal
-              visible={showCalendar}
-              value={endDate || new Date()}
-              minimumDate={new Date()}
-              onCancel={() => setShowCalendar(false)}
-              onConfirm={selected => {
-                setEndDate(selected);
-                setShowCalendar(false);
-                setIsTodayCustom(false);
-                setTodayTargetInput('');
-              }}
-            />
-
-            {goal > 0 && endDate ? (
-              <View style={styles.breakdownCard}>
-                <View style={styles.breakdownHeaderRow}>
-                  <Text style={styles.breakdownHeaderTitle}>
-                    🎯 {t('dailyBreakdownTitle') || 'Daily Goal Breakdown'}
-                  </Text>
-                  <View style={styles.daysBadge}>
-                    <Text style={styles.daysBadgeText}>
-                      {remainingDays} {remainingDays === 1 ? 'Day' : 'Days'}
-                    </Text>
-                  </View>
-                </View>
-
-                <Text style={styles.breakdownMessage}>
-                  {t('youNeedToDoJapasPerDay', {
-                    count: defaultDailyTarget.toLocaleString('en-IN'),
-                    date: formatDate(endDate),
-                    days: remainingDays,
-                  }) ||
-                    `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete your Japa on or before ${formatDate(endDate)} (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
-                </Text>
-
-                <View style={styles.todayTargetContainer}>
-                  <Text style={styles.todayTargetLabel}>
-                    {t('todayTargetLabel') || "Customize Today's Target (Optional)"}:
-                  </Text>
-                  <View style={styles.todayInputRow}>
-                    <TextInput
-                      style={styles.todayInput}
-                      value={
-                        isTodayCustom
-                          ? todayTargetInput
-                          : String(defaultDailyTarget)
-                      }
-                      onChangeText={val => {
-                        setIsTodayCustom(true);
-                        setTodayTargetInput(val);
-                      }}
-                      keyboardType="numeric"
-                      placeholder={String(defaultDailyTarget)}
-                      placeholderTextColor={Colors.placeholder}
-                    />
-                    <Text style={styles.todayInputUnit}>Japas today</Text>
-                  </View>
-
-                  {isTodayCustom &&
-                  todayTargetInput !== '' &&
-                  Number(todayTargetInput.replace(/[^\d]/g, '')) < defaultDailyTarget ? (
-                    <Text style={styles.targetWarningText}>
-                      ⚠️{' '}
-                      {t('customTargetMinHint', {count: defaultDailyTarget}) ||
-                        `Must be at least ${defaultDailyTarget} Japas per day`}
-                    </Text>
-                  ) : null}
-
-                  {isTodayCustom &&
-                  effectiveTodayTarget > defaultDailyTarget &&
-                  remainingDays > 1 ? (
-                    <Text style={styles.futureSplitHint}>
-                      ✨{' '}
-                      {t('futureDailyHint', {
-                        days: remainingDays - 1,
-                        count: futureDailyTarget.toLocaleString('en-IN'),
-                      }) ||
-                        `For the remaining ${remainingDays - 1} days, your daily goal will be ~${futureDailyTarget.toLocaleString('en-IN')} Japas/day.`}
-                    </Text>
-                  ) : null}
-                </View>
+              <View style={styles.todayInputRow}>
+                <TextInput
+                  style={styles.todayInput}
+                  value={
+                    isTodayCustom
+                      ? todayTargetInput
+                      : String(defaultDailyTarget)
+                  }
+                  onChangeText={val => {
+                    setIsTodayCustom(true);
+                    setTodayTargetInput(val);
+                  }}
+                  keyboardType="numeric"
+                  placeholder={String(defaultDailyTarget)}
+                  placeholderTextColor={Colors.placeholder}
+                />
+                <Text style={styles.todayInputUnit}>Japas today</Text>
               </View>
-            ) : null}
-          </>
+
+              {isTodayCustom &&
+              todayTargetInput !== '' &&
+              Number(todayTargetInput.replace(/[^\d]/g, '')) < defaultDailyTarget ? (
+                <Text style={styles.targetWarningText}>
+                  ⚠️{' '}
+                  {t('customTargetMinHint', {count: defaultDailyTarget}) ||
+                    `Must be at least ${defaultDailyTarget} Japas per day`}
+                </Text>
+              ) : null}
+
+              {isTodayCustom &&
+              effectiveTodayTarget > defaultDailyTarget &&
+              remainingDays > 1 ? (
+                <Text style={styles.futureSplitHint}>
+                  ✨{' '}
+                  {t('futureDailyHint', {
+                    days: remainingDays - 1,
+                    count: futureDailyTarget.toLocaleString('en-IN'),
+                  }) ||
+                    `For the remaining ${remainingDays - 1} days, your daily goal will be ~${futureDailyTarget.toLocaleString('en-IN')} Japas/day.`}
+                </Text>
+              ) : null}
+            </View>
+          </View>
         ) : null}
 
         <View style={styles.buttonSpacing}>
@@ -452,7 +425,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 16,
   },
-  chips: {flexDirection: 'row', gap: 8, marginBottom: 16},
   circle: {
     alignSelf: 'center',
     width: 180,
@@ -463,37 +435,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
   },
   countInput: {
-    minWidth: 140,
+    minWidth: 148,
+    maxWidth: 156,
     fontSize: 34,
     fontWeight: '800',
     color: Colors.sacredBrown,
     padding: 0,
     textAlign: 'center',
   },
-  japas: {marginTop: 4, color: Colors.leafGreen, fontWeight: '800'},
-  chip: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    minHeight: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.white,
-  },
-  chipOn: {borderColor: Colors.sacredBrown, borderWidth: 2},
-  chipText: {
-    color: Colors.sacredBrown,
+  countInputPlaceholder: {
+    fontSize: 13,
     fontWeight: '700',
-    fontSize: 14,
-    lineHeight: 20,
-    textAlignVertical: 'center',
+    lineHeight: 18,
   },
+  japas: {marginTop: 4, color: Colors.leafGreen, fontWeight: '800'},
   sectionLabel: {
     color: Colors.leafGreen,
     fontWeight: '700',
