@@ -64,12 +64,35 @@ const formatNotificationDate = (dateStr?: string) => {
     if (isNaN(d.getTime())) {
       return '';
     }
-    return d.toLocaleDateString('en-IN', {
+    const now = new Date();
+    const isToday =
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear();
+
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday =
+      d.getDate() === yesterday.getDate() &&
+      d.getMonth() === yesterday.getMonth() &&
+      d.getFullYear() === yesterday.getFullYear();
+
+    const timeStr = d.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+
+    if (isToday) {
+      return `Today, ${timeStr}`;
+    }
+    if (isYesterday) {
+      return `Yesterday, ${timeStr}`;
+    }
+    return `${d.toLocaleDateString('en-IN', {
       day: 'numeric',
       month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    })}, ${timeStr}`;
   } catch {
     return '';
   }
@@ -352,11 +375,18 @@ const NotificationsScreen = () => {
                 </Text>
               ) : null}
               <View style={styles.footerRow}>
-                {item.createdAt ? (
+                {item.createdAt || item.sentAt || item.created_at || item.sent_at ? (
                   <Text style={styles.time}>
-                    {formatNotificationDate(item.createdAt)}
+                    {formatNotificationDate(
+                      item.createdAt ||
+                        item.sentAt ||
+                        item.created_at ||
+                        item.sent_at,
+                    )}
                   </Text>
-                ) : <View />}
+                ) : (
+                  <View />
+                )}
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
@@ -513,9 +543,9 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   time: {
-    fontSize: 11,
-    color: Colors.placeholder,
-    fontWeight: '500',
+    fontSize: 11.5,
+    color: '#8E7355',
+    fontWeight: '600',
   },
   deleteBtn: {
     paddingHorizontal: 6,

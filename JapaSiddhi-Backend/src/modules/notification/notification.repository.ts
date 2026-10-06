@@ -166,7 +166,8 @@ class NotificationRepository {
         action_id AS actionId,
         extra_data AS extraData,
         is_read AS isRead,
-        sent_at AS sentAt,
+        created_at AS createdAt,
+        COALESCE(sent_at, created_at) AS sentAt,
         read_at AS readAt,
         expires_at AS expiresAt
       FROM notifications

@@ -159,7 +159,7 @@ const BanaLingamScreen = () => {
         value={nakshatram}
         onChangeText={setNakshatram}
       />
-      <PrimaryButton title="SUBMIT" onPress={submit} />
+      <PrimaryButton title="OVERVIEW" onPress={submit} />
     </ScreenLayout>
   );
 };

@@ -236,6 +236,11 @@ class JapaGoalRepository {
       // ignore
     }
 
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const todayCondition = isMysql
+      ? `DATE(DATE_ADD(js.created_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
+      : `DATE(js.created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')`;
+
     return mysql.query<any[]>(
       `
       SELECT
@@ -260,8 +265,14 @@ class JapaGoalRepository {
         COALESCE((
           SELECT SUM(js.session_count)
           FROM japa_sessions js
-          WHERE js.japa_goal_id = j.id
-          AND js.user_id = j.user_id
+          WHERE js.user_id = j.user_id
+          AND (
+            js.japa_goal_id = j.id
+            OR (
+              (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
+              OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
+            )
+          )
         ), 0) AS completedCount,
 
         COALESCE((
@@ -269,25 +280,39 @@ class JapaGoalRepository {
           FROM japa_sessions js
           WHERE js.user_id = j.user_id
           AND (
-            (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
-            OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id AND js.mantra_type = j.mantra_type)
-            OR (js.japa_goal_id = j.id)
+            js.japa_goal_id = j.id
+            OR (
+              (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
+              OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
+            )
           )
-          AND DATE(js.created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')
+          AND ${todayCondition}
         ), 0) AS todayCompletedCount,
 
         CASE
           WHEN j.target_count - COALESCE((
             SELECT SUM(js.session_count)
             FROM japa_sessions js
-            WHERE js.japa_goal_id = j.id
-            AND js.user_id = j.user_id
+            WHERE js.user_id = j.user_id
+            AND (
+              js.japa_goal_id = j.id
+              OR (
+                (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
+                OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
+              )
+            )
           ), 0) < 0 THEN 0
           ELSE j.target_count - COALESCE((
             SELECT SUM(js.session_count)
             FROM japa_sessions js
-            WHERE js.japa_goal_id = j.id
-            AND js.user_id = j.user_id
+            WHERE js.user_id = j.user_id
+            AND (
+              js.japa_goal_id = j.id
+              OR (
+                (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
+                OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
+              )
+            )
           ), 0)
         END AS remainingCount,
 

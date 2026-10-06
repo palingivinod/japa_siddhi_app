@@ -127,18 +127,26 @@ const HomeScreen = () => {
     const user = await getStoredUser();
     const display =
       user?.fullName || user?.full_name || user?.firstName || t('devotee');
-    setName(String(display).split(' ')[0] || t('devotee'));
+    setName(String(display).trim() || t('devotee'));
 
     try {
-      const [summary, goals, challenges, panchangRes, bannersRes, annadanamRes] =
-        await Promise.allSettled([
-          apiService.get('/japa/summary'),
-          apiService.get('/japa-goals'),
-          apiService.get('/challenges'),
-          apiService.get('/festivals/panchang', {params: {lang: language}}),
-          apiService.get('/banners/active', {params: {module: 'Home'}}),
-          apiService.get('/annadanam/visibility'),
-        ]);
+      const [
+        summary,
+        goals,
+        challenges,
+        panchangRes,
+        bannersRes,
+        annadanamRes,
+        todayTotalsRes,
+      ] = await Promise.allSettled([
+        apiService.get('/japa/summary'),
+        apiService.get('/japa-goals'),
+        apiService.get('/challenges'),
+        apiService.get('/festivals/panchang', {params: {lang: language}}),
+        apiService.get('/banners/active', {params: {module: 'Home'}}),
+        apiService.get('/annadanam/visibility'),
+        apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
+      ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
         setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
@@ -150,6 +158,11 @@ const HomeScreen = () => {
         const goalList: any[] = Array.isArray(goals.value.data?.data)
           ? goals.value.data.data
           : [];
+        const todayTotals: any[] =
+          todayTotalsRes.status === 'fulfilled' &&
+          Array.isArray(todayTotalsRes.value.data?.data)
+            ? todayTotalsRes.value.data.data
+            : [];
         const todayStr = new Date().toISOString().slice(0, 10);
         const activeGoals = goalList.filter((item: any) => {
           if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
@@ -208,13 +221,65 @@ const HomeScreen = () => {
           active = activeGoals[0];
         }
 
+        // If no active goal is configured yet but devotee chanted today, show today's top chanted mantra
+        if (!active && todayTotals.length > 0 && Number(todayTotals[0].total || 0) > 0) {
+          const topChanted = todayTotals[0];
+          active = {
+            id: 0,
+            goalName: topChanted.mantraName || 'Daily Japa',
+            mantraId: topChanted.mantraId || null,
+            personalMantraId: topChanted.personalMantraId || null,
+            mantraType: topChanted.personalMantraId ? 'PERSONAL' : 'DEFAULT',
+            mantraName: topChanted.mantraName || 'Japa',
+            targetCount: 108,
+            completedCount: Number(topChanted.total || 0),
+            todayCompletedCount: Number(topChanted.total || 0),
+            dailyTarget: 108,
+            status: 'ACTIVE',
+          };
+        }
+
         if (active) {
           const targetCount =
             Number(active.targetCount ?? active.target_count) || 108;
           const completedCount =
             Number(active.completedCount ?? active.completed_count) || 0;
-          const todayCompletedCount =
+          let todayCompletedCount =
             Number(active.todayCompletedCount ?? active.today_completed_count) || 0;
+
+          // Cross check with today's totals for this specific mantra to ensure accuracy
+          if (todayTotals.length > 0) {
+            const matchToday = todayTotals.find((m: any) => {
+              if (
+                active.personalMantraId &&
+                Number(m.personalMantraId || m.personal_mantra_id) ===
+                  Number(active.personalMantraId)
+              ) {
+                return true;
+              }
+              if (
+                active.mantraId &&
+                Number(m.mantraId || m.mantra_id) === Number(active.mantraId)
+              ) {
+                return true;
+              }
+              if (
+                active.mantraName &&
+                String(m.mantraName || m.mantra_name || '').trim().toLowerCase() ===
+                  String(active.mantraName).trim().toLowerCase()
+              ) {
+                return true;
+              }
+              return false;
+            });
+            if (matchToday && Number(matchToday.total || 0) > 0) {
+              todayCompletedCount = Math.max(
+                todayCompletedCount,
+                Number(matchToday.total || 0),
+              );
+            }
+          }
+
           const dailyTarget =
             Number(active.dailyTarget ?? active.daily_target) || 0;
           setActiveJapaGoal({
@@ -469,109 +534,66 @@ const HomeScreen = () => {
 
           <View style={styles.progressCard}>
             {hasActiveGoal ? (
-              <>
-                {/* Top Section: Daily Goal for the active / recently chanted mantra */}
-                <View style={styles.cardSection}>
-                  <View style={styles.sectionHeaderRow}>
-                    <Text style={styles.progressTitle} numberOfLines={2}>
-                      {activeJapaGoal
-                        ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
-                        : t('dailyGoal')}
-                    </Text>
-                    <View
+              /* Single Clean Daily Goal Card for the active / recently chanted mantra */
+              <TouchableOpacity
+                style={styles.cardSection}
+                activeOpacity={0.85}
+                onPress={handleContinueJapaPress}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.progressTitle} numberOfLines={2}>
+                    {activeJapaGoal
+                      ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
+                      : t('dailyGoal')}
+                  </Text>
+                  <View
+                    style={[
+                      styles.sectionBadge,
+                      userDailyGoal > 0 &&
+                        activeMantraTodayCount >= userDailyGoal &&
+                        styles.sectionBadgeDone,
+                    ]}>
+                    <Text
                       style={[
-                        styles.sectionBadge,
+                        styles.sectionBadgeText,
                         userDailyGoal > 0 &&
                           activeMantraTodayCount >= userDailyGoal &&
-                          styles.sectionBadgeDone,
+                          styles.sectionBadgeTextDone,
                       ]}>
-                      <Text
-                        style={[
-                          styles.sectionBadgeText,
-                          userDailyGoal > 0 &&
-                            activeMantraTodayCount >= userDailyGoal &&
-                            styles.sectionBadgeTextDone,
-                        ]}>
-                        {userDailyGoal > 0 &&
-                        activeMantraTodayCount >= userDailyGoal
-                          ? `✓ ${t('goalCompleted')}`
-                          : t('goalNotCompleted')}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text style={styles.progressMeta}>
-                    {t('chantsToday', {
-                      count: activeMantraTodayCount.toLocaleString('en-IN'),
-                    })}
-                  </Text>
-                  <Text style={styles.progressMeta}>
-                    {t('goalChants', {
-                      count: userDailyGoal.toLocaleString('en-IN'),
-                    })}
-                  </Text>
-                  <View style={styles.barRow}>
-                    <View style={styles.barTrack}>
-                      <View
-                        style={[
-                          styles.barFill,
-                          {width: `${dailyProgress}%`},
-                          userDailyGoal > 0 &&
-                            activeMantraTodayCount >= userDailyGoal &&
-                            styles.barFillCompleted,
-                        ]}
-                      />
-                    </View>
-                    <Text style={styles.percent}>
-                      {activeMantraTodayCount.toLocaleString('en-IN')} /{' '}
-                      {formatCountShort(userDailyGoal)} · {dailyProgress}%
+                      {userDailyGoal > 0 &&
+                      activeMantraTodayCount >= userDailyGoal
+                        ? `✓ ${t('goalCompleted')}`
+                        : t('goalNotCompleted')}
                     </Text>
                   </View>
                 </View>
-
-                {/* Bottom Section: Continue Japa (Visible ONLY when an active Japa Goal is in progress) */}
-                {activeJapaGoal &&
-                activeJapaGoal.targetCount > 0 &&
-                activeJapaGoal.completedCount < activeJapaGoal.targetCount ? (
-                  <TouchableOpacity
-                    style={[styles.cardSection, {marginTop: 14}]}
-                    activeOpacity={0.85}
-                    onPress={handleContinueJapaPress}>
-                    <View style={styles.sectionHeaderRow}>
-                      <Text style={styles.progressTitle} numberOfLines={2}>
-                        {activeJapaGoal.goalName
-                          ? tt(activeJapaGoal.goalName)
-                          : t('continueJapa')}
-                      </Text>
-                      <Text style={styles.resumeChevron}>➔</Text>
-                    </View>
-                    <Text style={styles.progressMeta}>
-                      {activeJapaGoal.mantraName
-                        ? tt(activeJapaGoal.mantraName)
-                        : t('tabJapa')}
-                    </Text>
-                    <Text style={styles.progressMeta}>
-                      {t('goalChants', {
-                        count: activeJapaGoal.targetCount.toLocaleString('en-IN'),
-                      })}
-                    </Text>
-                    <View style={styles.barRow}>
-                      <View style={styles.barTrack}>
-                        <View
-                          style={[
-                            styles.barFill,
-                            {width: `${goalProgress}%`},
-                            goalCompleted >= goalTarget && styles.barFillCompleted,
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.percent}>
-                        {goalCompleted.toLocaleString('en-IN')} /{' '}
-                        {formatCountShort(goalTarget)} · {goalProgress}%
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                ) : null}
-              </>
+                <Text style={styles.progressMeta}>
+                  {t('chantsToday', {
+                    count: activeMantraTodayCount.toLocaleString('en-IN'),
+                  })}
+                </Text>
+                <Text style={styles.progressMeta}>
+                  {t('goalChants', {
+                    count: userDailyGoal.toLocaleString('en-IN'),
+                  })}
+                </Text>
+                <View style={styles.barRow}>
+                  <View style={styles.barTrack}>
+                    <View
+                      style={[
+                        styles.barFill,
+                        {width: `${dailyProgress}%`},
+                        userDailyGoal > 0 &&
+                          activeMantraTodayCount >= userDailyGoal &&
+                          styles.barFillCompleted,
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.percent}>
+                    {activeMantraTodayCount.toLocaleString('en-IN')} /{' '}
+                    {formatCountShort(userDailyGoal)} · {dailyProgress}%
+                  </Text>
+                </View>
+              </TouchableOpacity>
             ) : (
               /* Clean state for fresh user with NO active goals */
               <View style={styles.cardSection}>

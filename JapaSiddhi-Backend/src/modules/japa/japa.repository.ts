@@ -237,27 +237,24 @@ class JapaRepository {
     userId: number,
     period: 'all' | 'today' | 'week' | 'month' | 'year' = 'all',
   ) {
+    const isMysql = mysql.getEngineName() === 'mysql';
     let periodFilter = '';
     if (period === 'today') {
-      periodFilter = `
-        AND DATE(j.created_at, '+5 hours', '30 minutes') =
-            DATE('now', '+5 hours', '30 minutes')
-      `;
+      periodFilter = isMysql
+        ? `AND DATE(DATE_ADD(j.created_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
+        : `AND DATE(j.created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')`;
     } else if (period === 'week') {
-      periodFilter = `
-        AND DATE(j.created_at, '+5 hours', '30 minutes') >=
-            DATE('now', '+5 hours', '30 minutes', '-6 days')
-      `;
+      periodFilter = isMysql
+        ? `AND DATE(DATE_ADD(j.created_at, INTERVAL 330 MINUTE)) >= DATE_SUB(DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE)), INTERVAL 6 DAY)`
+        : `AND DATE(j.created_at, '+5 hours', '30 minutes') >= DATE('now', '+5 hours', '30 minutes', '-6 days')`;
     } else if (period === 'month') {
-      periodFilter = `
-        AND strftime('%Y-%m', j.created_at, '+5 hours', '30 minutes') =
-            strftime('%Y-%m', 'now', '+5 hours', '30 minutes')
-      `;
+      periodFilter = isMysql
+        ? `AND DATE_FORMAT(DATE_ADD(j.created_at, INTERVAL 330 MINUTE), '%Y-%m') = DATE_FORMAT(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE), '%Y-%m')`
+        : `AND strftime('%Y-%m', j.created_at, '+5 hours', '30 minutes') = strftime('%Y-%m', 'now', '+5 hours', '30 minutes')`;
     } else if (period === 'year') {
-      periodFilter = `
-        AND strftime('%Y', j.created_at, '+5 hours', '30 minutes') =
-            strftime('%Y', 'now', '+5 hours', '30 minutes')
-      `;
+      periodFilter = isMysql
+        ? `AND YEAR(DATE_ADD(j.created_at, INTERVAL 330 MINUTE)) = YEAR(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
+        : `AND strftime('%Y', j.created_at, '+5 hours', '30 minutes') = strftime('%Y', 'now', '+5 hours', '30 minutes')`;
     }
 
     const rows = await mysql.query<any[]>(
@@ -315,12 +312,16 @@ class JapaRepository {
   }
 
   async getRangeJapa(userId: number, fromSql: string) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const condition = isMysql
+      ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)) >= ${fromSql}`
+      : `DATE(created_at, '+5 hours', '30 minutes') >= ${fromSql}`;
     const rows = await mysql.query<any[]>(
       `
       SELECT COALESCE(SUM(session_count), 0) AS total
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at, '+5 hours', '30 minutes') >= ${fromSql}
+      AND ${condition}
       ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
@@ -329,13 +330,16 @@ class JapaRepository {
   }
 
   async getTodayJapa(userId: number) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const condition = isMysql
+      ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
+      : `DATE(created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')`;
     const rows = await mysql.query<any[]>(
       `
       SELECT COALESCE(SUM(session_count), 0) AS todayJapaCount
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at, '+5 hours', '30 minutes') =
-          DATE('now', '+5 hours', '30 minutes')
+      AND ${condition}
       ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
@@ -344,20 +348,24 @@ class JapaRepository {
   }
 
   async getWeekJapa(userId: number) {
-    return this.getRangeJapa(
-      userId,
-      "DATE('now', '+5 hours', '30 minutes', '-6 days')",
-    );
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const fromSql = isMysql
+      ? `DATE_SUB(DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE)), INTERVAL 6 DAY)`
+      : `DATE('now', '+5 hours', '30 minutes', '-6 days')`;
+    return this.getRangeJapa(userId, fromSql);
   }
 
   async getMonthJapa(userId: number) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const condition = isMysql
+      ? `DATE_FORMAT(DATE_ADD(created_at, INTERVAL 330 MINUTE), '%Y-%m') = DATE_FORMAT(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE), '%Y-%m')`
+      : `strftime('%Y-%m', created_at, '+5 hours', '30 minutes') = strftime('%Y-%m', 'now', '+5 hours', '30 minutes')`;
     const rows = await mysql.query<any[]>(
       `
       SELECT COALESCE(SUM(session_count), 0) AS total
       FROM japa_sessions
       WHERE user_id = ?
-      AND strftime('%Y-%m', created_at, '+5 hours', '30 minutes') =
-          strftime('%Y-%m', 'now', '+5 hours', '30 minutes')
+      AND ${condition}
       ${EXCLUDE_CHALLENGE_REMARKS}
       `,
       [userId],
@@ -446,18 +454,25 @@ class JapaRepository {
   }
 
   async getWeeklyBreakdown(userId: number) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const dayExpr = isMysql
+      ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE))`
+      : `DATE(created_at, '+5 hours', '30 minutes')`;
+    const rangeCondition = isMysql
+      ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)) >= DATE_SUB(DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE)), INTERVAL 6 DAY)`
+      : `DATE(created_at, '+5 hours', '30 minutes') >= DATE('now', '+5 hours', '30 minutes', '-6 days')`;
+
     const rows = await mysql.query<any[]>(
       `
       SELECT
-        DATE(created_at, '+5 hours', '30 minutes') AS day,
+        ${dayExpr} AS day,
         COALESCE(SUM(session_count), 0) AS count
       FROM japa_sessions
       WHERE user_id = ?
-      AND DATE(created_at, '+5 hours', '30 minutes') >=
-          DATE('now', '+5 hours', '30 minutes', '-6 days')
+      AND ${rangeCondition}
       ${EXCLUDE_CHALLENGE_REMARKS}
-      GROUP BY DATE(created_at, '+5 hours', '30 minutes')
-      ORDER BY DATE(created_at, '+5 hours', '30 minutes') ASC
+      GROUP BY ${dayExpr}
+      ORDER BY ${dayExpr} ASC
       `,
       [userId],
     );

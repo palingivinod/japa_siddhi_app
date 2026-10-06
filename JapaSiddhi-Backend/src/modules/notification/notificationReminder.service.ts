@@ -148,18 +148,18 @@ const challengeDeadlineCopy = (
       : '';
   if (daysLeft <= 0) {
     return {
-      title: 'Challenge ends today',
+      title: `${title} - Ends Today`,
       message: `"${title}" ends today. Please complete it before the deadline.${progress}`,
     };
   }
   if (daysLeft === 1) {
     return {
-      title: 'Challenge deadline tomorrow',
+      title: `${title} - Ends Tomorrow`,
       message: `"${title}" ends tomorrow. Please complete your challenge soon.${progress}`,
     };
   }
   return {
-    title: 'Challenge deadline is near',
+    title: `${title} - ${daysLeft} Days Left`,
     message: `"${title}" ends in ${daysLeft} days. Please complete it before the deadline.${progress}`,
   };
 };
@@ -173,18 +173,18 @@ const goalDeadlineCopy = (
   const progress = ` Progress: ${Number(completed).toLocaleString('en-IN')} / ${Number(target).toLocaleString('en-IN')}.`;
   if (daysLeft <= 0) {
     return {
-      title: 'Japa goal ends today',
+      title: `${name} - Goal Ends Today`,
       message: `"${name}" ends today. Please finish your goal.${progress}`,
     };
   }
   if (daysLeft === 1) {
     return {
-      title: 'Japa goal ends tomorrow',
+      title: `${name} - Ends Tomorrow`,
       message: `"${name}" ends tomorrow. Keep chanting to complete it.${progress}`,
     };
   }
   return {
-    title: 'Japa goal deadline is near',
+    title: `${name} - ${daysLeft} Days Left`,
     message: `"${name}" ends in ${daysLeft} days. Please complete your goal.${progress}`,
   };
 };
@@ -199,10 +199,12 @@ export const notifyDailyGoalCompleted = async (input: {
   const dayKey = Number(today.replace(/-/g, ''));
   const target = Number(input.dailyTarget || 0);
   const count = Number(input.todayCount || target);
+  const name = input.goalName ? String(input.goalName).trim() : '';
+  const title = name ? `Daily Goal Completed: ${name}` : 'Daily Goal Completed!';
   return notifyOnce({
     userId: input.userId,
-    title: 'Daily goal completed!',
-    message: `You completed your daily target of ${count.toLocaleString('en-IN')} Japas today${input.goalName ? ` for "${input.goalName}"` : ''}. Keep up your sadhana!`,
+    title,
+    message: `You completed your daily target of ${count.toLocaleString('en-IN')} Japas today${name ? ` for "${name}"` : ''}. Keep up your sadhana!`,
     notificationType: 'REWARD',
     actionType: 'DAILY_GOAL_COMPLETED',
     actionId: dayKey,
@@ -210,7 +212,7 @@ export const notifyDailyGoalCompleted = async (input: {
       date: today,
       todayCount: count,
       dailyTarget: target,
-      goalName: input.goalName,
+      goalName: name,
     },
     expiresAt: endOfDayStamp(today),
   });
@@ -228,7 +230,7 @@ export const notifyGoalCompleted = async (input: {
   const completed = Number(input.completedCount || target);
   return notifyOnce({
     userId: input.userId,
-    title: 'Japa goal completed!',
+    title: `Goal Completed: ${name}`,
     message: `You completed your goal "${name}". Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Congratulations on your sadhana!`,
     notificationType: 'REWARD',
     actionType: 'GOAL_COMPLETED',
@@ -253,7 +255,7 @@ export const notifyGoalExpired = async (input: {
   const target = Number(input.targetCount || 0);
   return notifyOnce({
     userId: input.userId,
-    title: 'Your Japa goal has expired',
+    title: `Goal Expired: ${name}`,
     message: `"${name}" has expired. Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Set a new goal to continue your sadhana.`,
     notificationType: 'JAPA_REMINDER',
     actionType: 'GOAL_EXPIRED',
@@ -276,7 +278,7 @@ export const notifyChallengeCompleted = async (input: {
   const title = String(input.title || 'Challenge').trim() || 'Challenge';
   return notifyOnce({
     userId: input.userId,
-    title: 'Challenge completed!',
+    title: `Challenge Completed: ${title}`,
     message: `You completed "${title}". Claim your reward from Challenges.`,
     notificationType: 'REWARD',
     actionType: 'CHALLENGE_COMPLETED',
@@ -466,6 +468,11 @@ export const flushDeadlineReminders = async () => {
   }
 
   try {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const todayCondition = isMysql
+      ? `DATE(DATE_ADD(js.created_at, INTERVAL 330 MINUTE)) = DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
+      : `DATE(js.created_at, '+5 hours', '30 minutes') = DATE('now', '+5 hours', '30 minutes')`;
+
     // Check pending daily goal for users with active goals
     const activeGoalUsers = await mysql.query<any[]>(
       `
@@ -473,17 +480,31 @@ export const flushDeadlineReminders = async () => {
         jg.id AS goalId,
         jg.user_id AS userId,
         jg.goal_name AS goalName,
+        jg.mantra_id AS mantraId,
+        jg.personal_mantra_id AS personalMantraId,
+        COALESCE(m.mantra_name, upm.mantra_name, jg.goal_name) AS mantraName,
         jg.end_date AS endDate,
         IFNULL(jg.target_count, 0) AS targetCount,
         IFNULL(jg.completed_count, 0) AS completedCount,
         IFNULL(
-          (SELECT SUM(session_count) FROM japa_sessions js WHERE js.user_id = jg.user_id AND date(js.created_at) = date(?)),
+          (
+            SELECT SUM(js.session_count)
+            FROM japa_sessions js
+            WHERE js.user_id = jg.user_id
+              AND (
+                js.japa_goal_id = jg.id
+                OR (jg.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = jg.personal_mantra_id)
+                OR (jg.mantra_id IS NOT NULL AND js.mantra_id = jg.mantra_id)
+              )
+              AND ${todayCondition}
+          ),
           0
         ) AS todayCount
       FROM japa_goals jg
+      LEFT JOIN mantras m ON m.id = jg.mantra_id
+      LEFT JOIN user_personal_mantras upm ON upm.id = jg.personal_mantra_id
       WHERE jg.status = 'ACTIVE'
       `,
-      [today],
     );
 
     const dayKey = Number(today.replace(/-/g, ''));
@@ -502,16 +523,22 @@ export const flushDeadlineReminders = async () => {
 
       if (todayCount < dailyTarget) {
         const pending = dailyTarget - todayCount;
-        const goalName = String(row.goalName || 'Japa goal');
+        const mantraName = String(row.mantraName || row.goalName || 'Japa').trim();
+        const isSamuhika = String(row.goalName || '').toLowerCase().includes('samuhika');
+        const title = isSamuhika
+          ? `Samuhika Japa: ${mantraName} Pending`
+          : `${mantraName} Japa Pending`;
+
         const ok = await notifyOnce({
           userId: Number(row.userId),
-          title: 'Daily Japa Pending',
-          message: `You have ${pending.toLocaleString('en-IN')} Japas pending today for "${goalName}". Complete your daily goal before midnight.`,
+          title,
+          message: `You have ${pending.toLocaleString('en-IN')} Japas pending today for "${mantraName}". Complete your daily goal before midnight.`,
           notificationType: 'JAPA_REMINDER',
           actionType: 'DAILY_JAPA_PENDING',
           actionId: deadlineActionId(Number(row.goalId), dayKey % 1000),
           extraData: {
             goalId: Number(row.goalId),
+            mantraName,
             pendingCount: pending,
             dailyTarget,
             todayCount,
