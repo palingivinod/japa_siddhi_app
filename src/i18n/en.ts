@@ -153,6 +153,7 @@ const en = {
   orderHistory: 'Order History',
   feedback: 'Feedback',
   settings: 'Settings',
+  visitOurSite: 'Visit our site',
   language: 'Language',
   logout: 'Logout',
   logoutConfirmMsg: 'Do you really want to logout?',

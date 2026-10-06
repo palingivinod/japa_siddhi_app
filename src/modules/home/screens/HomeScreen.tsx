@@ -463,7 +463,11 @@ const HomeScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
-        <AppHeader title="Japa Siddhi" showBell />
+        <AppHeader
+          title="Japa Siddhi"
+          subtitle="a unit of Bilva Patra Trust"
+          showBell
+        />
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}

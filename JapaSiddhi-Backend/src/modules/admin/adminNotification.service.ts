@@ -328,6 +328,7 @@ export const deliverAdminNotification = async (input: {
 }) => {
   const recipients = await loadRecipients(input.target);
   const parsedTrans = parseJsonSafely(input.translations);
+  const BRAND_HEADING = 'Japasiddhi - Bilva Patra Trust';
 
   const tokensByLang: Record<string, string[]> = {};
 
@@ -337,19 +338,23 @@ export const deliverAdminNotification = async (input: {
 
     const userLang = String(user.langCode || 'en').toLowerCase();
     const userTrans = parsedTrans[userLang] || parsedTrans['en'] || {};
-    const title = String(userTrans.title || input.title || '').trim();
-    const message = String(userTrans.message || input.message || '').trim();
+    const subject = String(userTrans.title || input.title || '').trim() || 'Announcement';
+    const detail = String(userTrans.message || input.message || '').trim();
+    const body = detail ? `${subject}\n${detail}` : subject;
 
     await notificationService.create({
       userId,
-      title,
-      message,
+      title: BRAND_HEADING,
+      message: body,
       notificationType: 'SYSTEM',
       actionType: 'ADMIN_BROADCAST',
       actionId: null,
       extraData: {
         target: input.target,
         translations: parsedTrans,
+        mantraName: subject,
+        category: 'Announcement',
+        detail,
         ...(input.extraData || {}),
       },
     });
@@ -369,9 +374,20 @@ export const deliverAdminNotification = async (input: {
 
   for (const [langCode, tokens] of Object.entries(tokensByLang)) {
     const langTrans = parsedTrans[langCode] || parsedTrans['en'] || {};
-    const pushTitle = String(langTrans.title || input.title || '').trim();
-    const pushMessage = String(langTrans.message || input.message || '').trim();
-    const pushResult = await tryPush(tokens, pushTitle, pushMessage);
+    const subject = String(langTrans.title || input.title || '').trim() || 'Announcement';
+    const detail = String(langTrans.message || input.message || '').trim();
+    const pushMessage = detail ? `${subject}\n${detail}` : subject;
+    const pushResult = await tryPush(
+      tokens,
+      BRAND_HEADING,
+      pushMessage,
+      'ADMIN_BROADCAST',
+      {
+        actionType: 'ADMIN_BROADCAST',
+        mantraName: subject,
+        category: 'Announcement',
+      },
+    );
     totalPushSent += pushResult.pushSent;
     totalPushFailed += pushResult.pushFailed;
     if (pushResult.pushSkipped) {

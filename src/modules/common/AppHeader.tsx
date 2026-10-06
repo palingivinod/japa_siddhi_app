@@ -7,6 +7,8 @@ import Colors from '../../theme/colors';
 
 interface Props {
   title: string;
+  /** Optional line under the title (Home: trust affiliation). */
+  subtitle?: string;
   /** true = always show, false = never, omit = show when navigation can go back */
   showBack?: boolean;
   /** Home header: no back arrow, and the logo opens the profile. */
@@ -15,6 +17,7 @@ interface Props {
 
 const AppHeader: React.FC<Props> = ({
   title,
+  subtitle,
   showBack,
   showBell = false,
 }) => {
@@ -42,9 +45,16 @@ const AppHeader: React.FC<Props> = ({
       ) : (
         <View style={styles.back} />
       )}
-      <Text style={styles.title} numberOfLines={1}>
-        {tt(title)}
-      </Text>
+      <View style={styles.titleBlock}>
+        <Text style={styles.title} numberOfLines={1}>
+          {tt(title)}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {tt(subtitle)}
+          </Text>
+        ) : null}
+      </View>
       <TouchableOpacity
         onPress={() => {
           if (showBell) {
@@ -85,16 +95,29 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     lineHeight: 34,
   },
-  title: {
+  titleBlock: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  title: {
     textAlign: 'center',
     fontSize: 22,
-    lineHeight: 36,
+    lineHeight: 28,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
+    paddingVertical: 2,
+  },
+  subtitle: {
+    textAlign: 'center',
+    fontSize: 12,
+    lineHeight: 16,
+    fontWeight: '600',
+    color: Colors.leafGreen,
+    marginTop: 2,
     paddingHorizontal: 4,
-    paddingVertical: 4,
   },
   logo: {
     width: 40,

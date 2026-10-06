@@ -138,6 +138,7 @@ export const kn: TranslationDict = {
   orderHistory: 'ಆರ್ಡರ್ ಇತಿಹಾಸ',
   feedback: 'ಪ್ರತಿಕ್ರಿಯೆ',
   settings: 'ಸೆಟ್ಟಿಂಗ್‌ಗಳು',
+  visitOurSite: 'ನಮ್ಮ ಸೈಟ್ ನೋಡಿ',
   language: 'ಭಾಷೆ',
   logout: 'ಲಾಗ್ ಔಟ್',
   devoteeName: 'ಭಕ್ತರ ಹೆಸರು',

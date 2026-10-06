@@ -404,12 +404,14 @@ const NotificationsScreen = () => {
               <View style={styles.titleRow}>
                 <Text
                   style={[
-                    styles.title,
+                    styles.brandTitle,
                     isUnread && styles.titleUnread,
                     isHighlighted && styles.titleHighlighted,
                   ]}
-                  numberOfLines={2}>
-                  {getLocalizedNotification(item, language).title || tt(item.title)}
+                  numberOfLines={1}>
+                  {getLocalizedNotification(item, language).title ||
+                    tt(item.title) ||
+                    'Japasiddhi - Bilva Patra Trust'}
                 </Text>
                 {isHighlighted ? (
                   <View style={styles.highlightBadge}>
@@ -419,12 +421,44 @@ const NotificationsScreen = () => {
                   <View style={styles.unreadDot} />
                 ) : null}
               </View>
-              {item.message || item.body ? (
-                <Text style={styles.subtitle}>
-                  {getLocalizedNotification(item, language).message ||
-                    tt(item.message || item.body)}
-                </Text>
-              ) : null}
+              {(() => {
+                const extra =
+                  item.extraData && typeof item.extraData === 'object'
+                    ? item.extraData
+                    : {};
+                const localized = getLocalizedNotification(item, language);
+                const rawMessage = String(
+                  localized.message || item.message || item.body || '',
+                );
+                const lines = rawMessage.split('\n').map(s => s.trim()).filter(Boolean);
+                const mantraName =
+                  String(extra.mantraName || '').trim() || lines[0] || '';
+                const category = String(extra.category || '').trim();
+                const detail =
+                  String(extra.detail || '').trim() ||
+                  (lines.length > 1 ? lines.slice(1).join(' ') : '') ||
+                  (category ? '' : rawMessage);
+                const descParts = [category, detail].filter(Boolean);
+                return (
+                  <>
+                    {mantraName ? (
+                      <Text
+                        style={[
+                          styles.mantraHighlight,
+                          isUnread && styles.mantraHighlightUnread,
+                        ]}
+                        numberOfLines={2}>
+                        {tt(mantraName)}
+                      </Text>
+                    ) : null}
+                    {descParts.length ? (
+                      <Text style={styles.subtitle} numberOfLines={4}>
+                        {descParts.join(' · ')}
+                      </Text>
+                    ) : null}
+                  </>
+                );
+              })()}
               <View style={styles.footerRow}>
                 {item.createdAt || item.sentAt || item.created_at || item.sent_at ? (
                   <Text style={styles.time}>
@@ -553,6 +587,25 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     includeFontPadding: true,
     flex: 1,
+  },
+  brandTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.templeGold,
+    lineHeight: 18,
+    includeFontPadding: true,
+    flex: 1,
+  },
+  mantraHighlight: {
+    marginTop: 4,
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    lineHeight: 22,
+    includeFontPadding: true,
+  },
+  mantraHighlightUnread: {
+    color: Colors.sacredBrown,
   },
   titleUnread: {
     fontWeight: '800',

@@ -139,6 +139,7 @@ export const mr: TranslationDict = {
   orderHistory: 'ऑर्डर इतिहास',
   feedback: 'अभिप्राय',
   settings: 'सेटिंग्ज',
+  visitOurSite: 'आमची साइट पहा',
   language: 'भाषा',
   logout: 'लॉग आउट',
   devoteeName: 'भक्ताचे नाव',

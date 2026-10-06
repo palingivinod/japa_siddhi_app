@@ -139,6 +139,7 @@ export const ml: TranslationDict = {
   orderHistory: 'ഓർഡർ ചരിത്രം',
   feedback: 'ഫീഡ്ബാക്ക്',
   settings: 'ക്രമീകരണങ്ങൾ',
+  visitOurSite: 'ഞങ്ങളുടെ സൈറ്റ് സന്ദർശിക്കുക',
   language: 'ഭാഷ',
   logout: 'ലോഗൗട്ട്',
   devoteeName: 'ഭക്തന്റെ പേര്',

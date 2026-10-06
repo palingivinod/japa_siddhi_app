@@ -139,6 +139,7 @@ export const ta: TranslationDict = {
   orderHistory: 'ஆர்டர் வரலாறு',
   feedback: 'கருத்து',
   settings: 'அமைப்புகள்',
+  visitOurSite: 'எங்கள் தளத்தைப் பார்க்கவும்',
   language: 'மொழி',
   logout: 'வெளியேறு',
   devoteeName: 'பக்தர் பெயர்',

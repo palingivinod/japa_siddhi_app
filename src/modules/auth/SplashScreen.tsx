@@ -2,6 +2,7 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Image,
+  Linking,
   StatusBar,
   StyleSheet,
   TouchableOpacity,
@@ -19,6 +20,9 @@ import {getValidSession} from '../../services/session';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
+const SRI_URJITH_SITE = 'https://www.sriurjith.com/';
+const DEVELOPED_BY = 'Developed by Sri Urjith Services Pvt Ltd';
+
 const SplashScreen = ({navigation}: Props) => {
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
@@ -34,6 +38,25 @@ const SplashScreen = ({navigation}: Props) => {
     }),
     [width, height, insets.bottom],
   );
+
+  // Credit sits in the gap under the bilva-leaf divider (~55% down the art).
+  const creditStyle = useMemo(
+    () => ({
+      top: height * 0.53,
+      height: Math.max(36, height * 0.055),
+      left: Math.max(12, width * 0.06),
+      right: Math.max(12, width * 0.06),
+    }),
+    [width, height],
+  );
+
+  const openSriUrjith = useCallback(async () => {
+    try {
+      await Linking.openURL(SRI_URJITH_SITE);
+    } catch {
+      // Ignore — welcome flow must stay usable if the browser fails.
+    }
+  }, []);
 
   const getStarted = useCallback(async () => {
     if (busy) {
@@ -78,6 +101,13 @@ const SplashScreen = ({navigation}: Props) => {
           resizeMode="cover"
         />
         <TouchableOpacity
+          style={[styles.creditHit, creditStyle]}
+          onPress={openSriUrjith}
+          activeOpacity={0.85}
+          accessibilityRole="link"
+          accessibilityLabel={DEVELOPED_BY}
+        />
+        <TouchableOpacity
           style={[styles.hit, hitStyle]}
           onPress={getStarted}
           activeOpacity={0.85}
@@ -112,6 +142,10 @@ const styles = StyleSheet.create({
   },
   hit: {
     position: 'absolute',
+  },
+  creditHit: {
+    position: 'absolute',
+    zIndex: 2,
   },
   busyOverlay: {
     ...StyleSheet.absoluteFillObject,

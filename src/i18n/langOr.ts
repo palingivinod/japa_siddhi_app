@@ -139,6 +139,7 @@ export const or: TranslationDict = {
   orderHistory: 'ଅର୍ଡର ଇତିହାସ',
   feedback: 'ମତାମତ',
   settings: 'ସେଟିଂସ୍',
+  visitOurSite: 'ଆମର ସାଇଟ୍ ଦେଖନ୍ତୁ',
   language: 'ଭାଷା',
   logout: 'ଲଗଆଉଟ୍',
   devoteeName: 'ଭକ୍ତଙ୍କ ନାମ',

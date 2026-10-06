@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,6 +26,8 @@ import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 import MenuCard from '../common/MenuCard';
 
+const BILVA_PATRA_SITE = 'https://www.bilvapatra.org/';
+
 const ProfileViewScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
@@ -36,6 +39,25 @@ const ProfileViewScreen = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+
+  const openBilvaSite = async () => {
+    try {
+      const canOpen = await Linking.canOpenURL(BILVA_PATRA_SITE);
+      if (!canOpen) {
+        Alert.alert(
+          t('visitOurSite') || 'Visit our site',
+          'Unable to open the website on this device.',
+        );
+        return;
+      }
+      await Linking.openURL(BILVA_PATRA_SITE);
+    } catch {
+      Alert.alert(
+        t('visitOurSite') || 'Visit our site',
+        'Unable to open the website on this device.',
+      );
+    }
+  };
 
   const logout = () => {
     Alert.alert(
@@ -264,6 +286,27 @@ const ProfileViewScreen = () => {
         title={t('settings')}
         onPress={() => navigation.navigate('Settings')}
       />
+      <TouchableOpacity
+        style={styles.visitCard}
+        onPress={openBilvaSite}
+        activeOpacity={0.85}
+        accessibilityRole="link"
+        accessibilityLabel={t('visitOurSite') || 'Visit our site'}>
+        <View style={styles.visitLogoWrap}>
+          <Image
+            source={require('../../assets/images/login_logo.webp')}
+            style={styles.visitLogo}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.visitCopy}>
+          <Text style={styles.visitTitle}>
+            {t('visitOurSite') || 'Visit our site'}
+          </Text>
+          <Text style={styles.visitSub}>bilvapatra.org</Text>
+        </View>
+        <Text style={styles.visitChevron}>›</Text>
+      </TouchableOpacity>
       <MenuCard icon="logoutDoor" title={t('logout')} onPress={logout} />
     </ScreenLayout>
   );
@@ -375,5 +418,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     textAlign: 'center',
+  },
+  visitCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  visitLogoWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Colors.iconBackground,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    overflow: 'hidden',
+  },
+  visitLogo: {
+    width: 40,
+    height: 40,
+  },
+  visitCopy: {
+    flex: 1,
+  },
+  visitTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    lineHeight: 22,
+  },
+  visitSub: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.leafGreen,
+  },
+  visitChevron: {
+    fontSize: 28,
+    color: Colors.templeGold,
+    fontWeight: '300',
+    marginLeft: 4,
   },
 });

@@ -142,13 +142,20 @@ class JapaService {
           await notifyGoalCompleted({
             userId,
             goalId: japaGoalId,
-            goalName: goal.goal_name || goal.goalName || 'Japa goal',
+            goalName:
+              goal.goal_name ||
+              goal.goalName ||
+              goal.mantra_name ||
+              'Japa',
             completedCount: Number(goal.completed_count || 0),
             targetCount: Number(goal.target_count || 0),
             mantraId: Number(goal.mantra_id || goal.mantraId || 0) || null,
             personalMantraId:
               Number(goal.personal_mantra_id || goal.personalMantraId || 0) ||
               null,
+            isSamuhika: String(goal.goal_name || goal.goalName || '')
+              .toLowerCase()
+              .includes('samuhika'),
           });
         }
       } catch (err) {
@@ -208,6 +215,9 @@ class JapaService {
             goalId: japaGoalId || undefined,
             mantraId,
             personalMantraId,
+            isSamuhika: String(goalName || '')
+              .toLowerCase()
+              .includes('samuhika'),
           });
         }
       } catch (err) {

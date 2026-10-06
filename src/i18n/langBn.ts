@@ -139,6 +139,7 @@ export const bn: TranslationDict = {
   orderHistory: 'অর্ডার ইতিহাস',
   feedback: 'মতামত',
   settings: 'সেটিংস',
+  visitOurSite: 'আমাদের সাইট দেখুন',
   language: 'ভাষা',
   logout: 'লগআউট',
   devoteeName: 'ভক্তের নাম',
