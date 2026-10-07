@@ -2139,6 +2139,7 @@ router.post('/banners', async (req: Request, res: Response) => {
       imageUrl: req.body?.imageUrl,
       buttonText: req.body?.buttonText,
       status: req.body?.status || 'Active',
+      translations: req.body?.translations,
     });
     return res.status(201).json({
       success: true,
@@ -2167,6 +2168,7 @@ router.put('/banners/:id', async (req: Request, res: Response) => {
       imageUrl: req.body?.imageUrl,
       buttonText: req.body?.buttonText,
       status: req.body?.status,
+      translations: req.body?.translations,
     });
     return res.json({
       success: true,

@@ -1,5 +1,6 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   StyleSheet,
   Text,
@@ -13,6 +14,7 @@ import Colors from '../../theme/colors';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
 import AdminLanguageTabs, {
   ADMIN_LANGUAGES,
@@ -148,6 +150,13 @@ const AdminChallengeCreateScreen = () => {
   const [showEndPicker, setShowEndPicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(isEdit && !route.params?.title);
+  const [translating, setTranslating] = useState(false);
+  const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
+    null,
+  );
+  const latestEnRef = useRef({title: '', description: '', mantra: ''});
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipAutoTranslateRef = useRef(isEdit);
 
   useEffect(() => {
     if (route.params?.title) {
@@ -179,6 +188,12 @@ const AdminChallengeCreateScreen = () => {
         };
       }
       setTranslations(nextTrans);
+      latestEnRef.current = {
+        title: nextTrans.en.title,
+        description: nextTrans.en.description,
+        mantra: nextTrans.en.mantra,
+      };
+      skipAutoTranslateRef.current = true;
     }
   }, [route.params]);
 
@@ -225,6 +240,12 @@ const AdminChallengeCreateScreen = () => {
           };
         }
         setTranslations(nextTrans);
+        latestEnRef.current = {
+          title: nextTrans.en.title,
+          description: nextTrans.en.description,
+          mantra: nextTrans.en.mantra,
+        };
+        skipAutoTranslateRef.current = true;
         setTarget(String(match.targetValue || '10000'));
         setStartDate(parseDateValue(match.startDate) || new Date());
         setEndDate(
@@ -263,6 +284,69 @@ const AdminChallengeCreateScreen = () => {
       },
     }));
   };
+
+  const enTitle = translations.en.title;
+  const enDescription = translations.en.description;
+  const enMantra = translations.en.mantra;
+
+  useEffect(() => {
+    const trimmed = {
+      title: enTitle.trim(),
+      description: enDescription.trim(),
+      mantra: enMantra.trim(),
+    };
+    if (
+      trimmed.title === latestEnRef.current.title &&
+      trimmed.description === latestEnRef.current.description &&
+      trimmed.mantra === latestEnRef.current.mantra
+    ) {
+      return;
+    }
+    if (skipAutoTranslateRef.current) {
+      skipAutoTranslateRef.current = false;
+      latestEnRef.current = trimmed;
+      return;
+    }
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (!trimmed.title && !trimmed.description && !trimmed.mantra) {
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      latestEnRef.current = trimmed;
+      setTranslating(true);
+      try {
+        const targetCodes = ADMIN_LANGUAGES.filter(l => l.code !== 'en').map(
+          l => l.code,
+        );
+        const translatedMap = await autoTranslateFields(trimmed, targetCodes);
+        setTranslations(prev => {
+          const next = {...prev};
+          targetCodes.forEach(code => {
+            if (translatedMap[code]) {
+              next[code as AdminSupportedLang] = {
+                title: translatedMap[code].title || '',
+                description: translatedMap[code].description || '',
+                mantra: translatedMap[code].mantra || '',
+              };
+            }
+          });
+          return next;
+        });
+        setLastAutoTranslatedAt(Date.now());
+      } catch {
+        // ignore network translation failures
+      } finally {
+        setTranslating(false);
+      }
+    }, 700);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [enTitle, enDescription, enMantra]);
 
   const completedMap = useMemo(() => {
     const map: Partial<Record<AdminSupportedLang, boolean>> = {};
@@ -381,8 +465,8 @@ const AdminChallengeCreateScreen = () => {
         {isEdit ? 'Edit Challenge' : 'Challenge Creation'}
       </Text>
       <Text style={styles.sub}>
-        Configure challenge details in 5 languages. Devotees see the challenge in
-        their chosen language.
+        Type in English, and it automatically translates into Telugu, Hindi, Tamil,
+        and Kannada. You can switch tabs to review or edit anytime.
       </Text>
 
       {loading ? (
@@ -397,14 +481,30 @@ const AdminChallengeCreateScreen = () => {
           />
 
           <View style={styles.langHeaderCard}>
-            <Text style={styles.langHeaderTitle}>
-              Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
-            </Text>
-            <Text style={styles.langHeaderHint}>
-              {activeLang === 'en'
-                ? 'Primary fallback language for all devotees.'
-                : `Custom ${activeLangOption?.label} content for devotees using ${activeLangOption?.nativeName}.`}
-            </Text>
+            <View style={styles.langHeaderTop}>
+              <View style={styles.langHeaderCopy}>
+                <Text style={styles.langHeaderTitle}>
+                  {activeLang === 'en'
+                    ? 'English (Primary)'
+                    : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
+                </Text>
+                <Text style={styles.langHeaderHint}>
+                  {activeLang === 'en'
+                    ? 'Type here — automatically translates into all 4 other languages.'
+                    : `Auto-translated from English. You can edit any words here before saving.`}
+                </Text>
+              </View>
+              {translating ? (
+                <View style={styles.translatingBadge}>
+                  <ActivityIndicator size="small" color={Colors.leafGreen} />
+                  <Text style={styles.translatingText}>Translating...</Text>
+                </View>
+              ) : lastAutoTranslatedAt ? (
+                <View style={styles.translatedBadge}>
+                  <Text style={styles.translatedText}>✓ Auto-translated</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <Field
@@ -539,6 +639,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
+  },
+  langHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langHeaderCopy: {
+    flex: 1,
+    marginRight: 8,
+  },
+  translatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F3E4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  translatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    marginLeft: 6,
+  },
+  translatedBadge: {
+    backgroundColor: '#EDF7E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  translatedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
   },
   langHeaderTitle: {
     fontSize: 14,

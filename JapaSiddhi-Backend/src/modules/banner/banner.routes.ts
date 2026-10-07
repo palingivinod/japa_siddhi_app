@@ -7,7 +7,11 @@ const router = Router();
 router.get('/active', async (req: Request, res: Response) => {
   try {
     const moduleName = String(req.query.module || '').trim() || undefined;
-    const data = await listBanners(true, moduleName);
+    const lang = String(req.query.lang || '')
+      .trim()
+      .toLowerCase()
+      .slice(0, 2);
+    const data = await listBanners(true, moduleName, lang || 'en');
     return res.json({success: true, data});
   } catch (error: any) {
     return res.status(500).json({

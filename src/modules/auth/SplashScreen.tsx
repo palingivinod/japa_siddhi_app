@@ -28,26 +28,26 @@ const SplashScreen = ({navigation}: Props) => {
   const {width, height} = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
-  // GET STARTED sits in the lower band of the artwork.
+  // GET STARTED sits in the lower band of the artwork (above footer).
   const hitStyle = useMemo(
     () => ({
       left: Math.max(16, width * 0.08),
       right: Math.max(16, width * 0.08),
       top: height * 0.66,
-      bottom: Math.max(insets.bottom + 12, height * 0.06),
+      bottom: Math.max(insets.bottom + 48, 56),
     }),
     [width, height, insets.bottom],
   );
 
-  // Credit sits a bit below the bilva-leaf divider so it has breathing room.
+  // Invisible tap target over the baked "Developed by..." footer line.
   const creditStyle = useMemo(
     () => ({
-      top: height * 0.565,
-      height: Math.max(36, height * 0.055),
       left: Math.max(12, width * 0.06),
       right: Math.max(12, width * 0.06),
+      bottom: Math.max(2, insets.bottom * 0.15),
+      height: Math.max(30, height * 0.045),
     }),
-    [width, height],
+    [width, height, insets.bottom],
   );
 
   const openSriUrjith = useCallback(async () => {
@@ -130,6 +130,7 @@ export default SplashScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#F7F0E4',
   },
   stage: {
     ...StyleSheet.absoluteFillObject,
@@ -142,10 +143,11 @@ const styles = StyleSheet.create({
   },
   hit: {
     position: 'absolute',
+    zIndex: 2,
   },
   creditHit: {
     position: 'absolute',
-    zIndex: 2,
+    zIndex: 3,
   },
   busyOverlay: {
     ...StyleSheet.absoluteFillObject,

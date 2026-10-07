@@ -143,7 +143,9 @@ const HomeScreen = () => {
         apiService.get('/japa-goals'),
         apiService.get('/challenges'),
         apiService.get('/festivals/panchang', {params: {lang: language}}),
-        apiService.get('/banners/active', {params: {module: 'Home'}}),
+        apiService.get('/banners/active', {
+          params: {module: 'Home', lang: language || 'en'},
+        }),
         apiService.get('/annadanam/visibility'),
         apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
       ]);
@@ -465,7 +467,7 @@ const HomeScreen = () => {
       <View style={styles.body}>
         <AppHeader
           title="Japa Siddhi"
-          subtitle="a unit of Bilva Patra Trust"
+          subtitle="Unit of Bilva Patra Trust"
           showBell
         />
         <ScrollView

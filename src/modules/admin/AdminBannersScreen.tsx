@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,10 +13,36 @@ import {useFocusEffect} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminBanner, AdminBannerStatus} from './adminData';
+import AdminLanguageTabs, {
+  ADMIN_LANGUAGES,
+  AdminSupportedLang,
+} from './components/AdminLanguageTabs';
 
 const MODULES = ['Home', 'Challenges', 'Annadanam', 'Japa', 'Donate'];
+
+interface BannerLangFields {
+  title: string;
+  subtitle: string;
+}
+
+const emptyFields = (): BannerLangFields => ({
+  title: '',
+  subtitle: '',
+});
+
+const defaultTranslations = (): Record<
+  AdminSupportedLang,
+  BannerLangFields
+> => ({
+  en: emptyFields(),
+  te: emptyFields(),
+  hi: emptyFields(),
+  ta: emptyFields(),
+  kn: emptyFields(),
+});
 
 const nextStatus = (status: AdminBannerStatus): AdminBannerStatus => {
   if (status === 'Active') {
@@ -43,10 +69,17 @@ const AdminBannersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [title, setTitle] = useState('');
-  const [subtitle, setSubtitle] = useState('');
+  const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
+  const [translations, setTranslations] = useState(defaultTranslations);
   const [moduleName, setModuleName] = useState('Home');
   const [saving, setSaving] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
+    null,
+  );
+
+  const latestEnRef = useRef({title: '', subtitle: ''});
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,6 +112,105 @@ const AdminBannersScreen = () => {
       load();
     }, [load]),
   );
+
+  const currentFields = translations[activeLang] || emptyFields();
+  const enTitle = translations.en.title;
+  const enSubtitle = translations.en.subtitle;
+
+  useEffect(() => {
+    const trimmedTitle = enTitle.trim();
+    const trimmedSubtitle = enSubtitle.trim();
+    if (
+      trimmedTitle === latestEnRef.current.title &&
+      trimmedSubtitle === latestEnRef.current.subtitle
+    ) {
+      return;
+    }
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (!trimmedTitle && !trimmedSubtitle) {
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      latestEnRef.current = {title: trimmedTitle, subtitle: trimmedSubtitle};
+      setTranslating(true);
+      try {
+        const targetCodes = ADMIN_LANGUAGES.filter(l => l.code !== 'en').map(
+          l => l.code,
+        );
+        const translatedMap = await autoTranslateFields(
+          {title: trimmedTitle, subtitle: trimmedSubtitle},
+          targetCodes,
+        );
+        setTranslations(prev => {
+          const next = {...prev};
+          targetCodes.forEach(code => {
+            if (translatedMap[code]) {
+              next[code as AdminSupportedLang] = {
+                title: translatedMap[code].title || '',
+                subtitle: translatedMap[code].subtitle || '',
+              };
+            }
+          });
+          return next;
+        });
+        setLastAutoTranslatedAt(Date.now());
+      } catch {
+        // ignore
+      } finally {
+        setTranslating(false);
+      }
+    }, 700);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [enTitle, enSubtitle]);
+
+  const completedMap = useMemo(() => {
+    const map: Partial<Record<AdminSupportedLang, boolean>> = {};
+    ADMIN_LANGUAGES.forEach(item => {
+      const f = translations[item.code];
+      map[item.code] = Boolean(f && f.title.trim().length > 0);
+    });
+    return map;
+  }, [translations]);
+
+  const updateField = (key: keyof BannerLangFields, val: string) => {
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        ...(prev[activeLang] || emptyFields()),
+        [key]: val,
+      },
+    }));
+  };
+
+  const copyFromEnglish = () => {
+    const en = translations.en;
+    if (!en.title.trim()) {
+      Alert.alert('Notice', 'Enter English banner title first.');
+      return;
+    }
+    setTranslations(prev => ({
+      ...prev,
+      [activeLang]: {
+        title: prev[activeLang].title || en.title,
+        subtitle: prev[activeLang].subtitle || en.subtitle,
+      },
+    }));
+  };
+
+  const resetForm = () => {
+    setTranslations(defaultTranslations());
+    latestEnRef.current = {title: '', subtitle: ''};
+    setLastAutoTranslatedAt(null);
+    setModuleName('Home');
+    setActiveLang('en');
+    setShowForm(false);
+  };
 
   const cycle = async (item: AdminBanner) => {
     const status = nextStatus(item.status);
@@ -123,22 +255,24 @@ const AdminBannersScreen = () => {
   };
 
   const create = async () => {
-    if (!title.trim()) {
-      Alert.alert('Required', 'Enter a banner title.');
+    const primaryTitle =
+      translations.en.title.trim() || translations[activeLang].title.trim();
+    if (!primaryTitle) {
+      Alert.alert('Required', 'Enter at least an English banner title.');
       return;
     }
     setSaving(true);
     try {
       await apiService.post('/admin/banners', {
-        title: title.trim(),
-        subtitle: subtitle.trim(),
+        title: primaryTitle,
+        subtitle:
+          translations.en.subtitle.trim() ||
+          translations[activeLang].subtitle.trim(),
         module: moduleName,
         status: 'Active',
+        translations,
       });
-      setTitle('');
-      setSubtitle('');
-      setModuleName('Home');
-      setShowForm(false);
+      resetForm();
       await load();
     } catch (err) {
       Alert.alert(
@@ -150,12 +284,14 @@ const AdminBannersScreen = () => {
     }
   };
 
+  const activeLangOption = ADMIN_LANGUAGES.find(l => l.code === activeLang);
+
   return (
     <AdminScreenLayout title="Banner Management" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Banner Management</Text>
       <Text style={styles.sub}>
-        Active Home banners appear on the user home screen. Tap status to cycle
-        Active → Scheduled → Blocked.
+        Type in English, and it automatically translates into Telugu, Hindi,
+        Tamil, and Kannada. Active Home banners appear on the user home screen.
       </Text>
 
       {loading ? (
@@ -200,18 +336,67 @@ const AdminBannersScreen = () => {
       {showForm ? (
         <View style={styles.form}>
           <Text style={styles.formTitle}>New banner</Text>
+
+          <AdminLanguageTabs
+            activeLang={activeLang}
+            onSelectLang={setActiveLang}
+            completedMap={completedMap}
+            onCopyFromEnglish={copyFromEnglish}
+          />
+
+          <View style={styles.langHeaderCard}>
+            <View style={styles.langHeaderTop}>
+              <View style={styles.langHeaderCopy}>
+                <Text style={styles.langHeaderTitle}>
+                  {activeLang === 'en'
+                    ? 'English (Primary)'
+                    : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
+                </Text>
+                <Text style={styles.langHeaderHint}>
+                  {activeLang === 'en'
+                    ? 'Type here — automatically translates into all 4 other languages.'
+                    : `Auto-translated from English. You can edit any words here before saving.`}
+                </Text>
+              </View>
+              {translating ? (
+                <View style={styles.translatingBadge}>
+                  <ActivityIndicator size="small" color={Colors.leafGreen} />
+                  <Text style={styles.translatingText}>Translating...</Text>
+                </View>
+              ) : lastAutoTranslatedAt ? (
+                <View style={styles.translatedBadge}>
+                  <Text style={styles.translatedText}>✓ Auto-translated</Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <Text style={styles.label}>
+            Title ({activeLangOption?.nativeName || 'Title'})
+          </Text>
           <TextInput
             style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="Title"
+            value={currentFields.title}
+            onChangeText={v => updateField('title', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'Title'
+                : `Title in ${activeLangOption?.nativeName}`
+            }
             placeholderTextColor={Colors.placeholder}
           />
+          <Text style={styles.label}>
+            Subtitle ({activeLangOption?.nativeName || 'Subtitle'})
+          </Text>
           <TextInput
             style={styles.input}
-            value={subtitle}
-            onChangeText={setSubtitle}
-            placeholder="Subtitle (optional)"
+            value={currentFields.subtitle}
+            onChangeText={v => updateField('subtitle', v)}
+            placeholder={
+              activeLang === 'en'
+                ? 'Subtitle (optional)'
+                : `Subtitle in ${activeLangOption?.nativeName}`
+            }
             placeholderTextColor={Colors.placeholder}
           />
           <Text style={styles.label}>Module</Text>
@@ -234,11 +419,9 @@ const AdminBannersScreen = () => {
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE BANNER'}
             onPress={create}
-            disabled={saving}
+            disabled={saving || translating}
           />
-          <TouchableOpacity
-            style={styles.cancelBtn}
-            onPress={() => setShowForm(false)}>
+          <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
             <Text style={styles.cancelText}>Cancel</Text>
           </TouchableOpacity>
         </View>
@@ -323,6 +506,58 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 10,
     fontSize: 16,
+  },
+  langHeaderCard: {
+    backgroundColor: '#F7FAF4',
+    borderWidth: 1,
+    borderColor: '#E2EBDC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 14,
+  },
+  langHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langHeaderCopy: {
+    flex: 1,
+    marginRight: 8,
+  },
+  translatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F3E4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  translatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    marginLeft: 6,
+  },
+  translatedBadge: {
+    backgroundColor: '#EDF7E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  translatedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+  },
+  langHeaderTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  langHeaderHint: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
   },
   input: {
     height: 48,

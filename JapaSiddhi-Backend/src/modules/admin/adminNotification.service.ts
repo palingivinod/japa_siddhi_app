@@ -140,6 +140,34 @@ const parseJsonSafely = (val: any) => {
   }
 };
 
+/** Fix auto-translate junk like "ఇది%20is%20a%20Test" before store/push. */
+const sanitizeNotifyText = (val: any) => {
+  let out = String(val || '').trim();
+  if (!out) {
+    return '';
+  }
+  if (/MYMEMORY WARNING/i.test(out)) {
+    return '';
+  }
+  for (let i = 0; i < 3; i++) {
+    if (!/%[0-9A-Fa-f]{2}/.test(out)) {
+      break;
+    }
+    try {
+      const decoded = decodeURIComponent(out.replace(/\+/g, ' '));
+      if (!decoded || decoded === out) {
+        out = out.replace(/%20/gi, ' ');
+        break;
+      }
+      out = decoded;
+    } catch {
+      out = out.replace(/%20/gi, ' ');
+      break;
+    }
+  }
+  return out.replace(/\s+/g, ' ').trim();
+};
+
 /**
  * Device push tokens live in fcm_token. Also look up user preferred language code.
  */
@@ -338,8 +366,9 @@ export const deliverAdminNotification = async (input: {
 
     const userLang = String(user.langCode || 'en').toLowerCase();
     const userTrans = parsedTrans[userLang] || parsedTrans['en'] || {};
-    const subject = String(userTrans.title || input.title || '').trim() || 'Announcement';
-    const detail = String(userTrans.message || input.message || '').trim();
+    const subject =
+      sanitizeNotifyText(userTrans.title || input.title) || 'Announcement';
+    const detail = sanitizeNotifyText(userTrans.message || input.message);
     const body = detail ? `${subject}\n${detail}` : subject;
 
     await notificationService.create({
@@ -374,8 +403,9 @@ export const deliverAdminNotification = async (input: {
 
   for (const [langCode, tokens] of Object.entries(tokensByLang)) {
     const langTrans = parsedTrans[langCode] || parsedTrans['en'] || {};
-    const subject = String(langTrans.title || input.title || '').trim() || 'Announcement';
-    const detail = String(langTrans.message || input.message || '').trim();
+    const subject =
+      sanitizeNotifyText(langTrans.title || input.title) || 'Announcement';
+    const detail = sanitizeNotifyText(langTrans.message || input.message);
     const pushMessage = detail ? `${subject}\n${detail}` : subject;
     const pushResult = await tryPush(
       tokens,

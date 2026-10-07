@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
 import AdminLanguageTabs, {
   ADMIN_LANGUAGES,
@@ -84,6 +85,18 @@ const AdminMantraEditScreen = () => {
   >(defaultTranslations);
   const [target, setTarget] = useState('10000');
   const [active, setActive] = useState(true);
+  const [translating, setTranslating] = useState(false);
+  const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
+    null,
+  );
+  const latestEnRef = useRef({
+    name: '',
+    deity: '',
+    sanskrit: '',
+    transliteration: '',
+  });
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipAutoTranslateRef = useRef(isEdit);
 
   const load = useCallback(async () => {
     if (!isEdit) {
@@ -122,6 +135,13 @@ const AdminMantraEditScreen = () => {
       }
 
       setTranslations(nextTrans);
+      latestEnRef.current = {
+        name: nextTrans.en.name,
+        deity: nextTrans.en.deity,
+        sanskrit: nextTrans.en.sanskrit,
+        transliteration: nextTrans.en.transliteration,
+      };
+      skipAutoTranslateRef.current = true;
       setTarget(String(data.target || 108));
       setActive(Boolean(data.active));
     } catch (err) {
@@ -148,6 +168,81 @@ const AdminMantraEditScreen = () => {
       },
     }));
   };
+
+  const enName = translations.en.name;
+  const enDeity = translations.en.deity;
+  const enSanskrit = translations.en.sanskrit;
+  const enTransliteration = translations.en.transliteration;
+
+  useEffect(() => {
+    const trimmed = {
+      name: enName.trim(),
+      deity: enDeity.trim(),
+      sanskrit: enSanskrit.trim(),
+      transliteration: enTransliteration.trim(),
+    };
+    if (
+      trimmed.name === latestEnRef.current.name &&
+      trimmed.deity === latestEnRef.current.deity &&
+      trimmed.sanskrit === latestEnRef.current.sanskrit &&
+      trimmed.transliteration === latestEnRef.current.transliteration
+    ) {
+      return;
+    }
+    if (skipAutoTranslateRef.current) {
+      skipAutoTranslateRef.current = false;
+      latestEnRef.current = trimmed;
+      return;
+    }
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    if (
+      !trimmed.name &&
+      !trimmed.deity &&
+      !trimmed.sanskrit &&
+      !trimmed.transliteration
+    ) {
+      return;
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      latestEnRef.current = trimmed;
+      setTranslating(true);
+      try {
+        const targetCodes = ADMIN_LANGUAGES.filter(l => l.code !== 'en').map(
+          l => l.code,
+        );
+        // Keep Sanskrit script identical across languages; translate the rest.
+        const translatedMap = await autoTranslateFields(trimmed, targetCodes, {
+          copyKeys: ['sanskrit'],
+        });
+        setTranslations(prev => {
+          const next = {...prev};
+          targetCodes.forEach(code => {
+            if (translatedMap[code]) {
+              next[code as AdminSupportedLang] = {
+                name: translatedMap[code].name || '',
+                deity: translatedMap[code].deity || '',
+                sanskrit: translatedMap[code].sanskrit || trimmed.sanskrit,
+                transliteration: translatedMap[code].transliteration || '',
+              };
+            }
+          });
+          return next;
+        });
+        setLastAutoTranslatedAt(Date.now());
+      } catch {
+        // ignore
+      } finally {
+        setTranslating(false);
+      }
+    }, 700);
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [enName, enDeity, enSanskrit, enTransliteration]);
 
   const completedMap = useMemo(() => {
     const map: Partial<Record<AdminSupportedLang, boolean>> = {};
@@ -235,8 +330,8 @@ const AdminMantraEditScreen = () => {
         {isEdit ? 'Edit Mantra' : 'Create Mantra'}
       </Text>
       <Text style={styles.sub}>
-        Configure mantra information in 5 languages. Devotees see the mantra in
-        their selected language.
+        Type in English, and it automatically translates into Telugu, Hindi, Tamil,
+        and Kannada. Sanskrit script is kept the same across languages.
       </Text>
 
       {loading ? (
@@ -253,14 +348,30 @@ const AdminMantraEditScreen = () => {
           />
 
           <View style={styles.langHeaderCard}>
-            <Text style={styles.langHeaderTitle}>
-              Editing {activeLangOption?.nativeName} ({activeLangOption?.label})
-            </Text>
-            <Text style={styles.langHeaderHint}>
-              {activeLang === 'en'
-                ? 'Primary fallback language for all devotees.'
-                : `Custom ${activeLangOption?.label} text for devotees using ${activeLangOption?.nativeName}.`}
-            </Text>
+            <View style={styles.langHeaderTop}>
+              <View style={styles.langHeaderCopy}>
+                <Text style={styles.langHeaderTitle}>
+                  {activeLang === 'en'
+                    ? 'English (Primary)'
+                    : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
+                </Text>
+                <Text style={styles.langHeaderHint}>
+                  {activeLang === 'en'
+                    ? 'Type here — automatically translates into all 4 other languages.'
+                    : `Auto-translated from English. You can edit any words here before saving.`}
+                </Text>
+              </View>
+              {translating ? (
+                <View style={styles.translatingBadge}>
+                  <ActivityIndicator size="small" color={Colors.leafGreen} />
+                  <Text style={styles.translatingText}>Translating...</Text>
+                </View>
+              ) : lastAutoTranslatedAt ? (
+                <View style={styles.translatedBadge}>
+                  <Text style={styles.translatedText}>✓ Auto-translated</Text>
+                </View>
+              ) : null}
+            </View>
           </View>
 
           <Field
@@ -368,6 +479,40 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
+  },
+  langHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  langHeaderCopy: {
+    flex: 1,
+    marginRight: 8,
+  },
+  translatingBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F3E4',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  translatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    marginLeft: 6,
+  },
+  translatedBadge: {
+    backgroundColor: '#EDF7E9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  translatedText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
   },
   langHeaderTitle: {
     fontSize: 14,
