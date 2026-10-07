@@ -98,7 +98,7 @@ export const displayForegroundNotification = async (
       channelId: CHANNEL_ID,
       importance: AndroidImportance.HIGH,
       smallIcon: 'ic_notification',
-      largeIcon: require('../assets/images/notification_logo.png'),
+      largeIcon: require('../assets/images/logo.png'),
       circularLargeIcon: true,
       color: '#C17A2F',
       pressAction: {
