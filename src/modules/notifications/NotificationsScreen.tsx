@@ -457,16 +457,24 @@ const NotificationsScreen = () => {
                     ? item.extraData
                     : {};
                 const localized = getLocalizedNotification(item, language);
-                // When multilingual pack exists, always follow current app language.
-                // Do NOT use send-time baked mantraName/detail (those stay in one language).
-                const subject = localized.hasTranslationPack
+                const mantraName = localized.hasTranslationPack
                   ? localized.title
-                  : String(extra.mantraName || localized.title || '').trim();
+                  : String(extra.mantraName || '').trim();
+                const shortLine = String(extra.shortLine || '').trim();
+                const subject =
+                  mantraName && shortLine
+                    ? `${tt(mantraName)} — ${shortLine}`
+                    : mantraName ||
+                      (localized.hasTranslationPack ? localized.title : '') ||
+                      String(localized.title || '').trim();
+                const category = String(extra.category || '').trim();
                 const detail = localized.hasTranslationPack
                   ? localized.message
                   : String(extra.detail || localized.message || '').trim();
-                const category = String(extra.category || '').trim();
-                const descParts = [category, detail].filter(Boolean);
+                const bodyLine =
+                  category && detail
+                    ? `${category} — ${detail}`
+                    : [category, detail].filter(Boolean).join(' · ');
                 return (
                   <>
                     {subject ? (
@@ -476,12 +484,12 @@ const NotificationsScreen = () => {
                           isUnread && styles.mantraHighlightUnread,
                         ]}
                         numberOfLines={2}>
-                        {tt(subject)}
+                        {subject}
                       </Text>
                     ) : null}
-                    {descParts.length ? (
+                    {bodyLine ? (
                       <Text style={styles.subtitle} numberOfLines={4}>
-                        {descParts.join(' · ')}
+                        {bodyLine}
                       </Text>
                     ) : null}
                   </>

@@ -281,12 +281,11 @@ const tryPush = async (
         safeExtra[key] = String(value);
       }
     });
-    // Keep top-level `notification` so Android OS always shows a tray popup
-    // even if the app is killed / old APK / OEM blocks background JS.
-    // (Data-only broke push popups after Render deploy.)
+    // Android: data-only so our native JapaFirebaseMessagingService runs and
+    // can set the full-color largeIcon (OS auto-tray only shows white smallIcon).
+    // iOS still gets APNs alert. Requires APK with JapaFirebaseMessagingService.
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
-      notification: {title, body: message},
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
         title,
@@ -295,14 +294,6 @@ const tryPush = async (
       },
       android: {
         priority: 'high',
-        notification: {
-          icon: 'ic_notification',
-          color: '#C17A2F',
-          sound: 'default',
-          channelId: 'fcm_fallback_notification_channel',
-          defaultSound: true,
-          defaultVibrateTimings: true,
-        },
       },
       apns: {
         headers: {
@@ -374,12 +365,16 @@ export const deliverAdminNotification = async (input: {
     const subject =
       sanitizeNotifyText(userTrans.title || input.title) || 'Announcement';
     const detail = sanitizeNotifyText(userTrans.message || input.message);
-    const body = detail ? `${subject}\n${detail}` : subject;
+    const shortLine = 'Announcement';
+    const pushTitle = `${subject} — ${shortLine}`;
+    const pushBody = detail
+      ? `Announcement — ${detail}`
+      : `Announcement — ${subject}`;
 
     await notificationService.create({
       userId,
       title: BRAND_HEADING,
-      message: body,
+      message: pushBody,
       notificationType: 'SYSTEM',
       actionType: 'ADMIN_BROADCAST',
       actionId: null,
@@ -388,7 +383,10 @@ export const deliverAdminNotification = async (input: {
         translations: parsedTrans,
         mantraName: subject,
         category: 'Announcement',
+        shortLine,
         detail,
+        pushTitle,
+        pushBody,
         ...(input.extraData || {}),
       },
     });
@@ -411,16 +409,20 @@ export const deliverAdminNotification = async (input: {
     const subject =
       sanitizeNotifyText(langTrans.title || input.title) || 'Announcement';
     const detail = sanitizeNotifyText(langTrans.message || input.message);
-    const pushMessage = detail ? `${subject}\n${detail}` : subject;
+    const pushTitle = `${subject} — Announcement`;
+    const pushBody = detail
+      ? `Announcement — ${detail}`
+      : `Announcement — ${subject}`;
     const pushResult = await tryPush(
       tokens,
-      BRAND_HEADING,
-      pushMessage,
+      pushTitle,
+      pushBody,
       'ADMIN_BROADCAST',
       {
         actionType: 'ADMIN_BROADCAST',
         mantraName: subject,
         category: 'Announcement',
+        shortLine: 'Announcement',
       },
     );
     totalPushSent += pushResult.pushSent;

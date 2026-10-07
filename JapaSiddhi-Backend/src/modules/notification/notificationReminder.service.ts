@@ -31,23 +31,42 @@ const resolveJapaCategory = (input: {
   return 'Antharanga Japa';
 };
 
+/** Tray title line: "Mantra name — expires today" (counts in shortLine when relevant). */
+const deadlineShortLine = (daysLeft: number) => {
+  if (daysLeft <= 0) {
+    return 'expires today';
+  }
+  if (daysLeft === 1) {
+    return 'expires tomorrow';
+  }
+  return `ends in ${daysLeft} days`;
+};
+
 /**
- * Standard copy shape:
- * title  → Japasiddhi - Bilva Patra Trust
- * body   → Mantra name (line 1) + "Category · detail" (line 2)
+ * WhatsApp-style shape:
+ * - Header (OS): app name "Japasiddhi - Bilva Patra Trust" + time
+ * - Tray title: mantra — shortLine
+ * - Tray body: Category — detail
  */
 const brandJapaNotification = (
   mantraOrSubject: string,
   category: JapaNotifyCategory,
+  shortLine: string,
   detail: string,
 ) => {
   const subject = String(mantraOrSubject || 'Japa').trim() || 'Japa';
+  const cleanShort = String(shortLine || '').trim();
   const cleanDetail = String(detail || '').trim();
+  const pushTitle = cleanShort ? `${subject} — ${cleanShort}` : subject;
+  const pushBody = `${category} — ${cleanDetail}`;
   return {
     title: BRAND_HEADING,
-    message: `${subject}\n${category} · ${cleanDetail}`,
+    message: pushBody,
+    pushTitle,
+    pushBody,
     mantraName: subject,
     category,
+    shortLine: cleanShort,
     detail: cleanDetail,
   };
 };
@@ -168,15 +187,25 @@ const notifyOnce = async (input: {
       const {sendPushToTokens} = await import(
         '../admin/adminNotification.service'
       );
+      const pushTitle =
+        String(input.extraData?.pushTitle || '').trim() || input.title;
+      const pushBody =
+        String(input.extraData?.pushBody || '').trim() || input.message;
       await sendPushToTokens(
         [token],
-        input.title,
-        input.message,
+        pushTitle,
+        pushBody,
         input.actionType,
         {
           notificationId: String(created?.id || ''),
           actionType: input.actionType,
           actionId: String(input.actionId ?? ''),
+          ...(input.extraData?.mantraName
+            ? {mantraName: String(input.extraData.mantraName)}
+            : {}),
+          ...(input.extraData?.category
+            ? {category: String(input.extraData.category)}
+            : {}),
         },
       );
     }
@@ -254,6 +283,7 @@ export const notifyDailyGoalCompleted = async (input: {
   const copy = brandJapaNotification(
     name,
     category,
+    'daily goal completed',
     `Daily goal completed — ${count.toLocaleString('en-IN')} Japas today. Keep up your sadhana!`,
   );
   return notifyOnce({
@@ -270,7 +300,10 @@ export const notifyDailyGoalCompleted = async (input: {
       goalName: name,
       mantraName: copy.mantraName,
       category: copy.category,
+      shortLine: copy.shortLine,
       detail: copy.detail,
+      pushTitle: copy.pushTitle,
+      pushBody: copy.pushBody,
       goalId: input.goalId || null,
       mantraId: input.mantraId || null,
       personalMantraId: input.personalMantraId || null,
@@ -299,6 +332,7 @@ export const notifyGoalCompleted = async (input: {
   const copy = brandJapaNotification(
     name,
     category,
+    'goal completed',
     `Goal completed. Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Congratulations on your sadhana!`,
   );
   return notifyOnce({
@@ -316,7 +350,10 @@ export const notifyGoalCompleted = async (input: {
       personalMantraId: input.personalMantraId || null,
       mantraName: copy.mantraName,
       category: copy.category,
+      shortLine: copy.shortLine,
       detail: copy.detail,
+      pushTitle: copy.pushTitle,
+      pushBody: copy.pushBody,
     },
     expiresAt: plusOneDayStamp(),
   });
@@ -342,6 +379,7 @@ export const notifyGoalExpired = async (input: {
   const copy = brandJapaNotification(
     name,
     category,
+    'goal expired',
     `Goal expired. Progress: ${completed.toLocaleString('en-IN')} / ${target.toLocaleString('en-IN')}. Set a new goal to continue your sadhana.`,
   );
   return notifyOnce({
@@ -359,7 +397,10 @@ export const notifyGoalExpired = async (input: {
       personalMantraId: input.personalMantraId || null,
       mantraName: copy.mantraName,
       category: copy.category,
+      shortLine: copy.shortLine,
       detail: copy.detail,
+      pushTitle: copy.pushTitle,
+      pushBody: copy.pushBody,
     },
   });
 };
@@ -375,6 +416,7 @@ export const notifyChallengeCompleted = async (input: {
   const copy = brandJapaNotification(
     subject,
     'Challenge',
+    'challenge completed',
     'Challenge completed. Claim your reward from Challenges.',
   );
   return notifyOnce({
@@ -390,7 +432,10 @@ export const notifyChallengeCompleted = async (input: {
       targetValue: input.targetValue,
       mantraName: copy.mantraName,
       category: copy.category,
+      shortLine: copy.shortLine,
       detail: copy.detail,
+      pushTitle: copy.pushTitle,
+      pushBody: copy.pushBody,
     },
   });
 };
@@ -430,7 +475,12 @@ export const flushDeadlineReminders = async () => {
         Number(row.targetValue || 0),
       );
       const subject = String(row.title || 'Challenge').trim() || 'Challenge';
-      const branded = brandJapaNotification(subject, 'Challenge', detail);
+      const branded = brandJapaNotification(
+        subject,
+        'Challenge',
+        deadlineShortLine(left),
+        detail,
+      );
       const ok = await notifyOnce({
         userId: Number(row.userId),
         title: branded.title,
@@ -444,7 +494,10 @@ export const flushDeadlineReminders = async () => {
           endDate,
           mantraName: branded.mantraName,
           category: branded.category,
+          shortLine: branded.shortLine,
           detail: branded.detail,
+          pushTitle: branded.pushTitle,
+          pushBody: branded.pushBody,
         },
         expiresAt: endOfDayStamp(endDate),
       });
@@ -545,6 +598,7 @@ export const flushDeadlineReminders = async () => {
         const branded = brandJapaNotification(
           mantraName || goalName,
           category,
+          deadlineShortLine(left),
           detail,
         );
         const ok = await notifyOnce({
@@ -562,7 +616,10 @@ export const flushDeadlineReminders = async () => {
             personalMantraId,
             mantraName: branded.mantraName,
             category: branded.category,
+            shortLine: branded.shortLine,
             detail: branded.detail,
+            pushTitle: branded.pushTitle,
+            pushBody: branded.pushBody,
             targetCount: target,
             completedCount: completed,
             mode,
@@ -595,6 +652,7 @@ export const flushDeadlineReminders = async () => {
       const branded = brandJapaNotification(
         subject,
         'Challenge',
+        'reward ready to claim',
         'Reward ready to claim. Open Challenges to claim your reward.',
       );
       const ok = await notifyOnce({
@@ -607,6 +665,9 @@ export const flushDeadlineReminders = async () => {
         extraData: {
           challengeId: Number(row.challengeId),
           mantraName: branded.mantraName,
+          shortLine: branded.shortLine,
+          pushTitle: branded.pushTitle,
+          pushBody: branded.pushBody,
           category: branded.category,
           detail: branded.detail,
         },
@@ -692,7 +753,8 @@ export const flushDeadlineReminders = async () => {
         const branded = brandJapaNotification(
           mantraName,
           category,
-          `You have ${pending.toLocaleString('en-IN')} Japas pending today. Complete your daily goal before midnight.`,
+          `${pending.toLocaleString('en-IN')} japas pending today`,
+          `You have ${pending.toLocaleString('en-IN')} Japas left for today's goal. Tap to continue chanting.`,
         );
 
         const ok = await notifyOnce({
@@ -708,7 +770,10 @@ export const flushDeadlineReminders = async () => {
             personalMantraId,
             mantraName: branded.mantraName,
             category: branded.category,
+            shortLine: branded.shortLine,
             detail: branded.detail,
+            pushTitle: branded.pushTitle,
+            pushBody: branded.pushBody,
             pendingCount: pending,
             dailyTarget,
             todayCount,
@@ -763,6 +828,7 @@ export const flushDeadlineReminders = async () => {
       const branded = brandJapaNotification(
         'Your Japa',
         'Daily reminder',
+        'no japas yet today',
         'You have not chanted today. Take a few minutes for your japa practice.',
       );
       const ok = await notifyOnce({
@@ -776,7 +842,10 @@ export const flushDeadlineReminders = async () => {
           date: today,
           mantraName: branded.mantraName,
           category: branded.category,
+          shortLine: branded.shortLine,
           detail: branded.detail,
+          pushTitle: branded.pushTitle,
+          pushBody: branded.pushBody,
         },
         expiresAt: endOfDayStamp(today),
       });
