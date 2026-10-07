@@ -158,6 +158,9 @@ jobs:
             echo "::error::android-release-build.log was not created"
             exit 0
           fi
+          echo "::group::Kotlin / Java compile errors"
+          grep -E "^e: |^w: |error: |Unresolved reference|Compilation error" android-release-build.log | tail -n 80 || true
+          echo "::endgroup::"
           echo "::group::Gradle log (last 160 lines)"
           tail -n 160 android-release-build.log
           echo "::endgroup::"

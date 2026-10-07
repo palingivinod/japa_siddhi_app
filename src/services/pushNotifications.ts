@@ -281,8 +281,8 @@ export const stopPushNotifications = () => {
 export const registerBackgroundHandler = () => {
   try {
     messaging().setBackgroundMessageHandler(async () => {
-      // Android tray (with full-color largeIcon) is shown by
-      // JapaFirebaseMessagingService. Avoid a second Notifee popup here.
+      // FCM `notification` payload is shown by the OS while backgrounded.
+      // Foreground uses Notifee with largeIcon in displayForegroundNotification.
     });
   } catch {
     // Native module unavailable in some test environments.
