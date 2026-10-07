@@ -6,15 +6,14 @@ import com.google.firebase.messaging.RemoteMessage
 import io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService
 
 /**
- * Extends RN Firebase messaging so JS still receives events, but when the app is
- * not in the foreground we draw the tray ourselves with the full-color large icon.
- *
- * Requires data-only (or data+notification handled here only when data present)
- * Android FCM payloads so [onMessageReceived] runs while backgrounded.
+ * Extends RN Firebase messaging so JS still receives events.
+ * When FCM includes a `notification` payload, Android OS already shows the tray —
+ * do not draw a second one. Custom largeIcon is only for rare data-only paths.
  */
 class JapaFirebaseMessagingService : ReactNativeFirebaseMessagingService() {
   override fun onMessageReceived(message: RemoteMessage) {
-    if (!isAppInForeground(applicationContext)) {
+    val hasSystemTray = message.notification != null
+    if (!hasSystemTray && !isAppInForeground(applicationContext)) {
       try {
         JapaNotificationPresenter.show(applicationContext, message)
       } catch (_: Exception) {
