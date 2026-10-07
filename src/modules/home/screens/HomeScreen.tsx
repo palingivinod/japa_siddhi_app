@@ -391,20 +391,29 @@ const HomeScreen = () => {
 
   const userDailyGoal = useMemo(() => {
     if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
-      const remainingDays = totalGoalDays(
-        activeJapaGoal.startDate,
-        activeJapaGoal.endDate,
-      );
-      const todayChants = Number(activeJapaGoal.todayCompletedCount || 0);
       const remainingCount = Math.max(
         0,
         activeJapaGoal.targetCount - activeJapaGoal.completedCount,
       );
-      const effectiveRemainingForToday = remainingCount + todayChants;
-      if (effectiveRemainingForToday <= 0) return 0;
-      if (remainingDays <= 1) return effectiveRemainingForToday;
-      const computed = Math.ceil(effectiveRemainingForToday / remainingDays);
-      return Math.max(activeJapaGoal.dailyTarget || 1, computed);
+      // Prefer the configured daily target (same as Your Japas). Do not
+      // re-inflate with "catch-up + today's chants" — that made Home show
+      // 16 while Your Japas correctly showed 14 for the same mantra.
+      const storedDaily = Number(activeJapaGoal.dailyTarget || 0);
+      if (storedDaily > 0) {
+        return storedDaily;
+      }
+      if (remainingCount <= 0) {
+        return 0;
+      }
+      const remainingDays = totalGoalDays(
+        activeJapaGoal.startDate,
+        activeJapaGoal.endDate,
+      );
+      if (remainingDays <= 1) {
+        return remainingCount;
+      }
+      const dayDivisor = remainingDays >= 900 ? 30 : remainingDays;
+      return Math.max(1, Math.ceil(remainingCount / dayDivisor));
     }
     return 0;
   }, [activeJapaGoal]);

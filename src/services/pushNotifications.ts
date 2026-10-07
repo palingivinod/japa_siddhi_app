@@ -280,8 +280,12 @@ export const stopPushNotifications = () => {
 
 export const registerBackgroundHandler = () => {
   try {
-    // Data-only Android pushes are shown here with our full-bleed logo.
     messaging().setBackgroundMessageHandler(async remoteMessage => {
+      // When FCM includes a `notification` payload, Android already shows the
+      // tray. Only display via Notifee for data-only messages.
+      if (remoteMessage?.notification) {
+        return;
+      }
       try {
         await displayForegroundNotification(remoteMessage);
       } catch (error) {
