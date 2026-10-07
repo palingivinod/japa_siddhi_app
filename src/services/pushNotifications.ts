@@ -59,7 +59,8 @@ export const isWithinNotificationHoursIST = (): boolean => {
 };
 
 /**
- * Show a system tray / banner popup even while the app is open (7 AM - 10 PM IST only).
+ * Show a system tray / banner popup (7 AM - 10 PM IST only).
+ * Uses full-bleed brand largeIcon so OEMs don't pad a tiny logo in a white circle.
  */
 export const displayForegroundNotification = async (
   remoteMessage: FirebaseMessagingTypes.RemoteMessage,
@@ -97,7 +98,8 @@ export const displayForegroundNotification = async (
       channelId: CHANNEL_ID,
       importance: AndroidImportance.HIGH,
       smallIcon: 'ic_notification',
-      largeIcon: require('../assets/images/login_logo.webp'),
+      largeIcon: require('../assets/images/notification_logo.png'),
+      circularLargeIcon: true,
       color: '#C17A2F',
       pressAction: {
         id: 'default',
@@ -278,8 +280,13 @@ export const stopPushNotifications = () => {
 
 export const registerBackgroundHandler = () => {
   try {
-    messaging().setBackgroundMessageHandler(async () => {
-      // Notification+data messages are displayed by the OS.
+    // Data-only Android pushes are shown here with our full-bleed logo.
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      try {
+        await displayForegroundNotification(remoteMessage);
+      } catch (error) {
+        console.warn('Background notification display failed:', error);
+      }
     });
   } catch {
     // Native module unavailable in some test environments.

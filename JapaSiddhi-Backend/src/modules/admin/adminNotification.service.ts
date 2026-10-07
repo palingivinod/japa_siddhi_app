@@ -281,9 +281,11 @@ const tryPush = async (
         safeExtra[key] = String(value);
       }
     });
+    // Android: data-only so the app (Notifee) draws the tray with our full-bleed
+    // logo. A top-level `notification` payload makes the OS show the padded
+    // launcher icon instead. iOS still gets APNs alert below.
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
-      notification: {title, body: message},
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
         title,
@@ -292,14 +294,6 @@ const tryPush = async (
       },
       android: {
         priority: 'high',
-        notification: {
-          icon: 'ic_notification',
-          color: '#C17A2F',
-          sound: 'default',
-          channelId: 'fcm_fallback_notification_channel',
-          defaultSound: true,
-          defaultVibrateTimings: true,
-        },
       },
       apns: {
         headers: {
