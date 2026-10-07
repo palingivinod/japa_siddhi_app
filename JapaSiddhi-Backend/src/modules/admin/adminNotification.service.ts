@@ -371,14 +371,13 @@ export const deliverAdminNotification = async (input: {
 
     const userLang = String(user.langCode || 'en').toLowerCase();
     const userTrans = parsedTrans[userLang] || parsedTrans['en'] || {};
+    // Admin: clean tray text — no "Announcement" labels.
+    // Title = admin subject, body = admin message only.
     const subject =
-      sanitizeNotifyText(userTrans.title || input.title) || 'Announcement';
+      sanitizeNotifyText(userTrans.title || input.title) || 'Update';
     const detail = sanitizeNotifyText(userTrans.message || input.message);
-    const shortLine = 'Announcement';
-    const pushTitle = `${subject} — ${shortLine}`;
-    const pushBody = detail
-      ? `Announcement — ${detail}`
-      : `Announcement — ${subject}`;
+    const pushTitle = subject;
+    const pushBody = detail || subject;
 
     await notificationService.create({
       userId,
@@ -391,8 +390,6 @@ export const deliverAdminNotification = async (input: {
         target: input.target,
         translations: parsedTrans,
         mantraName: subject,
-        category: 'Announcement',
-        shortLine,
         detail,
         pushTitle,
         pushBody,
@@ -416,12 +413,10 @@ export const deliverAdminNotification = async (input: {
   for (const [langCode, tokens] of Object.entries(tokensByLang)) {
     const langTrans = parsedTrans[langCode] || parsedTrans['en'] || {};
     const subject =
-      sanitizeNotifyText(langTrans.title || input.title) || 'Announcement';
+      sanitizeNotifyText(langTrans.title || input.title) || 'Update';
     const detail = sanitizeNotifyText(langTrans.message || input.message);
-    const pushTitle = `${subject} — Announcement`;
-    const pushBody = detail
-      ? `Announcement — ${detail}`
-      : `Announcement — ${subject}`;
+    const pushTitle = subject;
+    const pushBody = detail || subject;
     const pushResult = await tryPush(
       tokens,
       pushTitle,
@@ -430,8 +425,6 @@ export const deliverAdminNotification = async (input: {
       {
         actionType: 'ADMIN_BROADCAST',
         mantraName: subject,
-        category: 'Announcement',
-        shortLine: 'Announcement',
       },
     );
     totalPushSent += pushResult.pushSent;

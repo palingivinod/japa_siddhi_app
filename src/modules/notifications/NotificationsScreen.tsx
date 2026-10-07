@@ -457,17 +457,26 @@ const NotificationsScreen = () => {
                     ? item.extraData
                     : {};
                 const localized = getLocalizedNotification(item, language);
+                const isAdmin =
+                  String(item.actionType || '') === 'ADMIN_BROADCAST' ||
+                  String(extra.category || '')
+                    .toLowerCase()
+                    .includes('announcement');
                 const mantraName = localized.hasTranslationPack
                   ? localized.title
                   : String(extra.mantraName || '').trim();
-                const shortLine = String(extra.shortLine || '').trim();
+                const shortLine = isAdmin
+                  ? ''
+                  : String(extra.shortLine || '').trim();
                 const subject =
                   mantraName && shortLine
                     ? `${tt(mantraName)} — ${shortLine}`
                     : mantraName ||
                       (localized.hasTranslationPack ? localized.title : '') ||
                       String(localized.title || '').trim();
-                const category = String(extra.category || '').trim();
+                const category = isAdmin
+                  ? ''
+                  : String(extra.category || '').trim();
                 const detail = localized.hasTranslationPack
                   ? localized.message
                   : String(extra.detail || localized.message || '').trim();
