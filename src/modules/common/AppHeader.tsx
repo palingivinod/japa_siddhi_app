@@ -112,11 +112,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '600',
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
     color: Colors.leafGreen,
-    marginTop: 2,
+    marginTop: 3,
     paddingHorizontal: 4,
   },
   logo: {

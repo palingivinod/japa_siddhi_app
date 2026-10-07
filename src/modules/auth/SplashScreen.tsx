@@ -39,10 +39,10 @@ const SplashScreen = ({navigation}: Props) => {
     [width, height, insets.bottom],
   );
 
-  // Credit sits in the gap under the bilva-leaf divider (~55% down the art).
+  // Credit sits a bit below the bilva-leaf divider so it has breathing room.
   const creditStyle = useMemo(
     () => ({
-      top: height * 0.53,
+      top: height * 0.565,
       height: Math.max(36, height * 0.055),
       left: Math.max(12, width * 0.06),
       right: Math.max(12, width * 0.06),
