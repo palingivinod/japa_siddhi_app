@@ -150,6 +150,8 @@ const en = {
   myProfile: 'My Profile',
   personalProfile: 'Personal Profile',
   notifications: 'Notifications',
+  recentNotifications: 'Recent notifications',
+  clearAll: 'Clear all',
   orderHistory: 'Order History',
   feedback: 'Feedback',
   settings: 'Settings',

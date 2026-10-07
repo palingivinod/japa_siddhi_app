@@ -293,6 +293,8 @@ const tryPush = async (
       android: {
         priority: 'high',
         notification: {
+          icon: 'ic_notification',
+          color: '#C17A2F',
           sound: 'default',
           channelId: 'fcm_fallback_notification_channel',
           defaultSound: true,

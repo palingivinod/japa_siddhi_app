@@ -61,44 +61,74 @@ const notificationEmoji = (item: any) => {
   return '🔔';
 };
 
+/** Parse API timestamps as UTC when timezone is missing (Render/MySQL NOW()). */
+const parseNotificationDate = (dateStr?: string) => {
+  const raw = String(dateStr || '').trim();
+  if (!raw) {
+    return null;
+  }
+  // "2026-10-07 07:09:00" / "2026-10-07T07:09:00" without Z → treat as UTC
+  if (
+    /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2})?(\.\d+)?$/.test(raw) &&
+    !/[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)
+  ) {
+    const iso = raw.includes('T') ? `${raw}Z` : `${raw.replace(' ', 'T')}Z`;
+    const d = new Date(iso);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const formatInIst = (
+  d: Date,
+  options: Intl.DateTimeFormatOptions,
+) =>
+  d.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    ...options,
+  });
+
 const formatNotificationDate = (dateStr?: string) => {
   if (!dateStr) {
     return '';
   }
   try {
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) {
+    const d = parseNotificationDate(dateStr);
+    if (!d) {
       return '';
     }
-    const now = new Date();
-    const isToday =
-      d.getDate() === now.getDate() &&
-      d.getMonth() === now.getMonth() &&
-      d.getFullYear() === now.getFullYear();
 
-    const yesterday = new Date(now);
+    const dayKey = (value: Date) =>
+      formatInIst(value, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+
+    const todayKey = dayKey(new Date());
+    const thatKey = dayKey(d);
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const isYesterday =
-      d.getDate() === yesterday.getDate() &&
-      d.getMonth() === yesterday.getMonth() &&
-      d.getFullYear() === yesterday.getFullYear();
+    const yesterdayKey = dayKey(yesterday);
 
-    const timeStr = d.toLocaleTimeString('en-US', {
+    const timeStr = formatInIst(d, {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
     });
 
-    if (isToday) {
+    if (thatKey === todayKey) {
       return `Today, ${timeStr}`;
     }
-    if (isYesterday) {
+    if (thatKey === yesterdayKey) {
       return `Yesterday, ${timeStr}`;
     }
-    return `${d.toLocaleDateString('en-IN', {
+    const datePart = formatInIst(d, {
       day: 'numeric',
       month: 'short',
-    })}, ${timeStr}`;
+    });
+    return `${datePart}, ${timeStr}`;
   } catch {
     return '';
   }
@@ -309,7 +339,7 @@ const NotificationsScreen = () => {
           style: 'cancel',
         },
         {
-          text: (t as any)('clearAll') || 'Clear All',
+          text: t('clearAll') || 'Clear all',
           style: 'destructive',
           onPress: async () => {
             const currentIds = items.map(item => String(item.id));
@@ -359,14 +389,14 @@ const NotificationsScreen = () => {
       {!loading && items.length > 0 ? (
         <View style={styles.topActionRow}>
           <Text style={styles.sectionHeading}>
-            {(t as any)('recentNotifications') || 'Notifications'} ({items.length})
+            {t('recentNotifications') || 'Recent notifications'} ({items.length})
           </Text>
           <TouchableOpacity
             style={styles.clearBtnTop}
             activeOpacity={0.8}
             onPress={clearNotifications}>
             <Text style={styles.clearBtnTopText}>
-              {(t as any)('clearAll') || 'Clear All'}
+              {t('clearAll') || 'Clear all'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -409,7 +439,7 @@ const NotificationsScreen = () => {
                     isHighlighted && styles.titleHighlighted,
                   ]}
                   numberOfLines={1}>
-                  {getLocalizedNotification(item, language).title ||
+                  {getLocalizedNotification(item, language).brandTitle ||
                     tt(item.title) ||
                     'Japasiddhi - Bilva Patra Trust'}
                 </Text>
@@ -427,28 +457,26 @@ const NotificationsScreen = () => {
                     ? item.extraData
                     : {};
                 const localized = getLocalizedNotification(item, language);
-                const rawMessage = String(
-                  localized.message || item.message || item.body || '',
-                );
-                const lines = rawMessage.split('\n').map(s => s.trim()).filter(Boolean);
-                const mantraName =
-                  String(extra.mantraName || '').trim() || lines[0] || '';
+                // When multilingual pack exists, always follow current app language.
+                // Do NOT use send-time baked mantraName/detail (those stay in one language).
+                const subject = localized.hasTranslationPack
+                  ? localized.title
+                  : String(extra.mantraName || localized.title || '').trim();
+                const detail = localized.hasTranslationPack
+                  ? localized.message
+                  : String(extra.detail || localized.message || '').trim();
                 const category = String(extra.category || '').trim();
-                const detail =
-                  String(extra.detail || '').trim() ||
-                  (lines.length > 1 ? lines.slice(1).join(' ') : '') ||
-                  (category ? '' : rawMessage);
                 const descParts = [category, detail].filter(Boolean);
                 return (
                   <>
-                    {mantraName ? (
+                    {subject ? (
                       <Text
                         style={[
                           styles.mantraHighlight,
                           isUnread && styles.mantraHighlightUnread,
                         ]}
                         numberOfLines={2}>
-                        {tt(mantraName)}
+                        {tt(subject)}
                       </Text>
                     ) : null}
                     {descParts.length ? (

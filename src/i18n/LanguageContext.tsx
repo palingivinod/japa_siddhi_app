@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 
 import {getLanguage, saveLanguage} from '../services/language';
+import apiService from '../services/apiService';
 import {
   DEFAULT_LANG,
   getDictionary,
@@ -53,6 +54,12 @@ export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({
     const next = resolveLanguage(code);
     await saveLanguage(next);
     setLanguage(next);
+    // Keep server language in sync so push/admin notifications match app language.
+    try {
+      await apiService.put('/profile/settings', {languageCode: next});
+    } catch {
+      // Offline / logged-out: local language still applies in the app UI.
+    }
   }, []);
 
   const dict = useMemo(() => getDictionary(language), [language]);

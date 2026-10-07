@@ -129,8 +129,34 @@ export const getLocalizedChallenge = (
   return {title, description, mantra};
 };
 
+const decodeNotifyText = (value: any) => {
+  let out = String(value || '').trim();
+  if (!out) {
+    return '';
+  }
+  for (let i = 0; i < 3; i++) {
+    if (!/%[0-9A-Fa-f]{2}/.test(out)) {
+      break;
+    }
+    try {
+      const decoded = decodeURIComponent(out.replace(/\+/g, ' '));
+      if (!decoded || decoded === out) {
+        out = out.replace(/%20/gi, ' ');
+        break;
+      }
+      out = decoded;
+    } catch {
+      out = out.replace(/%20/gi, ' ');
+      break;
+    }
+  }
+  return out.replace(/\s+/g, ' ').trim();
+};
+
 /**
  * Resolves localized Notification fields based on active app language.
+ * Prefer translation packs in extraData so UI follows the app language,
+ * not the language baked into message at send-time.
  */
 export const getLocalizedNotification = (
   notification: any,
@@ -138,28 +164,49 @@ export const getLocalizedNotification = (
 ): {
   title: string;
   message: string;
+  brandTitle: string;
+  hasTranslationPack: boolean;
 } => {
   if (!notification) {
-    return {title: '', message: ''};
+    return {title: '', message: '', brandTitle: '', hasTranslationPack: false};
   }
   const translations = parseTranslationsMap<NotificationTranslation>(
     notification.translations || notification.extraData?.translations,
   );
-  const userTrans = translations[lang] || {};
+  const code = String(lang || 'en').toLowerCase().slice(0, 2);
+  const userTrans = translations[code] || {};
   const enTrans = translations['en'] || {};
+  const hasTranslationPack = Boolean(
+    Object.keys(translations).length &&
+      (userTrans.title ||
+        userTrans.message ||
+        enTrans.title ||
+        enTrans.message),
+  );
 
-  const title =
-    userTrans.title ||
-    enTrans.title ||
-    notification.title ||
-    '';
+  const storedTitle = decodeNotifyText(notification.title);
+  const brandTitle =
+    /bilva patra|japasiddhi/i.test(storedTitle)
+      ? storedTitle
+      : 'Japasiddhi - Bilva Patra Trust';
 
-  const message =
-    userTrans.message ||
-    enTrans.message ||
-    notification.message ||
-    notification.body ||
-    '';
+  // Admin broadcasts store subject/body inside translations.*;
+  // reminder notifications usually have no pack and use title/message directly.
+  const title = decodeNotifyText(
+    hasTranslationPack
+      ? userTrans.title || enTrans.title || ''
+      : storedTitle,
+  );
 
-  return {title, message};
+  const message = decodeNotifyText(
+    hasTranslationPack
+      ? userTrans.message ||
+          enTrans.message ||
+          notification.message ||
+          notification.body ||
+          ''
+      : notification.message || notification.body || '',
+  );
+
+  return {title, message, brandTitle, hasTranslationPack};
 };

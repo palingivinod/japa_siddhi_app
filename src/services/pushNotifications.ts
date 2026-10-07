@@ -96,6 +96,9 @@ export const displayForegroundNotification = async (
     android: {
       channelId: CHANNEL_ID,
       importance: AndroidImportance.HIGH,
+      smallIcon: 'ic_notification',
+      largeIcon: require('../assets/images/login_logo.webp'),
+      color: '#C17A2F',
       pressAction: {
         id: 'default',
         launchActivity: 'default',
