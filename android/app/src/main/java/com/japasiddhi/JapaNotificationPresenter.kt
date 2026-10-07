@@ -21,17 +21,17 @@ object JapaNotificationPresenter {
   private const val CHANNEL_NAME = "Japa Siddhi Alerts"
 
   fun show(context: Context, message: RemoteMessage) {
-    val data = message.data
+    val payload = message.data
     val title =
       (message.notification?.title
-          ?: data["title"]
+          ?: payload["title"]
           ?: context.getString(R.string.app_name))
         .trim()
         .ifEmpty { context.getString(R.string.app_name) }
     val body =
       (message.notification?.body
-          ?: data["body"]
-          ?: data["message"]
+          ?: payload["body"]
+          ?: payload["message"]
           ?: "You have a new notification.")
         .trim()
         .ifEmpty { "You have a new notification." }
@@ -41,7 +41,10 @@ object JapaNotificationPresenter {
     val launchIntent =
       Intent(context, MainActivity::class.java).apply {
         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        data.forEach { (key, value) -> putExtra(key, value) }
+        // Do not use name `data` here — Intent.data is the Uri property.
+        for ((key, value) in payload) {
+          putExtra(key, value)
+        }
       }
     val pendingIntent =
       PendingIntent.getActivity(
@@ -78,8 +81,7 @@ object JapaNotificationPresenter {
       return
     }
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    val existing = manager.getNotificationChannel(CHANNEL_ID)
-    if (existing != null) {
+    if (manager.getNotificationChannel(CHANNEL_ID) != null) {
       return
     }
     val channel =

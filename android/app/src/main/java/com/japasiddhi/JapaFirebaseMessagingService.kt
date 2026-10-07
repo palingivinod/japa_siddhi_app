@@ -16,7 +16,7 @@ class JapaFirebaseMessagingService : ReactNativeFirebaseMessagingService() {
     if (!hasSystemTray && !isAppInForeground(applicationContext)) {
       try {
         JapaNotificationPresenter.show(applicationContext, message)
-      } catch (_: Exception) {
+      } catch (ignored: Exception) {
         // Fall through — JS / default path may still help.
       }
     }
