@@ -71,6 +71,18 @@
           android:resource="@color/notification_color"
           tools:replace="android:resource" />
 
+      <!-- Custom FCM service: posts tray with full-color largeIcon (WhatsApp-style). -->
+      <service
+          android:name="io.invertase.firebase.messaging.ReactNativeFirebaseMessagingService"
+          tools:node="remove" />
+      <service
+          android:name=".JapaFirebaseMessagingService"
+          android:exported="false">
+        <intent-filter>
+          <action android:name="com.google.firebase.MESSAGING_EVENT" />
+        </intent-filter>
+      </service>
+
       <activity
         android:name=".MainActivity"
         android:label="@string/app_name"

@@ -281,12 +281,11 @@ const tryPush = async (
         safeExtra[key] = String(value);
       }
     });
-    // Always include top-level `notification` so Android OS shows a tray popup
-    // on every APK (old or new). Color largeIcon is best-effort on newer builds
-    // when the app is foreground (Notifee); never block popups for logo features.
+    // Android: data-only so JapaFirebaseMessagingService can set largeIcon
+    // (full-color logo left of text, like WhatsApp profile photo).
+    // Requires APK with that service. iOS still gets APNs alert.
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
-      notification: {title, body: message},
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
         title,
@@ -295,14 +294,6 @@ const tryPush = async (
       },
       android: {
         priority: 'high',
-        notification: {
-          icon: 'ic_notification',
-          color: '#C17A2F',
-          sound: 'default',
-          channelId: 'fcm_fallback_notification_channel',
-          defaultSound: true,
-          defaultVibrateTimings: true,
-        },
       },
       apns: {
         headers: {

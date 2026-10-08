@@ -280,9 +280,17 @@ export const stopPushNotifications = () => {
 
 export const registerBackgroundHandler = () => {
   try {
-    messaging().setBackgroundMessageHandler(async () => {
-      // FCM `notification` payload is shown by the OS while backgrounded.
-      // Foreground uses Notifee with largeIcon in displayForegroundNotification.
+    messaging().setBackgroundMessageHandler(async remoteMessage => {
+      // Native JapaFirebaseMessagingService usually posts the tray with largeIcon.
+      // Fallback: Notifee with logo.png if native did not run.
+      if (remoteMessage?.notification) {
+        return;
+      }
+      try {
+        await displayForegroundNotification(remoteMessage);
+      } catch (error) {
+        console.warn('Background notification display failed:', error);
+      }
     });
   } catch {
     // Native module unavailable in some test environments.
