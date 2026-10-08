@@ -151,24 +151,32 @@ const notifyOnce = async (input: {
   if (!enabled) {
     return false;
   }
-  const exists = await notificationService.existsByAction(
+
+  // Inbox row may already exist from an earlier sweep where FCM failed / old APK
+  // ignored data-only. Still retry tray push until pushSent is marked.
+  const existing = await notificationService.findByAction(
     input.userId,
     input.actionType,
     input.actionId,
   );
-  if (exists) {
+  if (existing?.extraData?.pushSent === true) {
     return false;
   }
-  const created = await notificationService.create({
-    userId: input.userId,
-    title: input.title,
-    message: input.message,
-    notificationType: input.notificationType,
-    actionType: input.actionType,
-    actionId: input.actionId,
-    extraData: input.extraData || null,
-    expiresAt: input.expiresAt ?? null,
-  });
+
+  let notificationId = existing?.id || 0;
+  if (!existing) {
+    const created = await notificationService.create({
+      userId: input.userId,
+      title: input.title,
+      message: input.message,
+      notificationType: input.notificationType,
+      actionType: input.actionType,
+      actionId: input.actionId,
+      extraData: input.extraData || null,
+      expiresAt: input.expiresAt ?? null,
+    });
+    notificationId = Number(created?.id || 0);
+  }
 
   // Same WhatsApp-style tray popup as admin broadcasts (needs fcm_token).
   try {
@@ -188,32 +196,52 @@ const notifyOnce = async (input: {
         '../admin/adminNotification.service'
       );
       const pushTitle =
-        String(input.extraData?.pushTitle || '').trim() || input.title;
+        String(input.extraData?.pushTitle || existing?.extraData?.pushTitle || '')
+          .trim() ||
+        String(existing?.title || input.title).trim();
       const pushBody =
-        String(input.extraData?.pushBody || '').trim() || input.message;
-      await sendPushToTokens(
+        String(input.extraData?.pushBody || existing?.extraData?.pushBody || '')
+          .trim() ||
+        String(existing?.message || input.message).trim();
+      const pushResult = await sendPushToTokens(
         [token],
         pushTitle,
         pushBody,
         input.actionType,
         {
-          notificationId: String(created?.id || ''),
+          notificationId: String(notificationId || ''),
           actionType: input.actionType,
           actionId: String(input.actionId ?? ''),
-          ...(input.extraData?.mantraName
-            ? {mantraName: String(input.extraData.mantraName)}
+          ...(input.extraData?.mantraName || existing?.extraData?.mantraName
+            ? {
+                mantraName: String(
+                  input.extraData?.mantraName ||
+                    existing?.extraData?.mantraName,
+                ),
+              }
             : {}),
-          ...(input.extraData?.category
-            ? {category: String(input.extraData.category)}
+          ...(input.extraData?.category || existing?.extraData?.category
+            ? {
+                category: String(
+                  input.extraData?.category || existing?.extraData?.category,
+                ),
+              }
             : {}),
         },
       );
+      if (notificationId && Number(pushResult?.pushSent || 0) > 0) {
+        await notificationService.mergeExtraData(
+          notificationId,
+          input.userId,
+          {pushSent: true, pushSentAt: new Date().toISOString()},
+        );
+      }
     }
   } catch (error) {
     console.warn('Reminder FCM push failed:', error);
   }
 
-  return true;
+  return !existing;
 };
 
 /** End of an IST calendar day — reminders leave the inbox after this. */

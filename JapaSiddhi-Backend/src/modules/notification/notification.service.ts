@@ -124,6 +124,26 @@ class NotificationService {
     );
   }
 
+  async findByAction(
+    userId: number,
+    actionType: string,
+    actionId: number,
+  ) {
+    return notificationRepository.findByAction(
+      userId,
+      actionType,
+      actionId,
+    );
+  }
+
+  async mergeExtraData(
+    id: number,
+    userId: number,
+    patch: Record<string, any>,
+  ) {
+    return notificationRepository.mergeExtraData(id, userId, patch);
+  }
+
   async getUnreadCountByAction(userId: number, actionType: string) {
     return notificationRepository.getUnreadCountByAction(
       userId,

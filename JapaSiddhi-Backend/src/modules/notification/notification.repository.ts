@@ -290,6 +290,91 @@ class NotificationRepository {
     return Boolean(rows[0]?.id);
   }
 
+  async findByAction(
+    userId: number,
+    actionType: string,
+    actionId: number,
+  ) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        title,
+        message,
+        extra_data AS extraData
+      FROM notifications
+      WHERE user_id = ?
+        AND action_type = ?
+        AND action_id = ?
+      LIMIT 1
+      `,
+      [userId, actionType, actionId],
+    );
+    const row = rows?.[0];
+    if (!row) {
+      return null;
+    }
+    let extraData: Record<string, any> = {};
+    if (row.extraData) {
+      try {
+        extraData =
+          typeof row.extraData === 'string'
+            ? JSON.parse(row.extraData)
+            : row.extraData;
+      } catch {
+        extraData = {};
+      }
+    }
+    return {
+      id: Number(row.id),
+      title: String(row.title || ''),
+      message: String(row.message || ''),
+      extraData,
+    };
+  }
+
+  async mergeExtraData(
+    id: number,
+    userId: number,
+    patch: Record<string, any>,
+  ) {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT extra_data AS extraData
+      FROM notifications
+      WHERE id = ?
+        AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    const row = rows?.[0];
+    if (!row) {
+      return;
+    }
+    let extraData: Record<string, any> = {};
+    if (row.extraData) {
+      try {
+        extraData =
+          typeof row.extraData === 'string'
+            ? JSON.parse(row.extraData)
+            : row.extraData;
+      } catch {
+        extraData = {};
+      }
+    }
+    const next = {...extraData, ...patch};
+    await mysql.query(
+      `
+      UPDATE notifications
+      SET extra_data = ?
+      WHERE id = ?
+        AND user_id = ?
+      `,
+      [JSON.stringify(next), id, userId],
+    );
+  }
+
   async getUnreadCountByAction(userId: number, actionType: string) {
     const rows = await mysql.query<any[]>(
       `
