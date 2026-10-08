@@ -40,7 +40,8 @@ export type AppIconName =
   | 'yellowAgate'
   | 'pasupuKommulaMala'
   | 'karungaliMala'
-  | 'spatikaMala';
+  | 'spatikaMala'
+  | 'tulasiMala';
 
 interface Props {
   name: AppIconName;
@@ -77,6 +78,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   pasupuKommulaMala: require('../../assets/images/pasupu_kommula_mala.jpg'),
   karungaliMala: require('../../assets/images/karungali_mala.jpg'),
   spatikaMala: require('../../assets/images/spatika_mala.png'),
+  tulasiMala: require('../../assets/images/tulasi_mala.png'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 

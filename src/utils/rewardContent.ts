@@ -243,6 +243,7 @@ const REWARD_LOCALIZATIONS: Array<{
     match: name => name.toLowerCase().includes('tulsi') || name.toLowerCase().includes('tulasi'),
     content: {
       emoji: '📿',
+      imageName: 'tulasiMala',
       title: {
         en: 'Tulasi Mala',
         te: 'తులసి మాల',

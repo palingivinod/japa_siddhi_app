@@ -125,7 +125,7 @@ export const or: TranslationDict = {
   communityJapa: 'ସାମୂହିକ ଜପ',
   communityJapaSub: 'ସାମୂହିକ ଜପରେ ଯୋଗ ଦିଅନ୍ତୁ।',
   myJapa: 'ଅନ୍ତରଙ୍ଗ ଜପ',
-  myJapaSub: 'ଆପଣଙ୍କର ନିଜ ଜପ କରନ୍ତୁ।',
+  myJapaSub: 'ଆପଣଙ୍କର ନିଜ ମନ୍ତ୍ର ଜପ କରନ୍ତୁ।',
   challengeJapa: 'ସଙ୍କଳ୍ପ ଜପ',
   challengeJapaSub: 'ଏକ ଆଧ୍ୟାତ୍ମିକ ଚ୍ୟାଲେଞ୍ଜ ନିଅନ୍ତୁ।',
   japaAnalytics: 'ଜପ ବିଶ୍ଳେଷଣ',

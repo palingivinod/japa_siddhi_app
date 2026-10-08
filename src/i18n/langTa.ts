@@ -125,7 +125,7 @@ export const ta: TranslationDict = {
   communityJapa: 'பொது ஜபம்',
   communityJapaSub: 'கூட்டு ஜபத்தில் சேரவும்.',
   myJapa: 'தனிப்பட்ட ஜபம்',
-  myJapaSub: 'உங்கள் சொந்த ஜபத்தை செய்யுங்கள்.',
+  myJapaSub: 'உங்கள் சொந்த மந்திரத்தை ஜபியுங்கள்.',
   challengeJapa: 'சங்கல்ப ஜபம்',
   challengeJapaSub: 'ஆன்மீக சவாலை ஏற்கவும்.',
   japaAnalytics: 'ஜப பகுப்பாய்வு',

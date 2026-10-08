@@ -124,7 +124,7 @@ export const kn: TranslationDict = {
   communityJapa: 'ಸಾಮೂಹಿಕ ಜಪ',
   communityJapaSub: 'ಸಮೂಹ ಜಪಕ್ಕೆ ಸೇರಿ.',
   myJapa: 'ಅಂತರಂಗ ಜಪ',
-  myJapaSub: 'ನಿಮ್ಮ ಸ್ವಂತ ಜಪ ಮಾಡಿ.',
+  myJapaSub: 'ನಿಮ್ಮ ಸ್ವಂತ ಮಂತ್ರವನ್ನು ಜಪಿಸಿ.',
   challengeJapa: 'ಸಂಕಲ್ಪ ಜಪ',
   challengeJapaSub: 'ಆಧ್ಯಾತ್ಮಿಕ ಸವಾಲು ತೆಗೆದುಕೊಳ್ಳಿ.',
   japaAnalytics: 'ಜಪ ವಿಶ್ಲೇಷಣೆ',

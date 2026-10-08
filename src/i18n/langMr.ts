@@ -125,7 +125,7 @@ export const mr: TranslationDict = {
   communityJapa: 'सामूहिक जप',
   communityJapaSub: 'सामूहिक जपात सामील व्हा.',
   myJapa: 'अंतरंग जप',
-  myJapaSub: 'आपला स्वतःचा जप करा.',
+  myJapaSub: 'आपला स्वतःचा मंत्र जपा.',
   challengeJapa: 'संकल्प जप',
   challengeJapaSub: 'आध्यात्मिक आव्हान स्वीकारा.',
   japaAnalytics: 'जप विश्लेषण',

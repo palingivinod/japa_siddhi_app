@@ -125,7 +125,7 @@ export const bn: TranslationDict = {
   communityJapa: 'সামূহিক জপ',
   communityJapaSub: 'সমষ্টিগত জপে যোগ দিন।',
   myJapa: 'অন্তরঙ্গ জপ',
-  myJapaSub: 'আপনার নিজস্ব জপ করুন।',
+  myJapaSub: 'আপনার নিজস্ব মন্ত্র জপ করুন।',
   challengeJapa: 'সংকল্প জপ',
   challengeJapaSub: 'একটি আধ্যাত্মিক চ্যালেঞ্জ নিন।',
   japaAnalytics: 'জপ বিশ্লেষণ',

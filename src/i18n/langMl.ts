@@ -125,7 +125,7 @@ export const ml: TranslationDict = {
   communityJapa: 'സാമൂഹിക ജപം',
   communityJapaSub: 'സാമൂഹിക ജപത്തിൽ ചേരുക.',
   myJapa: 'സ്വകാര്യ ജപം',
-  myJapaSub: 'നിങ്ങളുടെ സ്വന്തം ജപം ചെയ്യുക.',
+  myJapaSub: 'നിങ്ങളുടെ സ്വന്തം മന്ത്രം ജപിക്കുക.',
   challengeJapa: 'സങ്കൽപ ജപം',
   challengeJapaSub: 'ആത്മീയ സവാൽ സ്വീകരിക്കുക.',
   japaAnalytics: 'ജപ വിശകലനം',

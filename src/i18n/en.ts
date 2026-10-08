@@ -135,7 +135,7 @@ const en = {
   communityJapa: 'Samuhika Japam',
   communityJapaSub: 'Join collective chanting.',
   myJapa: 'Antharanga Japam',
-  myJapaSub: 'Chant your own japa.',
+  myJapaSub: 'Chant your own mantra.',
   challengeJapa: 'Sankalp Japam',
   challengeJapaSub: 'Take a spiritual challenge.',
   japaAnalytics: 'Japam Visleshana',
