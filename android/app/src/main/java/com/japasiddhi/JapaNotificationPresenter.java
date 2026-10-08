@@ -9,13 +9,17 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
+import androidx.core.app.Person;
 import androidx.core.content.ContextCompat;
+import androidx.core.graphics.drawable.IconCompat;
 import com.google.firebase.messaging.RemoteMessage;
 import java.util.Map;
 
 /**
- * Posts tray notifications with WhatsApp-style layout:
- * smallIcon (status) + largeIcon (full-color logo left of the text).
+ * WhatsApp-style tray: full-color logo on the LEFT of the text.
+ *
+ * On Android 12+ / many OEMs, setLargeIcon() alone places the image on the
+ * RIGHT. MessagingStyle + Person icon is what puts the avatar on the LEFT.
  */
 public final class JapaNotificationPresenter {
   private static final String CHANNEL_ID = "fcm_fallback_notification_channel";
@@ -25,15 +29,17 @@ public final class JapaNotificationPresenter {
 
   public static void show(Context context, RemoteMessage message) {
     Map<String, String> data = message.getData();
-    String title = firstNonEmpty(
-        message.getNotification() != null ? message.getNotification().getTitle() : null,
-        data.get("title"),
-        context.getString(R.string.app_name));
-    String body = firstNonEmpty(
-        message.getNotification() != null ? message.getNotification().getBody() : null,
-        data.get("body"),
-        data.get("message"),
-        "You have a new notification.");
+    String title =
+        firstNonEmpty(
+            message.getNotification() != null ? message.getNotification().getTitle() : null,
+            data.get("title"),
+            context.getString(R.string.app_name));
+    String body =
+        firstNonEmpty(
+            message.getNotification() != null ? message.getNotification().getBody() : null,
+            data.get("body"),
+            data.get("message"),
+            "You have a new notification.");
 
     ensureChannel(context);
 
@@ -50,22 +56,36 @@ public final class JapaNotificationPresenter {
             launchIntent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-    Bitmap largeIcon =
+    Bitmap logoBitmap =
         BitmapFactory.decodeResource(context.getResources(), R.drawable.ic_notification_large);
+    IconCompat logoIcon = IconCompat.createWithBitmap(logoBitmap);
+
+    Person brandPerson =
+        new Person.Builder()
+            .setName(title)
+            .setIcon(logoIcon)
+            .setImportant(true)
+            .build();
+
+    NotificationCompat.MessagingStyle style =
+        new NotificationCompat.MessagingStyle(brandPerson)
+            .setGroupConversation(false)
+            .addMessage(body, System.currentTimeMillis(), brandPerson);
 
     NotificationCompat.Builder builder =
         new NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setLargeIcon(largeIcon)
             .setContentTitle(title)
             .setContentText(body)
-            .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
+            .setStyle(style)
+            .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setColor(ContextCompat.getColor(context, R.color.notification_color))
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setContentIntent(pendingIntent);
 
+    // Do NOT also setLargeIcon — that is what OEMs pin to the right.
     NotificationManager manager =
         (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     if (manager != null) {

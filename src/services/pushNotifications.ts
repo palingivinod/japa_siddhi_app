@@ -1,5 +1,10 @@
 import messaging, {FirebaseMessagingTypes} from '@react-native-firebase/messaging';
-import notifee, {AndroidImportance, EventType} from '@notifee/react-native';
+import notifee, {
+  AndroidCategory,
+  AndroidImportance,
+  AndroidStyle,
+  EventType,
+} from '@notifee/react-native';
 import {AppState, PermissionsAndroid, Platform} from 'react-native';
 
 import apiService from './apiService';
@@ -98,8 +103,27 @@ export const displayForegroundNotification = async (
       channelId: CHANNEL_ID,
       importance: AndroidImportance.HIGH,
       smallIcon: 'ic_notification',
-      largeIcon: require('../assets/images/logo.png'),
-      circularLargeIcon: true,
+      // MessagingStyle person icon → logo on the LEFT (like WhatsApp).
+      // setLargeIcon alone lands on the RIGHT on Android 12+ / many OEMs.
+      category: AndroidCategory.MESSAGE,
+      style: {
+        type: AndroidStyle.MESSAGING,
+        person: {
+          name: title,
+          icon: require('../assets/images/logo.png'),
+          important: true,
+        },
+        messages: [
+          {
+            text: body,
+            timestamp: Date.now(),
+            person: {
+              name: title,
+              icon: require('../assets/images/logo.png'),
+            },
+          },
+        ],
+      },
       color: '#C17A2F',
       pressAction: {
         id: 'default',
