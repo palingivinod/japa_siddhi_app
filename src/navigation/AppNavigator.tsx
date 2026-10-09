@@ -196,6 +196,7 @@ export type RootStackParamList = {
     durationMs?: number;
     resume?: boolean;
     initialCount?: number;
+    dailyTarget?: number;
     challengeMantra?: string;
     fromHome?: boolean;
     recentOnly?: boolean;

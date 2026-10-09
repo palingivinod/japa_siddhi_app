@@ -227,89 +227,43 @@ const NotificationsScreen = () => {
    * When user taps a notification:
    * 1. Mark as read (dot clears) but keep it visible.
    * 2. Backend schedules auto-delete after about one day.
-   * 3. Navigate to the matching screen (completions stay here).
+   * 3. Deep-link: goal/challenge → count page; idle/admin → stay in inbox route.
    */
   const handleNotificationPress = async (item: any) => {
-    // 1. Instantly clear unread dot in UI
     setItems(current =>
       current.map(row => (row.id === item.id ? {...row, isRead: true} : row)),
     );
 
-    // 2. Mark read on server (sets ~1 day expiry; does not delete yet)
-    try {
-      await apiService.put(`/notifications/${item.id}/read`);
-    } catch {
-      // ignore
-    }
-
-    // 3. Navigate by action — completions and milestones keep existing behavior
     const action = String(item.actionType || '');
     const extra =
       item.extraData && typeof item.extraData === 'object'
         ? item.extraData
         : {};
 
-    if (action === 'JAPA_MILESTONE') {
-      navigation.navigate('MilestoneNotifications');
-      return;
-    }
-
-    // Completions: mark read only, stay on Notifications (no deep jump).
+    // Completions: mark read on server, stay on this screen.
     if (
       action === 'GOAL_COMPLETED' ||
       action === 'DAILY_GOAL_COMPLETED' ||
       action === 'CHALLENGE_COMPLETED'
     ) {
+      try {
+        await apiService.put(`/notifications/${item.id}/read`);
+      } catch {
+        // ignore
+      }
       return;
     }
 
-    if (
-      action === 'CHALLENGE_DEADLINE' ||
-      action === 'CHALLENGE_REWARD_READY'
-    ) {
-      navigation.navigate('Challenges');
-      return;
-    }
-
-    // Daily pending / goal deadline → continue that mantra on the count page.
-    if (action === 'DAILY_JAPA_PENDING' || action === 'GOAL_DEADLINE') {
-      const mantraId = Number(extra.mantraId || 0) || undefined;
-      const personalMantraId = Number(extra.personalMantraId || 0) || undefined;
-      const goalId = Number(extra.goalId || item.actionId || 0) || undefined;
-      const isPersonal =
-        String(extra.mode || '').toLowerCase() === 'private' ||
-        Boolean(personalMantraId);
-      navigation.navigate('Chant', {
-        mode: isPersonal ? 'private' : 'community',
-        mantraId: isPersonal ? undefined : mantraId,
-        personalMantraId: personalMantraId || undefined,
-        privateMantra: isPersonal
-          ? String(extra.mantraName || '').trim() || undefined
-          : undefined,
-        goal: Number(extra.targetCount || 0) || undefined,
-        initialCount: Number(extra.completedCount || 0) || undefined,
-        dailyTarget: Number(extra.dailyTarget || 0) || undefined,
-        japaGoalId: goalId,
-        resume: true,
-        fromHome: false,
-      });
-      return;
-    }
-
-    // "You have not chanted today" → Your Japas list.
-    if (action === 'DAILY_JAPA_REMINDER') {
-      navigation.navigate('YourJapas');
-      return;
-    }
-
-    if (action === 'GOAL_EXPIRED') {
-      navigation.navigate('YourJapas');
-      return;
-    }
-
-    if (action === 'REWARD' || action === 'REWARD_READY') {
-      navigation.navigate('Rewards');
-    }
+    const {openFromNotificationPayload} = await import(
+      '../../navigation/notificationDeepLink'
+    );
+    await openFromNotificationPayload({
+      ...extra,
+      actionType: action,
+      notificationId: item.id,
+      actionId: item.actionId,
+      type: action,
+    });
   };
 
   /**

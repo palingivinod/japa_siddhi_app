@@ -288,6 +288,9 @@ const tryPush = async (
       tokens: unique.slice(0, 500),
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
+        actionType: String(
+          safeExtra.actionType || dataType || 'ADMIN_BROADCAST',
+        ),
         title,
         body: message,
         ...safeExtra,

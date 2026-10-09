@@ -9,7 +9,7 @@ import {AppState, PermissionsAndroid, Platform} from 'react-native';
 
 import apiService from './apiService';
 import {getToken} from './session';
-import {navigateToNotifications} from '../navigation/navigationRef';
+import {openFromPushMessage} from '../navigation/notificationDeepLink';
 
 let started = false;
 let channelReady = false;
@@ -238,45 +238,46 @@ export const startPushNotifications = async () => {
     }
   });
 
-  // When notification is pressed in foreground / background via Notifee
+  // Tray / banner press → deep-link (chant page for goals/challenges).
   unsubscribeNotifee = notifee.onForegroundEvent(({type, detail}) => {
     if (type === EventType.PRESS) {
-      const nid =
-        detail?.notification?.data?.notificationId ||
-        detail?.notification?.data?.id ||
-        detail?.notification?.id;
-      navigateToNotifications(nid ? String(nid) : undefined);
+      openFromPushMessage({
+        data: detail?.notification?.data as Record<string, any>,
+        notification: {
+          title: detail?.notification?.title,
+          body: detail?.notification?.body,
+        },
+      }).catch(() => undefined);
     }
   });
 
-  // When app is in background and opened by pressing an FCM notification
   unsubscribeFcmOpened = messaging().onNotificationOpenedApp(remoteMessage => {
-    const nid =
-      remoteMessage?.data?.notificationId ||
-      remoteMessage?.data?.id;
-    navigateToNotifications(nid ? String(nid) : undefined);
+    openFromPushMessage(remoteMessage).catch(() => undefined);
   });
 
-  // Check if app was opened from quit state by clicking an FCM notification
-  messaging().getInitialNotification().then(remoteMessage => {
-    if (remoteMessage) {
-      const nid =
-        remoteMessage?.data?.notificationId ||
-        remoteMessage?.data?.id;
-      navigateToNotifications(nid ? String(nid) : undefined);
-    }
-  }).catch(() => undefined);
+  messaging()
+    .getInitialNotification()
+    .then(remoteMessage => {
+      if (remoteMessage) {
+        openFromPushMessage(remoteMessage).catch(() => undefined);
+      }
+    })
+    .catch(() => undefined);
 
-  // Check if app was opened from quit state by clicking a Notifee notification
-  notifee.getInitialNotification().then(initialNotification => {
-    if (initialNotification) {
-      const nid =
-        initialNotification?.notification?.data?.notificationId ||
-        initialNotification?.notification?.data?.id ||
-        initialNotification?.notification?.id;
-      navigateToNotifications(nid ? String(nid) : undefined);
-    }
-  }).catch(() => undefined);
+  notifee
+    .getInitialNotification()
+    .then(initialNotification => {
+      if (initialNotification?.notification) {
+        openFromPushMessage({
+          data: initialNotification.notification.data as Record<string, any>,
+          notification: {
+            title: initialNotification.notification.title,
+            body: initialNotification.notification.body,
+          },
+        }).catch(() => undefined);
+      }
+    })
+    .catch(() => undefined);
 
   await registerCurrentToken();
 };

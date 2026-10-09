@@ -203,31 +203,38 @@ const notifyOnce = async (input: {
         String(input.extraData?.pushBody || existing?.extraData?.pushBody || '')
           .trim() ||
         String(existing?.message || input.message).trim();
+      const pack = {...(existing?.extraData || {}), ...(input.extraData || {})};
+      const pushExtra: Record<string, string> = {
+        notificationId: String(notificationId || ''),
+        actionType: String(input.actionType || ''),
+        actionId: String(input.actionId ?? ''),
+      };
+      const copyKeys = [
+        'mantraName',
+        'category',
+        'mantraId',
+        'personalMantraId',
+        'goalId',
+        'challengeId',
+        'dailyTarget',
+        'targetCount',
+        'completedCount',
+        'pendingCount',
+        'mode',
+        'shortLine',
+      ] as const;
+      copyKeys.forEach(key => {
+        const value = pack[key];
+        if (value != null && String(value).trim() !== '') {
+          pushExtra[key] = String(value);
+        }
+      });
       const pushResult = await sendPushToTokens(
         [token],
         pushTitle,
         pushBody,
         input.actionType,
-        {
-          notificationId: String(notificationId || ''),
-          actionType: input.actionType,
-          actionId: String(input.actionId ?? ''),
-          ...(input.extraData?.mantraName || existing?.extraData?.mantraName
-            ? {
-                mantraName: String(
-                  input.extraData?.mantraName ||
-                    existing?.extraData?.mantraName,
-                ),
-              }
-            : {}),
-          ...(input.extraData?.category || existing?.extraData?.category
-            ? {
-                category: String(
-                  input.extraData?.category || existing?.extraData?.category,
-                ),
-              }
-            : {}),
-        },
+        pushExtra,
       );
       if (notificationId && Number(pushResult?.pushSent || 0) > 0) {
         await notificationService.mergeExtraData(

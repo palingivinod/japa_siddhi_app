@@ -7,6 +7,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import {LanguageProvider} from './src/i18n/LanguageContext';
 import {store} from './src/redux/store';
 import {ensureFreshToken} from './src/services/authRefresh';
+import {bindNotifyDeepLinks} from './src/navigation/notificationDeepLink';
 import {
   bindPushToAppLifecycle,
   startPushNotifications,
@@ -52,12 +53,14 @@ export default function App() {
       }
     });
     const pushUnbind = bindPushToAppLifecycle();
+    const deepLinkUnbind = bindNotifyDeepLinks();
 
     return () => {
       cancelled = true;
       unsubToken();
       authSub.remove();
       pushUnbind();
+      deepLinkUnbind();
     };
   }, []);
 

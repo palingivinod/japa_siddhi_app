@@ -7,6 +7,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.Person;
@@ -18,8 +19,8 @@ import java.util.Map;
 /**
  * WhatsApp-style tray: full-color logo on the LEFT of the text.
  *
- * On Android 12+ / many OEMs, setLargeIcon() alone places the image on the
- * RIGHT. MessagingStyle + Person icon is what puts the avatar on the LEFT.
+ * Tap opens japasiddhi://notify?... so React Native Linking can deep-link
+ * (FCM open handlers do not fire for our custom PendingIntent).
  */
 public final class JapaNotificationPresenter {
   private static final String CHANNEL_ID = "fcm_fallback_notification_channel";
@@ -43,8 +44,13 @@ public final class JapaNotificationPresenter {
 
     ensureChannel(context);
 
-    Intent launchIntent = new Intent(context, MainActivity.class);
-    launchIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    Uri deepLink = buildNotifyUri(data, title, body);
+    Intent launchIntent = new Intent(Intent.ACTION_VIEW, deepLink);
+    launchIntent.setClass(context, MainActivity.class);
+    launchIntent.setFlags(
+        Intent.FLAG_ACTIVITY_NEW_TASK
+            | Intent.FLAG_ACTIVITY_CLEAR_TOP
+            | Intent.FLAG_ACTIVITY_SINGLE_TOP);
     for (Map.Entry<String, String> entry : data.entrySet()) {
       launchIntent.putExtra(entry.getKey(), entry.getValue());
     }
@@ -91,6 +97,34 @@ public final class JapaNotificationPresenter {
     if (manager != null) {
       manager.notify((int) (System.currentTimeMillis() % Integer.MAX_VALUE), builder.build());
     }
+  }
+
+  /** japasiddhi://notify?actionType=...&mantraId=... */
+  private static Uri buildNotifyUri(Map<String, String> data, String title, String body) {
+    Uri.Builder builder =
+        new Uri.Builder().scheme("japasiddhi").authority("notify");
+    if (data != null) {
+      for (Map.Entry<String, String> entry : data.entrySet()) {
+        String key = entry.getKey();
+        String value = entry.getValue();
+        if (key == null || value == null) {
+          continue;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+          continue;
+        }
+        // Keep URI short; body text is not needed for routing.
+        if ("body".equals(key) || "message".equals(key) || "pushBody".equals(key)) {
+          continue;
+        }
+        builder.appendQueryParameter(key, trimmed);
+      }
+    }
+    if (title != null && !title.trim().isEmpty() && (data == null || !data.containsKey("title"))) {
+      builder.appendQueryParameter("title", title.trim());
+    }
+    return builder.build();
   }
 
   private static String firstNonEmpty(String... values) {
