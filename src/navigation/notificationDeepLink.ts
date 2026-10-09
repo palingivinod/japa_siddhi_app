@@ -17,7 +17,8 @@ const str = (value: any) => {
 
 /**
  * Route after a notification tap (tray popup or in-app list).
- * - Idle / admin / generic → Notifications
+ * - Idle / generic admin broadcast → Notifications
+ * - Admin new challenge / mantra / reward / banner → that screen
  * - Daily goal pending / goal deadline → Chant for that mantra
  * - Challenge deadline → Chant for that challenge
  * - Challenge reward ready → reward select
@@ -41,14 +42,64 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
+  // Admin created a challenge → that challenge's details page.
+  if (action === 'ADMIN_CHALLENGE_NEW') {
+    const challengeId = num(data.challengeId || data.actionId);
+    if (challengeId) {
+      navigateTo('ChallengeDetails', {id: challengeId});
+      return;
+    }
+    navigateTo('Challenges');
+    return;
+  }
+
+  // Admin created a mantra → mantra select with that mantra pre-selected.
+  if (action === 'ADMIN_MANTRA_NEW') {
+    const mantraId = num(data.mantraId || data.actionId);
+    navigateTo('MantraSelect', {
+      mode: 'community',
+      ...(mantraId ? {mantraId} : {}),
+      ...(str(data.mantraName) ? {mantraName: str(data.mantraName)} : {}),
+    });
+    return;
+  }
+
+  if (action === 'ADMIN_REWARD_NEW' || action === 'ADMIN_PRODUCT_NEW') {
+    navigateTo('Rewards');
+    return;
+  }
+
+  if (action === 'ADMIN_BANNER_NEW') {
+    navigateTo('Home');
+    return;
+  }
+
   if (
     action === 'GOAL_COMPLETED' ||
     action === 'DAILY_GOAL_COMPLETED' ||
     action === 'CHALLENGE_COMPLETED' ||
-    action === 'ADMIN_BROADCAST' ||
     action === 'SUPPORT_TICKET_REPLY' ||
     action === 'SYSTEM'
   ) {
+    navigateTo(
+      'Notifications',
+      notificationId ? {highlightId: notificationId} : undefined,
+    );
+    return;
+  }
+
+  // Manual admin broadcast: deep-link if payload includes a target id.
+  if (action === 'ADMIN_BROADCAST') {
+    const challengeId = num(data.challengeId);
+    if (challengeId) {
+      navigateTo('ChallengeDetails', {id: challengeId});
+      return;
+    }
+    const mantraId = num(data.mantraId);
+    if (mantraId) {
+      navigateTo('MantraSelect', {mode: 'community', mantraId});
+      return;
+    }
     navigateTo(
       'Notifications',
       notificationId ? {highlightId: notificationId} : undefined,

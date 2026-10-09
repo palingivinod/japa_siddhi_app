@@ -30,9 +30,13 @@ const notificationEmoji = (item: any) => {
     action === 'CHALLENGE_DEADLINE' ||
     action === 'CHALLENGE_COMPLETED' ||
     action === 'CHALLENGE_REWARD_READY' ||
+    action === 'ADMIN_CHALLENGE_NEW' ||
     text.includes('challenge')
   ) {
     return '🏆';
+  }
+  if (action === 'ADMIN_MANTRA_NEW' || text.includes('new mantra')) {
+    return '🕉️';
   }
   if (action === 'GOAL_DEADLINE' || text.includes('goal')) {
     return '🎯';

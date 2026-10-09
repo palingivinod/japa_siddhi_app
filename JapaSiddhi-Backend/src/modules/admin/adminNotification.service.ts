@@ -346,16 +346,52 @@ export const sendPushToTokens = (
   extraData?: Record<string, string>,
 ) => tryPush(tokens, title, message, dataType, extraData);
 
+const routingExtraKeys = [
+  'challengeId',
+  'mantraId',
+  'rewardId',
+  'bannerId',
+  'productId',
+  'contentKind',
+  'screen',
+] as const;
+
+const buildRoutingPushExtra = (
+  actionType: string,
+  actionId: number | null,
+  extraData?: Record<string, any>,
+) => {
+  const pushExtra: Record<string, string> = {
+    actionType,
+    actionId: actionId != null ? String(actionId) : '',
+  };
+  routingExtraKeys.forEach(key => {
+    const value = extraData?.[key];
+    if (value != null && String(value).trim() !== '') {
+      pushExtra[key] = String(value);
+    }
+  });
+  return pushExtra;
+};
+
 export const deliverAdminNotification = async (input: {
   title: string;
   message: string;
   target: AdminNotifyTarget;
   translations?: Record<string, any> | string | null;
   extraData?: Record<string, any>;
+  actionType?: string;
+  actionId?: number | null;
 }) => {
   const recipients = await loadRecipients(input.target);
   const parsedTrans = parseJsonSafely(input.translations);
   const BRAND_HEADING = 'Japasiddhi - Bilva Patra Trust';
+  const actionType =
+    String(input.actionType || 'ADMIN_BROADCAST').trim() || 'ADMIN_BROADCAST';
+  const actionId =
+    input.actionId != null && Number(input.actionId) > 0
+      ? Number(input.actionId)
+      : null;
 
   const tokensByLang: Record<string, string[]> = {};
 
@@ -378,8 +414,8 @@ export const deliverAdminNotification = async (input: {
       title: BRAND_HEADING,
       message: pushBody,
       notificationType: 'SYSTEM',
-      actionType: 'ADMIN_BROADCAST',
-      actionId: null,
+      actionType,
+      actionId,
       extraData: {
         target: input.target,
         translations: parsedTrans,
@@ -415,9 +451,9 @@ export const deliverAdminNotification = async (input: {
       tokens,
       pushTitle,
       pushBody,
-      'ADMIN_BROADCAST',
+      actionType,
       {
-        actionType: 'ADMIN_BROADCAST',
+        ...buildRoutingPushExtra(actionType, actionId, input.extraData),
         mantraName: subject,
       },
     );
@@ -434,6 +470,65 @@ export const deliverAdminNotification = async (input: {
     pushFailed: totalPushFailed,
     pushSkipped: totalPushSent > 0 ? null : lastPushSkipped,
   };
+};
+
+/**
+ * When admin adds a mantra / challenge / reward / banner / product,
+ * notify all users (inbox + tray) with a deep-link action type.
+ */
+export const notifyAdminContentCreated = async (input: {
+  kind: 'challenge' | 'mantra' | 'reward' | 'banner' | 'product';
+  id: number | string;
+  name: string;
+}) => {
+  const id = Number(input.id);
+  if (!Number.isFinite(id) || id <= 0) {
+    return {recipientCount: 0, pushSent: 0, pushFailed: 0, pushSkipped: 'no_id'};
+  }
+  const name = String(input.name || '').trim() || 'Update';
+
+  const configs = {
+    challenge: {
+      actionType: 'ADMIN_CHALLENGE_NEW',
+      title: 'New Challenge',
+      message: `"${name}" is now open. Tap to view and join.`,
+      extraData: {challengeId: id, contentKind: 'challenge'},
+    },
+    mantra: {
+      actionType: 'ADMIN_MANTRA_NEW',
+      title: 'New Mantra',
+      message: `"${name}" is now available. Tap to start japa.`,
+      extraData: {mantraId: id, contentKind: 'mantra'},
+    },
+    reward: {
+      actionType: 'ADMIN_REWARD_NEW',
+      title: 'New Reward',
+      message: `"${name}" has been added. Tap to explore rewards.`,
+      extraData: {rewardId: id, contentKind: 'reward'},
+    },
+    banner: {
+      actionType: 'ADMIN_BANNER_NEW',
+      title: 'New Update',
+      message: `${name}. Tap to open Home.`,
+      extraData: {bannerId: id, contentKind: 'banner'},
+    },
+    product: {
+      actionType: 'ADMIN_PRODUCT_NEW',
+      title: 'New Offering',
+      message: `"${name}" is now available. Tap to view.`,
+      extraData: {productId: id, contentKind: 'product'},
+    },
+  } as const;
+
+  const cfg = configs[input.kind];
+  return deliverAdminNotification({
+    title: cfg.title,
+    message: cfg.message,
+    target: 'all',
+    actionType: cfg.actionType,
+    actionId: id,
+    extraData: cfg.extraData,
+  });
 };
 
 export const flushDueAdminNotifications = async () => {
@@ -582,5 +677,7 @@ export const sendAdminNotification = async (input: {
 export default {
   sendAdminNotification,
   flushDueAdminNotifications,
+  notifyAdminContentCreated,
+  deliverAdminNotification,
   mapTarget,
 };

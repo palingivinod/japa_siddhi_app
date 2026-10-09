@@ -1252,10 +1252,20 @@ router.post('/mantras', async (req: Request, res: Response) => {
       isFeatured: Boolean(req.body?.isFeatured),
       translations: req.body?.translations,
     });
+    const mapped = mapMantraRow(created);
+    void import('./adminNotification.service')
+      .then(({notifyAdminContentCreated}) =>
+        notifyAdminContentCreated({
+          kind: 'mantra',
+          id: mapped.id,
+          name: mapped.name || mantraName,
+        }),
+      )
+      .catch(err => console.warn('Mantra create notify failed:', err));
     return res.status(201).json({
       success: true,
       message: 'Mantra created successfully.',
-      data: mapMantraRow(created),
+      data: mapped,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -1596,10 +1606,20 @@ router.post('/challenges', async (req: Request, res: Response) => {
       LIMIT 1`,
     );
 
+    const mapped = mapChallengeRow(created[0]);
+    void import('./adminNotification.service')
+      .then(({notifyAdminContentCreated}) =>
+        notifyAdminContentCreated({
+          kind: 'challenge',
+          id: mapped.id,
+          name: mapped.title || title,
+        }),
+      )
+      .catch(err => console.warn('Challenge create notify failed:', err));
     return res.status(201).json({
       success: true,
       message: 'Challenge created successfully.',
-      data: mapChallengeRow(created[0]),
+      data: mapped,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -2141,6 +2161,15 @@ router.post('/banners', async (req: Request, res: Response) => {
       status: req.body?.status || 'Active',
       translations: req.body?.translations,
     });
+    void import('./adminNotification.service')
+      .then(({notifyAdminContentCreated}) =>
+        notifyAdminContentCreated({
+          kind: 'banner',
+          id: data?.id,
+          name: String(data?.title || req.body?.title || 'Home update'),
+        }),
+      )
+      .catch(err => console.warn('Banner create notify failed:', err));
     return res.status(201).json({
       success: true,
       message: 'Banner created.',
@@ -3669,10 +3698,20 @@ router.post('/rewards', async (req: Request, res: Response) => {
       ORDER BY id DESC
       LIMIT 1
     `);
+    const mapped = mapRewardRow(rows[0]);
+    void import('./adminNotification.service')
+      .then(({notifyAdminContentCreated}) =>
+        notifyAdminContentCreated({
+          kind: 'reward',
+          id: mapped.id,
+          name: mapped.name || name,
+        }),
+      )
+      .catch(err => console.warn('Reward create notify failed:', err));
     return res.status(201).json({
       success: true,
       message: 'Reward created successfully.',
-      data: mapRewardRow(rows[0]),
+      data: mapped,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -3821,10 +3860,20 @@ router.post('/products', async (req: Request, res: Response) => {
       ORDER BY id DESC
       LIMIT 1
     `);
+    const mapped = mapProductRow(rows[0]);
+    void import('./adminNotification.service')
+      .then(({notifyAdminContentCreated}) =>
+        notifyAdminContentCreated({
+          kind: 'product',
+          id: mapped.id,
+          name: mapped.name || name,
+        }),
+      )
+      .catch(err => console.warn('Product create notify failed:', err));
     return res.status(201).json({
       success: true,
       message: 'Product created successfully.',
-      data: mapProductRow(rows[0]),
+      data: mapped,
     });
   } catch (error: any) {
     return res.status(500).json({
