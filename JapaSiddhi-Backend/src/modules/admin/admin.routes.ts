@@ -1611,22 +1611,28 @@ router.post('/challenges', async (req: Request, res: Response) => {
 
     const mapped = mapChallengeRow(created[0]);
     // Await notify so Render does not cut off the work when the HTTP response ends.
+    let notify: any = null;
     try {
       const {notifyAdminContentCreated} = await import(
         './adminNotification.service'
       );
-      await notifyAdminContentCreated({
+      notify = await notifyAdminContentCreated({
         kind: 'challenge',
         id: mapped.id,
         name: mapped.title || title,
       });
+      console.log('Challenge create notify result:', notify);
     } catch (err) {
       console.warn('Challenge create notify failed:', err);
+      notify = {
+        error: err instanceof Error ? err.message : String(err),
+      };
     }
     return res.status(201).json({
       success: true,
       message: 'Challenge created successfully.',
       data: mapped,
+      notify,
     });
   } catch (error: any) {
     return res.status(500).json({

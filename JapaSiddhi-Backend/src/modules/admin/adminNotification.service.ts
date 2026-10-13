@@ -184,38 +184,52 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
     LEFT JOIN languages l ON l.id = u.preferred_language_id
   `;
 
-  if (target === 'blocked') {
-    return mysql.query<any[]>(`
-      SELECT ${selectCols}
-      FROM users u
-      ${joins}
-      WHERE u.deleted_at IS NULL
-        AND UPPER(IFNULL(u.account_status, 'ACTIVE')) IN ('BLOCKED', 'SUSPENDED')
-    `);
-  }
+  try {
+    if (target === 'blocked') {
+      return await mysql.query<any[]>(`
+        SELECT ${selectCols}
+        FROM users u
+        ${joins}
+        WHERE u.deleted_at IS NULL
+          AND UPPER(IFNULL(u.account_status, 'ACTIVE')) IN ('BLOCKED', 'SUSPENDED')
+      `);
+    }
 
-  if (target === 'active_japa') {
-    return mysql.query<any[]>(`
+    if (target === 'active_japa') {
+      return await mysql.query<any[]>(`
+        SELECT ${selectCols}
+        FROM users u
+        ${joins}
+        WHERE u.deleted_at IS NULL
+          AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
+          AND IFNULL((
+            SELECT SUM(js.session_count)
+            FROM japa_sessions js
+            WHERE js.user_id = u.id
+          ), 0) > 0
+      `);
+    }
+
+    return await mysql.query<any[]>(`
       SELECT ${selectCols}
       FROM users u
       ${joins}
       WHERE u.deleted_at IS NULL
         AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
-        AND IFNULL((
-          SELECT SUM(js.session_count)
-          FROM japa_sessions js
-          WHERE js.user_id = u.id
-        ), 0) > 0
+    `);
+  } catch (err) {
+    // Fallback if joins/columns differ across SQLite/MySQL installs.
+    console.warn('loadRecipients primary query failed, using fallback:', err);
+    return mysql.query<any[]>(`
+      SELECT
+        u.id,
+        u.fcm_token AS fcmToken,
+        'en' AS langCode
+      FROM users u
+      WHERE u.deleted_at IS NULL
+        AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
     `);
   }
-
-  return mysql.query<any[]>(`
-    SELECT ${selectCols}
-    FROM users u
-    ${joins}
-    WHERE u.deleted_at IS NULL
-      AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
-  `);
 };
 
 /**
@@ -247,6 +261,7 @@ const tryPush = async (
   message: string,
   dataType = 'ADMIN_BROADCAST',
   extraData?: Record<string, string>,
+  options?: {androidSystemTray?: boolean},
 ) => {
   if (!isWithinNotificationHoursIST()) {
     return {
@@ -281,22 +296,36 @@ const tryPush = async (
         safeExtra[key] = String(value);
       }
     });
-    // Android: data-only so JapaFirebaseMessagingService can set largeIcon
-    // (full-color logo left of text, like WhatsApp profile photo).
-    // Requires APK with that service. iOS still gets APNs alert.
+    const actionType = String(
+      safeExtra.actionType || dataType || 'ADMIN_BROADCAST',
+    );
+    // Admin content: also set Android notification payload so the tray shows
+    // even when the custom data-only FCM service is missing on older installs.
+    // Reminders stay data-only for MessagingStyle logo rendering.
+    const useAndroidTray =
+      options?.androidSystemTray === true ||
+      actionType.startsWith('ADMIN_');
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
-        actionType: String(
-          safeExtra.actionType || dataType || 'ADMIN_BROADCAST',
-        ),
+        actionType,
         title,
         body: message,
         ...safeExtra,
       },
       android: {
         priority: 'high',
+        ...(useAndroidTray
+          ? {
+              notification: {
+                title,
+                body: message,
+                channelId: 'fcm_fallback_notification_channel',
+                sound: 'default',
+              },
+            }
+          : {}),
       },
       apns: {
         headers: {
@@ -411,6 +440,15 @@ export const deliverAdminNotification = async (input: {
     const pushBody = detail || subject;
 
     try {
+      // Keep extra_data small — large translation packs can break inserts.
+      const slimExtra = {
+        target: input.target,
+        mantraName: subject,
+        detail,
+        pushTitle,
+        pushBody,
+        ...(input.extraData || {}),
+      };
       await notificationService.create({
         userId,
         title: BRAND_HEADING,
@@ -418,15 +456,7 @@ export const deliverAdminNotification = async (input: {
         notificationType: 'SYSTEM',
         actionType,
         actionId,
-        extraData: {
-          target: input.target,
-          translations: parsedTrans,
-          mantraName: subject,
-          detail,
-          pushTitle,
-          pushBody,
-          ...(input.extraData || {}),
-        },
+        extraData: slimExtra,
       });
       inboxCreated += 1;
     } catch (err) {
