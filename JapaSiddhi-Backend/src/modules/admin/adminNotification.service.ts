@@ -261,7 +261,6 @@ const tryPush = async (
   message: string,
   dataType = 'ADMIN_BROADCAST',
   extraData?: Record<string, string>,
-  options?: {androidSystemTray?: boolean},
 ) => {
   if (!isWithinNotificationHoursIST()) {
     return {
@@ -296,36 +295,22 @@ const tryPush = async (
         safeExtra[key] = String(value);
       }
     });
-    const actionType = String(
-      safeExtra.actionType || dataType || 'ADMIN_BROADCAST',
-    );
-    // Admin content: also set Android notification payload so the tray shows
-    // even when the custom data-only FCM service is missing on older installs.
-    // Reminders stay data-only for MessagingStyle logo rendering.
-    const useAndroidTray =
-      options?.androidSystemTray === true ||
-      actionType.startsWith('ADMIN_');
+    // Android: data-only so JapaFirebaseMessagingService can draw MessagingStyle
+    // with full-color logo on the LEFT. A system `notification` payload would
+    // make the OS show only the small white icon and skip our custom tray.
     const result = await admin.messaging().sendEachForMulticast({
       tokens: unique.slice(0, 500),
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
-        actionType,
+        actionType: String(
+          safeExtra.actionType || dataType || 'ADMIN_BROADCAST',
+        ),
         title,
         body: message,
         ...safeExtra,
       },
       android: {
         priority: 'high',
-        ...(useAndroidTray
-          ? {
-              notification: {
-                title,
-                body: message,
-                channelId: 'fcm_fallback_notification_channel',
-                sound: 'default',
-              },
-            }
-          : {}),
       },
       apns: {
         headers: {

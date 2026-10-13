@@ -112,10 +112,19 @@ class ChallengeService {
 
   }
 
-  async getActiveChallenges() {
-
-    return challengeRepository.getActiveChallenges();
-
+  async getActiveChallenges(userId?: number) {
+    const rows = await challengeRepository.getActiveChallenges();
+    if (!userId) {
+      return (rows || []).map(row => ({...row, joined: false}));
+    }
+    const open = await challengeRepository.getOpenParticipations(userId);
+    const joinedIds = new Set(
+      (open || []).map((row: any) => Number(row.challengeId || 0)).filter(Boolean),
+    );
+    return (rows || []).map(row => ({
+      ...row,
+      joined: joinedIds.has(Number(row.id || 0)),
+    }));
   }
 
   async join(

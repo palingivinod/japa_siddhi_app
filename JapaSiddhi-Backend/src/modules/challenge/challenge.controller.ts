@@ -47,7 +47,9 @@ class ChallengeController {
     try {
 
       const result =
-        await challengeService.getActiveChallenges();
+        await challengeService.getActiveChallenges(
+          req.user?.id,
+        );
 
       return apiResponse.success(
         res,

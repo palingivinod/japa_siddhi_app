@@ -119,7 +119,7 @@ const ChallengesScreen = () => {
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
 
       {!loading &&
-        items.map((item, index) => {
+        items.map(item => {
           const loc = getLocalizedChallenge(item, language);
           const target = Number(item.targetValue || item.target || 0);
           const mantra = loc.mantra || mantraOf(item);
@@ -130,13 +130,15 @@ const ChallengesScreen = () => {
               ? t('completeChants', {count: target.toLocaleString()})
               : t('joinCommunityChallenge');
           const canResume = Boolean(resumeIds[Number(item.id)]);
+          // Joined / active challenge → orange; others → green.
+          const isSelected = Boolean(item.joined) || canResume;
           return (
             <View key={item.id} style={styles.card}>
               <View style={styles.row}>
                 <View
                   style={[
                     styles.dot,
-                    index === 0 ? styles.dotAccent : styles.dotGreen,
+                    isSelected ? styles.dotAccent : styles.dotGreen,
                   ]}>
                   <View style={styles.dotInner} />
                 </View>
