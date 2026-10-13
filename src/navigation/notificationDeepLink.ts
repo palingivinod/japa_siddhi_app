@@ -163,16 +163,22 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
-  // Idle reminder, expired goals, unknown → Notifications inbox.
+  // Idle / expired → Your Japas (not inbox, not welcome/splash).
+  if (action === 'DAILY_JAPA_REMINDER' || action === 'GOAL_EXPIRED') {
+    navigateTo('YourJapas');
+    return;
+  }
+
+  // Tray taps sometimes arrive without actionType — still route idle text.
+  const blob = `${data.title || ''} ${data.body || ''} ${data.message || ''}`.toLowerCase();
   if (
-    action === 'DAILY_JAPA_REMINDER' ||
-    action === 'GOAL_EXPIRED' ||
-    !action
+    !action &&
+    (blob.includes('not chanted') ||
+      blob.includes('no japas yet today') ||
+      blob.includes("didn't chant") ||
+      blob.includes('did not chant'))
   ) {
-    navigateTo(
-      'Notifications',
-      notificationId ? {highlightId: notificationId} : undefined,
-    );
+    navigateTo('YourJapas');
     return;
   }
 

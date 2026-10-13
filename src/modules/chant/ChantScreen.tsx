@@ -209,6 +209,36 @@ const ChantScreen = () => {
       if (!resolvedDailyTarget && data.dailyTarget) {
         resolvedDailyTarget = Number(data.dailyTarget) || 0;
       }
+      // Resolve this mantra/goal's daily target when opening from reminders.
+      const paramGoalId = Number(route.params?.japaGoalId || 0);
+      if (!resolvedDailyTarget && !challengeId) {
+        try {
+          const goalsRes = await apiService.get('/japa-goals');
+          const goals: any[] = goalsRes.data?.data ?? [];
+          const match = goals.find((g: any) => {
+            const gid = Number(g.id || 0);
+            if (paramGoalId && gid === paramGoalId) {
+              return true;
+            }
+            const status = String(g.status || 'ACTIVE').toUpperCase();
+            if (status !== 'ACTIVE') {
+              return false;
+            }
+            if (personalMantraId && Number(g.personalMantraId || 0) === personalMantraId) {
+              return true;
+            }
+            if (preferredId && Number(g.mantraId || g.mantra_id || 0) === preferredId) {
+              return true;
+            }
+            return false;
+          });
+          if (match) {
+            resolvedDailyTarget = Number(match.dailyTarget || 0) || 0;
+          }
+        } catch {
+          // keep route/summary value
+        }
+      }
       setDailyTarget(resolvedDailyTarget);
 
       // Challenge japa uses its own target/progress — never Antharanga draft/goal.
@@ -783,6 +813,12 @@ const ChantScreen = () => {
                 })
               : t('goalWithCount', {count: goal.toLocaleString()})}
         </Text>
+        {!challengeId && dailyTarget > 0 ? (
+          <Text style={styles.dailyGoalLine}>
+            {t('dailyGoalLabel') || 'Daily Goal'}:{' '}
+            {dailyTarget.toLocaleString()}
+          </Text>
+        ) : null}
         <View style={[styles.tapPromptContainer, goalReached && styles.tapPromptContainerDone]}>
           <Text style={[styles.tapPromptText, goalReached && styles.tapPromptTextDone]}>
             {goalReached
@@ -1000,6 +1036,13 @@ const styles = StyleSheet.create({
     lineHeight: 32,
     color: Colors.sacredBrown,
     marginVertical: 10,
+  },
+  dailyGoalLine: {
+    marginTop: 6,
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    textAlign: 'center',
   },
   countZone: {
     width: '100%',

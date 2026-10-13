@@ -394,6 +394,7 @@ export const deliverAdminNotification = async (input: {
       : null;
 
   const tokensByLang: Record<string, string[]> = {};
+  let inboxCreated = 0;
 
   for (const user of recipients || []) {
     const userId = Number(user.id);
@@ -409,23 +410,28 @@ export const deliverAdminNotification = async (input: {
     const pushTitle = subject;
     const pushBody = detail || subject;
 
-    await notificationService.create({
-      userId,
-      title: BRAND_HEADING,
-      message: pushBody,
-      notificationType: 'SYSTEM',
-      actionType,
-      actionId,
-      extraData: {
-        target: input.target,
-        translations: parsedTrans,
-        mantraName: subject,
-        detail,
-        pushTitle,
-        pushBody,
-        ...(input.extraData || {}),
-      },
-    });
+    try {
+      await notificationService.create({
+        userId,
+        title: BRAND_HEADING,
+        message: pushBody,
+        notificationType: 'SYSTEM',
+        actionType,
+        actionId,
+        extraData: {
+          target: input.target,
+          translations: parsedTrans,
+          mantraName: subject,
+          detail,
+          pushTitle,
+          pushBody,
+          ...(input.extraData || {}),
+        },
+      });
+      inboxCreated += 1;
+    } catch (err) {
+      console.warn('Admin notify inbox create failed for user', userId, err);
+    }
 
     const fcm = String(user.fcmToken || '').trim();
     if (fcm) {
@@ -466,6 +472,7 @@ export const deliverAdminNotification = async (input: {
 
   return {
     recipientCount: (recipients || []).length,
+    inboxCreated,
     pushSent: totalPushSent,
     pushFailed: totalPushFailed,
     pushSkipped: totalPushSent > 0 ? null : lastPushSkipped,

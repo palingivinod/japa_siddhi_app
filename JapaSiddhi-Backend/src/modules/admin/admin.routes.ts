@@ -1253,15 +1253,18 @@ router.post('/mantras', async (req: Request, res: Response) => {
       translations: req.body?.translations,
     });
     const mapped = mapMantraRow(created);
-    void import('./adminNotification.service')
-      .then(({notifyAdminContentCreated}) =>
-        notifyAdminContentCreated({
-          kind: 'mantra',
-          id: mapped.id,
-          name: mapped.name || mantraName,
-        }),
-      )
-      .catch(err => console.warn('Mantra create notify failed:', err));
+    try {
+      const {notifyAdminContentCreated} = await import(
+        './adminNotification.service'
+      );
+      await notifyAdminContentCreated({
+        kind: 'mantra',
+        id: mapped.id,
+        name: mapped.name || mantraName,
+      });
+    } catch (err) {
+      console.warn('Mantra create notify failed:', err);
+    }
     return res.status(201).json({
       success: true,
       message: 'Mantra created successfully.',
@@ -1607,15 +1610,19 @@ router.post('/challenges', async (req: Request, res: Response) => {
     );
 
     const mapped = mapChallengeRow(created[0]);
-    void import('./adminNotification.service')
-      .then(({notifyAdminContentCreated}) =>
-        notifyAdminContentCreated({
-          kind: 'challenge',
-          id: mapped.id,
-          name: mapped.title || title,
-        }),
-      )
-      .catch(err => console.warn('Challenge create notify failed:', err));
+    // Await notify so Render does not cut off the work when the HTTP response ends.
+    try {
+      const {notifyAdminContentCreated} = await import(
+        './adminNotification.service'
+      );
+      await notifyAdminContentCreated({
+        kind: 'challenge',
+        id: mapped.id,
+        name: mapped.title || title,
+      });
+    } catch (err) {
+      console.warn('Challenge create notify failed:', err);
+    }
     return res.status(201).json({
       success: true,
       message: 'Challenge created successfully.',
@@ -2161,15 +2168,18 @@ router.post('/banners', async (req: Request, res: Response) => {
       status: req.body?.status || 'Active',
       translations: req.body?.translations,
     });
-    void import('./adminNotification.service')
-      .then(({notifyAdminContentCreated}) =>
-        notifyAdminContentCreated({
-          kind: 'banner',
-          id: data?.id,
-          name: String(data?.title || req.body?.title || 'Home update'),
-        }),
-      )
-      .catch(err => console.warn('Banner create notify failed:', err));
+    try {
+      const {notifyAdminContentCreated} = await import(
+        './adminNotification.service'
+      );
+      await notifyAdminContentCreated({
+        kind: 'banner',
+        id: data?.id,
+        name: String(data?.title || req.body?.title || 'Home update'),
+      });
+    } catch (err) {
+      console.warn('Banner create notify failed:', err);
+    }
     return res.status(201).json({
       success: true,
       message: 'Banner created.',
@@ -3699,15 +3709,18 @@ router.post('/rewards', async (req: Request, res: Response) => {
       LIMIT 1
     `);
     const mapped = mapRewardRow(rows[0]);
-    void import('./adminNotification.service')
-      .then(({notifyAdminContentCreated}) =>
-        notifyAdminContentCreated({
-          kind: 'reward',
-          id: mapped.id,
-          name: mapped.name || name,
-        }),
-      )
-      .catch(err => console.warn('Reward create notify failed:', err));
+    try {
+      const {notifyAdminContentCreated} = await import(
+        './adminNotification.service'
+      );
+      await notifyAdminContentCreated({
+        kind: 'reward',
+        id: mapped.id,
+        name: mapped.name || name,
+      });
+    } catch (err) {
+      console.warn('Reward create notify failed:', err);
+    }
     return res.status(201).json({
       success: true,
       message: 'Reward created successfully.',
@@ -3861,15 +3874,18 @@ router.post('/products', async (req: Request, res: Response) => {
       LIMIT 1
     `);
     const mapped = mapProductRow(rows[0]);
-    void import('./adminNotification.service')
-      .then(({notifyAdminContentCreated}) =>
-        notifyAdminContentCreated({
-          kind: 'product',
-          id: mapped.id,
-          name: mapped.name || name,
-        }),
-      )
-      .catch(err => console.warn('Product create notify failed:', err));
+    try {
+      const {notifyAdminContentCreated} = await import(
+        './adminNotification.service'
+      );
+      await notifyAdminContentCreated({
+        kind: 'product',
+        id: mapped.id,
+        name: mapped.name || name,
+      });
+    } catch (err) {
+      console.warn('Product create notify failed:', err);
+    }
     return res.status(201).json({
       success: true,
       message: 'Product created successfully.',
