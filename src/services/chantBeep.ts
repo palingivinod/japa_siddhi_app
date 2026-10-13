@@ -9,10 +9,13 @@ type ChantBeepNative = {
   release: () => void;
 };
 
-const NativeBeep: ChantBeepNative | undefined =
-  Platform.OS === 'android'
-    ? (NativeModules.ChantBeep as ChantBeepNative | undefined)
-    : undefined;
+/** Resolve on each call — NativeModules can be empty at first import. */
+const getNativeBeep = (): ChantBeepNative | undefined => {
+  if (Platform.OS !== 'android') {
+    return undefined;
+  }
+  return NativeModules.ChantBeep as ChantBeepNative | undefined;
+};
 
 let enabled = true;
 let settingsLoaded = false;
@@ -31,7 +34,6 @@ const loadSettings = async () => {
   }
 };
 
-// Warm settings once at import (async, non-blocking).
 void loadSettings();
 
 export const setChantBeepEnabled = async (on: boolean) => {
@@ -45,31 +47,37 @@ export const getChantBeepEnabled = async () => {
   return enabled;
 };
 
-/** Preload SoundPool sample (Android). Safe no-op if native module missing. */
 export const preloadChantBeep = () => {
   void loadSettings();
   try {
-    NativeBeep?.preload?.();
+    getNativeBeep()?.preload?.();
   } catch {
     // ignore
   }
 };
 
-/** Play beep instantly — never blocks the JS count path. */
+/** Play beep — never blocks counting. */
 export const playChantBeep = () => {
   if (!enabled) {
     return;
   }
   try {
-    NativeBeep?.play?.();
+    const native = getNativeBeep();
+    if (!native?.play) {
+      if (__DEV__) {
+        console.warn('[chantBeep] NativeModules.ChantBeep missing — rebuild APK');
+      }
+      return;
+    }
+    native.play();
   } catch {
-    // ignore — counting must never wait on audio
+    // ignore
   }
 };
 
 export const releaseChantBeep = () => {
   try {
-    NativeBeep?.release?.();
+    getNativeBeep()?.release?.();
   } catch {
     // ignore
   }

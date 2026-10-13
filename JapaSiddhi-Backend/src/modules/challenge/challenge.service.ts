@@ -485,7 +485,6 @@ class ChallengeService {
         `Email: ${devotee.email}`,
         `Mobile: ${devotee.mobile}`,
         `User ID: ${userId}`,
-        `Claim ID: ${claim?.id || '-'}`,
       ]
         .filter(Boolean)
         .join('\n'),
