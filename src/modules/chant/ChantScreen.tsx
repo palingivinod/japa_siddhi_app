@@ -19,11 +19,7 @@ import {
   getJapaDraft,
   saveJapaDraft,
 } from '../../services/japaDraft';
-import {
-  playChantBeep,
-  preloadChantBeep,
-  releaseChantBeep,
-} from '../../services/chantBeep';
+import {playChantBeep, releaseChantBeep} from '../../services/chantBeep';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -365,17 +361,19 @@ const ChantScreen = () => {
   };
 
   useEffect(() => {
-    preloadChantBeep();
     load();
     return () => {
-      releaseChantBeep();
+      try {
+        releaseChantBeep();
+      } catch {
+        // ignore
+      }
     };
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       setMessage('');
-      preloadChantBeep();
     }, []),
   );
 
@@ -647,7 +645,11 @@ const ChantScreen = () => {
     countRef.current = next;
     setCount(next);
     setMessage('');
-    playChantBeep();
+    try {
+      playChantBeep();
+    } catch {
+      // Beep must never crash chant counting.
+    }
     if (next >= goalRef.current) {
       void finishGoal(next);
       return;
