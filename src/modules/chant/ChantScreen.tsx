@@ -19,7 +19,11 @@ import {
   getJapaDraft,
   saveJapaDraft,
 } from '../../services/japaDraft';
-import {playChantBeep, releaseChantBeep} from '../../services/chantBeep';
+import {
+  playChantBeep,
+  preloadChantBeep,
+  releaseChantBeep,
+} from '../../services/chantBeep';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -361,6 +365,7 @@ const ChantScreen = () => {
   };
 
   useEffect(() => {
+    preloadChantBeep();
     load();
     return () => {
       try {
@@ -616,8 +621,8 @@ const ChantScreen = () => {
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
-      // Ignore accidental double-taps under 250ms; otherwise accept.
-      if (delta < 250) {
+      // Ignore accidental double-taps only; keep counting snappy.
+      if (delta < 80) {
         return;
       }
       const reference = Number(route.params?.durationMs || 0);

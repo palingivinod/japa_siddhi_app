@@ -17,6 +17,7 @@ class MainApplication : Application(), ReactApplication {
         override fun getPackages(): List<ReactPackage> =
             PackageList(this).packages.apply {
               add(FileDownloadPackage())
+              add(ChantBeepPackage())
             }
 
         override fun getJSMainModuleName(): String = "index"

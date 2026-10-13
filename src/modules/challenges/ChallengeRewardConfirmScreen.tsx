@@ -2,14 +2,17 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const ChallengeRewardConfirmScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const challengeId = Number(route.params?.id || 0);
   const rewardId = Number(route.params?.rewardId || 0);
   const rewardName = String(route.params?.rewardName || 'Reward');
@@ -35,6 +38,18 @@ const ChallengeRewardConfirmScreen = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const changeReward = () => {
+    if (saving) {
+      return;
+    }
+    // Back to eligible reward list for this challenge.
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+      return;
+    }
+    navigation.replace('ChallengeRewardSelect', {id: challengeId});
   };
 
   return (
@@ -65,6 +80,11 @@ const ChallengeRewardConfirmScreen = () => {
         title={saving ? 'CONFIRMING...' : 'CONFIRM SELECTION'}
         onPress={confirm}
         disabled={saving}
+      />
+      <View style={styles.gap} />
+      <OutlineButton
+        title={t('changeReward') || 'CHANGE REWARD'}
+        onPress={changeReward}
       />
     </ScreenLayout>
   );
@@ -136,4 +156,5 @@ const styles = StyleSheet.create({
     marginTop: 2,
     lineHeight: 20,
   },
+  gap: {height: 12},
 });

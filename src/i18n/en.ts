@@ -549,6 +549,7 @@ const en = {
   resumeLabel: 'RESUME',
   successfullyCompleted: 'successfully completed',
   confirmRewardChange: 'CONFIRM REWARD CHANGE',
+  changeReward: 'CHANGE REWARD',
   dateRange: '{{start}} – {{end}}',
   dayChallenge: '{{count}} day challenge',
   festivalChallenge: 'Festival challenge',
