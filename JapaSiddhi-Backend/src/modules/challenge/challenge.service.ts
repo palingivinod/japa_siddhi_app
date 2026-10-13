@@ -115,16 +115,49 @@ class ChallengeService {
   async getActiveChallenges(userId?: number) {
     const rows = await challengeRepository.getActiveChallenges();
     if (!userId) {
-      return (rows || []).map(row => ({...row, joined: false}));
+      return (rows || []).map(row => ({
+        ...row,
+        joined: false,
+        completed: false,
+        rewardClaimed: false,
+        rewardDeliverySubmitted: false,
+      }));
     }
-    const open = await challengeRepository.getOpenParticipations(userId);
-    const joinedIds = new Set(
-      (open || []).map((row: any) => Number(row.challengeId || 0)).filter(Boolean),
-    );
-    return (rows || []).map(row => ({
-      ...row,
-      joined: joinedIds.has(Number(row.id || 0)),
-    }));
+    const [parts, claims] = await Promise.all([
+      challengeRepository.getUserParticipations(userId),
+      challengeRepository.getUserRewardClaims(userId),
+    ]);
+    const partById = new Map<number, any>();
+    (parts || []).forEach((row: any) => {
+      const id = Number(row.challengeId || 0);
+      if (id) {
+        partById.set(id, row);
+      }
+    });
+    const claimById = new Map<number, any>();
+    (claims || []).forEach((row: any) => {
+      const id = Number(row.challengeId || 0);
+      if (id) {
+        claimById.set(id, row);
+      }
+    });
+    return (rows || []).map(row => {
+      const id = Number(row.id || 0);
+      const part = partById.get(id);
+      const claim = claimById.get(id);
+      const current = Number(part?.currentValue ?? 0);
+      const target = Number(row.targetValue || 0);
+      const completed = Boolean(part) &&
+        (Number(part.isCompleted || 0) === 1 ||
+          (target > 0 && current >= target));
+      return {
+        ...row,
+        joined: Boolean(part),
+        completed,
+        rewardClaimed: Boolean(claim) || Number(part?.rewardGiven || 0) === 1,
+        rewardDeliverySubmitted: Boolean(claim?.orderId),
+      };
+    });
   }
 
   async join(
@@ -357,14 +390,32 @@ class ChallengeService {
       challengeId,
       userId,
     );
-    if (existing) {
-      throw new Error('Reward already selected for this challenge');
+    if (existing?.orderId) {
+      throw new Error(
+        'Reward order already placed. Selection cannot be changed.',
+      );
     }
+    if (existing && Number(existing.rewardId) === Number(rewardId)) {
+      return {
+        challengeId,
+        rewardId,
+        rewardName: String(existing.rewardName || ''),
+        claimId: existing.id || null,
+        deliverySubmitted: false,
+        changed: false,
+      };
+    }
+
     const reward = await challengeRepository.getRewardById(rewardId);
     if (!reward || Number(reward.isActive ?? reward.is_active ?? 1) !== 1) {
       throw new Error('Reward not found');
     }
-    if (Number(reward.stock || 0) < 1) {
+    // When changing, the previously reserved unit is returned first — still
+    // require stock for a brand-new selection (or a different reward).
+    const stock = Number(reward.stock || 0);
+    const sameAsReserved =
+      existing && Number(existing.rewardId) === Number(rewardId);
+    if (!sameAsReserved && stock < 1) {
       throw new Error('Selected reward is out of stock');
     }
 
@@ -399,33 +450,53 @@ class ChallengeService {
       }
     }
 
-    await challengeRepository.claimReward(
-      challengeId,
-      userId,
-      rewardId,
-      String(reward.name || ''),
-    );
+    const rewardName = String(reward.name || '');
+    let changed = false;
+    if (existing) {
+      await challengeRepository.changeRewardClaim(
+        Number(existing.id),
+        Number(existing.rewardId || 0),
+        rewardId,
+        rewardName,
+      );
+      changed = true;
+    } else {
+      await challengeRepository.claimReward(
+        challengeId,
+        userId,
+        rewardId,
+        rewardName,
+      );
+    }
     const claim = await challengeRepository.getRewardClaim(challengeId, userId);
     const devotee = await this.userSummary(userId);
     await emailOtpService.notifyAdmin(
-      'Challenge reward selected',
+      changed ? 'Challenge reward changed' : 'Challenge reward selected',
       [
-        'A devotee selected a challenge reward.',
+        changed
+          ? 'A devotee changed their challenge reward (before order).'
+          : 'A devotee selected a challenge reward.',
         `Challenge: ${challenge.title || challengeId}`,
-        `Reward: ${String(reward.name || '')}`,
+        `Reward: ${rewardName}`,
+        existing?.rewardName
+          ? `Previous reward: ${String(existing.rewardName)}`
+          : '',
         `Name: ${devotee.name}`,
         `Email: ${devotee.email}`,
         `Mobile: ${devotee.mobile}`,
         `User ID: ${userId}`,
         `Claim ID: ${claim?.id || '-'}`,
-      ].join('\n'),
+      ]
+        .filter(Boolean)
+        .join('\n'),
     );
     return {
       challengeId,
       rewardId,
-      rewardName: String(reward.name || ''),
+      rewardName,
       claimId: claim?.id || null,
       deliverySubmitted: false,
+      changed,
     };
   }
 

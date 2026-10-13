@@ -55,7 +55,8 @@ const ChallengeRewardConfirmScreen = () => {
           <Text style={styles.policyTitle}>Reward Policy</Text>
           <Text style={styles.policy}>One user • One Mala</Text>
           <Text style={styles.policy}>
-            Reward selection cannot be changed after confirmation.
+            You can change to another eligible in-stock reward before placing
+            the order.
           </Text>
         </View>
       </View>

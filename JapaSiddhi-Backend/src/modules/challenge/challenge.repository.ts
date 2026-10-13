@@ -266,6 +266,37 @@ class ChallengeRepository {
     );
   }
 
+  async getUserParticipations(userId: number) {
+    return mysql.query<any[]>(
+      `
+      SELECT
+        cp.challenge_id AS challengeId,
+        cp.current_value AS currentValue,
+        COALESCE(cp.is_completed, 0) AS isCompleted,
+        COALESCE(cp.reward_given, 0) AS rewardGiven
+      FROM challenge_participants cp
+      WHERE cp.user_id = ?
+      `,
+      [userId],
+    );
+  }
+
+  async getUserRewardClaims(userId: number) {
+    return mysql.query<any[]>(
+      `
+      SELECT
+        challenge_id AS challengeId,
+        reward_id AS rewardId,
+        reward_name AS rewardName,
+        order_id AS orderId,
+        order_number AS orderNumber
+      FROM challenge_reward_claims
+      WHERE user_id = ?
+      `,
+      [userId],
+    );
+  }
+
   async updateProgress(
     challengeId: number,
     userId: number,
@@ -547,6 +578,45 @@ class ChallengeRepository {
       AND user_id = ?
       `,
       [challengeId, userId],
+    );
+  }
+
+  /** Swap selected reward before delivery/order is placed; restore prior stock. */
+  async changeRewardClaim(
+    claimId: number,
+    oldRewardId: number,
+    newRewardId: number,
+    newRewardName: string,
+  ) {
+    if (oldRewardId && oldRewardId !== newRewardId) {
+      await mysql.query(
+        `
+        UPDATE challenge_rewards
+        SET stock = stock + 1,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [oldRewardId],
+      );
+    }
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [newRewardId],
+    );
+    await mysql.query(
+      `
+      UPDATE challenge_reward_claims
+      SET
+        reward_id = ?,
+        reward_name = ?
+      WHERE id = ?
+      `,
+      [newRewardId, newRewardName, claimId],
     );
   }
 

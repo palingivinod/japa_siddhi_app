@@ -35,6 +35,7 @@ const ChallengeRewardSelectScreen = () => {
   const challengeId = Number(route.params?.id || 0);
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [claimedId, setClaimedId] = useState<number | null>(null);
   const [claimedName, setClaimedName] = useState('');
   const [deliverySubmitted, setDeliverySubmitted] = useState(false);
   const [claimedOrderId, setClaimedOrderId] = useState<number | null>(null);
@@ -55,13 +56,19 @@ const ChallengeRewardSelectScreen = () => {
         setRewards(sortRewardsCanonical<RewardItem>(data.rewards || []));
         setDeliverySubmitted(Boolean(data.deliverySubmitted));
         if (data.claimed && data.claimedReward?.name) {
+          const id = Number(data.claimedReward.id) || null;
+          setClaimedId(id);
           setClaimedName(String(data.claimedReward.name));
-          setSelectedId(Number(data.claimedReward.id) || null);
+          setSelectedId(id);
           setClaimedOrderId(
             data.claimedReward.orderId
               ? Number(data.claimedReward.orderId)
               : null,
           );
+        } else {
+          setClaimedId(null);
+          setClaimedName('');
+          setClaimedOrderId(null);
         }
       })
       .catch(err => {
@@ -77,9 +84,15 @@ const ChallengeRewardSelectScreen = () => {
   );
 
   const selected = rewards.find(item => item.id === selectedId);
+  const canChangeReward = Boolean(claimedName) && !deliverySubmitted;
+  const selectionChanged =
+    canChangeReward &&
+    selectedId != null &&
+    claimedId != null &&
+    selectedId !== claimedId;
 
   const handleRewardPress = (item: RewardItem) => {
-    if (claimedName) {
+    if (deliverySubmitted) {
       return;
     }
     const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
@@ -96,7 +109,8 @@ const ChallengeRewardSelectScreen = () => {
       );
       return;
     }
-    if (!item.inStock) {
+    // Already-selected reward stays tappable; other rewards need stock.
+    if (!item.inStock && item.id !== claimedId) {
       Alert.alert('Out of Stock', 'This reward item is currently out of stock.');
       return;
     }
@@ -113,13 +127,6 @@ const ChallengeRewardSelectScreen = () => {
         'Already ordered',
         `You already chose ${claimedName} for this challenge.`,
       );
-      return;
-    }
-    if (claimedName && !deliverySubmitted) {
-      navigation.navigate('ChallengeRewardDelivery', {
-        id: challengeId,
-        rewardName: claimedName,
-      });
       return;
     }
     if (!selected) {
@@ -139,8 +146,16 @@ const ChallengeRewardSelectScreen = () => {
       );
       return;
     }
-    if (!selected.inStock) {
+    if (!selected.inStock && selected.id !== claimedId) {
       Alert.alert('Out of stock', 'Choose an in-stock reward to continue.');
+      return;
+    }
+    // Same claimed reward → continue to delivery without re-confirm.
+    if (claimedName && !selectionChanged) {
+      navigation.navigate('ChallengeRewardDelivery', {
+        id: challengeId,
+        rewardName: claimedName,
+      });
       return;
     }
     navigation.navigate('ChallengeRewardConfirm', {
@@ -164,7 +179,7 @@ const ChallengeRewardSelectScreen = () => {
         <Text style={styles.claimed}>
           {deliverySubmitted
             ? `Already claimed: ${claimedName}`
-            : `Selected: ${claimedName}. Add delivery details to place the order.`}
+            : `Selected: ${claimedName}. You can switch to another eligible reward before ordering.`}
         </Text>
       ) : null}
 
@@ -174,7 +189,8 @@ const ChallengeRewardSelectScreen = () => {
           const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
           const localized = getLocalizedReward(item.name, language);
           const isLocked = !eligibility.isEligible;
-          const disabled = Boolean(claimedName);
+          const lockedOut =
+            !item.inStock && item.id !== claimedId && !isLocked;
 
           return (
             <TouchableOpacity
@@ -182,11 +198,11 @@ const ChallengeRewardSelectScreen = () => {
               style={[
                 styles.card,
                 isSelected && styles.cardSelected,
-                !item.inStock && styles.cardOut,
+                lockedOut && styles.cardOut,
                 isLocked && styles.cardLocked,
               ]}
               activeOpacity={0.85}
-              disabled={disabled}
+              disabled={deliverySubmitted}
               onPress={() => handleRewardPress(item)}>
               <View style={styles.cardHeaderRow}>
                 <View
@@ -197,17 +213,12 @@ const ChallengeRewardSelectScreen = () => {
                     <AppIcon name={localized.imageName} size={32} />
                   </View>
                 ) : null}
-                {isLocked ? (
-                  <View style={styles.lockBadge}>
-                    <Text style={styles.lockBadgeText}>🔒 {t('unlocksAt', {target: eligibility.requiredLabel}) || `Unlocks at ${eligibility.requiredLabel}`}</Text>
-                  </View>
-                ) : null}
               </View>
               <Text style={styles.name}>{localized.title || tt(item.name)}</Text>
-              
               {isLocked ? (
                 <Text style={styles.requirementHint}>
-                  {t('unlocksAt', {target: eligibility.requiredLabel}) || `Requires ${eligibility.requiredLabel} Japas`}
+                  {t('unlocksAt', {target: eligibility.requiredLabel}) ||
+                    `Unlocks at ${eligibility.requiredLabel}`}
                 </Text>
               ) : null}
 
@@ -233,11 +244,13 @@ const ChallengeRewardSelectScreen = () => {
 
       <PrimaryButton
         title={
-          claimedName && !deliverySubmitted
-            ? (t('enterDeliveryDetails') || 'ENTER DELIVERY DETAILS')
-            : claimedName && deliverySubmitted
-              ? (t('viewOrder') || 'VIEW ORDER')
-              : (t('chooseReward') || 'CONFIRM REWARD')
+          deliverySubmitted
+            ? t('viewOrder') || 'VIEW ORDER'
+            : selectionChanged
+              ? t('confirmRewardChange') || 'CONFIRM REWARD CHANGE'
+              : claimedName
+                ? t('enterDeliveryDetails') || 'ENTER DELIVERY DETAILS'
+                : t('chooseReward') || 'CONFIRM REWARD'
         }
         onPress={continueConfirm}
         disabled={!claimedName && !selectedId}
@@ -309,17 +322,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF4E0',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  lockBadge: {
-    backgroundColor: '#F0E6D2',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-  },
-  lockBadgeText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#8C6F48',
   },
   requirementHint: {
     fontSize: 12.5,

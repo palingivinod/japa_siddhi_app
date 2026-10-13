@@ -47,7 +47,7 @@ export const buildMilestoneProgress = (totalRaw: number) => {
       target: item.target,
       title: item.title,
       key: item.key,
-      subtitle: `Reach ${item.target.toLocaleString()} Japas`,
+      subtitle: `You will reach this milestone after completing ${item.target.toLocaleString('en-IN')} japa count`,
     })),
     levels: SPIRITUAL_MILESTONES.map(item => ({
       target: item.target,

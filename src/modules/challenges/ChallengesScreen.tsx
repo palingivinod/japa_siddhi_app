@@ -132,6 +132,7 @@ const ChallengesScreen = () => {
           const canResume = Boolean(resumeIds[Number(item.id)]);
           // Joined / active challenge → orange; others → green.
           const isSelected = Boolean(item.joined) || canResume;
+          const rewardOrdered = Boolean(item.rewardDeliverySubmitted);
           return (
             <View key={item.id} style={styles.card}>
               <View style={styles.row}>
@@ -159,7 +160,7 @@ const ChallengesScreen = () => {
                 </View>
               </View>
               <View style={styles.actions}>
-                {canResume ? (
+                {canResume && !rewardOrdered ? (
                   <TouchableOpacity
                     style={styles.resumeBtn}
                     activeOpacity={0.85}
@@ -169,14 +170,22 @@ const ChallengesScreen = () => {
                     <Text style={styles.resumeText}>{t('resumeLabel')}</Text>
                   </TouchableOpacity>
                 ) : null}
-                <TouchableOpacity
-                  style={styles.viewBtn}
-                  activeOpacity={0.85}
-                  onPress={() =>
-                    navigation.navigate('ChallengeDetails', {id: item.id})
-                  }>
-                  <Text style={styles.viewText}>{t('view')}</Text>
-                </TouchableOpacity>
+                {rewardOrdered ? (
+                  <View style={styles.doneBtn}>
+                    <Text style={styles.doneText}>
+                      {t('successfullyCompleted') || 'successfully completed'}
+                    </Text>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.viewBtn}
+                    activeOpacity={0.85}
+                    onPress={() =>
+                      navigation.navigate('ChallengeDetails', {id: item.id})
+                    }>
+                    <Text style={styles.viewText}>{t('view')}</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           );
@@ -268,6 +277,21 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     letterSpacing: 0.4,
+  },
+  doneBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    backgroundColor: '#FFF6E8',
+  },
+  doneText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+    fontSize: 12.5,
+    textTransform: 'lowercase',
   },
   resumeBtn: {
     borderWidth: 1.5,

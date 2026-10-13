@@ -165,6 +165,7 @@ const en = {
   selected: 'Selected',
   tapToSelect: 'Tap to select',
   autoLockJapa: 'Auto-lock during Japa',
+  chantBeepSound: 'Chant beep sound',
   privacy: 'Privacy',
   helpSupport: 'Help & Support',
   japaAnalyticsLabel: 'Japa analytics',
@@ -287,7 +288,9 @@ const en = {
   japasCountLabel: '{{count}} Japas',
   keepGoingHalfway: 'Keep going — you are halfway there.',
   newSpiritualAwaits: 'A new spiritual milestone awaits you.',
-  noMilestoneYet: 'Keep going toward your first Japa milestone.',
+  noMilestoneYet: 'Keep going towards your first Japa milestone.',
+  milestoneReachAfterCount:
+    'You will reach this milestone after completing {{count}} japa count',
   nextMilestoneHint:
     'You have completed {{count}} Japas. Next milestone: {{next}}.',
   allMilestonesComplete: 'You have reached every listed Japa milestone.',
@@ -544,6 +547,8 @@ const en = {
   joinCommunityChallenge: 'Join this community challenge.',
   everyDay: 'Every day',
   resumeLabel: 'RESUME',
+  successfullyCompleted: 'successfully completed',
+  confirmRewardChange: 'CONFIRM REWARD CHANGE',
   dateRange: '{{start}} – {{end}}',
   dayChallenge: '{{count}} day challenge',
   festivalChallenge: 'Festival challenge',

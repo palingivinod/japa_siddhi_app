@@ -1,7 +1,15 @@
-import React, {useState} from 'react';
-import {Alert, StyleSheet, Text} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import ProfileApi from '../auth/services/profileApi';
+import {getStoredUser} from '../../services/session';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
@@ -22,6 +30,63 @@ const ChallengeRewardDeliveryScreen = () => {
   const [state, setState] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadProfile = async () => {
+      try {
+        const [stored, profile] = await Promise.all([
+          getStoredUser(),
+          ProfileApi.getProfile().catch(() => null),
+        ]);
+        if (!active) {
+          return;
+        }
+        const name =
+          profile?.fullName || stored?.fullName || stored?.full_name || '';
+        const phone =
+          profile?.mobileNumber ||
+          stored?.mobileNumber ||
+          stored?.mobile_number ||
+          stored?.phone ||
+          '';
+        const addr = profile?.address || stored?.address || '';
+        const cityName = profile?.cityName || stored?.cityName || '';
+        const stateName = profile?.stateName || stored?.stateName || '';
+        const pin =
+          profile?.pinCode ||
+          profile?.postalCode ||
+          stored?.pinCode ||
+          stored?.postalCode ||
+          '';
+
+        if (name) {
+          setFullName(String(name));
+        }
+        if (phone) {
+          setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+        }
+        if (addr) {
+          setAddress(String(addr));
+        }
+        if (cityName) {
+          setCity(String(cityName));
+        }
+        if (stateName) {
+          setState(String(stateName));
+        }
+        if (pin) {
+          setPinCode(digitsOnly(String(pin)).slice(0, 6));
+        }
+      } catch {
+        // User can enter details manually.
+      }
+    };
+    loadProfile();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const submit = async () => {
     if (
@@ -78,53 +143,64 @@ const ChallengeRewardDeliveryScreen = () => {
 
   return (
     <ScreenLayout title="Reward Delivery" showBack tab="JapaHub">
-      <Text style={styles.heading}>Enter delivery details</Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
+        <Text style={styles.heading}>Enter delivery details</Text>
+        <Text style={styles.hint}>
+          Prefills from your profile when available. Edit any field before
+          submitting.
+        </Text>
 
-      <FormField
-        label="Full Name"
-        placeholder="Enter here"
-        value={fullName}
-        onChangeText={setFullName}
-      />
-      <FormField
-        label="Mobile Number"
-        placeholder="Enter here"
-        value={mobile}
-        onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
-        keyboardType="phone-pad"
-        maxLength={MOBILE_DIGITS}
-      />
-      <FormField
-        label="Address"
-        placeholder="Enter here"
-        value={address}
-        onChangeText={setAddress}
-      />
-      <FormField
-        label="City"
-        placeholder="Enter here"
-        value={city}
-        onChangeText={setCity}
-      />
-      <FormField
-        label="State"
-        placeholder="Enter here"
-        value={state}
-        onChangeText={setState}
-      />
-      <FormField
-        label="PIN Code"
-        placeholder="Enter here"
-        value={pinCode}
-        onChangeText={setPinCode}
-        keyboardType="number-pad"
-      />
+        <FormField
+          label="Full Name"
+          placeholder="Enter here"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+        <FormField
+          label="Mobile Number"
+          placeholder="Enter here"
+          value={mobile}
+          onChangeText={text =>
+            setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))
+          }
+          keyboardType="phone-pad"
+          maxLength={MOBILE_DIGITS}
+        />
+        <FormField
+          label="Address"
+          placeholder="Enter here"
+          value={address}
+          onChangeText={setAddress}
+        />
+        <FormField
+          label="City"
+          placeholder="Enter here"
+          value={city}
+          onChangeText={setCity}
+        />
+        <FormField
+          label="State"
+          placeholder="Enter here"
+          value={state}
+          onChangeText={setState}
+        />
+        <FormField
+          label="PIN Code"
+          placeholder="Enter here"
+          value={pinCode}
+          onChangeText={text => setPinCode(digitsOnly(text).slice(0, 6))}
+          keyboardType="number-pad"
+          maxLength={6}
+        />
 
-      <PrimaryButton
-        title={saving ? 'SUBMITTING...' : 'SUBMIT DELIVERY DETAILS'}
-        onPress={submit}
-        disabled={saving}
-      />
+        <PrimaryButton
+          title={saving ? 'SUBMITTING...' : 'SUBMIT DELIVERY DETAILS'}
+          onPress={submit}
+          disabled={saving}
+        />
+      </KeyboardAvoidingView>
     </ScreenLayout>
   );
 };
@@ -136,6 +212,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 18,
+    marginBottom: 8,
+  },
+  hint: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
   },
 });

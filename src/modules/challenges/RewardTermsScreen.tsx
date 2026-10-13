@@ -8,9 +8,9 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const TERMS = [
   'Reward choice is made after challenge completion.',
-  'Only rewards marked In Stock can be selected.',
-  'If stock is exhausted, selection is disabled.',
-  'A user cannot claim more than one Mala.',
+  'Only eligible, in-stock rewards can be selected.',
+  'You may change to another eligible reward before placing the order.',
+  'After the order is placed, the reward cannot be changed.',
   'Stock changes are reflected automatically.',
 ];
 

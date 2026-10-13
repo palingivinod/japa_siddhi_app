@@ -1,5 +1,11 @@
 import React from 'react';
-import {ScrollView, StyleSheet, View} from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
@@ -28,21 +34,27 @@ const ScreenLayout: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.body}>
-        <AppHeader title={title} showBack={back} showBell={showBell} />
-        {scroll ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="always">
-            {children}
-          </ScrollView>
-        ) : (
-          <View style={styles.fill}>{children}</View>
-        )}
-      </View>
-      {tab ? <BottomTabs active={tab} /> : null}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
+        <View style={styles.body}>
+          <AppHeader title={title} showBack={back} showBell={showBell} />
+          {scroll ? (
+            <ScrollView
+              style={styles.scroll}
+              contentContainerStyle={styles.content}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="always"
+              keyboardDismissMode="on-drag">
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={styles.fill}>{children}</View>
+          )}
+        </View>
+        {tab ? <BottomTabs active={tab} /> : null}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -53,6 +65,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  flex: {
+    flex: 1,
   },
   body: {
     flex: 1,
@@ -66,6 +81,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: 48,
+    // Extra space so focused fields stay above the keyboard.
+    paddingBottom: 140,
   },
 });

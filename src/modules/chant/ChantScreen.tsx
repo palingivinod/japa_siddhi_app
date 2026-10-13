@@ -19,6 +19,11 @@ import {
   getJapaDraft,
   saveJapaDraft,
 } from '../../services/japaDraft';
+import {
+  playChantBeep,
+  preloadChantBeep,
+  releaseChantBeep,
+} from '../../services/chantBeep';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -68,8 +73,9 @@ const ChantScreen = () => {
   );
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
+  const challengeId = Number(route.params?.challengeId || 0);
   const [dailyTarget, setDailyTarget] = useState(
-    Number(route.params?.dailyTarget || 0) || 0,
+    challengeId ? 0 : Number(route.params?.dailyTarget || 0) || 0,
   );
   const [dailyGoalCompletedShown, setDailyGoalCompletedShown] = useState(false);
   const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
@@ -93,7 +99,6 @@ const ChantScreen = () => {
   const postedCountRef = useRef(0);
   const selectedRef = useRef<ChantMantra | null>(null);
   const completingRef = useRef(false);
-  const challengeId = Number(route.params?.challengeId || 0);
 
   countRef.current = count;
   goalRef.current = goal;
@@ -205,38 +210,48 @@ const ChantScreen = () => {
       setShowMantraPicker(isRecentOnly || (!preferred && mode === 'private'));
       let initialCount = Number(route.params?.initialCount || 0);
       let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
-      let resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
-      if (!resolvedDailyTarget && data.dailyTarget) {
-        resolvedDailyTarget = Number(data.dailyTarget) || 0;
-      }
-      // Resolve this mantra/goal's daily target when opening from reminders.
-      const paramGoalId = Number(route.params?.japaGoalId || 0);
-      if (!resolvedDailyTarget && !challengeId) {
-        try {
-          const goalsRes = await apiService.get('/japa-goals');
-          const goals: any[] = goalsRes.data?.data ?? [];
-          const match = goals.find((g: any) => {
-            const gid = Number(g.id || 0);
-            if (paramGoalId && gid === paramGoalId) {
-              return true;
-            }
-            const status = String(g.status || 'ACTIVE').toUpperCase();
-            if (status !== 'ACTIVE') {
+      // Challenges have a total target only — never inherit Antharanga daily goal (e.g. 100).
+      let resolvedDailyTarget = 0;
+      if (!challengeId) {
+        resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
+        if (!resolvedDailyTarget && data.dailyTarget) {
+          resolvedDailyTarget = Number(data.dailyTarget) || 0;
+        }
+        // Resolve this mantra/goal's daily target when opening from reminders.
+        const paramGoalId = Number(route.params?.japaGoalId || 0);
+        if (!resolvedDailyTarget) {
+          try {
+            const goalsRes = await apiService.get('/japa-goals');
+            const goals: any[] = goalsRes.data?.data ?? [];
+            const match = goals.find((g: any) => {
+              const gid = Number(g.id || 0);
+              if (paramGoalId && gid === paramGoalId) {
+                return true;
+              }
+              const status = String(g.status || 'ACTIVE').toUpperCase();
+              if (status !== 'ACTIVE') {
+                return false;
+              }
+              if (
+                personalMantraId &&
+                Number(g.personalMantraId || 0) === personalMantraId
+              ) {
+                return true;
+              }
+              if (
+                preferredId &&
+                Number(g.mantraId || g.mantra_id || 0) === preferredId
+              ) {
+                return true;
+              }
               return false;
+            });
+            if (match) {
+              resolvedDailyTarget = Number(match.dailyTarget || 0) || 0;
             }
-            if (personalMantraId && Number(g.personalMantraId || 0) === personalMantraId) {
-              return true;
-            }
-            if (preferredId && Number(g.mantraId || g.mantra_id || 0) === preferredId) {
-              return true;
-            }
-            return false;
-          });
-          if (match) {
-            resolvedDailyTarget = Number(match.dailyTarget || 0) || 0;
+          } catch {
+            // keep route/summary value
           }
-        } catch {
-          // keep route/summary value
         }
       }
       setDailyTarget(resolvedDailyTarget);
@@ -350,12 +365,17 @@ const ChantScreen = () => {
   };
 
   useEffect(() => {
+    preloadChantBeep();
     load();
+    return () => {
+      releaseChantBeep();
+    };
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       setMessage('');
+      preloadChantBeep();
     }, []),
   );
 
@@ -627,11 +647,13 @@ const ChantScreen = () => {
     countRef.current = next;
     setCount(next);
     setMessage('');
+    playChantBeep();
     if (next >= goalRef.current) {
       void finishGoal(next);
       return;
     }
     if (
+      !challengeId &&
       dailyTarget > 0 &&
       dailyTarget < goalRef.current &&
       !dailyGoalCompletedShown &&

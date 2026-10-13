@@ -180,23 +180,17 @@ const AvailableRewardsScreen = () => {
                   <Text style={styles.rewardName}>
                     {localized.title || tt(item.name)}
                   </Text>
-                  <View style={styles.badgeRow}>
-                    {isLocked ? (
-                      <View style={styles.lockedBadge}>
-                        <Text style={styles.lockedBadgeText}>
-                          🔒 {t('unlocksAt', {target: eligibility.requiredLabel}) || `Unlocks at ${eligibility.requiredLabel}`}
-                        </Text>
-                      </View>
-                    ) : (
+                  {!isLocked ? (
+                    <View style={styles.badgeRow}>
                       <View style={styles.statusBadge}>
                         <Text style={styles.statusText}>
                           {eligibility.requiredJapas > 0
-                            ? `✓ ${t('unlocked') || 'Unlocked'} (${eligibility.requiredLabel})`
+                            ? `✓ ${t('unlocked') || 'Unlocked'}`
                             : t('available') || tt('Available')}
                         </Text>
                       </View>
-                    )}
-                  </View>
+                    </View>
+                  ) : null}
                 </View>
               </View>
               <Text style={styles.description}>
@@ -204,9 +198,13 @@ const AvailableRewardsScreen = () => {
               </Text>
               {isLocked ? (
                 <Text style={styles.remainingHint}>
+                  {t('unlocksAt', {target: eligibility.requiredLabel}) ||
+                    `Unlocks at ${eligibility.requiredLabel}`}
+                  {'\n'}
                   {t('needMoreJapasReward', {
                     count: eligibility.remainingJapas.toLocaleString('en-IN'),
-                  }) || `Need ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward`}
+                  }) ||
+                    `Need ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward`}
                 </Text>
               ) : null}
             </TouchableOpacity>
@@ -329,22 +327,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',
-    includeFontPadding: true,
-  },
-  lockedBadge: {
-    backgroundColor: '#FEF3C7',
-    borderColor: '#D97706',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-  },
-  lockedBadgeText: {
-    color: '#B45309',
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '800',
     includeFontPadding: true,
   },
   rewardCardLocked: {

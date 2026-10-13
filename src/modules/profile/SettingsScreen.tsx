@@ -10,6 +10,10 @@ import ScreenLayout from '../common/ScreenLayout';
 import ProfileApi from '../auth/services/profileApi';
 import {logoutToLogin} from '../../services/logout';
 import apiService, {getApiError} from '../../services/apiService';
+import {
+  getChantBeepEnabled,
+  setChantBeepEnabled,
+} from '../../services/chantBeep';
 
 const SettingsScreen = () => {
   const navigation = useNavigation<any>();
@@ -17,6 +21,7 @@ const SettingsScreen = () => {
   const [languageLabel, setLanguageLabel] = useState('English');
   const [notifications, setNotifications] = useState('On');
   const [autoLock, setAutoLock] = useState('On');
+  const [chantBeep, setChantBeep] = useState('On');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -37,6 +42,9 @@ const SettingsScreen = () => {
         if (value) {
           setAutoLock(value === '1' ? 'On' : 'Off');
         }
+      });
+      getChantBeepEnabled().then(on => {
+        setChantBeep(on ? 'On' : 'Off');
       });
     }, [language]),
   );
@@ -98,6 +106,18 @@ const SettingsScreen = () => {
         onPress={() => toggle('japa_autolock', autoLock, setAutoLock)}>
         <Text style={styles.label}>{t('autoLockJapa')}</Text>
         <Text style={styles.value}>{onLabel(autoLock)}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={async () => {
+          const next = chantBeep === 'On' ? 'Off' : 'On';
+          setChantBeep(next);
+          await setChantBeepEnabled(next === 'On');
+        }}>
+        <Text style={styles.label}>
+          {t('chantBeepSound') || 'Chant beep sound'}
+        </Text>
+        <Text style={styles.value}>{onLabel(chantBeep)}</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}

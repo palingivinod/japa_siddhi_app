@@ -777,7 +777,7 @@ class JapaService {
       title: match?.title || `${level.toLocaleString()} Japas`,
       key: match?.key || `milestone_${level}`,
       subtitle: match
-        ? `Reach ${level.toLocaleString()} Japas`
+        ? `You will reach this milestone after completing ${level.toLocaleString('en-IN')} japa count`
         : 'A new spiritual milestone awaits you.',
     };
   }

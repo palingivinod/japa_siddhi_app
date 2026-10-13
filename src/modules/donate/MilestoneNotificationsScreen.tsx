@@ -98,7 +98,12 @@ const MilestoneNotificationsScreen = () => {
   const milestoneTitle = (item: MilestoneItem) =>
     item.title || t('japasCountLabel', {count: item.target.toLocaleString()});
   const milestoneSub = (item: MilestoneItem) =>
-    item.subtitle || t('newSpiritualAwaits');
+    t('milestoneReachAfterCount', {
+      count: Number(item.target || 0).toLocaleString('en-IN'),
+    }) ||
+    `You will reach this milestone after completing ${Number(
+      item.target || 0,
+    ).toLocaleString('en-IN')} japa count`;
   const achieved = latest > 0;
   const headlineCount = achieved ? latest : total;
 

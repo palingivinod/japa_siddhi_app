@@ -430,24 +430,44 @@ const YourJapasScreen = () => {
                   {tt(item.mantraName)}
                 </Text>
 
-                {/* Dynamic Daily Goal Highlight */}
-                <View style={styles.dailyGoalBox}>
-                  <View style={styles.dailyGoalLeft}>
-                    <Text style={styles.dailyGoalTitle}>🎯 {t('dailyGoalLabel') || 'DAILY GOAL'}</Text>
-                    <Text style={styles.dailyGoalValue}>
-                      {item.dailyTarget.toLocaleString('en-IN')}{' '}
-                      <Text style={styles.dailyGoalUnit}>{t('japasPerDay') || 'Japas / day'}</Text>
-                    </Text>
-                  </View>
-                  {item.endDate ? (
-                    <View style={styles.deadlineRight}>
-                      <Text style={styles.deadlineTitle}>📅 {t('deadlineLabel') || 'DEADLINE'}</Text>
-                      <Text style={styles.deadlineValue}>
-                        {formatDate(item.endDate)}
+                {item.isChallenge ? (
+                  item.endDate ? (
+                    <View style={styles.dailyGoalBox}>
+                      <View style={styles.deadlineRight}>
+                        <Text style={styles.deadlineTitle}>
+                          📅 {t('deadlineLabel') || 'DEADLINE'}
+                        </Text>
+                        <Text style={styles.deadlineValue}>
+                          {formatDate(item.endDate)}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null
+                ) : (
+                  <View style={styles.dailyGoalBox}>
+                    <View style={styles.dailyGoalLeft}>
+                      <Text style={styles.dailyGoalTitle}>
+                        🎯 {t('dailyGoalLabel') || 'DAILY GOAL'}
+                      </Text>
+                      <Text style={styles.dailyGoalValue}>
+                        {item.dailyTarget.toLocaleString('en-IN')}{' '}
+                        <Text style={styles.dailyGoalUnit}>
+                          {t('japasPerDay') || 'Japas / day'}
+                        </Text>
                       </Text>
                     </View>
-                  ) : null}
-                </View>
+                    {item.endDate ? (
+                      <View style={styles.deadlineRight}>
+                        <Text style={styles.deadlineTitle}>
+                          📅 {t('deadlineLabel') || 'DEADLINE'}
+                        </Text>
+                        <Text style={styles.deadlineValue}>
+                          {formatDate(item.endDate)}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+                )}
 
                 {/* Total Progress */}
                 <View style={styles.progressSection}>

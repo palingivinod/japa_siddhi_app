@@ -60,7 +60,11 @@ const formatDay = (raw?: string | null) => {
   if (Number.isNaN(date.getTime())) {
     return value;
   }
-  return date.toLocaleDateString('en-GB', {day: 'numeric', month: 'long'});
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
 };
 
 const mantraLabel = (item: any) => {
@@ -177,17 +181,21 @@ const ChallengeDetailsScreen = () => {
         </View>
       </View>
 
+      <View style={styles.mantraBlock}>
+        <Text style={styles.label}>Mantra</Text>
+        <Text style={styles.mantraValue}>
+          {loc.mantra || mantraLabel(item)}
+        </Text>
+      </View>
+
+      <View style={styles.targetBlock}>
+        <Text style={styles.label}>Target Count</Text>
+        <Text style={styles.value}>
+          {target ? target.toLocaleString() : '—'}
+        </Text>
+      </View>
+
       <View style={styles.grid}>
-        <View style={styles.cell}>
-          <Text style={styles.label}>Mantra</Text>
-          <Text style={styles.value}>{loc.mantra || mantraLabel(item)}</Text>
-        </View>
-        <View style={styles.cell}>
-          <Text style={styles.label}>Target Count</Text>
-          <Text style={styles.value}>
-            {target ? target.toLocaleString() : '—'}
-          </Text>
-        </View>
         <View style={styles.cell}>
           <Text style={styles.label}>Start Date</Text>
           <Text style={styles.value}>{formatDay(item.startDate)}</Text>
@@ -348,6 +356,21 @@ const styles = StyleSheet.create({
     color: '#3E3024',
     fontSize: 13.5,
     lineHeight: 20,
+  },
+  mantraBlock: {
+    width: '100%',
+    marginBottom: 14,
+  },
+  mantraValue: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 24,
+    flexShrink: 1,
+  },
+  targetBlock: {
+    width: '100%',
+    marginBottom: 14,
   },
   grid: {
     flexDirection: 'row',
