@@ -426,10 +426,34 @@ const AdminChallengeCreateScreen = () => {
           {text: 'OK', onPress: () => navigation.goBack()},
         ]);
       } else {
-        await apiService.post('/admin/challenges', payload);
+        const response = await apiService.post('/admin/challenges', payload);
+        const notify = response?.data?.notify;
+        const inbox = Number(notify?.inboxCreated ?? 0);
+        const recipients = Number(notify?.recipientCount ?? 0);
+        const pushSent = Number(notify?.pushSent ?? 0);
+        const pushSkipped = String(notify?.pushSkipped || '').trim();
+        const notifyError = String(notify?.error || '').trim();
+        let notifyLine = '';
+        if (notifyError) {
+          notifyLine = `\n\nNotify failed: ${notifyError}`;
+        } else if (notify) {
+          notifyLine = `\n\nDevotee alerts: ${inbox}/${recipients} inbox`;
+          if (pushSent > 0) {
+            notifyLine += `, ${pushSent} push popup(s)`;
+          } else if (pushSkipped) {
+            notifyLine += `\nPush skipped: ${pushSkipped}`;
+          } else {
+            notifyLine += '\nNo push (no FCM tokens or quiet hours)';
+          }
+          notifyLine +=
+            '\n\nCheck Notifications on a devotee login (not admin).';
+        } else {
+          notifyLine =
+            '\n\nServer did not return notify status. Redeploy backend, then create again.';
+        }
         Alert.alert(
           'Challenge created',
-          'Challenge created with 5-language translation support.',
+          `Challenge created with 5-language translation support.${notifyLine}`,
           [
             {
               text: 'View challenges',
