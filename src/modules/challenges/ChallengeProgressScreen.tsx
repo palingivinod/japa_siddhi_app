@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
@@ -19,7 +19,6 @@ const ChallengeProgressScreen = () => {
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const openedCompleteRef = useRef(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -36,7 +35,6 @@ const ChallengeProgressScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      openedCompleteRef.current = false;
       load();
     }, [load]),
   );
@@ -59,25 +57,6 @@ const ChallengeProgressScreen = () => {
   const rewardClaimed = Boolean(item?.rewardClaimed);
   const rewardDeliverySubmitted = Boolean(item?.rewardDeliverySubmitted);
 
-  useEffect(() => {
-    if (!item || loading || !completed || openedCompleteRef.current) {
-      return;
-    }
-    openedCompleteRef.current = true;
-    navigation.replace('ChallengeComplete', {
-      id: route.params?.id,
-      count: current,
-      goal: target,
-    });
-  }, [
-    item,
-    loading,
-    completed,
-    current,
-    target,
-    navigation,
-    route.params?.id,
-  ]);
   const daily: Array<{day: string; label: string; count: number}> =
     item?.dailyActivity || [];
   const maxDaily = Math.max(1, ...daily.map(row => Number(row.count || 0)));
