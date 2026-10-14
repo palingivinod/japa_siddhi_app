@@ -153,6 +153,11 @@ class ChallengeService {
       return {
         ...row,
         joined: Boolean(part),
+        currentValue: current,
+        progressPercent: Math.min(
+          100,
+          Math.round((current / Math.max(target, 1)) * 100),
+        ),
         completed,
         rewardClaimed: Boolean(claim) || Number(part?.rewardGiven || 0) === 1,
         rewardDeliverySubmitted: Boolean(claim?.orderId),

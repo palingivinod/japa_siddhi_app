@@ -38,6 +38,7 @@ export type ActiveJapaItem = {
   remainingDays: number;
   progressPercent: number;
   isChallenge?: boolean;
+  isCompleted?: boolean;
 };
 
 const formatDate = (raw?: string | null) => {
@@ -214,17 +215,24 @@ const YourJapasScreen = () => {
         rawChallenges.forEach((ch: any) => {
           if (!ch.joined) return;
 
-          const targetCount = Number(ch.targetCount) || 0;
-          const completedCount = Number(ch.currentValue) || 0;
+          const targetCount =
+            Number(ch.targetValue ?? ch.targetCount ?? ch.target) || 0;
+          const completedCount = Number(ch.currentValue ?? 0) || 0;
           const durationDays = Number(ch.durationDays) || 30;
           const remainingDays = ch.endDate
             ? calcDaysRemaining(ch.endDate)
             : durationDays;
           const remainingCount = Math.max(0, targetCount - completedCount);
+          const apiPercent = Number(ch.progressPercent);
           const progressPercent =
-            targetCount > 0
-              ? Math.min(100, Math.round((completedCount / targetCount) * 100))
-              : 0;
+            Number.isFinite(apiPercent) && apiPercent >= 0
+              ? Math.min(100, Math.round(apiPercent))
+              : targetCount > 0
+                ? Math.min(100, Math.round((completedCount / targetCount) * 100))
+                : 0;
+          const isCompleted =
+            Boolean(ch.completed) ||
+            (targetCount > 0 && completedCount >= targetCount);
           const dailyTarget =
             remainingCount <= 0
               ? 0
@@ -246,8 +254,9 @@ const YourJapasScreen = () => {
             startDate: ch.startDate,
             endDate: ch.endDate,
             remainingDays,
-            progressPercent,
+            progressPercent: isCompleted ? 100 : progressPercent,
             isChallenge: true,
+            isCompleted,
           });
         });
       }
@@ -285,6 +294,10 @@ const YourJapasScreen = () => {
 
   const handleChantPress = (item: ActiveJapaItem) => {
     if (item.isChallenge && item.challengeId) {
+      if (item.isCompleted) {
+        navigation.navigate('ChallengeProgress', {id: item.challengeId});
+        return;
+      }
       navigation.navigate('Chant', {
         mode: 'community',
         challengeId: item.challengeId,
@@ -494,13 +507,26 @@ const YourJapasScreen = () => {
                   </View>
                 </View>
 
-                {/* Action: Chant Now */}
-                <TouchableOpacity
-                  style={styles.chantBtn}
-                  activeOpacity={0.85}
-                  onPress={() => handleChantPress(item)}>
-                  <Text style={styles.chantBtnText}>{t('chantNow') || 'CHANT NOW'}</Text>
-                </TouchableOpacity>
+                {/* Action: Chant Now / Completed */}
+                {item.isCompleted ? (
+                  <TouchableOpacity
+                    style={[styles.chantBtn, styles.completedBtn]}
+                    activeOpacity={0.85}
+                    onPress={() => handleChantPress(item)}>
+                    <Text style={styles.chantBtnText}>
+                      {t('successfullyCompleted') || 'SUCCESSFULLY COMPLETED'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.chantBtn}
+                    activeOpacity={0.85}
+                    onPress={() => handleChantPress(item)}>
+                    <Text style={styles.chantBtnText}>
+                      {t('chantNow') || 'CHANT NOW'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })
@@ -797,6 +823,9 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  completedBtn: {
+    backgroundColor: Colors.leafGreen,
   },
   chantBtnText: {
     color: Colors.white,
