@@ -26,6 +26,7 @@ import bannerRoutes from './modules/banner/banner.routes';
 import annadanamRoutes from './modules/annadanam/annadanam.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
 import screensRoutes from './modules/screens/screens.routes';
+import publicWebsiteRoutes from './modules/public/publicWebsite.routes';
 import database from './database/mysql';
 import {getSqlitePath} from './database/sqliteEngine';
 const app = express();
@@ -210,6 +211,11 @@ app.use(
 app.use(
   '/api/v1/screens',
   screensRoutes,
+);
+// Read-only marketing site data (challenges, rewards, counts). No auth.
+app.use(
+  '/api/v1/public',
+  publicWebsiteRoutes,
 );
 
 app.use((error: any, _req: any, res: any, _next: any) => {
