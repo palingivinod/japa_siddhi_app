@@ -15,7 +15,7 @@ const JapaProgressScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [today, setToday] = useState(0);
-  const [goal, setGoal] = useState(2000);
+  const [goal, setGoal] = useState(0);
   const [percent, setPercent] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
@@ -29,17 +29,50 @@ const JapaProgressScreen = () => {
       .then(([progress, summary, goalsRes]) => {
         const data = progress.data.data ?? {};
         const totals = summary.data.data ?? {};
-        const goalsList = goalsRes?.data?.data ?? [];
-        const firstGoal = goalsList[0];
-        const targetGoal = Number(firstGoal?.targetCount || data.goal || 2000);
-        const todayCount = Number(data.todayCount ?? totals.todayJapaCount ?? 0);
-        const progressPct = Math.min(
-          100,
-          Math.round((todayCount / Math.max(targetGoal, 1)) * 100),
+        const goalsList: any[] = goalsRes?.data?.data ?? [];
+        const activeGoal = goalsList.find((g: any) => {
+          if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
+            return false;
+          }
+          const target = Number(g.targetCount ?? 0);
+          const completed = Number(g.completedCount ?? 0);
+          const daily = Number(g.dailyTarget ?? 0);
+          const goalName = String(g.goalName || '').trim();
+          if (
+            target === 10800 &&
+            completed === 0 &&
+            daily === 108 &&
+            goalName === 'Daily Japa'
+          ) {
+            return false;
+          }
+          if (target > 0 && completed >= target) {
+            return false;
+          }
+          return true;
+        });
+
+        // Daily goal UI — never use total targetCount for the bar / completion
+        let dailyGoal = Number(
+          data.dailyGoal ?? data.goal ?? activeGoal?.dailyTarget ?? 0,
         );
+        if (dailyGoal <= 0 && activeGoal) {
+          const target = Number(activeGoal.targetCount ?? 0);
+          const completed = Number(activeGoal.completedCount ?? 0);
+          const remaining = Math.max(0, target - completed);
+          if (remaining > 0) {
+            dailyGoal = remaining;
+          }
+        }
+
+        const todayCount = Number(data.todayCount ?? totals.todayJapaCount ?? 0);
+        const progressPct =
+          dailyGoal > 0
+            ? Math.min(100, Math.round((todayCount / dailyGoal) * 100))
+            : Number(data.progressPercent ?? 0);
 
         setToday(todayCount);
-        setGoal(targetGoal);
+        setGoal(dailyGoal);
         setPercent(progressPct);
         setWeekly(data.weekly ?? []);
         setLifetime(Number(totals.totalJapaCount ?? totals.lifetimeCount ?? 0));

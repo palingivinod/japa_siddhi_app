@@ -5,6 +5,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {useTabSwipe} from '../../navigation/useTabSwipe';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
@@ -15,6 +16,7 @@ const JapaHubScreen = () => {
   const {t} = useLanguage();
   const [today, setToday] = useState(0);
   const [streak, setStreak] = useState(0);
+  const tabSwipe = useTabSwipe('JapaHub');
 
   const items = useMemo(
     () => [
@@ -76,7 +78,10 @@ const JapaHubScreen = () => {
   );
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      {...tabSwipe.panHandlers}>
       <View style={styles.body}>
         <AppHeader title="Japa Chanting" />
         <ScrollView

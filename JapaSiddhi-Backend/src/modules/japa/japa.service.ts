@@ -467,11 +467,23 @@ class JapaService {
   }
 
   private monthLabel(monthKey: string) {
-    const [year, month] = monthKey.split('-').map(Number);
-    return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('en-IN', {
-      month: 'short',
-      timeZone: 'UTC',
-    });
+    // Fixed 3-letter labels so chart axis stays aligned (en-IN "Sept" wraps).
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    const [, month] = monthKey.split('-').map(Number);
+    return months[Math.max(0, Math.min(11, (month || 1) - 1))] || '';
   }
 
   private fillCurrentMonthWeeks(counts: Record<string, number>) {
@@ -888,12 +900,51 @@ class JapaService {
       japaRepository.getWeeklyBreakdown(userId),
       japaGoalRepository.getUserGoals(userId),
     ]);
-    const goal = Number(goals?.[0]?.targetCount ?? goals?.[0]?.dailyTarget ?? 2000);
+    const active = (goals || []).find((g: any) => {
+      if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
+        return false;
+      }
+      const target = Number(g.targetCount ?? 0);
+      const completed = Number(g.completedCount ?? 0);
+      const daily = Number(g.dailyTarget ?? 0);
+      const goalName = String(g.goalName || '').trim();
+      // Hide unused signup auto-seed
+      if (
+        target === 10800 &&
+        completed === 0 &&
+        daily === 108 &&
+        goalName === 'Daily Japa'
+      ) {
+        return false;
+      }
+      if (target > 0 && completed >= target) {
+        return false;
+      }
+      return true;
+    });
+    // Daily progress UI must use dailyTarget — not total targetCount
+    let dailyGoal = Number(active?.dailyTarget ?? 0);
+    if (dailyGoal <= 0 && active) {
+      const target = Number(active.targetCount ?? 0);
+      const completed = Number(active.completedCount ?? 0);
+      const remaining = Math.max(0, target - completed);
+      if (remaining > 0) {
+        dailyGoal = remaining;
+      }
+    }
+    if (dailyGoal <= 0) {
+      dailyGoal = Number(goals?.[0]?.dailyTarget ?? 0) || 0;
+    }
     const today = Number(summary.todayJapaCount ?? 0);
     return {
       todayCount: today,
-      goal,
-      progressPercent: Math.min(100, Math.round((today / Math.max(goal, 1)) * 100)),
+      goal: dailyGoal,
+      dailyGoal,
+      targetCount: Number(active?.targetCount ?? 0),
+      progressPercent: Math.min(
+        100,
+        Math.round((today / Math.max(dailyGoal, 1)) * 100),
+      ),
       weekly,
       lifetime: summary.totalJapaCount,
     };

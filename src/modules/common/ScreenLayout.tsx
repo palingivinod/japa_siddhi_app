@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
+import {useTabSwipe} from '../../navigation/useTabSwipe';
 import Colors from '../../theme/colors';
 import AppHeader from './AppHeader';
 import BottomTabs, {TabKey} from './BottomTabs';
@@ -31,9 +32,15 @@ const ScreenLayout: React.FC<Props> = ({
 }) => {
   // Tab roots hide back unless explicitly requested. Stack pages show back.
   const back = showBack ?? (tab ? false : true);
+  // WhatsApp-style swipe only on main tab roots (not nested pages with back)
+  const swipeEnabled = Boolean(tab) && !back;
+  const tabSwipe = useTabSwipe(tab || 'Home', swipeEnabled);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      {...(swipeEnabled ? tabSwipe.panHandlers : {})}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

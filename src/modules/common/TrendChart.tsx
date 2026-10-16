@@ -41,7 +41,15 @@ const TrendChart = ({values}: {values: TrendPoint[]}) => {
                 {height: Math.max(8, Math.round((item.value / max) * 72))},
               ]}
             />
-            {item.label ? <Text style={styles.label}>{item.label}</Text> : null}
+            {item.label ? (
+              <Text
+                style={styles.label}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}>
+                {item.label.length > 3 ? item.label.slice(0, 3) : item.label}
+              </Text>
+            ) : null}
           </View>
         ))}
       </View>
@@ -94,5 +102,7 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontSize: 10,
     fontWeight: '700',
+    textAlign: 'center',
+    width: '100%',
   },
 });

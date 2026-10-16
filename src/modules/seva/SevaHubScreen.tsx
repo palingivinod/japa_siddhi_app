@@ -5,6 +5,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import AppIcon, {AppIconName} from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {useTabSwipe} from '../../navigation/useTabSwipe';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import AppHeader from '../common/AppHeader';
@@ -14,6 +15,7 @@ const SevaHubScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [annadanamEnabled, setAnnadanamEnabled] = useState(true);
+  const tabSwipe = useTabSwipe('SevaHub');
 
   useFocusEffect(
     useCallback(() => {
@@ -61,7 +63,10 @@ const SevaHubScreen = () => {
   }, [t, annadanamEnabled]);
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      {...tabSwipe.panHandlers}>
       <View style={styles.body}>
         <AppHeader title="Seva" />
         <ScrollView

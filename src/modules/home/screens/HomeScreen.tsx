@@ -20,6 +20,7 @@ import {
   formatPanchangDisplayDate,
   PanchangPayload,
 } from '../../../services/panchang';
+import {useTabSwipe} from '../../../navigation/useTabSwipe';
 import {getLastChantedJapa, getStoredUser} from '../../../services/session';
 import {getJapaDraft} from '../../../services/japaDraft';
 import Colors from '../../../theme/colors';
@@ -465,9 +466,13 @@ const HomeScreen = () => {
     }
     return annadanamVisibility.any;
   });
+  const tabSwipe = useTabSwipe('Home');
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right']}
+      {...tabSwipe.panHandlers}>
       <View style={styles.body}>
         <AppHeader
           title="Japa Siddhi"
