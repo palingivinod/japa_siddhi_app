@@ -151,6 +151,7 @@ export const hi: TranslationDict = {
   logout: 'लॉग आउट',
   devoteeName: 'भक्त का नाम',
   autoLockJapa: 'जप के दौरान ऑटो-लॉक',
+  chantBeepSound: 'जप बीप ध्वनि',
   privacy: 'गोपनीयता',
   helpSupport: 'सहायता और समर्थन',
   japaAnalyticsLabel: 'जप विश्लेषण',
@@ -180,6 +181,15 @@ export const hi: TranslationDict = {
   japaProgress: 'जप प्रगति',
   rateYourExperience: 'अपने अनुभव को रेट करें',
   raiseTicket: 'टिकट उठाएँ',
+  myTickets: 'मेरे टिकट',
+  myTicketsSub: 'उत्तर और हल स्थिति देखें',
+  noTicketsYet: 'आपने अभी तक कोई टिकट नहीं उठाया है।',
+  supportReply: 'सहायता उत्तर',
+  waitingForSupport: 'सहायता उत्तर की प्रतीक्षा…',
+  ticketOpen: 'खुला',
+  ticketInProgress: 'प्रगति में',
+  ticketSolved: 'हल हो गया',
+  couldNotLoadFaq: 'FAQ लोड नहीं हो सका।',
   shareFeedback: 'प्रतिक्रिया साझा करें',
   reviewApplication: 'आवेदन की समीक्षा',
   donationForm: 'सेवा फ़ॉर्म',
@@ -196,6 +206,20 @@ export const hi: TranslationDict = {
   donationConfirmed: 'सेवा पुष्ट',
   japaChallenges: 'जप चुनौतियाँ',
   faq: 'अक्सर पूछे जाने वाले प्रश्न',
+  faqHowJapaWorksQ: 'जप कैसे काम करता है?',
+  faqHowJapaWorksA:
+    'जप आपके चुने हुए मंत्र और दैनिक लक्ष्य के अनुसार प्रत्येक मान्य टैप की गिनती करता है।',
+  faqCountsProtectedQ: 'जप गिनती कैसे सुरक्षित रहती है?',
+  faqCountsProtectedA:
+    'प्रत्येक सत्र आपके खाते में सहेजा जाता है, इसलिए प्रगति सभी डिवाइस पर आपके साथ रहती है।',
+  faqDonateAnnadanamQ: 'मैं अन्नदान कैसे करूँ?',
+  faqDonateAnnadanamA:
+    'सेवा खोलें, अन्नदान चुनें, जप या सामान्य अर्पण चुनें, फिर भुगतान पूरा करें।',
+  faqTrackOrderQ: 'मैं अपना ऑर्डर कैसे ट्रैक करूँ?',
+  faqTrackOrderA: 'ऑर्डर खोलें, VIEW टैप करें, फिर ऑर्डर ट्रैक करें का उपयोग करें।',
+  faqChangeLanguageQ: 'मैं भाषा कैसे बदलूँ?',
+  faqChangeLanguageA:
+    'प्रोफ़ाइल > सेटिंग्स > भाषा पर जाएँ और अपनी पसंदीदा भाषा चुनें।',
   generalAnnadanam: 'सामान्य अन्नदान',
   callSupport: 'कॉल सहायता',
   challengeProgress: 'चुनौती प्रगति',
@@ -806,6 +830,7 @@ export const te: TranslationDict = {
   logout: 'లాగ్ అవుట్',
   devoteeName: 'భక్తుని పేరు',
   autoLockJapa: 'జపం సమయంలో ఆటో-లాక్',
+  chantBeepSound: 'జపం బీప్ ధ్వని',
   privacy: 'గోప్యత',
   helpSupport: 'సహాయం & మద్దతు',
   japaAnalyticsLabel: 'జప విశ్లేషణ',
@@ -1116,10 +1141,34 @@ export const te: TranslationDict = {
   rateYourExperience: 'మీ అనుభవాన్ని రేట్ చేయండి',
   shareFeedback: 'అభిప్రాయం పంచుకోండి',
   raiseTicket: 'టికెట్ నమోదు చేయండి',
+  myTickets: 'నా టికెట్లు',
+  myTicketsSub: 'సమాధానాలు మరియు పరిష్కార స్థితి చూడండి',
+  noTicketsYet: 'మీరు ఇంకా ఏ టికెట్‌ను నమోదు చేయలేదు.',
+  supportReply: 'సహాయ సమాధానం',
+  waitingForSupport: 'సహాయ సమాధానం కోసం వేచి ఉంది…',
+  ticketOpen: 'తెరిచి ఉంది',
+  ticketInProgress: 'పురోగతిలో ఉంది',
+  ticketSolved: 'పరిష్కరించబడింది',
+  couldNotLoadFaq: 'FAQ లోడ్ కాలేదు.',
   reviewApplication: 'దరఖాస్తు సమీక్ష',
   whatsappSupport: 'వాట్సాప్ సహాయం',
   callSupport: 'కాల్ సహాయం',
   faq: 'తరచూ అడిగే ప్రశ్నలు',
+  faqHowJapaWorksQ: 'జపం ఎలా పని చేస్తుంది?',
+  faqHowJapaWorksA:
+    'జపం మీరు ఎంచుకున్న మంత్రం మరియు రోజువారీ లక్ష్యం ప్రకారం ప్రతి చెల్లుబాటు అయ్యే ట్యాప్‌ను లెక్కిస్తుంది.',
+  faqCountsProtectedQ: 'జప లెక్కలు ఎలా సురక్షితంగా ఉంటాయి?',
+  faqCountsProtectedA:
+    'ప్రతి సెషన్ మీ ఖాతాలో సేవ్ అవుతుంది, కాబట్టి పురోగతి అన్ని పరికరాల్లో మీతోనే ఉంటుంది.',
+  faqDonateAnnadanamQ: 'అన్నదానం ఎలా చేయాలి?',
+  faqDonateAnnadanamA:
+    'సేవ తెరవండి, అన్న సంతర్పణం ఎంచుకోండి, జప లేదా సాధారణ అర్పణ ఎంచుకుని చెల్లింపు పూర్తి చేయండి.',
+  faqTrackOrderQ: 'నా ఆర్డర్‌ను ఎలా ట్రాక్ చేయాలి?',
+  faqTrackOrderA:
+    'ఆర్డర్లు తెరవండి, VIEW నొక్కండి, తర్వాత ఆర్డర్ ట్రాక్ చేయండి ఉపయోగించండి.',
+  faqChangeLanguageQ: 'భాషను ఎలా మార్చాలి?',
+  faqChangeLanguageA:
+    'ప్రొఫైల్ > సెట్టింగులు > భాషకు వెళ్లి మీకు కావాల్సిన భాషను ఎంచుకోండి.',
   allScreens: 'అన్ని స్క్రీన్‌లు 0–64',
   designSystem: 'జప సిద్ధి డిజైన్ సిస్టమ్',
 
@@ -1495,6 +1544,23 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Om Shreem Mahalakshmyai Namah': 'mantraOmShreemMahalakshmyai',
   'Om Aim Saraswatyai Namah': 'mantraOmAimSaraswatyai',
   'Om Shri Hanumate Namah': 'mantraOmShriHanumate',
+
+  // FAQ questions/answers from support_faqs (English source).
+  'How does Japa work?': 'faqHowJapaWorksQ',
+  'How are Japa counts protected?': 'faqCountsProtectedQ',
+  'How do I donate Annadanam?': 'faqDonateAnnadanamQ',
+  'How do I track my order?': 'faqTrackOrderQ',
+  'How do I change language?': 'faqChangeLanguageQ',
+  'Japa counts each valid tap against your selected mantra and daily goal.':
+    'faqHowJapaWorksA',
+  'Each session is saved to your account so progress stays with you across devices.':
+    'faqCountsProtectedA',
+  'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.':
+    'faqDonateAnnadanamA',
+  'Open Orders, tap VIEW, then use Track Order.': 'faqTrackOrderA',
+  'Go to Profile > Settings > Language.': 'faqChangeLanguageA',
+  'Go to Profile > Settings > Language and choose your preferred language.':
+    'faqChangeLanguageA',
 
   // Challenge copy that the admin stores in English.
   'Festival challenge': 'festivalChallenge',

@@ -197,6 +197,7 @@ const en = {
   ticketOpen: 'Open',
   ticketInProgress: 'In progress',
   ticketSolved: 'Solved',
+  couldNotLoadFaq: 'Could not load FAQ.',
   shareFeedback: 'Share Feedback',
   reviewApplication: 'Review Application',
   donationForm: 'Offering Form',
@@ -213,6 +214,20 @@ const en = {
   donationConfirmed: 'Offering Confirmed',
   japaChallenges: 'Japa Challenges',
   faq: 'FAQ',
+  faqHowJapaWorksQ: 'How does Japa work?',
+  faqHowJapaWorksA:
+    'Japa counts each valid tap against your selected mantra and daily goal.',
+  faqCountsProtectedQ: 'How are Japa counts protected?',
+  faqCountsProtectedA:
+    'Each session is saved to your account so progress stays with you across devices.',
+  faqDonateAnnadanamQ: 'How do I donate Annadanam?',
+  faqDonateAnnadanamA:
+    'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.',
+  faqTrackOrderQ: 'How do I track my order?',
+  faqTrackOrderA: 'Open Orders, tap VIEW, then use Track Order.',
+  faqChangeLanguageQ: 'How do I change language?',
+  faqChangeLanguageA:
+    'Go to Profile > Settings > Language and choose your preferred language.',
   generalAnnadanam: 'General Anna Santharpanam',
   callSupport: 'Call Support',
   challengeProgress: 'Challenge Progress',

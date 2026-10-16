@@ -318,26 +318,12 @@ class AuthService {
   }
 
   private async setupNewUser(user: AuthUser): Promise<void> {
-    const {default: japaGoalRepository} = await import(
-      '../japaGoal/japaGoal.repository'
-    );
     const {default: familyRepository} = await import(
       '../family/family.repository'
     );
 
-    await japaGoalRepository.createGoal({
-      userId: user.id,
-      mantraType: 'DEFAULT',
-      mantraId: 1,
-      personalMantraId: null,
-      goalName: 'Daily Japa',
-      targetCount: 10800,
-      remainingCount: 10800,
-      dailyTarget: 108,
-      startDate: new Date().toISOString().slice(0, 10),
-      endDate: '2026-12-31',
-      notes: 'Personal sadhana',
-    });
+    // Do not auto-create a Daily Japa / Om Namah Shivaya goal.
+    // Home should stay empty until the devotee sets their own goal.
 
     const familyId = await familyRepository.createFamily({
       userId: user.id,

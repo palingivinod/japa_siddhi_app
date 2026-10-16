@@ -107,6 +107,15 @@ const YourJapasScreen = () => {
         const validGoals = rawGoals.filter((goal: any) => {
           const status = String(goal.status || 'ACTIVE').toUpperCase();
           if (status !== 'ACTIVE') return false;
+          // Hide unused signup auto-seed ("Daily Japa" / 10800 / 108) until user sets a real goal
+          if (
+            Number(goal.targetCount) === 10800 &&
+            Number(goal.completedCount || 0) === 0 &&
+            Number(goal.dailyTarget || 0) === 108 &&
+            String(goal.goalName || '').trim() === 'Daily Japa'
+          ) {
+            return false;
+          }
           // Filter out dummy 10800 auto-goal with 0 chants if user has another active goal for the same mantra
           if (
             Number(goal.targetCount) === 10800 &&

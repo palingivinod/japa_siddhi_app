@@ -172,6 +172,17 @@ const HomeScreen = () => {
           }
           const completed = Number(item.completedCount ?? item.completed_count ?? 0);
           const target = Number(item.targetCount ?? item.target_count ?? 0);
+          const daily = Number(item.dailyTarget ?? item.daily_target ?? 0);
+          const goalName = String(item.goalName ?? item.goal_name ?? '').trim();
+          // Signup used to auto-seed "Daily Japa" / 10800 / 108 — hide until user sets a real goal
+          if (
+            target === 10800 &&
+            completed === 0 &&
+            daily === 108 &&
+            goalName === 'Daily Japa'
+          ) {
+            return false;
+          }
           if (target > 0 && completed >= target) {
             return false;
           }
@@ -223,27 +234,11 @@ const HomeScreen = () => {
           active = activeGoals[0];
         }
 
-        // If no active goal is configured yet but devotee chanted today, show today's top chanted mantra
-        if (!active && todayTotals.length > 0 && Number(todayTotals[0].total || 0) > 0) {
-          const topChanted = todayTotals[0];
-          active = {
-            id: 0,
-            goalName: topChanted.mantraName || 'Daily Japa',
-            mantraId: topChanted.mantraId || null,
-            personalMantraId: topChanted.personalMantraId || null,
-            mantraType: topChanted.personalMantraId ? 'PERSONAL' : 'DEFAULT',
-            mantraName: topChanted.mantraName || 'Japa',
-            targetCount: 108,
-            completedCount: Number(topChanted.total || 0),
-            todayCompletedCount: Number(topChanted.total || 0),
-            dailyTarget: 108,
-            status: 'ACTIVE',
-          };
-        }
+        // No invented 108 daily goal — only show what the devotee configured
 
         if (active) {
           const targetCount =
-            Number(active.targetCount ?? active.target_count) || 108;
+            Number(active.targetCount ?? active.target_count) || 0;
           const completedCount =
             Number(active.completedCount ?? active.completed_count) || 0;
           let todayCompletedCount =
