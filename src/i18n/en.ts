@@ -358,6 +358,7 @@ const en = {
   chartYearMonths: 'Year {{year}} from saved Japa',
   chartLast12Months: 'Last 12 months from saved Japa',
   chartLast7Days: 'Last 7 days from saved Japa',
+  chartLast5Weeks: 'Last 5 weeks — each bar is 7 days total',
   chartThisMonthWeeks: 'This month, grouped by week',
   chartStreakDays: 'Last 7 days — keep a bar on every day',
   byMantraLifetime: 'Lifetime count for each mantra',

@@ -34,7 +34,7 @@ type Period =
 const CHART_CAPTION: Record<Period, TranslationKey> = {
   overview: 'chartLast12Months',
   daily: 'chartLast7Days',
-  weekly: 'chartLast7Days',
+  weekly: 'chartLast5Weeks',
   monthly: 'chartThisMonthWeeks',
   lifetime: 'chartLast12Months',
   goals: 'chartLast7Days',

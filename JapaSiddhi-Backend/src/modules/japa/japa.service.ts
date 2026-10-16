@@ -495,10 +495,36 @@ class JapaService {
       const end = Math.min(start + 6, lastDay);
       let value = 0;
       for (let day = start; day <= end; day += 1) {
-        const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const key = `${year}-${String(month).padStart(2, '0')}-${String(
+          day,
+        ).padStart(2, '0')}`;
         value += Number(counts[key] ?? 0);
       }
+      // Full day ranges (e.g. 8-14, 15-21) — do not shorten on the client
       points.push({label: `${start}-${end}`, value});
+    }
+    return points;
+  }
+
+  /** Last N weeks as 7-day totals (oldest → newest). Labels = week date span. */
+  private fillRecentWeeks(weeks: number, counts: Record<string, number>) {
+    const today = this.istDay(new Date());
+    const points: Array<{label: string; value: number}> = [];
+    for (let w = weeks - 1; w >= 0; w -= 1) {
+      const end = this.shiftIsoDay(today, -w * 7);
+      const start = this.shiftIsoDay(end, -6);
+      let value = 0;
+      for (let d = 0; d < 7; d += 1) {
+        const day = this.shiftIsoDay(start, d);
+        value += Number(counts[day] ?? 0);
+      }
+      const [, sm, sd] = start.split('-').map(Number);
+      const [, em, ed] = end.split('-').map(Number);
+      const label =
+        sm === em
+          ? `${sd}-${ed}`
+          : `${sd}/${sm}-${ed}/${em}`;
+      points.push({label, value});
     }
     return points;
   }
@@ -649,9 +675,12 @@ class JapaService {
       label: string;
       value: number;
     }>;
+    // Weekly screen: 5 bars of 7-day totals (not the same daily chart as Daily)
+    const recentWeeksTrend = this.fillRecentWeeks(5, counts);
     const monthTrend = this.fillCurrentMonthWeeks(counts);
     const lifeTrend = this.fillMonthsForYear(selectedYear, counts);
     const weekValues = weekTrend.map(item => item.value);
+    const recentWeekValues = recentWeeksTrend.map(item => item.value);
     const monthValues = monthTrend.map(item => item.value);
     const weekTotal = weekValues.reduce((sum, value) => sum + value, 0);
     const monthTotal = monthValues.reduce((sum, value) => sum + value, 0);
@@ -705,9 +734,12 @@ class JapaService {
               Math.round((summary.weeklyJapaCount || weekTotal) / 7) || 0,
             ),
           },
-          {label: 'BEST DAY', value: String(Math.max(...weekValues, 0))},
+          {
+            label: 'BEST WEEK',
+            value: String(Math.max(...recentWeekValues, 0)),
+          },
         ],
-        trend: weekTrend,
+        trend: recentWeeksTrend,
         insight,
         byMantra: byMantraWeek,
       },

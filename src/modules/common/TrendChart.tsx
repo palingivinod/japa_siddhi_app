@@ -13,6 +13,18 @@ const toPoints = (values: TrendPoint[]) =>
       : {label: item.label || '', value: Number(item.value || 0)},
   );
 
+/** Only shorten month-only names (Sept→Sep). Keep day ranges like 8-14 intact. */
+const displayLabel = (label: string) => {
+  const trimmed = String(label || '').trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (/^[A-Za-z]+$/.test(trimmed) && trimmed.length > 3) {
+    return trimmed.slice(0, 3);
+  }
+  return trimmed;
+};
+
 const TrendChart = ({values}: {values: TrendPoint[]}) => {
   const {t} = useLanguage();
   const points = toPoints(values);
@@ -46,8 +58,8 @@ const TrendChart = ({values}: {values: TrendPoint[]}) => {
                 style={styles.label}
                 numberOfLines={1}
                 adjustsFontSizeToFit
-                minimumFontScale={0.7}>
-                {item.label.length > 3 ? item.label.slice(0, 3) : item.label}
+                minimumFontScale={0.65}>
+                {displayLabel(item.label)}
               </Text>
             ) : null}
           </View>
@@ -100,7 +112,7 @@ const styles = StyleSheet.create({
   label: {
     marginTop: 6,
     color: Colors.leafGreen,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '700',
     textAlign: 'center',
     width: '100%',
