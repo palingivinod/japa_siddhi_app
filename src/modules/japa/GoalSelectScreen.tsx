@@ -230,8 +230,14 @@ const GoalSelectScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Set Your Goal" showBack tab="JapaHub">
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    <ScreenLayout title="Set Your Goal" showBack tab="JapaHub" scroll={false}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        removeClippedSubviews={false}>
         <Text style={styles.hint}>{t('completeCountByDate')}</Text>
 
         <View style={styles.circle}>
@@ -248,6 +254,7 @@ const GoalSelectScreen = () => {
             placeholderTextColor={Colors.placeholder}
             textAlign="center"
             multiline={false}
+            underlineColorAndroid="transparent"
           />
           <Text style={styles.japas}>{t('japasLabel')}</Text>
         </View>
@@ -377,6 +384,7 @@ const GoalSelectScreen = () => {
                   keyboardType="numeric"
                   placeholder={String(defaultDailyTarget)}
                   placeholderTextColor={Colors.placeholder}
+                  underlineColorAndroid="transparent"
                 />
                 <Text style={styles.todayInputUnit}>Japas today</Text>
               </View>
@@ -418,6 +426,8 @@ const GoalSelectScreen = () => {
 export default GoalSelectScreen;
 
 const styles = StyleSheet.create({
+  flex: {flex: 1},
+  scrollContent: {paddingBottom: 140},
   hint: {
     textAlign: 'center',
     color: Colors.sacredBrown,

@@ -275,8 +275,15 @@ const PrivateJapaScreen = () => {
   });
 
   return (
-    <ScreenLayout title="My Japa" showBack tab="JapaHub">
-      <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+    // scroll={false}: avoid nested ScrollView inside ScreenLayout (Android 15
+    // Lava / some OEMs crash when the keyboard opens with double scroll + resize).
+    <ScreenLayout title="My Japa" showBack tab="JapaHub" scroll={false}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag">
         <View style={styles.card}>
           <View style={styles.dot}>
             <Text style={styles.emoji}>🕉️</Text>
@@ -294,6 +301,10 @@ const PrivateJapaScreen = () => {
             style={styles.input}
             value={mantra}
             onFocus={() => setShowSuggestions(true)}
+            onBlur={() => {
+              // Defer hide so suggestion taps still register
+              setTimeout(() => setShowSuggestions(false), 150);
+            }}
             onChangeText={text => {
               setMantra(text);
               setMessage('');
@@ -301,6 +312,8 @@ const PrivateJapaScreen = () => {
             }}
             placeholder={t('keptPrivateReports')}
             placeholderTextColor={Colors.placeholder}
+            underlineColorAndroid="transparent"
+            autoCorrect={false}
           />
 
           {showSuggestions && filteredSuggestions.length > 0 ? (
@@ -373,6 +386,7 @@ const PrivateJapaScreen = () => {
           placeholder={t('enterTotalJapaCount') || 'Enter total japa count'}
           placeholderTextColor={Colors.placeholder}
           keyboardType="numeric"
+          underlineColorAndroid="transparent"
         />
         <View style={styles.presetsRow}>
           {PRESET_GOALS.map(preset => {
@@ -503,6 +517,7 @@ const PrivateJapaScreen = () => {
                   keyboardType="numeric"
                   placeholder={String(defaultDailyTarget)}
                   placeholderTextColor={Colors.placeholder}
+                  underlineColorAndroid="transparent"
                 />
                 <Text style={styles.todayInputUnit}>Japas today</Text>
               </View>
@@ -561,6 +576,8 @@ const PrivateJapaScreen = () => {
 export default PrivateJapaScreen;
 
 const styles = StyleSheet.create({
+  flex: {flex: 1},
+  scrollContent: {paddingBottom: 140},
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,

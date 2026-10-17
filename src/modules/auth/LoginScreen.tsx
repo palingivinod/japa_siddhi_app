@@ -233,6 +233,8 @@ const LoginScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        removeClippedSubviews={false}
         contentContainerStyle={[
           styles.content,
           hasValidSession && styles.contentSession,
@@ -261,6 +263,7 @@ const LoginScreen = () => {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
+              underlineColorAndroid="transparent"
             />
 
             <Text style={styles.label}>Password</Text>
@@ -271,6 +274,7 @@ const LoginScreen = () => {
               placeholder="Enter password"
               placeholderTextColor={Colors.placeholder}
               secureTextEntry
+              underlineColorAndroid="transparent"
             />
 
             <TouchableOpacity

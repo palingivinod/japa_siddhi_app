@@ -334,9 +334,17 @@ const YourJapasScreen = () => {
   };
 
   return (
-    <ScreenLayout title={t('yourJapas') || 'Your Japas'} showBack tab="JapaHub">
+    <ScreenLayout
+      title={t('yourJapas') || 'Your Japas'}
+      showBack
+      tab="JapaHub"
+      scroll={false}>
       <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        removeClippedSubviews={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -574,6 +582,8 @@ const YourJapasScreen = () => {
 export default YourJapasScreen;
 
 const styles = StyleSheet.create({
+  flex: {flex: 1},
+  scrollContent: {paddingBottom: 36},
   topBanner: {
     flexDirection: 'row',
     alignItems: 'center',

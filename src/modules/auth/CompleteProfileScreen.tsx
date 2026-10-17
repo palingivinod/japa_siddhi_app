@@ -330,6 +330,8 @@ const CompleteProfileScreen = ({
     <SafeAreaView style={styles.container}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        removeClippedSubviews={false}
         contentContainerStyle={styles.content}>
         <AppHeader title="Create Your Profile" showBack />
         <Text style={styles.stepLabel}>Step 1 of 2</Text>

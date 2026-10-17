@@ -36,32 +36,47 @@ const ScreenLayout: React.FC<Props> = ({
   const swipeEnabled = Boolean(tab) && !back;
   const tabSwipe = useTabSwipe(tab || 'Home', swipeEnabled);
 
+  const body = (
+    <View style={styles.body}>
+      <AppHeader title={title} showBack={back} showBell={showBell} />
+      {scroll ? (
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          // Android 15 / some OEMs (Lava, Poco): clipped TextInput views can NPE on focus
+          removeClippedSubviews={false}
+          overScrollMode="never">
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={styles.fill}>{children}</View>
+      )}
+    </View>
+  );
+
   return (
     <SafeAreaView
       style={styles.container}
       edges={['top', 'left', 'right']}
       {...(swipeEnabled ? tabSwipe.panHandlers : {})}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
-        <View style={styles.body}>
-          <AppHeader title={title} showBack={back} showBell={showBell} />
-          {scroll ? (
-            <ScrollView
-              style={styles.scroll}
-              contentContainerStyle={styles.content}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="always"
-              keyboardDismissMode="on-drag">
-              {children}
-            </ScrollView>
-          ) : (
-            <View style={styles.fill}>{children}</View>
-          )}
+      {/* KAV only on iOS — Android uses windowSoftInputMode=adjustPan */}
+      {Platform.OS === 'ios' ? (
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior="padding"
+          keyboardVerticalOffset={8}>
+          {body}
+          {tab ? <BottomTabs active={tab} /> : null}
+        </KeyboardAvoidingView>
+      ) : (
+        <View style={styles.flex}>
+          {body}
+          {tab ? <BottomTabs active={tab} /> : null}
         </View>
-        {tab ? <BottomTabs active={tab} /> : null}
-      </KeyboardAvoidingView>
+      )}
     </SafeAreaView>
   );
 };

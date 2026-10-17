@@ -1,6 +1,9 @@
 package com.japasiddhi
 
 import android.content.Intent
+import android.os.Bundle
+import android.view.WindowManager
+import androidx.core.view.WindowCompat
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -13,6 +16,15 @@ class MainActivity : ReactActivity() {
    * rendering of the component.
    */
   override fun getMainComponentName(): String = "JapaSiddhi"
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    // targetSdk 35+/36 can force edge-to-edge; keep classic system-window fit so
+    // IME/keyboard open does not crash on some Android 15 OEMs (Lava, Poco, etc.).
+    WindowCompat.setDecorFitsSystemWindows(window, true)
+    // Prefer pan over resize — resize+Fabric has crashed on several OEM keyboards.
+    window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
+    super.onCreate(savedInstanceState)
+  }
 
   /**
    * Returns the instance of the [ReactActivityDelegate]. We use [DefaultReactActivityDelegate]

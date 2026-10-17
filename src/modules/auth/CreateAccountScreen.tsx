@@ -128,6 +128,7 @@ const CreateAccountScreen = () => {
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        underlineColorAndroid="transparent"
       />
 
       <Text style={styles.label}>Password</Text>
@@ -138,6 +139,7 @@ const CreateAccountScreen = () => {
         placeholder="Enter password (min 6 characters)"
         placeholderTextColor={Colors.placeholder}
         secureTextEntry
+        underlineColorAndroid="transparent"
       />
 
       <Text style={styles.label}>Confirm Password</Text>
@@ -148,6 +150,7 @@ const CreateAccountScreen = () => {
         placeholder="Re-enter password"
         placeholderTextColor={Colors.placeholder}
         secureTextEntry
+        underlineColorAndroid="transparent"
       />
 
       <Text style={styles.label}>Mobile Number</Text>
@@ -181,6 +184,7 @@ const CreateAccountScreen = () => {
           }
           placeholderTextColor={Colors.placeholder}
           maxLength={selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15}
+          underlineColorAndroid="transparent"
         />
       </View>
       {selectedCountry.code === 'IN' &&

@@ -129,6 +129,7 @@ const ForgotPasswordScreen = () => {
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        underlineColorAndroid="transparent"
       />
 
       {step === 'otp' ? (
@@ -144,6 +145,7 @@ const ForgotPasswordScreen = () => {
             maxLength={4}
             placeholder="4-digit OTP"
             placeholderTextColor={Colors.placeholder}
+            underlineColorAndroid="transparent"
           />
 
           <Text style={styles.label}>New password</Text>
@@ -154,6 +156,7 @@ const ForgotPasswordScreen = () => {
             secureTextEntry
             placeholder="New password"
             placeholderTextColor={Colors.placeholder}
+            underlineColorAndroid="transparent"
           />
 
           <Text style={styles.label}>Confirm password</Text>
@@ -164,6 +167,7 @@ const ForgotPasswordScreen = () => {
             secureTextEntry
             placeholder="Confirm password"
             placeholderTextColor={Colors.placeholder}
+            underlineColorAndroid="transparent"
           />
 
           <PrimaryButton

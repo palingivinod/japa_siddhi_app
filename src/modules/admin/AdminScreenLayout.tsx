@@ -28,7 +28,10 @@ const AdminScreenLayout: React.FC<Props> = ({
           style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled">
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          removeClippedSubviews={false}
+          overScrollMode="never">
           {children}
         </ScrollView>
       </View>
