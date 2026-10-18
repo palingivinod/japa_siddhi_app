@@ -7,6 +7,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import apiService from '../../services/apiService';
+import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 
@@ -21,6 +22,7 @@ const LanguageSelectScreen = () => {
   const route = useRoute<any>();
   const fromSettings = route.params?.fromSettings;
   const {t, language, setAppLanguage} = useLanguage();
+  const bottomPad = useBottomNavPad();
   const [selected, setSelected] = useState(language || 'en');
   const [options, setOptions] = useState<LangOption[]>(APP_LANGUAGES);
 
@@ -117,7 +119,11 @@ const LanguageSelectScreen = () => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <AppHeader title="Choose Language" showBack={fromSettings} />
       <Text style={styles.hint}>{t('selectPreferredLanguage')}</Text>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
         {options.map(item => {
           const active = item.code === selected;
           return (
@@ -136,7 +142,9 @@ const LanguageSelectScreen = () => {
           );
         })}
       </ScrollView>
-      <PrimaryButton title={t('continue')} onPress={continueNext} />
+      <View style={[styles.footer, {paddingBottom: 12 + bottomPad}]}>
+        <PrimaryButton title={t('continue')} onPress={continueNext} />
+      </View>
     </SafeAreaView>
   );
 };
@@ -148,13 +156,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   hint: {
     textAlign: 'center',
     color: Colors.sacredBrown,
     fontSize: 16,
     marginBottom: 16,
+  },
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 16,
+  },
+  footer: {
+    paddingTop: 8,
   },
   card: {
     backgroundColor: Colors.white,

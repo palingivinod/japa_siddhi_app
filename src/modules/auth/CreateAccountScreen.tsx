@@ -11,6 +11,7 @@ import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService from '../../services/apiService';
@@ -158,7 +159,9 @@ const CreateAccountScreen = () => {
         <TouchableOpacity
           style={styles.countryBtn}
           activeOpacity={0.7}
-          onPress={() => setShowCountryPicker(true)}>
+          onPress={() =>
+            dismissKeyboardThen(() => setShowCountryPicker(true))
+          }>
           <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
           <Text style={styles.countryCallingCode}>
             {selectedCountry.callingCode}

@@ -1,6 +1,5 @@
 import React, {useMemo, useState} from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   View,
@@ -11,8 +10,11 @@ import {
   Alert,
   Image,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
+import {useBottomNavPad} from '../../utils/safeArea';
 
 import AppHeader from '../common/AppHeader';
 import DatePickerModal from '../common/DatePickerModal';
@@ -54,6 +56,7 @@ const CompleteProfileScreen = ({
   navigation,
   route,
 }: any) => {
+  const bottomPad = useBottomNavPad();
   const registeredEmail = route?.params?.email ?? '';
   const initialPhone = String(route?.params?.phoneNumber || '').replace(/\D/g, '');
   const initialCode =
@@ -327,12 +330,16 @@ const CompleteProfileScreen = ({
     }
 };
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
-        contentContainerStyle={styles.content}>
+        overScrollMode="never"
+        contentContainerStyle={[
+          styles.content,
+          {paddingBottom: 140 + bottomPad},
+        ]}>
         <AppHeader title="Create Your Profile" showBack />
         <Text style={styles.stepLabel}>Step 1 of 2</Text>
         <View style={styles.stepTrack}>
@@ -424,7 +431,9 @@ const CompleteProfileScreen = ({
           <TouchableOpacity
             style={styles.countryBtn}
             activeOpacity={0.7}
-            onPress={() => setShowMobileCountryPicker(true)}>
+            onPress={() =>
+              dismissKeyboardThen(() => setShowMobileCountryPicker(true))
+            }>
             <Text style={styles.countryFlag}>{selectedMobileCountry.flag}</Text>
             <Text style={styles.countryCallingCode}>
               {selectedMobileCountry.callingCode}
@@ -493,7 +502,7 @@ const CompleteProfileScreen = ({
         <TouchableOpacity
           style={styles.input}
           onPress={() =>
-            setShowDatePicker(true)
+            dismissKeyboardThen(() => setShowDatePicker(true))
           }>
 
           <Text style={styles.dateText}>
@@ -596,7 +605,9 @@ const CompleteProfileScreen = ({
             <Text style={styles.label}>Spouse Date of Birth *</Text>
             <TouchableOpacity
               style={styles.input}
-              onPress={() => setShowSpouseDobPicker(true)}>
+              onPress={() =>
+                dismissKeyboardThen(() => setShowSpouseDobPicker(true))
+              }>
               <Text style={styles.dateText}>{spouseDob.toDateString()}</Text>
             </TouchableOpacity>
             <DatePickerModal
@@ -613,7 +624,9 @@ const CompleteProfileScreen = ({
             <Text style={styles.label}>Anniversary Date *</Text>
             <TouchableOpacity
               style={styles.input}
-              onPress={() => setShowAnniversaryPicker(true)}>
+              onPress={() =>
+                dismissKeyboardThen(() => setShowAnniversaryPicker(true))
+              }>
               <Text style={styles.dateText}>
                 {anniversaryDate.toDateString()}
               </Text>
@@ -716,7 +729,6 @@ const styles = StyleSheet.create({
 
   content: {
     padding: 20,
-    paddingBottom: 50,
   },
 
   profileContainer: {

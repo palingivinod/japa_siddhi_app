@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -323,7 +324,7 @@ const GoalSelectScreen = () => {
 
         <TouchableOpacity
           style={styles.calendarBtn}
-          onPress={() => setShowCalendar(true)}
+          onPress={() => dismissKeyboardThen(() => setShowCalendar(true))}
           activeOpacity={0.85}>
           <Text style={styles.calendarLabel}>
             📅 {endDate ? formatDate(endDate) : t('pickGoalDate')}

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 
 export interface SelectOption {
   label: string;
@@ -47,7 +48,7 @@ const SelectField: React.FC<Props> = ({
       <TouchableOpacity
         style={styles.field}
         activeOpacity={0.8}
-        onPress={() => setVisible(true)}>
+        onPress={() => dismissKeyboardThen(() => setVisible(true))}>
         <Text style={selected ? styles.value : styles.placeholder}>
           {selected?.label || placeholder}
         </Text>

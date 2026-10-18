@@ -1,9 +1,8 @@
 import React from 'react';
 import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
-
 import Colors from '../../theme/colors';
+import {useBottomNavPad} from '../../utils/safeArea';
 
 export type AdminTabKey =
   | 'AdminDashboard'
@@ -32,8 +31,7 @@ type Props = {
 
 const AdminTabs: React.FC<Props> = ({active}) => {
   const navigation = useNavigation<any>();
-  const insets = useSafeAreaInsets();
-  const bottomPadding = Math.max(insets.bottom, 12);
+  const bottomPadding = Math.max(useBottomNavPad(), 12);
 
   return (
     <View style={[styles.bar, {paddingBottom: bottomPadding}]}>

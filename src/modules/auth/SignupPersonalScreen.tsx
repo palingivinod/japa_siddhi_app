@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
@@ -92,7 +93,7 @@ const SignupPersonalScreen = () => {
       <Text style={styles.label}>{label}</Text>
       <TouchableOpacity
         style={[styles.input, styles.dateField]}
-        onPress={() => setPicker(field)}>
+        onPress={() => dismissKeyboardThen(() => setPicker(field))}>
         <Text
           style={dateValues[field] ? styles.dateText : styles.datePlaceholder}>
           {dateValues[field] || 'Select date'}
@@ -168,7 +169,9 @@ const SignupPersonalScreen = () => {
         <TouchableOpacity
           style={styles.countryBtn}
           activeOpacity={0.7}
-          onPress={() => setShowCountryPicker(true)}>
+          onPress={() =>
+            dismissKeyboardThen(() => setShowCountryPicker(true))
+          }>
           <Text style={styles.countryFlag}>{selectedCountry.flag}</Text>
           <Text style={styles.countryCallingCode}>
             {selectedCountry.callingCode}

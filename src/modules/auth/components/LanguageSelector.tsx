@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../../theme/colors';
+import {dismissKeyboardThen} from '../../../utils/keyboard';
 import profileApi from '../services/profileApi';
 import {
   FALLBACK_LANGUAGES,
@@ -92,7 +93,7 @@ const LanguageSelector: React.FC<Props> = ({
     <>
       <TouchableOpacity
         style={styles.selector}
-        onPress={() => setVisible(true)}>
+        onPress={() => dismissKeyboardThen(() => setVisible(true))}>
         <Text style={styles.selectedText}>{selectedLabel}</Text>
       </TouchableOpacity>
 

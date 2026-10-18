@@ -1,10 +1,19 @@
-import {Alert, NativeModules} from 'react-native';
+import {Alert, Keyboard, NativeModules} from 'react-native';
 import {
   launchCamera,
   launchImageLibrary,
   type Asset,
   type ImageLibraryOptions,
 } from 'react-native-image-picker';
+
+const alertAfterKeyboard = (
+  title: string,
+  message: string | undefined,
+  buttons: Parameters<typeof Alert.alert>[2],
+) => {
+  Keyboard.dismiss();
+  setTimeout(() => Alert.alert(title, message, buttons), 80);
+};
 
 export type PickedMedia = {
   uri: string;
@@ -59,76 +68,80 @@ export const pickFeedbackVideo = (): Promise<PickedMedia | null> =>
       return;
     }
 
-    Alert.alert('Feedback video', 'Choose a short video to attach (optional).', [
-      {
-        text: 'Record video',
-        onPress: async () => {
-          try {
-            const result = await launchCamera({
-              mediaType: 'video',
-              videoQuality: 'medium',
-              durationLimit: 60,
-              saveToPhotos: false,
-            });
-            if (result.didCancel) {
-              finish(null);
-              return;
-            }
-            if (result.errorCode) {
-              fail(
-                new Error(
-                  result.errorCode === 'permission'
-                    ? 'permission'
-                    : result.errorCode,
-                ),
+    alertAfterKeyboard(
+      'Feedback video',
+      'Choose a short video to attach (optional).',
+      [
+        {
+          text: 'Record video',
+          onPress: async () => {
+            try {
+              const result = await launchCamera({
+                mediaType: 'video',
+                videoQuality: 'medium',
+                durationLimit: 60,
+                saveToPhotos: false,
+              });
+              if (result.didCancel) {
+                finish(null);
+                return;
+              }
+              if (result.errorCode) {
+                fail(
+                  new Error(
+                    result.errorCode === 'permission'
+                      ? 'permission'
+                      : result.errorCode,
+                  ),
+                );
+                return;
+              }
+              finish(
+                fromAsset(result.assets?.[0], 'feedback.mp4', 'video/mp4'),
               );
-              return;
+            } catch (error) {
+              fail(error);
             }
-            finish(
-              fromAsset(result.assets?.[0], 'feedback.mp4', 'video/mp4'),
-            );
-          } catch (error) {
-            fail(error);
-          }
+          },
         },
-      },
-      {
-        text: 'Choose from gallery',
-        onPress: async () => {
-          try {
-            const options: ImageLibraryOptions = {
-              mediaType: 'video',
-              selectionLimit: 1,
-            };
-            const result = await launchImageLibrary(options);
-            if (result.didCancel) {
-              finish(null);
-              return;
-            }
-            if (result.errorCode) {
-              fail(
-                new Error(
-                  result.errorCode === 'permission'
-                    ? 'permission'
-                    : result.errorCode,
-                ),
+        {
+          text: 'Choose from gallery',
+          onPress: async () => {
+            try {
+              const options: ImageLibraryOptions = {
+                mediaType: 'video',
+                selectionLimit: 1,
+              };
+              const result = await launchImageLibrary(options);
+              if (result.didCancel) {
+                finish(null);
+                return;
+              }
+              if (result.errorCode) {
+                fail(
+                  new Error(
+                    result.errorCode === 'permission'
+                      ? 'permission'
+                      : result.errorCode,
+                  ),
+                );
+                return;
+              }
+              finish(
+                fromAsset(result.assets?.[0], 'feedback.mp4', 'video/mp4'),
               );
-              return;
+            } catch (error) {
+              fail(error);
             }
-            finish(
-              fromAsset(result.assets?.[0], 'feedback.mp4', 'video/mp4'),
-            );
-          } catch (error) {
-            fail(error);
-          }
+          },
         },
-      },
-      {
-        text: 'Cancel',
-        style: 'cancel',
-        onPress: () => finish(null),
-      },
-    ]);
+        {
+          text: 'Cancel',
+          style: 'cancel',
+          onPress: () => finish(null),
+        },
+      ],
+    );
   });
 
 export const pickSupportScreenshot = (): Promise<PickedMedia | null> =>
@@ -156,7 +169,7 @@ export const pickSupportScreenshot = (): Promise<PickedMedia | null> =>
       return;
     }
 
-    Alert.alert(
+    alertAfterKeyboard(
       'Problem screenshot',
       'Upload a screenshot of the issue (optional).',
       [

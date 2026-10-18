@@ -1,4 +1,4 @@
-import {Alert, NativeModules} from 'react-native';
+import {Alert, Keyboard, NativeModules} from 'react-native';
 import {
   launchCamera,
   launchImageLibrary,
@@ -139,18 +139,22 @@ export const pickProfilePhoto = (labels: {
       return;
     }
 
-    Alert.alert(
-      labels.title,
-      undefined,
-      [
-        {text: labels.camera, onPress: () => run('camera')},
-        {text: labels.gallery, onPress: () => run('gallery')},
-        {
-          text: labels.cancel,
-          style: 'cancel',
-          onPress: () => finish(null),
-        },
-      ],
-      {cancelable: true, onDismiss: () => { if (!started) finish(null); }},
-    );
+    // Avoid Alert + soft keyboard on Android 15 OEMs (Lava/Poco).
+    Keyboard.dismiss();
+    setTimeout(() => {
+      Alert.alert(
+        labels.title,
+        undefined,
+        [
+          {text: labels.camera, onPress: () => run('camera')},
+          {text: labels.gallery, onPress: () => run('gallery')},
+          {
+            text: labels.cancel,
+            style: 'cancel',
+            onPress: () => finish(null),
+          },
+        ],
+        {cancelable: true, onDismiss: () => { if (!started) finish(null); }},
+      );
+    }, 80);
   });

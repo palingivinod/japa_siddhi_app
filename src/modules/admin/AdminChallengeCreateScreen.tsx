@@ -11,6 +11,7 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
@@ -579,8 +580,10 @@ const AdminChallengeCreateScreen = () => {
             <TouchableOpacity
               style={styles.input}
               onPress={() => {
-                setShowEndPicker(false);
-                setShowStartPicker(true);
+                dismissKeyboardThen(() => {
+                  setShowEndPicker(false);
+                  setShowStartPicker(true);
+                });
               }}
               activeOpacity={0.8}>
               <Text
@@ -604,8 +607,10 @@ const AdminChallengeCreateScreen = () => {
             <TouchableOpacity
               style={styles.input}
               onPress={() => {
-                setShowStartPicker(false);
-                setShowEndPicker(true);
+                dismissKeyboardThen(() => {
+                  setShowStartPicker(false);
+                  setShowEndPicker(true);
+                });
               }}
               activeOpacity={0.8}>
               <Text

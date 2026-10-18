@@ -10,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 import {
@@ -23,6 +24,7 @@ type Step = 'email' | 'otp';
 const AdminForgotPasswordScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const bottomPad = useBottomNavPad();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState(
     String(route.params?.email || '').toLowerCase(),
@@ -95,7 +97,7 @@ const AdminForgotPasswordScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.body}>
+      <View style={[styles.body, {paddingBottom: bottomPad}]}>
         <AppHeader title="Forgot Password" showBack />
         <Text style={styles.heading}>Reset admin password</Text>
         <Text style={styles.sub}>

@@ -9,7 +9,6 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {CommonActions} from '@react-navigation/native';
 
@@ -17,6 +16,7 @@ import {RootStackParamList} from '../../navigation/AppNavigator';
 import Colors from '../../theme/colors';
 import {getLanguage} from '../../services/language';
 import {getValidSession} from '../../services/session';
+import {useBottomNavPad} from '../../utils/safeArea';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
@@ -26,17 +26,19 @@ const DEVELOPED_BY = 'Developed by Sri Urjith Services Pvt Ltd';
 const SplashScreen = ({navigation}: Props) => {
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
-  const insets = useSafeAreaInsets();
+  // Keep welcome art above the system nav bar on gesture/3-button phones.
+  const bottomPad = useBottomNavPad();
+  const stageHeight = Math.max(1, height - bottomPad);
 
   // GET STARTED sits in the lower band of the artwork (above footer).
   const hitStyle = useMemo(
     () => ({
       left: Math.max(16, width * 0.08),
       right: Math.max(16, width * 0.08),
-      top: height * 0.66,
-      bottom: Math.max(insets.bottom + 48, 56),
+      top: stageHeight * 0.66,
+      bottom: Math.max(48, stageHeight * 0.08),
     }),
-    [width, height, insets.bottom],
+    [width, stageHeight],
   );
 
   // Invisible tap target over the baked "Developed by..." footer line.
@@ -44,10 +46,10 @@ const SplashScreen = ({navigation}: Props) => {
     () => ({
       left: Math.max(12, width * 0.06),
       right: Math.max(12, width * 0.06),
-      bottom: Math.max(2, insets.bottom * 0.15),
-      height: Math.max(30, height * 0.045),
+      bottom: Math.max(8, stageHeight * 0.02),
+      height: Math.max(30, stageHeight * 0.045),
     }),
-    [width, height, insets.bottom],
+    [width, stageHeight],
   );
 
   const openSriUrjith = useCallback(async () => {
@@ -94,7 +96,7 @@ const SplashScreen = ({navigation}: Props) => {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
-      <View style={styles.stage}>
+      <View style={[styles.stage, {bottom: bottomPad}]}>
         <Image
           source={require('../../assets/images/splash_welcome.png')}
           style={styles.hero}
@@ -121,6 +123,7 @@ const SplashScreen = ({navigation}: Props) => {
           </View>
         ) : null}
       </View>
+      <View style={[styles.navSpacer, {height: bottomPad}]} />
     </View>
   );
 };
@@ -135,6 +138,13 @@ const styles = StyleSheet.create({
   stage: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+  },
+  navSpacer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#F7F0E4',
   },
   hero: {
     ...StyleSheet.absoluteFillObject,

@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {useBottomNavPad} from '../../utils/safeArea';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
@@ -33,6 +34,7 @@ const LoginScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
+  const bottomPad = useBottomNavPad();
   const [submitting, setSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [identifier, setIdentifier] = useState('');
@@ -237,6 +239,7 @@ const LoginScreen = () => {
         removeClippedSubviews={false}
         contentContainerStyle={[
           styles.content,
+          {paddingBottom: 30 + bottomPad},
           hasValidSession && styles.contentSession,
         ]}>
         <AppHeader title="Welcome to Japa Siddhi" showBack={false} />
@@ -349,7 +352,6 @@ const styles = StyleSheet.create({
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,
-    paddingBottom: 30,
   },
   contentSession: {
     flexGrow: 1,

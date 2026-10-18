@@ -10,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import Colors from '../../theme/colors';
+import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from './AppHeader';
 import BottomTabs, {TabKey} from './BottomTabs';
 
@@ -35,6 +36,8 @@ const ScreenLayout: React.FC<Props> = ({
   // WhatsApp-style swipe only on main tab roots (not nested pages with back)
   const swipeEnabled = Boolean(tab) && !back;
   const tabSwipe = useTabSwipe(tab || 'Home', swipeEnabled);
+  // Tab bar pads itself; stack pages need explicit bottom pad (Android inset can be 0).
+  const bottomPad = useBottomNavPad();
 
   const body = (
     <View style={styles.body}>
@@ -42,7 +45,10 @@ const ScreenLayout: React.FC<Props> = ({
       {scroll ? (
         <ScrollView
           style={styles.scroll}
-          contentContainerStyle={styles.content}
+          contentContainerStyle={[
+            styles.content,
+            !tab ? {paddingBottom: 140 + bottomPad} : null,
+          ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
@@ -52,7 +58,9 @@ const ScreenLayout: React.FC<Props> = ({
           {children}
         </ScrollView>
       ) : (
-        <View style={styles.fill}>{children}</View>
+        <View style={[styles.fill, !tab ? {paddingBottom: bottomPad} : null]}>
+          {children}
+        </View>
       )}
     </View>
   );

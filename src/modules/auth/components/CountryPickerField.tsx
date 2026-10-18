@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../../theme/colors';
+import {dismissKeyboardThen} from '../../../utils/keyboard';
 import CountrySelector from './CountrySelector';
 import {CountryItem} from '../../../constants/countries';
 
@@ -31,7 +32,7 @@ const CountryPickerField: React.FC<Props> = ({
       <TouchableOpacity
         activeOpacity={0.8}
         style={styles.container}
-        onPress={() => setVisible(true)}>
+        onPress={() => dismissKeyboardThen(() => setVisible(true))}>
         <Text style={styles.flag}>
           {value.flag}
         </Text>

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
@@ -418,7 +419,9 @@ const AdminNotificationsScreen = () => {
           <View style={styles.pickerRow}>
             <TouchableOpacity
               style={styles.pickerBtn}
-              onPress={() => setShowDatePicker(true)}>
+              onPress={() =>
+                dismissKeyboardThen(() => setShowDatePicker(true))
+              }>
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>
                 {formatDateLabel(scheduledAt)}
@@ -426,7 +429,9 @@ const AdminNotificationsScreen = () => {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.pickerBtn}
-              onPress={() => setShowTimePicker(true)}>
+              onPress={() =>
+                dismissKeyboardThen(() => setShowTimePicker(true))
+              }>
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>
                 {formatTimeLabel(scheduledAt)}

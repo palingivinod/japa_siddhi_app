@@ -8,6 +8,7 @@ import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {useBottomNavPad} from '../../utils/safeArea';
 
 const OtpScreen = ({route, navigation}: any) => {
   const {
@@ -19,6 +20,7 @@ const OtpScreen = ({route, navigation}: any) => {
     password,
     mode = 'register',
   } = route.params || {};
+  const bottomPad = useBottomNavPad();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -109,7 +111,7 @@ const OtpScreen = ({route, navigation}: any) => {
       <Text style={styles.mobile}>{sentTo || email || phoneNumber}</Text>
       <OTPInput value={otp} onChange={setOtp} length={4} />
       <ResendTimer onResend={resendOTP} />
-      <View style={styles.action}>
+      <View style={[styles.action, {paddingBottom: bottomPad}]}>
         {loading ? (
           <ActivityIndicator size="large" color={Colors.templeGold} />
         ) : (

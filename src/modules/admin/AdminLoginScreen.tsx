@@ -11,6 +11,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 import {saveAdminSession} from './adminSession';
@@ -19,6 +20,7 @@ import {getApiError, verifyAdminCredentials} from './adminCredentials';
 
 const AdminLoginScreen = () => {
   const navigation = useNavigation<any>();
+  const bottomPad = useBottomNavPad();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -61,7 +63,7 @@ const AdminLoginScreen = () => {
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <View style={styles.body}>
+      <View style={[styles.body, {paddingBottom: bottomPad}]}>
         <AppHeader title="Admin Login" showBack />
         <Text style={styles.heading}>Admin Login</Text>
         <Text style={styles.sub}>Secure administrator access.</Text>

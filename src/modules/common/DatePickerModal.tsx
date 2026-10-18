@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+  Keyboard,
   Modal,
   Platform,
   StyleSheet,
@@ -42,6 +43,8 @@ const DatePickerModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (visible) {
+      // Keyboard + native date dialog together crashes some Android 15 OEMs.
+      Keyboard.dismiss();
       setDraft(value);
     }
   }, [visible, value]);
