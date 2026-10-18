@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {useKeyboardOpen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
@@ -35,6 +36,7 @@ const LoginScreen = () => {
   const route = useRoute<any>();
   const {t} = useLanguage();
   const bottomPad = useBottomNavPad();
+  const keyboardOpen = useKeyboardOpen();
   const [submitting, setSubmitting] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [identifier, setIdentifier] = useState('');
@@ -234,9 +236,11 @@ const LoginScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardShouldPersistTaps="always"
+        scrollEnabled={!keyboardOpen}
+        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
         removeClippedSubviews={false}
+        overScrollMode="never"
         contentContainerStyle={[
           styles.content,
           {paddingBottom: 30 + bottomPad},

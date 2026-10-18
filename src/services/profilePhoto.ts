@@ -139,7 +139,7 @@ export const pickProfilePhoto = (labels: {
       return;
     }
 
-    // Avoid Alert + soft keyboard on Android 15 OEMs (Lava/Poco).
+    // Avoid Alert + soft keyboard together (crash risk on many Android devices).
     Keyboard.dismiss();
     setTimeout(() => {
       Alert.alert(

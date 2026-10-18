@@ -71,7 +71,10 @@ const SevaHubScreen = () => {
         <AppHeader title="Seva" />
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}>
+          contentContainerStyle={styles.scrollContent}
+          removeClippedSubviews={false}
+          overScrollMode="never"
+          keyboardShouldPersistTaps="handled">
           <Text style={styles.heading}>{t('spiritualServices')}</Text>
           {items.map(item => (
             <TouchableOpacity

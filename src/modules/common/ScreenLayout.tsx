@@ -10,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import Colors from '../../theme/colors';
+import {useKeyboardOpen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from './AppHeader';
 import BottomTabs, {TabKey} from './BottomTabs';
@@ -36,8 +37,8 @@ const ScreenLayout: React.FC<Props> = ({
   // WhatsApp-style swipe only on main tab roots (not nested pages with back)
   const swipeEnabled = Boolean(tab) && !back;
   const tabSwipe = useTabSwipe(tab || 'Home', swipeEnabled);
-  // Tab bar pads itself; stack pages need explicit bottom pad (Android inset can be 0).
   const bottomPad = useBottomNavPad();
+  const keyboardOpen = useKeyboardOpen();
 
   const body = (
     <View style={styles.body}>
@@ -50,9 +51,10 @@ const ScreenLayout: React.FC<Props> = ({
             !tab ? {paddingBottom: 140 + bottomPad} : null,
           ]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
-          // Android 15 / some OEMs (Lava, Poco): clipped TextInput views can NPE on focus
+          keyboardShouldPersistTaps="always"
+          // Lock scroll while keyboard is open — safer on all Android devices.
+          scrollEnabled={!keyboardOpen}
+          keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
           removeClippedSubviews={false}
           overScrollMode="never">
           {children}

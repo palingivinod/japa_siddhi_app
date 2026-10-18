@@ -3,6 +3,7 @@ import {ScrollView, StyleSheet, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
+import {useKeyboardOpen} from '../../utils/keyboard';
 import AppHeader from '../common/AppHeader';
 import AdminTabs, {AdminTabKey} from './AdminTabs';
 
@@ -20,6 +21,8 @@ const AdminScreenLayout: React.FC<Props> = ({
   tab,
   showBack = true,
 }) => {
+  const keyboardOpen = useKeyboardOpen();
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <View style={styles.body}>
@@ -28,8 +31,9 @@ const AdminScreenLayout: React.FC<Props> = ({
           style={styles.scroll}
           contentContainerStyle={styles.content}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="always"
+          scrollEnabled={!keyboardOpen}
+          keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
           removeClippedSubviews={false}
           overScrollMode="never">
           {children}

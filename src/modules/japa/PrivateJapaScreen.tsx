@@ -1,6 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
-  Keyboard,
   Platform,
   ScrollView,
   StyleSheet,
@@ -15,7 +14,7 @@ import {useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
-import {dismissKeyboardThen} from '../../utils/keyboard';
+import {dismissKeyboardThen, useKeyboardOpen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
@@ -80,24 +79,13 @@ const PrivateJapaScreen = () => {
   const [saving, setSaving] = useState(false);
   const [recentMantras, setRecentMantras] = useState<SavedMantra[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  // Android 15 OEMs crash when ScrollView scrolls/resizes while IME is open.
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const keyboardOpen = useKeyboardOpen();
 
   useEffect(() => {
-    const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
-    const onHide = Keyboard.addListener(hideEvent, () => {
-      setKeyboardOpen(false);
+    if (!keyboardOpen) {
       setShowSuggestions(false);
-    });
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
+    }
+  }, [keyboardOpen]);
 
   const rawGoal = Number(String(goal).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
@@ -296,16 +284,15 @@ const PrivateJapaScreen = () => {
   });
 
   return (
-    // scroll={false}: avoid nested ScrollView inside ScreenLayout (Android 15
-    // Lava / some OEMs crash when the keyboard opens with double scroll + resize).
+    // scroll={false}: avoid nested ScrollView inside ScreenLayout (double
+    // scroll + keyboard is unstable across Android brands).
     <ScreenLayout title="My Japa" showBack tab="JapaHub" scroll={false}>
       <ScrollView
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="always"
-        // Lock scroll while keyboard is open — adjustPan pans the window;
-        // ScrollView + IME together crashes some Android 15 phones (Lava/Poco).
+        // Lock scroll while keyboard is open (all Android devices).
         scrollEnabled={!keyboardOpen}
         keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
         removeClippedSubviews={false}
@@ -327,7 +314,7 @@ const PrivateJapaScreen = () => {
             style={styles.input}
             value={mantra}
             onFocus={() => {
-              // Suggestions while IME is animating causes layout crashes on OEMs.
+              // On Android, skip suggestion popup while keyboard animates (all brands).
               if (Platform.OS !== 'android') {
                 setShowSuggestions(true);
               }
@@ -355,7 +342,7 @@ const PrivateJapaScreen = () => {
                   <Text style={styles.popupClose}>✕</Text>
                 </TouchableOpacity>
               </View>
-              {/* Plain View only — nested ScrollView + keyboard crashes some Android 15 OEMs. */}
+              {/* Plain View only — avoid nested ScrollView with keyboard (all Android). */}
               <View style={styles.popupScroll}>
                 {filteredSuggestions.slice(0, 5).map(item => {
                   const isSelected =

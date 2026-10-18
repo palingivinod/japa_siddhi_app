@@ -18,25 +18,47 @@ const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
   useEffect(() => {
     let active = true;
 
-    getValidSession().then(session => {
-      if (!active) {
-        return;
-      }
+    getValidSession()
+      .then(session => {
+        if (!active) {
+          return;
+        }
 
-      if (!session.token) {
+        if (!session.token) {
+          cachedAllowed = false;
+          try {
+            navigation.dispatch(
+              CommonActions.reset({
+                index: 0,
+                routes: [{name: 'Login', params: {forceLoginForm: true}}],
+              }),
+            );
+          } catch (err) {
+            console.warn('[AuthGate] reset to Login failed', err);
+          }
+          return;
+        }
+
+        cachedAllowed = true;
+        setAllowed(true);
+      })
+      .catch(err => {
+        console.warn('[AuthGate] session check failed', err);
+        if (!active) {
+          return;
+        }
         cachedAllowed = false;
-        navigation.dispatch(
-          CommonActions.reset({
-            index: 0,
-            routes: [{name: 'Login', params: {forceLoginForm: true}}],
-          }),
-        );
-        return;
-      }
-
-      cachedAllowed = true;
-      setAllowed(true);
-    });
+        try {
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{name: 'Login', params: {forceLoginForm: true}}],
+            }),
+          );
+        } catch {
+          // ignore
+        }
+      });
 
     return () => {
       active = false;

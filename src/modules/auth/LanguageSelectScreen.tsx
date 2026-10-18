@@ -7,7 +7,6 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import apiService from '../../services/apiService';
-import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 
@@ -22,7 +21,6 @@ const LanguageSelectScreen = () => {
   const route = useRoute<any>();
   const fromSettings = route.params?.fromSettings;
   const {t, language, setAppLanguage} = useLanguage();
-  const bottomPad = useBottomNavPad();
   const [selected, setSelected] = useState(language || 'en');
   const [options, setOptions] = useState<LangOption[]>(APP_LANGUAGES);
 
@@ -116,7 +114,9 @@ const LanguageSelectScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+    <SafeAreaView
+      style={styles.container}
+      edges={['top', 'left', 'right', 'bottom']}>
       <AppHeader title="Choose Language" showBack={fromSettings} />
       <Text style={styles.hint}>{t('selectPreferredLanguage')}</Text>
       <ScrollView
@@ -142,7 +142,7 @@ const LanguageSelectScreen = () => {
           );
         })}
       </ScrollView>
-      <View style={[styles.footer, {paddingBottom: 12 + bottomPad}]}>
+      <View style={styles.footer}>
         <PrimaryButton title={t('continue')} onPress={continueNext} />
       </View>
     </SafeAreaView>
@@ -171,6 +171,7 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingTop: 8,
+    paddingBottom: 12,
   },
   card: {
     backgroundColor: Colors.white,

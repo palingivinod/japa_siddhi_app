@@ -24,9 +24,13 @@ export const resetToLogin = () => {
 
 export const navigateTo = (name: keyof RootStackParamList, params?: any) => {
   const doNavigate = () => {
-    if (navigationRef.isReady()) {
-      (navigationRef as any).navigate(name, params);
-      return true;
+    try {
+      if (navigationRef.isReady()) {
+        (navigationRef as any).navigate(name, params);
+        return true;
+      }
+    } catch (err) {
+      console.warn('[navigateTo] failed', name, err);
     }
     return false;
   };

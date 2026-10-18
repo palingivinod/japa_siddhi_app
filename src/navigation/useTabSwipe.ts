@@ -65,17 +65,9 @@ export const useTabSwipe = (active: TabKey, enabled = true) => {
           const absY = Math.abs(g.dy);
           return absX > 18 && absX > absY * 1.35;
         },
-        onMoveShouldSetPanResponderCapture: (
-          _e: GestureResponderEvent,
-          g: PanResponderGestureState,
-        ) => {
-          if (!enabledRef.current) {
-            return false;
-          }
-          const absX = Math.abs(g.dx);
-          const absY = Math.abs(g.dy);
-          return absX > 28 && absX > absY * 1.5;
-        },
+        // Never capture — letting ScrollViews / buttons keep priority avoids
+        // stolen touches and unstable navigations while exploring.
+        onMoveShouldSetPanResponderCapture: () => false,
         onPanResponderRelease: (
           _e: GestureResponderEvent,
           g: PanResponderGestureState,
@@ -88,12 +80,14 @@ export const useTabSwipe = (active: TabKey, enabled = true) => {
           if (absX < absY * 1.2) {
             return;
           }
-          if (g.dx <= -SWIPE_DX || g.vx <= -SWIPE_VX) {
-            // Finger moved left → next tab (Home → Japa → …)
-            goRelative(1);
-          } else if (g.dx >= SWIPE_DX || g.vx >= SWIPE_VX) {
-            // Finger moved right → previous tab
-            goRelative(-1);
+          try {
+            if (g.dx <= -SWIPE_DX || g.vx <= -SWIPE_VX) {
+              goRelative(1);
+            } else if (g.dx >= SWIPE_DX || g.vx >= SWIPE_VX) {
+              goRelative(-1);
+            }
+          } catch (err) {
+            console.warn('[useTabSwipe] navigate failed', err);
           }
         },
         onPanResponderTerminationRequest: () => true,

@@ -1,8 +1,6 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   Alert,
-  Keyboard,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,7 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
-import {dismissKeyboardThen} from '../../utils/keyboard';
+import {dismissKeyboardThen, useKeyboardOpen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -81,20 +79,7 @@ const GoalSelectScreen = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayTargetInput, setTodayTargetInput] = useState('');
   const [isTodayCustom, setIsTodayCustom] = useState(false);
-  const [keyboardOpen, setKeyboardOpen] = useState(false);
-
-  useEffect(() => {
-    const showEvent =
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-    const hideEvent =
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-    const onShow = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
-    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
-    return () => {
-      onShow.remove();
-      onHide.remove();
-    };
-  }, []);
+  const keyboardOpen = useKeyboardOpen();
 
   const goal = Number(String(goalText).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);

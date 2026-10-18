@@ -31,7 +31,7 @@ type Props = {
 
 const AdminTabs: React.FC<Props> = ({active}) => {
   const navigation = useNavigation<any>();
-  const bottomPadding = Math.max(useBottomNavPad(), 12);
+  const bottomPadding = Math.max(useBottomNavPad(), 8);
 
   return (
     <View style={[styles.bar, {paddingBottom: bottomPadding}]}>

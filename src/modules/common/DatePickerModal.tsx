@@ -43,7 +43,7 @@ const DatePickerModal: React.FC<Props> = ({
 
   useEffect(() => {
     if (visible) {
-      // Keyboard + native date dialog together crashes some Android 15 OEMs.
+      // Keyboard + native date dialog together can crash on many Android devices.
       Keyboard.dismiss();
       setDraft(value);
     }

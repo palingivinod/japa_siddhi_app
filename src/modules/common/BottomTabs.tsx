@@ -35,7 +35,8 @@ const TABS: Array<{
 const BottomTabs: React.FC<Props> = ({active}) => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
-  const bottomPadding = Math.max(useBottomNavPad(), 12);
+  // Real system inset only. Extra 8px is tab-bar breathing room, not nav height.
+  const bottomPadding = Math.max(useBottomNavPad(), 8);
 
   return (
     <View style={[styles.bar, {paddingBottom: bottomPadding}]}>

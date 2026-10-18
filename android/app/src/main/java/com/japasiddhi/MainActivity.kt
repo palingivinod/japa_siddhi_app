@@ -19,12 +19,12 @@ class MainActivity : ReactActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // targetSdk 35+/36 can force edge-to-edge; keep classic system-window fit so
-    // IME/keyboard open does not crash on some Android 15 OEMs (Lava, Poco, etc.).
+    // keyboard / IME behaviour stays stable across Android brands.
     WindowCompat.setDecorFitsSystemWindows(window, true)
-    // Prefer pan over resize — resize + ScrollView has crashed on several OEM keyboards.
+    // Prefer pan over resize — resize + ScrollView has crashed on many Android devices.
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
     super.onCreate(savedInstanceState)
-    // Re-apply after RN Activity setup — some OEMs reset soft-input during super.onCreate.
+    // Re-apply after RN Activity setup — some devices reset soft-input during super.onCreate.
     WindowCompat.setDecorFitsSystemWindows(window, true)
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
   }

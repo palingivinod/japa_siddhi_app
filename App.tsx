@@ -4,6 +4,7 @@ import {Provider} from 'react-redux';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import AppNavigator from './src/navigation/AppNavigator';
+import ErrorBoundary from './src/modules/common/ErrorBoundary';
 import {LanguageProvider} from './src/i18n/LanguageContext';
 import {store} from './src/redux/store';
 import {ensureFreshToken} from './src/services/authRefresh';
@@ -65,12 +66,14 @@ export default function App() {
   }, []);
 
   return (
-    <Provider store={store}>
-      <SafeAreaProvider>
-        <LanguageProvider>
-          <AppNavigator />
-        </LanguageProvider>
-      </SafeAreaProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <SafeAreaProvider>
+          <LanguageProvider>
+            <AppNavigator />
+          </LanguageProvider>
+        </SafeAreaProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 }
