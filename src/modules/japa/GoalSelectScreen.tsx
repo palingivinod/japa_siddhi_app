@@ -1,6 +1,8 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Alert,
+  Keyboard,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -79,6 +81,20 @@ const GoalSelectScreen = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayTargetInput, setTodayTargetInput] = useState('');
   const [isTodayCustom, setIsTodayCustom] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardOpen(false));
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const goal = Number(String(goalText).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
@@ -236,9 +252,11 @@ const GoalSelectScreen = () => {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        removeClippedSubviews={false}>
+        keyboardShouldPersistTaps="always"
+        scrollEnabled={!keyboardOpen}
+        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+        removeClippedSubviews={false}
+        overScrollMode="never">
         <Text style={styles.hint}>{t('completeCountByDate')}</Text>
 
         <View style={styles.circle}>

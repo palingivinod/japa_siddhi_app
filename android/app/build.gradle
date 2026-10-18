@@ -35,8 +35,8 @@ android {
         applicationId "com.japasiddhi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 25
-        versionName "1.0.10"
+        versionCode 27
+        versionName "1.0.11"
     }
     signingConfigs {
         debug {

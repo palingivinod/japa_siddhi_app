@@ -1,5 +1,7 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
+  Keyboard,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -78,6 +80,24 @@ const PrivateJapaScreen = () => {
   const [saving, setSaving] = useState(false);
   const [recentMantras, setRecentMantras] = useState<SavedMantra[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  // Android 15 OEMs crash when ScrollView scrolls/resizes while IME is open.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = Keyboard.addListener(showEvent, () => setKeyboardOpen(true));
+    const onHide = Keyboard.addListener(hideEvent, () => {
+      setKeyboardOpen(false);
+      setShowSuggestions(false);
+    });
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, []);
 
   const rawGoal = Number(String(goal).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
@@ -283,8 +303,13 @@ const PrivateJapaScreen = () => {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag">
+        keyboardShouldPersistTaps="always"
+        // Lock scroll while keyboard is open — adjustPan pans the window;
+        // ScrollView + IME together crashes some Android 15 phones (Lava/Poco).
+        scrollEnabled={!keyboardOpen}
+        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+        removeClippedSubviews={false}
+        overScrollMode="never">
         <View style={styles.card}>
           <View style={styles.dot}>
             <Text style={styles.emoji}>🕉️</Text>
@@ -297,24 +322,27 @@ const PrivateJapaScreen = () => {
 
         {/* 1. Mantra Name Input */}
         <Text style={styles.label}>{t('enterYourMantra')}</Text>
-        <View style={styles.inputContainer}>
+        <View style={styles.inputContainer} collapsable={false}>
           <TextInput
             style={styles.input}
             value={mantra}
-            onFocus={() => setShowSuggestions(true)}
-            onBlur={() => {
-              // Defer hide so suggestion taps still register
-              setTimeout(() => setShowSuggestions(false), 150);
+            onFocus={() => {
+              // Suggestions while IME is animating causes layout crashes on OEMs.
+              if (Platform.OS !== 'android') {
+                setShowSuggestions(true);
+              }
             }}
+            onBlur={() => setShowSuggestions(false)}
             onChangeText={text => {
               setMantra(text);
               setMessage('');
-              setShowSuggestions(true);
             }}
             placeholder={t('keptPrivateReports')}
             placeholderTextColor={Colors.placeholder}
             underlineColorAndroid="transparent"
             autoCorrect={false}
+            blurOnSubmit
+            textAlignVertical="center"
           />
 
           {showSuggestions && filteredSuggestions.length > 0 ? (
@@ -327,10 +355,8 @@ const PrivateJapaScreen = () => {
                   <Text style={styles.popupClose}>✕</Text>
                 </TouchableOpacity>
               </View>
-              <ScrollView
-                nestedScrollEnabled
-                keyboardShouldPersistTaps="handled"
-                style={styles.popupScroll}>
+              {/* Plain View only — nested ScrollView + keyboard crashes some Android 15 OEMs. */}
+              <View style={styles.popupScroll}>
                 {filteredSuggestions.slice(0, 5).map(item => {
                   const isSelected =
                     mantra.trim().toLowerCase() === item.name.toLowerCase();
@@ -368,7 +394,7 @@ const PrivateJapaScreen = () => {
                     </TouchableOpacity>
                   );
                 })}
-              </ScrollView>
+              </View>
             </View>
           ) : null}
         </View>
@@ -388,6 +414,8 @@ const PrivateJapaScreen = () => {
           placeholderTextColor={Colors.placeholder}
           keyboardType="numeric"
           underlineColorAndroid="transparent"
+          blurOnSubmit
+          textAlignVertical="center"
         />
         <View style={styles.presetsRow}>
           {PRESET_GOALS.map(preset => {
@@ -519,6 +547,8 @@ const PrivateJapaScreen = () => {
                   placeholder={String(defaultDailyTarget)}
                   placeholderTextColor={Colors.placeholder}
                   underlineColorAndroid="transparent"
+                  blurOnSubmit
+                  textAlignVertical="center"
                 />
                 <Text style={styles.todayInputUnit}>Japas today</Text>
               </View>
