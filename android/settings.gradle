@@ -1,9 +1,13 @@
-pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
+pluginManagement {
+  // Windows: node_modules/@react-native/gradle-plugin can be EPERM-locked; prefer clean override.
+  def rnGp = System.getenv("JAPA_RN_GRADLE_PLUGIN")
+  includeBuild(rnGp != null && !rnGp.isEmpty() ? rnGp : "../node_modules/@react-native/gradle-plugin")
+}
 plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'JapaSiddhi'
 include ':app'
-includeBuild('../node_modules/@react-native/gradle-plugin')
+includeBuild(System.getenv("JAPA_RN_GRADLE_PLUGIN") ?: "../node_modules/@react-native/gradle-plugin")
 
 // Set build dirs before Android plugin apply so AGP does not lock onto
 // android/app/build (that tree can be unreadable on this Windows machine).

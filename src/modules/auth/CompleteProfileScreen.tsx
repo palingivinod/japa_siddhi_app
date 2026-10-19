@@ -13,7 +13,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
-import {dismissKeyboardThen, useKeyboardOpen} from '../../utils/keyboard';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 
 import AppHeader from '../common/AppHeader';
@@ -57,7 +57,6 @@ const CompleteProfileScreen = ({
   route,
 }: any) => {
   const bottomPad = useBottomNavPad();
-  const keyboardOpen = useKeyboardOpen();
   const registeredEmail = route?.params?.email ?? '';
   const initialPhone = String(route?.params?.phoneNumber || '').replace(/\D/g, '');
   const initialCode =
@@ -333,9 +332,8 @@ const CompleteProfileScreen = ({
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
-        keyboardShouldPersistTaps="always"
-        scrollEnabled={!keyboardOpen}
-        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
         overScrollMode="never"
         contentContainerStyle={[

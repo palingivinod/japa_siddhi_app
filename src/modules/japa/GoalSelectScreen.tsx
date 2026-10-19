@@ -13,7 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
-import {dismissKeyboardThen, useKeyboardOpen} from '../../utils/keyboard';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -79,7 +79,6 @@ const GoalSelectScreen = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayTargetInput, setTodayTargetInput] = useState('');
   const [isTodayCustom, setIsTodayCustom] = useState(false);
-  const keyboardOpen = useKeyboardOpen();
 
   const goal = Number(String(goalText).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
@@ -159,7 +158,7 @@ const GoalSelectScreen = () => {
     }, [route.params?.goal, route.params?.mantraId, route.params?.mode]),
   );
 
-  const start = async () => {
+  const start = () => {
     if (goal < 1) {
       Alert.alert(t('setYourGoal'), t('setGoalCountToStart'));
       return;
@@ -179,56 +178,59 @@ const GoalSelectScreen = () => {
         return;
       }
     }
-    const challengeId = Number(route.params?.challengeId || 0) || undefined;
-    let createdGoalId: number | undefined;
-    const isPersonal = route.params?.mode === 'private';
-    const isCommunity = route.params?.mode === 'community';
-    const mName = String(
-      route.params?.mantraName || route.params?.privateMantra || '',
-    ).trim();
-    const calculatedGoalName = isPersonal
-      ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
-      : isCommunity
-        ? `Samuhika Japa · ${mName || 'Mantra'}`.slice(0, 80)
-        : `Daily Japa · ${mName || 'Mantra'}`.slice(0, 80);
 
-    if (!challengeId && goal > 0) {
-      try {
-        const goalRes = await apiService.post('/japa-goals', {
-          mantraType: isPersonal ? 'PERSONAL' : 'DEFAULT',
-          mantraId: route.params?.mantraId,
-          personalMantraId: route.params?.personalMantraId,
-          goalName: calculatedGoalName,
-          targetCount: goal,
-          dailyTarget: effectiveTodayTarget,
-          days: remainingDays,
-          startDate: new Date().toISOString().slice(0, 10),
-          endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
-          notes: isCommunity ? 'Samuhika japa' : undefined,
-        });
-        createdGoalId =
-          Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
+    dismissKeyboardThen(async () => {
+      const challengeId = Number(route.params?.challengeId || 0) || undefined;
+      let createdGoalId: number | undefined;
+      const isPersonal = route.params?.mode === 'private';
+      const isCommunity = route.params?.mode === 'community';
+      const mName = String(
+        route.params?.mantraName || route.params?.privateMantra || '',
+      ).trim();
+      const calculatedGoalName = isPersonal
+        ? String(route.params?.privateMantra || 'My Japa').slice(0, 80)
+        : isCommunity
+          ? `Samuhika Japa · ${mName || 'Mantra'}`.slice(0, 80)
+          : `Daily Japa · ${mName || 'Mantra'}`.slice(0, 80);
+
+      if (!challengeId && goal > 0) {
+        try {
+          const goalRes = await apiService.post('/japa-goals', {
+            mantraType: isPersonal ? 'PERSONAL' : 'DEFAULT',
+            mantraId: route.params?.mantraId,
+            personalMantraId: route.params?.personalMantraId,
+            goalName: calculatedGoalName,
+            targetCount: goal,
+            dailyTarget: effectiveTodayTarget,
+            days: remainingDays,
+            startDate: new Date().toISOString().slice(0, 10),
+            endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
+            notes: isCommunity ? 'Samuhika japa' : undefined,
+          });
+          createdGoalId =
+            Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
+            undefined;
+        } catch {
           undefined;
-      } catch {
-        undefined;
+        }
       }
-    }
-    navigation.navigate('Chant', {
-      mode: route.params?.mode || 'community',
-      mantraId: route.params?.mantraId,
-      privateMantra: route.params?.privateMantra,
-      personalMantraId: route.params?.personalMantraId,
-      goal: goal,
-      totalGoal: goal,
-      goalType: 'date',
-      endDate: formatDate(endDate),
-      dailyTarget: effectiveTodayTarget,
-      japaGoalId: createdGoalId,
-      challengeId,
-      initialCount: route.params?.initialCount,
-      durationMs: 2500,
-      remainingDays,
-    });
+      navigation.navigate('Chant', {
+        mode: route.params?.mode || 'community',
+        mantraId: route.params?.mantraId,
+        privateMantra: route.params?.privateMantra,
+        personalMantraId: route.params?.personalMantraId,
+        goal: goal,
+        totalGoal: goal,
+        goalType: 'date',
+        endDate: formatDate(endDate),
+        dailyTarget: effectiveTodayTarget,
+        japaGoalId: createdGoalId,
+        challengeId,
+        initialCount: route.params?.initialCount,
+        durationMs: 2500,
+        remainingDays,
+      });
+    }, 120);
   };
 
   return (
@@ -237,9 +239,8 @@ const GoalSelectScreen = () => {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always"
-        scrollEnabled={!keyboardOpen}
-        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
         overScrollMode="never">
         <Text style={styles.hint}>{t('completeCountByDate')}</Text>

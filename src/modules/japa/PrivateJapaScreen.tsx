@@ -196,7 +196,7 @@ const PrivateJapaScreen = () => {
     return Number(created.data?.data?.id || 0) || undefined;
   };
 
-  const start = async () => {
+  const start = () => {
     const name = mantra.trim();
     if (!name) {
       setMessage(t('enterYourMantra'));
@@ -220,53 +220,57 @@ const PrivateJapaScreen = () => {
         return;
       }
     }
-    setSaving(true);
-    setMessage('');
 
-    let personalMantraId: number | undefined;
-    try {
-      personalMantraId = await resolvePersonalMantraId(name);
-    } catch {
-      personalMantraId = undefined;
-    }
-    await saveToRecent(name, rawGoal, personalMantraId);
+    // Close IME before API + navigate — open keyboard + screen change crashes many Androids.
+    dismissKeyboardThen(async () => {
+      setSaving(true);
+      setMessage('');
 
-    const remDays = daysUntil(endDate);
-    const startDateStr = new Date().toISOString().slice(0, 10);
-    const endDateStr = endDate.toISOString().slice(0, 10);
+      let personalMantraId: number | undefined;
+      try {
+        personalMantraId = await resolvePersonalMantraId(name);
+      } catch {
+        personalMantraId = undefined;
+      }
+      await saveToRecent(name, rawGoal, personalMantraId);
 
-    let createdGoalId: number | undefined;
-    try {
-      const goalRes = await apiService.post('/japa-goals', {
-        mantraType: 'PERSONAL',
+      const remDays = daysUntil(endDate);
+      const startDateStr = new Date().toISOString().slice(0, 10);
+      const endDateStr = endDate.toISOString().slice(0, 10);
+
+      let createdGoalId: number | undefined;
+      try {
+        const goalRes = await apiService.post('/japa-goals', {
+          mantraType: 'PERSONAL',
+          personalMantraId,
+          goalName: name.slice(0, 80),
+          targetCount: rawGoal,
+          dailyTarget: effectiveTodayTarget,
+          days: remDays,
+          startDate: startDateStr,
+          endDate: endDateStr,
+        });
+        createdGoalId =
+          Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
+          undefined;
+      } catch (err) {
+        console.warn('Could not save japa goal:', err);
+      }
+
+      setSaving(false);
+      navigation.navigate('Chant', {
+        mode: 'private',
+        privateMantra: name,
         personalMantraId,
-        goalName: name.slice(0, 80),
-        targetCount: rawGoal,
+        goal: rawGoal,
+        totalGoal: rawGoal,
         dailyTarget: effectiveTodayTarget,
-        days: remDays,
-        startDate: startDateStr,
-        endDate: endDateStr,
+        japaGoalId: createdGoalId,
+        goalType: 'date',
+        endDate: formatDate(endDate),
+        remainingDays: remDays,
       });
-      createdGoalId =
-        Number(goalRes?.data?.data?.goalId || goalRes?.data?.data?.id || 0) ||
-        undefined;
-    } catch (err) {
-      console.warn('Could not save japa goal:', err);
-    }
-
-    setSaving(false);
-    navigation.navigate('Chant', {
-      mode: 'private',
-      privateMantra: name,
-      personalMantraId,
-      goal: rawGoal,
-      totalGoal: rawGoal,
-      dailyTarget: effectiveTodayTarget,
-      japaGoalId: createdGoalId,
-      goalType: 'date',
-      endDate: formatDate(endDate),
-      remainingDays: remDays,
-    });
+    }, 120);
   };
 
   const startWithListedMantra = () => {
@@ -291,10 +295,9 @@ const PrivateJapaScreen = () => {
         style={styles.flex}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="always"
-        // Lock scroll while keyboard is open (all Android devices).
-        scrollEnabled={!keyboardOpen}
-        keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+        keyboardShouldPersistTaps="handled"
+        // Scroll-to-dismiss keyboard (previous UX). Keep clip/overscroll off for stability.
+        keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
         overScrollMode="never">
         <View style={styles.card}>

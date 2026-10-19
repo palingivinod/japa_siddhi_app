@@ -10,7 +10,6 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import Colors from '../../theme/colors';
-import {useKeyboardOpen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from './AppHeader';
 import BottomTabs, {TabKey} from './BottomTabs';
@@ -38,7 +37,6 @@ const ScreenLayout: React.FC<Props> = ({
   const swipeEnabled = Boolean(tab) && !back;
   const tabSwipe = useTabSwipe(tab || 'Home', swipeEnabled);
   const bottomPad = useBottomNavPad();
-  const keyboardOpen = useKeyboardOpen();
 
   const body = (
     <View style={styles.body}>
@@ -51,10 +49,8 @@ const ScreenLayout: React.FC<Props> = ({
             !tab ? {paddingBottom: 140 + bottomPad} : null,
           ]}
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="always"
-          // Lock scroll while keyboard is open — safer on all Android devices.
-          scrollEnabled={!keyboardOpen}
-          keyboardDismissMode={keyboardOpen ? 'none' : 'on-drag'}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           removeClippedSubviews={false}
           overScrollMode="never">
           {children}

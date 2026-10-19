@@ -5,7 +5,6 @@ import {
   Linking,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -24,52 +23,33 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 const SRI_URJITH_SITE = 'https://www.sriurjith.com/';
 const DEVELOPED_BY = 'Developed by Sri Urjith Services Pvt Ltd';
 
-/** Artwork pixel size — used to fit the full design without cropping. */
-const ART_WIDTH = 410;
-const ART_HEIGHT = 929;
-const ART_ASPECT = ART_HEIGHT / ART_WIDTH;
-
 const SplashScreen = ({navigation}: Props) => {
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
+  // Keep welcome art above the system nav bar on gesture/3-button phones.
   const bottomPad = useBottomNavPad();
+  const stageHeight = Math.max(1, height - bottomPad);
 
-  // Reserve space for real "Developed by" text + system nav (never crop that away).
-  const creditBlock = 44;
-  const stageHeight = Math.max(1, height - bottomPad - creditBlock);
-
-  // Fit entire splash art inside the stage (letterbox if needed — cream matches bg).
-  const artLayout = useMemo(() => {
-    const stageAspect = stageHeight / Math.max(1, width);
-    if (stageAspect > ART_ASPECT) {
-      const dispW = width;
-      const dispH = width * ART_ASPECT;
-      return {
-        width: dispW,
-        height: dispH,
-        left: 0,
-        top: (stageHeight - dispH) / 2,
-      };
-    }
-    const dispH = stageHeight;
-    const dispW = stageHeight / ART_ASPECT;
-    return {
-      width: dispW,
-      height: dispH,
-      left: (width - dispW) / 2,
-      top: 0,
-    };
-  }, [width, stageHeight]);
-
-  // GET STARTED band on the fitted artwork (lower-middle of the PNG).
+  // GET STARTED sits in the lower band of the artwork (above footer).
   const hitStyle = useMemo(
     () => ({
-      left: artLayout.left + artLayout.width * 0.1,
-      width: artLayout.width * 0.8,
-      top: artLayout.top + artLayout.height * 0.68,
-      height: artLayout.height * 0.1,
+      left: Math.max(16, width * 0.08),
+      right: Math.max(16, width * 0.08),
+      top: stageHeight * 0.66,
+      bottom: Math.max(48, stageHeight * 0.08),
     }),
-    [artLayout],
+    [width, stageHeight],
+  );
+
+  // Invisible tap target over the baked "Developed by..." footer line.
+  const creditStyle = useMemo(
+    () => ({
+      left: Math.max(12, width * 0.06),
+      right: Math.max(12, width * 0.06),
+      bottom: Math.max(8, stageHeight * 0.02),
+      height: Math.max(30, stageHeight * 0.045),
+    }),
+    [width, stageHeight],
   );
 
   const openSriUrjith = useCallback(async () => {
@@ -116,11 +96,18 @@ const SplashScreen = ({navigation}: Props) => {
         backgroundColor="transparent"
         barStyle="dark-content"
       />
-      <View style={[styles.stage, {height: stageHeight}]}>
+      <View style={[styles.stage, {bottom: bottomPad}]}>
         <Image
           source={require('../../assets/images/splash_welcome.png')}
-          style={[styles.hero, artLayout]}
-          resizeMode="contain"
+          style={styles.hero}
+          resizeMode="cover"
+        />
+        <TouchableOpacity
+          style={[styles.creditHit, creditStyle]}
+          onPress={openSriUrjith}
+          activeOpacity={0.85}
+          accessibilityRole="link"
+          accessibilityLabel={DEVELOPED_BY}
         />
         <TouchableOpacity
           style={[styles.hit, hitStyle]}
@@ -136,16 +123,7 @@ const SplashScreen = ({navigation}: Props) => {
           </View>
         ) : null}
       </View>
-
-      {/* Always on-screen — not baked into the PNG crop. */}
-      <TouchableOpacity
-        style={[styles.creditRow, {paddingBottom: Math.max(8, bottomPad)}]}
-        onPress={openSriUrjith}
-        activeOpacity={0.7}
-        accessibilityRole="link"
-        accessibilityLabel={DEVELOPED_BY}>
-        <Text style={styles.creditText}>{DEVELOPED_BY}</Text>
-      </TouchableOpacity>
+      <View style={[styles.navSpacer, {height: bottomPad}]} />
     </View>
   );
 };
@@ -158,30 +136,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#F7F0E4',
   },
   stage: {
-    width: '100%',
+    ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
+  },
+  navSpacer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: '#F7F0E4',
   },
   hero: {
-    position: 'absolute',
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
   },
   hit: {
     position: 'absolute',
     zIndex: 2,
   },
-  creditRow: {
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 4,
-  },
-  creditText: {
-    fontSize: 12,
-    lineHeight: 16,
-    color: '#6B5A48',
-    textAlign: 'center',
-    fontWeight: '600',
+  creditHit: {
+    position: 'absolute',
+    zIndex: 3,
   },
   busyOverlay: {
     ...StyleSheet.absoluteFillObject,

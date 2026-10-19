@@ -37,6 +37,10 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
   const currentCount = Math.max(0, persons);
   const totalAmount = currentCount * RATE_PER_PERSON;
   const headerTitle = title || t('selectNoOfPersons');
+  const personUnit = (count: number) =>
+    count === 1 ? t('personOne') : t('personMany');
+  const devoteeUnit = (count: number) =>
+    count === 1 ? t('devoteeOne') : t('devoteeMany');
 
   const handleTextChange = (text: string) => {
     const digits = text.replace(/\D/g, '');
@@ -54,7 +58,9 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
       <View style={styles.headerRow}>
         <Text style={styles.label}>{headerTitle}</Text>
         <View style={styles.rateBadge}>
-          <Text style={styles.rateText}>₹{RATE_PER_PERSON} / person</Text>
+          <Text style={styles.rateText}>
+            {t('rateSlashPerson', {rate: RATE_PER_PERSON})}
+          </Text>
         </View>
       </View>
 
@@ -64,19 +70,19 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
           onPress={() => setModalVisible(true)}
           activeOpacity={0.85}>
           <Text style={styles.dropdownBtnText} numberOfLines={1}>
-            {currentCount > 0 ? `${currentCount}` : 'Select'}
+            {currentCount > 0 ? `${currentCount}` : t('selectShort')}
           </Text>
           <Text style={styles.dropdownArrow}>▾</Text>
         </TouchableOpacity>
 
-        <Text style={styles.orText}>or</Text>
+        <Text style={styles.orText}>{t('or')}</Text>
 
         <View style={styles.textInputWrap}>
           <TextInput
             style={styles.textInput}
             value={currentCount > 0 ? String(currentCount) : ''}
             onChangeText={handleTextChange}
-            placeholder="Enter no of persons"
+            placeholder={t('enterNoOfPersons')}
             placeholderTextColor={Colors.placeholder}
             keyboardType="number-pad"
             maxLength={6}
@@ -87,7 +93,11 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
       <View style={styles.calcCard}>
         <View style={styles.calcRow}>
           <Text style={styles.calcFormula}>
-            {currentCount > 0 ? `${currentCount} ${currentCount === 1 ? 'Person' : 'Persons'} × ₹${RATE_PER_PERSON}` : `0 Persons × ₹${RATE_PER_PERSON}`}
+            {t('personsTimesRate', {
+              count: currentCount,
+              unit: personUnit(currentCount || 0),
+              rate: RATE_PER_PERSON,
+            })}
           </Text>
           <Text style={styles.calcTotal}>
             ₹ {totalAmount.toLocaleString()}
@@ -95,8 +105,11 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
         </View>
         <Text style={styles.calcSub}>
           {currentCount > 0
-            ? `Your seva will provide sacred meals to ${currentCount} ${currentCount === 1 ? 'devotee' : 'devotees'}.`
-            : 'Select or enter the number of devotees to sponsor food for.'}
+            ? t('sevaSacredMeals', {
+                count: currentCount,
+                unit: devoteeUnit(currentCount),
+              })
+            : t('selectDevoteesSponsor')}
         </Text>
       </View>
 
@@ -111,7 +124,9 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
               <View style={styles.modalContent}>
                 <View style={styles.modalHeader}>
                   <Text style={styles.modalTitle}>{t('selectNoOfPersons')}</Text>
-                  <Text style={styles.modalSubtitle}>Rate: ₹{RATE_PER_PERSON} per person</Text>
+                  <Text style={styles.modalSubtitle}>
+                    {t('ratePerPersonFull', {rate: RATE_PER_PERSON})}
+                  </Text>
                 </View>
 
                 <FlatList
@@ -131,7 +146,7 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
                             styles.optionText,
                             isSelected && styles.optionTextSelected,
                           ]}>
-                          {item} {item === 1 ? 'Person' : 'Persons'}
+                          {item} {personUnit(item)}
                         </Text>
                         <Text
                           style={[
@@ -148,7 +163,7 @@ const AnnadanamMembersSelector: React.FC<Props> = ({
                 <TouchableOpacity
                   style={styles.closeBtn}
                   onPress={() => setModalVisible(false)}>
-                  <Text style={styles.closeBtnText}>CLOSE</Text>
+                  <Text style={styles.closeBtnText}>{t('close')}</Text>
                 </TouchableOpacity>
               </View>
             </TouchableWithoutFeedback>
