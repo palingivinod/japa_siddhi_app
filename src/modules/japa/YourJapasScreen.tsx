@@ -13,6 +13,10 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {
+  calcDaysRemaining,
+  computeEffectiveDailyTarget,
+} from '../../utils/dailyGoal';
 import PrimaryButton from '../common/PrimaryButton';
 import OutlineButton from '../common/OutlineButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -46,18 +50,6 @@ const formatDate = (raw?: string | null) => {
   const match = String(raw).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!match) return String(raw);
   return `${match[3]}/${match[2]}/${match[1]}`;
-};
-
-const calcDaysRemaining = (endDateStr?: string | null) => {
-  if (!endDateStr) return 999;
-  const match = String(endDateStr).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return 999;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  end.setHours(0, 0, 0, 0);
-  const diffDays = Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, diffDays);
 };
 
 const YourJapasScreen = () => {
@@ -148,14 +140,13 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          // Compute daily target based on configured target and remaining
-          let dailyTarget = Number(goal.dailyTarget || 0);
-          if (dailyTarget <= 0 && remainingCount > 0) {
-            dailyTarget =
-              remainingDays <= 1
-                ? remainingCount
-                : Math.max(1, Math.ceil(remainingCount / (remainingDays >= 900 ? 30 : remainingDays)));
-          }
+          // Always recompute from remaining ÷ remaining days so over-chanting
+          // lowers the next daily plan (stored daily_target is only a seed).
+          const dailyTarget = computeEffectiveDailyTarget({
+            remainingCount,
+            remainingDays,
+            endDate: goal.endDate,
+          });
 
           const isPersonal =
             goal.mantraType === 'PERSONAL' ||

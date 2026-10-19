@@ -1,4 +1,4 @@
-export type ScreenEntry = {
+﻿export type ScreenEntry = {
   order: number;
   name: string;
   route: string;
@@ -129,15 +129,15 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
     route: 'PaymentConfirmation',
     params: {itemName: 'Baanalingam', orderNumber: 'JS10028'},
   },
-  {order: 42, name: 'Anna Santharpanam', route: 'Donate'},
-  {order: 43, name: 'Japa Anna Santharpanam', route: 'JapaAnnadanam'},
-  {order: 43, name: 'Japa Anna Santharpanam Notification', route: 'MilestoneNotifications'},
-  {order: 44, name: 'General Anna Santharpanam', route: 'GeneralAnnadanam'},
+  {order: 42, name: 'Anna Santharpana', route: 'Donate'},
+  {order: 43, name: 'Japa Anna Santharpana', route: 'JapaAnnadanam'},
+  {order: 43, name: 'Japa Anna Santharpana Notification', route: 'MilestoneNotifications'},
+  {order: 44, name: 'General Anna Santharpana', route: 'GeneralAnnadanam'},
   {
     order: 45,
     name: 'Seva Form',
     route: 'DonationForm',
-    params: {kind: 'GENERAL', amount: 1008, itemName: 'General Anna Santharpanam'},
+    params: {kind: 'GENERAL', amount: 1008, itemName: 'General Anna Santharpana'},
   },
   {
     order: 46,
@@ -147,7 +147,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
       kind: 'ANNADANAM',
       title: 'Proceed to Pay',
       heading: 'Scan the UPI QR',
-      itemName: 'Anna Santharpanam Seva',
+      itemName: 'Anna Santharpana Seva',
       subtitle: 'Scan this QR with any UPI app.',
       amount: 1008,
       button: 'I HAVE PAID',
@@ -157,7 +157,7 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
     order: 47,
     name: 'Seva Confirmation',
     route: 'DonationConfirmation',
-    params: {itemName: 'Anna Santharpanam', confirmationId: 'ANN10281'},
+    params: {itemName: 'Anna Santharpana', confirmationId: 'ANN10281'},
   },
   {order: 48, name: 'Nithya Homam', route: 'NithyaHomam'},
   {order: 49, name: 'Homam Enrollment', route: 'HomamEnroll'},

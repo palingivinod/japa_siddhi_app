@@ -8,7 +8,8 @@ import com.facebook.react.uimanager.ViewManager
 class ChantBeepPackage : ReactPackage {
   override fun createNativeModules(
     reactContext: ReactApplicationContext,
-  ): List<NativeModule> = listOf(ChantBeepModule(reactContext))
+  ): List<NativeModule> =
+    listOf(ChantBeepModule(reactContext), ChantQuietModeModule(reactContext))
 
   override fun createViewManagers(
     reactContext: ReactApplicationContext,

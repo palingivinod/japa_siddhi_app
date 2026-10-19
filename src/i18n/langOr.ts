@@ -108,7 +108,7 @@ export const or: TranslationDict = {
   participateHomam: 'ଆପଣଙ୍କ ନାମ ଓ ଗୋତ୍ର ସହିତ ନିତ୍ୟ ହୋମରେ ଅଂଶଗ୍ରହଣ କରନ୍ତୁ।',
   enrollNow: 'ଏବେ ନାମ ଲେଖାନ୍ତୁ →',
   quickActions: 'ଶୀଘ୍ର କାର୍ଯ୍ୟ',
-  tileJapaChanting: 'ଜପ ଜପ',
+  tileJapaChanting: 'ଜପ',
   tileJapaSub: 'ଆରମ୍ଭ କିମ୍ବା ଜାରି ରଖନ୍ତୁ',
   tileBaanalingam: 'ବାଣଲିଙ୍ଗ',
   tileBaanalingamSub: 'ଆବେଦନ / ଅର୍ଡର',
@@ -131,6 +131,8 @@ export const or: TranslationDict = {
   japaAnalytics: 'ଜପ ବିଶ୍ଳେଷଣ',
   japaAnalyticsSub: 'ସାପ୍ତାହିକ, ମାସିକ ଓ ଧାରାବାହିକତା ରିପୋର୍ଟ।',
   recentProgress: 'ସାମ୍ପ୍ରତିକ ପ୍ରଗତି',
+  todayJapaCountLabel: 'ଆଜି ଆପଣ କରିଥିବା ଜପ ସଂଖ୍ୟା',
+  continuousDaysLabel: 'ନିରନ୍ତର ଦିନ',
   seva: 'ସେବା',
   spiritualServices: 'ଆଧ୍ୟାତ୍ମିକ ସେବା',
   myProfile: 'ମୋ ପ୍ରୋଫାଇଲ୍',
@@ -232,7 +234,14 @@ export const or: TranslationDict = {
   faqDonateAnnadanamA:
     'ସେବା ଖୋଲନ୍ତୁ, ଅନ୍ନଦାନ ବାଛନ୍ତୁ, ଜପ କିମ୍ବା ସାଧାରଣ ଅର୍ପଣ ବାଛି ପେମେଣ୍ଟ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ।',
   faqTrackOrderQ: 'ମୁଁ କିପରି ଅର୍ଡର ଟ୍ରାକ୍ କରିବି?',
-  faqTrackOrderA: 'ଅର୍ଡର ଖୋଲନ୍ତୁ, VIEW ଟ୍ୟାପ୍ କରନ୍ତୁ, ତା’ପରେ ଅର୍ଡର ଟ୍ରାକ୍ ବ୍ୟବହାର କରନ୍ତୁ।',
+  faqTrackOrderA:
+    'ଅର୍ଡର ଖୋଲନ୍ତୁ, ଦେଖନ୍ତୁ ଟ୍ୟାପ୍ କରନ୍ତୁ, ତା’ପରେ ଅର୍ଡର ଟ୍ରାକ୍ ବ୍ୟବହାର କରନ୍ତୁ।',
+  slowDownChantPace:
+    'ଆପଣଙ୍କ ଜପ ଗତି ସହିତ ମିଶିବା ପାଇଁ ଅଳ୍ପ ଧୀରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+  chantQuietModeTitle: 'ଶାନ୍ତ ଜପ',
+  chantQuietModeMsg:
+    'ଜପ କରିବା ସମୟରେ ବିଜ୍ଞପ୍ତି ମ୍ୟୁଟ୍ କରିବାକୁ Do Not Disturb ଅନୁମତି ଦିଅନ୍ତୁ। ଏହି ସ୍କ୍ରିନ୍ ଛାଡ଼ିଲେ ସେଗୁଡ଼ିକ ଫେରିଆସିବ।',
+  allow: 'ଅନୁମତି ଦିଅନ୍ତୁ',
   faqChangeLanguageQ: 'ମୁଁ କିପରି ଭାଷା ବଦଳାଇବି?',
   faqChangeLanguageA:
     'ପ୍ରୋଫାଇଲ୍ > ସେଟିଂସ୍ > ଭାଷାକୁ ଯାଇ ଆପଣଙ୍କ ପସନ୍ଦର ଭାଷା ବାଛନ୍ତୁ।',
@@ -302,6 +311,7 @@ export const or: TranslationDict = {
   milestoneNotificationsTitle: 'ମାଇଲଷ୍ଟୋନ୍ ବିଜ୍ଞପ୍ତି',
   getNotifiedMilestones: 'ଗୁରୁତ୍ୱପୂର୍ଣ୍ଣ ଜପ ଗଣନା ପହଞ୍ଚିଲେ ବିଜ୍ଞପ୍ତି ପାଆନ୍ତୁ।',
   completedLabel: 'ସମ୍ପୂର୍ଣ୍ଣ',
+  completedJapaCount: 'ସମ୍ପୂର୍ଣ୍ଣ ଜପ ସଂଖ୍ୟା',
   goalCompleted: 'ସମ୍ପୂର୍ଣ୍ଣ',
   goalNotCompleted: 'ଅସମ୍ପୂର୍ଣ୍ଣ',
   offerLabel: 'ଅର୍ପଣ',

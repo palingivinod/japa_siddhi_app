@@ -7,6 +7,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
+import {computeEffectiveDailyTarget} from '../../utils/dailyGoal';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -52,20 +53,29 @@ const JapaProgressScreen = () => {
           return true;
         });
 
-        // Daily goal UI — never use total targetCount for the bar / completion
-        let dailyGoal = Number(
-          data.dailyGoal ?? data.goal ?? activeGoal?.dailyTarget ?? 0,
+        // Prefer per-goal today + dynamic daily from remaining ÷ days left.
+        let todayCount = Number(
+          activeGoal?.todayCompletedCount ??
+            data.todayCount ??
+            totals.todayJapaCount ??
+            0,
         );
-        if (dailyGoal <= 0 && activeGoal) {
+        let dailyGoal = 0;
+        if (activeGoal) {
           const target = Number(activeGoal.targetCount ?? 0);
           const completed = Number(activeGoal.completedCount ?? 0);
-          const remaining = Math.max(0, target - completed);
-          if (remaining > 0) {
-            dailyGoal = remaining;
-          }
+          const remaining = Math.max(
+            0,
+            Number(activeGoal.remainingCount ?? target - completed) || 0,
+          );
+          dailyGoal = computeEffectiveDailyTarget({
+            remainingCount: remaining,
+            endDate: activeGoal.endDate,
+          });
         }
-
-        const todayCount = Number(data.todayCount ?? totals.todayJapaCount ?? 0);
+        if (dailyGoal <= 0) {
+          dailyGoal = Number(data.dailyGoal ?? data.goal ?? 0);
+        }
         const progressPct =
           dailyGoal > 0
             ? Math.min(100, Math.round((todayCount / dailyGoal) * 100))

@@ -1,4 +1,4 @@
-import en, {TranslationDict} from './en';
+﻿import en, {TranslationDict} from './en';
 
 export const ml: TranslationDict = {
   ...en,
@@ -97,9 +97,9 @@ export const ml: TranslationDict = {
   joinChallenge: 'സവാലിൽ ചേരുക',
   percentComplete: '{{percent}}% പൂർത്തിയായി',
   spiritualChallenges: 'ആത്മീയ സവാലുകൾ',
-  annadanam: 'അന്ന സന്തർപ്പണം',
+  annadanam: 'അന്ന സന്തർപ്പണ',
   completedJapas: 'നിങ്ങൾ {{count}} ജപം പൂർത്തിയാക്കി',
-  considerAnnadanam: 'കൂടുതൽ ആത്മീയ ഗുണത്തിനായി അന്ന സന്തർപ്പണം പരിഗണിക്കുക.',
+  considerAnnadanam: 'കൂടുതൽ ആത്മീയ ഗുണത്തിനായി അന്ന സന്തർപ്പണ പരിഗണിക്കുക.',
   offerFoodSeva: 'ഭക്ഷണ സേവ നൽകുക',
   supportAnnadanam: 'ഭക്തരും ഉത്സവങ്ങളും അന്ന സന്തർപ്പണത്തിന് പിന്തുണ നൽകുക.',
   donateNow: 'ഇപ്പോൾ പിന്തുണയ്ക്കുക →',
@@ -112,7 +112,7 @@ export const ml: TranslationDict = {
   tileJapaSub: 'ആരംഭിക്കുക അല്ലെങ്കിൽ തുടരുക',
   tileBaanalingam: 'Baanalingam',
   tileBaanalingamSub: 'അപേക്ഷ / ഓർഡർ',
-  tileAnnadanam: 'അന്ന സന്തർപ്പണം',
+  tileAnnadanam: 'അന്ന സന്തർപ്പണ',
   tileAnnadanamSub: 'ഭക്ഷണ സേവ നൽകുക',
   tileNithyaHomam: 'നിത്യ Homam',
   tileNithyaHomamSub: 'ഇപ്പോൾ രജിസ്റ്റർ ചെയ്യുക',
@@ -131,6 +131,8 @@ export const ml: TranslationDict = {
   japaAnalytics: 'ജപ വിശകലനം',
   japaAnalyticsSub: 'ആഴ്ച, മാസം, തുടർച്ച റിപ്പോർട്ടുകൾ.',
   recentProgress: 'സമീപകാല പുരോഗതി',
+  todayJapaCountLabel: 'ഇന്ന് നിങ്ങൾ ചെയ്ത ജപ എണ്ണം',
+  continuousDaysLabel: 'തുടർച്ചയായ ദിവസങ്ങൾ',
   seva: 'സേവ',
   spiritualServices: 'ആത്മീയ സേവകൾ',
   myProfile: 'എന്റെ പ്രൊഫൈൽ',
@@ -232,18 +234,25 @@ export const ml: TranslationDict = {
   faqDonateAnnadanamA:
     'സേവ തുറക്കുക, അന്നദാനം തിരഞ്ഞെടുക്കുക, ജപ അല്ലെങ്കിൽ പൊതു അർപ്പണം തിരഞ്ഞെടുത്ത് പേയ്മെന്റ് പൂർത്തിയാക്കുക.',
   faqTrackOrderQ: 'എന്റെ ഓർഡർ എങ്ങനെ ട്രാക്ക് ചെയ്യാം?',
-  faqTrackOrderA: 'ഓർഡറുകൾ തുറക്കുക, VIEW അമർത്തുക, തുടർന്ന് ഓർഡർ ട്രാക്ക് ചെയ്യുക ഉപയോഗിക്കുക.',
+  faqTrackOrderA:
+    'ഓർഡറുകൾ തുറക്കുക, കാണുക അമർത്തുക, തുടർന്ന് ഓർഡർ ട്രാക്ക് ഉപയോഗിക്കുക.',
+  slowDownChantPace:
+    'നിങ്ങളുടെ ജപ വേഗതയ്ക്ക് അനുയോജ്യമായി അല്പം പതുക്കെ ടാപ്പ് ചെയ്യുക.',
+  chantQuietModeTitle: 'ശാന്തമായ ജപം',
+  chantQuietModeMsg:
+    'ജപിക്കുമ്പോൾ അറിയിപ്പുകൾ നിശബ്ദമാക്കാൻ Do Not Disturb അനുമതി നൽകുക. ഈ സ്ക്രീൻ വിട്ടാൽ അവ തിരികെ വരും.',
+  allow: 'അനുവദിക്കുക',
   faqChangeLanguageQ: 'ഭാഷ എങ്ങനെ മാറ്റാം?',
   faqChangeLanguageA:
     'പ്രൊഫൈൽ > സെറ്റിംഗ്സ് > ഭാഷയിലേക്ക് പോയി നിങ്ങളുടെ ഇഷ്ട ഭാഷ തിരഞ്ഞെടുക്കുക.',
-  generalAnnadanam: 'പൊതു അന്ന സന്തർപ്പണം',
+  generalAnnadanam: 'പൊതു അന്ന സന്തർപ്പണ',
   callSupport: 'കോൾ സഹായം',
   challengeProgress: 'സവാൽ പുരോഗതി',
   allScreens: 'എല്ലാ സ്ക്രീനുകളും 0–64',
   orderDetails: 'ഓർഡർ വിവരങ്ങൾ',
   placedSuccessful: 'വിജയകരമായി നൽകി',
   challengeLeaderboard: 'സവാൽ ലീഡർബോർഡ്',
-  japaAnnadanam: 'ജപ അന്ന സന്തർപ്പണം',
+  japaAnnadanam: 'ജപ അന്ന സന്തർപ്പണ',
   designSystem: 'ജപ സിദ്ധി ഡിസൈൻ സിസ്റ്റം',
   chantJapa: 'ജപം ചെയ്യുക',
   chantJapaDesc:
@@ -259,7 +268,7 @@ export const ml: TranslationDict = {
   myProgressDesc: 'ജപ ലക്ഷ്യം, ദൈനംദിന ലക്ഷ്യം, നിങ്ങൾ എത്രത്തോളം എത്തിയെന്ന് ട്രാക്ക് ചെയ്യുക.',
   profileDesc: 'വ്യക്തിഗത വിവരങ്ങൾ, ഭാഷ, അക്കൗണ്ട് ക്രമീകരണങ്ങൾ കാണുക, പുതുക്കുക.',
   featureReady: 'ഈ പേജ് അടുത്ത ഫീച്ചറിന് തയ്യാറാണ്.',
-  offerAnnadanam: 'അന്ന സന്തർപ്പണം',
+  offerAnnadanam: 'അന്ന സന്തർപ്പണ',
   japaAnnadanamSub:
     'ജപ മൈൽസ്റ്റോൺ കഴിഞ്ഞ് ഭക്ഷണ സേവയ്ക്ക് സ്പോൺസർഷിപ്പ് നൽകുക.',
   generalAnnadanamSub: 'ഒരു അവസരത്തിന് ഭക്ഷണ സേവ നൽകുക.',
@@ -298,12 +307,13 @@ export const ml: TranslationDict = {
   celebrateProgress: 'നിങ്ങളുടെ ആത്മീയ പുരോഗതിയും സേവ മൈൽസ്റ്റോണുകളും ആഘോഷിക്കുക.',
   japasCompleted: '{{count}} ജപം പൂർത്തിയായി!',
   youHaveCompletedJapas:
-    'നിങ്ങൾ {{count}} ജപം പൂർത്തിയാക്കി. കൂടുതൽ ഗുണത്തിനായി അന്ന സന്തർപ്പണം പരിഗണിക്കുക.',
-  performAnnadhanam: 'അന്ന സന്തർപ്പണം ചെയ്യുക',
+    'നിങ്ങൾ {{count}} ജപം പൂർത്തിയാക്കി. കൂടുതൽ ഗുണത്തിനായി അന്ന സന്തർപ്പണ പരിഗണിക്കുക.',
+  performAnnadhanam: 'അന്ന സന്തർപ്പണ ചെയ്യുക',
   upcomingMilestones: 'വരാനിരിക്കുന്ന മൈൽസ്റ്റോണുകൾ',
   milestoneNotificationsTitle: 'മൈൽസ്റ്റോൺ അറിയിപ്പുകൾ',
   getNotifiedMilestones: 'പ്രധാന ജപ എണ്ണം എത്തുമ്പോൾ അറിയിപ്പ് ലഭിക്കുക.',
   completedLabel: 'പൂർത്തിയായി',
+  completedJapaCount: 'പൂർത്തിയായ ജപ എണ്ണം',
   goalCompleted: 'പൂർത്തിയായി',
   goalNotCompleted: 'പൂർത്തിയായില്ല',
   offerLabel: 'അർപ്പണം',

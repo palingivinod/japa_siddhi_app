@@ -1,4 +1,4 @@
-const en = {
+﻿const en = {
   // Common
   continue: 'CONTINUE',
   back: 'Back',
@@ -67,7 +67,7 @@ const en = {
   peacefulDay: 'May your day be peaceful',
   beginYourJapa: 'Begin your Japa',
   bannerSubtitle:
-    'A digital space for Japa, Anna Santharpanam and spiritual participation.',
+    'A digital space for Japa, Anna Santharpana and spiritual participation.',
   startChanting: 'Start Chanting',
   todayFestival: 'TODAY · FESTIVAL',
   todayPanchangam: 'TODAY · PANCHANGAM',
@@ -104,24 +104,24 @@ const en = {
   joinChallenge: 'Join a challenge',
   percentComplete: '{{percent}}% complete',
   spiritualChallenges: 'Spiritual challenges',
-  annadanam: 'ANNA SANTHARPANAM',
+  annadanam: 'ANNA SANTHARPANA',
   completedJapas: 'You have completed {{count}} Japas',
   considerAnnadanam:
-    'Consider sponsoring Anna Santharpanam for greater spiritual benefit.',
+    'Consider sponsoring Anna Santharpana for greater spiritual benefit.',
   offerFoodSeva: 'Offer food seva',
-  supportAnnadanam: 'Support Anna Santharpanam for devotees and festivals.',
+  supportAnnadanam: 'Support Anna Santharpana for devotees and festivals.',
   donateNow: 'Support Now →',
   nithyaHomam: 'NITHYA HOMAM',
   enrollDailyHomam: 'Enroll for daily homam',
   participateHomam: 'Participate in Nithya Homam with your name and gothram.',
   enrollNow: 'Enroll Now →',
   quickActions: 'Quick actions',
-  tileJapaChanting: 'Japa Chanting',
+  tileJapaChanting: 'Japa',
   tileJapaSub: 'Start or resume',
   tileBaanalingam: 'Baanalingam',
   tileBaanalingamSub: 'Apply / order',
-  tileAnnadanam: 'Anna Santharpanam',
-  tileAnnadanamSub: 'Offer Anna Santharpanam',
+  tileAnnadanam: 'Anna Santharpana',
+  tileAnnadanamSub: 'Offer Anna Santharpana',
   tileNithyaHomam: 'Nithya Homam',
   tileNithyaHomamSub: 'Enroll now',
   tileOrders: 'Orders & Tracking',
@@ -141,6 +141,8 @@ const en = {
   japaAnalytics: 'Japam Visleshana',
   japaAnalyticsSub: 'Weekly, monthly and streak reports.',
   recentProgress: 'Recent progress',
+  todayJapaCountLabel: 'Japa count you did today',
+  continuousDaysLabel: 'Days in a row',
 
   // Seva hub
   seva: 'Seva',
@@ -254,18 +256,23 @@ const en = {
   faqDonateAnnadanamA:
     'Open Seva, choose Annadanam, pick Japa or General offering, then complete payment.',
   faqTrackOrderQ: 'How do I track my order?',
-  faqTrackOrderA: 'Open Orders, tap VIEW, then use Track Order.',
+  faqTrackOrderA: 'Open Orders, tap View, then use Track Order.',
+  slowDownChantPace: 'Slow down a little to match your chanting pace.',
+  chantQuietModeTitle: 'Peaceful chanting',
+  chantQuietModeMsg:
+    'Allow Do Not Disturb access so notifications are muted while you chant. They will return when you leave this screen.',
+  allow: 'Allow',
   faqChangeLanguageQ: 'How do I change language?',
   faqChangeLanguageA:
     'Go to Profile > Settings > Language and choose your preferred language.',
-  generalAnnadanam: 'General Anna Santharpanam',
+  generalAnnadanam: 'General Anna Santharpana',
   callSupport: 'Call Support',
   challengeProgress: 'Challenge Progress',
   allScreens: 'All Screens 0–64',
   orderDetails: 'Order Details',
   placedSuccessful: 'Placed Successful',
   challengeLeaderboard: 'Challenge Leaderboard',
-  japaAnnadanam: 'Japa Anna Santharpanam',
+  japaAnnadanam: 'Japa Anna Santharpana',
   designSystem: 'Japa Siddhi Design System',
 
   // Feature pages
@@ -283,9 +290,9 @@ const en = {
   profileDesc: 'View and update your personal details, language, and account settings.',
   featureReady: 'This page is ready for the next feature build.',
 
-  offerAnnadanam: 'Anna Santharpanam',
-  japaAnnadanamSub: 'After a Japa milestone, sponsor Anna Santharpanam.',
-  generalAnnadanamSub: 'Offer Anna Santharpanam for an occasion.',
+  offerAnnadanam: 'Anna Santharpana',
+  japaAnnadanamSub: 'After a Japa milestone, sponsor Anna Santharpana.',
+  generalAnnadanamSub: 'Offer Anna Santharpana for an occasion.',
   milestoneReminders: 'Milestone reminders',
   milestoneRemindersSub: 'See Japa milestone notifications.',
   yourJapaMilestone: 'Your Japa milestone',
@@ -321,8 +328,8 @@ const en = {
   celebrateProgress: 'Celebrate your spiritual progress and seva milestones.',
   japasCompleted: '{{count}} Japas Completed!',
   youHaveCompletedJapas:
-    'You have completed {{count}} Japas. Consider sponsoring Anna Santharpanam for greater spiritual benefit.',
-  performAnnadhanam: 'PERFORM ANNA SANTHARPANAM',
+    'You have completed {{count}} Japas. Consider sponsoring Anna Santharpana for greater spiritual benefit.',
+  performAnnadhanam: 'PERFORM ANNA SANTHARPANA',
   firstReward: 'first reward',
   secondReward: 'second reward',
   thirdReward: 'third reward',
@@ -336,6 +343,7 @@ const en = {
   milestoneNotificationsTitle: 'Milestone Notifications',
   getNotifiedMilestones: 'Get notified when you reach important Japa counts.',
   completedLabel: 'COMPLETED',
+  completedJapaCount: 'Completed Japa Count',
   goalCompleted: 'Completed',
   goalNotCompleted: 'Not Completed',
   offerLabel: 'OFFER',

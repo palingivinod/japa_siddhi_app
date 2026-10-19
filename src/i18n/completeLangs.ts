@@ -107,7 +107,7 @@ export const kn: TranslationDict = {
   participateHomam: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು ಗೋತ್ರದೊಂದಿಗೆ ನಿತ್ಯ ಹೋಮದಲ್ಲಿ ಭಾಗವಹಿಸಿ.',
   enrollNow: 'ಈಗ ನೋಂದಾಯಿಸಿ →',
   quickActions: 'ತ್ವರಿತ ಕ್ರಿಯೆಗಳು',
-  tileJapaChanting: 'ಜಪ ಜಪನ',
+  tileJapaChanting: 'ಜಪ',
   tileJapaSub: 'ಪ್ರಾರಂಭಿಸಿ ಅಥವಾ ಮುಂದುವರಿಸಿ',
   tileBaanalingam: 'ಬಾಣಲಿಂಗ',
   tileBaanalingamSub: 'ಅರ್ಜಿ / ಆರ್ಡರ್',
@@ -130,6 +130,8 @@ export const kn: TranslationDict = {
   japaAnalytics: 'ಜಪ ವಿಶ್ಲೇಷಣೆ',
   japaAnalyticsSub: 'ವಾರ, ತಿಂಗಳು ಮತ್ತು ಸರಣಿ ವರದಿಗಳು.',
   recentProgress: 'ಇತ್ತೀಚಿನ ಪ್ರಗತಿ',
+  todayJapaCountLabel: 'ಇಂದು ನೀವು ಮಾಡಿದ ಜಪ ಸಂಖ್ಯೆ',
+  continuousDaysLabel: 'ನಿರಂತರ ದಿನಗಳು',
   seva: 'ಸೇವೆ',
   spiritualServices: 'ಆಧ್ಯಾತ್ಮಿಕ ಸೇವೆಗಳು',
   myProfile: 'ನನ್ನ ಪ್ರೊಫೈಲ್',
@@ -231,7 +233,14 @@ export const kn: TranslationDict = {
   faqDonateAnnadanamA:
     'ಸೇವೆ ತೆರೆಯಿರಿ, ಅನ್ನದಾನ ಆಯ್ಕೆಮಾಡಿ, ಜಪ ಅಥವಾ ಸಾಮಾನ್ಯ ಅರ್ಪಣೆ ಆಯ್ಕೆಮಾಡಿ ನಂತರ ಪಾವತಿ ಪೂರ್ಣಗೊಳಿಸಿ.',
   faqTrackOrderQ: 'ನನ್ನ ಆರ್ಡರ್ ಹೇಗೆ ಟ್ರ್ಯಾಕ್ ಮಾಡುವುದು?',
-  faqTrackOrderA: 'ಆರ್ಡರ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ, VIEW ಟ್ಯಾಪ್ ಮಾಡಿ, ನಂತರ ಆರ್ಡರ್ ಟ್ರ್ಯಾಕ್ ಬಳಸಿ.',
+  faqTrackOrderA:
+    'ಆರ್ಡರ್‌ಗಳನ್ನು ತೆರೆಯಿರಿ, ನೋಡಿ ಟ್ಯಾಪ್ ಮಾಡಿ, ನಂತರ ಆರ್ಡರ್ ಟ್ರ್ಯಾಕ್ ಬಳಸಿ.',
+  slowDownChantPace:
+    'ನಿಮ್ಮ ಜಪ ವೇಗಕ್ಕೆ ಹೊಂದುವಂತೆ ಸ್ವಲ್ಪ ನಿಧಾನವಾಗಿ ಟ್ಯಾಪ್ ಮಾಡಿ.',
+  chantQuietModeTitle: 'ಶಾಂತ ಜಪ',
+  chantQuietModeMsg:
+    'ಜಪ ಮಾಡುವಾಗ ಅಧಿಸೂಚನೆಗಳನ್ನು ಮ್ಯೂಟ್ ಮಾಡಲು Do Not Disturb ಅನುಮತಿ ನೀಡಿ. ಈ ಪರದೆ ಬಿಟ್ಟರೆ ಅವು ಮರಳುತ್ತವೆ.',
+  allow: 'ಅನುಮತಿಸಿ',
   faqChangeLanguageQ: 'ಭಾಷೆಯನ್ನು ಹೇಗೆ ಬದಲಾಯಿಸುವುದು?',
   faqChangeLanguageA:
     'ಪ್ರೊಫೈಲ್ > ಸೆಟ್ಟಿಂಗ್‌ಗಳು > ಭಾಷೆಗೆ ಹೋಗಿ ನಿಮ್ಮ ಆದ್ಯತೆಯ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
@@ -301,6 +310,7 @@ export const kn: TranslationDict = {
   milestoneNotificationsTitle: 'ಮೈಲಿಗಲ್ಲು ಅಧಿಸೂಚನೆಗಳು',
   getNotifiedMilestones: 'ಮುಖ್ಯ ಜಪ ಎಣಿಕೆ ತಲುಪಿದಾಗ ಸೂಚನೆ ಪಡೆಯಿರಿ.',
   completedLabel: 'ಪೂರ್ಣ',
+  completedJapaCount: 'ಪೂರ್ಣಗೊಂಡ ಜಪ ಸಂಖ್ಯೆ',
   goalCompleted: 'ಪೂರ್ಣಗೊಂಡಿದೆ',
   goalNotCompleted: 'ಪೂರ್ಣಗೊಂಡಿಲ್ಲ',
   offerLabel: 'ಅರ್ಪಣೆ',

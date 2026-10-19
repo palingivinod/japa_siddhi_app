@@ -1,5 +1,5 @@
-import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+﻿import React, {useEffect, useState} from 'react';
+import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -7,7 +7,6 @@ import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import StatCards from '../common/StatCards';
 
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 
@@ -35,24 +34,34 @@ const JapaAnnadanamScreen = () => {
     <ScreenLayout title={t('japaAnnadanam')} showBack tab="SevaHub">
       {!enabled ? (
         <Text style={styles.disabled}>
-          Japa Anna Santharpanam is currently unavailable.
+          Japa Anna Santharpana is currently unavailable.
         </Text>
       ) : (
         <>
           <Text style={styles.section}>{t('yourJapaMilestone')}</Text>
-          <StatCards
-            items={[
-              {label: t('completedLabel'), value: completed.toLocaleString()},
-              {label: t('offerLabel'), value: t('tileAnnadanam')},
-            ]}
-          />
+          <View style={styles.milestoneWrap}>
+            <View style={styles.milestoneCard}>
+              <Text style={styles.milestoneLabel} numberOfLines={2}>
+                {t('completedJapaCount')}
+              </Text>
+              <Text style={styles.milestoneValue}>
+                {completed.toLocaleString()}
+              </Text>
+            </View>
+          </View>
           <AnnadanamMembersSelector
             persons={persons}
             onChangePersons={setPersons}
             title={t('selectNoOfPersons')}
           />
           <PrimaryButton
-            title={persons > 0 ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${persons === 1 ? 'PERSON' : 'PERSONS'})` : 'SELECT OR ENTER NO OF PERSONS'}
+            title={
+              persons > 0
+                ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${
+                    persons === 1 ? 'PERSON' : 'PERSONS'
+                  })`
+                : 'SELECT OR ENTER NO OF PERSONS'
+            }
             disabled={persons <= 0}
             onPress={() =>
               navigation.navigate('DonationForm', {
@@ -80,6 +89,46 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginTop: 8,
     paddingBottom: 4,
+    includeFontPadding: false,
+  },
+  milestoneWrap: {
+    alignItems: 'center',
+    marginBottom: 18,
+  },
+  milestoneCard: {
+    width: '72%',
+    maxWidth: 280,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 16,
+    minHeight: 96,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  milestoneLabel: {
+    alignSelf: 'stretch',
+    width: '100%',
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 20,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+    includeFontPadding: false,
+    paddingBottom: 6,
+  },
+  milestoneValue: {
+    alignSelf: 'stretch',
+    width: '100%',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
     includeFontPadding: false,
   },
   disabled: {

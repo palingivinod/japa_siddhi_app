@@ -15,7 +15,6 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
-import InsightCard from '../common/InsightCard';
 import MilestoneProgressCard from '../common/MilestoneProgressCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -190,8 +189,6 @@ const AnalyticsTemplate = ({
           ) : (
             <Text style={styles.caption}>{t('noSavedJapaByMantra')}</Text>
           )}
-          <Text style={styles.section}>{t('highlights')}</Text>
-          <InsightCard text={data.insight} />
           <PrimaryButton
             title={t(NEXT[period].titleKey)}
             onPress={() => navigation.navigate(NEXT[period].route)}

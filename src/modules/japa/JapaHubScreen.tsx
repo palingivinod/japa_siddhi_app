@@ -118,14 +118,14 @@ const JapaHubScreen = () => {
               style={styles.statCard}
               onPress={() => navigation.navigate('JapaProgress')}>
               <AppIcon name="prayer" size={22} color={Colors.sacredBrown} />
-              <Text style={styles.statLabel}>{t('today')}</Text>
+              <Text style={styles.statLabel}>{t('todayJapaCountLabel')}</Text>
               <Text style={styles.statValue}>{today.toLocaleString()}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.statCard}
               onPress={() => navigation.navigate('StreakAnalytics')}>
               <AppIcon name="flame" size={22} color={Colors.sacredBrown} />
-              <Text style={styles.statLabel}>{t('streak')}</Text>
+              <Text style={styles.statLabel}>{t('continuousDaysLabel')}</Text>
               <Text style={styles.statValue}>
                 {streak} {t('days')}
               </Text>
@@ -217,12 +217,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     gap: 4,
+    alignItems: 'center',
   },
   statLabel: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
+    textAlign: 'center',
     includeFontPadding: true,
   },
   statValue: {
@@ -231,6 +233,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    textAlign: 'center',
     includeFontPadding: true,
   },
 });

@@ -1,4 +1,4 @@
-import en, {TranslationDict} from './en';
+﻿import en, {TranslationDict} from './en';
 
 export const ta: TranslationDict = {
   ...en,
@@ -97,7 +97,7 @@ export const ta: TranslationDict = {
   joinChallenge: 'சவாலில் சேரவும்',
   percentComplete: '{{percent}}% முடிந்தது',
   spiritualChallenges: 'ஆன்மீக சவால்கள்',
-  annadanam: 'அன்ன சந்தர்ப்பணம்',
+  annadanam: 'அன்ன சந்தர்ப்பண',
   completedJapas: 'நீங்கள் {{count}} ஜபம் முடித்துள்ளீர்கள்',
   considerAnnadanam: 'அதிக ஆன்மீக நன்மைக்காக அன்ன சந்தர்ப்பணத்தை பரிசீலிக்கவும்.',
   offerFoodSeva: 'உணவு சேவை அளிக்கவும்',
@@ -112,8 +112,8 @@ export const ta: TranslationDict = {
   tileJapaSub: 'தொடங்கு அல்லது தொடர்',
   tileBaanalingam: 'Baanalingam',
   tileBaanalingamSub: 'விண்ணப்பம் / ஆர்டர்',
-  tileAnnadanam: 'அன்ன சந்தர்ப்பணம்',
-  tileAnnadanamSub: 'அன்ன சந்தர்ப்பணம் அளிக்கவும்',
+  tileAnnadanam: 'அன்ன சந்தர்ப்பண',
+  tileAnnadanamSub: 'அன்ன சந்தர்ப்பண அளிக்கவும்',
   tileNithyaHomam: 'நித்ய Homam',
   tileNithyaHomamSub: 'இப்போது பதிவு செய்',
   tileOrders: 'ஆர்டர் மற்றும் கண்காணிப்பு',
@@ -131,6 +131,8 @@ export const ta: TranslationDict = {
   japaAnalytics: 'ஜப பகுப்பாய்வு',
   japaAnalyticsSub: 'வார, மாத மற்றும் தொடர் அறிக்கைகள்.',
   recentProgress: 'சமீபத்திய முன்னேற்றம்',
+  todayJapaCountLabel: 'இன்று நீங்கள் செய்த ஜப எண்ணிக்கை',
+  continuousDaysLabel: 'தொடர் நாட்கள்',
   seva: 'சேவை',
   spiritualServices: 'ஆன்மீக சேவைகள்',
   myProfile: 'என் சுயவிவரம்',
@@ -233,18 +235,24 @@ export const ta: TranslationDict = {
     'சேவையைத் திறந்து, அன்னதானத்தைத் தேர்ந்தெடுத்து, ஜபம் அல்லது பொது அர்ப்பணத்தைத் தேர்வு செய்து பணம் செலுத்துங்கள்.',
   faqTrackOrderQ: 'என் ஆர்டரை எப்படி கண்காணிப்பது?',
   faqTrackOrderA:
-    'ஆர்டர்களைத் திறந்து, VIEW அழுத்தி, பிறகு ஆர்டரைக் கண்காணி பயன்படுத்தவும்.',
+    'ஆர்டர்களைத் திறந்து, பார் அழுத்தி, பிறகு ஆர்டரைக் கண்காணி பயன்படுத்தவும்.',
+  slowDownChantPace:
+    'உங்கள் ஜப வேகத்திற்கு ஏற்ப சற்று மெதுவாக தட்டவும்.',
+  chantQuietModeTitle: 'அமைதியான ஜபம்',
+  chantQuietModeMsg:
+    'ஜபம் செய்யும்போது அறிவிப்புகளை முடக்க Do Not Disturb அனுமதி அளிக்கவும். இந்தத் திரையை விட்டால் அவை மீண்டும் தோன்றும்.',
+  allow: 'அனுமதி',
   faqChangeLanguageQ: 'மொழியை எப்படி மாற்றுவது?',
   faqChangeLanguageA:
     'சுயவிவரம் > அமைப்புகள் > மொழிக்குச் சென்று உங்கள் விருப்ப மொழியைத் தேர்ந்தெடுக்கவும்.',
-  generalAnnadanam: 'பொது அன்ன சந்தர்ப்பணம்',
+  generalAnnadanam: 'பொது அன்ன சந்தர்ப்பண',
   callSupport: 'அழைப்பு உதவி',
   challengeProgress: 'சவால் முன்னேற்றம்',
   allScreens: 'அனைத்து திரைகள் 0–64',
   orderDetails: 'ஆர்டர் விவரங்கள்',
   placedSuccessful: 'வெற்றிகரமாக வைக்கப்பட்டது',
   challengeLeaderboard: 'சவால் தலைவர் பட்டியல்',
-  japaAnnadanam: 'ஜப அன்ன சந்தர்ப்பணம்',
+  japaAnnadanam: 'ஜப அன்ன சந்தர்ப்பண',
   designSystem: 'ஜப சித்தி வடிவமைப்பு அமைப்பு',
   chantJapa: 'ஜபம் செய்',
   chantJapaDesc:
@@ -259,7 +267,7 @@ export const ta: TranslationDict = {
   myProgressDesc: 'ஜப இலக்கு, தினசரி இலக்கு மற்றும் நீங்கள் எவ்வளவு வந்துள்ளீர்கள் என்பதைக் கண்காணிக்கவும்.',
   profileDesc: 'தனிப்பட்ட விவரங்கள், மொழி மற்றும் கணக்கு அமைப்புகளைப் பார்த்து புதுப்பிக்கவும்.',
   featureReady: 'இந்தப் பக்கம் அடுத்த அம்சத்திற்குத் தயாராக உள்ளது.',
-  offerAnnadanam: 'அன்ன சந்தர்ப்பணம்',
+  offerAnnadanam: 'அன்ன சந்தர்ப்பண',
   japaAnnadanamSub: 'ஜப மைல்கல்லுக்குப் பிறகு உணவு சேவைக்கு நிதியுதவி அளிக்கவும்.',
   generalAnnadanamSub: 'ஒரு சந்தர்ப்பத்திற்கு உணவு சேவை அளிக்கவும்.',
   milestoneReminders: 'மைல்கல் நினைவூட்டல்கள்',
@@ -298,11 +306,12 @@ export const ta: TranslationDict = {
   japasCompleted: '{{count}} ஜபம் முடிந்தது!',
   youHaveCompletedJapas:
     'நீங்கள் {{count}} ஜபம் முடித்துள்ளீர்கள். அதிக நன்மைக்காக அன்ன சந்தர்ப்பணத்தை பரிசீலிக்கவும்.',
-  performAnnadhanam: 'அன்ன சந்தர்ப்பணம் செய்',
+  performAnnadhanam: 'அன்ன சந்தர்ப்பண செய்',
   upcomingMilestones: 'வரவிருக்கும் மைல்கற்கள்',
   milestoneNotificationsTitle: 'மைல்கல் அறிவிப்புகள்',
   getNotifiedMilestones: 'முக்கிய ஜப எண்ணிக்கையை அடையும்போது அறிவிப்பு பெறுங்கள்.',
   completedLabel: 'முடிந்தது',
+  completedJapaCount: 'முடிந்த ஜப எண்ணிக்கை',
   goalCompleted: 'முடிந்தது',
   goalNotCompleted: 'முடியவில்லை',
   offerLabel: 'அர்ப்பணம்',

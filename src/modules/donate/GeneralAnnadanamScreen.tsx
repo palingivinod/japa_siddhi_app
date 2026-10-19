@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+﻿import React, {useCallback, useEffect, useState} from 'react';
 import {Alert, Linking, StyleSheet, Text} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -86,7 +86,7 @@ const GeneralAnnadanamScreen = () => {
     <ScreenLayout title={t('generalAnnadanam')} showBack tab="SevaHub">
       {!enabled ? (
         <Text style={styles.disabled}>
-          General Anna Santharpanam is currently unavailable.
+          General Anna Santharpana is currently unavailable.
         </Text>
       ) : (
         <>

@@ -29,6 +29,7 @@ import BottomTabs from '../../common/BottomTabs';
 import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
+import {computeEffectiveDailyTarget} from '../../../utils/dailyGoal';
 
 type ActiveGoal = {
   id: number;
@@ -389,27 +390,18 @@ const HomeScreen = () => {
     if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
       const remainingCount = Math.max(
         0,
-        activeJapaGoal.targetCount - activeJapaGoal.completedCount,
+        Number(activeJapaGoal.remainingCount) ||
+          activeJapaGoal.targetCount - activeJapaGoal.completedCount,
       );
-      // Prefer the configured daily target (same as Your Japas). Do not
-      // re-inflate with "catch-up + today's chants" — that made Home show
-      // 16 while Your Japas correctly showed 14 for the same mantra.
-      const storedDaily = Number(activeJapaGoal.dailyTarget || 0);
-      if (storedDaily > 0) {
-        return storedDaily;
-      }
-      if (remainingCount <= 0) {
-        return 0;
-      }
-      const remainingDays = totalGoalDays(
-        activeJapaGoal.startDate,
-        activeJapaGoal.endDate,
-      );
-      if (remainingDays <= 1) {
-        return remainingCount;
-      }
-      const dayDivisor = remainingDays >= 900 ? 30 : remainingDays;
-      return Math.max(1, Math.ceil(remainingCount / dayDivisor));
+      // Dynamic: remaining ÷ days left (same as Your Japas / reminders).
+      return computeEffectiveDailyTarget({
+        remainingCount,
+        remainingDays: totalGoalDays(
+          activeJapaGoal.startDate,
+          activeJapaGoal.endDate,
+        ),
+        endDate: activeJapaGoal.endDate,
+      });
     }
     return 0;
   }, [activeJapaGoal]);
@@ -444,7 +436,7 @@ const HomeScreen = () => {
         privateMantra: isPersonal ? activeJapaGoal.mantraName : undefined,
         goal: activeJapaGoal.targetCount,
         initialCount: activeJapaGoal.completedCount,
-        dailyTarget: activeJapaGoal.dailyTarget,
+        dailyTarget: userDailyGoal || activeJapaGoal.dailyTarget,
         japaGoalId: activeJapaGoal.id,
         resume: true,
         fromHome: true,
@@ -1028,17 +1020,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#E4EFDF',
   },
   tileTitle: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 17,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    includeFontPadding: true,
+    includeFontPadding: false,
+    paddingBottom: 2,
   },
   tileSub: {
     marginTop: 4,
     color: Colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 20,
-    includeFontPadding: true,
+    fontSize: 14.5,
+    lineHeight: 22,
+    includeFontPadding: false,
+    paddingBottom: 2,
   },
 });
