@@ -13,6 +13,7 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 
@@ -57,6 +58,7 @@ const CompleteProfileScreen = ({
   navigation,
   route,
 }: any) => {
+  const {t} = useLanguage();
   const bottomPad = useBottomNavPad();
   const registeredEmail = route?.params?.email ?? '';
   const initialPhone = String(route?.params?.phoneNumber || '').replace(/\D/g, '');
@@ -165,10 +167,10 @@ const CompleteProfileScreen = ({
   const choosePhoto = async () => {
     try {
       const picked = await pickProfilePhoto({
-        title: 'Profile Picture',
-        camera: 'Camera',
-        gallery: 'Gallery',
-        cancel: 'Cancel',
+        title: t('profilePicture'),
+        camera: t('camera'),
+        gallery: t('gallery'),
+        cancel: t('cancel'),
       });
       if (!picked) {
         return;
@@ -178,17 +180,14 @@ const CompleteProfileScreen = ({
     } catch (error: any) {
       const code = String(error?.message || '');
       if (code === 'permission') {
-        Alert.alert(
-          'Profile Picture',
-          'Please allow camera and photo access to add a profile picture.',
-        );
+        Alert.alert(t('profilePicture'), t('allowCameraPhotoAccess'));
         return;
       }
       if (code === 'camera_unavailable') {
-        Alert.alert('Profile Picture', 'Camera is not available on this device.');
+        Alert.alert(t('profilePicture'), t('cameraUnavailable'));
         return;
       }
-      Alert.alert('Profile Picture', 'Could not pick a photo. Please try again.');
+      Alert.alert(t('profilePicture'), t('couldNotPickPhoto'));
     }
   };
 
@@ -209,7 +208,7 @@ const CompleteProfileScreen = ({
   });
 
   if (!isFormValid || !address.trim()) {
-    Alert.alert('Validation', 'Please fill all required signup fields.');
+    Alert.alert(t('validation'), t('fillRequiredSignup'));
     return;
   }
 
@@ -220,18 +219,21 @@ const CompleteProfileScreen = ({
     const number = mobileNumber.replace(/\D/g, '');
     if (code === '91') {
       if (!isMobile(number) || /^0+$/.test(number)) {
-        Alert.alert('Validation', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
+        Alert.alert(
+          t('validation'),
+          t('enterMobileDigits', {digits: MOBILE_DIGITS}),
+        );
         return;
       }
     } else {
       if (number.length < 6 || number.length > 15 || /^0+$/.test(number)) {
-        Alert.alert('Validation', 'Enter a valid mobile number.');
+        Alert.alert(t('validation'), t('enterValidMobileNumber'));
         return;
       }
     }
 
   if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
-    Alert.alert('Validation', 'Spouse name is required for married devotees.');
+    Alert.alert(t('validation'), t('spouseNameRequiredMarried'));
     return;
   }
 
@@ -289,8 +291,8 @@ const CompleteProfileScreen = ({
         );
         if (!isSocial && password.length < 6) {
           Alert.alert(
-            'Password required',
-            'Please create your account with email, password and mobile first.',
+            t('passwordRequiredTitle'),
+            t('createAccountFirst'),
           );
           setLoading(false);
           return;
@@ -323,9 +325,9 @@ const CompleteProfileScreen = ({
       await resetToHomeAfterAuth(navigation);
     } catch (error: any) {
       Alert.alert(
-        'Registration',
+        t('registrationTitle'),
         error?.response?.data?.message ||
-          'Could not complete registration. Please try again.',
+          t('couldNotCompleteRegistration'),
       );
     } finally {
       setLoading(false);
@@ -342,8 +344,10 @@ const CompleteProfileScreen = ({
           styles.content,
           {paddingBottom: 140 + bottomPad},
         ]}>
-        <AppHeader title="Create Your Profile" showBack />
-        <Text style={styles.stepLabel}>Step 1 of 2</Text>
+        <AppHeader title={t('createYourProfile')} showBack />
+        <Text style={styles.stepLabel}>
+          {t('stepOf', {current: 1, total: 2})}
+        </Text>
         <View style={styles.stepTrack}>
           <View style={styles.stepFill} />
         </View>
@@ -367,18 +371,18 @@ const CompleteProfileScreen = ({
           )}
 
           <Text style={styles.addPhoto}>
-            Add Profile Picture (Optional)
+            {t('addProfilePicture')}
           </Text>
 
         </TouchableOpacity>
 
-        <Text style={styles.heading}>Personal details</Text>
+        <Text style={styles.heading}>{t('personalDetails')}</Text>
         <Text style={styles.subHeading}>
-          Then add spiritual details and create your profile.
+          {t('personalDetailsSub')}
         </Text>
 
         <Text style={styles.label}>
-          Full Name *
+          {t('fullName')} *
         </Text>
 
         <TextInput
@@ -388,7 +392,7 @@ const CompleteProfileScreen = ({
               !isNameValid &&
               styles.errorInput,
           ]}
-          placeholder="Enter Full Name"
+          placeholder={t('enterFullNamePlaceholder')}
           value={fullName}
           onChangeText={setFullName}
         />
@@ -396,12 +400,12 @@ const CompleteProfileScreen = ({
         {fullName.length > 0 &&
           !isNameValid && (
             <Text style={styles.errorText}>
-              Enter a valid name.
+              {t('enterValidName')}
             </Text>
         )}
 
         <Text style={styles.label}>
-          Email Address *
+          {t('email')} *
         </Text>
 
         <TextInput
@@ -411,7 +415,7 @@ const CompleteProfileScreen = ({
               !isEmailValid &&
               styles.errorInput,
           ]}
-          placeholder="Enter Email"
+          placeholder={t('enterEmailPlaceholder')}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -421,12 +425,12 @@ const CompleteProfileScreen = ({
         {email.length > 0 &&
           !isEmailValid && (
             <Text style={styles.errorText}>
-              Invalid email address.
+              {t('enterValidEmail')}
             </Text>
           )}
 
         <Text style={styles.label}>
-          Mobile Number
+          {t('mobileNumber')}
         </Text>
 
         <View style={styles.mobileRow}>
@@ -456,8 +460,8 @@ const CompleteProfileScreen = ({
             keyboardType="phone-pad"
             placeholder={
               selectedMobileCountry.code === 'IN'
-                ? `Enter ${MOBILE_DIGITS}-digit mobile number`
-                : 'Enter mobile number'
+                ? t('mobileDigitsPlaceholder', {digits: MOBILE_DIGITS})
+                : t('enterMobileNumber')
             }
             placeholderTextColor={Colors.placeholder}
             maxLength={selectedMobileCountry.code === 'IN' ? MOBILE_DIGITS : 15}
@@ -467,8 +471,10 @@ const CompleteProfileScreen = ({
         mobileNumber.length > 0 &&
         !isMobile(mobileNumber) ? (
           <Text style={styles.errorText}>
-            Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
-            entered.
+            {t('mobileMustBeDigits', {
+              digits: MOBILE_DIGITS,
+              entered: mobileNumber.length,
+            })}
           </Text>
         ) : null}
 
@@ -482,23 +488,23 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          Gender *
+          {t('gender')} *
         </Text>
 
         <SelectField
           value={gender}
           onChange={setGender}
-          placeholder="Select Gender"
-          title="Gender"
+          placeholder={t('selectGender')}
+          title={t('gender')}
           options={[
-            {label: 'Male', value: 'Male'},
-            {label: 'Female', value: 'Female'},
-            {label: 'Other', value: 'Other'},
-            {label: 'Prefer Not To Say', value: 'Prefer Not To Say'},
+            {label: t('male'), value: 'Male'},
+            {label: t('female'), value: 'Female'},
+            {label: t('otherGender'), value: 'Other'},
+            {label: t('preferNotToSay'), value: 'Prefer Not To Say'},
           ]}
         />
                 <Text style={styles.label}>
-          Date of Birth *
+          {t('dateOfBirth')} *
         </Text>
 
         <TouchableOpacity
@@ -525,14 +531,14 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          Country *
+          {t('country')} *
         </Text>
 
        <CountryPickerField
   value={
     country ?? {
       code: '',
-      name: 'Select Country',
+      name: t('selectCountry'),
       flag: '🌍',
       callingCode: '',
     }
@@ -545,7 +551,7 @@ const CompleteProfileScreen = ({
 />
 
         <Text style={styles.label}>
-          State 
+          {t('state')}
         </Text>
 
         <StateSelector
@@ -560,7 +566,7 @@ const CompleteProfileScreen = ({
 />
 
         <Text style={styles.label}>
-          City 
+          {t('city')}
         </Text>
 
         <CitySelector
@@ -572,39 +578,39 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          Address *
+          {t('address')} *
         </Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Address"
+          placeholder={t('enterAddressPlaceholder')}
           value={address}
           onChangeText={setAddress}
         />
 
         <Text style={styles.label}>
-          Marital Status *
+          {t('maritalStatus')} *
         </Text>
         <SelectField
           value={maritalStatus}
           onChange={value => setMaritalStatus(value as 'Bachelor' | 'Married')}
-          title="Marital Status"
+          title={t('maritalStatus')}
           options={[
-            {label: 'Bachelor', value: 'Bachelor'},
-            {label: 'Married', value: 'Married'},
+            {label: t('bachelor'), value: 'Bachelor'},
+            {label: t('married'), value: 'Married'},
           ]}
         />
 
         {maritalStatus === 'Married' ? (
           <>
-            <Text style={styles.label}>Spouse Name *</Text>
+            <Text style={styles.label}>{t('spouseNameStar')}</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter Spouse Name"
+              placeholder={t('enterSpouseName')}
               value={spouseName}
               onChangeText={setSpouseName}
             />
 
-            <Text style={styles.label}>Spouse Date of Birth *</Text>
+            <Text style={styles.label}>{t('spouseDobStar')}</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() =>
@@ -623,7 +629,7 @@ const CompleteProfileScreen = ({
               }}
             />
 
-            <Text style={styles.label}>Anniversary Date *</Text>
+            <Text style={styles.label}>{t('anniversaryDateStar')}</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() =>
@@ -646,24 +652,24 @@ const CompleteProfileScreen = ({
           </>
         ) : null}
 
-        <Text style={styles.label}>Gothram (Optional)</Text>
+        <Text style={styles.label}>{t('gothramOptional')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Gothram"
+          placeholder={t('enterGothram')}
           value={gothram}
           onChangeText={setGothram}
         />
 
-        <Text style={styles.label}>Nakshatram (Optional)</Text>
+        <Text style={styles.label}>{t('nakshatramOptional')}</Text>
         <TextInput
           style={styles.input}
-          placeholder="Enter Nakshatram"
+          placeholder={t('enterNakshatram')}
           value={nakshatram}
           onChangeText={setNakshatram}
         />
 
         <Text style={styles.label}>
-          Preferred Language 
+          {t('preferredLanguage')}
         </Text>
 
         <LanguageSelector
@@ -688,11 +694,11 @@ const CompleteProfileScreen = ({
           </TouchableOpacity>
 
           <Text style={styles.termsText}>
-            I agree to the Terms of Service and{' '}
+            {t('agreeTermsPrefix')}{' '}
             <Text
               style={styles.privacyLink}
               onPress={() => navigation.navigate('PrivacyPolicy')}>
-              Privacy Policy
+              {t('privacyPolicy')}
             </Text>
           </Text>
         </View>
@@ -707,7 +713,7 @@ const CompleteProfileScreen = ({
         ) : (
 
           <ContinueButton
-            title="CREATE PROFILE"
+            title={t('createProfile')}
             onPress={submitProfile}
             disabled={false}
           />

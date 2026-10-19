@@ -42,6 +42,7 @@ const CreateAccountScreen = () => {
   const [countryCode, setCountryCode] = useState('91');
   const [mobileNumber, setMobileNumber] = useState('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
+  const [otpChannel, setOtpChannel] = useState<'email' | 'phone'>('email');
 
   const submit = async () => {
     const trimmedEmail = email.trim().toLowerCase();
@@ -52,28 +53,28 @@ const CreateAccountScreen = () => {
     const mobile = mobileNumber.replace(/\D/g, '');
 
     if (!EMAIL_REGEX.test(trimmedEmail)) {
-      Alert.alert(t('required'), 'Enter a valid email address.');
+      Alert.alert(t('required'), t('enterValidEmail'));
       return;
     }
     if (password.trim().length < 6) {
-      Alert.alert(t('required'), 'Password must be at least 6 characters.');
+      Alert.alert(t('required'), t('passwordMinLength'));
       return;
     }
     if (password !== confirmPassword) {
-      Alert.alert(t('required'), 'Passwords do not match.');
+      Alert.alert(t('required'), t('passwordsDoNotMatch'));
       return;
     }
     if (code === '91') {
       if (!isMobile(mobile) || /^0+$/.test(mobile)) {
         Alert.alert(
           t('required'),
-          `Enter your ${MOBILE_DIGITS}-digit mobile number.`,
+          t('enterMobileDigits', {digits: MOBILE_DIGITS}),
         );
         return;
       }
     } else {
       if (mobile.length < 6 || mobile.length > 15 || /^0+$/.test(mobile)) {
-        Alert.alert(t('required'), 'Enter a valid mobile number.');
+        Alert.alert(t('required'), t('enterValidMobileNumber'));
         return;
       }
     }
@@ -88,23 +89,42 @@ const CreateAccountScreen = () => {
         mobileCountryCode: code,
         mobileNumber: mobile,
         mode: 'register',
+        channel: otpChannel,
       });
       const data = response.data?.data || {};
+
+      let phoneE164 = `+${code}${mobile}`;
+      if (otpChannel === 'phone') {
+        const {default: firebaseAuthService} = await import(
+          './services/firebaseAuthService'
+        );
+        const fb = await firebaseAuthService.sendOTP(phoneE164, {
+          countryCode: code,
+        });
+        if (!fb.success) {
+          throw new Error(fb.message || t('unableSendOtpRetry'));
+        }
+        phoneE164 = fb.e164 || phoneE164;
+      }
+
       navigation.navigate('OtpScreen', {
         mode: 'register',
+        channel: otpChannel,
         email: trimmedEmail,
         password: password.trim(),
-        phoneNumber: `${code}${mobile}`,
+        phoneNumber: phoneE164,
         mobileCountryCode: code,
         mobileNumber: mobile,
-        sentTo: data.sentTo || trimmedEmail,
+        sentTo:
+          data.sentTo ||
+          (otpChannel === 'phone' ? phoneE164 : trimmedEmail),
       });
     } catch (error: any) {
       Alert.alert(
-        'Create account',
+        t('createAccountAlertTitle'),
         error?.response?.data?.message ||
           error?.message ||
-          'Unable to send OTP. Please try again.',
+          t('unableSendOtpRetry'),
       );
     } finally {
       setSubmitting(false);
@@ -112,12 +132,36 @@ const CreateAccountScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Create Account" showBack>
-      <Text style={styles.heading}>Create your account</Text>
-      <Text style={styles.helper}>
-        Email, password and mobile are required. We will send an OTP to verify
-        your email.
-      </Text>
+    <ScreenLayout title={t('createAccountTitle')} showBack>
+      <Text style={styles.heading}>{t('createYourAccount')}</Text>
+      <Text style={styles.helper}>{t('createAccountHelper')}</Text>
+
+      <Text style={styles.label}>{t('sendOtpTo')}</Text>
+      <View style={styles.segmentRow}>
+        {(
+          [
+            {id: 'email' as const, label: t('email')},
+            {id: 'phone' as const, label: t('channelPhone')},
+          ] as const
+        ).map(option => {
+          const active = otpChannel === option.id;
+          return (
+            <TouchableOpacity
+              key={option.id}
+              style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+              onPress={() => setOtpChannel(option.id)}
+              activeOpacity={0.85}>
+              <Text
+                style={[
+                  styles.segmentText,
+                  active && styles.segmentTextActive,
+                ]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
       <Text style={styles.label}>{t('email')}</Text>
       <TextInput
@@ -132,29 +176,29 @@ const CreateAccountScreen = () => {
         underlineColorAndroid="transparent"
       />
 
-      <Text style={styles.label}>Password</Text>
+      <Text style={styles.label}>{t('password')}</Text>
       <TextInput
         style={styles.input}
         value={password}
         onChangeText={setPassword}
-        placeholder="Enter password (min 6 characters)"
+        placeholder={t('passwordMinPlaceholder')}
         placeholderTextColor={Colors.placeholder}
         secureTextEntry
         underlineColorAndroid="transparent"
       />
 
-      <Text style={styles.label}>Confirm Password</Text>
+      <Text style={styles.label}>{t('confirmPassword')}</Text>
       <TextInput
         style={styles.input}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        placeholder="Re-enter password"
+        placeholder={t('reenterPassword')}
         placeholderTextColor={Colors.placeholder}
         secureTextEntry
         underlineColorAndroid="transparent"
       />
 
-      <Text style={styles.label}>Mobile Number</Text>
+      <Text style={styles.label}>{t('mobileNumber')}</Text>
       <View style={styles.mobileRow}>
         <TouchableOpacity
           style={styles.countryBtn}
@@ -182,8 +226,8 @@ const CreateAccountScreen = () => {
           keyboardType="phone-pad"
           placeholder={
             selectedCountry.code === 'IN'
-              ? `${MOBILE_DIGITS}-digit mobile number`
-              : 'Mobile number'
+              ? t('mobileDigitsPlaceholder', {digits: MOBILE_DIGITS})
+              : t('enterMobileNumber')
           }
           placeholderTextColor={Colors.placeholder}
           maxLength={selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15}
@@ -194,8 +238,10 @@ const CreateAccountScreen = () => {
       mobileNumber.length > 0 &&
       !isMobile(mobileNumber) ? (
         <Text style={styles.fieldError}>
-          Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
-          entered.
+          {t('mobileMustBeDigits', {
+            digits: MOBILE_DIGITS,
+            entered: mobileNumber.length,
+          })}
         </Text>
       ) : null}
 
@@ -210,7 +256,7 @@ const CreateAccountScreen = () => {
 
       <View style={styles.actions}>
         <PrimaryButton
-          title={submitting ? 'SENDING OTP...' : 'SEND OTP'}
+          title={submitting ? t('sendingOtp') : t('sendOtp')}
           onPress={submit}
           disabled={submitting}
         />
@@ -218,7 +264,7 @@ const CreateAccountScreen = () => {
           style={styles.signInBtn}
           onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
           disabled={submitting}>
-          <Text style={styles.signInText}>Sign in</Text>
+          <Text style={styles.signInText}>{t('signInLink')}</Text>
         </TouchableOpacity>
       </View>
     </ScreenLayout>
@@ -299,5 +345,31 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
     fontWeight: '800',
     fontSize: 16,
+  },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  segmentBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBtnActive: {
+    borderColor: Colors.templeGold,
+    backgroundColor: Colors.templeGold,
+  },
+  segmentText: {
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  segmentTextActive: {
+    color: Colors.white,
   },
 });

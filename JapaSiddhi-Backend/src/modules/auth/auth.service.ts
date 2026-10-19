@@ -5,7 +5,6 @@ import {admin, isFirebaseReady} from '../../firebase/firebase';
 import authRepository, {isPlaceholderMobile} from './auth.repository';
 import otpRepository from './otp.repository';
 import emailOtpService from '../../services/emailOtp.service';
-import twilioSmsService from '../../services/twilioSms.service';
 import environment from '../../config/environment';
 import Constants from '../../config/constants';
 
@@ -988,6 +987,14 @@ class AuthService {
 
 
 
+  private maskPhone(countryCode: string, mobileNumber: string): string {
+    const digits = String(mobileNumber || '').replace(/\D/g, '');
+    if (digits.length < 4) {
+      return `+${countryCode}****`;
+    }
+    return `+${countryCode}******${digits.slice(-4)}`;
+  }
+
   async sendOtp(data: {
     mobileCountryCode?: string;
     mobileNumber?: string;
@@ -1012,7 +1019,7 @@ class AuthService {
     const destinationEmail = String(data.email || '').trim().toLowerCase();
     if (!destinationEmail || !destinationEmail.includes('@')) {
       throw new AppError(
-        'Enter the email address where the OTP should be sent.',
+        'Enter the email address for your account.',
         400,
       );
     }
@@ -1055,6 +1062,22 @@ class AuthService {
       );
     }
 
+    // Phone OTP is sent by Firebase on the app — email OTP stays on the backend.
+    // Different channels never share the same code.
+    if (channel === 'phone') {
+      return {
+        sent: true,
+        provider: 'firebase' as const,
+        sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
+        expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+        mobileCountryCode,
+        mobileNumber,
+        email: destinationEmail,
+        channel: 'phone' as const,
+        mode: 'register' as const,
+      };
+    }
+
     const existing = await otpRepository.findActiveByEmail(destinationEmail);
     if (
       existing &&
@@ -1080,10 +1103,12 @@ class AuthService {
 
     return {
       sent: true,
+      provider: 'email' as const,
       sentTo: emailOtpService.maskEmail(destinationEmail),
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
       mobileCountryCode,
       mobileNumber,
+      email: destinationEmail,
       channel: 'email' as const,
       mode: 'register' as const,
     };
@@ -1095,10 +1120,6 @@ class AuthService {
     email?: string;
     channel: 'email' | 'phone';
   }) {
-    const otp = String(Math.floor(1000 + Math.random() * 9000));
-    const codeHash = emailOtpService.hashOtp(otp);
-    const expiresAt = Date.now() + environment.OTP_EXPIRES_SECONDS * 1000;
-
     if (data.channel === 'phone') {
       const mobileCountryCode =
         normalizePhone(data.mobileCountryCode || '') || '91';
@@ -1115,33 +1136,11 @@ class AuthService {
         throw new AppError('No account found for this mobile number.', 404);
       }
 
-      const existing = await otpRepository.findActiveByPhone(
-        mobileCountryCode,
-        mobileNumber,
-      );
-      if (
-        existing &&
-        Date.now() - Number(existing.createdAt) <
-          environment.OTP_RESEND_SECONDS * 1000
-      ) {
-        throw new AppError(
-          `Please wait ${environment.OTP_RESEND_SECONDS} seconds before requesting another OTP.`,
-          429,
-        );
-      }
-
-      await twilioSmsService.sendOtp(mobileCountryCode, mobileNumber, otp);
-      await otpRepository.save({
-        mobileCountryCode,
-        mobileNumber,
-        channel: 'phone',
-        codeHash,
-        expiresAt,
-      });
-
+      // App sends SMS via Firebase Auth; backend only checks the account exists.
       return {
         sent: true,
-        sentTo: twilioSmsService.maskPhone(mobileCountryCode, mobileNumber),
+        provider: 'firebase' as const,
+        sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
         expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
         mobileCountryCode,
         mobileNumber,
@@ -1149,6 +1148,10 @@ class AuthService {
         mode: 'login' as const,
       };
     }
+
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    const codeHash = emailOtpService.hashOtp(otp);
+    const expiresAt = Date.now() + environment.OTP_EXPIRES_SECONDS * 1000;
 
     const destinationEmail = String(data.email || '').trim().toLowerCase();
     if (!destinationEmail || !destinationEmail.includes('@')) {
@@ -1185,6 +1188,7 @@ class AuthService {
 
     return {
       sent: true,
+      provider: 'email' as const,
       sentTo: emailOtpService.maskEmail(destinationEmail),
       email: destinationEmail,
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
@@ -1193,17 +1197,53 @@ class AuthService {
     };
   }
 
+  private async parseFirebasePhoneToken(firebaseToken: string): Promise<{
+    firebaseUid: string;
+    mobileCountryCode: string;
+    mobileNumber: string;
+    e164: string;
+  }> {
+    if (!isFirebaseReady()) {
+      throw new AppError(
+        'Phone OTP is unavailable. Firebase is not configured on the server.',
+        503,
+      );
+    }
+    let decoded: any;
+    try {
+      decoded = await admin.auth().verifyIdToken(String(firebaseToken || ''));
+    } catch {
+      throw new AppError('Invalid Firebase token.', 401);
+    }
+    const firebaseUid = String(decoded.uid || '').trim();
+    const e164 = String(decoded.phone_number || '').trim();
+    if (!firebaseUid || !e164.startsWith('+')) {
+      throw new AppError('Phone number not found from Firebase.', 400);
+    }
+    const digits = e164.replace(/\D/g, '');
+    // India default: last 10 digits are the mobile, rest is country code.
+    const mobileNumber =
+      digits.length > 10 ? digits.slice(-10) : digits;
+    const mobileCountryCode =
+      digits.length > 10 ? digits.slice(0, digits.length - 10) : '91';
+    if (mobileNumber.length < 6) {
+      throw new AppError('Phone number not found from Firebase.', 400);
+    }
+    return {firebaseUid, mobileCountryCode, mobileNumber, e164};
+  }
+
   async verifyOtp(data: {
     mobileCountryCode?: string;
     mobileNumber?: string;
     email?: string;
-    otp: string;
+    otp?: string;
+    firebaseToken?: string;
     mode?: 'register' | 'login';
     channel?: 'email' | 'phone';
   }) {
     const mode = data.mode === 'login' ? 'login' : 'register';
     const channel =
-      data.channel === 'phone'
+      data.channel === 'phone' || data.firebaseToken
         ? 'phone'
         : data.channel === 'email'
           ? 'email'
@@ -1216,10 +1256,18 @@ class AuthService {
       return this.verifyLoginOtp({...data, channel, otp});
     }
 
+    if (channel === 'phone') {
+      return this.verifyRegisterPhoneFirebase(data);
+    }
+
     const email = String(data.email || '').trim().toLowerCase();
 
     if (!email || !email.includes('@')) {
       throw new AppError('Email is required to verify OTP.', 400);
+    }
+
+    if (otp.length !== 4) {
+      throw new AppError('Enter the 4-digit OTP.', 400);
     }
 
     const stored = await otpRepository.findActiveByEmail(email);
@@ -1293,85 +1341,99 @@ class AuthService {
     };
   }
 
+  private async verifyRegisterPhoneFirebase(data: {
+    mobileCountryCode?: string;
+    mobileNumber?: string;
+    email?: string;
+    firebaseToken?: string;
+  }) {
+    const email = String(data.email || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      throw new AppError('Email is required to create your account.', 400);
+    }
+    const expectedCc = normalizePhone(data.mobileCountryCode || '') || '91';
+    const expectedMobile = normalizePhone(data.mobileNumber || '');
+    if (!expectedMobile || /^0+$/.test(expectedMobile)) {
+      throw new AppError('Enter a valid mobile number to create your account.', 400);
+    }
+
+    const {firebaseUid, mobileCountryCode, mobileNumber} =
+      await this.parseFirebasePhoneToken(String(data.firebaseToken || ''));
+
+    if (mobileCountryCode !== expectedCc || mobileNumber !== expectedMobile) {
+      throw new AppError(
+        'Verified phone does not match the number used to create this account.',
+        401,
+      );
+    }
+
+    const existingUserByEmail = await authRepository.findUserByEmail(email);
+    const existingUserByMobile = await authRepository.findUserByMobile(
+      mobileCountryCode,
+      mobileNumber,
+    );
+    if (existingUserByEmail || existingUserByMobile) {
+      throw new AppError(
+        'This email or mobile number is already registered. Please sign in.',
+        409,
+      );
+    }
+
+    return {
+      verified: true,
+      isNewUser: true,
+      token: null,
+      user: null,
+      email,
+      mobileCountryCode,
+      mobileNumber,
+      firebaseUid,
+      channel: 'phone' as const,
+      mode: 'register' as const,
+    };
+  }
+
   private async verifyLoginOtp(data: {
     mobileCountryCode?: string;
     mobileNumber?: string;
     email?: string;
     otp: string;
+    firebaseToken?: string;
     channel: 'email' | 'phone';
   }) {
+    if (data.channel === 'phone') {
+      return this.verifyLoginPhoneFirebase(data);
+    }
+
     const otp = String(data.otp || '').trim();
-    const phoneVerify = data.channel === 'phone' && twilioSmsService.usesVerify();
-    // Twilio Verify default is often 6 digits; app UI is 4 — set Verify code length to 4 in Twilio.
-    if (phoneVerify) {
-      if (otp.length < 4 || otp.length > 8) {
-        throw new AppError('Enter the OTP from your SMS.', 400);
-      }
-    } else if (otp.length !== 4) {
+    if (otp.length !== 4) {
       throw new AppError('Enter the 4-digit OTP.', 400);
     }
 
-    let stored;
-    let user: AuthUser | null = null;
-    let clear: () => Promise<void> = async () => {};
-    let mobileCountryCode = '91';
-    let mobileNumber = '';
-
-    if (data.channel === 'phone') {
-      mobileCountryCode =
-        normalizePhone(data.mobileCountryCode || '') || '91';
-      mobileNumber = normalizePhone(data.mobileNumber || '');
-      if (mobileNumber.length < 6) {
-        throw new AppError('Enter a valid mobile number.', 400);
-      }
-      stored = await otpRepository.findActiveByPhone(
-        mobileCountryCode,
-        mobileNumber,
-      );
-      clear = async () => {
-        await otpRepository.deleteByPhone(mobileCountryCode, mobileNumber);
-      };
-      user = await authRepository.findUserByMobile(
-        mobileCountryCode,
-        mobileNumber,
-      );
-    } else {
-      const email = String(data.email || '').trim().toLowerCase();
-      if (!email || !email.includes('@')) {
-        throw new AppError('Email is required to verify OTP.', 400);
-      }
-      stored = await otpRepository.findActiveByEmail(email);
-      clear = async () => {
-        await otpRepository.deleteByEmail(email);
-      };
-      user = await authRepository.findUserByEmail(email);
+    const email = String(data.email || '').trim().toLowerCase();
+    if (!email || !email.includes('@')) {
+      throw new AppError('Email is required to verify OTP.', 400);
     }
+
+    const stored = await otpRepository.findActiveByEmail(email);
+    const user = await authRepository.findUserByEmail(email);
 
     if (!stored || Number(stored.expiresAt) < Date.now()) {
       throw new AppError('Invalid or expired OTP.', 401);
     }
 
     if (Number(stored.attempts) >= environment.OTP_MAX_ATTEMPTS) {
-      await clear();
+      await otpRepository.deleteByEmail(email);
       throw new AppError('Too many incorrect attempts. Request a new OTP.', 401);
     }
 
-    let valid = false;
-    if (phoneVerify) {
-      valid = await twilioSmsService.checkVerifyOtp(
-        mobileCountryCode,
-        mobileNumber,
-        otp,
-      );
-    } else {
-      valid = emailOtpService.matches(otp, stored.codeHash);
-    }
+    const valid = emailOtpService.matches(otp, stored.codeHash);
     if (!valid) {
       await otpRepository.incrementAttempts(stored.id);
       throw new AppError('Invalid or expired OTP.', 401);
     }
 
-    await clear();
+    await otpRepository.deleteByEmail(email);
 
     if (!user) {
       throw new AppError('No account found for this login.', 404);
@@ -1384,7 +1446,48 @@ class AuthService {
       isNewUser: false,
       token: issueToken(freshUser),
       user: freshUser,
-      channel: data.channel,
+      channel: 'email' as const,
+      mode: 'login' as const,
+    };
+  }
+
+  private async verifyLoginPhoneFirebase(data: {
+    mobileCountryCode?: string;
+    mobileNumber?: string;
+    firebaseToken?: string;
+  }) {
+    const {firebaseUid, mobileCountryCode, mobileNumber} =
+      await this.parseFirebasePhoneToken(String(data.firebaseToken || ''));
+
+    const expectedCc = normalizePhone(data.mobileCountryCode || '') || mobileCountryCode;
+    const expectedMobile = normalizePhone(data.mobileNumber || '') || mobileNumber;
+    if (
+      expectedMobile &&
+      (expectedCc !== mobileCountryCode || expectedMobile !== mobileNumber)
+    ) {
+      throw new AppError('Verified phone does not match the login number.', 401);
+    }
+
+    let user =
+      (await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)) ||
+      (await authRepository.findUserByFirebaseUid(firebaseUid));
+
+    if (!user) {
+      throw new AppError('No account found for this mobile number.', 404);
+    }
+
+    if (String(user.firebaseUid || '') !== firebaseUid) {
+      await authRepository.linkFirebaseUid(user.id, firebaseUid).catch(() => undefined);
+    }
+
+    await authRepository.updateLastLogin(user.id, data.firebaseToken);
+    const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
+    return {
+      verified: true,
+      isNewUser: false,
+      token: issueToken(freshUser),
+      user: freshUser,
+      channel: 'phone' as const,
       mode: 'login' as const,
     };
   }

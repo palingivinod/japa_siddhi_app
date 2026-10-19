@@ -39,7 +39,7 @@ export const kn: TranslationDict = {
   sendOtp: 'OTP ಕಳುಹಿಸಿ',
   sendingOtp: 'OTP ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...',
   orContinueWith: 'ಅಥವಾ ಇದರೊಂದಿಗೆ ಮುಂದುವರಿಸಿ',
-  newToJapaSiddhi: 'ಜಪ ಸಿದ್ಧಿಗೆ ಹೊಸಬರೇ?',
+  newToJapaSiddhi: 'ನೀವು ಜಪ ಸಿದ್ಧಿಗೆ ಹೊಸಬರೇ?',
   createAnAccount: 'ಖಾತೆ ರಚಿಸಿ',
   termsPrivacy: 'ನಿಯಮಗಳು ಮತ್ತು ಗೌಪ್ಯತೆ ನೀತಿ',
   validMobile: 'ದಯವಿಟ್ಟು ಸರಿಯಾದ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.',

@@ -75,7 +75,7 @@ const LoginScreen = () => {
     const session = await getValidSession();
     if (!session.token) {
       setHasValidSession(false);
-      Alert.alert('Session expired', 'Please login again.');
+      Alert.alert(t('sessionExpired'), t('pleaseLoginAgainShort'));
       return;
     }
     resetAuthGate();
@@ -85,23 +85,23 @@ const LoginScreen = () => {
   const handlePasswordLogin = async () => {
     const value = identifier.trim();
     if (!value) {
-      Alert.alert(t('required'), 'Enter your email or mobile number.');
+      Alert.alert(t('required'), t('enterEmailOrMobile'));
       return;
     }
     if (!password.trim()) {
-      Alert.alert(t('required'), 'Enter your password.');
+      Alert.alert(t('required'), t('enterYourPassword'));
       return;
     }
 
     const isEmail = value.includes('@');
     if (isEmail && !EMAIL_REGEX.test(value.toLowerCase())) {
-      Alert.alert(t('required'), 'Enter a valid email address.');
+      Alert.alert(t('required'), t('enterValidEmail'));
       return;
     }
     if (!isEmail) {
       const digits = value.replace(/\D/g, '');
       if (digits.length < 8) {
-        Alert.alert(t('required'), 'Enter a valid mobile number.');
+        Alert.alert(t('required'), t('enterValidMobileNumber'));
         return;
       }
     }
@@ -172,15 +172,14 @@ const LoginScreen = () => {
           ? rawMessage
           : '';
       if (/no admin account/i.test(serverMessage)) {
-        serverMessage = 'No account found for this email or mobile number.';
+        serverMessage = t('noAccountFound');
       }
       Alert.alert(
-        'Login failed',
+        t('loginFailed'),
         serverMessage ||
           (status === 404
-            ? 'No account found for this email or mobile number.'
-            : error?.message ||
-              'Unable to login. Check your email/number and password.'),
+            ? t('noAccountFound')
+            : error?.message || t('unableToLogin')),
       );
     } finally {
       setSubmitting(false);
@@ -237,7 +236,7 @@ const LoginScreen = () => {
       if (otpChannel === 'email') {
         const email = otpEmail.trim().toLowerCase();
         if (!EMAIL_REGEX.test(email)) {
-          Alert.alert(t('required'), 'Enter a valid email address.');
+          Alert.alert(t('required'), t('enterValidEmail'));
           return;
         }
         const response = await apiService.post('/auth/otp/send', {
@@ -254,10 +253,11 @@ const LoginScreen = () => {
         });
       } else {
         const mobile = otpMobile.replace(/\D/g, '');
-        if (mobile.length < 8) {
-          Alert.alert(t('required'), 'Enter a valid mobile number.');
+        if (mobile.length !== 10 || /^0+$/.test(mobile)) {
+          Alert.alert(t('required'), t('enterValidMobileNumber'));
           return;
         }
+        // 1) Backend: account must exist for this number
         const response = await apiService.post('/auth/otp/send', {
           mode: 'login',
           channel: 'phone',
@@ -265,22 +265,40 @@ const LoginScreen = () => {
           mobileNumber: mobile,
         });
         const data = response.data?.data || {};
+        // 2) Firebase Auth SMS → goes to +91{mobile}
+        const {default: firebaseAuthService} = await import(
+          './services/firebaseAuthService'
+        );
+        const e164 = `+91${mobile}`;
+        const fb = await firebaseAuthService.sendOTP(e164);
+        if (!fb.success) {
+          throw new Error(fb.message || t('unableSendOtpRetry'));
+        }
         navigation.navigate('OtpScreen', {
           mode: 'login',
           channel: 'phone',
           mobileCountryCode: '91',
           mobileNumber: mobile,
-          phoneNumber: `91${mobile}`,
-          sentTo: data.sentTo || `+91${mobile}`,
+          phoneNumber: e164,
+          sentTo: data.sentTo || e164,
         });
       }
     } catch (error: any) {
-      Alert.alert(
-        t('otpFailed') || 'OTP Failed',
+      const msg =
         error?.response?.data?.message ||
-          error?.message ||
-          'Unable to send OTP. Please try again.',
-      );
+        error?.message ||
+        t('unableSendOtpRetry');
+      if (otpChannel === 'phone') {
+        Alert.alert(t('otpFailed'), msg, [
+          {text: t('ok')},
+          {
+            text: t('email'),
+            onPress: () => setOtpChannel('email'),
+          },
+        ]);
+      } else {
+        Alert.alert(t('otpFailed'), msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -327,11 +345,11 @@ const LoginScreen = () => {
           {paddingHorizontal: BODY_PAD, paddingBottom: 30 + bottomPad},
           hasValidSession && styles.contentSession,
         ]}>
-        <AppHeader title="Welcome to Japa Siddhi" showBack={false} />
+        <AppHeader title={t('welcomeToJapaSiddhi')} showBack={false} />
         <Text style={styles.heading}>{t('beginSpiritualJourney')}</Text>
 
         {checkingSession ? (
-          <Text style={styles.helper}>Checking session...</Text>
+          <Text style={styles.helper}>{t('checkingSession')}</Text>
         ) : hasValidSession ? (
           <View style={styles.sessionCenter}>
             <PrimaryButton title={t('continueToHome')} onPress={goHome} />
@@ -341,24 +359,24 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
-            <Text style={styles.label}>Login with</Text>
+            <Text style={styles.label}>{t('loginWith')}</Text>
             <Segment
               value={loginMethod}
               onChange={setLoginMethod}
               options={[
-                {id: 'password', label: 'Password'},
-                {id: 'otp', label: 'OTP'},
+                {id: 'password', label: t('loginMethodPassword')},
+                {id: 'otp', label: t('loginMethodOtp')},
               ]}
             />
 
             {loginMethod === 'password' ? (
               <>
-                <Text style={styles.label}>Email / Mobile number</Text>
+                <Text style={styles.label}>{t('emailOrMobile')}</Text>
                 <TextInput
                   style={styles.emailInput}
                   value={identifier}
                   onChangeText={setIdentifier}
-                  placeholder="email@example.com or 9876543210"
+                  placeholder={t('emailOrMobilePlaceholder')}
                   placeholderTextColor={Colors.placeholder}
                   keyboardType="email-address"
                   autoCapitalize="none"
@@ -366,12 +384,12 @@ const LoginScreen = () => {
                   underlineColorAndroid="transparent"
                 />
 
-                <Text style={styles.label}>Password</Text>
+                <Text style={styles.label}>{t('password')}</Text>
                 <TextInput
                   style={styles.emailInput}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter password"
+                  placeholder={t('enterPassword')}
                   placeholderTextColor={Colors.placeholder}
                   secureTextEntry
                   underlineColorAndroid="transparent"
@@ -383,11 +401,11 @@ const LoginScreen = () => {
                       identifier: identifier.trim(),
                     })
                   }>
-                  <Text style={styles.forgotPassword}>Forgot password?</Text>
+                  <Text style={styles.forgotPassword}>{t('forgotPassword')}</Text>
                 </TouchableOpacity>
 
                 <ContinueButton
-                  title={submitting ? 'Logging in...' : 'Login'}
+                  title={submitting ? t('loggingIn') : t('loginBtn')}
                   onPress={handlePasswordLogin}
                   loading={submitting}
                   disabled={submitting}
@@ -395,13 +413,13 @@ const LoginScreen = () => {
               </>
             ) : (
               <>
-                <Text style={styles.label}>Send OTP to</Text>
+                <Text style={styles.label}>{t('sendOtpTo')}</Text>
                 <Segment
                   value={otpChannel}
                   onChange={setOtpChannel}
                   options={[
-                    {id: 'email', label: 'Email'},
-                    {id: 'phone', label: 'Phone'},
+                    {id: 'email', label: t('email')},
+                    {id: 'phone', label: t('channelPhone')},
                   ]}
                 />
 
@@ -433,7 +451,7 @@ const LoginScreen = () => {
                         onChangeText={text =>
                           setOtpMobile(text.replace(/\D/g, '').slice(0, 10))
                         }
-                        placeholder="10-digit mobile"
+                        placeholder={t('tenDigitMobile')}
                         placeholderTextColor={Colors.placeholder}
                         keyboardType="phone-pad"
                         maxLength={10}

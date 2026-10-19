@@ -3,9 +3,12 @@ import {StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native'
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
+import type {TranslationKey} from '../../i18n/en';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 
+// English IDs are what the API stores; labels are translated for display.
 const PREFS = [
   'Birthday reminders',
   'Anniversary reminders',
@@ -13,9 +16,17 @@ const PREFS = [
   'Event invitations',
 ];
 
+const PREF_LABEL_KEYS: Record<string, TranslationKey> = {
+  'Birthday reminders': 'prefBirthdayReminders',
+  'Anniversary reminders': 'prefAnniversaryReminders',
+  'Annadanam campaigns': 'prefAnnadanamCampaigns',
+  'Event invitations': 'prefEventInvitations',
+};
+
 const SignupSpiritualScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
   const [prefs, setPrefs] = useState<string[]>([]);
@@ -29,31 +40,38 @@ const SignupSpiritualScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Spiritual Details" showBack>
-      <Text style={styles.step}>Step 2 of 3</Text>
+    <ScreenLayout title={t('spiritualDetails')} showBack>
+      <Text style={styles.step}>{t('stepOf', {current: 2, total: 3})}</Text>
       <View style={styles.track}>
         <View style={styles.fill} />
       </View>
       <Text style={styles.percent}>100%</Text>
-      <Text style={styles.label}>Gothram</Text>
-      <TextInput style={styles.input} placeholder="Optional" value={gothram} onChangeText={setGothram} />
-      <Text style={styles.label}>Nakshatram</Text>
+      <Text style={styles.label}>{t('gothram')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Optional"
+        placeholder={t('optional')}
+        value={gothram}
+        onChangeText={setGothram}
+      />
+      <Text style={styles.label}>{t('nakshatram')}</Text>
+      <TextInput
+        style={styles.input}
+        placeholder={t('optional')}
         value={nakshatram}
         onChangeText={setNakshatram}
       />
-      <Text style={styles.label}>Spiritual preferences</Text>
+      <Text style={styles.label}>{t('spiritualPreferences')}</Text>
       {PREFS.map(item => (
         <TouchableOpacity key={item} style={styles.pref} onPress={() => toggle(item)}>
           <View style={[styles.box, prefs.includes(item) && styles.boxOn]} />
-          <Text style={styles.prefText}>{item}</Text>
+          <Text style={styles.prefText}>
+            {PREF_LABEL_KEYS[item] ? t(PREF_LABEL_KEYS[item]) : item}
+          </Text>
         </TouchableOpacity>
       ))}
       <View style={styles.actions}>
         <PrimaryButton
-          title="CONTINUE"
+          title={t('continue')}
           onPress={() =>
             navigation.navigate('SignupPhoto', {
               ...route.params,

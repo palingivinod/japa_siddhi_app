@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
@@ -42,6 +43,18 @@ type DateField = 'dob' | 'spouseDob' | 'anniversary';
 const SignupPersonalScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
+  // Option values stay in English for the API; only the labels are translated.
+  const optionLabel = (value: string) =>
+    (
+      {
+        Male: t('male'),
+        Female: t('female'),
+        Other: t('otherGender'),
+        Bachelor: t('bachelor'),
+        Married: t('married'),
+      } as Record<string, string>
+    )[value] || value;
   const [fullName, setFullName] = useState(route.params?.fullName || '');
   const [email, setEmail] = useState(route.params?.email || '');
   const initialCountryCode =
@@ -96,7 +109,7 @@ const SignupPersonalScreen = () => {
         onPress={() => dismissKeyboardThen(() => setPicker(field))}>
         <Text
           style={dateValues[field] ? styles.dateText : styles.datePlaceholder}>
-          {dateValues[field] || 'Select date'}
+          {dateValues[field] || t('selectDate')}
         </Text>
         <Text style={styles.dateIcon}>📅</Text>
       </TouchableOpacity>
@@ -105,7 +118,7 @@ const SignupPersonalScreen = () => {
 
   const next = () => {
     if (fullName.trim().length < 3) {
-      Alert.alert('Required', 'Enter your full name.');
+      Alert.alert(t('required'), t('enterFullName'));
       return;
     }
     const code =
@@ -115,17 +128,20 @@ const SignupPersonalScreen = () => {
     const mobile = mobileNumber.replace(/\D/g, '');
     if (code === '91') {
       if (!isMobile(mobile) || /^0+$/.test(mobile)) {
-        Alert.alert('Required', `Enter your ${MOBILE_DIGITS}-digit mobile number.`);
+        Alert.alert(
+          t('required'),
+          t('enterMobileDigits', {digits: MOBILE_DIGITS}),
+        );
         return;
       }
     } else {
       if (mobile.length < 6 || mobile.length > 15 || /^0+$/.test(mobile)) {
-        Alert.alert('Required', 'Enter a valid mobile number.');
+        Alert.alert(t('required'), t('enterValidMobileNumber'));
         return;
       }
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
-      Alert.alert('Required', 'Enter spouse name for married devotees.');
+      Alert.alert(t('required'), t('enterSpouseNameMarried'));
       return;
     }
     navigation.navigate('SignupSpiritual', {
@@ -150,21 +166,21 @@ const SignupPersonalScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Create Your Profile" showBack>
-      <Text style={styles.step}>Step 1 of 3</Text>
+    <ScreenLayout title={t('createYourProfile')} showBack>
+      <Text style={styles.step}>{t('stepOf', {current: 1, total: 3})}</Text>
       <View style={styles.track}>
         <View style={styles.fill} />
       </View>
       <Text style={styles.percent}>33%</Text>
-      <Text style={styles.label}>Full Name</Text>
+      <Text style={styles.label}>{t('fullName')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Your name"
+        placeholder={t('yourName')}
         value={fullName}
         onChangeText={setFullName}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>Mobile Number</Text>
+      <Text style={styles.label}>{t('mobileNumber')}</Text>
       <View style={styles.mobileRow}>
         <TouchableOpacity
           style={styles.countryBtn}
@@ -192,8 +208,8 @@ const SignupPersonalScreen = () => {
           keyboardType="phone-pad"
           placeholder={
             selectedCountry.code === 'IN'
-              ? `Enter ${MOBILE_DIGITS}-digit mobile number`
-              : 'Enter mobile number'
+              ? t('mobileDigitsPlaceholder', {digits: MOBILE_DIGITS})
+              : t('enterMobileNumber')
           }
           placeholderTextColor={Colors.placeholder}
           maxLength={selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15}
@@ -203,8 +219,10 @@ const SignupPersonalScreen = () => {
       mobileNumber.length > 0 &&
       !isMobile(mobileNumber) ? (
         <Text style={styles.fieldError}>
-          Mobile number must be {MOBILE_DIGITS} digits — {mobileNumber.length}{' '}
-          entered.
+          {t('mobileMustBeDigits', {
+            digits: MOBILE_DIGITS,
+            entered: mobileNumber.length,
+          })}
         </Text>
       ) : null}
 
@@ -216,83 +234,83 @@ const SignupPersonalScreen = () => {
           setCountryCode(item.callingCode.replace(/\D/g, ''));
         }}
       />
-      <Text style={styles.label}>Email</Text>
+      <Text style={styles.label}>{t('email')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder={t('email')}
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
         autoCapitalize="none"
         placeholderTextColor={Colors.placeholder}
       />
-      {renderDateField('dob', 'Date of Birth')}
-      <Text style={styles.label}>Gender</Text>
+      {renderDateField('dob', t('dateOfBirth'))}
+      <Text style={styles.label}>{t('gender')}</Text>
       <View style={styles.chips}>
         {['Male', 'Female', 'Other'].map(item => (
           <TouchableOpacity
             key={item}
             style={[styles.chip, gender === item && styles.chipOn]}
             onPress={() => setGender(item)}>
-            <Text style={styles.chipText}>{item}</Text>
+            <Text style={styles.chipText}>{optionLabel(item)}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      <Text style={styles.label}>Address</Text>
+      <Text style={styles.label}>{t('address')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Address"
+        placeholder={t('address')}
         value={address}
         onChangeText={setAddress}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>City</Text>
+      <Text style={styles.label}>{t('city')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="City"
+        placeholder={t('city')}
         value={city}
         onChangeText={setCity}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>State</Text>
+      <Text style={styles.label}>{t('state')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="State"
+        placeholder={t('state')}
         value={stateName}
         onChangeText={setStateName}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>Country</Text>
+      <Text style={styles.label}>{t('country')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Country"
+        placeholder={t('country')}
         value={country}
         onChangeText={setCountry}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>Marital Status</Text>
+      <Text style={styles.label}>{t('maritalStatus')}</Text>
       <View style={styles.chips}>
         {['Bachelor', 'Married'].map(item => (
           <TouchableOpacity
             key={item}
             style={[styles.chip, maritalStatus === item && styles.chipOn]}
             onPress={() => setMaritalStatus(item)}>
-            <Text style={styles.chipText}>{item}</Text>
+            <Text style={styles.chipText}>{optionLabel(item)}</Text>
           </TouchableOpacity>
         ))}
       </View>
       {maritalStatus === 'Married' ? (
         <>
-          <Text style={styles.label}>Spouse Name</Text>
+          <Text style={styles.label}>{t('spouseName')}</Text>
           <TextInput
             style={styles.input}
-            placeholder="Spouse name"
+            placeholder={t('spouseName')}
             value={spouseName}
             onChangeText={setSpouseName}
             placeholderTextColor={Colors.placeholder}
           />
-          {renderDateField('spouseDob', 'Spouse Date of Birth')}
-          {renderDateField('anniversary', 'Anniversary Date')}
+          {renderDateField('spouseDob', t('spouseDateOfBirth'))}
+          {renderDateField('anniversary', t('anniversaryDate'))}
         </>
       ) : null}
       {picker ? (
@@ -308,7 +326,7 @@ const SignupPersonalScreen = () => {
         />
       ) : null}
       <View style={styles.actions}>
-        <PrimaryButton title="CONTINUE" onPress={next} />
+        <PrimaryButton title={t('continue')} onPress={next} />
       </View>
     </ScreenLayout>
   );

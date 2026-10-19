@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../../theme/colors';
+import {useLanguage} from '../../../i18n/LanguageContext';
 
 interface Props {
   seconds?: number;
@@ -17,6 +18,7 @@ const ResendTimer: React.FC<Props> = ({
   onResend,
 }) => {
 
+  const {t} = useLanguage();
   const [timeLeft, setTimeLeft] = useState(seconds);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ const ResendTimer: React.FC<Props> = ({
     return(
 
       <Text style={styles.timer}>
-        Resend OTP in 00:{String(timeLeft).padStart(2, '0')}
+        {t('resendOtpIn', {seconds: String(timeLeft).padStart(2, '0')})}
       </Text>
 
     );
@@ -58,7 +60,7 @@ const ResendTimer: React.FC<Props> = ({
     <TouchableOpacity onPress={resend}>
 
       <Text style={styles.resend}>
-        Resend OTP
+        {t('resendOtp')}
       </Text>
 
     </TouchableOpacity>

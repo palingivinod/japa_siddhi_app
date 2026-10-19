@@ -40,7 +40,7 @@ export const bn: TranslationDict = {
   sendOtp: 'OTP পাঠান',
   sendingOtp: 'OTP পাঠানো হচ্ছে...',
   orContinueWith: 'অথবা এর সাথে চালিয়ে যান',
-  newToJapaSiddhi: 'জপ সিদ্ধিতে নতুন?',
+  newToJapaSiddhi: 'আপনি কি জপ সিদ্ধিতে নতুন?',
   createAnAccount: 'অ্যাকাউন্ট তৈরি করুন',
   termsPrivacy: 'শর্তাবলী ও গোপনীয়তা নীতি',
   validMobile: 'অনুগ্রহ করে একটি বৈধ মোবাইল নম্বর লিখুন।',

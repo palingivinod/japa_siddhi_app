@@ -1,13 +1,15 @@
 import React, {useEffect, useState} from 'react';
 import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {SafeAreaView} from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import apiService from '../../services/apiService';
-import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
 
@@ -22,7 +24,10 @@ const LanguageSelectScreen = () => {
   const route = useRoute<any>();
   const fromSettings = route.params?.fromSettings;
   const {t, language, setAppLanguage} = useLanguage();
-  const bottomPad = useBottomNavPad();
+  // Real nav/home inset only. When inset is 0, layout stays as before (+tiny
+  // buffer). When the OS reports an inset, CONTINUE lifts above the system bar.
+  const {bottom: systemBottom} = useSafeAreaInsets();
+  const footerPad = 16 + Math.max(0, systemBottom);
   const [selected, setSelected] = useState(language || 'en');
   const [options, setOptions] = useState<LangOption[]>(APP_LANGUAGES);
 
@@ -142,7 +147,7 @@ const LanguageSelectScreen = () => {
           );
         })}
       </ScrollView>
-      <View style={[styles.footer, {paddingBottom: 12 + bottomPad}]}>
+      <View style={[styles.footer, {paddingBottom: footerPad}]}>
         <PrimaryButton title={t('continue')} onPress={continueNext} />
       </View>
     </SafeAreaView>

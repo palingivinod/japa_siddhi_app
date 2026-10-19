@@ -4,6 +4,7 @@ import {useNavigation} from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import FormField from '../common/FormField';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
@@ -11,13 +12,14 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const WelcomeGiftScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [saving, setSaving] = useState(false);
 
   const claim = async () => {
     if (address.trim().length < 6) {
-      Alert.alert('Address', 'Please confirm your shipping address.');
+      Alert.alert(t('address'), t('confirmShippingAddress'));
       return;
     }
     setSaving(true);
@@ -36,8 +38,8 @@ const WelcomeGiftScreen = () => {
       }
     } catch (error) {
       Alert.alert(
-        'Welcome gift',
-        getApiError(error, 'Could not create the welcome gift order.'),
+        t('welcomeGift'),
+        getApiError(error, t('couldNotCreateWelcomeGift')),
       );
     } finally {
       setSaving(false);
@@ -45,32 +47,29 @@ const WelcomeGiftScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Welcome Gift" showBack>
-      <Text style={styles.title}>A gift for your first registration</Text>
-      <Text style={styles.copy}>
-        Admin has configured a Karungali Mala welcome gift. Confirm your
-        shipping address and the order will appear in Orders & Tracking.
-      </Text>
+    <ScreenLayout title={t('welcomeGift')} showBack>
+      <Text style={styles.title}>{t('giftFirstRegistration')}</Text>
+      <Text style={styles.copy}>{t('welcomeGiftCopy')}</Text>
       <FormField
-        label="Shipping address"
-        placeholder="House / street"
+        label={t('shippingAddress')}
+        placeholder={t('houseStreet')}
         value={address}
         onChangeText={setAddress}
       />
       <FormField
-        label="City"
-        placeholder="City"
+        label={t('city')}
+        placeholder={t('city')}
         value={city}
         onChangeText={setCity}
       />
       <PrimaryButton
-        title={saving ? 'CREATING ORDER...' : 'CLAIM GIFT'}
+        title={saving ? t('creatingOrder') : t('claimGift')}
         onPress={claim}
         disabled={saving}
       />
       <Text style={styles.gap} />
       <OutlineButton
-        title="SKIP FOR NOW"
+        title={t('skipForNow')}
         onPress={() => {
           void import('../../navigation/goHomeAfterAuth').then(
             ({resetToHomeAfterAuth}) => resetToHomeAfterAuth(navigation),

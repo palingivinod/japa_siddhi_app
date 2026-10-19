@@ -19,11 +19,13 @@ rootProject.name = 'JapaSiddhi'
 include ':app'
 includeBuild(System.getProperty("japa.rn.gradle.plugin"))
 
-// Set build dirs before Android plugin apply so AGP does not lock onto
-// android/app/build (that tree can be unreadable on this Windows machine).
+// Only relocate when JAPA_ANDROID_BUILD_DIR is set.
+// Never move the root project build dir — RN writes autolinking.json there
+// (android/build/generated/autolinking/) and autolinkLibrariesWithApp() reads it.
 gradle.beforeProject { project ->
     def altBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
-    if (altBuild) {
-        project.layout.buildDirectory.set(project.file("${altBuild}/out/${project.name}"))
+    if (!altBuild || project == project.rootProject) {
+        return
     }
+    project.layout.buildDirectory.set(project.file("${altBuild}/out/${project.name}"))
 }

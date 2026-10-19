@@ -108,10 +108,27 @@ export const otpSendValidation = [
 
 export const otpVerifyValidation = [
   ...otpSendValidation,
-  body('otp')
-    .trim()
-    .isLength({min: 4, max: 4})
-    .withMessage('Enter the 4-digit OTP.'),
+  body('firebaseToken').optional({nullable: true}).trim(),
+  body('otp').optional({nullable: true}).trim(),
+  body().custom((_, {req}) => {
+    const channel =
+      req.body?.channel === 'phone' || req.body?.firebaseToken
+        ? 'phone'
+        : 'email';
+    if (channel === 'phone') {
+      if (!String(req.body?.firebaseToken || '').trim()) {
+        throw new Error(
+          'Firebase token is required after verifying the phone OTP.',
+        );
+      }
+      return true;
+    }
+    const otp = String(req.body?.otp || '').trim();
+    if (!/^\d{4}$/.test(otp)) {
+      throw new Error('Enter the 4-digit OTP.');
+    }
+    return true;
+  }),
 ];
 
 export const passwordLoginValidation = [

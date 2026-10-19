@@ -3,6 +3,7 @@ import {Alert, Image, StyleSheet, Text, TouchableOpacity, View} from 'react-nati
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import ProfileApi from './services/profileApi';
@@ -21,16 +22,17 @@ const toIso = (value: string) => {
 const SignupPhotoScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [saving, setSaving] = useState(false);
   const [pickedPhoto, setPickedPhoto] = useState<PickedPhoto | null>(null);
 
   const choosePhoto = async () => {
     try {
       const picked = await pickProfilePhoto({
-        title: 'Profile Photo',
-        camera: 'Camera',
-        gallery: 'Gallery',
-        cancel: 'Cancel',
+        title: t('profilePhoto'),
+        camera: t('camera'),
+        gallery: t('gallery'),
+        cancel: t('cancel'),
       });
       if (!picked) {
         return;
@@ -39,17 +41,14 @@ const SignupPhotoScreen = () => {
     } catch (error: any) {
       const code = String(error?.message || '');
       if (code === 'permission') {
-        Alert.alert(
-          'Profile Photo',
-          'Please allow camera and photo access to add a profile picture.',
-        );
+        Alert.alert(t('profilePhoto'), t('allowCameraPhotoAccess'));
         return;
       }
       if (code === 'camera_unavailable') {
-        Alert.alert('Profile Photo', 'Camera is not available on this device.');
+        Alert.alert(t('profilePhoto'), t('cameraUnavailable'));
         return;
       }
-      Alert.alert('Profile Photo', 'Could not pick a photo. Please try again.');
+      Alert.alert(t('profilePhoto'), t('couldNotPickPhoto'));
     }
   };
 
@@ -69,15 +68,15 @@ const SignupPhotoScreen = () => {
     );
     if (!isMobile(mobileNumber) || /^0+$/.test(mobileNumber)) {
       Alert.alert(
-        'Mobile required',
-        `Go back and enter your ${MOBILE_DIGITS}-digit mobile number before creating your profile.`,
+        t('mobileRequiredTitle'),
+        t('goBackEnterMobile', {digits: MOBILE_DIGITS}),
       );
       return;
     }
     if (!isGoogleSignup && password.length < 6) {
       Alert.alert(
-        'Password required',
-        'Go back to Create Account and set your password before creating your profile.',
+        t('passwordRequiredTitle'),
+        t('goBackSetPassword'),
       );
       return;
     }
@@ -130,11 +129,11 @@ const SignupPhotoScreen = () => {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Could not create your profile.';
+        t('couldNotCreateProfile');
       Alert.alert(
-        'Registration',
+        t('registrationTitle'),
         /UNIQUE|firebase_uid/i.test(String(message))
-          ? 'This account may already exist. Try logging in with the same email, or use a different email.'
+          ? t('accountMayExist')
           : message,
       );
     } finally {
@@ -143,8 +142,8 @@ const SignupPhotoScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Profile Photo" showBack>
-      <Text style={styles.step}>Step 3 of 3</Text>
+    <ScreenLayout title={t('profilePhoto')} showBack>
+      <Text style={styles.step}>{t('stepOf', {current: 3, total: 3})}</Text>
       <View style={styles.track}>
         <View style={styles.fill} />
       </View>
@@ -155,7 +154,7 @@ const SignupPhotoScreen = () => {
           style={styles.avatarWrap}
           onPress={choosePhoto}
           accessibilityRole="button"
-          accessibilityLabel="Add a profile photo">
+          accessibilityLabel={t('addAProfilePhotoA11y')}>
           <View style={styles.avatar}>
             {pickedPhoto?.uri ? (
               <Image source={{uri: pickedPhoto.uri}} style={styles.avatarImage} />
@@ -167,15 +166,13 @@ const SignupPhotoScreen = () => {
             <Text style={styles.cameraBadgeText}>📷</Text>
           </View>
         </TouchableOpacity>
-        <Text style={styles.title}>Add a profile photo</Text>
-        <Text style={styles.copy}>
-          Tap the camera to choose a photo from your gallery or take a new one.
-        </Text>
+        <Text style={styles.title}>{t('addProfilePhoto')}</Text>
+        <Text style={styles.copy}>{t('addProfilePhotoHint')}</Text>
       </View>
 
       <View style={styles.actions}>
         <PrimaryButton
-          title={saving ? 'CREATING...' : 'CREATE PROFILE'}
+          title={saving ? t('creating') : t('createProfile')}
           onPress={submit}
           disabled={saving}
         />

@@ -12,6 +12,7 @@ class ChantBeepPackage : ReactPackage {
     listOf(
       ChantBeepModule(reactContext),
       IntroVideoModule(reactContext),
+      AppInfoModule(reactContext),
     )
 
   override fun createViewManagers(

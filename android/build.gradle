@@ -22,11 +22,22 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 subprojects { subproject ->
-    def altBuild = System.getenv("JAPA_ANDROID_BUILD_DIR")
     def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
     // Relocate outputs only on Windows (file locks) or when explicitly requested.
     // On Linux CI, default build dirs keep KSP/AGP paths stable.
-    def buildRoot = altBuild ?: (isWindows ? "${rootProject.projectDir}/build-r4" : null)
+    // Same drive as the repo. Cross-drive (C: LocalAppData) breaks codegen/bundle
+    // with "different roots". build-r5 avoids locked build-r4.
+    def winDefaultFile = file("${rootProject.projectDir}/build-r5")
+    def altRaw = System.getenv("JAPA_ANDROID_BUILD_DIR")
+    def altBuild = null
+    if (altRaw != null && !altRaw.trim().isEmpty()) {
+        def altFile = file(altRaw.trim())
+        if (altFile.absolutePath.substring(0, 1).equalsIgnoreCase(winDefaultFile.absolutePath.substring(0, 1))) {
+            altBuild = altFile.absolutePath
+        }
+    }
+    def buildRoot = altBuild ?: (isWindows ? winDefaultFile.absolutePath : null)
+
     if (buildRoot) {
         subproject.layout.buildDirectory.set(
             file("${buildRoot}/out/${subproject.name}")

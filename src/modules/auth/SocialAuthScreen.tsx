@@ -3,6 +3,7 @@ import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import OutlineButton from '../common/OutlineButton';
@@ -23,14 +24,15 @@ const showAlertLater = (title: string, message: string) => {
 const SocialAuthScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const provider = String(route.params?.provider || 'Email');
   const [busy, setBusy] = useState(false);
 
   const continueWithGoogle = async () => {
     if (!String(ENV.GOOGLE_WEB_CLIENT_ID || '').trim()) {
       showAlertLater(
-        'Google setup needed',
-        'Add your Firebase Web Client ID to src/env.ts as GOOGLE_WEB_CLIENT_ID, enable Google sign-in in Firebase, add your Android SHA-1, then download a fresh google-services.json.',
+        t('googleSetupNeeded'),
+        t('googleSetupMessage'),
       );
       return;
     }
@@ -57,7 +59,7 @@ const SocialAuthScreen = () => {
       ) {
         return;
       }
-      showAlertLater('Google sign-in', message);
+      showAlertLater(t('googleSignInTitle'), message);
     } finally {
       setBusy(false);
     }
@@ -65,20 +67,20 @@ const SocialAuthScreen = () => {
 
   if (provider === 'Google') {
     return (
-      <ScreenLayout title="Continue with Google" showBack>
-        <Text style={styles.title}>Continue with Google</Text>
-        <Text style={styles.copy}>
-          Sign in with your Google account. New devotees finish personal details
-          next; returning devotees go straight to Home.
-        </Text>
+      <ScreenLayout title={t('continueWithGoogle')} showBack>
+        <Text style={styles.title}>{t('continueWithGoogle')}</Text>
+        <Text style={styles.copy}>{t('googleAuthHelper')}</Text>
         {busy ? (
           <ActivityIndicator color={Colors.templeGold} style={{marginVertical: 16}} />
         ) : (
-          <PrimaryButton title="CONTINUE WITH GOOGLE" onPress={continueWithGoogle} />
+          <PrimaryButton
+            title={t('continueWithGoogleBtn')}
+            onPress={continueWithGoogle}
+          />
         )}
         <View style={styles.gap} />
         <OutlineButton
-          title="SIGN IN WITH EMAIL + PASSWORD"
+          title={t('signInWithEmailPassword')}
           onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
         />
       </ScreenLayout>
@@ -86,24 +88,27 @@ const SocialAuthScreen = () => {
   }
 
   return (
-    <ScreenLayout title={`Continue with ${provider}`} showBack>
-      <Text style={styles.title}>Continue with {provider}</Text>
+    <ScreenLayout
+      title={t('continueWithProvider', {provider})}
+      showBack>
+      <Text style={styles.title}>
+        {t('continueWithProvider', {provider})}
+      </Text>
       <Text style={styles.copy}>
-        {provider} login will complete in a later release. Use Google, or create
-        an account with email and password.
+        {t('providerAuthLaterHelper', {provider})}
       </Text>
       <PrimaryButton
-        title="TRY GOOGLE INSTEAD"
+        title={t('tryGoogleInstead')}
         onPress={() => navigation.replace('SocialAuth', {provider: 'Google'})}
       />
       <View style={styles.gap} />
       <OutlineButton
-        title="CREATE ACCOUNT"
+        title={t('createAccountBtn')}
         onPress={() => navigation.navigate('CreateAccount')}
       />
       <View style={styles.gap} />
       <OutlineButton
-        title="SIGN IN WITH EMAIL + PASSWORD"
+        title={t('signInWithEmailPassword')}
         onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
       />
     </ScreenLayout>

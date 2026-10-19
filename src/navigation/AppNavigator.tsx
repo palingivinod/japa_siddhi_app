@@ -65,6 +65,7 @@ import ProfileViewScreen from '../modules/profile/ProfileViewScreen';
 import PersonalDetailsScreen from '../modules/profile/PersonalDetailsScreen';
 import SpiritualDetailsScreen from '../modules/profile/SpiritualDetailsScreen';
 import SettingsScreen from '../modules/profile/SettingsScreen';
+import AboutAppScreen from '../modules/profile/AboutAppScreen';
 import AvailableRewardsScreen from '../modules/profile/AvailableRewardsScreen';
 import BanaLingamScreen from '../modules/banaLingam/BanaLingamScreen';
 import NithyaHomamScreen from '../modules/homam/NithyaHomamScreen';
@@ -270,6 +271,7 @@ export type RootStackParamList = {
   PersonalDetails: {profile?: any} | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
+  AboutApp: undefined;
   AvailableRewards: undefined;
   Rewards: undefined;
   BanaLingam: undefined;
@@ -408,6 +410,7 @@ const ProtectedProfile = withAuth(ProfileViewScreen);
 const ProtectedPersonal = withAuth(PersonalDetailsScreen);
 const ProtectedSpiritual = withAuth(SpiritualDetailsScreen);
 const ProtectedSettings = withAuth(SettingsScreen);
+const ProtectedAboutApp = withAuth(AboutAppScreen);
 const ProtectedAvailableRewards = withAuth(AvailableRewardsScreen);
 const ProtectedBanaLingam = withAuth(BanaLingamScreen);
 const ProtectedHomam = withAuth(NithyaHomamScreen);
@@ -634,6 +637,7 @@ const AppNavigator = () => {
         <Stack.Screen name="PersonalDetails" component={ProtectedPersonal} />
         <Stack.Screen name="SpiritualDetails" component={ProtectedSpiritual} />
         <Stack.Screen name="Settings" component={ProtectedSettings} />
+        <Stack.Screen name="AboutApp" component={ProtectedAboutApp} />
         <Stack.Screen
           name="AvailableRewards"
           component={ProtectedAvailableRewards}

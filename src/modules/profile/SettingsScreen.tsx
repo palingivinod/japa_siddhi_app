@@ -123,19 +123,25 @@ const SettingsScreen = () => {
         style={styles.row}
         onPress={() => navigation.navigate('Orders')}>
         <Text style={styles.label}>{t('orderHistory') || 'Orders'}</Text>
-        <Text style={styles.value}>{t('open') || 'View'}</Text>
+        <Text style={styles.arrow}>→</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('PrivacyPolicy')}>
         <Text style={styles.label}>{t('privacy')}</Text>
-        <Text style={styles.value}>{t('manage')}</Text>
+        <Text style={styles.arrow}>→</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}
         onPress={() => navigation.navigate('CustomerCare')}>
         <Text style={styles.label}>{t('helpSupport')}</Text>
-        <Text style={styles.value}>{t('open')}</Text>
+        <Text style={styles.arrow}>→</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => navigation.navigate('AboutApp')}>
+        <Text style={styles.label}>{t('aboutApp')}</Text>
+        <Text style={styles.arrow}>→</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.delete} onPress={deleteAccount}>
         <Text style={styles.deleteText}>{t('deleteAccount')}</Text>
@@ -156,9 +162,17 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
   },
   label: {fontSize: 16, fontWeight: '700', color: Colors.sacredBrown, flex: 1},
   value: {color: Colors.leafGreen, fontWeight: '700'},
+  arrow: {
+    color: Colors.textSecondary,
+    fontSize: 20,
+    fontWeight: '600',
+    lineHeight: 22,
+    marginLeft: 8,
+  },
   delete: {
     marginTop: 16,
     backgroundColor: Colors.error,

@@ -28,6 +28,27 @@ const rnGp =
   process.env.JAPA_RN_GRADLE_PLUGIN ||
   (fs.existsSync(defaultRnGp) ? defaultRnGp : '');
 
+// Windows: must be same drive as the project. Cross-drive breaks Gradle.
+// Prefer build-r5 (build-r4 is often AccessDenied on this machine).
+const defaultBuildDir = path.join(android, 'build-r5');
+const envBuildDir = String(process.env.JAPA_ANDROID_BUILD_DIR || '').trim();
+const sameDrive = candidate => {
+  if (!candidate || !isWin) {
+    return Boolean(candidate);
+  }
+  const a = path.resolve(candidate).slice(0, 1).toLowerCase();
+  const b = path.resolve(android).slice(0, 1).toLowerCase();
+  return a === b;
+};
+const buildDir = sameDrive(envBuildDir)
+  ? envBuildDir
+  : isWin
+    ? defaultBuildDir
+    : '';
+if (buildDir) {
+  fs.mkdirSync(buildDir, {recursive: true});
+}
+
 const result = spawnSync(gradle, ['bundleRelease'], {
   cwd: android,
   stdio: 'inherit',
@@ -35,6 +56,7 @@ const result = spawnSync(gradle, ['bundleRelease'], {
   env: {
     ...process.env,
     ...(rnGp ? {JAPA_RN_GRADLE_PLUGIN: rnGp} : {}),
+    ...(buildDir ? {JAPA_ANDROID_BUILD_DIR: buildDir} : {}),
     JAVA_HOME:
       process.env.JAVA_HOME ||
       'C:\\Program Files\\Amazon Corretto\\jdk21.0.3_9',
@@ -48,7 +70,9 @@ if (result.status !== 0) {
   process.exit(result.status ?? 1);
 }
 
-const built = findNewestAab(android);
+const built =
+  findNewestAab(buildDir ? path.join(buildDir, 'out') : '') ||
+  findNewestAab(android);
 if (!built) {
   console.error('bundleRelease finished but no app-release.aab was found.');
   process.exit(1);

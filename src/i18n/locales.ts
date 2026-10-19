@@ -5,6 +5,8 @@ import {ml} from './langMl';
 import {mr} from './langMr';
 import {bn} from './langBn';
 import {or} from './langOr';
+import {authLangPack} from './authLangPack';
+import {aboutLangPack} from './aboutLangPack';
 
 
 /** Hindi */
@@ -47,7 +49,7 @@ export const hi: TranslationDict = {
   sendOtp: 'OTP भेजें',
   sendingOtp: 'OTP भेजा जा रहा है...',
   orContinueWith: 'या इसके साथ जारी रखें',
-  newToJapaSiddhi: 'जप सिद्धि पर नए हैं?',
+  newToJapaSiddhi: 'क्या आप जप सिद्धि पर नए हैं?',
   createAnAccount: 'खाता बनाएँ',
   termsPrivacy: 'नियम और गोपनीयता नीति',
   validMobile: 'कृपया मान्य मोबाइल नंबर दर्ज करें।',
@@ -804,7 +806,7 @@ export const te: TranslationDict = {
   sendOtp: 'OTP పంపండి',
   sendingOtp: 'OTP పంపుతోంది...',
   orContinueWith: 'లేదా దీనితో కొనసాగించండి',
-  newToJapaSiddhi: 'జప సిద్ధికి కొత్తవా?',
+  newToJapaSiddhi: 'మీరు జప సిద్ధికి కొత్తా?',
   createAnAccount: 'ఖాతా సృష్టించండి',
   termsPrivacy: 'నిబంధనలు & గోప్యతా విధానం',
   validMobile: 'దయచేసి సరైన మొబైల్ నంబర్ నమోదు చేయండి.',
@@ -1539,14 +1541,14 @@ export {kn, ta, ml, mr, bn, or};
 
 export const dictionaries: Record<string, TranslationDict> = {
   en,
-  hi,
-  te,
-  kn,
-  ta,
-  ml,
-  mr,
-  bn,
-  or,
+  hi: {...hi, ...authLangPack.hi, ...aboutLangPack.hi} as TranslationDict,
+  te: {...te, ...authLangPack.te, ...aboutLangPack.te} as TranslationDict,
+  kn: {...kn, ...authLangPack.kn, ...aboutLangPack.kn} as TranslationDict,
+  ta: {...ta, ...authLangPack.ta, ...aboutLangPack.ta} as TranslationDict,
+  ml: {...ml, ...authLangPack.ml, ...aboutLangPack.ml} as TranslationDict,
+  mr: {...mr, ...authLangPack.mr, ...aboutLangPack.mr} as TranslationDict,
+  bn: {...bn, ...authLangPack.bn, ...aboutLangPack.bn} as TranslationDict,
+  or: {...or, ...authLangPack.or, ...aboutLangPack.or} as TranslationDict,
 };
 
 export const TITLE_TO_KEY: Record<string, TranslationKey> = {
@@ -1560,6 +1562,15 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Spiritual Details': 'spiritualDetails',
   'Registration Complete': 'registrationComplete',
   'Welcome Gift': 'welcomeGift',
+  'About App': 'aboutApp',
+  'Create Account': 'createAccountTitle',
+  'Forgot Password': 'forgotPasswordTitle',
+  'Verify OTP': 'verifyOtpTitle',
+  'Verify Email OTP': 'verifyEmailOtp',
+  'Continue with Google': 'continueWithGoogle',
+  'Reset password': 'resetPasswordHeading',
+  'Create your account': 'createYourAccount',
+  'Google sign-in': 'googleSignInTitle',
   'Japa Siddhi': 'appName',
   'Japa Chanting': 'japaChanting',
   'My Japa': 'myJapa',
@@ -1764,7 +1775,6 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
     'faqChangeLanguageA',
 
   // Challenge copy that the admin stores in English.
-  'Festival challenge': 'festivalChallenge',
   'Every day': 'everyDay',
   'Progress Tracking': 'progressTracking',
   MANTRAS: 'mantrasBtn',

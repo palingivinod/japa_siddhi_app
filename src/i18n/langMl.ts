@@ -40,7 +40,7 @@ export const ml: TranslationDict = {
   sendOtp: 'OTP അയയ്ക്കുക',
   sendingOtp: 'OTP അയയ്ക്കുന്നു...',
   orContinueWith: 'അല്ലെങ്കിൽ ഇതുമായി തുടരുക',
-  newToJapaSiddhi: 'ജപ സിദ്ധിയിൽ പുതിയവരാണോ?',
+  newToJapaSiddhi: 'നിങ്ങൾ ജപ സിദ്ധിയിൽ പുതിയവരാണോ?',
   createAnAccount: 'അക്കൗണ്ട് സൃഷ്ടിക്കുക',
   termsPrivacy: 'നിബന്ധനകളും സ്വകാര്യതാ നയവും',
   validMobile: 'സാധുവായ മൊബൈൽ നമ്പർ നൽകുക.',

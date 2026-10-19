@@ -40,7 +40,7 @@ export const mr: TranslationDict = {
   sendOtp: 'OTP पाठवा',
   sendingOtp: 'OTP पाठवत आहे...',
   orContinueWith: 'किंवा यासह पुढे जा',
-  newToJapaSiddhi: 'जप सिद्धीत नवीन?',
+  newToJapaSiddhi: 'तुम्ही जप सिद्धीला नवीन आहात का?',
   createAnAccount: 'खाते तयार करा',
   termsPrivacy: 'अटी आणि गोपनीयता धोरण',
   validMobile: 'कृपया वैध मोबाइल नंबर प्रविष्ट करा.',

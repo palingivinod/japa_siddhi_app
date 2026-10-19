@@ -9,19 +9,24 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 
 type Step = 'identifier' | 'otp';
 
-const friendlyForgotError = (error: any, fallback: string) => {
+const friendlyForgotError = (
+  error: any,
+  fallback: string,
+  noAccount: string,
+) => {
   const raw = String(getApiError(error, fallback) || '');
   if (/no admin account/i.test(raw)) {
-    return 'No account found for this email or mobile number.';
+    return noAccount;
   }
   if (/cannot post|not found|404/i.test(raw) && /forgot|admin/i.test(raw)) {
-    return 'No account found for this email or mobile number.';
+    return noAccount;
   }
   return raw || fallback;
 };
@@ -29,6 +34,7 @@ const friendlyForgotError = (error: any, fallback: string) => {
 const ForgotPasswordScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [step, setStep] = useState<Step>('identifier');
   const [identifier, setIdentifier] = useState(
     String(route.params?.identifier || route.params?.email || ''),
@@ -43,7 +49,7 @@ const ForgotPasswordScreen = () => {
   const sendOtp = async () => {
     const value = identifier.trim();
     if (!value) {
-      Alert.alert('Required', 'Enter your email or mobile number.');
+      Alert.alert(t('required'), t('enterEmailOrMobile'));
       return;
     }
 
@@ -59,13 +65,13 @@ const ForgotPasswordScreen = () => {
       setSentTo(data.sentTo || value);
       setStep('otp');
       Alert.alert(
-        'OTP sent',
-        `A 4-digit code was sent to ${data.sentTo || value}.`,
+        t('otpSentTitle'),
+        t('otpSentToValue', {to: data.sentTo || value}),
       );
     } catch (error) {
       Alert.alert(
-        'OTP failed',
-        friendlyForgotError(error, 'Could not send OTP.'),
+        t('otpFailed'),
+        friendlyForgotError(error, t('couldNotSendOtp'), t('noAccountFound')),
       );
     } finally {
       setBusy(false);
@@ -74,15 +80,15 @@ const ForgotPasswordScreen = () => {
 
   const resetPassword = async () => {
     if (otp.trim().length !== 4) {
-      Alert.alert('Required', 'Enter the 4-digit OTP from email.');
+      Alert.alert(t('required'), t('enterFourDigitOtpFromEmail'));
       return;
     }
     if (newPassword.trim().length < 6) {
-      Alert.alert('Required', 'New password must be at least 6 characters.');
+      Alert.alert(t('required'), t('newPasswordMinLength'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Required', 'Passwords do not match.');
+      Alert.alert(t('required'), t('passwordsDoNotMatch'));
       return;
     }
 
@@ -93,17 +99,21 @@ const ForgotPasswordScreen = () => {
         otp: otp.trim(),
         newPassword: newPassword.trim(),
       });
-      Alert.alert('Password updated', 'Login with your new password.', [
+      Alert.alert(t('passwordUpdated'), t('loginWithNewPassword'), [
         {
-          text: 'OK',
+          text: t('ok'),
           onPress: () =>
             navigation.navigate('Login', {forceLoginForm: true}),
         },
       ]);
     } catch (error) {
       Alert.alert(
-        'Reset failed',
-        friendlyForgotError(error, 'Could not update password.'),
+        t('resetFailed'),
+        friendlyForgotError(
+          error,
+          t('couldNotUpdatePassword'),
+          t('noAccountFound'),
+        ),
       );
     } finally {
       setBusy(false);
@@ -111,20 +121,17 @@ const ForgotPasswordScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Forgot Password" showBack>
-      <Text style={styles.heading}>Reset password</Text>
-      <Text style={styles.sub}>
-        Enter your email or mobile number. We will send a 4-digit OTP to the
-        registered email so you can set a new password.
-      </Text>
+    <ScreenLayout title={t('forgotPasswordTitle')} showBack>
+      <Text style={styles.heading}>{t('resetPasswordHeading')}</Text>
+      <Text style={styles.sub}>{t('forgotPasswordHelper')}</Text>
 
-      <Text style={styles.label}>Email / Mobile number</Text>
+      <Text style={styles.label}>{t('emailOrMobile')}</Text>
       <TextInput
         style={[styles.input, step === 'otp' && styles.disabled]}
         value={identifier}
         onChangeText={setIdentifier}
         editable={step === 'identifier'}
-        placeholder="email@example.com or 9876543210"
+        placeholder={t('emailOrMobilePlaceholder')}
         placeholderTextColor={Colors.placeholder}
         keyboardType="email-address"
         autoCapitalize="none"
@@ -134,57 +141,61 @@ const ForgotPasswordScreen = () => {
 
       {step === 'otp' ? (
         <>
-          {sentTo ? <Text style={styles.hint}>OTP sent to {sentTo}</Text> : null}
+          {sentTo ? (
+            <Text style={styles.hint}>
+              {t('otpSentToHint', {to: sentTo})}
+            </Text>
+          ) : null}
 
-          <Text style={styles.label}>OTP</Text>
+          <Text style={styles.label}>{t('loginMethodOtp')}</Text>
           <TextInput
             style={styles.input}
             value={otp}
             onChangeText={setOtp}
             keyboardType="number-pad"
             maxLength={4}
-            placeholder="4-digit OTP"
+            placeholder={t('fourDigitOtp')}
             placeholderTextColor={Colors.placeholder}
             underlineColorAndroid="transparent"
           />
 
-          <Text style={styles.label}>New password</Text>
+          <Text style={styles.label}>{t('newPassword')}</Text>
           <TextInput
             style={styles.input}
             value={newPassword}
             onChangeText={setNewPassword}
             secureTextEntry
-            placeholder="New password"
+            placeholder={t('newPassword')}
             placeholderTextColor={Colors.placeholder}
             underlineColorAndroid="transparent"
           />
 
-          <Text style={styles.label}>Confirm password</Text>
+          <Text style={styles.label}>{t('confirmPassword')}</Text>
           <TextInput
             style={styles.input}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             secureTextEntry
-            placeholder="Confirm password"
+            placeholder={t('confirmPassword')}
             placeholderTextColor={Colors.placeholder}
             underlineColorAndroid="transparent"
           />
 
           <PrimaryButton
-            title={busy ? 'UPDATING...' : 'UPDATE PASSWORD'}
+            title={busy ? t('updating') : t('updatePassword')}
             onPress={resetPassword}
             disabled={busy}
           />
           <View style={styles.gap} />
           <PrimaryButton
-            title={busy ? 'PLEASE WAIT...' : 'RESEND OTP'}
+            title={busy ? t('pleaseWait') : t('resendOtp')}
             onPress={sendOtp}
             disabled={busy}
           />
         </>
       ) : (
         <PrimaryButton
-          title={busy ? 'SENDING...' : 'SEND OTP'}
+          title={busy ? t('sending') : t('sendOtp')}
           onPress={sendOtp}
           disabled={busy}
         />

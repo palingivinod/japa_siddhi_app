@@ -40,7 +40,7 @@ export const ta: TranslationDict = {
   sendOtp: 'OTP அனுப்பு',
   sendingOtp: 'OTP அனுப்பப்படுகிறது...',
   orContinueWith: 'அல்லது இதனுடன் தொடரவும்',
-  newToJapaSiddhi: 'ஜப சித்திக்கு புதியவரா?',
+  newToJapaSiddhi: 'நீங்கள் ஜப சித்திக்கு புதியவரா?',
   createAnAccount: 'கணக்கை உருவாக்கு',
   termsPrivacy: 'விதிமுறைகள் மற்றும் தனியுரிமைக் கொள்கை',
   validMobile: 'சரியான மொபைல் எண்ணை உள்ளிடவும்.',
