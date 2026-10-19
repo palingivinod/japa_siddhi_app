@@ -1301,18 +1301,26 @@ class AuthService {
     channel: 'email' | 'phone';
   }) {
     const otp = String(data.otp || '').trim();
-    if (otp.length !== 4) {
+    const phoneVerify = data.channel === 'phone' && twilioSmsService.usesVerify();
+    // Twilio Verify default is often 6 digits; app UI is 4 — set Verify code length to 4 in Twilio.
+    if (phoneVerify) {
+      if (otp.length < 4 || otp.length > 8) {
+        throw new AppError('Enter the OTP from your SMS.', 400);
+      }
+    } else if (otp.length !== 4) {
       throw new AppError('Enter the 4-digit OTP.', 400);
     }
 
     let stored;
     let user: AuthUser | null = null;
     let clear: () => Promise<void> = async () => {};
+    let mobileCountryCode = '91';
+    let mobileNumber = '';
 
     if (data.channel === 'phone') {
-      const mobileCountryCode =
+      mobileCountryCode =
         normalizePhone(data.mobileCountryCode || '') || '91';
-      const mobileNumber = normalizePhone(data.mobileNumber || '');
+      mobileNumber = normalizePhone(data.mobileNumber || '');
       if (mobileNumber.length < 6) {
         throw new AppError('Enter a valid mobile number.', 400);
       }
@@ -1348,7 +1356,16 @@ class AuthService {
       throw new AppError('Too many incorrect attempts. Request a new OTP.', 401);
     }
 
-    const valid = emailOtpService.matches(otp, stored.codeHash);
+    let valid = false;
+    if (phoneVerify) {
+      valid = await twilioSmsService.checkVerifyOtp(
+        mobileCountryCode,
+        mobileNumber,
+        otp,
+      );
+    } else {
+      valid = emailOtpService.matches(otp, stored.codeHash);
+    }
     if (!valid) {
       await otpRepository.incrementAttempts(stored.id);
       throw new AppError('Invalid or expired OTP.', 401);
