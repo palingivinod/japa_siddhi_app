@@ -162,6 +162,36 @@ const en = {
   yes: 'Yes',
   devoteeName: 'Devotee Name',
   userId: 'Devotee ID',
+  insightBeginDaily:
+    'Begin your daily Japa and save a session. Streaks and graphs will grow from your saved counts.',
+  insightSavedBefore:
+    'You have saved Japa before. Chant today to keep your streak alive.',
+  insightStreakForming:
+    'A {{streak}}-day streak is forming. Protect your daily rhythm.',
+  insightTodayUpdating:
+    "Today's saved Japa is updating your charts. Current streak: {{streak}} {{dayWord}}.",
+  daySingular: 'day',
+  dayPlural: 'days',
+  attachVideoOptional: 'Attach video (optional)',
+  uploadRecordVideo: 'Upload / record video',
+  changeVideo: 'Change video',
+  feedbackVideoHint:
+    'You can attach a short video (up to about 60 seconds / 40 MB).',
+  remove: 'Remove',
+  speakWithSupport: 'Speak with support',
+  supportHoursLabel: 'Support hours: {{hours}}',
+  selectCategory: 'Select Category',
+  describeYourIssue: 'Describe your issue',
+  problemScreenshotOptional: 'Problem screenshot (optional)',
+  uploadScreenshot: 'Upload screenshot',
+  changeScreenshot: 'Change screenshot',
+  screenshotHint:
+    'Upload screenshot to understand your problem to resolve.',
+  submitTicket: 'SUBMIT TICKET',
+  submittingTicket: 'SUBMITTING...',
+  subjectLabel: 'Subject',
+  issueSubjectPlaceholder: 'Issue subject',
+  descriptionLabel: 'Description',
   selected: 'Selected',
   tapToSelect: 'Tap to select',
   autoLockJapa: 'Auto-lock during Japa',

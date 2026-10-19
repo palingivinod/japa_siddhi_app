@@ -142,6 +142,37 @@ export const kn: TranslationDict = {
   language: 'ಭಾಷೆ',
   logout: 'ಲಾಗ್ ಔಟ್',
   devoteeName: 'ಭಕ್ತರ ಹೆಸರು',
+  userId: 'ಭಕ್ತ ಐಡಿ',
+  insightBeginDaily:
+    'ನಿಮ್ಮ ದೈನಂದಿನ ಜಪ ಪ್ರಾರಂಭಿಸಿ ಮತ್ತು ಸೆಷನ್ ಉಳಿಸಿ. ಉಳಿಸಿದ ಎಣಿಕೆಗಳಿಂದ ಸ್ಟ್ರೀಕ್ ಮತ್ತು ಗ್ರಾಫ್‌ಗಳು ಬೆಳೆಯುತ್ತವೆ.',
+  insightSavedBefore:
+    'ನೀವು ಮೊದಲು ಜಪ ಉಳಿಸಿದ್ದೀರಿ. ನಿಮ್ಮ ಸ್ಟ್ರೀಕ್ ಕಾಪಾಡಲು ಇಂದು ಜಪ ಮಾಡಿ.',
+  insightStreakForming:
+    '{{streak}}-ದಿನದ ಸ್ಟ್ರೀಕ್ ರೂಪುಗೊಳ್ಳುತ್ತಿದೆ. ನಿಮ್ಮ ದೈನಂದಿನ ಲಯವನ್ನು ಕಾಪಾಡಿ.',
+  insightTodayUpdating:
+    'ಇಂದಿನ ಉಳಿಸಿದ ಜಪ ನಿಮ್ಮ ಚಾರ್ಟ್‌ಗಳನ್ನು ನವೀಕರಿಸುತ್ತಿದೆ. ಪ್ರಸ್ತುತ ಸ್ಟ್ರೀಕ್: {{streak}} {{dayWord}}.',
+  daySingular: 'ದಿನ',
+  dayPlural: 'ದಿನಗಳು',
+  attachVideoOptional: 'ವೀಡಿಯೊ ಲಗತ್ತಿಸಿ (ಐಚ್ಛಿಕ)',
+  uploadRecordVideo: 'ವೀಡಿಯೊ ಅಪ್‌ಲೋಡ್ / ರೆಕಾರ್ಡ್',
+  changeVideo: 'ವೀಡಿಯೊ ಬದಲಾಯಿಸಿ',
+  feedbackVideoHint:
+    'ನೀವು ಚಿಕ್ಕ ವೀಡಿಯೊ ಲಗತ್ತಿಸಬಹುದು (ಸುಮಾರು 60 ಸೆಕೆಂಡು / 40 MB).',
+  remove: 'ತೆಗೆದುಹಾಕಿ',
+  speakWithSupport: 'ಬೆಂಬಲದೊಂದಿಗೆ ಮಾತನಾಡಿ',
+  supportHoursLabel: 'ಬೆಂಬಲ ಸಮಯ: {{hours}}',
+  selectCategory: 'ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+  describeYourIssue: 'ನಿಮ್ಮ ಸಮಸ್ಯೆಯನ್ನು ವಿವರಿಸಿ',
+  problemScreenshotOptional: 'ಸಮಸ್ಯೆ ಸ್ಕ್ರೀನ್‌ಶಾಟ್ (ಐಚ್ಛಿಕ)',
+  uploadScreenshot: 'ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಅಪ್‌ಲೋಡ್',
+  changeScreenshot: 'ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಬದಲಾಯಿಸಿ',
+  screenshotHint:
+    'ಸಮಸ್ಯೆಯನ್ನು ಅರ್ಥಮಾಡಿಕೊಂಡು ಪರಿಹರಿಸಲು ಸ್ಕ್ರೀನ್‌ಶಾಟ್ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
+  submitTicket: 'ಟಿಕೆಟ್ ಸಲ್ಲಿಸಿ',
+  submittingTicket: 'ಸಲ್ಲಿಸಲಾಗುತ್ತಿದೆ...',
+  subjectLabel: 'ವಿಷಯ',
+  issueSubjectPlaceholder: 'ಸಮಸ್ಯೆಯ ವಿಷಯ',
+  descriptionLabel: 'ವಿವರಣೆ',
   autoLockJapa: 'ಜಪ ಸಮಯದಲ್ಲಿ ಆಟೋ-ಲಾಕ್',
   chantBeepSound: 'ಜಪ ಬೀಪ್ ಧ್ವನಿ',
   privacy: 'ಗೌಪ್ಯತೆ',

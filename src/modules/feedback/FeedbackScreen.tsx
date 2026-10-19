@@ -35,7 +35,7 @@ const FeedbackScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Share Feedback" showBack tab="Profile">
+    <ScreenLayout title={t('shareFeedback')} showBack tab="Profile">
       <Text style={styles.heading}>{t('howWasExperience')}</Text>
       <FormField
         label={t('comments')}
@@ -46,10 +46,10 @@ const FeedbackScreen = () => {
         style={styles.area}
       />
 
-      <Text style={styles.label}>Attach video (optional)</Text>
+      <Text style={styles.label}>{t('attachVideoOptional')}</Text>
       <TouchableOpacity style={styles.mediaBtn} onPress={chooseVideo}>
         <Text style={styles.mediaText}>
-          {video ? 'Change video' : 'Upload / record video'}
+          {video ? t('changeVideo') : t('uploadRecordVideo')}
         </Text>
       </TouchableOpacity>
       {video ? (
@@ -58,17 +58,15 @@ const FeedbackScreen = () => {
             {video.fileName}
           </Text>
           <TouchableOpacity onPress={() => setVideo(null)}>
-            <Text style={styles.remove}>Remove</Text>
+            <Text style={styles.remove}>{t('remove')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <Text style={styles.hint}>
-          You can attach a short video (up to about 60 seconds / 40 MB).
-        </Text>
+        <Text style={styles.hint}>{t('feedbackVideoHint')}</Text>
       )}
 
       <PrimaryButton
-        title="CONTINUE TO RATING"
+        title={t('continueToRating')}
         onPress={() =>
           navigation.navigate('StarRating', {
             message,

@@ -143,6 +143,37 @@ export const or: TranslationDict = {
   language: 'ଭାଷା',
   logout: 'ଲଗଆଉଟ୍',
   devoteeName: 'ଭକ୍ତଙ୍କ ନାମ',
+  userId: 'ଭକ୍ତ ଆଇଡି',
+  insightBeginDaily:
+    'ଆପଣଙ୍କ ଦୈନିକ ଜପ ଆରମ୍ଭ କରନ୍ତୁ ଏବଂ ଏକ ସେସନ୍ ସେଭ୍ କରନ୍ତୁ। ସେଭ୍ ସଂଖ୍ୟାରୁ ଷ୍ଟ୍ରିକ୍ ଓ ଗ୍ରାଫ୍ ବଢ଼ିବ।',
+  insightSavedBefore:
+    'ଆପଣ ପୂର୍ବରୁ ଜପ ସେଭ୍ କରିଛନ୍ତି। ଷ୍ଟ୍ରିକ୍ ରଖିବାକୁ ଆଜି ଜପ କରନ୍ତୁ।',
+  insightStreakForming:
+    '{{streak}}-ଦିନର ଷ୍ଟ୍ରିକ୍ ଗଢ଼ୁଛି। ଆପଣଙ୍କ ଦୈନିକ ଲୟ ରକ୍ଷା କରନ୍ତୁ।',
+  insightTodayUpdating:
+    'ଆଜିର ସେଭ୍ ଜପ ଆପଣଙ୍କ ଚାର୍ଟ ଅପଡେଟ୍ କରୁଛି। ବର୍ତ୍ତମାନ ଷ୍ଟ୍ରିକ୍: {{streak}} {{dayWord}}।',
+  daySingular: 'ଦିନ',
+  dayPlural: 'ଦିନ',
+  attachVideoOptional: 'ଭିଡିଓ ଯୋଡନ୍ତୁ (ବୈକଳ୍ପିକ)',
+  uploadRecordVideo: 'ଭିଡିଓ ଅପଲୋଡ୍ / ରେକର୍ଡ',
+  changeVideo: 'ଭିଡିଓ ବଦଳାନ୍ତୁ',
+  feedbackVideoHint:
+    'ଆପଣ ଛୋଟ ଭିଡିଓ ଯୋଡ଼ିପାରିବେ (ପ୍ରାୟ ୬୦ ସେକେଣ୍ଡ / ୪୦ MB)।',
+  remove: 'ହଟାନ୍ତୁ',
+  speakWithSupport: 'ସହାୟତା ସହ କଥା ହୁଅନ୍ତୁ',
+  supportHoursLabel: 'ସହାୟତା ସମୟ: {{hours}}',
+  selectCategory: 'ବର୍ଗ ଚୟନ କରନ୍ତୁ',
+  describeYourIssue: 'ଆପଣଙ୍କ ସମସ୍ୟା ବର୍ଣ୍ଣନା କରନ୍ତୁ',
+  problemScreenshotOptional: 'ସମସ୍ୟା ସ୍କ୍ରିନସଟ୍ (ବୈକଳ୍ପିକ)',
+  uploadScreenshot: 'ସ୍କ୍ରିନସଟ୍ ଅପଲୋଡ୍',
+  changeScreenshot: 'ସ୍କ୍ରିନସଟ୍ ବଦଳାନ୍ତୁ',
+  screenshotHint:
+    'ସମସ୍ୟା ବୁଝି ସମାଧାନ ପାଇଁ ସ୍କ୍ରିନସଟ୍ ଅପଲୋଡ୍ କରନ୍ତୁ।',
+  submitTicket: 'ଟିକେଟ୍ ଦାଖଲ କରନ୍ତୁ',
+  submittingTicket: 'ଦାଖଲ ହେଉଛି...',
+  subjectLabel: 'ବିଷୟ',
+  issueSubjectPlaceholder: 'ସମସ୍ୟା ବିଷୟ',
+  descriptionLabel: 'ବିବରଣୀ',
   autoLockJapa: 'ଜପ ସମୟରେ ଅଟୋ-ଲକ୍',
   chantBeepSound: 'ଜପ ବିପ୍ ଧ୍ୱନି',
   privacy: 'ଗୋପନୀୟତା',

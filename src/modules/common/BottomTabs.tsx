@@ -35,8 +35,8 @@ const TABS: Array<{
 const BottomTabs: React.FC<Props> = ({active}) => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
-  // Real system inset only. Extra 8px is tab-bar breathing room, not nav height.
-  const bottomPadding = Math.max(useBottomNavPad(), 8);
+  // Extra room so Telugu descenders (e.g. రివార్డ్స్) are not clipped.
+  const bottomPadding = Math.max(useBottomNavPad(), 10) + 4;
 
   return (
     <View style={[styles.bar, {paddingBottom: bottomPadding}]}>
@@ -57,7 +57,9 @@ const BottomTabs: React.FC<Props> = ({active}) => {
                 {tab.emoji}
               </Text>
             </View>
-            <Text style={[styles.label, isActive && styles.active]}>
+            <Text
+              style={[styles.label, isActive && styles.active]}
+              numberOfLines={1}>
               {t(tab.labelKey)}
             </Text>
           </TouchableOpacity>
@@ -76,12 +78,13 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.cardBorder,
     paddingTop: 8,
-    paddingBottom: 10,
+    paddingBottom: 12,
   },
   item: {
     flex: 1,
     alignItems: 'center',
-    gap: 2,
+    gap: 4,
+    paddingBottom: 2,
   },
   iconWrap: {
     width: 40,
@@ -106,13 +109,14 @@ const styles = StyleSheet.create({
     opacity: 1,
   },
   label: {
-    fontSize: 12,
+    fontSize: 11,
     lineHeight: 18,
     fontWeight: '700',
     color: Colors.leafGreen,
-    includeFontPadding: true,
+    includeFontPadding: false,
     textAlign: 'center',
     paddingHorizontal: 2,
+    paddingBottom: 3,
   },
   active: {
     color: Colors.templeGold,

@@ -48,7 +48,8 @@ const profileFields = (data: any) => ({
   email: String(data.email || '').trim().toLowerCase() || undefined,
   gender: data.gender || 'Other',
   dateOfBirth: data.dateOfBirth || data.dob || '',
-  countryId: Number(data.countryId) || 1,
+  // India (id=1) is the default for every signup path; devotee can change later.
+  countryId: Number(data.countryId) > 0 ? Number(data.countryId) : 1,
   stateId: Number(data.stateId) || 0,
   cityId: Number(data.cityId) || 0,
   address: data.address,
@@ -278,6 +279,11 @@ class AuthService {
         profileCompleted: 1,
         profilePhoto: decoded.picture || null,
       });
+
+      // Default country India for Google sign-up; devotee can change in profile.
+      await authRepository
+        .completeProfile(userId, profileFields({countryId: 1, fullName, email}))
+        .catch(() => undefined);
 
       user = await authRepository.findUserById(userId);
       if (!user) {

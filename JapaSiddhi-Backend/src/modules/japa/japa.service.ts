@@ -587,16 +587,18 @@ class JapaService {
   }
 
   private insightFor(total: number, streak: number, today: number) {
+    // Return stable English keys so the app can localize the full sentence
+    // (word-by-word tt() was mixing English + Telugu in one line).
     if (total <= 0) {
-      return 'Begin your daily Japa and save a session. Streaks and graphs will grow from your saved counts.';
+      return 'insightBeginDaily';
     }
     if (today <= 0) {
-      return 'You have saved Japa before. Chant today to keep your streak alive.';
+      return 'insightSavedBefore';
     }
     if (streak >= 7) {
-      return `A ${streak}-day streak is forming. Protect your daily rhythm.`;
+      return `insightStreakForming:${streak}`;
     }
-    return `Today's saved Japa is updating your charts. Current streak: ${streak} day${streak === 1 ? '' : 's'}.`;
+    return `insightTodayUpdating:${streak}`;
   }
 
   async getStreakStats(userId: number) {

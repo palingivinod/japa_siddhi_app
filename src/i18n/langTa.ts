@@ -143,6 +143,37 @@ export const ta: TranslationDict = {
   language: 'மொழி',
   logout: 'வெளியேறு',
   devoteeName: 'பக்தர் பெயர்',
+  userId: 'பக்தர் ஐடி',
+  insightBeginDaily:
+    'உங்கள் தினசரி ஜபத்தைத் தொடங்கி ஒரு அமர்வைச் சேமிக்கவும். சேமித்த எண்ணிக்கையிலிருந்து தொடர்ச்சி மற்றும் வரைபடங்கள் வளரும்.',
+  insightSavedBefore:
+    'நீங்கள் முன்பு ஜபம் சேமித்துள்ளீர்கள். உங்கள் தொடர்ச்சியைக் காக்க இன்று ஜபம் செய்யுங்கள்.',
+  insightStreakForming:
+    '{{streak}}-நாள் தொடர்ச்சி உருவாகிறது. உங்கள் தினசரி தாளத்தைப் பாதுகாக்கவும்.',
+  insightTodayUpdating:
+    'இன்றைய சேமித்த ஜபம் உங்கள் விளக்கப்படங்களைப் புதுப்பிக்கிறது. தற்போதைய தொடர்ச்சி: {{streak}} {{dayWord}}.',
+  daySingular: 'நாள்',
+  dayPlural: 'நாட்கள்',
+  attachVideoOptional: 'வீடியோ இணைக்கவும் (விருப்பத்தேர்வு)',
+  uploadRecordVideo: 'வீடியோ பதிவேற்று / பதிவு',
+  changeVideo: 'வீடியோ மாற்று',
+  feedbackVideoHint:
+    'நீங்கள் சிறிய வீடியோ இணைக்கலாம் (சுமார் 60 வினாடிகள் / 40 MB).',
+  remove: 'நீக்கு',
+  speakWithSupport: 'ஆதரவுடன் பேசுங்கள்',
+  supportHoursLabel: 'ஆதரவு நேரம்: {{hours}}',
+  selectCategory: 'வகையைத் தேர்ந்தெடுக்கவும்',
+  describeYourIssue: 'உங்கள் பிரச்சினையை விவரிக்கவும்',
+  problemScreenshotOptional: 'பிரச்சினை ஸ்கிரீன்ஷாட் (விருப்பத்தேர்வு)',
+  uploadScreenshot: 'ஸ்கிரீன்ஷாட் பதிவேற்று',
+  changeScreenshot: 'ஸ்கிரீன்ஷாட் மாற்று',
+  screenshotHint:
+    'பிரச்சினையைப் புரிந்து தீர்க்க ஸ்கிரீன்ஷாட் பதிவேற்றவும்.',
+  submitTicket: 'டிக்கெட் சமர்ப்பி',
+  submittingTicket: 'சமர்ப்பிக்கிறது...',
+  subjectLabel: 'பொருள்',
+  issueSubjectPlaceholder: 'பிரச்சினை பொருள்',
+  descriptionLabel: 'விவரம்',
   autoLockJapa: 'ஜப நேரத்தில் தானியங்கி பூட்டு',
   chantBeepSound: 'ஜப பீப் ஒலி',
   privacy: 'தனியுரிமை',

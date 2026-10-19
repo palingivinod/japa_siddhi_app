@@ -143,6 +143,37 @@ export const bn: TranslationDict = {
   language: 'ভাষা',
   logout: 'লগআউট',
   devoteeName: 'ভক্তের নাম',
+  userId: 'ভক্ত আইডি',
+  insightBeginDaily:
+    'আপনার দৈনিক জপ শুরু করুন এবং একটি সেশন সংরক্ষণ করুন। সংরক্ষিত সংখ্যা থেকে স্ট্রিক ও গ্রাফ বাড়বে।',
+  insightSavedBefore:
+    'আপনি আগে জপ সংরক্ষণ করেছেন। আপনার স্ট্রিক রাখতে আজ জপ করুন।',
+  insightStreakForming:
+    '{{streak}}-দিনের স্ট্রিক গড়ে উঠছে। আপনার দৈনিক ছন্দ রক্ষা করুন।',
+  insightTodayUpdating:
+    'আজকের সংরক্ষিত জপ আপনার চার্ট আপডেট করছে। বর্তমান স্ট্রিক: {{streak}} {{dayWord}}।',
+  daySingular: 'দিন',
+  dayPlural: 'দিন',
+  attachVideoOptional: 'ভিডিও সংযুক্ত করুন (ঐচ্ছিক)',
+  uploadRecordVideo: 'ভিডিও আপলোড / রেকর্ড',
+  changeVideo: 'ভিডিও পরিবর্তন',
+  feedbackVideoHint:
+    'আপনি একটি ছোট ভিডিও সংযুক্ত করতে পারেন (প্রায় ৬০ সেকেন্ড / ৪০ MB)।',
+  remove: 'সরান',
+  speakWithSupport: 'সহায়তার সাথে কথা বলুন',
+  supportHoursLabel: 'সহায়তার সময়: {{hours}}',
+  selectCategory: 'বিভাগ নির্বাচন করুন',
+  describeYourIssue: 'আপনার সমস্যা বর্ণনা করুন',
+  problemScreenshotOptional: 'সমস্যার স্ক্রিনশট (ঐচ্ছিক)',
+  uploadScreenshot: 'স্ক্রিনশট আপলোড',
+  changeScreenshot: 'স্ক্রিনশট পরিবর্তন',
+  screenshotHint:
+    'সমস্যা বুঝে সমাধান করতে স্ক্রিনশট আপলোড করুন।',
+  submitTicket: 'টিকিট জমা দিন',
+  submittingTicket: 'জমা হচ্ছে...',
+  subjectLabel: 'বিষয়',
+  issueSubjectPlaceholder: 'সমস্যার বিষয়',
+  descriptionLabel: 'বিবরণ',
   autoLockJapa: 'জপের সময় অটো-লক',
   chantBeepSound: 'জপ বিপ শব্দ',
   privacy: 'গোপনীয়তা',

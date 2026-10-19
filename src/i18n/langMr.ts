@@ -143,6 +143,37 @@ export const mr: TranslationDict = {
   language: 'भाषा',
   logout: 'लॉग आउट',
   devoteeName: 'भक्ताचे नाव',
+  userId: 'भक्त आयडी',
+  insightBeginDaily:
+    'तुमचा दैनिक जप सुरू करा आणि सत्र जतन करा. जतन केलेल्या संख्येतून स्ट्रीक आणि आलेख वाढतील.',
+  insightSavedBefore:
+    'तुम्ही आधी जप जतन केला आहे. तुमची स्ट्रीक टिकवण्यासाठी आज जप करा.',
+  insightStreakForming:
+    '{{streak}}-दिवसांची स्ट्रीक तयार होत आहे. तुमची दैनिक लय सुरक्षित ठेवा.',
+  insightTodayUpdating:
+    'आजचा जतन केलेला जप तुमचे चार्ट अद्ययावत करत आहे. सध्याची स्ट्रीक: {{streak}} {{dayWord}}.',
+  daySingular: 'दिवस',
+  dayPlural: 'दिवस',
+  attachVideoOptional: 'व्हिडिओ जोडा (पर्यायी)',
+  uploadRecordVideo: 'व्हिडिओ अपलोड / रेकॉर्ड',
+  changeVideo: 'व्हिडिओ बदला',
+  feedbackVideoHint:
+    'तुम्ही छोटा व्हिडिओ जोडू शकता (सुमारे ६० सेकंद / ४० MB).',
+  remove: 'काढा',
+  speakWithSupport: 'सहाय्याशी बोला',
+  supportHoursLabel: 'सहाय्य वेळ: {{hours}}',
+  selectCategory: 'श्रेणी निवडा',
+  describeYourIssue: 'तुमची समस्या वर्णन करा',
+  problemScreenshotOptional: 'समस्या स्क्रीनशॉट (पर्यायी)',
+  uploadScreenshot: 'स्क्रीनशॉट अपलोड',
+  changeScreenshot: 'स्क्रीनशॉट बदला',
+  screenshotHint:
+    'समस्या समजून सोडवण्यासाठी स्क्रीनशॉट अपलोड करा.',
+  submitTicket: 'तिकिट सादर करा',
+  submittingTicket: 'सादर होत आहे...',
+  subjectLabel: 'विषय',
+  issueSubjectPlaceholder: 'समस्या विषय',
+  descriptionLabel: 'वर्णन',
   autoLockJapa: 'जप दरम्यान ऑटो-लॉक',
   chantBeepSound: 'जप बीप आवाज',
   privacy: 'गोपनीयता',

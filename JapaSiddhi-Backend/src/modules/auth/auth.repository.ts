@@ -334,7 +334,8 @@ class AuthRepository {
           app_version,
           firebase_token,
           profile_completed,
-          profile_photo
+          profile_photo,
+          country_id
         )
         VALUES
         (
@@ -351,7 +352,8 @@ class AuthRepository {
           ?,
           ?,
           ?,
-          ?
+          ?,
+          1
         )
         `,
         [

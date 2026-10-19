@@ -1,12 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {Linking, StyleSheet, Text, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const CallSupportScreen = () => {
+  const {t} = useLanguage();
   const [phone, setPhone] = useState('+919849535599');
   const [hours, setHours] = useState('9 AM – 6 PM');
 
@@ -26,16 +28,18 @@ const CallSupportScreen = () => {
   }, []);
 
   return (
-    <ScreenLayout title="Call Support" showBack tab="Profile">
+    <ScreenLayout title={t('callSupport')} showBack tab="Profile">
       <View style={styles.center}>
         <View style={styles.icon}>
           <Text style={styles.phone}>☎</Text>
         </View>
-        <Text style={styles.title}>Speak with support</Text>
-        <Text style={styles.sub}>Support hours: {hours}</Text>
+        <Text style={styles.title}>{t('speakWithSupport')}</Text>
+        <Text style={styles.sub}>
+          {t('supportHoursLabel', {hours})}
+        </Text>
       </View>
       <PrimaryButton
-        title="CALL SUPPORT"
+        title={t('callSupport')}
         onPress={() => Linking.openURL(`tel:${phone}`)}
       />
     </ScreenLayout>
@@ -61,6 +65,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     textAlign: 'center',
+    lineHeight: 30,
+    includeFontPadding: false,
+    paddingBottom: 2,
   },
-  sub: {marginTop: 8, color: Colors.textSecondary},
+  sub: {
+    marginTop: 8,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+    includeFontPadding: false,
+    paddingBottom: 2,
+  },
 });

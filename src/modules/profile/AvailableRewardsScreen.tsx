@@ -272,7 +272,9 @@ const styles = StyleSheet.create({
   rewardCard: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 18,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
@@ -339,8 +341,9 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 13.5,
     color: '#3E3024',
-    lineHeight: 22,
-    includeFontPadding: true,
+    lineHeight: 24,
+    includeFontPadding: false,
+    paddingBottom: 4,
   },
   remainingHint: {
     marginTop: 8,

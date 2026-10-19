@@ -143,6 +143,37 @@ export const ml: TranslationDict = {
   language: 'ഭാഷ',
   logout: 'ലോഗൗട്ട്',
   devoteeName: 'ഭക്തന്റെ പേര്',
+  userId: 'ഭക്ത ഐഡി',
+  insightBeginDaily:
+    'നിങ്ങളുടെ ദൈനംദിന ജപം ആരംഭിച്ച് ഒരു സെഷൻ സേവ് ചെയ്യുക. സേവ് ചെയ്ത എണ്ണത്തിൽ നിന്ന് സ്ട്രീക്കും ഗ്രാഫുകളും വളരും.',
+  insightSavedBefore:
+    'നിങ്ങൾ മുമ്പ് ജപം സേവ് ചെയ്തിട്ടുണ്ട്. നിങ്ങളുടെ സ്ട്രീക്ക് നിലനിർത്താൻ ഇന്ന് ജപിക്കുക.',
+  insightStreakForming:
+    '{{streak}}-ദിവസത്തെ സ്ട്രീക്ക് രൂപപ്പെടുന്നു. നിങ്ങളുടെ ദൈനംദിന താളം സംരക്ഷിക്കുക.',
+  insightTodayUpdating:
+    'ഇന്നത്തെ സേവ് ചെയ്ത ജപം നിങ്ങളുടെ ചാർട്ടുകൾ അപ്‌ഡേറ്റ് ചെയ്യുന്നു. നിലവിലെ സ്ട്രീക്ക്: {{streak}} {{dayWord}}.',
+  daySingular: 'ദിവസം',
+  dayPlural: 'ദിവസങ്ങൾ',
+  attachVideoOptional: 'വീഡിയോ ചേർക്കുക (ഓപ്ഷണൽ)',
+  uploadRecordVideo: 'വീഡിയോ അപ്‌ലോഡ് / റെക്കോർഡ്',
+  changeVideo: 'വീഡിയോ മാറ്റുക',
+  feedbackVideoHint:
+    'നിങ്ങൾക്ക് ചെറിയ വീഡിയോ ചേർക്കാം (ഏകദേശം 60 സെക്കൻഡ് / 40 MB).',
+  remove: 'നീക്കം ചെയ്യുക',
+  speakWithSupport: 'പിന്തുണയുമായി സംസാരിക്കുക',
+  supportHoursLabel: 'പിന്തുണ സമയം: {{hours}}',
+  selectCategory: 'വിഭാഗം തിരഞ്ഞെടുക്കുക',
+  describeYourIssue: 'നിങ്ങളുടെ പ്രശ്നം വിവരിക്കുക',
+  problemScreenshotOptional: 'പ്രശ്ന സ്ക്രീൻഷോട്ട് (ഓപ്ഷണൽ)',
+  uploadScreenshot: 'സ്ക്രീൻഷോട്ട് അപ്‌ലോഡ്',
+  changeScreenshot: 'സ്ക്രീൻഷോട്ട് മാറ്റുക',
+  screenshotHint:
+    'പ്രശ്നം മനസ്സിലാക്കി പരിഹരിക്കാൻ സ്ക്രീൻഷോട്ട് അപ്‌ലോഡ് ചെയ്യുക.',
+  submitTicket: 'ടിക്കറ്റ് സമർപ്പിക്കുക',
+  submittingTicket: 'സമർപ്പിക്കുന്നു...',
+  subjectLabel: 'വിഷയം',
+  issueSubjectPlaceholder: 'പ്രശ്ന വിഷയം',
+  descriptionLabel: 'വിവരണം',
   autoLockJapa: 'ജപ സമയത്ത് ഓട്ടോ-ലോക്ക്',
   chantBeepSound: 'ജപ ബീപ്പ് ശബ്ദം',
   privacy: 'സ്വകാര്യത',

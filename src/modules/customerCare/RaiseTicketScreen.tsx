@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
@@ -39,6 +40,7 @@ const STATIC_SERVICES = [
 
 const RaiseTicketScreen = () => {
   const navigation = useNavigation<any>();
+  const {t, tt} = useLanguage();
   const [subject, setSubject] = useState('');
   const [orderService, setOrderService] = useState('');
   const [categoryModalVisible, setCategoryModalVisible] = useState(false);
@@ -126,16 +128,16 @@ const RaiseTicketScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Raise a Ticket" showBack tab="Profile">
+    <ScreenLayout title={t('raiseTicket')} showBack tab="Profile">
       <FormField
-        label="Subject"
-        placeholder="Issue subject"
+        label={t('subjectLabel')}
+        placeholder={t('issueSubjectPlaceholder')}
         value={subject}
         onChangeText={setSubject}
       />
 
       <View style={styles.fieldContainer}>
-        <Text style={styles.label}>Select Category</Text>
+        <Text style={styles.label}>{t('selectCategory')}</Text>
         <TouchableOpacity
           style={styles.dropdownField}
           activeOpacity={0.8}
@@ -144,42 +146,40 @@ const RaiseTicketScreen = () => {
             style={
               orderService ? styles.dropdownValue : styles.dropdownPlaceholder
             }>
-            {orderService || 'Select Category'}
+            {orderService ? tt(orderService) : t('selectCategory')}
           </Text>
           <Text style={styles.chevron}>▾</Text>
         </TouchableOpacity>
       </View>
 
       <FormField
-        label="Description"
-        placeholder="Describe your issue"
+        label={t('descriptionLabel')}
+        placeholder={t('describeYourIssue')}
         value={message}
         onChangeText={setMessage}
         multiline
         style={styles.area}
       />
 
-      <Text style={styles.label}>Problem screenshot (optional)</Text>
+      <Text style={styles.label}>{t('problemScreenshotOptional')}</Text>
       <TouchableOpacity style={styles.mediaBtn} onPress={chooseScreenshot}>
         <Text style={styles.mediaText}>
-          {screenshot ? 'Change screenshot' : 'Upload screenshot'}
+          {screenshot ? t('changeScreenshot') : t('uploadScreenshot')}
         </Text>
       </TouchableOpacity>
       {screenshot?.uri ? (
         <View style={styles.previewWrap}>
           <Image source={{uri: screenshot.uri}} style={styles.preview} />
           <TouchableOpacity onPress={() => setScreenshot(null)}>
-            <Text style={styles.remove}>Remove</Text>
+            <Text style={styles.remove}>{t('remove')}</Text>
           </TouchableOpacity>
         </View>
       ) : (
-        <Text style={styles.hint}>
-          Upload screenshot to understand your problem to resolve.
-        </Text>
+        <Text style={styles.hint}>{t('screenshotHint')}</Text>
       )}
 
       <PrimaryButton
-        title={saving ? 'SUBMITTING...' : 'SUBMIT TICKET'}
+        title={saving ? t('submittingTicket') : t('submitTicket')}
         onPress={submit}
         disabled={saving}
       />
@@ -195,7 +195,7 @@ const RaiseTicketScreen = () => {
           onPress={() => setCategoryModalVisible(false)}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Category</Text>
+              <Text style={styles.modalTitle}>{t('selectCategory')}</Text>
               <TouchableOpacity
                 onPress={() => setCategoryModalVisible(false)}
                 hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}>
@@ -224,7 +224,7 @@ const RaiseTicketScreen = () => {
                         styles.optionText,
                         isSelected && styles.optionTextSelected,
                       ]}>
-                      {item}
+                      {tt(item)}
                     </Text>
                     {isSelected && <Text style={styles.checkIcon}>✓</Text>}
                   </TouchableOpacity>

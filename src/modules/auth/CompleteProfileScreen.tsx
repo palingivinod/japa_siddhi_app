@@ -249,6 +249,7 @@ const CompleteProfileScreen = ({
         phoneNumber,
         gender: gender as CompleteProfileRequest['gender'],
         dob: dob.toISOString().slice(0, 10),
+        // Always default to India (id=1) when country is missing; user can change.
         countryId: Number(matchedCountry?.id) || 1,
         stateId: Number(stateModel?.id) || 0,
         cityId: Number(cityModel?.id) || 0,

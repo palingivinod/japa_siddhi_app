@@ -217,7 +217,7 @@ const PersonalDetailsScreen = () => {
   if (!editing) {
     return (
       <ScreenLayout title="Personal Details" showBack tab="Profile">
-        {userCode ? <Row label="Devotee ID" value={userCode} /> : null}
+        {userCode ? <Row label={t('userId')} value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
         <Row label="Email" value={email} />

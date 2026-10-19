@@ -38,8 +38,16 @@ const MantraSelectScreen = () => {
   }, []);
 
   const chosen = mantras.find(item => item.id === selected);
-  const localizedChosen = chosen ? getLocalizedMantra(chosen, language).name : '';
+  const localizedChosen = chosen
+    ? getLocalizedMantra(chosen, language).name
+    : '';
   const chosenName =
+    tt(
+      localizedChosen ||
+        chosen?.mantraName ||
+        chosen?.transliteration ||
+        String(route.params?.mantraName || ''),
+    ) ||
     localizedChosen ||
     chosen?.mantraName ||
     chosen?.transliteration ||
@@ -103,7 +111,12 @@ const MantraSelectScreen = () => {
             {mantras.map(item => {
               const active = item.id === selected;
               const loc = getLocalizedMantra(item, language).name;
-              const displayName = loc || tt(item.mantraName || item.transliteration);
+              // Prefer full i18n phrase (tt) so English API names become Telugu etc.
+              const displayName =
+                tt(loc || item.mantraName || item.transliteration || '') ||
+                loc ||
+                item.mantraName ||
+                item.transliteration;
               return (
                 <TouchableOpacity
                   key={item.id}
