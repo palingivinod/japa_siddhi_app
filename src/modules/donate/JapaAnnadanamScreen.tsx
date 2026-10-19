@@ -76,10 +76,11 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '700',
     fontSize: 15.5,
-    lineHeight: 23,
+    lineHeight: 26,
     marginBottom: 10,
     marginTop: 8,
-    paddingBottom: 2,
+    paddingBottom: 4,
+    includeFontPadding: false,
   },
   disabled: {
     marginTop: 20,

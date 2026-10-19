@@ -14,10 +14,15 @@ export interface OtpChallenge {
 const emailSessionId = (email: string) =>
   `email:${String(email || '').trim().toLowerCase()}`;
 
+const phoneSessionId = (countryCode: string, mobileNumber: string) =>
+  `phone:${String(countryCode || '').replace(/\D/g, '')}:${String(
+    mobileNumber || '',
+  ).replace(/\D/g, '')}`;
+
 class OtpRepository {
-  async findActiveByEmail(email: string): Promise<OtpChallenge | null> {
-    const sessionId = emailSessionId(email);
-    if (!sessionId.startsWith('email:') || sessionId.length < 8) {
+  async findActiveBySession(sessionId: string): Promise<OtpChallenge | null> {
+    const key = String(sessionId || '').trim();
+    if (!key) {
       return null;
     }
     const rows = await mysql.query<any[]>(
@@ -36,48 +41,51 @@ class OtpRepository {
       ORDER BY id DESC
       LIMIT 1
       `,
-      [sessionId],
+      [key],
     );
 
     return rows[0] ?? null;
   }
 
-  /** @deprecated Prefer findActiveByEmail — OTP is email-scoped. */
+  async findActiveByEmail(email: string): Promise<OtpChallenge | null> {
+    return this.findActiveBySession(emailSessionId(email));
+  }
+
+  async findActiveByPhone(
+    mobileCountryCode: string,
+    mobileNumber: string,
+  ): Promise<OtpChallenge | null> {
+    return this.findActiveBySession(
+      phoneSessionId(mobileCountryCode, mobileNumber),
+    );
+  }
+
+  /** @deprecated Prefer findActiveByEmail / findActiveByPhone. */
   async findActive(
     mobileCountryCode: string,
     mobileNumber: string,
   ): Promise<OtpChallenge | null> {
-    const rows = await mysql.query<any[]>(
-      `
-      SELECT
-        id,
-        mobile_country_code AS mobileCountryCode,
-        mobile_number AS mobileNumber,
-        session_id AS sessionId,
-        code_hash AS codeHash,
-        expires_at AS expiresAt,
-        attempts,
-        created_at AS createdAt
-      FROM otp_challenges
-      WHERE mobile_country_code = ?
-      AND mobile_number = ?
-      ORDER BY id DESC
-      LIMIT 1
-      `,
-      [mobileCountryCode, mobileNumber],
-    );
-
-    return rows[0] ?? null;
+    return this.findActiveByPhone(mobileCountryCode, mobileNumber);
   }
 
   async save(data: {
     mobileCountryCode: string;
     mobileNumber: string;
-    email: string;
+    email?: string;
+    channel?: 'email' | 'phone';
     codeHash?: string | null;
     expiresAt: number;
   }): Promise<void> {
-    const sessionId = emailSessionId(data.email);
+    const channel =
+      data.channel === 'phone' ||
+      (!data.email && data.mobileNumber)
+        ? 'phone'
+        : 'email';
+    const sessionId =
+      channel === 'phone'
+        ? phoneSessionId(data.mobileCountryCode, data.mobileNumber)
+        : emailSessionId(String(data.email || ''));
+
     await mysql.query(
       `
       DELETE FROM otp_challenges
@@ -132,18 +140,24 @@ class OtpRepository {
     );
   }
 
-  async delete(
+  async deleteByPhone(
     mobileCountryCode: string,
     mobileNumber: string,
   ): Promise<void> {
     await mysql.query(
       `
       DELETE FROM otp_challenges
-      WHERE mobile_country_code = ?
-      AND mobile_number = ?
+      WHERE session_id = ?
       `,
-      [mobileCountryCode, mobileNumber],
+      [phoneSessionId(mobileCountryCode, mobileNumber)],
     );
+  }
+
+  async delete(
+    mobileCountryCode: string,
+    mobileNumber: string,
+  ): Promise<void> {
+    await this.deleteByPhone(mobileCountryCode, mobileNumber);
   }
 }
 

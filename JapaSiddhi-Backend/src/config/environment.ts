@@ -70,6 +70,11 @@ const environment = {
 
   OTP_MAX_ATTEMPTS: Number(process.env.OTP_MAX_ATTEMPTS || 5),
 
+  // Twilio SMS (mobile login OTP). Leave blank until credentials are provided.
+  TWILIO_ACCOUNT_SID: process.env.TWILIO_ACCOUNT_SID || '',
+  TWILIO_AUTH_TOKEN: process.env.TWILIO_AUTH_TOKEN || '',
+  TWILIO_FROM_NUMBER: process.env.TWILIO_FROM_NUMBER || '',
+
   UPLOAD_PATH:
     process.env.UPLOAD_PATH || 'uploads',
 

@@ -27,8 +27,12 @@ import PrimaryButton from '../common/PrimaryButton';
 import {saveAdminSession} from '../admin/adminSession';
 import {resetAdminAuthGate} from '../admin/AdminAuthGate';
 import {verifyAdminCredentials} from '../admin/adminCredentials';
+import {BODY_PAD} from '../../utils/layoutSpacing';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+type LoginMethod = 'password' | 'otp';
+type OtpChannel = 'email' | 'phone';
 
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
@@ -39,6 +43,10 @@ const LoginScreen = () => {
   const [checkingSession, setCheckingSession] = useState(true);
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password');
+  const [otpChannel, setOtpChannel] = useState<OtpChannel>('email');
+  const [otpEmail, setOtpEmail] = useState('');
+  const [otpMobile, setOtpMobile] = useState('');
   const [hasValidSession, setHasValidSession] = useState(false);
 
   useFocusEffect(
@@ -231,6 +239,90 @@ const LoginScreen = () => {
     navigation.navigate('SocialAuth', {provider: name});
   };
 
+  const handleSendLoginOtp = async () => {
+    setSubmitting(true);
+    try {
+      if (otpChannel === 'email') {
+        const email = otpEmail.trim().toLowerCase();
+        if (!EMAIL_REGEX.test(email)) {
+          Alert.alert(t('required'), 'Enter a valid email address.');
+          return;
+        }
+        const response = await apiService.post('/auth/otp/send', {
+          mode: 'login',
+          channel: 'email',
+          email,
+        });
+        const data = response.data?.data || {};
+        navigation.navigate('OtpScreen', {
+          mode: 'login',
+          channel: 'email',
+          email,
+          sentTo: data.sentTo || email,
+        });
+      } else {
+        const mobile = otpMobile.replace(/\D/g, '');
+        if (mobile.length < 8) {
+          Alert.alert(t('required'), 'Enter a valid mobile number.');
+          return;
+        }
+        const response = await apiService.post('/auth/otp/send', {
+          mode: 'login',
+          channel: 'phone',
+          mobileCountryCode: '91',
+          mobileNumber: mobile,
+        });
+        const data = response.data?.data || {};
+        navigation.navigate('OtpScreen', {
+          mode: 'login',
+          channel: 'phone',
+          mobileCountryCode: '91',
+          mobileNumber: mobile,
+          phoneNumber: `91${mobile}`,
+          sentTo: data.sentTo || `+91${mobile}`,
+        });
+      }
+    } catch (error: any) {
+      Alert.alert(
+        t('otpFailed') || 'OTP Failed',
+        error?.response?.data?.message ||
+          error?.message ||
+          'Unable to send OTP. Please try again.',
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const Segment = ({
+    options,
+    value,
+    onChange,
+  }: {
+    options: {id: string; label: string}[];
+    value: string;
+    onChange: (id: any) => void;
+  }) => (
+    <View style={styles.segmentRow}>
+      {options.map(option => {
+        const active = option.id === value;
+        return (
+          <TouchableOpacity
+            key={option.id}
+            style={[styles.segmentBtn, active && styles.segmentBtnActive]}
+            onPress={() => onChange(option.id)}
+            activeOpacity={0.85}>
+            <Text
+              style={[styles.segmentText, active && styles.segmentTextActive]}
+              numberOfLines={1}>
+              {option.label}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <ScrollView
@@ -240,7 +332,7 @@ const LoginScreen = () => {
         overScrollMode="never"
         contentContainerStyle={[
           styles.content,
-          {paddingBottom: 30 + bottomPad},
+          {paddingHorizontal: BODY_PAD, paddingBottom: 30 + bottomPad},
           hasValidSession && styles.contentSession,
         ]}>
         <AppHeader title="Welcome to Japa Siddhi" showBack={false} />
@@ -257,45 +349,120 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
-            <Text style={styles.label}>Email / Mobile number</Text>
-            <TextInput
-              style={styles.emailInput}
-              value={identifier}
-              onChangeText={setIdentifier}
-              placeholder="email@example.com or 9876543210"
-              placeholderTextColor={Colors.placeholder}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              underlineColorAndroid="transparent"
+            <Text style={styles.label}>Login with</Text>
+            <Segment
+              value={loginMethod}
+              onChange={setLoginMethod}
+              options={[
+                {id: 'password', label: 'Password'},
+                {id: 'otp', label: 'OTP'},
+              ]}
             />
 
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.emailInput}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Enter password"
-              placeholderTextColor={Colors.placeholder}
-              secureTextEntry
-              underlineColorAndroid="transparent"
-            />
+            {loginMethod === 'password' ? (
+              <>
+                <Text style={styles.label}>Email / Mobile number</Text>
+                <TextInput
+                  style={styles.emailInput}
+                  value={identifier}
+                  onChangeText={setIdentifier}
+                  placeholder="email@example.com or 9876543210"
+                  placeholderTextColor={Colors.placeholder}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  underlineColorAndroid="transparent"
+                />
 
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('ForgotPassword', {
-                  identifier: identifier.trim(),
-                })
-              }>
-              <Text style={styles.forgotPassword}>Forgot password?</Text>
-            </TouchableOpacity>
+                <Text style={styles.label}>Password</Text>
+                <TextInput
+                  style={styles.emailInput}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder="Enter password"
+                  placeholderTextColor={Colors.placeholder}
+                  secureTextEntry
+                  underlineColorAndroid="transparent"
+                />
 
-            <ContinueButton
-              title={submitting ? 'Logging in...' : 'Login'}
-              onPress={handlePasswordLogin}
-              loading={submitting}
-              disabled={submitting}
-            />
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('ForgotPassword', {
+                      identifier: identifier.trim(),
+                    })
+                  }>
+                  <Text style={styles.forgotPassword}>Forgot password?</Text>
+                </TouchableOpacity>
+
+                <ContinueButton
+                  title={submitting ? 'Logging in...' : 'Login'}
+                  onPress={handlePasswordLogin}
+                  loading={submitting}
+                  disabled={submitting}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>Send OTP to</Text>
+                <Segment
+                  value={otpChannel}
+                  onChange={setOtpChannel}
+                  options={[
+                    {id: 'email', label: 'Email'},
+                    {id: 'phone', label: 'Phone'},
+                  ]}
+                />
+
+                {otpChannel === 'email' ? (
+                  <>
+                    <Text style={styles.label}>{t('email')}</Text>
+                    <TextInput
+                      style={styles.emailInput}
+                      value={otpEmail}
+                      onChangeText={setOtpEmail}
+                      placeholder={t('enterEmailAddress')}
+                      placeholderTextColor={Colors.placeholder}
+                      keyboardType="email-address"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      underlineColorAndroid="transparent"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.label}>{t('mobileNumber')}</Text>
+                    <View style={styles.phoneRow}>
+                      <View style={styles.countryBox}>
+                        <Text style={styles.countryText}>🇮🇳 +91</Text>
+                      </View>
+                      <TextInput
+                        style={[styles.emailInput, styles.phoneInput]}
+                        value={otpMobile}
+                        onChangeText={text =>
+                          setOtpMobile(text.replace(/\D/g, '').slice(0, 10))
+                        }
+                        placeholder="10-digit mobile"
+                        placeholderTextColor={Colors.placeholder}
+                        keyboardType="phone-pad"
+                        maxLength={10}
+                        underlineColorAndroid="transparent"
+                      />
+                    </View>
+                  </>
+                )}
+
+                <ContinueButton
+                  title={
+                    submitting
+                      ? t('sendingOtp') || 'SENDING OTP...'
+                      : t('sendOtp') || 'SEND OTP'
+                  }
+                  onPress={handleSendLoginOtp}
+                  loading={submitting}
+                  disabled={submitting}
+                />
+              </>
+            )}
 
             {__DEV__ ? (
               <View style={styles.testBox}>
@@ -352,7 +519,6 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 20,
   },
   contentSession: {
     flexGrow: 1,
@@ -391,16 +557,71 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
   },
+  segmentRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  segmentBtn: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  segmentBtnActive: {
+    borderColor: Colors.templeGold,
+    backgroundColor: '#FFF8EC',
+  },
+  segmentText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  segmentTextActive: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+  },
   emailInput: {
     height: 55,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
     backgroundColor: Colors.white,
-    paddingHorizontal: 18,
+    paddingHorizontal: 14,
     fontSize: 16,
     color: Colors.textPrimary,
     marginBottom: 12,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  countryBox: {
+    height: 55,
+    minWidth: 88,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  countryText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  phoneInput: {
+    flex: 1,
+    marginBottom: 0,
   },
   forgotPassword: {
     alignSelf: 'flex-end',

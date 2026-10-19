@@ -101,7 +101,7 @@ export default SevaHubScreen;
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
-  body: {flex: 1, paddingHorizontal: 20},
+  body: {flex: 1, paddingHorizontal: 12},
   scrollContent: {paddingBottom: 36},
   heading: {
     fontSize: 18,

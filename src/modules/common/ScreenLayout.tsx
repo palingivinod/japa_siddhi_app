@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   body: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingTop: 4,
   },
   scroll: {

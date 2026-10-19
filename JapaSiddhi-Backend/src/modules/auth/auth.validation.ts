@@ -1,4 +1,4 @@
-
+﻿
 
 import { body } from 'express-validator';
 
@@ -44,30 +44,66 @@ export const phoneAuthValidation = [
 ];
 
 export const otpSendValidation = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Enter a valid email address.'),
-  body('mobileCountryCode')
-    .trim()
-    .notEmpty()
-    .withMessage('Country code is required.'),
-  body('mobileNumber')
-    .trim()
-    .notEmpty()
-    .isLength({min: 6, max: 15})
-    .withMessage('Enter a valid mobile number.'),
   body('mode')
     .optional()
     .isIn(['register', 'login'])
     .withMessage('Invalid OTP mode.'),
+  body('channel')
+    .optional()
+    .isIn(['email', 'phone'])
+    .withMessage('OTP channel must be email or phone.'),
+  body('email')
+    .optional({nullable: true})
+    .trim(),
+  body('mobileCountryCode')
+    .optional({nullable: true})
+    .trim(),
   body('mobileNumber')
-    .custom((value, {req}) =>
-      req.body.mode === 'login' ? true : hasMobileDigits(value),
-    )
-    .withMessage(`Enter your ${MOBILE_DIGITS}-digit mobile number.`),
+    .optional({nullable: true})
+    .trim(),
+  body().custom((_, {req}) => {
+    const mode = req.body?.mode === 'login' ? 'login' : 'register';
+    const channel =
+      req.body?.channel === 'phone'
+        ? 'phone'
+        : req.body?.channel === 'email'
+          ? 'email'
+          : 'email';
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const country = String(req.body?.mobileCountryCode || '').trim();
+    const mobile = String(req.body?.mobileNumber || '').replace(/\D/g, '');
+
+    if (mode === 'register') {
+      if (!email || !email.includes('@')) {
+        throw new Error('Enter a valid email address.');
+      }
+      if (!country) {
+        throw new Error('Country code is required.');
+      }
+      if (!hasMobileDigits(mobile)) {
+        throw new Error(
+          `Enter your ${MOBILE_DIGITS}-digit mobile number.`,
+        );
+      }
+      return true;
+    }
+
+    // login: email channel OR phone channel
+    if (channel === 'phone') {
+      if (!country) {
+        throw new Error('Country code is required.');
+      }
+      if (mobile.length < 6 || mobile.length > 15) {
+        throw new Error('Enter a valid mobile number.');
+      }
+      return true;
+    }
+
+    if (!email || !email.includes('@')) {
+      throw new Error('Enter a valid email address.');
+    }
+    return true;
+  }),
 ];
 
 export const otpVerifyValidation = [

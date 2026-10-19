@@ -5,6 +5,7 @@ import {admin, isFirebaseReady} from '../../firebase/firebase';
 import authRepository, {isPlaceholderMobile} from './auth.repository';
 import otpRepository from './otp.repository';
 import emailOtpService from '../../services/emailOtp.service';
+import twilioSmsService from '../../services/twilioSms.service';
 import environment from '../../config/environment';
 import Constants from '../../config/constants';
 
@@ -986,13 +987,20 @@ class AuthService {
     mobileNumber?: string;
     email?: string;
     mode?: 'register' | 'login';
+    channel?: 'email' | 'phone';
   }) {
     const mode = data.mode === 'login' ? 'login' : 'register';
-    if (mode !== 'register') {
-      throw new AppError(
-        'OTP is only available while creating a new account. Please sign in with email and password.',
-        400,
-      );
+    const channel =
+      data.channel === 'phone'
+        ? 'phone'
+        : data.channel === 'email'
+          ? 'email'
+          : mode === 'login' && !String(data.email || '').includes('@')
+            ? 'phone'
+            : 'email';
+
+    if (mode === 'login') {
+      return this.sendLoginOtp({...data, channel});
     }
 
     const destinationEmail = String(data.email || '').trim().toLowerCase();
@@ -1059,6 +1067,7 @@ class AuthService {
       mobileCountryCode,
       mobileNumber,
       email: destinationEmail,
+      channel: 'email',
       codeHash: emailOtpService.hashOtp(otp),
       expiresAt: Date.now() + environment.OTP_EXPIRES_SECONDS * 1000,
     });
@@ -1069,7 +1078,112 @@ class AuthService {
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
       mobileCountryCode,
       mobileNumber,
+      channel: 'email' as const,
       mode: 'register' as const,
+    };
+  }
+
+  private async sendLoginOtp(data: {
+    mobileCountryCode?: string;
+    mobileNumber?: string;
+    email?: string;
+    channel: 'email' | 'phone';
+  }) {
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+    const codeHash = emailOtpService.hashOtp(otp);
+    const expiresAt = Date.now() + environment.OTP_EXPIRES_SECONDS * 1000;
+
+    if (data.channel === 'phone') {
+      const mobileCountryCode =
+        normalizePhone(data.mobileCountryCode || '') || '91';
+      const mobileNumber = normalizePhone(data.mobileNumber || '');
+      if (mobileNumber.length < 6 || /^0+$/.test(mobileNumber)) {
+        throw new AppError('Enter a valid mobile number.', 400);
+      }
+
+      const user = await authRepository.findUserByMobile(
+        mobileCountryCode,
+        mobileNumber,
+      );
+      if (!user) {
+        throw new AppError('No account found for this mobile number.', 404);
+      }
+
+      const existing = await otpRepository.findActiveByPhone(
+        mobileCountryCode,
+        mobileNumber,
+      );
+      if (
+        existing &&
+        Date.now() - Number(existing.createdAt) <
+          environment.OTP_RESEND_SECONDS * 1000
+      ) {
+        throw new AppError(
+          `Please wait ${environment.OTP_RESEND_SECONDS} seconds before requesting another OTP.`,
+          429,
+        );
+      }
+
+      await twilioSmsService.sendOtp(mobileCountryCode, mobileNumber, otp);
+      await otpRepository.save({
+        mobileCountryCode,
+        mobileNumber,
+        channel: 'phone',
+        codeHash,
+        expiresAt,
+      });
+
+      return {
+        sent: true,
+        sentTo: twilioSmsService.maskPhone(mobileCountryCode, mobileNumber),
+        expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+        mobileCountryCode,
+        mobileNumber,
+        channel: 'phone' as const,
+        mode: 'login' as const,
+      };
+    }
+
+    const destinationEmail = String(data.email || '').trim().toLowerCase();
+    if (!destinationEmail || !destinationEmail.includes('@')) {
+      throw new AppError('Enter a valid email address.', 400);
+    }
+
+    const user = await authRepository.findUserByEmail(destinationEmail);
+    if (!user) {
+      throw new AppError('No account found for this email.', 404);
+    }
+
+    const existing = await otpRepository.findActiveByEmail(destinationEmail);
+    if (
+      existing &&
+      Date.now() - Number(existing.createdAt) <
+        environment.OTP_RESEND_SECONDS * 1000
+    ) {
+      throw new AppError(
+        `Please wait ${environment.OTP_RESEND_SECONDS} seconds before requesting another OTP.`,
+        429,
+      );
+    }
+
+    await emailOtpService.sendOtp(destinationEmail, otp);
+    await otpRepository.save({
+      mobileCountryCode: normalizePhone(user.mobileCountryCode || '') || '91',
+      mobileNumber:
+        normalizePhone(user.mobileNumber || '') || '0000000000',
+      email: destinationEmail,
+      channel: 'email',
+      codeHash,
+      expiresAt,
+    });
+
+    return {
+      sent: true,
+      sentTo: emailOtpService.maskEmail(destinationEmail),
+      email: destinationEmail,
+      expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+      channel: 'email' as const,
+      mode: 'login' as const,
     };
   }
 
@@ -1079,17 +1193,24 @@ class AuthService {
     email?: string;
     otp: string;
     mode?: 'register' | 'login';
+    channel?: 'email' | 'phone';
   }) {
     const mode = data.mode === 'login' ? 'login' : 'register';
-    if (mode !== 'register') {
-      throw new AppError(
-        'OTP is only available while creating a new account. Please sign in with email and password.',
-        400,
-      );
+    const channel =
+      data.channel === 'phone'
+        ? 'phone'
+        : data.channel === 'email'
+          ? 'email'
+          : mode === 'login' && !String(data.email || '').includes('@')
+            ? 'phone'
+            : 'email';
+    const otp = String(data.otp || '').trim();
+
+    if (mode === 'login') {
+      return this.verifyLoginOtp({...data, channel, otp});
     }
 
     const email = String(data.email || '').trim().toLowerCase();
-    const otp = String(data.otp || '').trim();
 
     if (!email || !email.includes('@')) {
       throw new AppError('Email is required to verify OTP.', 400);
@@ -1161,7 +1282,87 @@ class AuthService {
       email,
       mobileCountryCode,
       mobileNumber,
+      channel: 'email' as const,
       mode: 'register' as const,
+    };
+  }
+
+  private async verifyLoginOtp(data: {
+    mobileCountryCode?: string;
+    mobileNumber?: string;
+    email?: string;
+    otp: string;
+    channel: 'email' | 'phone';
+  }) {
+    const otp = String(data.otp || '').trim();
+    if (otp.length !== 4) {
+      throw new AppError('Enter the 4-digit OTP.', 400);
+    }
+
+    let stored;
+    let user: AuthUser | null = null;
+    let clear: () => Promise<void> = async () => {};
+
+    if (data.channel === 'phone') {
+      const mobileCountryCode =
+        normalizePhone(data.mobileCountryCode || '') || '91';
+      const mobileNumber = normalizePhone(data.mobileNumber || '');
+      if (mobileNumber.length < 6) {
+        throw new AppError('Enter a valid mobile number.', 400);
+      }
+      stored = await otpRepository.findActiveByPhone(
+        mobileCountryCode,
+        mobileNumber,
+      );
+      clear = async () => {
+        await otpRepository.deleteByPhone(mobileCountryCode, mobileNumber);
+      };
+      user = await authRepository.findUserByMobile(
+        mobileCountryCode,
+        mobileNumber,
+      );
+    } else {
+      const email = String(data.email || '').trim().toLowerCase();
+      if (!email || !email.includes('@')) {
+        throw new AppError('Email is required to verify OTP.', 400);
+      }
+      stored = await otpRepository.findActiveByEmail(email);
+      clear = async () => {
+        await otpRepository.deleteByEmail(email);
+      };
+      user = await authRepository.findUserByEmail(email);
+    }
+
+    if (!stored || Number(stored.expiresAt) < Date.now()) {
+      throw new AppError('Invalid or expired OTP.', 401);
+    }
+
+    if (Number(stored.attempts) >= environment.OTP_MAX_ATTEMPTS) {
+      await clear();
+      throw new AppError('Too many incorrect attempts. Request a new OTP.', 401);
+    }
+
+    const valid = emailOtpService.matches(otp, stored.codeHash);
+    if (!valid) {
+      await otpRepository.incrementAttempts(stored.id);
+      throw new AppError('Invalid or expired OTP.', 401);
+    }
+
+    await clear();
+
+    if (!user) {
+      throw new AppError('No account found for this login.', 404);
+    }
+
+    await authRepository.updateLastLogin(user.id);
+    const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
+    return {
+      verified: true,
+      isNewUser: false,
+      token: issueToken(freshUser),
+      user: freshUser,
+      channel: data.channel,
+      mode: 'login' as const,
     };
   }
 

@@ -182,8 +182,8 @@ const CreateAccountScreen = () => {
           keyboardType="phone-pad"
           placeholder={
             selectedCountry.code === 'IN'
-              ? `Enter ${MOBILE_DIGITS}-digit mobile number`
-              : 'Enter mobile number'
+              ? `${MOBILE_DIGITS}-digit mobile number`
+              : 'Mobile number'
           }
           placeholderTextColor={Colors.placeholder}
           maxLength={selectedCountry.code === 'IN' ? MOBILE_DIGITS : 15}
@@ -250,8 +250,8 @@ const styles = StyleSheet.create({
     borderColor: Colors.inputBorder,
     borderRadius: 14,
     backgroundColor: Colors.white,
-    paddingHorizontal: 18,
-    fontSize: 16,
+    paddingHorizontal: 14,
+    fontSize: 15,
     color: Colors.textPrimary,
     marginBottom: 12,
   },
@@ -261,18 +261,19 @@ const styles = StyleSheet.create({
     marginTop: -4,
     marginBottom: 10,
   },
-  mobileRow: {flexDirection: 'row', gap: 10, alignItems: 'center'},
+  mobileRow: {flexDirection: 'row', gap: 8, alignItems: 'center'},
   countryBtn: {
     height: 55,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 14,
     backgroundColor: Colors.white,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     marginBottom: 12,
+    flexShrink: 0,
   },
   countryFlag: {
     fontSize: 20,

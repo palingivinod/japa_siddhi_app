@@ -7,8 +7,11 @@ import ResendTimer from './components/ResendTimer';
 import ContinueButton from './components/ContinueButton';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
+import {saveSession} from '../../services/session';
+import {resetAuthGate} from '../common/AuthGate';
 import Colors from '../../theme/colors';
 import {useBottomNavPad} from '../../utils/safeArea';
+import {BODY_PAD} from '../../utils/layoutSpacing';
 
 const OtpScreen = ({route, navigation}: any) => {
   const {
@@ -18,24 +21,67 @@ const OtpScreen = ({route, navigation}: any) => {
     email,
     sentTo,
     password,
+    channel = 'email',
     mode = 'register',
   } = route.params || {};
   const bottomPad = useBottomNavPad();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const isLogin = mode === 'login';
+  const otpChannel = channel === 'phone' ? 'phone' : 'email';
 
   const verifyOTP = async () => {
-    if (mode !== 'register') {
-      Alert.alert(
-        'Sign in',
-        'Existing accounts must sign in with email and password.',
-      );
-      navigation.navigate('Login', {forceLoginForm: true});
+    if (otp.length !== 4) {
+      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP.');
       return;
     }
 
-    if (otp.length !== 4) {
-      Alert.alert('Invalid OTP', 'Please enter the 4-digit OTP.');
+    if (isLogin) {
+      setLoading(true);
+      try {
+        const payload =
+          otpChannel === 'phone'
+            ? {
+                mode: 'login',
+                channel: 'phone',
+                mobileCountryCode: mobileCountryCode || '91',
+                mobileNumber,
+                otp,
+              }
+            : {
+                mode: 'login',
+                channel: 'email',
+                email,
+                otp,
+              };
+        const response = await apiService.post('/auth/otp/verify', payload);
+        const data = response.data?.data || {};
+        if (!data?.token || !data?.user) {
+          throw new Error('Login did not return a session');
+        }
+        await saveSession(data.token, data.user);
+        try {
+          const profileResponse = await apiService.get('/auth/profile');
+          const profile = profileResponse.data?.data;
+          if (profile) {
+            await saveSession(data.token, {...data.user, ...profile});
+          }
+        } catch {
+          // Token + user from verify is enough if profile refresh fails.
+        }
+        resetAuthGate();
+        navigation.reset({
+          index: 0,
+          routes: [{name: 'Home'}],
+        });
+      } catch (error: any) {
+        Alert.alert(
+          'Verification Failed',
+          error?.response?.data?.message || 'OTP verification failed.',
+        );
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -55,6 +101,7 @@ const OtpScreen = ({route, navigation}: any) => {
         email,
         otp,
         mode: 'register',
+        channel: 'email',
       });
       const data = response.data?.data || {};
       navigation.replace('SignupPersonal', {
@@ -81,17 +128,32 @@ const OtpScreen = ({route, navigation}: any) => {
 
   const resendOTP = async () => {
     try {
-      const response = await apiService.post('/auth/otp/send', {
-        mobileCountryCode,
-        mobileNumber,
-        email,
-        mode: 'register',
-      });
+      const payload = isLogin
+        ? otpChannel === 'phone'
+          ? {
+              mode: 'login',
+              channel: 'phone',
+              mobileCountryCode: mobileCountryCode || '91',
+              mobileNumber,
+            }
+          : {
+              mode: 'login',
+              channel: 'email',
+              email,
+            }
+        : {
+            mobileCountryCode,
+            mobileNumber,
+            email,
+            mode: 'register',
+            channel: 'email',
+          };
+      const response = await apiService.post('/auth/otp/send', payload);
       setOtp('');
       Alert.alert(
         'OTP Sent',
         `A new 4-digit code was sent to ${
-          response.data?.data?.sentTo || email
+          response.data?.data?.sentTo || sentTo || email || phoneNumber
         }.`,
       );
     } catch (error: any) {
@@ -103,10 +165,19 @@ const OtpScreen = ({route, navigation}: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
-      <AppHeader title="Verify Email OTP" showBack />
+    <SafeAreaView
+      style={[styles.container, {paddingHorizontal: BODY_PAD}]}
+      edges={['top', 'left', 'right']}>
+      <AppHeader
+        title={isLogin ? 'Verify OTP' : 'Verify Email OTP'}
+        showBack
+      />
       <Text style={styles.subtitle}>
-        Enter the 4-digit OTP sent to your email to create your account
+        {isLogin
+          ? otpChannel === 'phone'
+            ? 'Enter the 4-digit OTP sent to your mobile number'
+            : 'Enter the 4-digit OTP sent to your email'
+          : 'Enter the 4-digit OTP sent to your email to create your account'}
       </Text>
       <Text style={styles.mobile}>{sentTo || email || phoneNumber}</Text>
       <OTPInput value={otp} onChange={setOtp} length={4} />
@@ -115,7 +186,10 @@ const OtpScreen = ({route, navigation}: any) => {
         {loading ? (
           <ActivityIndicator size="large" color={Colors.templeGold} />
         ) : (
-          <ContinueButton title="VERIFY & CONTINUE" onPress={verifyOTP} />
+          <ContinueButton
+            title={isLogin ? 'VERIFY & LOGIN' : 'VERIFY & CONTINUE'}
+            onPress={verifyOTP}
+          />
         )}
         <Text style={styles.change} onPress={() => navigation.goBack()}>
           Change details
@@ -130,13 +204,14 @@ export default OtpScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingHorizontal: 20,
     backgroundColor: Colors.background,
   },
   subtitle: {
     fontSize: 16,
+    lineHeight: 24,
     color: Colors.sacredBrown,
     marginBottom: 8,
+    paddingBottom: 2,
   },
   mobile: {
     fontSize: 18,
