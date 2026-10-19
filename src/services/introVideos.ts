@@ -13,19 +13,23 @@ export type IntroVideoItem = {
   url: string;
 };
 
-/** Dummy sample MP4s — swap when real intro videos are ready. */
+/**
+ * Intro videos hosted on Render (public /uploads — no Google/Microsoft login).
+ */
 export const INTRO_VIDEOS: IntroVideoItem[] = [
   {
     id: 'intro1',
     titleKey: 'introVideo1Title',
     subtitleKey: 'introVideo1Sub',
-    url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_1MB.mp4',
+    // Why Japa Siddhi App
+    url: 'https://japasiddhi.onrender.com/uploads/videos/why-japa-siddhi.mp4',
   },
   {
     id: 'intro2',
     titleKey: 'introVideo2Title',
     subtitleKey: 'introVideo2Sub',
-    url: 'https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/360/Big_Buck_Bunny_360_10s_2MB.mp4',
+    // App introduction
+    url: 'https://japasiddhi.onrender.com/uploads/videos/app-introduction.mp4',
   },
 ];
 
@@ -77,19 +81,7 @@ export const markFirstIntroVideoSeen = async () => {
   }
 };
 
-/**
- * After auth: show first intro once, otherwise go Home.
- * Use with navigation.reset / replace.
- */
-export const homeOrFirstIntroRoute = async (): Promise<
-  {name: 'IntroVideoPlayer'; params: {videoId: string; fromAuth: boolean}} | {name: 'Home'}
-> => {
-  const seen = await hasSeenFirstIntroVideo();
-  if (!seen) {
-    return {
-      name: 'IntroVideoPlayer',
-      params: {videoId: FIRST_LOGIN_INTRO_VIDEO.id, fromAuth: true},
-    };
-  }
-  return {name: 'Home'};
-};
+/** @deprecated Auto intro after auth removed — home "Why Japa Siddhi" only. */
+export const homeOrFirstIntroRoute = async (): Promise<{name: 'Home'}> => ({
+  name: 'Home',
+});

@@ -133,11 +133,11 @@ const CommunityJapaScreen = () => {
       <View style={styles.topFixedSection}>
         <View style={styles.stats}>
           <View style={styles.stat}>
-            <Text style={styles.label}>TOTAL CHANTS</Text>
+            <Text style={styles.label}>{t('totalChants')}</Text>
             <Text style={styles.value}>{total.toLocaleString()}</Text>
           </View>
           <View style={styles.stat}>
-            <Text style={styles.label}>DEVOTEES</Text>
+            <Text style={styles.label}>{t('devoteesLabel')}</Text>
             <Text style={styles.value}>{devotees.toLocaleString()}</Text>
           </View>
         </View>

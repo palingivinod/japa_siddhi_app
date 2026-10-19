@@ -74,27 +74,52 @@ const ensureBannersTable = async () => {
     }
   }
 
+  // One-time seed only. If admin deletes all banners, do not recreate demos.
+  const engine = mysql.getEngineName() || 'sqlite';
+  if (engine === 'mysql') {
+    await mysql.query(`
+      CREATE TABLE IF NOT EXISTS app_seed_meta (
+        seed_key VARCHAR(64) PRIMARY KEY,
+        seeded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } else {
+    await mysql.query(`
+      CREATE TABLE IF NOT EXISTS app_seed_meta (
+        seed_key TEXT PRIMARY KEY,
+        seeded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+  const markBannerSeeded = async () => {
+    if (engine === 'mysql') {
+      await mysql.query(
+        `INSERT IGNORE INTO app_seed_meta (seed_key) VALUES (?)`,
+        ['banners_v1'],
+      );
+    } else {
+      await mysql.query(
+        `INSERT OR IGNORE INTO app_seed_meta (seed_key) VALUES (?)`,
+        ['banners_v1'],
+      );
+    }
+  };
   const countRows = await mysql.query<any[]>(
     `SELECT COUNT(*) AS total FROM app_banners`,
   );
   const total = Number(countRows?.[0]?.total || 0);
-  if (total === 0) {
-    const seeds = [
-      ['Kartika Masam', 'Season of devotion', 'Home', 'Active', 1],
-      ['Japa Rewards', 'Join challenges and earn', 'Challenges', 'Scheduled', 2],
-      ['Annadanam', 'Feed with love', 'Annadanam', 'Blocked', 3],
-    ];
-    for (const [title, subtitle, moduleName, status, sortOrder] of seeds) {
-      await mysql.query(
-        `
-        INSERT INTO app_banners (
-          title, subtitle, module_name, status, sort_order, button_text
-        ) VALUES (?, ?, ?, ?, ?, ?)
-        `,
-        [title, subtitle, moduleName, status, sortOrder, 'Explore'],
-      );
-    }
+  const seededRows = await mysql.query<any[]>(
+    `SELECT 1 AS ok FROM app_seed_meta WHERE seed_key = ? LIMIT 1`,
+    ['banners_v1'],
+  );
+  const alreadySeeded = Boolean(seededRows?.length);
+  // Never re-insert demo banners after admin deletes them (or on redeploy).
+  // Mark seed complete so empty tables stay empty.
+  if (!alreadySeeded) {
+    await markBannerSeeded();
   }
+  // Keep `total` referenced so older callers/logs stay clear if needed.
+  void total;
 
   tableReady = true;
 };

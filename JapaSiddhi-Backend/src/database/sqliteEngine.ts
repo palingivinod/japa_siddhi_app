@@ -206,7 +206,7 @@ class SqliteEngine {
 
     this.migrateUsers();
     this.migrateJapaSessions();
-    this.ensureFeatureTables();
+    this.ensureFeatureTables(!existed);
     this.clearPlaceholderDonationSettings();
 
     console.log(
@@ -327,7 +327,7 @@ class SqliteEngine {
     this.persist();
   }
 
-  private ensureFeatureTables(): void {
+  private ensureFeatureTables(isNewDb = false): void {
     if (!this.db) {
       return;
     }
@@ -542,7 +542,7 @@ class SqliteEngine {
     this.ensureFeedbackSupportColumns();
     this.ensurePersonalMantraColumns();
     this.ensureMultilingualColumns();
-    this.seedChallenges();
+    this.seedChallenges(isNewDb);
     this.seedFaqs();
     this.seedRewards();
     this.seedProducts();
@@ -702,13 +702,48 @@ class SqliteEngine {
     });
   }
 
-  private seedChallenges(): void {
+  private ensureSeedMetaTable(): void {
+    if (!this.db) {
+      return;
+    }
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS app_seed_meta (
+        seed_key TEXT PRIMARY KEY,
+        seeded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  }
+
+  private wasSeeded(key: string): boolean {
+    if (!this.db) {
+      return true;
+    }
+    this.ensureSeedMetaTable();
+    const rows = this.db.exec(
+      `SELECT 1 FROM app_seed_meta WHERE seed_key = '${key.replace(/'/g, "''")}' LIMIT 1`,
+    );
+    return Boolean(rows[0]?.values?.length);
+  }
+
+  private markSeeded(key: string): void {
+    if (!this.db) {
+      return;
+    }
+    this.ensureSeedMetaTable();
+    this.db.run(
+      `INSERT OR IGNORE INTO app_seed_meta (seed_key) VALUES ('${key.replace(/'/g, "''")}')`,
+    );
+  }
+
+  private seedChallenges(isNewDb = false): void {
     if (!this.db) {
       return;
     }
     const rows = this.db.exec('SELECT COUNT(*) AS total FROM challenges');
     const total = Number(rows[0]?.values?.[0]?.[0] ?? 0);
-    if (total > 0) {
+    // Existing DB: never re-insert demo challenges after admin deletes them.
+    if (total > 0 || this.wasSeeded('challenges_v1') || !isNewDb) {
+      this.markSeeded('challenges_v1');
       return;
     }
     this.db.run(
@@ -721,6 +756,7 @@ class SqliteEngine {
         ('Mahashivaratri Japa', 'Festival challenge', 'SPECIAL', 25000, 'RUDRAKSHA', 'Shivaratri Rudraksha', 1, '2026-01-01', '2027-12-31', 1)
       `,
     );
+    this.markSeeded('challenges_v1');
   }
 
   private seedFaqs(): void {

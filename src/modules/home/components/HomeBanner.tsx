@@ -35,10 +35,12 @@ const HomeBanner: React.FC<Props> = ({
         <View style={styles.buttonStack} pointerEvents="box-none">
           {secondaryButtonText ? (
             <TouchableOpacity
-              style={styles.button}
+              style={[styles.button, styles.buttonSmall]}
               activeOpacity={0.85}
               onPress={onSecondaryPress}>
-              <Text style={styles.buttonText}>{secondaryButtonText}</Text>
+              <Text style={[styles.buttonText, styles.buttonTextSmall]}>
+                {secondaryButtonText}
+              </Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -79,11 +81,12 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingBottom: 18,
+    // Raised so Start Japa sits a bit higher on the hero.
+    paddingBottom: 28,
   },
   buttonStack: {
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
   },
   button: {
     backgroundColor: Colors.cream,
@@ -98,6 +101,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
+  buttonSmall: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    elevation: 2,
+  },
   buttonText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
@@ -105,5 +114,9 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     includeFontPadding: true,
     textAlign: 'center',
+  },
+  buttonTextSmall: {
+    fontSize: 11,
+    lineHeight: 16,
   },
 });

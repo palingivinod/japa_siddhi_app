@@ -22,11 +22,11 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
 const QUICK_DEADLINE_DAYS = [
-  {label: 'Today', days: 1},
-  {label: '7 Days', days: 7},
-  {label: '11 Days', days: 11},
-  {label: '21 Days', days: 21},
-  {label: '41 Days', days: 41},
+  {labelKey: 'deadlineToday' as const, days: 1},
+  {labelKey: 'deadlineDays7' as const, days: 7},
+  {labelKey: 'deadlineDays11' as const, days: 11},
+  {labelKey: 'deadlineDays21' as const, days: 21},
+  {labelKey: 'deadlineDays41' as const, days: 41},
 ];
 
 type SavedMantra = {
@@ -459,7 +459,7 @@ const PrivateJapaScreen = () => {
                     styles.quickDayText,
                     isSelected && styles.quickDayTextActive,
                   ]}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </Text>
               </TouchableOpacity>
             );
