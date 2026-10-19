@@ -138,6 +138,8 @@
   sending: 'SENDING...',
   newPassword: 'New password',
   fourDigitOtp: '4-digit OTP',
+  socialGoogle: 'Google',
+  socialFacebook: 'Facebook',
   continueWithGoogle: 'Continue with Google',
   continueWithProvider: 'Continue with {{provider}}',
   googleAuthHelper:

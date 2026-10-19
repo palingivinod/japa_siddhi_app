@@ -492,12 +492,17 @@ const LoginScreen = () => {
             ) : null}
 
             <Text style={styles.or}>{t('orContinueWith')}</Text>
-            {['Google', 'Facebook'].map(item => (
+            {(
+              [
+                {id: 'Google', label: t('socialGoogle')},
+                {id: 'Facebook', label: t('socialFacebook')},
+              ] as const
+            ).map(item => (
               <TouchableOpacity
-                key={item}
+                key={item.id}
                 style={styles.social}
-                onPress={() => socialContinue(item)}>
-                <Text style={styles.socialText}>{item}</Text>
+                onPress={() => socialContinue(item.id)}>
+                <Text style={styles.socialText}>{item.label}</Text>
               </TouchableOpacity>
             ))}
 
@@ -652,7 +657,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     borderRadius: 16,
-    minHeight: 50,
+    minHeight: 56,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -661,6 +668,8 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '700',
     fontSize: 16,
+    lineHeight: 24,
+    paddingVertical: 2,
   },
   testBox: {
     marginTop: 18,

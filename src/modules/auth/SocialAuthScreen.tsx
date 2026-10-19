@@ -27,6 +27,12 @@ const SocialAuthScreen = () => {
   const {t} = useLanguage();
   const provider = String(route.params?.provider || 'Email');
   const [busy, setBusy] = useState(false);
+  const providerLabel =
+    provider === 'Google'
+      ? t('socialGoogle')
+      : provider === 'Facebook'
+        ? t('socialFacebook')
+        : provider;
 
   const continueWithGoogle = async () => {
     if (!String(ENV.GOOGLE_WEB_CLIENT_ID || '').trim()) {
@@ -89,13 +95,13 @@ const SocialAuthScreen = () => {
 
   return (
     <ScreenLayout
-      title={t('continueWithProvider', {provider})}
+      title={t('continueWithProvider', {provider: providerLabel})}
       showBack>
       <Text style={styles.title}>
-        {t('continueWithProvider', {provider})}
+        {t('continueWithProvider', {provider: providerLabel})}
       </Text>
       <Text style={styles.copy}>
-        {t('providerAuthLaterHelper', {provider})}
+        {t('providerAuthLaterHelper', {provider: providerLabel})}
       </Text>
       <PrimaryButton
         title={t('tryGoogleInstead')}

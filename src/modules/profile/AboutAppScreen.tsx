@@ -15,8 +15,10 @@ const AboutAppScreen = () => {
       <View style={styles.card}>
         <Text style={styles.appName}>{t('appName')}</Text>
         <Text style={styles.body}>{t('aboutAppBody')}</Text>
-        <Text style={styles.versionLabel}>{t('appVersion')}</Text>
-        <Text style={styles.version}>{version}</Text>
+        <View style={styles.versionBlock}>
+          <Text style={styles.versionLabel}>{t('appVersion')}</Text>
+          <Text style={styles.version}>{version}</Text>
+        </View>
       </View>
     </ScreenLayout>
   );
@@ -47,17 +49,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 28,
   },
+  versionBlock: {
+    alignItems: 'center',
+    paddingTop: 4,
+    paddingBottom: 8,
+    overflow: 'visible',
+  },
   versionLabel: {
     fontSize: 14,
     fontWeight: '700',
     color: Colors.leafGreen,
-    marginBottom: 6,
-    letterSpacing: 0.5,
+    marginBottom: 10,
+    lineHeight: 28,
+    paddingVertical: 4,
+    textAlign: 'center',
+    includeFontPadding: true,
   },
   version: {
     fontSize: 42,
     fontWeight: '800',
     color: Colors.templeGold,
-    lineHeight: 48,
+    lineHeight: 56,
+    paddingVertical: 6,
+    textAlign: 'center',
+    includeFontPadding: true,
   },
 });

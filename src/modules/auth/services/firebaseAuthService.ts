@@ -32,6 +32,15 @@ const toE164 = (phoneNumber: string, countryCode = '91'): string => {
 const friendlyAuthError = (error: any): string => {
   const code = String(error?.code || '');
   const message = String(error?.message || '');
+  const blob = `${code} ${message}`.toLowerCase();
+  if (
+    blob.includes('billing') ||
+    blob.includes('billing_not_enabled') ||
+    code === 'auth/billing-not-enabled' ||
+    code === 'auth/billing-not'
+  ) {
+    return 'Phone OTP needs Firebase Blaze billing enabled on this project. Enable billing in Firebase Console, or use Email OTP for now.';
+  }
   switch (code) {
     case 'auth/invalid-phone-number':
       return 'Enter a valid mobile number with country code.';

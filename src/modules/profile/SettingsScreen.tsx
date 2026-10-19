@@ -92,7 +92,7 @@ const SettingsScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Settings" showBack tab="Profile">
+    <ScreenLayout title={t('settings')} showBack tab="Profile">
       <TouchableOpacity
         style={styles.row}
         onPress={() =>
@@ -156,7 +156,9 @@ const styles = StyleSheet.create({
   row: {
     backgroundColor: Colors.white,
     borderRadius: 16,
-    padding: 18,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    minHeight: 60,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
@@ -164,22 +166,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  label: {fontSize: 16, fontWeight: '700', color: Colors.sacredBrown, flex: 1},
-  value: {color: Colors.leafGreen, fontWeight: '700'},
+  label: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    flex: 1,
+    flexShrink: 1,
+    marginRight: 12,
+    lineHeight: 26,
+    paddingVertical: 4,
+  },
+  value: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    lineHeight: 26,
+    paddingVertical: 4,
+  },
   arrow: {
     color: Colors.textSecondary,
     fontSize: 20,
     fontWeight: '600',
-    lineHeight: 22,
+    lineHeight: 26,
     marginLeft: 8,
+    paddingVertical: 4,
   },
   delete: {
     marginTop: 16,
     backgroundColor: Colors.error,
     borderRadius: 30,
-    minHeight: 50,
+    minHeight: 58,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteText: {color: Colors.white, fontWeight: '800'},
+  deleteText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 26,
+    paddingVertical: 2,
+    textAlign: 'center',
+  },
 });
