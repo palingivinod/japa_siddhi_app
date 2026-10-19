@@ -496,6 +496,8 @@ const HomeScreen = () => {
               buttonText: t('startChanting'),
             }}
             onPress={handleBannerStartJapa}
+            secondaryButtonText={t('whyJapaSiddhiApp')}
+            onSecondaryPress={() => navigation.navigate('IntroVideos')}
           />
 
           {homeBanners.map(item => (

@@ -32,6 +32,7 @@ import ProfileApi, {CompleteProfileRequest} from './services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import {pickProfilePhoto, type PickedPhoto} from '../../services/profilePhoto';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 
 const defaultIndia: CountryItem =
   countries.find(c => c.code === 'IN') || {
@@ -319,7 +320,7 @@ const CompleteProfileScreen = ({
         }
       }
 
-      navigation.replace('Home');
+      await resetToHomeAfterAuth(navigation);
     } catch (error: any) {
       Alert.alert(
         'Registration',

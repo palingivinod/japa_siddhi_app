@@ -71,7 +71,11 @@ const WelcomeGiftScreen = () => {
       <Text style={styles.gap} />
       <OutlineButton
         title="SKIP FOR NOW"
-        onPress={() => navigation.replace('Home')}
+        onPress={() => {
+          void import('../../navigation/goHomeAfterAuth').then(
+            ({resetToHomeAfterAuth}) => resetToHomeAfterAuth(navigation),
+          );
+        }}
       />
     </ScreenLayout>
   );

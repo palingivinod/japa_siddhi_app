@@ -18,6 +18,8 @@ import SignupPhotoScreen from '../modules/auth/SignupPhotoScreen';
 import RegistrationCompleteScreen from '../modules/auth/RegistrationCompleteScreen';
 import CompleteProfileScreen from '../modules/auth/CompleteProfileScreen';
 import HomeScreen from '../modules/home/screens/HomeScreen';
+import IntroVideosScreen from '../modules/home/screens/IntroVideosScreen';
+import IntroVideoPlayerScreen from '../modules/home/screens/IntroVideoPlayerScreen';
 import JapaHubScreen from '../modules/japa/JapaHubScreen';
 import CommunityJapaScreen from '../modules/japa/CommunityJapaScreen';
 import MantraSelectScreen from '../modules/japa/MantraSelectScreen';
@@ -251,6 +253,10 @@ export type RootStackParamList = {
   DonationForm: any;
   DonationPayment: any;
   Festivals: undefined;
+  IntroVideos: undefined;
+  IntroVideoPlayer:
+    | {videoId?: string; fromAuth?: boolean}
+    | undefined;
   Progress: undefined;
   AnalyticsHub: undefined;
   JapaOverview: undefined;
@@ -351,6 +357,8 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const ProtectedHome = withAuth(HomeScreen);
+const ProtectedIntroVideos = withAuth(IntroVideosScreen);
+const ProtectedIntroVideoPlayer = withAuth(IntroVideoPlayerScreen);
 const ProtectedJapaHub = withAuth(JapaHubScreen);
 const ProtectedCommunity = withAuth(CommunityJapaScreen);
 const ProtectedMantra = withAuth(MantraSelectScreen);
@@ -517,6 +525,11 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="PrivacyPolicy" component={PrivacyPolicyScreen} />
         <Stack.Screen name="Home" component={ProtectedHome} />
+        <Stack.Screen name="IntroVideos" component={ProtectedIntroVideos} />
+        <Stack.Screen
+          name="IntroVideoPlayer"
+          component={ProtectedIntroVideoPlayer}
+        />
         <Stack.Screen name="JapaHub" component={ProtectedJapaHub} />
         <Stack.Screen name="CommunityJapa" component={ProtectedCommunity} />
         <Stack.Screen name="MantraSelect" component={ProtectedMantra} />

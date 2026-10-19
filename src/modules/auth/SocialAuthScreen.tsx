@@ -12,6 +12,7 @@ import {
   signInWithGoogle,
 } from './services/googleAuthService';
 import ENV from '../../env';
+import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 
 const showAlertLater = (title: string, message: string) => {
   // Android Activity can be null right as Google Sign-In returns; Alert then
@@ -45,10 +46,7 @@ const SocialAuthScreen = () => {
       setBusy(true);
       resetAuthGate();
       setTimeout(() => {
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'Home'}],
-        });
+        void resetToHomeAfterAuth(navigation);
       }, 150);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);

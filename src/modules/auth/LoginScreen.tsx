@@ -28,6 +28,7 @@ import {saveAdminSession} from '../admin/adminSession';
 import {resetAdminAuthGate} from '../admin/AdminAuthGate';
 import {verifyAdminCredentials} from '../admin/adminCredentials';
 import {BODY_PAD} from '../../utils/layoutSpacing';
+import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -78,10 +79,7 @@ const LoginScreen = () => {
       return;
     }
     resetAuthGate();
-    navigation.reset({
-      index: 0,
-      routes: [{name: 'Home'}],
-    });
+    await resetToHomeAfterAuth(navigation);
   };
 
   const handlePasswordLogin = async () => {
@@ -161,10 +159,7 @@ const LoginScreen = () => {
         // Token + user from login is enough if profile refresh fails.
       }
       resetAuthGate();
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'Home'}],
-      });
+      await resetToHomeAfterAuth(navigation);
     } catch (error: any) {
       const status = error?.response?.status;
       const rawMessage = error?.response?.data?.message;
@@ -205,10 +200,7 @@ const LoginScreen = () => {
       }
       await saveSession(data.token, data.user);
       resetAuthGate();
-      navigation.reset({
-        index: 0,
-        routes: [{name: 'Home'}],
-      });
+      await resetToHomeAfterAuth(navigation);
     } catch (error: any) {
       const message =
         error?.response?.data?.message ||

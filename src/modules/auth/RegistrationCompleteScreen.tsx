@@ -5,6 +5,7 @@ import {useNavigation} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 
 const RegistrationCompleteScreen = () => {
   const navigation = useNavigation<any>();
@@ -26,7 +27,10 @@ const RegistrationCompleteScreen = () => {
           <Text style={styles.meta}>Personal + spiritual details saved</Text>
         </View>
       </View>
-      <PrimaryButton title="GO TO HOME" onPress={() => navigation.replace('Home')} />
+      <PrimaryButton
+        title="GO TO HOME"
+        onPress={() => void resetToHomeAfterAuth(navigation)}
+      />
     </ScreenLayout>
   );
 };

@@ -725,9 +725,18 @@ class JapaService {
     return {
       overview: {
         stats: [
-          {label: 'TOTAL JAPAS', value: summary.totalJapaCount.toLocaleString()},
-          {label: 'ACTIVE DAYS', value: String(streak.activeDays)},
-          {label: 'STREAK', value: String(streak.current)},
+          {
+            label: 'TOTAL COMPLETED JAPAS',
+            value: summary.totalJapaCount.toLocaleString(),
+          },
+          {
+            label: 'DAYS WITH JAPA',
+            value: String(streak.activeDays),
+          },
+          {
+            label: 'DAYS IN A ROW',
+            value: String(streak.current),
+          },
         ],
         trend: lifeTrend,
         insight,
@@ -797,8 +806,14 @@ class JapaService {
       },
       lifetime: {
         stats: [
-          {label: 'TOTAL JAPAS', value: summary.totalJapaCount.toLocaleString()},
-          {label: 'ACTIVE DAYS', value: String(streak.activeDays)},
+          {
+            label: 'TOTAL COMPLETED JAPAS',
+            value: summary.totalJapaCount.toLocaleString(),
+          },
+          {
+            label: 'DAYS WITH JAPA',
+            value: String(streak.activeDays),
+          },
           {label: 'MILESTONES', value: String(milestones)},
         ],
         trend: lifeTrend,

@@ -70,10 +70,10 @@ const OtpScreen = ({route, navigation}: any) => {
           // Token + user from verify is enough if profile refresh fails.
         }
         resetAuthGate();
-        navigation.reset({
-          index: 0,
-          routes: [{name: 'Home'}],
-        });
+        const {resetToHomeAfterAuth} = await import(
+          '../../navigation/goHomeAfterAuth'
+        );
+        await resetToHomeAfterAuth(navigation);
       } catch (error: any) {
         Alert.alert(
           'Verification Failed',

@@ -13,9 +13,16 @@ import {HomeBanner as HomeBannerModel} from '../types/home';
 interface Props {
   banner?: HomeBannerModel;
   onPress?: () => void;
+  secondaryButtonText?: string;
+  onSecondaryPress?: () => void;
 }
 
-const HomeBanner: React.FC<Props> = ({banner, onPress}) => {
+const HomeBanner: React.FC<Props> = ({
+  banner,
+  onPress,
+  secondaryButtonText,
+  onSecondaryPress,
+}) => {
   const bannerSource =
     banner?.imageUrl && banner.imageUrl.trim() !== ''
       ? {uri: banner.imageUrl}
@@ -25,14 +32,24 @@ const HomeBanner: React.FC<Props> = ({banner, onPress}) => {
     <View style={styles.container}>
       <Image source={bannerSource} resizeMode="contain" style={styles.image} />
       <View style={styles.overlay} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.button}
-          activeOpacity={0.85}
-          onPress={onPress}>
-          <Text style={styles.buttonText}>
-            {banner?.buttonText || 'Start Japa'}
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.buttonStack} pointerEvents="box-none">
+          {secondaryButtonText ? (
+            <TouchableOpacity
+              style={styles.button}
+              activeOpacity={0.85}
+              onPress={onSecondaryPress}>
+              <Text style={styles.buttonText}>{secondaryButtonText}</Text>
+            </TouchableOpacity>
+          ) : null}
+          <TouchableOpacity
+            style={styles.button}
+            activeOpacity={0.85}
+            onPress={onPress}>
+            <Text style={styles.buttonText}>
+              {banner?.buttonText || 'Start Japa'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -59,9 +76,14 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingBottom: 18,
+  },
+  buttonStack: {
+    alignItems: 'center',
+    gap: 8,
   },
   button: {
     backgroundColor: Colors.cream,

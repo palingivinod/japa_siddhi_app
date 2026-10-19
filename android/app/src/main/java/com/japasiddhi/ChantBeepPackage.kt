@@ -9,7 +9,10 @@ class ChantBeepPackage : ReactPackage {
   override fun createNativeModules(
     reactContext: ReactApplicationContext,
   ): List<NativeModule> =
-    listOf(ChantBeepModule(reactContext), ChantQuietModeModule(reactContext))
+    listOf(
+      ChantBeepModule(reactContext),
+      IntroVideoModule(reactContext),
+    )
 
   override fun createViewManagers(
     reactContext: ReactApplicationContext,

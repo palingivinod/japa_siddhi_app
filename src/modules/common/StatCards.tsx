@@ -15,7 +15,7 @@ const StatCards = ({
       {items.map(item => (
         <View key={item.label} style={styles.card}>
           <View style={styles.labelBox}>
-            <Text style={styles.label} numberOfLines={2}>
+            <Text style={styles.label} numberOfLines={3}>
               {tt(item.label)}
             </Text>
           </View>
@@ -41,26 +41,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.white,
     borderRadius: 16,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingTop: 12,
     paddingBottom: 14,
     minHeight: 92,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     justifyContent: 'flex-start',
+    alignItems: 'center',
   },
-  /** Fixed 2-line label zone so values share one baseline on every phone. */
+  /** Fixed label zone so values share one baseline on every phone. */
   labelBox: {
-    minHeight: 36,
-    justifyContent: 'flex-start',
+    minHeight: 40,
+    width: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 6,
   },
   label: {
     color: Colors.leafGreen,
     fontWeight: '800',
-    fontSize: 12,
-    lineHeight: 18,
+    fontSize: 11,
+    lineHeight: 16,
     letterSpacing: 0.2,
+    textAlign: 'center',
     includeFontPadding: false,
     paddingBottom: 2,
   },
@@ -69,6 +73,8 @@ const styles = StyleSheet.create({
     lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    textAlign: 'center',
+    width: '100%',
     includeFontPadding: false,
     textAlignVertical: 'center',
     paddingBottom: 2,

@@ -24,10 +24,6 @@ import {
   preloadChantBeep,
   releaseChantBeep,
 } from '../../services/chantBeep';
-import {
-  startChantQuietMode,
-  stopChantQuietMode,
-} from '../../services/chantQuietMode';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
 import {
@@ -424,18 +420,13 @@ const ChantScreen = () => {
       } catch {
         // ignore
       }
-      void stopChantQuietMode();
     };
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       setMessage('');
-      void startChantQuietMode(t);
-      return () => {
-        void stopChantQuietMode();
-      };
-    }, [t]),
+    }, []),
   );
 
   /** Draft ids: presets keyed by mantraId, own mantras by personalMantraId. */
