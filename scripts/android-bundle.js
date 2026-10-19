@@ -16,12 +16,25 @@ if (!fs.existsSync(propsPath) || !fs.existsSync(keystorePath)) {
 
 const isWin = process.platform === 'win32';
 const gradle = isWin ? 'gradlew.bat' : './gradlew';
+
+// Windows: node_modules RN gradle-plugin is often EPERM-locked; use clean temp copy.
+const defaultRnGp = path.join(
+  process.env.LOCALAPPDATA || '',
+  'Temp',
+  'rn-gp-0.81.0',
+  'package',
+);
+const rnGp =
+  process.env.JAPA_RN_GRADLE_PLUGIN ||
+  (fs.existsSync(defaultRnGp) ? defaultRnGp : '');
+
 const result = spawnSync(gradle, ['bundleRelease'], {
   cwd: android,
   stdio: 'inherit',
   shell: isWin,
   env: {
     ...process.env,
+    ...(rnGp ? {JAPA_RN_GRADLE_PLUGIN: rnGp} : {}),
     JAVA_HOME:
       process.env.JAVA_HOME ||
       'C:\\Program Files\\Amazon Corretto\\jdk21.0.3_9',

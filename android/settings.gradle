@@ -1,13 +1,23 @@
 pluginManagement {
-  // Windows: node_modules/@react-native/gradle-plugin can be EPERM-locked; prefer clean override.
-  def rnGp = System.getenv("JAPA_RN_GRADLE_PLUGIN")
-  includeBuild(rnGp != null && !rnGp.isEmpty() ? rnGp : "../node_modules/@react-native/gradle-plugin")
+  // Windows: node_modules/@react-native/gradle-plugin can be EPERM-locked.
+  // Prefer JAPA_RN_GRADLE_PLUGIN, then a known clean temp copy, then node_modules.
+  def envPath = System.getenv("JAPA_RN_GRADLE_PLUGIN")
+  def tempPath = "${System.getenv('LOCALAPPDATA')}\\Temp\\rn-gp-0.81.0\\package"
+  def rnGp = "../node_modules/@react-native/gradle-plugin"
+  for (def c : [envPath, tempPath, rnGp]) {
+    if (c != null && !c.toString().trim().isEmpty() && file(c).exists()) {
+      rnGp = c.toString()
+      break
+    }
+  }
+  System.setProperty("japa.rn.gradle.plugin", rnGp)
+  includeBuild(rnGp)
 }
 plugins { id("com.facebook.react.settings") }
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'JapaSiddhi'
 include ':app'
-includeBuild(System.getenv("JAPA_RN_GRADLE_PLUGIN") ?: "../node_modules/@react-native/gradle-plugin")
+includeBuild(System.getProperty("japa.rn.gradle.plugin"))
 
 // Set build dirs before Android plugin apply so AGP does not lock onto
 // android/app/build (that tree can be unreadable on this Windows machine).

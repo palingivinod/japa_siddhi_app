@@ -75,7 +75,6 @@ const ensureBannersTable = async () => {
   }
 
   // One-time seed only. If admin deletes all banners, do not recreate demos.
-  const engine = mysql.getEngineName() || 'sqlite';
   if (engine === 'mysql') {
     await mysql.query(`
       CREATE TABLE IF NOT EXISTS app_seed_meta (
