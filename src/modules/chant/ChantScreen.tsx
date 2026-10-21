@@ -108,6 +108,8 @@ const ChantScreen = () => {
   const countRef = useRef(0);
   const goalRef = useRef(goal);
   const postedCountRef = useRef(0);
+  const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  const shownMilestonesRef = useRef<Record<number, boolean>>({});
   const selectedRef = useRef<ChantMantra | null>(null);
   const completingRef = useRef(false);
   const todayBaselineRef = useRef(0);
@@ -671,7 +673,108 @@ const ChantScreen = () => {
       : {mantraType: 'DEFAULT' as const, mantraId: chip?.id};
   };
 
+  const rememberAutoSave = (data: any, added: number) => {
+    const chip = selectedRef.current;
+    const chipId = Number(chip?.id || 0);
+    setSavedTotal(prev => Number(data?.userTotal ?? prev + added));
+    const bump = (prev: Record<number, number>) => {
+      if (!chipId) {
+        return prev;
+      }
+      return {...prev, [chipId]: Number(prev[chipId] || 0) + added};
+    };
+    if (chip?.own) {
+      setPersonalTotals(bump);
+    } else {
+      setMantraTotals(bump);
+    }
+    if (!challengeId && added > 0) {
+      const nextRemaining = Math.max(0, goalRemainingRef.current - added);
+      const nextDaily = computeEffectiveDailyTarget({
+        remainingCount: nextRemaining,
+        remainingDays: goalRemDaysRef.current,
+      });
+      setGoalRemaining(nextRemaining);
+      setDailyTarget(nextDaily);
+      const todayNow = todayBaselineRef.current + countRef.current;
+      if (nextDaily > 0 && todayNow >= nextDaily) {
+        dailyGoalCompletedShownRef.current = true;
+        setDailyGoalCompletedShown(true);
+      }
+    }
+    void saveLastChantedJapa({
+      goalId: challengeId ? undefined : route.params?.japaGoalId,
+      challengeId: challengeId || undefined,
+      mantraId: chip?.own ? undefined : chip?.id,
+      personalMantraId: chip?.own ? chip.id : undefined,
+      mantraName:
+        chip?.name || route.params?.privateMantra || route.params?.challengeMantra,
+      mantraType: chip?.own ? 'PERSONAL' : 'DEFAULT',
+      mode,
+      timestamp: Date.now(),
+    });
+    const reached = (data?.milestonesReached || [])
+      .map((level: unknown) => Number(level))
+      .filter(
+        (level: number) => level > 0 && !shownMilestonesRef.current[level],
+      );
+    reached.forEach((level: number) => {
+      shownMilestonesRef.current[level] = true;
+    });
+    if (!reached.length) {
+      return;
+    }
+    const highest = Math.max(...reached);
+    Alert.alert(
+      t('milestoneReachedTitle'),
+      t('milestoneReachedBody', {count: highest.toLocaleString()}),
+      [
+        {text: t('ok'), style: 'cancel'},
+        {
+          text: t('viewMilestone'),
+          onPress: () => navigation.navigate('MilestoneNotifications'),
+        },
+      ],
+    );
+  };
+
+  const flushUnsavedTaps = async () => {
+    const target = countRef.current;
+    const posted = postedCountRef.current;
+    const delta = target - posted;
+    if (delta < 1 || !selectedRef.current) {
+      return;
+    }
+    if (goalRef.current > 0 && target >= goalRef.current) {
+      return;
+    }
+    try {
+      const response = await apiService.post('/japa/session', {
+        ...sessionMantraFields(),
+        chantMode: 'TAP',
+        sessionCount: delta,
+        durationSeconds: Math.max(delta * 2, 1),
+        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+        challengeId: challengeId || undefined,
+        remarks: sessionRemarks(),
+      });
+      postedCountRef.current = posted + delta;
+      await persistDraft(countRef.current, postedCountRef.current);
+      rememberAutoSave(response.data?.data, delta);
+    } catch {
+      await persistDraft(countRef.current, postedCountRef.current);
+      setMessage('Could not save this tap. Save Session will keep it.');
+    }
+  };
+
+  const enqueueAutoSave = () => {
+    saveChainRef.current = saveChainRef.current
+      .catch(() => undefined)
+      .then(() => flushUnsavedTaps());
+  };
+
   const finishGoal = async (sessionCount: number) => {
+    await saveChainRef.current.catch(() => undefined);
     if (completingRef.current || sessionCount < 1) {
       return;
     }
@@ -708,6 +811,7 @@ const ChantScreen = () => {
       afterSessionSaved(response.data.data, remaining, {completed: true});
     } catch (err: any) {
       completingRef.current = false;
+      await persistDraft(countRef.current, postedCountRef.current);
       setMessage(
         err?.response?.data?.message ??
           'Could not save the completed session. Try Save Session again.',
@@ -729,8 +833,8 @@ const ChantScreen = () => {
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
-      // One counted tap every 1.5 seconds.
-      if (delta < 1500) {
+      // One counted tap every 1 second.
+      if (delta < 1000) {
         return;
       }
       const reference = Number(route.params?.durationMs || 0);
@@ -770,6 +874,7 @@ const ChantScreen = () => {
       void finishGoal(next);
       return;
     }
+    enqueueAutoSave();
     const effectiveDaily = dailyTargetRef.current;
     const todayTotal = todayBaselineRef.current + next;
     if (
@@ -783,10 +888,7 @@ const ChantScreen = () => {
       dailyGoalCompletedShownRef.current = true;
       setDailyGoalCompletedShown(true);
       setShowDailyGoalModal(true);
-      void persistDraft(next, postedCountRef.current);
-      return;
     }
-    void persistDraft(next, postedCountRef.current);
   };
 
   const saveSession = async () => {
@@ -804,36 +906,41 @@ const ChantScreen = () => {
     }
     setSaving(true);
     setMessage('');
-    try {
-      const delta = Math.max(count - postedCountRef.current, 0);
-      if (delta > 0) {
-        const response = await apiService.post('/japa/session', {
-          ...sessionMantraFields(),
-          chantMode: 'TAP',
-          sessionCount: delta,
-          durationSeconds: Math.max(delta * 2, 1),
-          japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
-          challengeId: challengeId || undefined,
-          remarks: sessionRemarks(),
-        });
-        postedCountRef.current = count;
-        await persistDraft(count, count);
-        afterSessionSaved(response.data.data, delta);
-      } else {
-        await persistDraft(count, postedCountRef.current);
-        afterSessionSaved(
-          {userTotal: savedTotal, count},
-          count,
-        );
-      }
-    } catch (err: any) {
-      setMessage(
-        err?.response?.data?.message ??
-          'Could not save the session. Check your connection and try again.',
-      );
-    } finally {
-      setSaving(false);
-    }
+    saveChainRef.current = saveChainRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        try {
+          const posted = postedCountRef.current;
+          const delta = Math.max(countRef.current - posted, 0);
+          if (delta > 0) {
+            const response = await apiService.post('/japa/session', {
+              ...sessionMantraFields(),
+              chantMode: 'TAP',
+              sessionCount: delta,
+              durationSeconds: Math.max(delta * 2, 1),
+              japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+              challengeId: challengeId || undefined,
+              remarks: sessionRemarks(),
+            });
+            postedCountRef.current = posted + delta;
+            await persistDraft(countRef.current, postedCountRef.current);
+            afterSessionSaved(response.data.data, delta);
+          } else {
+            await persistDraft(countRef.current, postedCountRef.current);
+            afterSessionSaved(
+              {userTotal: savedTotal, count: countRef.current},
+              countRef.current,
+            );
+          }
+        } catch (err: any) {
+          setMessage(
+            err?.response?.data?.message ??
+              'Could not save the session. Check your connection and try again.',
+          );
+        } finally {
+          setSaving(false);
+        }
+      });
   };
 
   // Preset mantra names live in the dictionary, so they follow the chosen
