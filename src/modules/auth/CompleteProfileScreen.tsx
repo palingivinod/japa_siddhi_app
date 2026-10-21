@@ -411,6 +411,7 @@ const CompleteProfileScreen = ({
               styles.errorInput,
           ]}
           placeholder={t('enterFullNamePlaceholder')}
+          placeholderTextColor={Colors.textSecondary}
           value={fullName}
           onChangeText={setFullName}
         />
@@ -434,6 +435,7 @@ const CompleteProfileScreen = ({
               styles.errorInput,
           ]}
           placeholder={t('enterEmailPlaceholder')}
+          placeholderTextColor={Colors.textSecondary}
           keyboardType="email-address"
           autoCapitalize="none"
           value={email}
@@ -481,7 +483,7 @@ const CompleteProfileScreen = ({
                 ? t('mobileDigitsPlaceholder', {digits: MOBILE_DIGITS})
                 : t('enterMobileNumber')
             }
-            placeholderTextColor={Colors.placeholder}
+            placeholderTextColor={Colors.textSecondary}
             maxLength={selectedMobileCountry.code === 'IN' ? MOBILE_DIGITS : 15}
           />
         </View>
@@ -602,6 +604,7 @@ const CompleteProfileScreen = ({
         <TextInput
           style={styles.input}
           placeholder={t('enterAddressPlaceholder')}
+          placeholderTextColor={Colors.textSecondary}
           value={address}
           onChangeText={setAddress}
         />
@@ -625,6 +628,7 @@ const CompleteProfileScreen = ({
             <TextInput
               style={styles.input}
               placeholder={t('enterSpouseName')}
+              placeholderTextColor={Colors.textSecondary}
               value={spouseName}
               onChangeText={setSpouseName}
             />
@@ -675,6 +679,7 @@ const CompleteProfileScreen = ({
         <TextInput
           style={styles.input}
           placeholder={t('enterGothram')}
+          placeholderTextColor={Colors.textSecondary}
           value={gothram}
           onChangeText={setGothram}
         />
@@ -683,6 +688,7 @@ const CompleteProfileScreen = ({
         <TextInput
           style={styles.input}
           placeholder={t('enterNakshatram')}
+          placeholderTextColor={Colors.textSecondary}
           value={nakshatram}
           onChangeText={setNakshatram}
         />
@@ -846,6 +852,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     justifyContent: 'center',
     fontSize: 16,
+    color: Colors.textPrimary,
   },
 
   mobileRow: {
@@ -893,7 +900,7 @@ const styles = StyleSheet.create({
   },
   datePlaceholder: {
     fontSize: 16,
-    color: Colors.placeholder,
+    color: Colors.textSecondary,
   },
 
   errorInput: {

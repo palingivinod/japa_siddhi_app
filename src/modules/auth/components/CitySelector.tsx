@@ -119,6 +119,7 @@ return (
         !state && styles.disabled,
       ]}
       editable={true}
+      placeholderTextColor={Colors.textSecondary}
       placeholder={
         state
           ? 'Search City'

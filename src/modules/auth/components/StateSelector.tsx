@@ -123,6 +123,7 @@ return (
           ? 'Search State'
           : 'Select Country First'
       }
+      placeholderTextColor={Colors.textSecondary}
       value={search}
       onFocus={onFocus}
       onChangeText={onSearchChange}

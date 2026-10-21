@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   value: {fontSize: 16, fontWeight: '600', color: Colors.sacredBrown},
-  placeholder: {fontSize: 16, color: Colors.placeholder},
+  placeholder: {fontSize: 16, color: Colors.textSecondary},
   chevron: {fontSize: 16, color: Colors.templeGold, marginLeft: 12},
   backdrop: {
     flex: 1,
