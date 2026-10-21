@@ -82,13 +82,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     // Below the gold lotus line beneath the Om.
     top: '42%',
-    width: 168,
-    alignItems: 'stretch',
+    alignItems: 'center',
     gap: 10,
   },
   button: {
     backgroundColor: Colors.cream,
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
     paddingVertical: 4,
     borderRadius: 16,
     borderWidth: 1.5,

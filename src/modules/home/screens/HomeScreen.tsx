@@ -495,7 +495,7 @@ const HomeScreen = () => {
               hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
               accessibilityRole="button"
               accessibilityLabel={t('share')}>
-              <Text style={styles.shareLabel}>↗ {t('share')}</Text>
+              <Text style={styles.shareLabel}>{t('share')}</Text>
             </TouchableOpacity>
           }
         />
@@ -771,8 +771,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   shareLabel: {
-    fontSize: 15,
-    lineHeight: 20,
+    fontSize: 18,
+    lineHeight: 22,
     fontWeight: '700',
     color: Colors.leafGreen,
   },

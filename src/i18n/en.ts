@@ -13,7 +13,7 @@
   devotee: 'Devotee',
   required: 'Required',
   or: 'OR',
-  share: 'Share',
+  share: 'Share app',
   requestSubmittedTitle: 'Request submitted',
   requestSubmittedMessage:
     'Your request is submitted. We will contact you soon.',
