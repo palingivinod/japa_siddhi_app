@@ -87,6 +87,7 @@ const mapUser = (row: any): AuthUser | null => {
     nakshatram: row.nakshatram ?? null,
     preferredLanguageId: row.preferredLanguageId ?? row.preferred_language_id,
     profileCompleted: row.profileCompleted ?? row.profile_completed,
+    authProvider: row.authProvider ?? row.auth_provider ?? null,
   } as AuthUser;
 };
 
@@ -436,6 +437,51 @@ class AuthRepository {
       WHERE id = ?
       `,
       [firebaseUid, userId],
+    );
+  }
+
+  private authProviderReady = false;
+
+  /** Marks Google and Facebook accounts so the app can prompt for mobile and DOB. */
+  async ensureAuthProviderColumn(): Promise<void> {
+    if (this.authProviderReady) {
+      return;
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE users ADD COLUMN auth_provider VARCHAR(20) NULL`,
+      );
+    } catch {
+      // Column already exists.
+    }
+    try {
+      await mysql.query(`
+        UPDATE users
+        SET auth_provider = 'google'
+        WHERE (auth_provider IS NULL OR auth_provider = '')
+          AND (password_hash IS NULL OR password_hash = '')
+          AND firebase_uid NOT LIKE 'email:%'
+          AND firebase_uid NOT LIKE 'usr:%'
+          AND (
+            mobile_number IS NULL OR mobile_number = ''
+            OR date_of_birth IS NULL OR date_of_birth = ''
+          )
+      `);
+    } catch {
+      // Older databases can skip the one-time mark.
+    }
+    this.authProviderReady = true;
+  }
+
+  async setAuthProvider(userId: number, provider: 'google' | 'facebook'): Promise<void> {
+    await this.ensureAuthProviderColumn();
+    await mysql.query(
+      `
+      UPDATE users
+      SET auth_provider = ?
+      WHERE id = ?
+      `,
+      [provider, userId],
     );
   }
 

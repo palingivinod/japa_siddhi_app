@@ -297,6 +297,7 @@ class AuthService {
         profilePhoto: decoded.picture || null,
       });
 
+      await authRepository.setAuthProvider(userId, 'google');
       user = await authRepository.findUserById(userId);
       if (!user) {
         throw new AppError('Unable to create Google account.', 500);
@@ -326,6 +327,7 @@ class AuthService {
         data.deviceOs,
         data.appVersion,
       );
+      await authRepository.setAuthProvider(user.id, 'google');
       user = (await authRepository.findUserById(user.id)) as AuthUser;
     }
 
@@ -1528,6 +1530,7 @@ class AuthService {
   ): Promise<AuthUser> {
 
 
+    await authRepository.ensureAuthProviderColumn();
     const user =
       await authRepository.findUserById(
         userId,

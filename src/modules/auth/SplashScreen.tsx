@@ -18,9 +18,11 @@ import {getLanguage} from '../../services/language';
 import {getValidSession, saveSession} from '../../services/session';
 import apiService from '../../services/apiService';
 import {
+  isSocialLoginUser,
   profileNeedsDetails,
-  resetAfterSocialAuth,
+  promptSocialDetails,
 } from '../../navigation/goHomeAfterAuth';
+import {useLanguage} from '../../i18n/LanguageContext';
 import {useBottomNavPad} from '../../utils/safeArea';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
@@ -29,6 +31,7 @@ const SRI_URJITH_SITE = 'https://www.sriurjith.com/';
 const DEVELOPED_BY = 'Developed by Sri Urjith Services Pvt Ltd';
 
 const SplashScreen = ({navigation}: Props) => {
+  const {t} = useLanguage();
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
   // Keep welcome art above the system nav bar on gesture/3-button phones.
@@ -76,20 +79,31 @@ const SplashScreen = ({navigation}: Props) => {
         const session = await getValidSession();
         if (session.token) {
           let user = session.user;
-          if (profileNeedsDetails(user)) {
-            try {
-              const profileResponse = await apiService.get('/auth/profile');
-              const profile = profileResponse.data?.data;
-              if (profile) {
-                user = {...user, ...profile};
-                await saveSession(session.token, user);
-              }
-            } catch {
-              // Use the stored profile if the refresh fails.
+          try {
+            const profileResponse = await apiService.get('/auth/profile');
+            const profile = profileResponse.data?.data;
+            if (profile) {
+              user = {
+                ...user,
+                ...profile,
+                authProvider:
+                  profile.authProvider ||
+                  profile.auth_provider ||
+                  user?.authProvider ||
+                  user?.provider,
+              };
+              await saveSession(session.token, user);
             }
+          } catch {
+            // Use the stored profile if the refresh fails.
           }
-          if (profileNeedsDetails(user)) {
-            resetAfterSocialAuth(navigation, user);
+          if (isSocialLoginUser(user) && profileNeedsDetails(user)) {
+            promptSocialDetails(navigation, user, {
+              title: t('socialDetailsTitle'),
+              message: t('socialDetailsMessage'),
+              ok: t('ok'),
+              later: t('later'),
+            });
             return;
           }
           navigation.dispatch(
@@ -109,7 +123,7 @@ const SplashScreen = ({navigation}: Props) => {
     } finally {
       setBusy(false);
     }
-  }, [busy, navigation]);
+  }, [busy, navigation, t]);
 
   return (
     <View style={styles.container}>

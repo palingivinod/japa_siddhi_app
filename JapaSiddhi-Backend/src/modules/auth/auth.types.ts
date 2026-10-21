@@ -104,6 +104,8 @@ export interface AuthUser {
 
   loginType: string;
 
+  authProvider?: string | null;
+
   role: string;
 
   termsAccepted: boolean;

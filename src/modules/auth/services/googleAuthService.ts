@@ -128,13 +128,18 @@ export const signInWithGoogle = async () => {
     );
   }
 
-  let user = data.user;
+  let user = {...data.user, authProvider: data.user?.authProvider || 'google'};
   await saveSession(data.token, user);
   try {
     const profileResponse = await apiService.get('/auth/profile');
     const profile = profileResponse.data?.data;
     if (profile) {
-      user = {...user, ...profile};
+      user = {
+        ...user,
+        ...profile,
+        authProvider:
+          profile.authProvider || profile.auth_provider || user.authProvider || 'google',
+      };
       await saveSession(data.token, user);
     }
   } catch {

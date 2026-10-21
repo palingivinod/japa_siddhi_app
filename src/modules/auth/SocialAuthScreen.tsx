@@ -54,7 +54,12 @@ const SocialAuthScreen = () => {
       setBusy(true);
       resetAuthGate();
       setTimeout(() => {
-        resetAfterSocialAuth(navigation, signedIn.user);
+        resetAfterSocialAuth(navigation, signedIn.user, {
+          title: t('socialDetailsTitle'),
+          message: t('socialDetailsMessage'),
+          ok: t('ok'),
+          later: t('later'),
+        });
       }, 150);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);
