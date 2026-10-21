@@ -7,6 +7,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -70,6 +71,8 @@ const ChantScreen = () => {
   const mode = route.params?.mode === 'private' ? 'private' : 'community';
   const [mantras, setMantras] = useState<ChantMantra[]>([]);
   const [selected, setSelected] = useState<ChantMantra | null>(null);
+  const [editingMantra, setEditingMantra] = useState(false);
+  const [mantraDraft, setMantraDraft] = useState('');
   const [savedTotal, setSavedTotal] = useState(0);
   const [mantraTotals, setMantraTotals] = useState<Record<number, number>>({});
   const [personalTotals, setPersonalTotals] = useState<Record<number, number>>(
@@ -457,6 +460,48 @@ const ChantScreen = () => {
       challengeId || undefined,
       ids.personalMantraId,
     );
+  };
+
+  const beginEditMantra = () => {
+    if (!selected?.own) {
+      return;
+    }
+    setMantraDraft(selected.name);
+    setEditingMantra(true);
+  };
+
+  const saveMantraName = async () => {
+    const next = mantraDraft.trim().slice(0, 80);
+    const chip = selected;
+    if (!chip?.own) {
+      setEditingMantra(false);
+      return;
+    }
+    if (next.length < 2) {
+      Alert.alert(t('validation') || 'Validation', t('enterMantraName') || 'Enter the mantra name.');
+      return;
+    }
+    if (next === chip.name) {
+      setEditingMantra(false);
+      return;
+    }
+    try {
+      if (chip.id > 0) {
+        await apiService.put(`/personal-mantras/${chip.id}`, {mantraName: next});
+      }
+      const updated = {...chip, name: next};
+      setSelected(updated);
+      setMantras(list =>
+        list.map(item => (item.key === chip.key ? updated : item)),
+      );
+      navigation.setParams({privateMantra: next});
+      setEditingMantra(false);
+    } catch (error) {
+      Alert.alert(
+        t('errorTitle') || 'Error',
+        getApiError(error, 'Could not update the mantra name.'),
+      );
+    }
   };
 
   const selectMantra = async (item: ChantMantra) => {
@@ -853,19 +898,46 @@ const ChantScreen = () => {
           </View>
         ) : (
           <View style={styles.selectedMantraContainer}>
-            <Text
-              style={styles.selectedMantraText}
-              numberOfLines={1}
-              ellipsizeMode="tail">
-              {mantraLabel(selected)}
-            </Text>
-            <TouchableOpacity
-              style={styles.changeMantraButton}
-              activeOpacity={0.7}
-              onPress={() => setShowMantraPicker(true)}>
-              <Text style={styles.changeMantraText}>{t('changeMantra')}</Text>
-              <Text style={styles.changeMantraChevron}>▾</Text>
-            </TouchableOpacity>
+            {editingMantra && selected.own ? (
+              <TextInput
+                style={styles.mantraEditInput}
+                value={mantraDraft}
+                onChangeText={setMantraDraft}
+                autoFocus
+                maxLength={80}
+                returnKeyType="done"
+                onSubmitEditing={saveMantraName}
+              />
+            ) : (
+              <Text
+                style={styles.selectedMantraText}
+                numberOfLines={1}
+                ellipsizeMode="tail">
+                {mantraLabel(selected)}
+              </Text>
+            )}
+            <View style={styles.mantraActions}>
+              {selected.own ? (
+                <TouchableOpacity
+                  style={styles.changeMantraButton}
+                  activeOpacity={0.7}
+                  onPress={editingMantra ? saveMantraName : beginEditMantra}>
+                  <Text style={styles.changeMantraText}>
+                    {editingMantra ? t('save') : t('edit')}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.changeMantraButton}
+                activeOpacity={0.7}
+                onPress={() => {
+                  setEditingMantra(false);
+                  setShowMantraPicker(true);
+                }}>
+                <Text style={styles.changeMantraText}>{t('changeMantra')}</Text>
+                <Text style={styles.changeMantraChevron}>▾</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )
       ) : (
@@ -1094,6 +1166,24 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     lineHeight: 26,
     includeFontPadding: true,
+  },
+  mantraEditInput: {
+    flex: 1,
+    fontSize: 20,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    lineHeight: 26,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  mantraActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   changeMantraButton: {
     flexDirection: 'row',

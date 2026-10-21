@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ReactNode} from 'react';
 import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
@@ -13,6 +13,8 @@ interface Props {
   showBack?: boolean;
   /** Home header: no back arrow, and the logo opens the profile. */
   showBell?: boolean;
+  /** Replaces the empty left slot on Home. */
+  leftAction?: ReactNode;
 }
 
 const AppHeader: React.FC<Props> = ({
@@ -20,6 +22,7 @@ const AppHeader: React.FC<Props> = ({
   subtitle,
   showBack,
   showBell = false,
+  leftAction,
 }) => {
   const navigation = useNavigation<any>();
   const {t, tt} = useLanguage();
@@ -42,6 +45,8 @@ const AppHeader: React.FC<Props> = ({
         <TouchableOpacity onPress={onBack} style={styles.back}>
           <Text style={styles.backText}>‹</Text>
         </TouchableOpacity>
+      ) : leftAction ? (
+        <View style={styles.leftAction}>{leftAction}</View>
       ) : (
         <View style={styles.back} />
       )}
@@ -89,6 +94,11 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     justifyContent: 'center',
+  },
+  leftAction: {
+    minWidth: 36,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
   },
   backText: {
     fontSize: 32,

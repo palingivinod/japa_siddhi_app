@@ -128,12 +128,14 @@ export const signInWithGoogle = async () => {
     );
   }
 
-  await saveSession(data.token, data.user);
+  let user = data.user;
+  await saveSession(data.token, user);
   try {
     const profileResponse = await apiService.get('/auth/profile');
     const profile = profileResponse.data?.data;
     if (profile) {
-      await saveSession(data.token, { ...data.user, ...profile });
+      user = {...user, ...profile};
+      await saveSession(data.token, user);
     }
   } catch {
     // Session from social login is enough if profile refresh fails.
@@ -141,7 +143,7 @@ export const signInWithGoogle = async () => {
 
   return {
     token: data.token,
-    user: data.user,
+    user,
     isNewUser: Boolean(data.isNewUser),
   };
 };

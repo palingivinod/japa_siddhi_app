@@ -15,7 +15,12 @@ import {CommonActions} from '@react-navigation/native';
 import {RootStackParamList} from '../../navigation/AppNavigator';
 import Colors from '../../theme/colors';
 import {getLanguage} from '../../services/language';
-import {getValidSession} from '../../services/session';
+import {getValidSession, saveSession} from '../../services/session';
+import apiService from '../../services/apiService';
+import {
+  profileNeedsDetails,
+  resetAfterSocialAuth,
+} from '../../navigation/goHomeAfterAuth';
 import {useBottomNavPad} from '../../utils/safeArea';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
@@ -70,6 +75,23 @@ const SplashScreen = ({navigation}: Props) => {
       if (savedLanguage) {
         const session = await getValidSession();
         if (session.token) {
+          let user = session.user;
+          if (profileNeedsDetails(user)) {
+            try {
+              const profileResponse = await apiService.get('/auth/profile');
+              const profile = profileResponse.data?.data;
+              if (profile) {
+                user = {...user, ...profile};
+                await saveSession(session.token, user);
+              }
+            } catch {
+              // Use the stored profile if the refresh fails.
+            }
+          }
+          if (profileNeedsDetails(user)) {
+            resetAfterSocialAuth(navigation, user);
+            return;
+          }
           navigation.dispatch(
             CommonActions.reset({
               index: 0,

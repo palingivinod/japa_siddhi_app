@@ -95,6 +95,7 @@ const CompleteProfileScreen = ({
   const [gender, setGender] = useState('');
 
   const [dob, setDob] = useState(new Date());
+  const [dobSelected, setDobSelected] = useState(false);
 
   const [showDatePicker, setShowDatePicker] =
     useState(false);
@@ -139,8 +140,8 @@ const CompleteProfileScreen = ({
   }, [email]);
 
   const isDOBValid = useMemo(() => {
-    return dob < new Date();
-  }, [dob]);
+    return dobSelected && dob < new Date();
+  }, [dob, dobSelected]);
 
   const isMobileValid = useMemo(() => {
     const code =
@@ -289,11 +290,15 @@ const CompleteProfileScreen = ({
       const session = await hydrateSession();
       if (session.token) {
         await ProfileApi.completeProfile(profilePayload);
-        try {
-          await ProfileApi.updateProfile({mobileNumber: number});
-        } catch {
-          // Profile still created if mobile sync fails.
-        }
+        await saveSession(session.token, {
+          ...(session.user || {}),
+          fullName: fullName.trim(),
+          email: email.trim(),
+          mobileCountryCode: code,
+          mobileNumber: number,
+          dateOfBirth: profilePayload.dob,
+          profileCompleted: 1,
+        });
       } else {
         const password = String(route?.params?.password || '');
         const isSocial = Boolean(
@@ -526,8 +531,8 @@ const CompleteProfileScreen = ({
             dismissKeyboardThen(() => setShowDatePicker(true))
           }>
 
-          <Text style={styles.dateText}>
-            {dob.toDateString()}
+          <Text style={dobSelected ? styles.dateText : styles.datePlaceholder}>
+            {dobSelected ? dob.toDateString() : t('selectDate')}
           </Text>
 
         </TouchableOpacity>
@@ -539,6 +544,7 @@ const CompleteProfileScreen = ({
           onCancel={() => setShowDatePicker(false)}
           onConfirm={selectedDate => {
             setDob(selectedDate);
+            setDobSelected(true);
             setShowDatePicker(false);
           }}
         />
@@ -884,6 +890,10 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 16,
     color: Colors.textPrimary,
+  },
+  datePlaceholder: {
+    fontSize: 16,
+    color: Colors.placeholder,
   },
 
   errorInput: {

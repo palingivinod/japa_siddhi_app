@@ -75,24 +75,24 @@ const AdminFeedbackScreen = () => {
       ) : null}
 
       {items.map(item => (
-        <View key={item.id} style={styles.card}>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('AdminFeedbackDetails', {
-                feedbackId: item.id,
-                userId: item.userId,
-                name: item.name,
-                userCode: item.userCode,
-                mobileNumber: item.mobileNumber,
-                japaCount: item.japaCount,
-                rating: item.rating,
-                comment: item.comment,
-                videoUrl: item.videoUrl,
-              })
-            }
-            activeOpacity={0.7}>
-            <Text style={styles.name}>{item.name}</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          key={item.id}
+          style={styles.card}
+          activeOpacity={0.85}
+          onPress={() =>
+            navigation.navigate('AdminFeedbackDetails', {
+              feedbackId: item.id,
+              userId: item.userId,
+              name: item.name,
+              userCode: item.userCode,
+              mobileNumber: item.mobileNumber,
+              japaCount: item.japaCount,
+              rating: item.rating,
+              comment: item.comment,
+              videoUrl: item.videoUrl,
+            })
+          }>
+          <Text style={styles.name}>{item.name}</Text>
           {item.mobileNumber ? (
             <Text style={styles.contact}>{item.mobileNumber}</Text>
           ) : null}
@@ -108,7 +108,7 @@ const AdminFeedbackScreen = () => {
           ) : (
             <Text style={styles.noMedia}>No video attached</Text>
           )}
-        </View>
+        </TouchableOpacity>
       ))}
     </AdminScreenLayout>
   );

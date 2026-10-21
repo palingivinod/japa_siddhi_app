@@ -13,7 +13,7 @@ import {
   signInWithGoogle,
 } from './services/googleAuthService';
 import ENV from '../../env';
-import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
+import {resetAfterSocialAuth} from '../../navigation/goHomeAfterAuth';
 
 const showAlertLater = (title: string, message: string) => {
   // Android Activity can be null right as Google Sign-In returns; Alert then
@@ -50,11 +50,11 @@ const SocialAuthScreen = () => {
     // Do not flip busy until after the account picker closes — a loading
     // overlay during the native Google UI can leave Activity null on return.
     try {
-      await signInWithGoogle();
+      const signedIn = await signInWithGoogle();
       setBusy(true);
       resetAuthGate();
       setTimeout(() => {
-        void resetToHomeAfterAuth(navigation);
+        resetAfterSocialAuth(navigation, signedIn.user);
       }, 150);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);

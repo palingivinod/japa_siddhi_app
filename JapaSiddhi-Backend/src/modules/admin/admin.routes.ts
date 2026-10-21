@@ -2315,6 +2315,39 @@ const fromAdminOrderStatus = (raw: string) => {
   return 'CONFIRMED';
 };
 
+/** Reward orders are earned from a challenge or a japa milestone, not purchased. */
+const isRewardOrder = (row: any) => {
+  const source = String(row.orderSource || '').toUpperCase();
+  const type = String(row.orderType || '').toUpperCase();
+  const number = String(row.orderNumber || '').toUpperCase();
+  const remarks = String(row.remarks || '').toLowerCase();
+  if (source === 'CHALLENGE' || source === 'MILESTONE') {
+    return true;
+  }
+  if (number.startsWith('RW')) {
+    return true;
+  }
+  if (remarks.includes('challenge reward') || remarks.includes('milestone reward')) {
+    return true;
+  }
+  return type === 'SPIRITUAL_PRODUCT' && source !== 'ADMIN_GIFT' && source !== 'PURCHASE';
+};
+
+const isNormalBaanalingamOrder = (row: any) => {
+  if (isRewardOrder(row)) {
+    return false;
+  }
+  const type = String(row.orderType || '').toUpperCase();
+  const item = String(row.itemName || '').toLowerCase();
+  const number = String(row.orderNumber || '').toUpperCase();
+  return (
+    type === 'BANA_LINGAM' ||
+    number.startsWith('BL-') ||
+    item.includes('baanalingam') ||
+    item.includes('banalingam')
+  );
+};
+
 const mapOrderRow = (row: any) => {
   const orderNo = String(row.orderNumber || `#${row.id}`);
   return {
@@ -2328,6 +2361,13 @@ const mapOrderRow = (row: any) => {
     quantity: Number(row.quantity) || 1,
     remarks: row.remarks || '',
     createdAt: row.createdAt,
+    orderType: row.orderType || '',
+    orderSource: row.orderSource || '',
+    orderGroup: isRewardOrder(row)
+      ? 'reward'
+      : isNormalBaanalingamOrder(row)
+        ? 'normal'
+        : 'other',
   };
 };
 
@@ -2449,6 +2489,8 @@ router.get('/orders', async (_req: Request, res: Response) => {
       SELECT
         o.id,
         o.order_number AS orderNumber,
+        o.order_type AS orderType,
+        o.order_source AS orderSource,
         o.item_name AS itemName,
         o.quantity,
         o.payment_status AS paymentStatus,

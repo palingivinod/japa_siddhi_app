@@ -293,14 +293,9 @@ class AuthService {
         deviceOs: data.deviceOs,
         appVersion: data.appVersion,
         firebaseToken: data.firebaseToken,
-        profileCompleted: 1,
+        profileCompleted: 0,
         profilePhoto: decoded.picture || null,
       });
-
-      // Default country India for Google sign-up; devotee can change in profile.
-      await authRepository
-        .completeProfile(userId, profileFields({countryId: 1, fullName, email}))
-        .catch(() => undefined);
 
       user = await authRepository.findUserById(userId);
       if (!user) {
@@ -1000,6 +995,18 @@ class AuthService {
     }
 
     await authRepository.completeProfile(userId, profileFields(data));
+
+    const rawPhone = String(
+      (data as any).phoneNumber || (data as any).mobileNumber || '',
+    ).replace(/\D/g, '');
+    const mobile =
+      rawPhone.length > 10 ? rawPhone.slice(-10) : rawPhone;
+    const country =
+      String((data as any).mobileCountryCode || '').replace(/\D/g, '') ||
+      (rawPhone.length > 10 ? rawPhone.slice(0, rawPhone.length - 10) : '91');
+    if (mobile.length >= 6 && !/^0+$/.test(mobile)) {
+      await authRepository.updateMobileIfChanged(userId, country, mobile);
+    }
 
   }
 

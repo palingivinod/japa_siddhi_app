@@ -117,12 +117,18 @@ export type AdminBanner = {
 
 export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered';
 
+export type AdminOrderGroup = 'normal' | 'reward' | 'other';
+
 export type AdminOrder = {
   id: string;
   orderNo: string;
   product: string;
   customer: string;
   status: AdminOrderStatus;
+  orderGroup?: AdminOrderGroup;
+  orderType?: string;
+  orderSource?: string;
+  remarks?: string;
 };
 
 export type AdminPaymentRow = {

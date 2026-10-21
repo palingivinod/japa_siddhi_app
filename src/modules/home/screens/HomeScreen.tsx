@@ -484,19 +484,20 @@ const HomeScreen = () => {
       edges={['top', 'left', 'right']}
       {...tabSwipe.panHandlers}>
       <View style={styles.body}>
-        <TouchableOpacity
-          style={styles.shareCorner}
-          onPress={onShareApp}
-          hitSlop={{top: 8, bottom: 6, left: 6, right: 8}}
-          accessibilityRole="button"
-          accessibilityLabel={t('share')}>
-          <Text style={styles.shareMark}>↗</Text>
-          <Text style={styles.shareLabel}>{t('share')}</Text>
-        </TouchableOpacity>
         <AppHeader
           title="Japa Siddhi"
           subtitle="Unit of Bilva Patra Trust"
           showBell
+          leftAction={
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={onShareApp}
+              hitSlop={{top: 8, bottom: 8, left: 4, right: 8}}
+              accessibilityRole="button"
+              accessibilityLabel={t('share')}>
+              <Text style={styles.shareLabel}>↗ {t('share')}</Text>
+            </TouchableOpacity>
+          }
         />
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -766,24 +767,14 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
-  shareCorner: {
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: -8,
-    marginBottom: 2,
-  },
-  shareMark: {
-    fontSize: 12,
-    lineHeight: 14,
-    color: Colors.sacredBrown,
-    marginRight: 2,
+  shareBtn: {
+    justifyContent: 'center',
   },
   shareLabel: {
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 15,
+    lineHeight: 20,
     fontWeight: '700',
-    color: Colors.sacredBrown,
+    color: Colors.leafGreen,
   },
   body: {flex: 1, paddingHorizontal: 12},
   scrollContent: {paddingBottom: 40},

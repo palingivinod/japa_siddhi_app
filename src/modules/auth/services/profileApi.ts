@@ -196,12 +196,17 @@ class ProfileApi {
   }
 
   async completeProfile(data: CompleteProfileRequest) {
+    const phoneDigits = String(data.phoneNumber || '').replace(/\D/g, '');
     const response = await apiService.post('/auth/complete-profile', {
       fullName: data.fullName,
       email: data.email,
       gender: data.gender,
       dateOfBirth: data.dob,
       dob: data.dob,
+      phoneNumber: data.phoneNumber,
+      mobileNumber: phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits,
+      mobileCountryCode:
+        phoneDigits.length > 10 ? phoneDigits.slice(0, phoneDigits.length - 10) : '91',
       countryId: data.countryId,
       stateId: data.stateId || undefined,
       cityId: data.cityId || undefined,

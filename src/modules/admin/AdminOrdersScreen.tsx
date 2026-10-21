@@ -22,6 +22,47 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Delivered', label: 'Delivered'},
 ];
 
+const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
+  {id: 'normal', label: 'Normal'},
+  {id: 'reward', label: 'Rewards'},
+];
+
+const orderGroupOf = (row: {
+  orderGroup?: string;
+  orderNo?: string;
+  product?: string;
+  orderType?: string;
+  orderSource?: string;
+  remarks?: string;
+}): 'normal' | 'reward' | 'other' => {
+  if (row.orderGroup === 'reward' || row.orderGroup === 'normal' || row.orderGroup === 'other') {
+    return row.orderGroup;
+  }
+  const source = String(row.orderSource || '').toUpperCase();
+  const type = String(row.orderType || '').toUpperCase();
+  const number = String(row.orderNo || '').replace(/^#/, '').toUpperCase();
+  const remarks = String(row.remarks || '').toLowerCase();
+  const product = String(row.product || '').toLowerCase();
+  const reward =
+    source === 'CHALLENGE' ||
+    source === 'MILESTONE' ||
+    number.startsWith('RW') ||
+    remarks.includes('challenge reward') ||
+    remarks.includes('milestone reward');
+  if (reward) {
+    return 'reward';
+  }
+  if (
+    type === 'BANA_LINGAM' ||
+    number.startsWith('BL-') ||
+    product.includes('baanalingam') ||
+    product.includes('banalingam')
+  ) {
+    return 'normal';
+  }
+  return 'other';
+};
+
 const statusTone = (status: AdminOrder['status']) => {
   if (status === 'Under Review') {
     return {bg: '#FEF3C7', border: '#D97706', text: '#B45309'};
@@ -42,6 +83,7 @@ const AdminOrdersScreen = () => {
   const navigation = useNavigation<any>();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [tab, setTab] = useState('All');
+  const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -70,6 +112,10 @@ const AdminOrdersScreen = () => {
                   : row.status === 'Under Review'
                     ? 'Under Review'
                     : 'Processing',
+          orderGroup: orderGroupOf(row),
+          orderType: row.orderType || '',
+          orderSource: row.orderSource || '',
+          remarks: row.remarks || '',
         })),
       );
     } catch (err) {
@@ -101,21 +147,26 @@ const AdminOrdersScreen = () => {
     }
   };
 
+  const typedOrders = useMemo(
+    () => orders.filter(order => orderGroupOf(order) === orderType),
+    [orders, orderType],
+  );
+
   const orderCounts = useMemo(() => {
-    const total = orders.length;
-    const underReview = orders.filter(o => o.status === 'Under Review').length;
-    const confirmed = orders.filter(o => o.status === 'Confirmed').length;
-    const shipped = orders.filter(o => o.status === 'Shipped').length;
-    const delivered = orders.filter(o => o.status === 'Delivered').length;
+    const total = typedOrders.length;
+    const underReview = typedOrders.filter(o => o.status === 'Under Review').length;
+    const confirmed = typedOrders.filter(o => o.status === 'Confirmed').length;
+    const shipped = typedOrders.filter(o => o.status === 'Shipped').length;
+    const delivered = typedOrders.filter(o => o.status === 'Delivered').length;
     return {total, underReview, confirmed, shipped, delivered};
-  }, [orders]);
+  }, [typedOrders]);
 
   const visibleOrders = useMemo(() => {
     if (tab === 'All') {
-      return orders;
+      return typedOrders;
     }
-    return orders.filter(o => o.status === tab);
-  }, [orders, tab]);
+    return typedOrders.filter(o => o.status === tab);
+  }, [typedOrders, tab]);
 
   const tabCount = (tabId: string) => {
     if (tabId === 'All') return orderCounts.total;
@@ -173,6 +224,23 @@ const AdminOrdersScreen = () => {
         </View>
       </View>
 
+      <View style={styles.typeBar}>
+        {TYPE_FILTERS.map(item => (
+          <TouchableOpacity
+            key={item.id}
+            style={[styles.tabButton, orderType === item.id && styles.tabButtonActive]}
+            onPress={() => setOrderType(item.id)}>
+            <Text
+              style={[
+                styles.tabButtonText,
+                orderType === item.id && styles.tabButtonTextActive,
+              ]}>
+              {item.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
       <View style={styles.tabBar}>
         {TABS.map(item => {
           const count = tabCount(item.id);
@@ -206,7 +274,10 @@ const AdminOrdersScreen = () => {
       ) : null}
 
       {!loading && !error && visibleOrders.length === 0 ? (
-        <Text style={styles.empty}>No orders {tab !== 'All' ? `in ${tab}` : ''}.</Text>
+        <Text style={styles.empty}>
+          No {orderType === 'reward' ? 'reward' : 'normal'} orders
+          {tab !== 'All' ? ` in ${tab}` : ''}.
+        </Text>
       ) : null}
 
       {visibleOrders.map(order => {
@@ -352,6 +423,11 @@ const styles = StyleSheet.create({
     width: 1,
     height: 24,
     backgroundColor: '#E5D8C3',
+  },
+  typeBar: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
   },
   tabBar: {
     flexDirection: 'row',
