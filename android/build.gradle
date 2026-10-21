@@ -26,8 +26,8 @@ subprojects { subproject ->
     // Relocate outputs only on Windows (file locks) or when explicitly requested.
     // On Linux CI, default build dirs keep KSP/AGP paths stable.
     // Same drive as the repo. Cross-drive (C: LocalAppData) breaks codegen/bundle
-    // with "different roots". build-r5 avoids locked build-r4.
-    def winDefaultFile = file("${rootProject.projectDir}/build-r5")
+    // with "different roots". build-r7 avoids locked build-r6.
+    def winDefaultFile = file("${rootProject.projectDir}/build-r7")
     def altRaw = System.getenv("JAPA_ANDROID_BUILD_DIR")
     def altBuild = null
     if (altRaw != null && !altRaw.trim().isEmpty()) {

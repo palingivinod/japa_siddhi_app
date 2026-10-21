@@ -13,6 +13,7 @@ import Colors from '../../theme/colors';
 import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
+import PasswordField from '../common/PasswordField';
 import {
   getApiError,
   resetAdminPassword,
@@ -135,21 +136,19 @@ const AdminForgotPasswordScreen = () => {
             />
 
             <Text style={styles.label}>New password</Text>
-            <TextInput
+            <PasswordField
               style={styles.input}
               value={newPassword}
               onChangeText={setNewPassword}
-              secureTextEntry
               placeholder="New password"
               placeholderTextColor={Colors.placeholder}
             />
 
             <Text style={styles.label}>Confirm password</Text>
-            <TextInput
+            <PasswordField
               style={styles.input}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
-              secureTextEntry
               placeholder="Confirm password"
               placeholderTextColor={Colors.placeholder}
             />

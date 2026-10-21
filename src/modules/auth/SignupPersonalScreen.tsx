@@ -72,7 +72,7 @@ const SignupPersonalScreen = () => {
     return raw === '0000000000' ? '' : raw;
   });
   const [gender, setGender] = useState('Male');
-  const [dob, setDob] = useState('01/01/1995');
+  const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
@@ -140,6 +140,10 @@ const SignupPersonalScreen = () => {
         return;
       }
     }
+    if (!dob.trim()) {
+      Alert.alert(t('required'), t('enterDateOfBirth'));
+      return;
+    }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
       Alert.alert(t('required'), t('enterSpouseNameMarried'));
       return;
@@ -180,7 +184,7 @@ const SignupPersonalScreen = () => {
         onChangeText={setFullName}
         placeholderTextColor={Colors.placeholder}
       />
-      <Text style={styles.label}>{t('mobileNumber')}</Text>
+      <Text style={styles.label}>{t('mobileNumber')} *</Text>
       <View style={styles.mobileRow}>
         <TouchableOpacity
           style={styles.countryBtn}
@@ -244,7 +248,7 @@ const SignupPersonalScreen = () => {
         autoCapitalize="none"
         placeholderTextColor={Colors.placeholder}
       />
-      {renderDateField('dob', t('dateOfBirth'))}
+      {renderDateField('dob', `${t('dateOfBirth')} *`)}
       <Text style={styles.label}>{t('gender')}</Text>
       <View style={styles.chips}>
         {['Male', 'Female', 'Other'].map(item => (

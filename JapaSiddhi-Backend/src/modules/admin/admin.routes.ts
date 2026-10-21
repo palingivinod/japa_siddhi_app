@@ -839,8 +839,14 @@ const mapUserRow = (row: any) => {
     ? 'Blocked'
     : 'Active';
 
+  const idNum = Number(row.id) || 0;
+  const userCode =
+    String(row.userCode || row.user_code || '').trim() ||
+    (idNum > 0 ? `BPJS${String(idNum).padStart(2, '0')}` : '');
+
   return {
     id: String(row.id),
+    userCode,
     name: row.fullName || 'Devotee',
     email: row.email || '',
     mobile: country && mobile ? `+${country} ${mobile}` : mobile || '—',
@@ -849,19 +855,40 @@ const mapUserRow = (row: any) => {
     japaCount: num(row.japaCount),
     status,
     accountStatus: statusRaw,
+    enrolledOn: enrolledOnValue(row.enrolledOn || row.enrolled_on),
   };
 };
 
+const enrolledOnValue = (value: unknown) => {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const year = String(value.getFullYear());
+    const mm = String(value.getMonth() + 1).padStart(2, '0');
+    const dd = String(value.getDate()).padStart(2, '0');
+    return `${year}-${mm}-${dd}`;
+  }
+  const match = String(value || '').match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : '';
+};
+
+/** IST calendar day a user registered, returned as YYYY-MM-DD text. */
+const enrolledOnSql = (engine: string) =>
+  engine === 'mysql'
+    ? `DATE_FORMAT(DATE(DATE_ADD(u.created_at, INTERVAL 330 MINUTE)), '%Y-%m-%d')`
+    : `date(u.created_at, '+5 hours', '30 minutes')`;
+
 router.get('/users', async (_req: Request, res: Response) => {
   try {
+    const engine = mysql.getEngineName() || 'sqlite';
     const rows = await mysql.query<any[]>(`
       SELECT
         u.id,
+        u.user_code AS userCode,
         u.full_name AS fullName,
         u.email,
         u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS mobileNumber,
         u.account_status AS accountStatus,
+        ${enrolledOnSql(engine)} AS enrolledOn,
         IFNULL((
           SELECT SUM(js.session_count)
           FROM japa_sessions js
@@ -895,15 +922,18 @@ router.get('/users', async (_req: Request, res: Response) => {
 /** Soft-deleted accounts still keep japa history — admin can restore them. */
 router.get('/users-deleted', async (_req: Request, res: Response) => {
   try {
+    const engine = mysql.getEngineName() || 'sqlite';
     const rows = await mysql.query<any[]>(`
       SELECT
         u.id,
+        u.user_code AS userCode,
         u.full_name AS fullName,
         u.email,
         u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS mobileNumber,
         u.account_status AS accountStatus,
         u.deleted_at AS deletedAt,
+        ${enrolledOnSql(engine)} AS enrolledOn,
         IFNULL((
           SELECT SUM(js.session_count)
           FROM japa_sessions js
@@ -1024,6 +1054,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
     const rows = await mysql.query<any[]>(`
       SELECT
         u.id,
+        u.user_code AS userCode,
         u.full_name AS fullName,
         u.email,
         u.mobile_country_code AS mobileCountryCode,
@@ -2172,6 +2203,7 @@ router.post('/banners', async (req: Request, res: Response) => {
       imageUrl: req.body?.imageUrl,
       buttonText: req.body?.buttonText,
       status: req.body?.status || 'Active',
+      startsAt: req.body?.startsAt,
       translations: req.body?.translations,
     });
     try {
@@ -2213,6 +2245,7 @@ router.put('/banners/:id', async (req: Request, res: Response) => {
       imageUrl: req.body?.imageUrl,
       buttonText: req.body?.buttonText,
       status: req.body?.status,
+      startsAt: req.body?.startsAt,
       translations: req.body?.translations,
     });
     return res.json({
@@ -4004,19 +4037,31 @@ router.get('/feedback', async (req: Request, res: Response) => {
     const host = `${req.protocol}://${req.get('host')}`;
     return res.json({
       success: true,
-      data: (rows || []).map((row: any) => ({
-        id: String(row.id),
-        name:
-          String(row.userName || '').trim() || `User #${row.userId || '-'}`,
-        userId: row.userId || null,
-        mobileNumber: row.userMobile || '',
-        email: row.userEmail || '',
-        rating: `${Number(row.rating || 0)}★`,
-        comment: row.message || row.title || '',
-        videoUrl: row.videoUrl ? `${host}${row.videoUrl}` : null,
-        status: 'Pending',
-        createdAt: row.createdAt,
-      })),
+      data: (rows || []).map((row: any) => {
+        const idNum = Number(row.userId) || 0;
+        const country = String(row.mobileCountryCode || '').replace(/\D/g, '');
+        const mobile = String(row.userMobile || '').replace(/\D/g, '');
+        const userCode =
+          String(row.userCode || '').trim() ||
+          (idNum > 0 ? `BPJS${String(idNum).padStart(2, '0')}` : '');
+        return {
+          id: String(row.id),
+          name:
+            String(row.userName || '').trim() || `User #${row.userId || '-'}`,
+          userId: row.userId || null,
+          userCode,
+          mobileNumber:
+            country && mobile ? `+${country} ${mobile}` : mobile || '',
+          japaCount: num(row.japaCount),
+          email: row.userEmail || '',
+          rating:
+            Number(row.rating) > 0 ? `${Number(row.rating)}★` : '',
+          comment: row.message || row.title || '',
+          videoUrl: row.videoUrl ? `${host}${row.videoUrl}` : null,
+          status: 'Pending',
+          createdAt: row.createdAt,
+        };
+      }),
     });
   } catch (error: any) {
     return res.status(500).json({

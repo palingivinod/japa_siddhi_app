@@ -12,6 +12,7 @@ import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import PasswordField from '../common/PasswordField';
 import apiService, {getApiError} from '../../services/apiService';
 
 type Step = 'identifier' | 'otp';
@@ -160,25 +161,21 @@ const ForgotPasswordScreen = () => {
           />
 
           <Text style={styles.label}>{t('newPassword')}</Text>
-          <TextInput
+          <PasswordField
             style={styles.input}
             value={newPassword}
             onChangeText={setNewPassword}
-            secureTextEntry
             placeholder={t('newPassword')}
             placeholderTextColor={Colors.placeholder}
-            underlineColorAndroid="transparent"
           />
 
           <Text style={styles.label}>{t('confirmPassword')}</Text>
-          <TextInput
+          <PasswordField
             style={styles.input}
             value={confirmPassword}
             onChangeText={setConfirmPassword}
-            secureTextEntry
             placeholder={t('confirmPassword')}
             placeholderTextColor={Colors.placeholder}
-            underlineColorAndroid="transparent"
           />
 
           <PrimaryButton

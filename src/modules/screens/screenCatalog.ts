@@ -194,7 +194,6 @@ export const SCREEN_CATALOG: ScreenEntry[] = [
   {order: 59, name: 'Call Support', route: 'CallSupport'},
   {order: 60, name: 'FAQ', route: 'Faq'},
   {order: 61, name: 'Feedback Form', route: 'Feedback'},
-  {order: 62, name: 'Star Rating', route: 'StarRating'},
   {order: 63, name: 'Feedback Confirmation', route: 'FeedbackConfirmation'},
   {order: 64, name: 'All Screens Index', route: 'ScreenIndex'},
 ];

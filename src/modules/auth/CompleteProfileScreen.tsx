@@ -142,25 +142,38 @@ const CompleteProfileScreen = ({
     return dob < new Date();
   }, [dob]);
 
+  const isMobileValid = useMemo(() => {
+    const code =
+      selectedMobileCountry.callingCode.replace(/\D/g, '') ||
+      countryCode.replace(/\D/g, '') ||
+      '91';
+    const number = mobileNumber.replace(/\D/g, '');
+    if (!number || /^0+$/.test(number)) {
+      return false;
+    }
+    if (code === '91') {
+      return isMobile(number);
+    }
+    return number.length >= 6 && number.length <= 15;
+  }, [selectedMobileCountry, countryCode, mobileNumber]);
+
   const isFormValid = useMemo(() => {
     return (
       isNameValid &&
       isEmailValid &&
+      isMobileValid &&
       isDOBValid &&
       gender !== '' &&
       country !== null &&
-    
       acceptedTerms
     );
   }, [
     isNameValid,
     isEmailValid,
+    isMobileValid,
     isDOBValid,
     gender,
     country,
-    stateModel,
-    cityModel,
-    language,
     acceptedTerms,
   ]);
 
@@ -430,7 +443,7 @@ const CompleteProfileScreen = ({
           )}
 
         <Text style={styles.label}>
-          {t('mobileNumber')}
+          {t('mobileNumber')} *
         </Text>
 
         <View style={styles.mobileRow}>

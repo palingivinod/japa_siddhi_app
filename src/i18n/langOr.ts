@@ -436,7 +436,7 @@ export const or: TranslationDict = {
   comments: 'ମନ୍ତବ୍ୟ',
   tellUsMore: 'ଅଧିକ କୁହନ୍ତୁ',
   howWasExperience: 'ଆପଣଙ୍କ ଅଭିଜ୍ଞତା କିପରି ଥିଲା?',
-  continueToRating: 'ରେଟିଂକୁ ଜାରି ରଖନ୍ତୁ',
+  continueToRating: 'ଦାଖଲ କରନ୍ତୁ ଏବଂ ରେଟ୍ କରନ୍ତୁ',
   reportAnIssue: 'ସମସ୍ୟା ରିପୋର୍ଟ କରନ୍ତୁ',
   chatWithSupport: 'ସହାୟତା ସହିତ ଚାଟ୍ କରନ୍ତୁ',
   speakToUs: 'ଆମ ସହିତ କଥା ହୁଅନ୍ତୁ',

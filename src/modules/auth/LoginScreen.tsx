@@ -15,6 +15,7 @@ import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
 import {useBottomNavPad} from '../../utils/safeArea';
 import ContinueButton from './components/ContinueButton';
+import PasswordField from '../common/PasswordField';
 import AppHeader from '../common/AppHeader';
 import apiService from '../../services/apiService';
 import {
@@ -284,20 +285,19 @@ const LoginScreen = () => {
         });
       }
     } catch (error: any) {
-      const msg =
-        error?.response?.data?.message ||
-        error?.message ||
-        t('unableSendOtpRetry');
       if (otpChannel === 'phone') {
-        Alert.alert(t('otpFailed'), msg, [
+        setOtpChannel('email');
+        Alert.alert(t('otpFailed'), t('phoneOtpUnavailableTryEmail'), [
           {text: t('ok')},
-          {
-            text: t('email'),
-            onPress: () => setOtpChannel('email'),
-          },
+          {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
         ]);
       } else {
-        Alert.alert(t('otpFailed'), msg);
+        Alert.alert(
+          t('otpFailed'),
+          error?.response?.data?.message ||
+            error?.message ||
+            t('unableSendOtpRetry'),
+        );
       }
     } finally {
       setSubmitting(false);
@@ -385,14 +385,12 @@ const LoginScreen = () => {
                 />
 
                 <Text style={styles.label}>{t('password')}</Text>
-                <TextInput
+                <PasswordField
                   style={styles.emailInput}
                   value={password}
                   onChangeText={setPassword}
                   placeholder={t('enterPassword')}
                   placeholderTextColor={Colors.placeholder}
-                  secureTextEntry
-                  underlineColorAndroid="transparent"
                 />
 
                 <TouchableOpacity

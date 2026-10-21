@@ -35,12 +35,10 @@ const HomeBanner: React.FC<Props> = ({
         <View style={styles.buttonStack} pointerEvents="box-none">
           {secondaryButtonText ? (
             <TouchableOpacity
-              style={[styles.button, styles.buttonSmall]}
+              style={styles.button}
               activeOpacity={0.85}
               onPress={onSecondaryPress}>
-              <Text style={[styles.buttonText, styles.buttonTextSmall]}>
-                {secondaryButtonText}
-              </Text>
+              <Text style={styles.buttonText}>{secondaryButtonText}</Text>
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -78,34 +76,30 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    // Raised so Start Japa sits a bit higher on the hero.
-    paddingBottom: 28,
   },
   buttonStack: {
-    alignItems: 'center',
-    gap: 6,
+    position: 'absolute',
+    // Sits just under the gold lotus line beneath the Om.
+    top: '34%',
+    width: 196,
+    alignItems: 'stretch',
+    gap: 14,
   },
   button: {
     backgroundColor: Colors.cream,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: Colors.sacredBrown,
+    alignItems: 'center',
+    justifyContent: 'center',
     elevation: 4,
     shadowColor: '#000000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 3,
-  },
-  buttonSmall: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    elevation: 2,
   },
   buttonText: {
     color: Colors.sacredBrown,
@@ -114,9 +108,5 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     includeFontPadding: true,
     textAlign: 'center',
-  },
-  buttonTextSmall: {
-    fontSize: 11,
-    lineHeight: 16,
   },
 });

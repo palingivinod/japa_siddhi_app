@@ -254,12 +254,13 @@ const OtpScreen = ({route, navigation}: any) => {
       );
     } catch (error: any) {
       if (otpChannel === 'phone') {
-        Alert.alert(
-          t('otpFailed'),
-          error?.response?.data?.message ||
-            error?.message ||
-            t('phoneOtpUnavailableTryEmail'),
-        );
+        Alert.alert(t('otpFailed'), t('phoneOtpUnavailableTryEmail'), [
+          {text: t('ok')},
+          {
+            text: t('useEmailOtp'),
+            onPress: () => navigation.goBack(),
+          },
+        ]);
       } else {
         Alert.alert(
           t('errorTitle'),

@@ -20,7 +20,6 @@ const HomamEnrollScreen = () => {
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
   const [purpose, setPurpose] = useState('');
-  const [submitting, setSubmitting] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,15 +95,29 @@ const HomamEnrollScreen = () => {
       return;
     }
 
-    try {
-      setSubmitting(true);
-      await Linking.openURL(PAYMENTS_URL);
-    } catch {
-      Alert.alert('Payment', 'Could not open payments page.');
-    } finally {
-      setSubmitting(false);
-    }
+    Alert.alert(
+      t('requestSubmittedTitle'),
+      t('requestSubmittedMessage'),
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            Linking.openURL(PAYMENTS_URL).catch(() => {
+              Alert.alert('Payment', 'Could not open payments page.');
+            });
+          },
+        },
+      ],
+      {cancelable: false},
+    );
   };
+
+  const detailsReady =
+    fullName.trim().length > 0 &&
+    isMobile(digitsOnly(mobile)) &&
+    gothram.trim().length > 0 &&
+    nakshatram.trim().length > 0 &&
+    purpose.trim().length > 0;
 
   return (
     <ScreenLayout title="Homam Enrollment" showBack tab="SevaHub">
@@ -143,9 +156,9 @@ const HomamEnrollScreen = () => {
         onChangeText={setPurpose}
       />
       <PrimaryButton
-        title="CONTINUE TO PAYMENT"
+        title={detailsReady ? 'CONTINUE TO PAYMENT' : 'ENTER REQUIRED DETAILS'}
         onPress={continuePay}
-        disabled={submitting}
+        disabled={!detailsReady}
       />
     </ScreenLayout>
   );

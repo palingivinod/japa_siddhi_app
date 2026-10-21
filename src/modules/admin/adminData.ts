@@ -2,6 +2,7 @@ export type AdminUserStatus = 'Active' | 'Blocked';
 
 export type AdminUser = {
   id: string;
+  userCode?: string;
   name: string;
   japaCount: number;
   status: AdminUserStatus;
@@ -9,6 +10,8 @@ export type AdminUser = {
   email?: string;
   mobileCountryCode?: string;
   mobileNumber?: string;
+  /** Registration day in IST, YYYY-MM-DD. */
+  enrolledOn?: string;
 };
 
 export type AdminMantra = {
@@ -109,6 +112,7 @@ export type AdminBanner = {
   title: string;
   module: string;
   status: AdminBannerStatus;
+  startsAt?: string;
 };
 
 export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered';
@@ -186,7 +190,10 @@ export type AdminTicket = {
 export type AdminFeedback = {
   id: string;
   name: string;
+  userId?: string;
+  userCode?: string;
   mobileNumber?: string;
+  japaCount?: number;
   rating: string;
   comment: string;
   videoUrl?: string | null;

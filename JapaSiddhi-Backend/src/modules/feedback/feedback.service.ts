@@ -47,7 +47,7 @@ class FeedbackService {
         `Email: ${devotee.email}`,
         `Mobile: ${devotee.mobile}`,
         `Title: ${data.title}`,
-        `Rating: ${data.rating}`,
+        ...(data.rating > 0 ? [`Rating: ${data.rating}`] : []),
         `Message: ${data.message}`,
         `Video: ${videoLink}`,
         `Feedback ID: ${id}`,

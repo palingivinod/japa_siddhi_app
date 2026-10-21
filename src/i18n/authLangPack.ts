@@ -6,6 +6,8 @@ type AuthPack = Partial<Record<TranslationKey, string>>;
 export const authLangPack: Record<string, AuthPack> = {
   hi: {
     loginWith: 'लॉगिन करें',
+    showPassword: 'दिखाएँ',
+    hidePassword: 'छिपाएँ',
     loginMethodPassword: 'पासवर्ड',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ईमेल / मोबाइल नंबर',
@@ -161,6 +163,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   te: {
     loginWith: 'లాగిన్ చేయండి',
+    showPassword: 'చూపు',
+    hidePassword: 'దాచు',
     loginMethodPassword: 'పాస్‌వర్డ్',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ఇమెయిల్ / మొబైల్ నంబర్',
@@ -318,6 +322,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   kn: {
     loginWith: 'ಲಾಗಿನ್ ಮಾಡಿ',
+    showPassword: 'ತೋರಿಸಿ',
+    hidePassword: 'ಮರೆಮಾಚಿ',
     loginMethodPassword: 'ಪಾಸ್‌ವರ್ಡ್',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ಇಮೇಲ್ / ಮೊಬೈಲ್ ಸಂಖ್ಯೆ',
@@ -474,6 +480,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   ta: {
     loginWith: 'உள்நுழைக',
+    showPassword: 'காட்டு',
+    hidePassword: 'மறை',
     loginMethodPassword: 'கடவுச்சொல்',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'மின்னஞ்சல் / மொபைல் எண்',
@@ -636,6 +644,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   ml: {
     loginWith: 'ലോഗിൻ ചെയ്യുക',
+    showPassword: 'കാണിക്കുക',
+    hidePassword: 'മറയ്ക്കുക',
     loginMethodPassword: 'പാസ്‌വേഡ്',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ഇമെയിൽ / മൊബൈൽ നമ്പർ',
@@ -794,6 +804,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   mr: {
     loginWith: 'लॉगिन करा',
+    showPassword: 'दाखवा',
+    hidePassword: 'लपवा',
     loginMethodPassword: 'पासवर्ड',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ईमेल / मोबाइल क्रमांक',
@@ -950,6 +962,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   bn: {
     loginWith: 'লগইন করুন',
+    showPassword: 'দেখান',
+    hidePassword: 'লুকান',
     loginMethodPassword: 'পাসওয়ার্ড',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ইমেইল / মোবাইল নম্বর',
@@ -1106,6 +1120,8 @@ export const authLangPack: Record<string, AuthPack> = {
   },
   or: {
     loginWith: 'ଲଗଇନ୍ କରନ୍ତୁ',
+    showPassword: 'ଦେଖାନ୍ତୁ',
+    hidePassword: 'ଲୁଚାନ୍ତୁ',
     loginMethodPassword: 'ପାସୱାର୍ଡ',
     loginMethodOtp: 'OTP',
     emailOrMobile: 'ଇମେଲ୍ / ମୋବାଇଲ୍ ନମ୍ବର',

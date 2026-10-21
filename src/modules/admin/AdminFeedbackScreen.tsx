@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
@@ -16,6 +16,7 @@ import AdminScreenLayout from './AdminScreenLayout';
 import {AdminFeedback} from './adminData';
 
 const AdminFeedbackScreen = () => {
+  const navigation = useNavigation<any>();
   const [items, setItems] = useState<AdminFeedback[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,7 +31,10 @@ const AdminFeedbackScreen = () => {
         rows.map((row: any) => ({
           id: String(row.id),
           name: row.name || `Feedback #${row.id}`,
+          userId: row.userId ? String(row.userId) : '',
+          userCode: String(row.userCode || '').trim(),
           mobileNumber: row.mobileNumber || '',
+          japaCount: Number(row.japaCount) || 0,
           rating: row.rating || '',
           comment: row.comment || '',
           videoUrl: row.videoUrl || null,
@@ -72,12 +76,29 @@ const AdminFeedbackScreen = () => {
 
       {items.map(item => (
         <View key={item.id} style={styles.card}>
-          <Text style={styles.name}>{item.name}</Text>
+          <TouchableOpacity
+            onPress={() =>
+              navigation.navigate('AdminFeedbackDetails', {
+                feedbackId: item.id,
+                userId: item.userId,
+                name: item.name,
+                userCode: item.userCode,
+                mobileNumber: item.mobileNumber,
+                japaCount: item.japaCount,
+                rating: item.rating,
+                comment: item.comment,
+                videoUrl: item.videoUrl,
+              })
+            }
+            activeOpacity={0.7}>
+            <Text style={styles.name}>{item.name}</Text>
+          </TouchableOpacity>
           {item.mobileNumber ? (
             <Text style={styles.contact}>{item.mobileNumber}</Text>
           ) : null}
           <Text style={styles.meta}>
-            {item.rating} • {item.comment}
+            {item.rating ? `${item.rating} • ` : ''}
+            {item.comment}
           </Text>
           {item.videoUrl ? (
             <TouchableOpacity

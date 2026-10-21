@@ -104,8 +104,23 @@ class FeedbackRepository {
         f.video_url AS videoUrl,
         f.created_at AS createdAt,
         u.full_name AS userName,
+        u.user_code AS userCode,
+        u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS userMobile,
-        u.email AS userEmail
+        u.email AS userEmail,
+        IFNULL((
+          SELECT SUM(js.session_count)
+          FROM japa_sessions js
+          WHERE js.user_id = f.user_id
+            AND (
+              js.remarks IS NULL
+              OR TRIM(js.remarks) = ''
+              OR (
+                lower(js.remarks) NOT LIKE 'challenge%'
+                AND lower(js.remarks) NOT LIKE '%challenge japa%'
+              )
+            )
+        ), 0) AS japaCount
       FROM feedback f
       LEFT JOIN users u ON u.id = f.user_id
       ORDER BY f.created_at DESC

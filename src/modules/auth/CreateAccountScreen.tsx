@@ -14,6 +14,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import PasswordField from '../common/PasswordField';
 import apiService from '../../services/apiService';
 import {clearSession} from '../../services/session';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
@@ -120,12 +121,24 @@ const CreateAccountScreen = () => {
           (otpChannel === 'phone' ? phoneE164 : trimmedEmail),
       });
     } catch (error: any) {
-      Alert.alert(
-        t('createAccountAlertTitle'),
-        error?.response?.data?.message ||
-          error?.message ||
-          t('unableSendOtpRetry'),
-      );
+      if (otpChannel === 'phone') {
+        setOtpChannel('email');
+        Alert.alert(
+          t('createAccountAlertTitle'),
+          t('phoneOtpUnavailableTryEmail'),
+          [
+            {text: t('ok')},
+            {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
+          ],
+        );
+      } else {
+        Alert.alert(
+          t('createAccountAlertTitle'),
+          error?.response?.data?.message ||
+            error?.message ||
+            t('unableSendOtpRetry'),
+        );
+      }
     } finally {
       setSubmitting(false);
     }
@@ -177,28 +190,24 @@ const CreateAccountScreen = () => {
       />
 
       <Text style={styles.label}>{t('password')}</Text>
-      <TextInput
+      <PasswordField
         style={styles.input}
         value={password}
         onChangeText={setPassword}
         placeholder={t('passwordMinPlaceholder')}
         placeholderTextColor={Colors.placeholder}
-        secureTextEntry
-        underlineColorAndroid="transparent"
       />
 
       <Text style={styles.label}>{t('confirmPassword')}</Text>
-      <TextInput
+      <PasswordField
         style={styles.input}
         value={confirmPassword}
         onChangeText={setConfirmPassword}
         placeholder={t('reenterPassword')}
         placeholderTextColor={Colors.placeholder}
-        secureTextEntry
-        underlineColorAndroid="transparent"
       />
 
-      <Text style={styles.label}>{t('mobileNumber')}</Text>
+      <Text style={styles.label}>{t('mobileNumber')} *</Text>
       <View style={styles.mobileRow}>
         <TouchableOpacity
           style={styles.countryBtn}

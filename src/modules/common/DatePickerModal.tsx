@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {
   Keyboard,
   Modal,
@@ -30,6 +30,14 @@ interface Props {
  * its own calendar / clock dialog. Light theme is forced because the
  * surrounding cards are always light.
  */
+/** Android calendar defaults to 1900 when no minimum is set. */
+const earliestSelectableDate = (): Date => {
+  const date = new Date(0);
+  date.setFullYear(1, 0, 1);
+  date.setHours(0, 0, 0, 0);
+  return date;
+};
+
 const DatePickerModal: React.FC<Props> = ({
   visible,
   value,
@@ -40,6 +48,11 @@ const DatePickerModal: React.FC<Props> = ({
   onConfirm,
 }) => {
   const [draft, setDraft] = useState(value);
+  const resolvedMinimum = useMemo(
+    () =>
+      minimumDate ?? (mode === 'date' ? earliestSelectableDate() : undefined),
+    [minimumDate, mode],
+  );
 
   useEffect(() => {
     if (visible) {
@@ -59,7 +72,7 @@ const DatePickerModal: React.FC<Props> = ({
         value={value}
         mode={mode}
         display={mode === 'date' ? 'calendar' : 'default'}
-        minimumDate={minimumDate}
+        minimumDate={resolvedMinimum}
         maximumDate={maximumDate}
         onChange={(event: DateTimePickerEvent, selected?: Date) => {
           if (event.type === 'set' && selected) {
@@ -95,7 +108,7 @@ const DatePickerModal: React.FC<Props> = ({
             display="spinner"
             themeVariant="light"
             textColor={Colors.sacredBrown}
-            minimumDate={minimumDate}
+            minimumDate={resolvedMinimum}
             maximumDate={maximumDate}
             style={styles.picker}
             onChange={(_event: DateTimePickerEvent, selected?: Date) => {

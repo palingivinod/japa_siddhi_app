@@ -25,7 +25,7 @@ const BanaLingamReviewScreen = () => {
     setSaving(true);
     try {
       await saveDeliveryAddress(address);
-      const response = await apiService.post('/donations/checkout', {
+      await apiService.post('/donations/checkout', {
         kind: 'BANA_LINGAM',
         fullName: params.fullName,
         mobile: params.mobile,
@@ -34,11 +34,17 @@ const BanaLingamReviewScreen = () => {
         gothram: params.gothram,
         remarks: 'Baanalingam application',
       });
-      const data = response.data.data || {};
-      navigation.replace('PaymentConfirmation', {
-        ...data,
-        itemName: 'Baanalingam',
-      });
+      Alert.alert(
+        'Request submitted',
+        'Your request is submitted. We will contact you soon.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Orders'),
+          },
+        ],
+        {cancelable: false},
+      );
     } catch (error) {
       Alert.alert('Application', getApiError(error, 'Could not submit this application.'));
     } finally {

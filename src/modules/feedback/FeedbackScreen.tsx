@@ -1,19 +1,30 @@
 import React, {useState} from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {Alert, Linking, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
+import {PLAYSTORE_URL} from '../../constants/app';
+import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {pickFeedbackVideo, type PickedMedia} from '../../services/mediaPick';
 
+const PLAY_STORE_APP = 'market://details?id=com.japasiddhi';
+
+const openPlayStoreRating = async () => {
+  try {
+    await Linking.openURL(PLAY_STORE_APP);
+  } catch {
+    await Linking.openURL(PLAYSTORE_URL);
+  }
+};
+
 const FeedbackScreen = () => {
-  const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [message, setMessage] = useState('');
   const [video, setVideo] = useState<PickedMedia | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const chooseVideo = async () => {
     try {
@@ -31,6 +42,38 @@ const FeedbackScreen = () => {
         return;
       }
       Alert.alert('Feedback video', 'Could not pick a video. Please try again.');
+    }
+  };
+
+  const submitAndRate = async () => {
+    if (saving) {
+      return;
+    }
+    const text = message.trim();
+    if (!text && !video) {
+      Alert.alert('Feedback', 'Add a comment or a video, then submit.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      formData.append('title', 'App feedback');
+      formData.append('message', text || 'Video attached');
+      if (video?.uri) {
+        formData.append('video', {
+          uri: video.uri,
+          type: video.type || 'video/mp4',
+          name: video.fileName || 'feedback.mp4',
+        } as any);
+      }
+      await apiService.post('/feedback', formData);
+      setMessage('');
+      setVideo(null);
+      await openPlayStoreRating();
+    } catch (error) {
+      Alert.alert('Feedback', getApiError(error, 'Could not send feedback.'));
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -66,13 +109,9 @@ const FeedbackScreen = () => {
       )}
 
       <PrimaryButton
-        title={t('continueToRating')}
-        onPress={() =>
-          navigation.navigate('StarRating', {
-            message,
-            video,
-          })
-        }
+        title={saving ? t('submittingTicket') : t('continueToRating')}
+        onPress={submitAndRate}
+        disabled={saving}
       />
     </ScreenLayout>
   );

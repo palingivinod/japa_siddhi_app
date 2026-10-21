@@ -434,7 +434,7 @@ export const bn: TranslationDict = {
   comments: 'মন্তব্য',
   tellUsMore: 'আরও বলুন',
   howWasExperience: 'আপনার অভিজ্ঞতা কেমন ছিল?',
-  continueToRating: 'রেটিংয়ে চালিয়ে যান',
+  continueToRating: 'জমা দিন এবং রেট করুন',
   reportAnIssue: 'সমস্যা রিপোর্ট করুন',
   chatWithSupport: 'সহায়তার সাথে চ্যাট করুন',
   speakToUs: 'আমাদের সাথে কথা বলুন',

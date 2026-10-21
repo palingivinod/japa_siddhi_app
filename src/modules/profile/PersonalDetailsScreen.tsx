@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
@@ -22,6 +23,8 @@ import CitySelector from '../auth/components/CitySelector';
 import LanguageSelector from '../auth/components/LanguageSelector';
 import ProfileApi from '../auth/services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
+import DatePickerModal from '../common/DatePickerModal';
+import {isMobile, MOBILE_DIGITS} from '../../utils/validators';
 
 interface StateModel {
   id: number;
@@ -54,6 +57,8 @@ const PersonalDetailsScreen = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [showDobPicker, setShowDobPicker] = useState(false);
   const [gender, setGender] = useState('');
   const [address, setAddress] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Bachelor' | 'Married'>(
@@ -73,6 +78,9 @@ const PersonalDetailsScreen = () => {
     setFullName(data.fullName || '');
     setEmail(data.email || '');
     setMobileNumber(data.mobileNumber || '');
+    setDateOfBirth(
+      String(data.dateOfBirth || data.dob || '').slice(0, 10),
+    );
     setGender(data.gender || '');
     setAddress(data.address || '');
     setMaritalStatus(
@@ -135,6 +143,19 @@ const PersonalDetailsScreen = () => {
   };
 
   const savePersonal = async () => {
+    const mobile = mobileNumber.replace(/\D/g, '');
+    if (
+      !mobile ||
+      /^0+$/.test(mobile) ||
+      (mobile.length === MOBILE_DIGITS ? !isMobile(mobile) : mobile.length < 6)
+    ) {
+      Alert.alert(t('required'), t('enterValidMobileNumber'));
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+      Alert.alert(t('required'), t('enterDateOfBirth'));
+      return;
+    }
     if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
       Alert.alert('Validation', 'Spouse name is required for married devotees.');
       return;
@@ -155,7 +176,8 @@ const PersonalDetailsScreen = () => {
       }
 
       const updated = await ProfileApi.updateProfile({
-        mobileNumber: mobileNumber.trim() || undefined,
+        mobileNumber: mobile,
+        dateOfBirth,
         gender: gender || undefined,
         countryId,
         stateId: stateModel?.id ? Number(stateModel.id) : undefined,
@@ -220,6 +242,7 @@ const PersonalDetailsScreen = () => {
         {userCode ? <Row label={t('userId')} value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
+        <Row label={t('dateOfBirth')} value={dateOfBirth} />
         <Row label="Email" value={email} />
         <Row label="Gender" value={gender} />
         <Row label="Location" value={location} />
@@ -262,13 +285,42 @@ const PersonalDetailsScreen = () => {
         autoCapitalize="none"
       />
 
-      <Text style={styles.label}>{t('mobile')}</Text>
+      <Text style={styles.label}>{t('mobile')} *</Text>
       <TextInput
         style={styles.input}
         value={mobileNumber}
         onChangeText={setMobileNumber}
         keyboardType="phone-pad"
         placeholder={t('placeholderMobile')}
+      />
+
+      <Text style={styles.label}>{t('dateOfBirth')} *</Text>
+      <TouchableOpacity
+        style={styles.input}
+        onPress={() => setShowDobPicker(true)}>
+        <Text style={dateOfBirth ? styles.rowValue : styles.placeholder}>
+          {dateOfBirth || t('selectDate')}
+        </Text>
+      </TouchableOpacity>
+      <DatePickerModal
+        visible={showDobPicker}
+        value={
+          /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)
+            ? new Date(
+                Number(dateOfBirth.slice(0, 4)),
+                Number(dateOfBirth.slice(5, 7)) - 1,
+                Number(dateOfBirth.slice(8, 10)),
+              )
+            : new Date(1995, 0, 1)
+        }
+        maximumDate={new Date()}
+        onCancel={() => setShowDobPicker(false)}
+        onConfirm={selected => {
+          const month = String(selected.getMonth() + 1).padStart(2, '0');
+          const day = String(selected.getDate()).padStart(2, '0');
+          setDateOfBirth(`${selected.getFullYear()}-${month}-${day}`);
+          setShowDobPicker(false);
+        }}
       />
 
       <Text style={styles.label}>{t('gender')}</Text>
@@ -402,6 +454,11 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     marginTop: 8,
     paddingBottom: 2,
+  },
+  placeholder: {
+    color: Colors.placeholder,
+    fontSize: 16,
+    fontWeight: '600',
   },
   input: {
     backgroundColor: Colors.white,

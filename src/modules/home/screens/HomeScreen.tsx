@@ -1,12 +1,15 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
+  Platform,
   RefreshControl,
   ScrollView,
+  Share,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -24,6 +27,7 @@ import {useTabSwipe} from '../../../navigation/useTabSwipe';
 import {getLastChantedJapa, getStoredUser} from '../../../services/session';
 import {getJapaDraft} from '../../../services/japaDraft';
 import Colors from '../../../theme/colors';
+import {PLAYSTORE_URL} from '../../../constants/app';
 import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
 import MilestoneProgressCard from '../../common/MilestoneProgressCard';
@@ -450,6 +454,20 @@ const HomeScreen = () => {
     navigation.navigate('YourJapas');
   };
 
+  const onShareApp = async () => {
+    Clipboard.setString(PLAYSTORE_URL);
+    const message = `Japa Siddhi\n${PLAYSTORE_URL}`;
+    try {
+      await Share.share(
+        Platform.OS === 'ios'
+          ? {url: PLAYSTORE_URL, message: 'Japa Siddhi'}
+          : {title: 'Japa Siddhi', message},
+      );
+    } catch {
+      // The link is already on the clipboard.
+    }
+  };
+
   const showJapaAnnadanam =
     annadanamVisibility.japa && lifetime >= 10000;
   const visibleTiles = tiles.filter(item => {
@@ -466,6 +484,15 @@ const HomeScreen = () => {
       edges={['top', 'left', 'right']}
       {...tabSwipe.panHandlers}>
       <View style={styles.body}>
+        <TouchableOpacity
+          style={styles.shareCorner}
+          onPress={onShareApp}
+          hitSlop={{top: 8, bottom: 6, left: 6, right: 8}}
+          accessibilityRole="button"
+          accessibilityLabel={t('share')}>
+          <Text style={styles.shareMark}>↗</Text>
+          <Text style={styles.shareLabel}>{t('share')}</Text>
+        </TouchableOpacity>
         <AppHeader
           title="Japa Siddhi"
           subtitle="Unit of Bilva Patra Trust"
@@ -739,6 +766,25 @@ export default HomeScreen;
 
 const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
+  shareCorner: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: -8,
+    marginBottom: 2,
+  },
+  shareMark: {
+    fontSize: 12,
+    lineHeight: 14,
+    color: Colors.sacredBrown,
+    marginRight: 2,
+  },
+  shareLabel: {
+    fontSize: 11,
+    lineHeight: 14,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
   body: {flex: 1, paddingHorizontal: 12},
   scrollContent: {paddingBottom: 40},
   greet: {

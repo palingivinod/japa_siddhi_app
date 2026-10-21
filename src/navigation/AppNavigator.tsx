@@ -85,7 +85,6 @@ import CallSupportScreen from '../modules/customerCare/CallSupportScreen';
 import FaqScreen from '../modules/customerCare/FaqScreen';
 import NotificationsScreen from '../modules/notifications/NotificationsScreen';
 import FeedbackScreen from '../modules/feedback/FeedbackScreen';
-import StarRatingScreen from '../modules/feedback/StarRatingScreen';
 import FeedbackConfirmationScreen from '../modules/feedback/FeedbackConfirmationScreen';
 import PrivacyPolicyScreen from '../modules/legal/PrivacyPolicyScreen';
 import DesignSystemScreen from '../modules/screens/DesignSystemScreen';
@@ -119,6 +118,7 @@ import AdminBaanalingamScreen from '../modules/admin/AdminBaanalingamScreen';
 import AdminNithyaHomamScreen from '../modules/admin/AdminNithyaHomamScreen';
 import AdminSupportScreen from '../modules/admin/AdminSupportScreen';
 import AdminFeedbackScreen from '../modules/admin/AdminFeedbackScreen';
+import AdminFeedbackDetailsScreen from '../modules/admin/AdminFeedbackDetailsScreen';
 import AdminAnalyticsDashboardScreen from '../modules/admin/AdminAnalyticsDashboardScreen';
 import AdminUserDemographicsScreen from '../modules/admin/AdminUserDemographicsScreen';
 import AdminJapaAnalyticsScreen from '../modules/admin/AdminJapaAnalyticsScreen';
@@ -293,7 +293,6 @@ export type RootStackParamList = {
   Faq: undefined;
   Notifications: undefined;
   Feedback: undefined;
-  StarRating: {message?: string} | undefined;
   FeedbackConfirmation: undefined;
   PrivacyPolicy: undefined;
   DesignSystem: undefined;
@@ -344,6 +343,19 @@ export type RootStackParamList = {
   AdminNithyaHomam: undefined;
   AdminSupport: undefined;
   AdminFeedback: undefined;
+  AdminFeedbackDetails:
+    | {
+        feedbackId?: string;
+        userId?: string;
+        name?: string;
+        userCode?: string;
+        mobileNumber?: string;
+        japaCount?: number;
+        rating?: string;
+        comment?: string;
+        videoUrl?: string | null;
+      }
+    | undefined;
   AdminAnalyticsDashboard: undefined;
   AdminUserDemographics: undefined;
   AdminJapaAnalytics: undefined;
@@ -428,7 +440,6 @@ const ProtectedCallSupport = withAuth(CallSupportScreen);
 const ProtectedFaq = withAuth(FaqScreen);
 const ProtectedNotifications = withAuth(NotificationsScreen);
 const ProtectedFeedback = withAuth(FeedbackScreen);
-const ProtectedStarRating = withAuth(StarRatingScreen);
 const ProtectedFeedbackConfirmation = withAuth(FeedbackConfirmationScreen);
 const ProtectedDesignSystem = withAuth(DesignSystemScreen);
 const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
@@ -461,6 +472,7 @@ const ProtectedAdminBaanalingam = withAdminAuth(AdminBaanalingamScreen);
 const ProtectedAdminNithyaHomam = withAdminAuth(AdminNithyaHomamScreen);
 const ProtectedAdminSupport = withAdminAuth(AdminSupportScreen);
 const ProtectedAdminFeedback = withAdminAuth(AdminFeedbackScreen);
+const ProtectedAdminFeedbackDetails = withAdminAuth(AdminFeedbackDetailsScreen);
 const ProtectedAdminAnalyticsDashboard = withAdminAuth(AdminAnalyticsDashboardScreen);
 const ProtectedAdminUserDemographics = withAdminAuth(AdminUserDemographicsScreen);
 const ProtectedAdminJapaAnalytics = withAdminAuth(AdminJapaAnalyticsScreen);
@@ -672,7 +684,6 @@ const AppNavigator = () => {
         <Stack.Screen name="Faq" component={ProtectedFaq} />
         <Stack.Screen name="Notifications" component={ProtectedNotifications} />
         <Stack.Screen name="Feedback" component={ProtectedFeedback} />
-        <Stack.Screen name="StarRating" component={ProtectedStarRating} />
         <Stack.Screen
           name="FeedbackConfirmation"
           component={ProtectedFeedbackConfirmation}
@@ -745,6 +756,10 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="AdminSupport" component={ProtectedAdminSupport} />
         <Stack.Screen name="AdminFeedback" component={ProtectedAdminFeedback} />
+        <Stack.Screen
+          name="AdminFeedbackDetails"
+          component={ProtectedAdminFeedbackDetails}
+        />
         <Stack.Screen
           name="AdminAnalyticsDashboard"
           component={ProtectedAdminAnalyticsDashboard}

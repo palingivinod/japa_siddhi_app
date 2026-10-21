@@ -14,6 +14,7 @@ import Colors from '../../theme/colors';
 import {useBottomNavPad} from '../../utils/safeArea';
 import AppHeader from '../common/AppHeader';
 import PrimaryButton from '../common/PrimaryButton';
+import PasswordField from '../common/PasswordField';
 import {saveAdminSession} from './adminSession';
 import {resetAdminAuthGate} from './AdminAuthGate';
 import {getApiError, verifyAdminCredentials} from './adminCredentials';
@@ -81,13 +82,12 @@ const AdminLoginScreen = () => {
         />
 
         <Text style={styles.label}>Password</Text>
-        <TextInput
+        <PasswordField
           style={styles.input}
           value={password}
           onChangeText={setPassword}
           placeholder="Enter here"
           placeholderTextColor={Colors.placeholder}
-          secureTextEntry
         />
 
         <TouchableOpacity

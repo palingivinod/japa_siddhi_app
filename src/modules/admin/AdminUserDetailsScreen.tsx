@@ -33,8 +33,12 @@ const AdminUserDetailsScreen = () => {
     try {
       const response = await apiService.get(`/admin/users/${userId}`);
       const data = response.data?.data;
+      const id = String(data.id);
       setUser({
-        id: String(data.id),
+        id,
+        userCode:
+          String(data.userCode || '').trim() ||
+          `BPJS${id.padStart(2, '0')}`,
         name: data.name || 'Devotee',
         japaCount: Number(data.japaCount) || 0,
         status: data.status === 'Blocked' ? 'Blocked' : 'Active',
@@ -81,6 +85,7 @@ const AdminUserDetailsScreen = () => {
 
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Profile</Text>
+            <Text style={styles.row}>User ID: {user.userCode || user.id}</Text>
             <Text style={styles.row}>Mobile: {user.mobile}</Text>
             {user.email ? (
               <Text style={styles.row}>Email: {user.email}</Text>

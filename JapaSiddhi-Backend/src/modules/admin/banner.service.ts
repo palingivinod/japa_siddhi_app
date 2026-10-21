@@ -49,6 +49,13 @@ const ensureBannersTable = async () => {
     } catch {
       // column already exists
     }
+    try {
+      await mysql.query(
+        `ALTER TABLE app_banners ADD COLUMN starts_at VARCHAR(40) NULL`,
+      );
+    } catch {
+      // column already exists
+    }
   } else {
     await mysql.query(`
       CREATE TABLE IF NOT EXISTS app_banners (
@@ -68,6 +75,13 @@ const ensureBannersTable = async () => {
     try {
       await mysql.query(
         `ALTER TABLE app_banners ADD COLUMN translations TEXT`,
+      );
+    } catch {
+      // column already exists
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE app_banners ADD COLUMN starts_at TEXT`,
       );
     } catch {
       // column already exists
@@ -123,6 +137,31 @@ const ensureBannersTable = async () => {
   tableReady = true;
 };
 
+/** Naive datetimes are treated as India Standard Time (UTC+05:30). */
+const parseIstMillis = (value: unknown): number | null => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+  const withOffset = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw)
+    ? raw
+    : `${raw.includes('T') ? raw : raw.replace(' ', 'T')}+05:30`;
+  const ms = Date.parse(withOffset);
+  return Number.isNaN(ms) ? null : ms;
+};
+
+const isLiveForUsers = (row: any) => {
+  const status = String(row.status || 'Active');
+  if (status === 'Blocked') {
+    return false;
+  }
+  const starts = parseIstMillis(row.startsAt || row.starts_at);
+  if (starts == null) {
+    return status === 'Active';
+  }
+  return Date.now() >= starts;
+};
+
 const localizeBanner = (row: any, lang?: string) => {
   const statusRaw = String(row.status || 'Active');
   const status: BannerStatus =
@@ -143,6 +182,7 @@ const localizeBanner = (row: any, lang?: string) => {
     buttonText: row.buttonText || row.button_text || 'Explore',
     status,
     sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
+    startsAt: String(row.startsAt || row.starts_at || ''),
     translations,
   };
 };
@@ -164,12 +204,13 @@ export const listBanners = async (
       button_text AS buttonText,
       status,
       sort_order AS sortOrder,
+      starts_at AS startsAt,
       translations
     FROM app_banners
     WHERE 1 = 1
   `;
   if (onlyActive) {
-    sql += ` AND status = 'Active'`;
+    sql += ` AND status != 'Blocked'`;
   }
   if (moduleName) {
     sql += ` AND LOWER(module_name) = LOWER(?)`;
@@ -177,7 +218,13 @@ export const listBanners = async (
   }
   sql += ` ORDER BY sort_order ASC, id DESC`;
   const rows = await mysql.query<any[]>(sql, params);
-  return (rows || []).map(row => localizeBanner(row, lang));
+  const mapped = (rows || []).map(row => localizeBanner(row, lang));
+  if (!onlyActive) {
+    return mapped;
+  }
+  return mapped.filter(row =>
+    isLiveForUsers({status: row.status, startsAt: row.startsAt}),
+  );
 };
 
 export const createBanner = async (input: {
@@ -187,6 +234,7 @@ export const createBanner = async (input: {
   imageUrl?: string;
   buttonText?: string;
   status?: string;
+  startsAt?: string | null;
   translations?: Record<string, any> | string | null;
 }) => {
   await ensureBannersTable();
@@ -212,8 +260,8 @@ export const createBanner = async (input: {
   const result = await mysql.query<ResultSetHeader>(
     `
     INSERT INTO app_banners (
-      title, subtitle, module_name, image_url, button_text, status, sort_order, translations
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+      title, subtitle, module_name, image_url, button_text, status, sort_order, translations, starts_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
     `,
     [
       title,
@@ -223,6 +271,7 @@ export const createBanner = async (input: {
       String(input.buttonText || 'Explore').trim() || 'Explore',
       status,
       translations,
+      String(input.startsAt || '').trim() || null,
     ],
   );
 
@@ -231,7 +280,7 @@ export const createBanner = async (input: {
     SELECT
       id, title, subtitle, module_name AS moduleName,
       image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, translations
+      sort_order AS sortOrder, starts_at AS startsAt, translations
     FROM app_banners
     WHERE id = ?
     LIMIT 1
@@ -250,6 +299,7 @@ export const updateBanner = async (
     imageUrl?: string;
     buttonText?: string;
     status?: string;
+    startsAt?: string | null;
     translations?: Record<string, any> | string | null;
   },
 ) => {
@@ -293,6 +343,7 @@ export const updateBanner = async (
       button_text = COALESCE(?, button_text),
       status = ?,
       translations = COALESCE(?, translations),
+      starts_at = CASE WHEN ? = 1 THEN ? ELSE starts_at END,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
     `,
@@ -304,6 +355,10 @@ export const updateBanner = async (
       input.buttonText !== undefined ? String(input.buttonText).trim() : null,
       status,
       translations === undefined ? null : translations,
+      input.startsAt !== undefined ? 1 : 0,
+      input.startsAt !== undefined
+        ? String(input.startsAt || '').trim() || null
+        : null,
       id,
     ],
   );
@@ -313,7 +368,7 @@ export const updateBanner = async (
     SELECT
       id, title, subtitle, module_name AS moduleName,
       image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, translations
+      sort_order AS sortOrder, starts_at AS startsAt, translations
     FROM app_banners
     WHERE id = ?
     LIMIT 1

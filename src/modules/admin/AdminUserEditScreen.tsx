@@ -87,6 +87,11 @@ const AdminUserEditScreen = () => {
       Alert.alert('Required', 'Enter the user name.');
       return;
     }
+    const mobile = mobileNumber.replace(/\D/g, '');
+    if (mobile.length < 6 || /^0+$/.test(mobile)) {
+      Alert.alert('Required', 'Enter a valid mobile number.');
+      return;
+    }
     setSaving(true);
     try {
       await apiService.put(`/admin/users/${userId}`, {

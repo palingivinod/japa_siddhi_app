@@ -12,6 +12,7 @@ import {useFocusEffect} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
 import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
@@ -54,6 +55,43 @@ const nextStatus = (status: AdminBannerStatus): AdminBannerStatus => {
   return 'Active';
 };
 
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** The numbers on the picker are saved as India Standard Time. */
+const toIstIso = (date: Date) => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hour = String(date.getHours()).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}T${hour}:${minute}:00+05:30`;
+};
+
+const formatIstLabel = (iso?: string) => {
+  const match = String(iso || '').match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/,
+  );
+  if (!match) {
+    return '';
+  }
+  const hour = Number(match[4]);
+  const hour12 = hour % 12 || 12;
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  return `${Number(match[3])} ${MONTHS[Number(match[2]) - 1]} ${match[1]}, ${hour12}:${match[5]} ${ampm} IST`;
+};
+
 const statusStyle = (status: AdminBannerStatus) => {
   if (status === 'Active') {
     return {border: Colors.leafGreen, text: Colors.leafGreen};
@@ -73,6 +111,11 @@ const AdminBannersScreen = () => {
   const [translations, setTranslations] = useState(defaultTranslations);
   const [moduleName, setModuleName] = useState('Home');
   const [saving, setSaving] = useState(false);
+  const [scheduleOn, setScheduleOn] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState(() => new Date());
+  const [schedulePicker, setSchedulePicker] = useState<'date' | 'time' | null>(
+    null,
+  );
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
     null,
@@ -97,6 +140,7 @@ const AdminBannersScreen = () => {
             row.status === 'Scheduled' || row.status === 'Blocked'
               ? row.status
               : 'Active',
+          startsAt: String(row.startsAt || ''),
         })),
       );
     } catch (err) {
@@ -208,6 +252,9 @@ const AdminBannersScreen = () => {
     latestEnRef.current = {title: '', subtitle: ''};
     setLastAutoTranslatedAt(null);
     setModuleName('Home');
+    setScheduleOn(false);
+    setScheduleAt(new Date());
+    setSchedulePicker(null);
     setActiveLang('en');
     setShowForm(false);
   };
@@ -269,7 +316,8 @@ const AdminBannersScreen = () => {
           translations.en.subtitle.trim() ||
           translations[activeLang].subtitle.trim(),
         module: moduleName,
-        status: 'Active',
+        status: scheduleOn ? 'Scheduled' : 'Active',
+        startsAt: scheduleOn ? toIstIso(scheduleAt) : '',
         translations,
       });
       resetForm();
@@ -311,7 +359,10 @@ const AdminBannersScreen = () => {
           <View key={item.id} style={styles.card}>
             <View style={styles.copy}>
               <Text style={styles.name}>{item.title}</Text>
-              <Text style={styles.meta}>{item.module}</Text>
+              <Text style={styles.meta}>
+                {item.module}
+                {item.startsAt ? ` · ${formatIstLabel(item.startsAt)}` : ''}
+              </Text>
             </View>
             <View style={styles.actions}>
               <TouchableOpacity
@@ -416,6 +467,71 @@ const AdminBannersScreen = () => {
               );
             })}
           </View>
+          <Text style={styles.label}>Schedule (IST)</Text>
+          <TouchableOpacity
+            style={[styles.chip, scheduleOn && styles.chipActive]}
+            onPress={() => setScheduleOn(value => !value)}>
+            <Text style={[styles.chipText, scheduleOn && styles.chipTextActive]}>
+              {scheduleOn ? 'Scheduled' : 'Show now'}
+            </Text>
+          </TouchableOpacity>
+          {scheduleOn ? (
+            <View style={styles.scheduleRow}>
+              <TouchableOpacity
+                style={styles.scheduleBtn}
+                onPress={() => setSchedulePicker('date')}>
+                <Text style={styles.scheduleText}>
+                  {scheduleAt.toLocaleDateString('en-IN')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.scheduleBtn}
+                onPress={() => setSchedulePicker('time')}>
+                <Text style={styles.scheduleText}>
+                  {scheduleAt.toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+          {scheduleOn ? (
+            <Text style={styles.scheduleHint}>
+              Users see this banner at {formatIstLabel(toIstIso(scheduleAt))}.
+            </Text>
+          ) : null}
+          <DatePickerModal
+            visible={schedulePicker != null}
+            mode={schedulePicker === 'time' ? 'time' : 'date'}
+            value={scheduleAt}
+            minimumDate={
+              schedulePicker === 'date'
+                ? new Date(
+                    new Date().getFullYear(),
+                    new Date().getMonth(),
+                    new Date().getDate(),
+                  )
+                : undefined
+            }
+            onCancel={() => setSchedulePicker(null)}
+            onConfirm={selected => {
+              setScheduleAt(prev => {
+                const next = new Date(prev);
+                if (schedulePicker === 'time') {
+                  next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+                } else {
+                  next.setFullYear(
+                    selected.getFullYear(),
+                    selected.getMonth(),
+                    selected.getDate(),
+                  );
+                }
+                return next;
+              });
+              setSchedulePicker(null);
+            }}
+          />
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE BANNER'}
             onPress={create}
@@ -500,6 +616,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     backgroundColor: Colors.white,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 8,
+  },
+  scheduleBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+    minHeight: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  scheduleText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  scheduleHint: {
+    color: Colors.textSecondary,
+    marginBottom: 12,
+    lineHeight: 20,
   },
   formTitle: {
     fontWeight: '800',

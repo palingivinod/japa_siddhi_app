@@ -431,7 +431,7 @@ export const ml: TranslationDict = {
   comments: 'കുറിപ്പുകൾ',
   tellUsMore: 'കൂടുതൽ പറയുക',
   howWasExperience: 'നിങ്ങളുടെ അനുഭവം എങ്ങനെയായിരുന്നു?',
-  continueToRating: 'റേറ്റിംഗിലേക്ക് തുടരുക',
+  continueToRating: 'സമർപ്പിച്ച് റേറ്റ് ചെയ്യുക',
   reportAnIssue: 'പ്രശ്നം റിപ്പോർട്ട് ചെയ്യുക',
   chatWithSupport: 'സഹായത്തോട് ചാറ്റ് ചെയ്യുക',
   speakToUs: 'ഞങ്ങളോട് സംസാരിക്കുക',

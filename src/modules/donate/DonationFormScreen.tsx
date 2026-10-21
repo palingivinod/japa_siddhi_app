@@ -60,6 +60,12 @@ const DonationFormScreen = () => {
   );
 
   const totalAmount = persons * RATE_PER_PERSON;
+  const cleanMobile = mobile.replace(/\D/g, '');
+  const detailsReady =
+    fullName.trim().length >= 2 &&
+    isMobile(cleanMobile) &&
+    !/^0+$/.test(cleanMobile) &&
+    persons > 0;
 
   const pay = async () => {
     if (fullName.trim().length < 2) {
@@ -76,11 +82,21 @@ const DonationFormScreen = () => {
       return;
     }
 
-    try {
-      await Linking.openURL(PAYMENTS_URL);
-    } catch {
-      Alert.alert('Payment', 'Could not open payments page.');
-    }
+    Alert.alert(
+      t('requestSubmittedTitle'),
+      t('requestSubmittedMessage'),
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            Linking.openURL(PAYMENTS_URL).catch(() => {
+              Alert.alert('Payment', 'Could not open payments page.');
+            });
+          },
+        },
+      ],
+      {cancelable: false},
+    );
   };
 
   return (
@@ -116,8 +132,12 @@ const DonationFormScreen = () => {
         title={t('selectNoOfPersons')}
       />
       <PrimaryButton
-        title={persons > 0 ? `PROCEED TO PAY (₹${totalAmount.toLocaleString('en-IN')})` : 'SELECT OR ENTER NO OF PERSONS'}
-        disabled={persons <= 0}
+        title={
+          detailsReady
+            ? `PROCEED TO PAY (₹${totalAmount.toLocaleString('en-IN')})`
+            : 'ENTER REQUIRED DETAILS'
+        }
+        disabled={!detailsReady}
         onPress={pay}
       />
     </ScreenLayout>

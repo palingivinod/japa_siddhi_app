@@ -159,7 +159,15 @@ const BanaLingamScreen = () => {
         value={nakshatram}
         onChangeText={setNakshatram}
       />
-      <PrimaryButton title="OVERVIEW" onPress={submit} />
+      <PrimaryButton
+        title={
+          fullName.trim() && isMobile(mobile) && address.trim()
+            ? 'OVERVIEW'
+            : 'ENTER REQUIRED DETAILS'
+        }
+        onPress={submit}
+        disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
+      />
     </ScreenLayout>
   );
 };

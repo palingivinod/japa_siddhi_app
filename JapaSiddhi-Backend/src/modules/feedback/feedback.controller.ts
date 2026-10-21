@@ -12,14 +12,16 @@ class FeedbackController {
         return apiResponse.error(res, 'User not authenticated', 401);
       }
 
-      const rating = Number(req.body?.rating || 0);
+      const rawRating = Number(req.body?.rating || 0);
+      const rating =
+        rawRating >= 1 && rawRating <= 5 ? Math.round(rawRating) : 0;
       const title = String(req.body?.title || 'App feedback').trim() || 'App feedback';
-      const message = String(req.body?.message || '').trim() || 'Rating only';
-      if (!rating || rating < 1 || rating > 5) {
-        return apiResponse.error(res, 'Rating must be between 1 and 5', 400);
-      }
+      const message = String(req.body?.message || '').trim();
 
       const file = req.file as Express.Multer.File | undefined;
+      if (!message && !file) {
+        return apiResponse.error(res, 'Add a comment or a video.', 400);
+      }
       const videoUrl = file?.filename ? publicFeedbackPath(file.filename) : null;
       const mediaBaseUrl = `${req.protocol}://${req.get('host')}`;
 
@@ -28,7 +30,7 @@ class FeedbackController {
           userId,
           rating,
           title,
-          message,
+          message: message || 'Video attached',
           videoUrl,
         },
         mediaBaseUrl,

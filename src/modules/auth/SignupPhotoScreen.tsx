@@ -16,7 +16,7 @@ const toIso = (value: string) => {
   if (parts.length === 3 && parts[0].length === 2) {
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
-  return value || '1995-01-01';
+  return value || '';
 };
 
 const SignupPhotoScreen = () => {
@@ -71,6 +71,10 @@ const SignupPhotoScreen = () => {
         t('mobileRequiredTitle'),
         t('goBackEnterMobile', {digits: MOBILE_DIGITS}),
       );
+      return;
+    }
+    if (!toIso(params.dob)) {
+      Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
     if (!isGoogleSignup && password.length < 6) {

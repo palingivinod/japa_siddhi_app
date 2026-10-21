@@ -29,8 +29,8 @@ const rnGp =
   (fs.existsSync(defaultRnGp) ? defaultRnGp : '');
 
 // Windows: must be same drive as the project. Cross-drive breaks Gradle.
-// Prefer build-r5 (build-r4 is often AccessDenied on this machine).
-const defaultBuildDir = path.join(android, 'build-r5');
+// Prefer build-r7 (build-r6 is often AccessDenied on this machine).
+const defaultBuildDir = path.join(android, 'build-r7');
 const envBuildDir = String(process.env.JAPA_ANDROID_BUILD_DIR || '').trim();
 const sameDrive = candidate => {
   if (!candidate || !isWin) {

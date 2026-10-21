@@ -13,6 +13,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import AdminScreenLayout from './AdminScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
+import PasswordField from '../common/PasswordField';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 import {
   AdminAccount,
@@ -230,13 +231,12 @@ const AdminAccountsScreen = () => {
       </View>
 
       <Text style={styles.label}>Password *</Text>
-      <TextInput
+      <PasswordField
         style={styles.input}
         value={password}
         onChangeText={setPassword}
         placeholder="Create password"
         placeholderTextColor={Colors.placeholder}
-        secureTextEntry
       />
 
       {saving ? (

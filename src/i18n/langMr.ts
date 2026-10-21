@@ -434,7 +434,7 @@ export const mr: TranslationDict = {
   comments: 'टिप्पण्या',
   tellUsMore: 'आम्हाला अधिक सांगा',
   howWasExperience: 'तुमचा अनुभव कसा होता?',
-  continueToRating: 'रेटिंगकडे पुढे जा',
+  continueToRating: 'सबमिट करा आणि रेट करा',
   reportAnIssue: 'समस्या नोंदवा',
   chatWithSupport: 'समर्थनाशी चॅट करा',
   speakToUs: 'आमच्याशी बोला',

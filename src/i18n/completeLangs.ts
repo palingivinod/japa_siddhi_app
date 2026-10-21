@@ -428,7 +428,7 @@ export const kn: TranslationDict = {
   comments: 'ಟಿಪ್ಪಣಿಗಳು',
   tellUsMore: 'ಇನ್ನಷ್ಟು ಹೇಳಿ',
   howWasExperience: 'ನಿಮ್ಮ ಅನುಭವ ಹೇಗಿತ್ತು?',
-  continueToRating: 'ರೇಟಿಂಗ್‌ಗೆ ಮುಂದುವರಿಸಿ',
+  continueToRating: 'ಸಲ್ಲಿಸಿ ಮತ್ತು ರೇಟ್ ಮಾಡಿ',
   reportAnIssue: 'ಸಮಸ್ಯೆ ವರದಿ ಮಾಡಿ',
   chatWithSupport: 'ಸಹಾಯದೊಂದಿಗೆ ಚಾಟ್ ಮಾಡಿ',
   speakToUs: 'ನಮ್ಮೊಂದಿಗೆ ಮಾತನಾಡಿ',

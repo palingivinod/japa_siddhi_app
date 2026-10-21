@@ -1,8 +1,8 @@
 // Keep outputs off locked android/app/build (Windows only).
 // Must stay on the same drive as the project — C: vs E: breaks Gradle
-// ("this and base files have different roots"). Prefer build-r5 (build-r4 often locked).
+// ("this and base files have different roots"). Prefer build-r7 (build-r6 often locked).
 def isWindows = System.getProperty("os.name", "").toLowerCase().contains("windows")
-def winDefaultBuild = file("${rootDir}/build-r5")
+def winDefaultBuild = file("${rootDir}/build-r7")
 def altRaw = System.getenv("JAPA_ANDROID_BUILD_DIR")
 def altAppBuild = null
 if (altRaw != null && !altRaw.trim().isEmpty()) {
@@ -46,8 +46,8 @@ android {
         applicationId "com.japasiddhi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 23
-        versionName "1.1.0"
+        versionCode 24
+        versionName "1.1.1"
     }
     signingConfigs {
         debug {
