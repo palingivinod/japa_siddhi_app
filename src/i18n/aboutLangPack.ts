@@ -10,6 +10,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'संस्करण',
     phoneOtpUnavailableTryEmail:
       'फ़ोन OTP अभी उपलब्ध नहीं है। कृपया मोबाइल की जगह ईमेल OTP उपयोग करें।',
+    phoneOtpComingSoonTitle: 'मोबाइल OTP',
+    phoneOtpComingSoon: 'अभी ईमेल का उपयोग करें। मोबाइल OTP जल्द आएगा।',
     useEmailOtp: 'ईमेल OTP उपयोग करें',
   },
   te: {
@@ -19,6 +21,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'వెర్షన్',
     phoneOtpUnavailableTryEmail:
       'ఫోన్ OTP ప్రస్తుతం అందుబాటులో లేదు. దయచేసి మొబైల్ బదులు ఇమెయిల్ OTP ఉపయోగించండి.',
+    phoneOtpComingSoonTitle: 'మొబైల్ OTP',
+    phoneOtpComingSoon: 'ప్రస్తుతం ఇమెయిల్ ఉపయోగించండి. మొబైల్ OTP త్వరలో వస్తుంది.',
     useEmailOtp: 'ఇమెయిల్ OTP ఉపయోగించండి',
   },
   kn: {
@@ -28,6 +32,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'ಆವೃತ್ತಿ',
     phoneOtpUnavailableTryEmail:
       'ಫೋನ್ OTP ಈಗ ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಮೊಬೈಲ್ ಬದಲು ಇಮೇಲ್ OTP ಬಳಸಿ.',
+    phoneOtpComingSoonTitle: 'ಮೊಬೈಲ್ OTP',
+    phoneOtpComingSoon: 'ಈಗ ಇಮೇಲ್ ಬಳಸಿ. ಮೊಬೈಲ್ OTP ಶೀಘ್ರದಲ್ಲೇ ಬರುತ್ತದೆ.',
     useEmailOtp: 'ಇಮೇಲ್ OTP ಬಳಸಿ',
   },
   ta: {
@@ -37,6 +43,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'பதிப்பு',
     phoneOtpUnavailableTryEmail:
       'போன் OTP இப்போது கிடைக்கவில்லை. தயவுசெய்து மொபைலுக்குப் பதில் மின்னஞ்சல் OTP பயன்படுத்தவும்.',
+    phoneOtpComingSoonTitle: 'மொபைல் OTP',
+    phoneOtpComingSoon: 'இப்போது மின்னஞ்சலைப் பயன்படுத்தவும். மொபைல் OTP விரைவில் வரும்.',
     useEmailOtp: 'மின்னஞ்சல் OTP பயன்படுத்து',
   },
   ml: {
@@ -46,6 +54,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'പതിപ്പ്',
     phoneOtpUnavailableTryEmail:
       'ഫോൺ OTP ഇപ്പോൾ ലഭ്യമല്ല. ദയവായി മൊബൈലിന് പകരം ഇമെയിൽ OTP ഉപയോഗിക്കുക.',
+    phoneOtpComingSoonTitle: 'മൊബൈൽ OTP',
+    phoneOtpComingSoon: 'ഇപ്പോൾ ഇമെയിൽ ഉപയോഗിക്കുക. മൊബൈൽ OTP ഉടൻ വരും.',
     useEmailOtp: 'ഇമെയിൽ OTP ഉപയോഗിക്കുക',
   },
   mr: {
@@ -55,6 +65,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'आवृत्ती',
     phoneOtpUnavailableTryEmail:
       'फोन OTP सध्या उपलब्ध नाही. कृपया मोबाइलऐवजी ईमेल OTP वापरा.',
+    phoneOtpComingSoonTitle: 'मोबाइल OTP',
+    phoneOtpComingSoon: 'आता ईमेल वापरा. मोबाइल OTP लवकरच येईल.',
     useEmailOtp: 'ईमेल OTP वापरा',
   },
   bn: {
@@ -64,6 +76,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'সংস্করণ',
     phoneOtpUnavailableTryEmail:
       'ফোন OTP এখন উপলব্ধ নয়। অনুগ্রহ করে মোবাইলের বদলে ইমেইল OTP ব্যবহার করুন।',
+    phoneOtpComingSoonTitle: 'মোবাইল OTP',
+    phoneOtpComingSoon: 'এখন ইমেইল ব্যবহার করুন। মোবাইল OTP শিগগির আসবে।',
     useEmailOtp: 'ইমেইল OTP ব্যবহার করুন',
   },
   or: {
@@ -73,6 +87,8 @@ export const aboutLangPack: Record<string, Pack> = {
     appVersion: 'ସଂସ୍କରଣ',
     phoneOtpUnavailableTryEmail:
       'ଫୋନ୍ OTP ବର୍ତ୍ତମାନ ଉପଲବ୍ଧ ନାହିଁ। ଦୟାକରି ମୋବାଇଲ୍ ବଦଳରେ ଇମେଲ୍ OTP ବ୍ୟବହାର କରନ୍ତୁ।',
+    phoneOtpComingSoonTitle: 'ମୋବାଇଲ୍ OTP',
+    phoneOtpComingSoon: 'ବର୍ତ୍ତମାନ ଇମେଲ୍ ବ୍ୟବହାର କରନ୍ତୁ। ମୋବାଇଲ୍ OTP ଶୀଘ୍ର ଆସିବ।',
     useEmailOtp: 'ଇମେଲ୍ OTP ବ୍ୟବହାର କରନ୍ତୁ',
   },
 };

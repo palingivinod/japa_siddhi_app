@@ -93,6 +93,15 @@ const CreateAccountScreen = () => {
         channel: otpChannel,
       });
       const data = response.data?.data || {};
+      if (otpChannel === 'phone' && data.phoneOtpAvailable === false) {
+        setOtpChannel('email');
+        Alert.alert(
+          t('phoneOtpComingSoonTitle'),
+          data.message || t('phoneOtpComingSoon'),
+          [{text: t('useEmailOtp'), onPress: () => setOtpChannel('email')}],
+        );
+        return;
+      }
 
       let phoneE164 = `+${code}${mobile}`;
       if (otpChannel === 'phone') {
@@ -132,11 +141,16 @@ const CreateAccountScreen = () => {
           ],
         );
       } else {
-        Alert.alert(
-          t('createAccountAlertTitle'),
+        const serverMessage =
           error?.response?.data?.message ||
-            error?.message ||
-            t('unableSendOtpRetry'),
+          error?.message ||
+          t('unableSendOtpRetry');
+        const addressMissing = /address not found/i.test(String(serverMessage));
+        Alert.alert(
+          addressMissing ? 'Address not found' : t('createAccountAlertTitle'),
+          addressMissing
+            ? String(serverMessage).replace(/^Address not found\.\s*/i, '')
+            : serverMessage,
         );
       }
     } finally {

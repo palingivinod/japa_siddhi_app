@@ -20,6 +20,24 @@ import {
 } from './auth.types';
 
 
+const isPhoneOtpEnabled = () =>
+  String(process.env.PHONE_OTP_ENABLED || '').trim().toLowerCase() === 'true';
+
+const phoneOtpComingSoon = (
+  mode: 'login' | 'register',
+  mobileCountryCode: string,
+  mobileNumber: string,
+) => ({
+  sent: false,
+  phoneOtpAvailable: false as const,
+  provider: 'email' as const,
+  message: 'Use email for now. Mobile OTP will come soon.',
+  mobileCountryCode,
+  mobileNumber,
+  channel: 'phone' as const,
+  mode,
+});
+
 const issueToken = (user: AuthUser) =>
   jwtService.generate({
     id: user.id,
@@ -1065,6 +1083,9 @@ class AuthService {
     // Phone OTP is sent by Firebase on the app — email OTP stays on the backend.
     // Different channels never share the same code.
     if (channel === 'phone') {
+      if (!isPhoneOtpEnabled()) {
+        return phoneOtpComingSoon('register', mobileCountryCode, mobileNumber);
+      }
       return {
         sent: true,
         provider: 'firebase' as const,
@@ -1137,6 +1158,9 @@ class AuthService {
       }
 
       // App sends SMS via Firebase Auth; backend only checks the account exists.
+      if (!isPhoneOtpEnabled()) {
+        return phoneOtpComingSoon('login', mobileCountryCode, mobileNumber);
+      }
       return {
         sent: true,
         provider: 'firebase' as const,

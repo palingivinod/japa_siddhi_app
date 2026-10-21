@@ -89,6 +89,8 @@
   unableSendOtpRetry: 'Unable to send OTP. Please try again.',
   phoneOtpUnavailableTryEmail:
     'Phone OTP is not available right now. Please use Email OTP instead of mobile.',
+  phoneOtpComingSoonTitle: 'Mobile OTP',
+  phoneOtpComingSoon: 'Use email for now. Mobile OTP will come soon.',
   useEmailOtp: 'Use Email OTP',
   createAccountTitle: 'Create Account',
   createYourAccount: 'Create your account',

@@ -95,7 +95,17 @@ class EmailOtpService {
       }
     }
 
-    const message = String(lastError?.message || '');
+    const message = `${String(lastError?.response || '')} ${String(lastError?.message || '')}`;
+    if (
+      /550|551|553|user unknown|address not found|recipient address rejected|mailbox unavailable|no such user/i.test(
+        message,
+      )
+    ) {
+      throw new AppError(
+        `Address not found. Your message wasn't delivered to ${to} because the address couldn't be found, or is unable to receive mail.`,
+        400,
+      );
+    }
     if (message.includes('Invalid login') || message.includes('EAUTH')) {
       throw new AppError(
         'Gmail rejected the App Password. Confirm SMTP_USER and SMTP_PASS.',

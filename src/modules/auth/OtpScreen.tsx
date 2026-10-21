@@ -214,13 +214,21 @@ const OtpScreen = ({route, navigation}: any) => {
             ? phoneNumber
             : `+${mobileCountryCode || '91'}${mobileNumber}`;
         // Re-check account / uniqueness on backend, then force a new Firebase SMS.
-        await apiService.post('/auth/otp/send', {
+        const gate = await apiService.post('/auth/otp/send', {
           mode: isLogin ? 'login' : 'register',
           channel: 'phone',
           mobileCountryCode: mobileCountryCode || '91',
           mobileNumber,
           email,
         });
+        if (gate.data?.data?.phoneOtpAvailable === false) {
+          Alert.alert(
+            t('phoneOtpComingSoonTitle'),
+            gate.data?.data?.message || t('phoneOtpComingSoon'),
+            [{text: t('useEmailOtp'), onPress: () => navigation.goBack()}],
+          );
+          return;
+        }
         const fb = await firebaseAuthService.sendOTP(e164, {
           forceResend: true,
         });

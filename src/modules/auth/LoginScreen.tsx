@@ -266,6 +266,15 @@ const LoginScreen = () => {
           mobileNumber: mobile,
         });
         const data = response.data?.data || {};
+        if (data.phoneOtpAvailable === false) {
+          setOtpChannel('email');
+          Alert.alert(
+            t('phoneOtpComingSoonTitle'),
+            data.message || t('phoneOtpComingSoon'),
+            [{text: t('useEmailOtp'), onPress: () => setOtpChannel('email')}],
+          );
+          return;
+        }
         // 2) Firebase Auth SMS → goes to +91{mobile}
         const {default: firebaseAuthService} = await import(
           './services/firebaseAuthService'
@@ -292,11 +301,16 @@ const LoginScreen = () => {
           {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
         ]);
       } else {
-        Alert.alert(
-          t('otpFailed'),
+        const serverMessage =
           error?.response?.data?.message ||
-            error?.message ||
-            t('unableSendOtpRetry'),
+          error?.message ||
+          t('unableSendOtpRetry');
+        const addressMissing = /address not found/i.test(String(serverMessage));
+        Alert.alert(
+          addressMissing ? 'Address not found' : t('otpFailed'),
+          addressMissing
+            ? String(serverMessage).replace(/^Address not found\.\s*/i, '')
+            : serverMessage,
         );
       }
     } finally {
