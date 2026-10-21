@@ -12,6 +12,19 @@ import {
 
 class OrderRepository {
 
+  async ensureCancelColumns(): Promise<void> {
+    for (const sql of [
+      'ALTER TABLE orders ADD COLUMN cancel_reason TEXT NULL',
+      'ALTER TABLE orders ADD COLUMN cancelled_by TEXT NULL',
+    ]) {
+      try {
+        await mysql.query(sql);
+      } catch {
+        // Column already exists.
+      }
+    }
+  }
+
   async getNextOrderNumber(): Promise<string> {
     try {
       const rows = await mysql.query<any[]>(`
@@ -144,6 +157,7 @@ class OrderRepository {
     userId: number,
   ) {
 
+    await this.ensureCancelColumns();
     return mysql.query<any[]>(
       `
       SELECT
@@ -165,6 +179,10 @@ class OrderRepository {
         order_status AS orderStatus,
 
         remarks,
+
+        cancel_reason AS cancelReason,
+
+        cancelled_by AS cancelledBy,
 
         created_at AS createdAt
 
@@ -202,6 +220,46 @@ class OrderRepository {
       ],
     );
 
+  }
+
+  async cancelForUser(
+    id: number,
+    userId: number,
+    reason: string,
+  ): Promise<'ok' | 'missing' | 'delivered' | 'cancelled'> {
+    await this.ensureCancelColumns();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT order_status AS orderStatus
+      FROM orders
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    if (!rows?.length) {
+      return 'missing';
+    }
+    const status = String(rows[0].orderStatus || '').toUpperCase();
+    if (status === 'DELIVERED') {
+      return 'delivered';
+    }
+    if (status === 'CANCELLED') {
+      return 'cancelled';
+    }
+    await mysql.query(
+      `
+      UPDATE orders
+      SET
+        order_status = 'CANCELLED',
+        cancel_reason = ?,
+        cancelled_by = 'USER',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+      `,
+      [reason, id, userId],
+    );
+    return 'ok';
   }
 
   async updatePaymentStatus(

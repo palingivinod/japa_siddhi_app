@@ -312,7 +312,7 @@ export const ml: TranslationDict = {
   celebrateProgress: 'നിങ്ങളുടെ ആത്മീയ പുരോഗതിയും സേവ മൈൽസ്റ്റോണുകളും ആഘോഷിക്കുക.',
   japasCompleted: '{{count}} ജപം പൂർത്തിയായി!',
   youHaveCompletedJapas:
-    'നിങ്ങൾ {{count}} ജപം പൂർത്തിയാക്കി. കൂടുതൽ ഗുണത്തിനായി അന്ന സന്തർപ്പണ പരിഗണിക്കുക.',
+    'നിങ്ങൾ {{count}} ജപം പൂർത്തിയാക്കി. നിങ്ങളുടെ മൈൽസ്റ്റോൺ റിവാർഡ് എടുക്കുക.',
   performAnnadhanam: 'അന്ന സന്തർപ്പണ ചെയ്യുക',
   upcomingMilestones: 'വരാനിരിക്കുന്ന മൈൽസ്റ്റോണുകൾ',
   milestoneNotificationsTitle: 'മൈൽസ്റ്റോൺ അറിയിപ്പുകൾ',

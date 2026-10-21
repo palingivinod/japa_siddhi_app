@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
+  NativeModules,
   Platform,
   RefreshControl,
   ScrollView,
@@ -458,13 +459,21 @@ const HomeScreen = () => {
     Clipboard.setString(PLAYSTORE_URL);
     const message = `Japa Siddhi\n${PLAYSTORE_URL}`;
     try {
+      if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
+        await NativeModules.AppShare.shareLogo(message);
+        return;
+      }
       await Share.share(
         Platform.OS === 'ios'
           ? {url: PLAYSTORE_URL, message: 'Japa Siddhi'}
           : {title: 'Japa Siddhi', message},
       );
     } catch {
-      // The link is already on the clipboard.
+      try {
+        await Share.share({title: 'Japa Siddhi', message});
+      } catch {
+        // The link is already on the clipboard.
+      }
     }
   };
 

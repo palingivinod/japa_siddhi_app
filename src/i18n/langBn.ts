@@ -315,7 +315,7 @@ export const bn: TranslationDict = {
   celebrateProgress: 'আপনার আধ্যাত্মিক অগ্রগতি ও সেবা মাইলফলক উদযাপন করুন।',
   japasCompleted: '{{count}} জপ সম্পূর্ণ!',
   youHaveCompletedJapas:
-    'আপনি {{count}} জপ সম্পন্ন করেছেন। আরও উপকারের জন্য অন্নদান বিবেচনা করুন।',
+    'আপনি {{count}} জপ সম্পন্ন করেছেন। আপনার মাইলফলকের পুরস্কার নিন।',
   performAnnadhanam: 'অন্নদান করুন',
   upcomingMilestones: 'আসন্ন মাইলফলক',
   milestoneNotificationsTitle: 'মাইলফলক বিজ্ঞপ্তি',

@@ -115,7 +115,7 @@ export type AdminBanner = {
   startsAt?: string;
 };
 
-export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered';
+export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 
 export type AdminOrderGroup = 'normal' | 'reward' | 'other';
 
@@ -129,6 +129,8 @@ export type AdminOrder = {
   orderType?: string;
   orderSource?: string;
   remarks?: string;
+  cancelReason?: string;
+  cancelledBy?: string;
 };
 
 export type AdminPaymentRow = {

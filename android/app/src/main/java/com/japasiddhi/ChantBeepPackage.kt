@@ -13,6 +13,7 @@ class ChantBeepPackage : ReactPackage {
       ChantBeepModule(reactContext),
       IntroVideoModule(reactContext),
       AppInfoModule(reactContext),
+      AppShareModule(reactContext),
     )
 
   override fun createViewManagers(

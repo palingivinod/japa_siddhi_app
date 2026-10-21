@@ -347,6 +347,24 @@ CREATE TABLE IF NOT EXISTS orders (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS milestone_reward_claims (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  milestone_target INTEGER NOT NULL,
+  reward_id INTEGER NOT NULL,
+  reward_name TEXT NOT NULL,
+  full_name TEXT,
+  mobile TEXT,
+  address TEXT,
+  city TEXT,
+  state TEXT,
+  pin_code TEXT,
+  order_id INTEGER,
+  order_number TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id, milestone_target)
+);
+
 CREATE TABLE IF NOT EXISTS customer_care (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,

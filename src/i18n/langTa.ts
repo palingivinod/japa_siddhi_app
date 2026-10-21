@@ -310,7 +310,7 @@ export const ta: TranslationDict = {
   celebrateProgress: 'உங்கள் ஆன்மீக முன்னேற்றம் மற்றும் சேவை மைல்கற்களைக் கொண்டாடுங்கள்.',
   japasCompleted: '{{count}} ஜபம் முடிந்தது!',
   youHaveCompletedJapas:
-    'நீங்கள் {{count}} ஜபம் முடித்துள்ளீர்கள். அதிக நன்மைக்காக அன்ன சந்தர்ப்பணத்தை பரிசீலிக்கவும்.',
+    'நீங்கள் {{count}} ஜபம் முடித்துள்ளீர்கள். உங்கள் மைல்கல் வெகுமதியைப் பெறுங்கள்.',
   performAnnadhanam: 'அன்ன சந்தர்ப்பண செய்',
   upcomingMilestones: 'வரவிருக்கும் மைல்கற்கள்',
   milestoneNotificationsTitle: 'மைல்கல் அறிவிப்புகள்',

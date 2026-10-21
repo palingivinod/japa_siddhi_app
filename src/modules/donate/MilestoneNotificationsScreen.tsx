@@ -54,7 +54,7 @@ const MilestoneNotificationsScreen = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [latestAt, setLatestAt] = useState<string | null>(null);
   const [nextTitle, setNextTitle] = useState('');
-  const [eligible, setEligible] = useState(false);
+  const [claimedTargets, setClaimedTargets] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -77,7 +77,11 @@ const MilestoneNotificationsScreen = () => {
         setUpcoming(Array.isArray(data.upcoming) ? data.upcoming : []);
         setUnreadCount(Number(data.unreadCount || 0));
         setLatestAt(data.latestAt || null);
-        setEligible(Boolean(data.eligibleForAnnadanam));
+        setClaimedTargets(
+          Array.isArray(data.claimedTargets)
+            ? data.claimedTargets.map((value: unknown) => Number(value))
+            : [],
+        );
         if (Number(data.unreadCount || 0) > 0) {
           apiService.put('/notifications/milestones/read').catch(() => undefined);
         }
@@ -105,6 +109,7 @@ const MilestoneNotificationsScreen = () => {
       item.target || 0,
     ).toLocaleString('en-IN')} japa count`;
   const achieved = latest > 0;
+  const rewardClaimed = claimedTargets.includes(latest);
   const headlineCount = achieved ? latest : total;
 
   return (
@@ -162,11 +167,18 @@ const MilestoneNotificationsScreen = () => {
                     : `${total.toLocaleString()} / ${next.toLocaleString()}`}
                 </Text>
               </View>
-              {eligible ? (
+              {achieved ? (
                 <TouchableOpacity
-                  style={styles.cta}
-                  onPress={() => navigation.navigate('JapaAnnadanam')}>
-                  <Text style={styles.ctaText}>{t('performAnnadhanam')}</Text>
+                  style={[styles.cta, rewardClaimed && styles.ctaDisabled]}
+                  disabled={rewardClaimed}
+                  onPress={() =>
+                    navigation.navigate('MilestoneRewardSelect', {
+                      target: latest,
+                    })
+                  }>
+                  <Text style={styles.ctaText}>
+                    {rewardClaimed ? t('rewardClaimed') : t('grabReward')}
+                  </Text>
                 </TouchableOpacity>
               ) : null}
             </View>
@@ -257,7 +269,13 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
   },
-  ctaText: {color: Colors.white, fontWeight: '800', fontSize: 11},
+  ctaDisabled: {backgroundColor: '#C4B59A'},
+  ctaText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+    textAlign: 'center',
+  },
   foot: {marginTop: 10, color: Colors.textLight},
   row: {
     backgroundColor: Colors.white,

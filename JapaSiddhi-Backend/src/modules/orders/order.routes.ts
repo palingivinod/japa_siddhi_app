@@ -18,6 +18,12 @@ router.get(
   orderController.getMyOrders,
 );
 
+router.put(
+  '/:id/cancel',
+  authenticate,
+  orderController.cancel,
+);
+
 router.get(
   '/:id/tracking',
   authenticate,

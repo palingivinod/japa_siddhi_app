@@ -9,13 +9,12 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
-import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedNotification} from '../../utils/localizedContent';
@@ -139,7 +138,6 @@ const formatNotificationDate = (dateStr?: string) => {
 };
 
 const NotificationsScreen = () => {
-  const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t, tt, language} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
@@ -336,13 +334,6 @@ const NotificationsScreen = () => {
 
   return (
     <ScreenLayout title={(t as any)('notifications') || 'Notifications'} showBack>
-      <MenuCard
-        emoji="🏅"
-        title={t('japaMilestones') || 'Japa Milestones'}
-        subtitle={t('celebrateProgress') || 'Celebrate your spiritual progress and seva milestones.'}
-        onPress={() => navigation.navigate('MilestoneNotifications')}
-      />
-
       {/* Top Action Row: Header + Medium Sized Clear Button */}
       {!loading && items.length > 0 ? (
         <View style={styles.topActionRow}>

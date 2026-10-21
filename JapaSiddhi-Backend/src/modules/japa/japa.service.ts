@@ -15,6 +15,7 @@ import {
   buildMilestoneProgress,
   SPIRITUAL_MILESTONES,
 } from './japa.milestones';
+import milestoneRewardService from './milestoneReward.service';
 
 const MILESTONE_ACTION = 'JAPA_MILESTONE';
 
@@ -917,9 +918,12 @@ class JapaService {
         notificationService.getLatestByAction(userId, MILESTONE_ACTION),
       ]);
     const progress = buildMilestoneProgress(milestoneTotal);
+    const claimedTargets = await milestoneRewardService.claimedTargets(userId);
     return {
       ...progress,
       eligibleForAnnadanam: milestoneTotal >= 1000,
+      claimedTargets,
+      latestRewardClaimed: claimedTargets.includes(progress.latest),
       notificationsOn: Number(settings.notificationsOn) === 1,
       unreadCount,
       latestAt: latestNote?.sentAt || null,

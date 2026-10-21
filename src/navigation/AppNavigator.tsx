@@ -49,6 +49,9 @@ import FamilyJapaScreen from '../modules/family/FamilyJapaScreen';
 import DonateScreen from '../modules/donate/DonateScreen';
 import JapaAnnadanamScreen from '../modules/donate/JapaAnnadanamScreen';
 import MilestoneNotificationsScreen from '../modules/donate/MilestoneNotificationsScreen';
+import MilestoneRewardSelectScreen from '../modules/donate/MilestoneRewardSelectScreen';
+import MilestoneRewardAddressScreen from '../modules/donate/MilestoneRewardAddressScreen';
+import MilestoneRewardOverviewScreen from '../modules/donate/MilestoneRewardOverviewScreen';
 import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
 import DonationFormScreen from '../modules/donate/DonationFormScreen';
 import FestivalsScreen from '../modules/festivals/FestivalsScreen';
@@ -250,6 +253,23 @@ export type RootStackParamList = {
   Donate: undefined;
   JapaAnnadanam: undefined;
   MilestoneNotifications: undefined;
+  MilestoneRewardSelect: {target?: number} | undefined;
+  MilestoneRewardAddress:
+    | {target?: number; rewardId?: number; rewardName?: string}
+    | undefined;
+  MilestoneRewardOverview:
+    | {
+        target?: number;
+        rewardId?: number;
+        rewardName?: string;
+        fullName?: string;
+        mobile?: string;
+        address?: string;
+        city?: string;
+        state?: string;
+        pinCode?: string;
+      }
+    | undefined;
   GeneralAnnadanam: undefined;
   DonationForm: any;
   DonationPayment: any;
@@ -404,6 +424,9 @@ const ProtectedFamily = withAuth(FamilyJapaScreen);
 const ProtectedDonate = withAuth(DonateScreen);
 const ProtectedJapaAnnadanam = withAuth(JapaAnnadanamScreen);
 const ProtectedMilestoneNotes = withAuth(MilestoneNotificationsScreen);
+const ProtectedMilestoneRewardSelect = withAuth(MilestoneRewardSelectScreen);
+const ProtectedMilestoneRewardAddress = withAuth(MilestoneRewardAddressScreen);
+const ProtectedMilestoneRewardOverview = withAuth(MilestoneRewardOverviewScreen);
 const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
 const ProtectedDonationForm = withAuth(DonationFormScreen);
 const ProtectedCheckout = withAuth(CheckoutScreen);
@@ -612,6 +635,18 @@ const AppNavigator = () => {
         <Stack.Screen
           name="MilestoneNotifications"
           component={ProtectedMilestoneNotes}
+        />
+        <Stack.Screen
+          name="MilestoneRewardSelect"
+          component={ProtectedMilestoneRewardSelect}
+        />
+        <Stack.Screen
+          name="MilestoneRewardAddress"
+          component={ProtectedMilestoneRewardAddress}
+        />
+        <Stack.Screen
+          name="MilestoneRewardOverview"
+          component={ProtectedMilestoneRewardOverview}
         />
         <Stack.Screen
           name="GeneralAnnadanam"

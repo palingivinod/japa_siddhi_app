@@ -139,6 +139,10 @@ class OrderService {
     };
   }
 
+  async cancelForUser(id: number, userId: number, reason: string) {
+    return orderRepository.cancelForUser(id, userId, reason);
+  }
+
   async updatePaymentStatus(
     id: number,
     status: PaymentStatus,

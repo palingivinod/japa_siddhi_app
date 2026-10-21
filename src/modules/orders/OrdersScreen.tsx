@@ -1,5 +1,13 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -31,6 +39,9 @@ const formatStatus = (raw: string, t: any) => {
   if (value.includes('confirm')) {
     return 'Order Confirmed';
   }
+  if (value.includes('cancel')) {
+    return t('orderTabCancelled');
+  }
   if (value.includes('review') || value.includes('pend')) {
     return 'Under Review';
   }
@@ -45,6 +56,10 @@ const OrdersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+  const [cancelTarget, setCancelTarget] = useState<any>(null);
+  const [reason, setReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -63,6 +78,32 @@ const OrdersScreen = () => {
   useEffect(() => {
     load();
   }, []);
+
+  const submitCancel = async () => {
+    const nextReason = reason.trim();
+    if (nextReason.length < 3 || !cancelTarget?.id) {
+      setCancelError(t('cancelReasonRequired'));
+      return;
+    }
+    setCancelling(true);
+    setCancelError('');
+    try {
+      await apiService.put(`/orders/${cancelTarget.id}/cancel`, {reason: nextReason});
+      setOrders(prev =>
+        prev.map(item =>
+          item.id === cancelTarget.id
+            ? {...item, orderStatus: 'CANCELLED', cancelReason: nextReason}
+            : item,
+        ),
+      );
+      setCancelTarget(null);
+      setReason('');
+    } catch (err) {
+      setCancelError(getApiError(err, t('cancelReasonRequired')));
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const visible = useMemo(() => {
     if (tab === 'All') {
@@ -98,6 +139,8 @@ const OrdersScreen = () => {
       {visible.map(item => {
         const itemText = `${item.itemName || ''} ${item.productName || ''} ${item.donationType || ''} ${item.orderNumber || ''}`.toLowerCase();
         const isBaanalingam = itemText.includes('banalingam') || itemText.includes('baanalingam') || itemText.includes('lingam') || itemText.includes('shiva');
+        const rawStatus = statusOf(item);
+        const canCancel = !rawStatus.includes('deliver') && !rawStatus.includes('cancel');
 
         return (
           <View key={item.id} style={styles.card}>
@@ -117,16 +160,67 @@ const OrdersScreen = () => {
                 • {formatStatus(String(item.orderStatus || item.status || ''), t)}
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.view}
-              onPress={() =>
-                navigation.navigate('OrderDetails', {id: item.id, order: item})
-              }>
-              <Text style={styles.viewText}>{t('view')}</Text>
-            </TouchableOpacity>
+            <View style={styles.actions}>
+              {canCancel ? (
+                <TouchableOpacity
+                  style={styles.cancel}
+                  onPress={() => {
+                    setCancelTarget(item);
+                    setReason('');
+                    setCancelError('');
+                  }}>
+                  <Text style={styles.cancelText}>{t('cancelOrder')}</Text>
+                </TouchableOpacity>
+              ) : null}
+              <TouchableOpacity
+                style={styles.view}
+                onPress={() =>
+                  navigation.navigate('OrderDetails', {id: item.id, order: item})
+                }>
+                <Text style={styles.viewText}>{t('view')}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       })}
+      <Modal
+        transparent
+        visible={Boolean(cancelTarget)}
+        animationType="fade"
+        onRequestClose={() => setCancelTarget(null)}>
+        <View style={styles.backdrop}>
+          <View style={styles.sheet}>
+            <Text style={styles.sheetTitle}>{t('cancelOrder')}</Text>
+            <Text style={styles.sheetCopy}>{t('cancelReasonPrompt')}</Text>
+            <TextInput
+              style={styles.reasonInput}
+              value={reason}
+              onChangeText={setReason}
+              placeholder={t('cancelReasonPrompt')}
+              placeholderTextColor={Colors.textSecondary}
+              multiline
+            />
+            {cancelError ? <Text style={styles.sheetError}>{cancelError}</Text> : null}
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.keepBtn}
+                onPress={() => setCancelTarget(null)}>
+                <Text style={styles.keepText}>{t('cancel')}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.confirmCancel}
+                disabled={cancelling}
+                onPress={submitCancel}>
+                {cancelling ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.confirmCancelText}>{t('cancelOrder')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -181,6 +275,14 @@ const styles = StyleSheet.create({
   copy: {flex: 1},
   name: {fontSize: 15, fontWeight: '800', color: Colors.sacredBrown},
   meta: {marginTop: 4, color: '#4A3B2C', fontSize: 13, lineHeight: 18},
+  actions: {alignItems: 'flex-end', gap: 8},
+  cancel: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  cancelText: {color: '#B91C1C', fontWeight: '800', fontSize: 12},
   view: {
     backgroundColor: Colors.lightGold,
     borderRadius: 10,
@@ -188,4 +290,54 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   viewText: {color: Colors.sacredBrown, fontWeight: '800'},
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  sheet: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    padding: 16,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  sheetCopy: {
+    marginTop: 8,
+    color: Colors.textSecondary,
+    fontSize: 14,
+  },
+  reasonInput: {
+    marginTop: 12,
+    minHeight: 80,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    padding: 12,
+    color: Colors.textPrimary,
+    textAlignVertical: 'top',
+  },
+  sheetError: {marginTop: 8, color: '#B91C1C', fontWeight: '600'},
+  sheetActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 10,
+    marginTop: 14,
+  },
+  keepBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  keepText: {color: Colors.sacredBrown, fontWeight: '700'},
+  confirmCancel: {
+    backgroundColor: '#B91C1C',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  confirmCancelText: {color: Colors.white, fontWeight: '800'},
 });

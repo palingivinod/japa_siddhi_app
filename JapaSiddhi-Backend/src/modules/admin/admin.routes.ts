@@ -2292,6 +2292,9 @@ const toAdminOrderStatus = (raw: string) => {
   if (value === 'CONFIRMED' || value === 'PROCESSING' || value === 'READY') {
     return 'Confirmed';
   }
+  if (value === 'CANCELLED' || value === 'CANCELED') {
+    return 'Cancelled';
+  }
   if (value === 'UNDER_REVIEW' || value === 'PENDING') {
     return 'Under Review';
   }
@@ -2360,6 +2363,8 @@ const mapOrderRow = (row: any) => {
     paymentStatus: row.paymentStatus,
     quantity: Number(row.quantity) || 1,
     remarks: row.remarks || '',
+    cancelReason: row.cancelReason || '',
+    cancelledBy: row.cancelledBy || '',
     createdAt: row.createdAt,
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
@@ -2456,6 +2461,8 @@ const orderDetailSelect = `
     o.payment_status AS paymentStatus,
     o.order_status AS orderStatus,
     o.remarks,
+    o.cancel_reason AS cancelReason,
+    o.cancelled_by AS cancelledBy,
     o.created_at AS createdAt,
     o.updated_at AS updatedAt,
     IFNULL(u.full_name, 'Devotee') AS customerName,
@@ -2483,8 +2490,23 @@ const orderDetailSelect = `
   LEFT JOIN bana_lingam bl ON bl.order_id = o.id
 `;
 
+const ensureOrderCancelColumns = async () => {
+  const alters = [
+    'ALTER TABLE orders ADD COLUMN cancel_reason TEXT NULL',
+    'ALTER TABLE orders ADD COLUMN cancelled_by TEXT NULL',
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // Column already exists.
+    }
+  }
+};
+
 router.get('/orders', async (_req: Request, res: Response) => {
   try {
+    await ensureOrderCancelColumns();
     const rows = await mysql.query<any[]>(`
       SELECT
         o.id,
@@ -2496,6 +2518,8 @@ router.get('/orders', async (_req: Request, res: Response) => {
         o.payment_status AS paymentStatus,
         o.order_status AS orderStatus,
         o.remarks,
+        o.cancel_reason AS cancelReason,
+        o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
         IFNULL(u.full_name, 'Devotee') AS customerName
       FROM orders o
@@ -2541,6 +2565,7 @@ router.get('/orders/:id', async (req: Request, res: Response) => {
       return res.status(400).json({success: false, message: 'Invalid order id.'});
     }
     await ensureOrderDetailJoins();
+    await ensureOrderCancelColumns();
     const rows = await mysql.query<any[]>(
       `
       ${orderDetailSelect}
@@ -2608,6 +2633,91 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to update order status.',
+    });
+  }
+});
+
+router.put('/orders/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid order id.'});
+    }
+    await ensureOrderCancelColumns();
+    const existing = await mysql.query<any[]>(
+      `SELECT id, order_status AS orderStatus FROM orders WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    if (!existing?.length) {
+      return res.status(404).json({success: false, message: 'Order not found.'});
+    }
+    const status = String(existing[0].orderStatus || '').toUpperCase();
+    if (status === 'DELIVERED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Delivered orders cannot be cancelled.',
+      });
+    }
+    if (status === 'CANCELLED') {
+      return res.status(400).json({
+        success: false,
+        message: 'This order is already cancelled.',
+      });
+    }
+    await mysql.query(
+      `
+      UPDATE orders
+      SET order_status = 'CANCELLED',
+          cancelled_by = 'ADMIN',
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [id],
+    );
+    return res.json({success: true, message: 'Order cancelled.'});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to cancel order.',
+    });
+  }
+});
+
+router.delete('/orders/:id', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid order id.'});
+    }
+    const existing = await mysql.query<any[]>(
+      `SELECT id, order_status AS orderStatus FROM orders WHERE id = ? LIMIT 1`,
+      [id],
+    );
+    if (!existing?.length) {
+      return res.status(404).json({success: false, message: 'Order not found.'});
+    }
+    if (String(existing[0].orderStatus || '').toUpperCase() !== 'DELIVERED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Only delivered orders can be deleted.',
+      });
+    }
+    for (const sql of [
+      'DELETE FROM bana_lingam WHERE order_id = ?',
+      'DELETE FROM challenge_reward_claims WHERE order_id = ?',
+    ]) {
+      try {
+        await mysql.query(sql, [id]);
+      } catch {
+        // Related table may not exist on older databases.
+      }
+    }
+    await mysql.query('DELETE FROM orders WHERE id = ?', [id]);
+    return res.json({success: true, message: 'Delivered order deleted.'});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to delete order.',
     });
   }
 });

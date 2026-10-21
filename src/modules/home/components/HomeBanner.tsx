@@ -80,14 +80,14 @@ const styles = StyleSheet.create({
   },
   buttonStack: {
     position: 'absolute',
-    // Below the gold lotus line beneath the Om.
-    top: '42%',
+    // Close under the gold lotus line beneath the Om.
+    top: '32%',
     alignItems: 'center',
-    gap: 10,
+    gap: 13,
   },
   button: {
     backgroundColor: Colors.cream,
-    paddingHorizontal: 4,
+    paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: 16,
     borderWidth: 1.5,
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 13,
+    lineHeight: 18,
     includeFontPadding: true,
     textAlign: 'center',
   },

@@ -256,10 +256,13 @@ const ProfileViewScreen = () => {
         </View>
       ) : null}
       {achievedMilestone ? (
-        <View style={styles.milestoneBadge}>
+        <TouchableOpacity
+          style={styles.milestoneBadge}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('MilestoneNotifications')}>
           <Text style={styles.milestoneLabel}>{t('achievedMilestone')}</Text>
           <Text style={styles.milestoneValue}>{achievedMilestone}</Text>
-        </View>
+        </TouchableOpacity>
       ) : null}
       <MenuCard
         icon="personalProfile"
@@ -270,6 +273,11 @@ const ProfileViewScreen = () => {
         icon="notificationsPhoto"
         title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
+      />
+      <MenuCard
+        icon="trophy"
+        title={t('japaMilestones')}
+        onPress={() => navigation.navigate('MilestoneNotifications')}
       />
       <MenuCard
         icon="orderHistory"

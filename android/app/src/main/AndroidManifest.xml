@@ -53,6 +53,10 @@
         <action android:name="android.intent.action.VIEW" />
         <data android:scheme="paytmmp" />
       </intent>
+      <intent>
+        <action android:name="android.intent.action.SEND" />
+        <data android:mimeType="image/png" />
+      </intent>
     </queries>
 
     <application
@@ -96,6 +100,16 @@
         android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
         android:exported="false"
         android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
+
+      <provider
+        android:name="androidx.core.content.FileProvider"
+        android:authorities="${applicationId}.fileprovider"
+        android:exported="false"
+        android:grantUriPermissions="true">
+        <meta-data
+          android:name="android.support.FILE_PROVIDER_PATHS"
+          android:resource="@xml/share_file_paths" />
+      </provider>
 
       <activity
         android:name=".MainActivity"

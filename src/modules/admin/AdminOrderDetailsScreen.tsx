@@ -18,6 +18,15 @@ import {AdminOrderStatus} from './adminData';
 
 const CYCLE: AdminOrderStatus[] = ['Under Review', 'Confirmed', 'Shipped', 'Delivered'];
 
+const adminStatus = (raw: string): AdminOrderStatus => {
+  if (raw === 'Delivered') return 'Delivered';
+  if (raw === 'Shipped') return 'Shipped';
+  if (raw === 'Confirmed') return 'Confirmed';
+  if (raw === 'Cancelled') return 'Cancelled';
+  if (raw === 'Under Review') return 'Under Review';
+  return 'Processing';
+};
+
 type OrderDetail = {
   id: string;
   orderNo: string;
@@ -29,6 +38,7 @@ type OrderDetail = {
   paymentStatus?: string;
   quantity?: number;
   remarks?: string;
+  cancelReason?: string;
   createdAt?: string;
   updatedAt?: string;
   customerEmail?: string;
@@ -157,16 +167,8 @@ const AdminOrderDetailsScreen = () => {
     orderNo: data.orderNo || `#${data.id}`,
     product: data.product || 'Item',
     customer: data.customer || 'Devotee',
-    status:
-      data.status === 'Delivered'
-        ? 'Delivered'
-        : data.status === 'Shipped'
-          ? 'Shipped'
-          : data.status === 'Confirmed'
-            ? 'Confirmed'
-            : data.status === 'Under Review'
-              ? 'Under Review'
-              : 'Processing',
+    status: adminStatus(String(data.status || '')),
+    cancelReason: data.cancelReason || '',
     orderType: data.orderType || '',
     orderSource: data.orderSource || '',
     paymentStatus: data.paymentStatus || '',
@@ -298,6 +300,9 @@ const AdminOrderDetailsScreen = () => {
               <DetailRow label="Payment status" value={order.paymentStatus} />
             ) : null}
             <DetailRow label="Order status" value={order.status} />
+            {order.cancelReason ? (
+              <DetailRow label="Cancel reason" value={order.cancelReason} />
+            ) : null}
             <DetailRow label="Placed at" value={formatWhen(order.createdAt)} />
             <DetailRow label="Updated at" value={formatWhen(order.updatedAt)} />
             {order.rewardName ? (

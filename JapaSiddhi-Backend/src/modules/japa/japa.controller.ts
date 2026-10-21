@@ -5,6 +5,7 @@ import {
 } from 'express';
 
 import japaService from './japa.service';
+import milestoneRewardService from './milestoneReward.service';
 
 import apiResponse from '../../utils/apiResponse';
 
@@ -272,6 +273,61 @@ class JapaController {
       const result = await japaService.getMilestones(userId);
       return apiResponse.success(res, 'Japa milestones fetched', result);
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async listMilestoneRewards(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await milestoneRewardService.listRewards(
+        userId,
+        Number(req.query.target),
+      );
+      return apiResponse.success(res, 'Milestone rewards fetched', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
+  async claimMilestoneReward(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await milestoneRewardService.claim(
+        userId,
+        Number(req.params.target),
+        Number(req.body?.rewardId),
+        {
+          fullName: String(req.body?.fullName || ''),
+          mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          address: String(req.body?.address || ''),
+          city: String(req.body?.city || ''),
+          state: String(req.body?.state || ''),
+          pinCode: String(req.body?.pinCode || req.body?.postalCode || ''),
+        },
+      );
+      return apiResponse.success(res, 'Milestone reward submitted', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
       next(error);
     }
   }

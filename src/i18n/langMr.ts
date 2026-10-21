@@ -315,7 +315,7 @@ export const mr: TranslationDict = {
   celebrateProgress: 'तुमची आध्यात्मिक प्रगती आणि सेवा टप्पे साजरे करा.',
   japasCompleted: '{{count}} जप पूर्ण!',
   youHaveCompletedJapas:
-    'तुम्ही {{count}} जप पूर्ण केले. अधिक लाभासाठी अन्नदानाचा विचार करा.',
+    'तुम्ही {{count}} जप पूर्ण केले. तुमचे माइलस्टोन बक्षीस घ्या.',
   performAnnadhanam: 'अन्नदान करा',
   upcomingMilestones: 'येणारे टप्पे',
   milestoneNotificationsTitle: 'टप्पा सूचना',

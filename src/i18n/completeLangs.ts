@@ -309,7 +309,7 @@ export const kn: TranslationDict = {
   celebrateProgress: 'ನಿಮ್ಮ ಆಧ್ಯಾತ್ಮಿಕ ಪ್ರಗತಿ ಮತ್ತು ಸೇವಾ ಮೈಲಿಗಲ್ಲುಗಳನ್ನು ಆಚರಿಸಿ.',
   japasCompleted: '{{count}} ಜಪ ಪೂರ್ಣ!',
   youHaveCompletedJapas:
-    'ನೀವು {{count}} ಜಪ ಪೂರೈಸಿದ್ದೀರಿ. ಹೆಚ್ಚಿನ ಲಾಭಕ್ಕಾಗಿ ಅನ್ನದಾನ ಪರಿಗಣಿಸಿ.',
+    'ನೀವು {{count}} ಜಪ ಪೂರೈಸಿದ್ದೀರಿ. ನಿಮ್ಮ ಮೈಲಿಗಲ್ಲು ಬಹುಮಾನವನ್ನು ಪಡೆಯಿರಿ.',
   performAnnadhanam: 'ಅನ್ನದಾನ ಮಾಡಿ',
   upcomingMilestones: 'ಮುಂಬರುವ ಮೈಲಿಗಲ್ಲುಗಳು',
   milestoneNotificationsTitle: 'ಮೈಲಿಗಲ್ಲು ಅಧಿಸೂಚನೆಗಳು',

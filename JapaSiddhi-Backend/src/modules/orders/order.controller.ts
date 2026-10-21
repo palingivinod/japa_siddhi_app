@@ -141,6 +141,40 @@ class OrderController {
 
   }
 
+  async cancel(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const reason = String(req.body?.reason || '').trim();
+      if (reason.length < 3) {
+        return apiResponse.error(res, 'Enter a reason to cancel this order.', 400);
+      }
+      const result = await orderService.cancelForUser(
+        Number(req.params.id),
+        userId,
+        reason.slice(0, 300),
+      );
+      if (result === 'missing') {
+        return apiResponse.error(res, 'Order not found', 404);
+      }
+      if (result === 'delivered') {
+        return apiResponse.error(res, 'Delivered orders cannot be cancelled.', 400);
+      }
+      if (result === 'cancelled') {
+        return apiResponse.error(res, 'This order is already cancelled.', 400);
+      }
+      return apiResponse.success(res, 'Order cancelled', {reason});
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateOrderStatus(
     req: Request,
     res: Response,

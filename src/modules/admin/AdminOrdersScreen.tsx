@@ -20,6 +20,7 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Confirmed', label: 'Confirmed'},
   {id: 'Shipped', label: 'Shipped'},
   {id: 'Delivered', label: 'Delivered'},
+  {id: 'Cancelled', label: 'Cancelled'},
 ];
 
 const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
@@ -76,6 +77,9 @@ const statusTone = (status: AdminOrder['status']) => {
   if (status === 'Delivered') {
     return {bg: '#DCFCE7', border: '#16A34A', text: '#15803D'};
   }
+  if (status === 'Cancelled') {
+    return {bg: '#FEE2E2', border: '#DC2626', text: '#B91C1C'};
+  }
   return {bg: '#F5F5F4', border: Colors.sacredBrown, text: Colors.sacredBrown};
 };
 
@@ -86,6 +90,7 @@ const AdminOrdersScreen = () => {
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState('');
 
   const loadOrders = useCallback(async () => {
@@ -109,13 +114,17 @@ const AdminOrdersScreen = () => {
                 ? 'Shipped'
                 : row.status === 'Confirmed'
                   ? 'Confirmed'
-                  : row.status === 'Under Review'
-                    ? 'Under Review'
-                    : 'Processing',
+                  : row.status === 'Cancelled'
+                    ? 'Cancelled'
+                    : row.status === 'Under Review'
+                      ? 'Under Review'
+                      : 'Processing',
           orderGroup: orderGroupOf(row),
           orderType: row.orderType || '',
           orderSource: row.orderSource || '',
           remarks: row.remarks || '',
+          cancelReason: row.cancelReason || '',
+          cancelledBy: row.cancelledBy || '',
         })),
       );
     } catch (err) {
@@ -147,6 +156,56 @@ const AdminOrdersScreen = () => {
     }
   };
 
+  const cancelOrder = (orderId: string, orderNo: string) => {
+    Alert.alert('Cancel order', `Cancel ${orderNo}?`, [
+      {text: 'Keep order', style: 'cancel'},
+      {
+        text: 'Cancel order',
+        style: 'destructive',
+        onPress: async () => {
+          setBusyId(orderId);
+          try {
+            await apiService.put(`/admin/orders/${orderId}/cancel`);
+            setOrders(prev =>
+              prev.map(o =>
+                o.id === orderId ? {...o, status: 'Cancelled', cancelledBy: 'ADMIN'} : o,
+              ),
+            );
+          } catch (err) {
+            Alert.alert('Cancel failed', getApiError(err, 'Could not cancel order.'));
+          } finally {
+            setBusyId(null);
+          }
+        },
+      },
+    ]);
+  };
+
+  const deleteOrder = (orderId: string, orderNo: string) => {
+    Alert.alert(
+      'Delete order',
+      `Delete delivered order ${orderNo}? This removes it from the database.`,
+      [
+        {text: 'Keep order', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setBusyId(orderId);
+            try {
+              await apiService.delete(`/admin/orders/${orderId}`);
+              setOrders(prev => prev.filter(o => o.id !== orderId));
+            } catch (err) {
+              Alert.alert('Delete failed', getApiError(err, 'Could not delete order.'));
+            } finally {
+              setBusyId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const typedOrders = useMemo(
     () => orders.filter(order => orderGroupOf(order) === orderType),
     [orders, orderType],
@@ -158,7 +217,8 @@ const AdminOrdersScreen = () => {
     const confirmed = typedOrders.filter(o => o.status === 'Confirmed').length;
     const shipped = typedOrders.filter(o => o.status === 'Shipped').length;
     const delivered = typedOrders.filter(o => o.status === 'Delivered').length;
-    return {total, underReview, confirmed, shipped, delivered};
+    const cancelled = typedOrders.filter(o => o.status === 'Cancelled').length;
+    return {total, underReview, confirmed, shipped, delivered, cancelled};
   }, [typedOrders]);
 
   const visibleOrders = useMemo(() => {
@@ -174,6 +234,7 @@ const AdminOrdersScreen = () => {
     if (tabId === 'Confirmed') return orderCounts.confirmed;
     if (tabId === 'Shipped') return orderCounts.shipped;
     if (tabId === 'Delivered') return orderCounts.delivered;
+    if (tabId === 'Cancelled') return orderCounts.cancelled;
     return 0;
   };
 
@@ -298,6 +359,9 @@ const AdminOrdersScreen = () => {
                 <Text style={styles.meta}>
                   {order.product} • {order.customer}
                 </Text>
+                {order.cancelReason ? (
+                  <Text style={styles.reason}>Reason: {order.cancelReason}</Text>
+                ) : null}
               </View>
               <View
                 style={[
@@ -310,24 +374,34 @@ const AdminOrdersScreen = () => {
               </View>
             </TouchableOpacity>
 
-            {isUnderReview ? (
+            {order.status === 'Delivered' ? (
               <View style={styles.actionRow}>
                 <TouchableOpacity
-                  style={[styles.confirmBtn, isConfirming && styles.btnDisabled]}
-                  disabled={isConfirming}
-                  onPress={() => confirmOrder(order.id, order.orderNo)}>
-                  {isConfirming ? (
-                    <ActivityIndicator size="small" color={Colors.white} />
-                  ) : (
-                    <Text style={styles.confirmBtnText}>✓ CONFIRM ORDER</Text>
-                  )}
+                  style={[styles.deleteBtn, busyId === order.id && styles.btnDisabled]}
+                  disabled={busyId === order.id}
+                  onPress={() => deleteOrder(order.id, order.orderNo)}>
+                  <Text style={styles.deleteBtnText}>DELETE ORDER</Text>
                 </TouchableOpacity>
+              </View>
+            ) : order.status !== 'Cancelled' ? (
+              <View style={styles.actionRow}>
+                {isUnderReview ? (
+                  <TouchableOpacity
+                    style={[styles.confirmBtn, isConfirming && styles.btnDisabled]}
+                    disabled={isConfirming}
+                    onPress={() => confirmOrder(order.id, order.orderNo)}>
+                    {isConfirming ? (
+                      <ActivityIndicator size="small" color={Colors.white} />
+                    ) : (
+                      <Text style={styles.confirmBtnText}>✓ CONFIRM ORDER</Text>
+                    )}
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
-                  style={styles.detailsBtn}
-                  onPress={() =>
-                    navigation.navigate('AdminOrderDetails', {orderId: order.id})
-                  }>
-                  <Text style={styles.detailsBtnText}>VIEW DETAILS</Text>
+                  style={[styles.cancelBtn, busyId === order.id && styles.btnDisabled]}
+                  disabled={busyId === order.id}
+                  onPress={() => cancelOrder(order.id, order.orderNo)}>
+                  <Text style={styles.cancelBtnText}>CANCEL ORDER</Text>
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -481,6 +555,12 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 13,
   },
+  reason: {
+    marginTop: 6,
+    color: '#B91C1C',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   pill: {
     borderRadius: 20,
     borderWidth: 1,
@@ -520,6 +600,32 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.lightGold,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  cancelBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelBtnText: {
+    color: '#B91C1C',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  deleteBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: '#B91C1C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 13,
   },
   detailsBtnText: {
     color: Colors.sacredBrown,

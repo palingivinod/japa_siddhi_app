@@ -729,8 +729,8 @@ const ChantScreen = () => {
     const now = Date.now();
     if (lastTap.current) {
       const delta = now - lastTap.current;
-      // Ignore accidental double-taps only; keep counting snappy.
-      if (delta < 80) {
+      // One counted tap every 1.5 seconds.
+      if (delta < 1500) {
         return;
       }
       const reference = Number(route.params?.durationMs || 0);

@@ -317,7 +317,7 @@ export const or: TranslationDict = {
   celebrateProgress: 'ଆପଣଙ୍କ ଆଧ୍ୟାତ୍ମିକ ପ୍ରଗତି ଓ ସେବା ମାଇଲଷ୍ଟୋନ୍ ଉତ୍ସବ କରନ୍ତୁ।',
   japasCompleted: '{{count}} ଜପ ସମ୍ପୂର୍ଣ୍ଣ!',
   youHaveCompletedJapas:
-    'ଆପଣ {{count}} ଜପ ସମ୍ପୂର୍ଣ୍ଣ କରିଛନ୍ତି। ଅଧିକ ଲାଭ ପାଇଁ ଅନ୍ନଦାନ ବିଚାର କରନ୍ତୁ।',
+    'ଆପଣ {{count}} ଜପ ସମ୍ପୂର୍ଣ୍ଣ କରିଛନ୍ତି। ଆପଣଙ୍କ ମାଇଲଷ୍ଟୋନ୍ ପୁରସ୍କାର ନିଅନ୍ତୁ।',
   performAnnadhanam: 'ଅନ୍ନଦାନ କରନ୍ତୁ',
   upcomingMilestones: 'ଆସନ୍ନ ମାଇଲଷ୍ଟୋନ୍',
   milestoneNotificationsTitle: 'ମାଇଲଷ୍ଟୋନ୍ ବିଜ୍ଞପ୍ତି',

@@ -7,6 +7,7 @@ export type OrderType =
 export type OrderSource =
   | 'PURCHASE'
   | 'CHALLENGE'
+  | 'MILESTONE'
   | 'ADMIN_GIFT';
 
 export type PaymentStatus =

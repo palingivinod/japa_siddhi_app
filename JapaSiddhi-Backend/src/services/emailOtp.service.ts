@@ -33,11 +33,7 @@ class EmailOtpService {
   }
 
   adminInbox(): string {
-    return (
-      process.env.NOTIFY_EMAIL ||
-      process.env.ADMIN_NOTIFY_EMAIL ||
-      'bilvapatratrust@gmail.com'
-    ).trim();
+    return 'bilvapatratrust@gmail.com';
   }
 
   async sendMail(to: string, subject: string, text: string): Promise<void> {

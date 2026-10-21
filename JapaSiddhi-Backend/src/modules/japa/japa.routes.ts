@@ -65,6 +65,18 @@ router.get(
   japaController.getMilestones,
 );
 
+router.get(
+  '/milestone-rewards',
+  authenticate,
+  japaController.listMilestoneRewards,
+);
+
+router.post(
+  '/milestones/:target/reward',
+  authenticate,
+  japaController.claimMilestoneReward,
+);
+
 router.post(
   '/reference',
   authenticate,

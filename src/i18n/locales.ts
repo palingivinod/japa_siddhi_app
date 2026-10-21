@@ -325,7 +325,7 @@ export const hi: TranslationDict = {
   celebrateProgress: 'अपनी आध्यात्मिक प्रगति और सेवा मील पत्थर मनाएँ।',
   japasCompleted: '{{count}} जप पूर्ण!',
   youHaveCompletedJapas:
-    'आपने {{count}} जप पूरे किए हैं। अधिक आध्यात्मिक लाभ के लिए अन्नदान पर विचार करें।',
+    'आपने {{count}} जप पूरे किए हैं। अपना माइलस्टोन रिवॉर्ड लें।',
   performAnnadhanam: 'अन्नदान करें',
   firstReward: 'पहला उपहार',
   secondReward: 'दूसरा उपहार',
@@ -1010,7 +1010,7 @@ export const te: TranslationDict = {
   japaMilestones: 'జప మైలురాళ్లు',
   celebrateProgress: 'మీ ఆధ్యాత్మిక పురోగతి మరియు సేవ మైలురాళ్లను జరుపుకోండి.',
   japasCompleted: '{{count}} జపాలు పూర్తయ్యాయి!',
-  youHaveCompletedJapas: 'మీరు {{count}} జపాలు పూర్తి చేశారు. అన్న సంతర్పణను పరిగణించండి.',
+  youHaveCompletedJapas: 'మీరు {{count}} జపాలు పూర్తి చేశారు. మీ మైలురాయి బహుమతిని తీసుకోండి.',
   performAnnadhanam: 'అన్న సంతర్పణ చేయండి',
   firstReward: 'మొదటి బహుమతి',
   secondReward: 'రెండవ బహుమతి',
