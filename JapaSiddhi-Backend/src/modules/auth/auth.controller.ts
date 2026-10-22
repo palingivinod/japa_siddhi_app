@@ -333,7 +333,7 @@ class AuthController {
     }
   }
 
-  async appRelease(_req: Request, res: Response) {
+  async appRelease(_req: Request, res: Response, _next: NextFunction) {
     return apiResponse.success(
       res,
       'App release',
