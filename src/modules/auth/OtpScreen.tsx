@@ -309,7 +309,7 @@ const OtpScreen = ({route, navigation}: any) => {
       <Text style={styles.subtitle}>{subtitle}</Text>
       <Text style={styles.mobile}>{sentTo || email || phoneNumber}</Text>
       <OTPInput value={otp} onChange={setOtp} length={otpLength} />
-      <ResendTimer onResend={resendOTP} />
+      <ResendTimer seconds={60} onResend={resendOTP} />
       <View style={[styles.action, {paddingBottom: bottomPad}]}>
         {loading ? (
           <ActivityIndicator size="large" color={Colors.templeGold} />
@@ -348,8 +348,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   action: {
-    marginTop: 'auto',
-    paddingTop: 16,
+    marginTop: 28,
+    paddingTop: 8,
   },
   change: {
     marginTop: 16,

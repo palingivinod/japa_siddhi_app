@@ -127,7 +127,7 @@
   passwordMissingSignup:
     'Password is missing. Go back and create your account again.',
   unableResendOtp: 'Unable to resend OTP.',
-  resendOtpIn: 'Resend OTP in 00:{{seconds}}',
+  resendOtpIn: 'Resend OTP in {{minutes}}:{{seconds}}',
   resendOtp: 'Resend OTP',
   resetPasswordHeading: 'Reset password',
   forgotPasswordHelper:

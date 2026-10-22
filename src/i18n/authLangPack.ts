@@ -56,7 +56,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'पासवर्ड नहीं मिला। वापस जाकर खाता फिर बनाएँ।',
     unableResendOtp: 'OTP फिर नहीं भेजा जा सका।',
-    resendOtpIn: 'OTP फिर भेजें 00:{{seconds}}',
+    resendOtpIn: 'OTP फिर भेजें {{minutes}}:{{seconds}}',
     resendOtp: 'OTP फिर भेजें',
     resetPasswordHeading: 'पासवर्ड रीसेट करें',
     forgotPasswordHelper:
@@ -214,7 +214,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'పాస్‌వర్డ్ లేదు. వెనక్కి వెళ్లి ఖాతాను మళ్లీ సృష్టించండి.',
     unableResendOtp: 'OTP మళ్లీ పంపలేకపోయాం.',
-    resendOtpIn: 'OTP మళ్లీ పంపు 00:{{seconds}}',
+    resendOtpIn: 'OTP మళ్లీ పంపు {{minutes}}:{{seconds}}',
     resendOtp: 'OTP మళ్లీ పంపు',
     resetPasswordHeading: 'పాస్‌వర్డ్ రీసెట్',
     forgotPasswordHelper:
@@ -375,7 +375,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'ಪಾಸ್‌ವರ್ಡ್ ಇಲ್ಲ. ಹಿಂದೆ ಹೋಗಿ ಖಾತೆಯನ್ನು ಮತ್ತೆ ರಚಿಸಿ.',
     unableResendOtp: 'OTP ಮತ್ತೆ ಕಳುಹಿಸಲಾಗಲಿಲ್ಲ.',
-    resendOtpIn: 'OTP ಮತ್ತೆ ಕಳುಹಿಸಿ 00:{{seconds}}',
+    resendOtpIn: 'OTP ಮತ್ತೆ ಕಳುಹಿಸಿ {{minutes}}:{{seconds}}',
     resendOtp: 'OTP ಮತ್ತೆ ಕಳುಹಿಸಿ',
     resetPasswordHeading: 'ಪಾಸ್‌ವರ್ಡ್ ಮರುಹೊಂದಿಸಿ',
     forgotPasswordHelper:
@@ -535,7 +535,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'கடவுச்சொல் இல்லை. பின்னால் சென்று கணக்கை மீண்டும் உருவாக்கவும்.',
     unableResendOtp: 'OTP ஐ மீண்டும் அனுப்ப முடியவில்லை.',
-    resendOtpIn: 'OTP மீண்டும் அனுப்ப 00:{{seconds}}',
+    resendOtpIn: 'OTP மீண்டும் அனுப்ப {{minutes}}:{{seconds}}',
     resendOtp: 'OTP மீண்டும் அனுப்பு',
     resetPasswordHeading: 'கடவுச்சொல்லை மீட்டமை',
     forgotPasswordHelper:
@@ -700,7 +700,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'പാസ്‌വേഡ് ഇല്ല. തിരികെ പോയി അക്കൗണ്ട് വീണ്ടും സൃഷ്ടിക്കുക.',
     unableResendOtp: 'OTP വീണ്ടും അയയ്ക്കാൻ കഴിഞ്ഞില്ല.',
-    resendOtpIn: 'OTP വീണ്ടും അയയ്ക്കുക 00:{{seconds}}',
+    resendOtpIn: 'OTP വീണ്ടും അയയ്ക്കുക {{minutes}}:{{seconds}}',
     resendOtp: 'OTP വീണ്ടും അയയ്ക്കുക',
     resetPasswordHeading: 'പാസ്‌വേഡ് പുനഃസജ്ജമാക്കുക',
     forgotPasswordHelper:
@@ -860,7 +860,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'पासवर्ड सापडला नाही. मागे जाऊन खाते पुन्हा तयार करा.',
     unableResendOtp: 'OTP पुन्हा पाठवता आला नाही.',
-    resendOtpIn: 'OTP पुन्हा पाठवा 00:{{seconds}}',
+    resendOtpIn: 'OTP पुन्हा पाठवा {{minutes}}:{{seconds}}',
     resendOtp: 'OTP पुन्हा पाठवा',
     resetPasswordHeading: 'पासवर्ड रीसेट करा',
     forgotPasswordHelper:
@@ -1019,7 +1019,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'পাসওয়ার্ড পাওয়া যায়নি। ফিরে গিয়ে আবার অ্যাকাউন্ট তৈরি করুন।',
     unableResendOtp: 'OTP আবার পাঠানো যায়নি।',
-    resendOtpIn: 'OTP আবার পাঠান 00:{{seconds}}',
+    resendOtpIn: 'OTP আবার পাঠান {{minutes}}:{{seconds}}',
     resendOtp: 'OTP আবার পাঠান',
     resetPasswordHeading: 'পাসওয়ার্ড রিসেট করুন',
     forgotPasswordHelper:
@@ -1178,7 +1178,7 @@ export const authLangPack: Record<string, AuthPack> = {
     passwordMissingSignup:
       'ପାସୱାର୍ଡ ମିଳିଲା ନାହିଁ। ପଛକୁ ଯାଇ ପୁଣି ଖାତା ସୃଷ୍ଟି କରନ୍ତୁ।',
     unableResendOtp: 'OTP ପୁଣି ପଠାଯାଇପାରିଲା ନାହିଁ।',
-    resendOtpIn: 'OTP ପୁଣି ପଠାନ୍ତୁ 00:{{seconds}}',
+    resendOtpIn: 'OTP ପୁଣି ପଠାନ୍ତୁ {{minutes}}:{{seconds}}',
     resendOtp: 'OTP ପୁଣି ପଠାନ୍ତୁ',
     resetPasswordHeading: 'ପାସୱାର୍ଡ ରିସେଟ୍ କରନ୍ତୁ',
     forgotPasswordHelper:

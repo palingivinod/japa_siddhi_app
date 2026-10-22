@@ -83,19 +83,22 @@ export default OTPInput;
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: 25,
+    gap: 8,
   },
 
   input: {
-    width: 64,
-    height: 64,
-    borderRadius: 14,
+    flex: 1,
+    minWidth: 0,
+    height: 52,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: Colors.templeGold,
     backgroundColor: Colors.white,
-    fontSize: 24,
+    fontSize: 22,
     color: Colors.sacredBrown,
     fontWeight: '800',
+    paddingHorizontal: 0,
   },
 });

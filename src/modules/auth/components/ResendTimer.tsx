@@ -14,7 +14,7 @@ interface Props {
 }
 
 const ResendTimer: React.FC<Props> = ({
-  seconds = 30,
+  seconds = 60,
   onResend,
 }) => {
 
@@ -45,10 +45,13 @@ const ResendTimer: React.FC<Props> = ({
 
   if(timeLeft>0){
 
+    const minutes = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+    const secs = String(timeLeft % 60).padStart(2, '0');
+
     return(
 
       <Text style={styles.timer}>
-        {t('resendOtpIn', {seconds: String(timeLeft).padStart(2, '0')})}
+        {t('resendOtpIn', {minutes, seconds: secs})}
       </Text>
 
     );
