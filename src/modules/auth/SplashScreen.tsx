@@ -102,7 +102,6 @@ const SplashScreen = ({navigation}: Props) => {
               title: t('socialDetailsTitle'),
               message: t('socialDetailsMessage'),
               ok: t('ok'),
-              later: t('later'),
             });
             return;
           }

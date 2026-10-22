@@ -34,7 +34,7 @@ import BottomTabs from '../../common/BottomTabs';
 import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
-import {computeEffectiveDailyTarget} from '../../../utils/dailyGoal';
+import {dailyPlanForToday} from '../../../utils/dailyGoal';
 
 type ActiveGoal = {
   id: number;
@@ -398,9 +398,11 @@ const HomeScreen = () => {
         Number(activeJapaGoal.remainingCount) ||
           activeJapaGoal.targetCount - activeJapaGoal.completedCount,
       );
-      // Dynamic: remaining ÷ days left (same as Your Japas / reminders).
-      return computeEffectiveDailyTarget({
-        remainingCount,
+      // Today's plan stays the start-of-day figure. Tomorrow uses
+      // whatever japas are still left divided by the days still left.
+      return dailyPlanForToday({
+        remainingNow: remainingCount,
+        doneToday: Number(activeJapaGoal.todayCompletedCount || 0),
         remainingDays: totalGoalDays(
           activeJapaGoal.startDate,
           activeJapaGoal.endDate,

@@ -1,7 +1,7 @@
 import {Alert} from 'react-native';
 import {CommonActions} from '@react-navigation/native';
 
-/** Google and Facebook accounts can skip mobile and DOB until they choose to enter them. */
+/** Google and Facebook accounts. Mobile and date of birth are required before Home. */
 export const isSocialLoginUser = (user: any) => {
   const provider = String(
     user?.authProvider ||
@@ -57,13 +57,13 @@ const openSocialDetailsForm = (navigation: any, user?: any) => {
 };
 
 /**
- * Google and Facebook only. If mobile or DOB is missing, ask once for this open.
- * OK opens the details form. Later opens Home. Saved details skip the popup.
+ * Google and Facebook only. If mobile or DOB is missing, the devotee must
+ * enter them. OK opens the details form. Saved details skip the popup.
  */
 export const promptSocialDetails = (
   navigation: any,
   user: any,
-  copy: {title: string; message: string; ok: string; later: string},
+  copy: {title: string; message: string; ok: string},
 ) => {
   if (!isSocialLoginUser(user) || !profileNeedsDetails(user)) {
     return resetToHomeAfterAuth(navigation);
@@ -72,10 +72,6 @@ export const promptSocialDetails = (
     copy.title,
     copy.message,
     [
-      {
-        text: copy.later,
-        onPress: () => resetToHomeAfterAuth(navigation),
-      },
       {
         text: copy.ok,
         onPress: () => openSocialDetailsForm(navigation, user),
@@ -89,14 +85,13 @@ export const promptSocialDetails = (
 export const resetAfterSocialAuth = (
   navigation: any,
   user?: any,
-  copy?: {title: string; message: string; ok: string; later: string},
+  copy?: {title: string; message: string; ok: string},
 ) => {
   if (isSocialLoginUser(user) && profileNeedsDetails(user)) {
     return promptSocialDetails(navigation, user, {
       title: copy?.title || 'Your details',
       message: copy?.message || 'Please enter your mobile and date of birth.',
       ok: copy?.ok || 'OK',
-      later: copy?.later || 'Later',
     });
   }
   return resetToHomeAfterAuth(navigation);

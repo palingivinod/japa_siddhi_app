@@ -84,6 +84,46 @@ const matchesJapa = (count: number, filter: string) => {
 const byJapaDesc = (a: AdminUser, b: AdminUser) =>
   b.japaCount - a.japaCount || a.name.localeCompare(b.name);
 
+const digitsOnly = (value: string) => value.replace(/\D/g, '');
+
+/** Name, email, phone, user ID, status, japa count, or enrolled date. */
+const matchesSearch = (user: AdminUser, query: string) => {
+  if (!query) {
+    return true;
+  }
+  const japa = String(user.japaCount);
+  const haystack = [
+    user.name,
+    user.email,
+    user.userCode,
+    user.id,
+    user.mobile,
+    user.mobileNumber,
+    user.mobileCountryCode,
+    user.status,
+    user.enrolledOn,
+    japa,
+    Number(japa).toLocaleString('en-IN'),
+  ]
+    .join(' ')
+    .toLowerCase();
+  if (haystack.includes(query)) {
+    return true;
+  }
+  const queryDigits = digitsOnly(query);
+  if (queryDigits.length < 2) {
+    return false;
+  }
+  const phoneDigits = digitsOnly(
+    `${user.mobileCountryCode || ''}${user.mobileNumber || user.mobile || ''}`,
+  );
+  return (
+    phoneDigits.includes(queryDigits) ||
+    String(user.id).includes(queryDigits) ||
+    japa.includes(queryDigits)
+  );
+};
+
 const StatusPill = ({status}: {status: AdminUserStatus}) => {
   const blocked = status === 'Blocked';
   return (
@@ -170,13 +210,7 @@ const AdminUsersScreen = () => {
           if (!matchesJapa(user.japaCount, japaFilter)) {
             return false;
           }
-          if (!query) {
-            return true;
-          }
-          const code = String(user.userCode || user.id).toLowerCase();
-          return (
-            code.includes(query) || user.name.toLowerCase().includes(query)
-          );
+          return matchesSearch(user, query);
         })
         .sort(byJapaDesc);
     },
@@ -241,7 +275,7 @@ const AdminUsersScreen = () => {
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search by user ID or name"
+        placeholder="Search name, email, phone, or ID"
         placeholderTextColor={Colors.placeholder}
         style={styles.search}
         autoCapitalize="none"
@@ -321,6 +355,7 @@ const AdminUsersScreen = () => {
               {' · '}
               {user.japaCount.toLocaleString('en-IN')} Japa
               {user.email ? ` · ${user.email}` : ''}
+              {user.mobile && user.mobile !== '—' ? ` · ${user.mobile}` : ''}
             </Text>
           </View>
           <StatusPill status={user.status} />
@@ -339,6 +374,7 @@ const AdminUsersScreen = () => {
                   {' · '}
                   {user.japaCount.toLocaleString('en-IN')} Japa saved
                   {user.email ? ` · ${user.email}` : ''}
+                  {user.mobile && user.mobile !== '—' ? ` · ${user.mobile}` : ''}
                 </Text>
               </View>
               <TouchableOpacity

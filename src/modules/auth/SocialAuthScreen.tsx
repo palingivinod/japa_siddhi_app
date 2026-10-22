@@ -58,7 +58,6 @@ const SocialAuthScreen = () => {
           title: t('socialDetailsTitle'),
           message: t('socialDetailsMessage'),
           ok: t('ok'),
-          later: t('later'),
         });
       }, 150);
     } catch (error: any) {

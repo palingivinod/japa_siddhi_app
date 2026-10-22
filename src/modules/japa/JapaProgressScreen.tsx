@@ -7,7 +7,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
-import {computeEffectiveDailyTarget} from '../../utils/dailyGoal';
+import {dailyPlanForToday, dailyPlansForDays} from '../../utils/dailyGoal';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -20,6 +20,7 @@ const JapaProgressScreen = () => {
   const [percent, setPercent] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
+  const [dayPlans, setDayPlans] = useState<Record<string, number>>({});
 
   const load = useCallback(() => {
     Promise.all([
@@ -60,7 +61,13 @@ const JapaProgressScreen = () => {
             totals.todayJapaCount ??
             0,
         );
+        const weekRows: Array<{day: string; count: number}> = Array.isArray(
+          data.weekly,
+        )
+          ? data.weekly
+          : [];
         let dailyGoal = 0;
+        let plans: Record<string, number> = {};
         if (activeGoal) {
           const target = Number(activeGoal.targetCount ?? 0);
           const completed = Number(activeGoal.completedCount ?? 0);
@@ -68,8 +75,14 @@ const JapaProgressScreen = () => {
             0,
             Number(activeGoal.remainingCount ?? target - completed) || 0,
           );
-          dailyGoal = computeEffectiveDailyTarget({
-            remainingCount: remaining,
+          dailyGoal = dailyPlanForToday({
+            remainingNow: remaining,
+            doneToday: todayCount,
+            endDate: activeGoal.endDate,
+          });
+          plans = dailyPlansForDays(weekRows, {
+            target,
+            completed,
             endDate: activeGoal.endDate,
           });
         }
@@ -84,7 +97,8 @@ const JapaProgressScreen = () => {
         setToday(todayCount);
         setGoal(dailyGoal);
         setPercent(progressPct);
-        setWeekly(data.weekly ?? []);
+        setWeekly(weekRows);
+        setDayPlans(plans);
         setLifetime(Number(totals.totalJapaCount ?? totals.lifetimeCount ?? 0));
       })
       .catch(() => undefined);
@@ -166,7 +180,11 @@ const JapaProgressScreen = () => {
           <View style={styles.chartRow}>
             {weekly.map(item => {
               const itemCount = Number(item.count) || 0;
-              const isCompleted = itemCount >= goal && goal > 0;
+              const dayKey = String(item.day || '').slice(0, 10);
+              const dayPlan = Object.prototype.hasOwnProperty.call(dayPlans, dayKey)
+                ? dayPlans[dayKey]
+                : goal;
+              const isCompleted = itemCount >= dayPlan && dayPlan > 0;
               const barHeight = Math.max(
                 14,
                 Math.round((itemCount / maxWeeklyCount) * 96),

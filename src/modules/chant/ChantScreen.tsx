@@ -27,10 +27,7 @@ import {
 } from '../../services/chantBeep';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
-import {
-  calcDaysRemaining,
-  computeEffectiveDailyTarget,
-} from '../../utils/dailyGoal';
+import {calcDaysRemaining, dailyPlanForToday} from '../../utils/dailyGoal';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -84,10 +81,8 @@ const ChantScreen = () => {
   const [dailyTarget, setDailyTarget] = useState(
     challengeId ? 0 : Number(route.params?.dailyTarget || 0) || 0,
   );
-  /** Today's saved count for this goal/mantra before this visit's session taps. */
-  const [todayBaseline, setTodayBaseline] = useState(0);
-  const [goalRemaining, setGoalRemaining] = useState(0);
-  const [goalRemDays, setGoalRemDays] = useState(1);
+  /** Japas saved for this goal today, including taps saved during this visit. */
+  const [todaySaved, setTodaySaved] = useState(0);
   const [dailyGoalCompletedShown, setDailyGoalCompletedShown] = useState(false);
   const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -112,21 +107,26 @@ const ChantScreen = () => {
   const shownMilestonesRef = useRef<Record<number, boolean>>({});
   const selectedRef = useRef<ChantMantra | null>(null);
   const completingRef = useRef(false);
-  const todayBaselineRef = useRef(0);
+  const todaySavedRef = useRef(0);
   const dailyTargetRef = useRef(dailyTarget);
-  const goalRemainingRef = useRef(0);
-  const goalRemDaysRef = useRef(1);
   const dailyGoalCompletedShownRef = useRef(false);
 
   countRef.current = count;
   goalRef.current = goal;
   selectedRef.current = selected;
-  todayBaselineRef.current = todayBaseline;
   dailyTargetRef.current = dailyTarget;
-  goalRemainingRef.current = goalRemaining;
-  goalRemDaysRef.current = goalRemDays;
   dailyGoalCompletedShownRef.current = dailyGoalCompletedShown;
   const goalReached = count >= goal && goal > 0;
+  const unsavedTaps = Math.max(0, count - postedCountRef.current);
+  const todayTotal = todaySaved + unsavedTaps;
+  // Circle follows today's japas until the daily plan is done.
+  // Once that plan is reached, or any extra is chanted, it stays at 0
+  // for the rest of the day. The next day it counts up from 0 again.
+  const circleCount = challengeId
+    ? count
+    : dailyTarget > 0 && todayTotal >= dailyTarget
+      ? 0
+      : todayTotal;
 
   const applyMantraTotals = (rows: any[]) => {
     const next: Record<number, number> = {};
@@ -279,13 +279,15 @@ const ChantScreen = () => {
             const remDays = calcDaysRemaining(match.endDate);
             resolvedTodayBaseline =
               Number(match.todayCompletedCount || 0) || 0;
-            resolvedDailyTarget = computeEffectiveDailyTarget({
-              remainingCount: remaining,
+            // Today's plan stays the start-of-day figure. Doing more today
+            // does not change the number on the line; tomorrow divides
+            // whatever is still left by the days still left.
+            resolvedDailyTarget = dailyPlanForToday({
+              remainingNow: remaining,
+              doneToday: resolvedTodayBaseline,
               remainingDays: remDays,
               endDate: match.endDate,
             });
-            setGoalRemaining(remaining);
-            setGoalRemDays(remDays);
           } else if (!resolvedDailyTarget && data.dailyTarget) {
             resolvedDailyTarget = Number(data.dailyTarget) || 0;
           }
@@ -295,7 +297,8 @@ const ChantScreen = () => {
           }
         }
       }
-      setTodayBaseline(resolvedTodayBaseline);
+      todaySavedRef.current = resolvedTodayBaseline;
+      setTodaySaved(resolvedTodayBaseline);
       setDailyTarget(resolvedDailyTarget);
       if (
         resolvedDailyTarget > 0 &&
@@ -532,37 +535,29 @@ const ChantScreen = () => {
     const chip = selectedRef.current;
     const chipId = Number(chip?.id || 0);
     const added = Number(fallbackCount || 0);
-    const bump = (prev: Record<number, number>) => {
-      const nextTotal = Number(prev[chipId] || savedTotal || 0) + added;
-      setSavedTotal(nextTotal);
-      return chipId ? {...prev, [chipId]: nextTotal} : prev;
-    };
-    if (chip?.own) {
-      setPersonalTotals(bump);
-    } else {
-      setMantraTotals(bump);
+    if (added > 0) {
+      const bump = (prev: Record<number, number>) => {
+        const nextTotal = Number(prev[chipId] || savedTotal || 0) + added;
+        setSavedTotal(nextTotal);
+        return chipId ? {...prev, [chipId]: nextTotal} : prev;
+      };
+      if (chip?.own) {
+        setPersonalTotals(bump);
+      } else {
+        setMantraTotals(bump);
+      }
     }
     if (options?.resetCount) {
       setCount(0);
       countRef.current = 0;
     }
-    // After save, shrink remaining so daily goal updates dynamically when
-    // the devotee chants more than today's plan.
-    if (!challengeId && added > 0) {
-      const nextRemaining = Math.max(0, goalRemainingRef.current - added);
-      const nextDaily = computeEffectiveDailyTarget({
-        remainingCount: nextRemaining,
-        remainingDays: goalRemDaysRef.current,
-      });
-      setGoalRemaining(nextRemaining);
-      setDailyTarget(nextDaily);
-      const todayNow = todayBaselineRef.current + countRef.current;
-      if (nextDaily > 0 && todayNow >= nextDaily) {
-        dailyGoalCompletedShownRef.current = true;
-        setDailyGoalCompletedShown(true);
-      }
-    }
-    setMessage(`Saved ${savedCount.toLocaleString()} japas to your account.`);
+    // Today's plan stays as it was at the start of the day. The next
+    // calendar day recomputes it from the japas still left.
+    setMessage(
+      added > 0
+        ? `Saved ${savedCount.toLocaleString()} japas to your account.`
+        : 'These japas are already saved.',
+    );
 
     // Persist most recently chanted & saved mantra
     void saveLastChantedJapa({
@@ -689,15 +684,12 @@ const ChantScreen = () => {
       setMantraTotals(bump);
     }
     if (!challengeId && added > 0) {
-      const nextRemaining = Math.max(0, goalRemainingRef.current - added);
-      const nextDaily = computeEffectiveDailyTarget({
-        remainingCount: nextRemaining,
-        remainingDays: goalRemDaysRef.current,
-      });
-      setGoalRemaining(nextRemaining);
-      setDailyTarget(nextDaily);
-      const todayNow = todayBaselineRef.current + countRef.current;
-      if (nextDaily > 0 && todayNow >= nextDaily) {
+      const nextSaved = todaySavedRef.current + added;
+      todaySavedRef.current = nextSaved;
+      setTodaySaved(nextSaved);
+      const unsaved = Math.max(0, countRef.current - postedCountRef.current);
+      const plan = dailyTargetRef.current;
+      if (plan > 0 && nextSaved + unsaved >= plan) {
         dailyGoalCompletedShownRef.current = true;
         setDailyGoalCompletedShown(true);
       }
@@ -876,13 +868,13 @@ const ChantScreen = () => {
     }
     enqueueAutoSave();
     const effectiveDaily = dailyTargetRef.current;
-    const todayTotal = todayBaselineRef.current + next;
+    const todayTotal =
+      todaySavedRef.current + Math.max(0, next - postedCountRef.current);
     if (
       !challengeId &&
       effectiveDaily > 0 &&
       effectiveDaily < goalRef.current &&
       !dailyGoalCompletedShownRef.current &&
-      todayBaselineRef.current < effectiveDaily &&
       todayTotal >= effectiveDaily
     ) {
       dailyGoalCompletedShownRef.current = true;
@@ -923,13 +915,18 @@ const ChantScreen = () => {
               remarks: sessionRemarks(),
             });
             postedCountRef.current = posted + delta;
+            if (!challengeId && delta > 0) {
+              const nextSaved = todaySavedRef.current + delta;
+              todaySavedRef.current = nextSaved;
+              setTodaySaved(nextSaved);
+            }
             await persistDraft(countRef.current, postedCountRef.current);
             afterSessionSaved(response.data.data, delta);
           } else {
             await persistDraft(countRef.current, postedCountRef.current);
             afterSessionSaved(
               {userTotal: savedTotal, count: countRef.current},
-              countRef.current,
+              0,
             );
           }
         } catch (err: any) {
@@ -1076,7 +1073,7 @@ const ChantScreen = () => {
           ]}>
           <View style={styles.innerRing}>
             <Text style={styles.count}>
-              {count.toLocaleString()}
+              {circleCount.toLocaleString()}
             </Text>
             <Text style={styles.japas}>{t('japasLabel')}</Text>
           </View>
@@ -1094,7 +1091,7 @@ const ChantScreen = () => {
         {!challengeId && dailyTarget > 0 ? (
           <Text style={styles.dailyGoalLine}>
             {t('dailyGoalLabel') || 'Daily Goal'}:{' '}
-            {(todayBaseline + count).toLocaleString()}
+            {todayTotal.toLocaleString()}
             {' / '}
             {dailyTarget.toLocaleString()}
           </Text>

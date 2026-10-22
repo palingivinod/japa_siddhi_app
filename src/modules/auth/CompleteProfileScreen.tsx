@@ -1,4 +1,4 @@
-import React, {useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -8,8 +8,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  BackHandler,
   Image,
 } from 'react-native';
+import {useFocusEffect} from '@react-navigation/native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
@@ -60,6 +62,12 @@ const CompleteProfileScreen = ({
 }: any) => {
   const {t} = useLanguage();
   const bottomPad = useBottomNavPad();
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+      return () => sub.remove();
+    }, []),
+  );
   const registeredEmail = route?.params?.email ?? '';
   const initialPhone = String(route?.params?.phoneNumber || '').replace(/\D/g, '');
   const initialCode =
@@ -362,7 +370,7 @@ const CompleteProfileScreen = ({
           styles.content,
           {paddingBottom: 140 + bottomPad},
         ]}>
-        <AppHeader title={t('createYourProfile')} showBack />
+        <AppHeader title={t('createYourProfile')} showBack={false} />
         <Text style={styles.stepLabel}>
           {t('stepOf', {current: 1, total: 2})}
         </Text>

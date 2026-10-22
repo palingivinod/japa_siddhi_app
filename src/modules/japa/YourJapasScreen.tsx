@@ -13,10 +13,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
-import {
-  calcDaysRemaining,
-  computeEffectiveDailyTarget,
-} from '../../utils/dailyGoal';
+import {calcDaysRemaining, dailyPlanForToday} from '../../utils/dailyGoal';
 import PrimaryButton from '../common/PrimaryButton';
 import OutlineButton from '../common/OutlineButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -140,10 +137,12 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          // Always recompute from remaining ÷ remaining days so over-chanting
-          // lowers the next daily plan (stored daily_target is only a seed).
-          const dailyTarget = computeEffectiveDailyTarget({
-            remainingCount,
+          // Today's plan is the start-of-day figure. Japas done today are
+          // put back, so the number stays put until tomorrow, when the
+          // japas still left are divided by the days still left.
+          const dailyTarget = dailyPlanForToday({
+            remainingNow: remainingCount,
+            doneToday: Number(goal.todayCompletedCount || 0),
             remainingDays,
             endDate: goal.endDate,
           });
