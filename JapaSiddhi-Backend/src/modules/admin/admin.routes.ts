@@ -292,6 +292,21 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
       )
     `);
 
+    const engine = mysql.getEngineName() || 'sqlite';
+    const japaTodayRows = await mysql.query<any[]>(`
+      SELECT IFNULL(SUM(session_count), 0) AS todayJapa
+      FROM japa_sessions
+      WHERE ${istDay(engine, 'created_at')} = ${istToday(engine)}
+      AND (
+        remarks IS NULL
+        OR TRIM(remarks) = ''
+        OR (
+          lower(remarks) NOT LIKE 'challenge%'
+          AND lower(remarks) NOT LIKE '%challenge japa%'
+        )
+      )
+    `);
+
     const ordersRows = await mysql.query<any[]>(`
       SELECT COUNT(*) AS totalOrders
       FROM orders
@@ -311,6 +326,7 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
     const globalJapa = num(japaGlobal?.[0]?.totalJapa);
     const sessionJapa = num(japaSessions?.[0]?.totalJapa);
     const japa = Math.max(globalJapa, sessionJapa);
+    const japaToday = num(japaTodayRows?.[0]?.todayJapa);
     const orders = num(ordersRows?.[0]?.totalOrders);
     const donations = num(donationsRows?.[0]?.totalDonations);
 
@@ -319,6 +335,7 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
       data: {
         users,
         japa,
+        japaToday,
         orders,
         donations,
         donationsLabel: formatDonationsLabel(donations),
@@ -852,6 +869,7 @@ const mapUserRow = (row: any) => {
     mobile: country && mobile ? `+${country} ${mobile}` : mobile || '—',
     mobileCountryCode: country,
     mobileNumber: mobile,
+    appVersion: String(row.appVersion || row.app_version || '').trim(),
     japaCount: num(row.japaCount),
     status,
     accountStatus: statusRaw,
@@ -1060,6 +1078,7 @@ router.get('/users/:id', async (req: Request, res: Response) => {
         u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS mobileNumber,
         u.account_status AS accountStatus,
+        u.app_version AS appVersion,
         IFNULL((
           SELECT SUM(js.session_count)
           FROM japa_sessions js

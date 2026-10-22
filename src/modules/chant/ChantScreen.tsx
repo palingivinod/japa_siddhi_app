@@ -83,6 +83,7 @@ const ChantScreen = () => {
   );
   /** Japas saved for this goal today, including taps saved during this visit. */
   const [todaySaved, setTodaySaved] = useState(0);
+  const [extraBase, setExtraBase] = useState(0);
   const [dailyGoalCompletedShown, setDailyGoalCompletedShown] = useState(false);
   const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -108,6 +109,10 @@ const ChantScreen = () => {
   const selectedRef = useRef<ChantMantra | null>(null);
   const completingRef = useRef(false);
   const todaySavedRef = useRef(0);
+  /** Today's japas already on the account when this visit's extras began. */
+  const extraBaseRef = useRef(0);
+  const circleReadyRef = useRef(false);
+  const leftChantRef = useRef(false);
   const dailyTargetRef = useRef(dailyTarget);
   const dailyGoalCompletedShownRef = useRef(false);
 
@@ -119,13 +124,13 @@ const ChantScreen = () => {
   const goalReached = count >= goal && goal > 0;
   const unsavedTaps = Math.max(0, count - postedCountRef.current);
   const todayTotal = todaySaved + unsavedTaps;
-  // Circle follows today's japas until the daily plan is done.
-  // Once that plan is reached, or any extra is chanted, it stays at 0
-  // for the rest of the day. The next day it counts up from 0 again.
+  // Until the daily plan is done, the circle shows today's japas.
+  // After that, it counts only extras chanted in this sitting: 1, 2, 3.
+  // Leaving the screen and coming back starts those extras from 0 again.
   const circleCount = challengeId
     ? count
     : dailyTarget > 0 && todayTotal >= dailyTarget
-      ? 0
+      ? Math.max(0, todayTotal - Math.max(dailyTarget, extraBase))
       : todayTotal;
 
   const applyMantraTotals = (rows: any[]) => {
@@ -298,6 +303,8 @@ const ChantScreen = () => {
         }
       }
       todaySavedRef.current = resolvedTodayBaseline;
+      extraBaseRef.current = resolvedTodayBaseline;
+      setExtraBase(resolvedTodayBaseline);
       setTodaySaved(resolvedTodayBaseline);
       setDailyTarget(resolvedDailyTarget);
       if (
@@ -411,6 +418,12 @@ const ChantScreen = () => {
           ? personal[active.id] || 0
           : totals[Number(active?.id || 0)] || 0,
       );
+      const visitToday =
+        todaySavedRef.current +
+        Math.max(0, countRef.current - postedCountRef.current);
+      extraBaseRef.current = visitToday;
+      setExtraBase(visitToday);
+      circleReadyRef.current = true;
     } catch (err: any) {
       setRawError(err);
       setError(getApiError(err, 'Could not load mantras from the API.'));
@@ -434,6 +447,17 @@ const ChantScreen = () => {
   useFocusEffect(
     useCallback(() => {
       setMessage('');
+      if (circleReadyRef.current && leftChantRef.current) {
+        const visitToday =
+          todaySavedRef.current +
+          Math.max(0, countRef.current - postedCountRef.current);
+        extraBaseRef.current = visitToday;
+        setExtraBase(visitToday);
+      }
+      leftChantRef.current = false;
+      return () => {
+        leftChantRef.current = true;
+      };
     }, []),
   );
 

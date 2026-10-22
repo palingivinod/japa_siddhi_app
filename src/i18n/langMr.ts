@@ -435,6 +435,7 @@ export const mr: TranslationDict = {
   tellUsMore: 'आम्हाला अधिक सांगा',
   howWasExperience: 'तुमचा अनुभव कसा होता?',
   continueToRating: 'सबमिट करा आणि रेट करा',
+  rateUs: 'आम्हाला रेट करा',
   reportAnIssue: 'समस्या नोंदवा',
   chatWithSupport: 'समर्थनाशी चॅट करा',
   speakToUs: 'आमच्याशी बोला',

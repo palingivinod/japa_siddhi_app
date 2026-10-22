@@ -17,6 +17,7 @@ import {ADMIN_CONTROL_ITEMS} from './adminData';
 type DashboardStats = {
   users: number;
   japa: number;
+  japaToday: number;
   orders: number;
   donationsLabel: string;
 };
@@ -24,14 +25,24 @@ type DashboardStats = {
 const EMPTY_STATS: DashboardStats = {
   users: 0,
   japa: 0,
+  japaToday: 0,
   orders: 0,
   donationsLabel: '₹0',
 };
 
-const StatCard = ({label, value}: {label: string; value: string}) => (
+const StatCard = ({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail?: string;
+}) => (
   <View style={styles.statCard}>
     <Text style={styles.statLabel}>{label}</Text>
     <Text style={styles.statValue}>{value}</Text>
+    {detail ? <Text style={styles.statDetail}>{detail}</Text> : null}
   </View>
 );
 
@@ -50,6 +61,7 @@ const AdminDashboardScreen = () => {
       setStats({
         users: Number(data.users) || 0,
         japa: Number(data.japa) || 0,
+        japaToday: Number(data.japaToday) || 0,
         orders: Number(data.orders) || 0,
         donationsLabel: String(data.donationsLabel || '₹0'),
       });
@@ -100,7 +112,11 @@ const AdminDashboardScreen = () => {
             label="Users"
             value={stats.users.toLocaleString('en-IN')}
           />
-          <StatCard label="Japa" value={stats.japa.toLocaleString('en-IN')} />
+          <StatCard
+            label="Japa"
+            value={stats.japa.toLocaleString('en-IN')}
+            detail={`Today ${stats.japaToday.toLocaleString('en-IN')}`}
+          />
           <StatCard
             label="Orders"
             value={stats.orders.toLocaleString('en-IN')}
@@ -186,6 +202,12 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  statDetail: {
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textSecondary,
   },
   errorText: {
     color: Colors.error,

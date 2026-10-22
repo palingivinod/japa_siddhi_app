@@ -10,6 +10,7 @@ export type AdminUser = {
   email?: string;
   mobileCountryCode?: string;
   mobileNumber?: string;
+  appVersion?: string;
   /** Registration day in IST, YYYY-MM-DD. */
   enrolledOn?: string;
 };

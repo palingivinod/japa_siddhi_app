@@ -46,6 +46,7 @@ const AdminUserDetailsScreen = () => {
         email: data.email || '',
         mobileCountryCode: data.mobileCountryCode || '',
         mobileNumber: data.mobileNumber || '',
+        appVersion: String(data.appVersion || '').trim(),
       });
     } catch (err) {
       setUser(null);
@@ -92,6 +93,9 @@ const AdminUserDetailsScreen = () => {
             ) : null}
             <Text style={styles.row}>
               Japa completed: {user.japaCount.toLocaleString('en-IN')}
+            </Text>
+            <Text style={styles.row}>
+              App version: {user.appVersion || 'Not opened yet'}
             </Text>
           </View>
 

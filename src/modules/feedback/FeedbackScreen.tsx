@@ -45,7 +45,7 @@ const FeedbackScreen = () => {
     }
   };
 
-  const submitAndRate = async () => {
+  const submitFeedback = async () => {
     if (saving) {
       return;
     }
@@ -69,7 +69,7 @@ const FeedbackScreen = () => {
       await apiService.post('/feedback', formData);
       setMessage('');
       setVideo(null);
-      await openPlayStoreRating();
+      Alert.alert('Feedback', 'Thank you. Your feedback was sent.');
     } catch (error) {
       Alert.alert('Feedback', getApiError(error, 'Could not send feedback.'));
     } finally {
@@ -80,6 +80,9 @@ const FeedbackScreen = () => {
   return (
     <ScreenLayout title={t('shareFeedback')} showBack tab="Profile">
       <Text style={styles.heading}>{t('howWasExperience')}</Text>
+      <View style={styles.rateWrap}>
+        <PrimaryButton title={t('rateUs')} onPress={openPlayStoreRating} />
+      </View>
       <FormField
         label={t('comments')}
         placeholder={t('tellUsMore')}
@@ -109,8 +112,8 @@ const FeedbackScreen = () => {
       )}
 
       <PrimaryButton
-        title={saving ? t('submittingTicket') : t('continueToRating')}
-        onPress={submitAndRate}
+        title={saving ? t('submittingTicket') : t('submit')}
+        onPress={submitFeedback}
         disabled={saving}
       />
     </ScreenLayout>
@@ -120,6 +123,9 @@ const FeedbackScreen = () => {
 export default FeedbackScreen;
 
 const styles = StyleSheet.create({
+  rateWrap: {
+    marginBottom: 16,
+  },
   heading: {
     fontSize: 22,
     fontWeight: '800',

@@ -333,6 +333,34 @@ class AuthController {
     }
   }
 
+  async appRelease(_req: Request, res: Response) {
+    return apiResponse.success(
+      res,
+      'App release',
+      authService.latestAppRelease(),
+    );
+  }
+
+  async recordAppVersion(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = (req as Request & {user?: {id: number}}).user?.id;
+      if (!userId) {
+        throw new Error('Unauthorized user');
+      }
+      const result = await authService.recordAppVersion(
+        userId,
+        req.body?.appVersion,
+      );
+      return apiResponse.success(res, 'App version saved', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deleteAccount(
     req: Request,
     res: Response,

@@ -593,6 +593,7 @@ class AuthService {
     identifier?: string;
     mobileCountryCode?: string;
     mobileNumber?: string;
+    appVersion?: string;
   }): Promise<LoginResponse> {
     const password = String(data.password || '');
     if (!password) {
@@ -692,7 +693,13 @@ class AuthService {
       );
     }
 
-    await authRepository.updateLastLogin(user.id);
+    await authRepository.updateLastLogin(
+      user.id,
+      undefined,
+      undefined,
+      undefined,
+      data.appVersion,
+    );
     const freshUser = (await authRepository.findUserById(user.id)) as AuthUser;
     return {
       token: issueToken(freshUser),
@@ -1594,6 +1601,17 @@ class AuthService {
       token: issueToken(user),
       user,
     };
+  }
+
+  latestAppRelease() {
+    return {
+      latestVersion: environment.LATEST_APP_VERSION || '1.1.3',
+    };
+  }
+
+  async recordAppVersion(userId: number, appVersion?: string) {
+    await authRepository.saveAppVersion(userId, String(appVersion || ''));
+    return {saved: true};
   }
 
   async deleteAccount(userId: number): Promise<void> {

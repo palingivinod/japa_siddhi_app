@@ -10,6 +10,7 @@ import { Platform } from 'react-native';
 import ENV from '../../../env';
 import apiService from '../../../services/apiService';
 import { saveSession } from '../../../services/session';
+import {getAppVersionName} from '../../../utils/appVersion';
 
 let configured = false;
 
@@ -118,7 +119,7 @@ export const signInWithGoogle = async () => {
     firebaseToken,
     deviceType: Platform.OS === 'ios' ? 'IOS' : 'ANDROID',
     deviceOs: String(Platform.Version),
-    appVersion: ENV.VERSION,
+    appVersion: getAppVersionName(),
   });
 
   const data = response.data?.data;

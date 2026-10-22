@@ -165,6 +165,19 @@ router.post(
 );
 
 router.get(
+  '/app-release',
+  ((req, res, next) =>
+    authController.appRelease(req, res, next)) as ExpressHandler,
+);
+
+router.post(
+  '/app-version',
+  authMiddleware,
+  ((req, res, next) =>
+    authController.recordAppVersion(req, res, next)) as ExpressHandler,
+);
+
+router.get(
   '/profile',
   authMiddleware,
   ((req, res, next) =>

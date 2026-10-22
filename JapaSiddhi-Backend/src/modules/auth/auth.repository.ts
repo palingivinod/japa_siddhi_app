@@ -567,7 +567,7 @@ class AuthRepository {
         firebase_token = ?,
         device_model = ?,
         device_os = ?,
-        app_version = ?,
+        app_version = COALESCE(?, app_version),
         last_login_at = NOW()
       WHERE id = ?
       `,
@@ -578,6 +578,22 @@ class AuthRepository {
         appVersion ?? null,
         userId,
       ],
+    );
+  }
+
+  async saveAppVersion(userId: number, appVersion: string): Promise<void> {
+    const version = String(appVersion || '').trim().slice(0, 40);
+    if (!userId || !version) {
+      return;
+    }
+    await mysql.query<ResultSetHeader>(
+      `
+      UPDATE users
+      SET app_version = ?
+      WHERE id = ?
+      AND deleted_at IS NULL
+      `,
+      [version, userId],
     );
   }
 

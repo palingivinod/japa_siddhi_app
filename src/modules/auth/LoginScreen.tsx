@@ -30,6 +30,7 @@ import {resetAdminAuthGate} from '../admin/AdminAuthGate';
 import {verifyAdminCredentials} from '../admin/adminCredentials';
 import {BODY_PAD} from '../../utils/layoutSpacing';
 import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
+import {getAppVersionName} from '../../utils/appVersion';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -126,6 +127,7 @@ const LoginScreen = () => {
         identifier: value,
         email: isEmail ? value.toLowerCase() : undefined,
         password: password.trim(),
+        appVersion: getAppVersionName(),
       };
 
       let response;
@@ -373,6 +375,13 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
+            <Text style={styles.quickLogin}>{t('forQuickLogin')}</Text>
+            <TouchableOpacity
+              style={styles.social}
+              onPress={() => socialContinue('Google')}>
+              <Text style={styles.socialText}>{t('socialGoogle')}</Text>
+            </TouchableOpacity>
+
             <Text style={styles.label}>{t('loginWith')}</Text>
             <Segment
               value={loginMethod}
@@ -504,19 +513,11 @@ const LoginScreen = () => {
             ) : null}
 
             <Text style={styles.or}>{t('orContinueWith')}</Text>
-            {(
-              [
-                {id: 'Google', label: t('socialGoogle')},
-                {id: 'Facebook', label: t('socialFacebook')},
-              ] as const
-            ).map(item => (
-              <TouchableOpacity
-                key={item.id}
-                style={styles.social}
-                onPress={() => socialContinue(item.id)}>
-                <Text style={styles.socialText}>{item.label}</Text>
-              </TouchableOpacity>
-            ))}
+            <TouchableOpacity
+              style={styles.social}
+              onPress={() => socialContinue('Facebook')}>
+              <Text style={styles.socialText}>{t('socialFacebook')}</Text>
+            </TouchableOpacity>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>{t('newToJapaSiddhi')}</Text>
@@ -656,6 +657,13 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     color: Colors.leafGreen,
     fontWeight: '700',
+  },
+  quickLogin: {
+    marginTop: 4,
+    marginBottom: 8,
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 14,
   },
   or: {
     textAlign: 'center',

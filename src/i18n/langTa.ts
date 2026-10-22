@@ -430,6 +430,7 @@ export const ta: TranslationDict = {
   tellUsMore: 'மேலும் சொல்லுங்கள்',
   howWasExperience: 'உங்கள் அனுபவம் எப்படி இருந்தது?',
   continueToRating: 'சமர்ப்பித்து மதிப்பிடுங்கள்',
+  rateUs: 'எங்களை மதிப்பிடுங்கள்',
   reportAnIssue: 'சிக்கலைப் புகார் செய்',
   chatWithSupport: 'ஆதரவுடன் அரட்டை',
   speakToUs: 'எங்களுடன் பேசுங்கள்',
