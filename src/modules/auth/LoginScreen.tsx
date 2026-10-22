@@ -283,7 +283,7 @@ const LoginScreen = () => {
         );
         const e164 = `+91${mobile}`;
         const fb = await firebaseAuthService.sendOTP(e164);
-        if (!fb.success) {
+        if (!fb.success || !fb.verificationId) {
           throw new Error(fb.message || t('unableSendOtpRetry'));
         }
         navigation.navigate('OtpScreen', {
@@ -293,12 +293,16 @@ const LoginScreen = () => {
           mobileNumber: mobile,
           phoneNumber: e164,
           sentTo: data.sentTo || e164,
+          verificationId: fb.verificationId,
         });
       }
     } catch (error: any) {
       if (otpChannel === 'phone') {
-        setOtpChannel('email');
-        Alert.alert(t('otpFailed'), t('phoneOtpUnavailableTryEmail'), [
+        const phoneMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          t('unableSendOtpRetry');
+        Alert.alert(t('otpFailed'), phoneMessage, [
           {text: t('ok')},
           {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
         ]);

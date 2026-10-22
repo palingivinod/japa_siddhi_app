@@ -104,6 +104,7 @@ const CreateAccountScreen = () => {
       }
 
       let phoneE164 = `+${code}${mobile}`;
+      let verificationId = '';
       if (otpChannel === 'phone') {
         const {default: firebaseAuthService} = await import(
           './services/firebaseAuthService'
@@ -111,10 +112,11 @@ const CreateAccountScreen = () => {
         const fb = await firebaseAuthService.sendOTP(phoneE164, {
           countryCode: code,
         });
-        if (!fb.success) {
+        if (!fb.success || !fb.verificationId) {
           throw new Error(fb.message || t('unableSendOtpRetry'));
         }
         phoneE164 = fb.e164 || phoneE164;
+        verificationId = fb.verificationId;
       }
 
       navigation.navigate('OtpScreen', {
@@ -125,21 +127,21 @@ const CreateAccountScreen = () => {
         phoneNumber: phoneE164,
         mobileCountryCode: code,
         mobileNumber: mobile,
+        verificationId,
         sentTo:
           data.sentTo ||
           (otpChannel === 'phone' ? phoneE164 : trimmedEmail),
       });
     } catch (error: any) {
       if (otpChannel === 'phone') {
-        setOtpChannel('email');
-        Alert.alert(
-          t('createAccountAlertTitle'),
-          t('phoneOtpUnavailableTryEmail'),
-          [
-            {text: t('ok')},
-            {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
-          ],
-        );
+        const phoneMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          t('unableSendOtpRetry');
+        Alert.alert(t('createAccountAlertTitle'), phoneMessage, [
+          {text: t('ok')},
+          {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
+        ]);
       } else {
         const serverMessage =
           error?.response?.data?.message ||

@@ -1,10 +1,13 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import auth, {
   FirebaseAuthTypes,
+  PhoneAuthProvider,
 } from '@react-native-firebase/auth';
 
 export interface SendOtpResponse {
   success: boolean;
   confirmation?: FirebaseAuthTypes.ConfirmationResult;
+  verificationId?: string;
   e164?: string;
   message?: string;
 }
@@ -15,6 +18,17 @@ export interface VerifyOtpResponse {
   idToken?: string;
   message?: string;
 }
+
+const STORAGE_KEY = 'phone_otp_verification';
+const MAX_AGE_MS = 10 * 60 * 1000;
+
+type StoredOtp = {
+  verificationId: string;
+  e164: string;
+  savedAt: number;
+};
+
+let memory: StoredOtp | null = null;
 
 const toE164 = (phoneNumber: string, countryCode = '91'): string => {
   const raw = String(phoneNumber || '').trim();
@@ -52,13 +66,59 @@ const friendlyAuthError = (error: any): string => {
     case 'auth/app-not-authorized':
       return 'App is not authorized for phone OTP. Check Firebase Phone sign-in and SHA fingerprints.';
     case 'auth/session-expired':
+    case 'auth/code-expired':
       return 'OTP session expired. Request a new code.';
     case 'auth/invalid-verification-code':
       return 'Invalid OTP. Check the SMS code and try again.';
+    case 'auth/invalid-verification-id':
+      return 'OTP session expired. Request a new code.';
     case 'auth/network-request-failed':
       return 'Network error. Check your internet and try again.';
     default:
       return message || 'Unable to send OTP to this number.';
+  }
+};
+
+const persist = async (session: StoredOtp) => {
+  memory = session;
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  } catch {
+    // Memory still holds the id for this app run.
+  }
+};
+
+const readStored = async (): Promise<StoredOtp | null> => {
+  if (memory && Date.now() - memory.savedAt < MAX_AGE_MS && memory.verificationId) {
+    return memory;
+  }
+  try {
+    const raw = await AsyncStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as StoredOtp;
+    if (
+      !parsed?.verificationId ||
+      Date.now() - Number(parsed.savedAt || 0) > MAX_AGE_MS
+    ) {
+      await AsyncStorage.removeItem(STORAGE_KEY);
+      memory = null;
+      return null;
+    }
+    memory = parsed;
+    return parsed;
+  } catch {
+    return memory;
+  }
+};
+
+const clearStored = async () => {
+  memory = null;
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Ignore storage cleanup failures.
   }
 };
 
@@ -83,17 +143,30 @@ class FirebaseAuthService {
         e164,
         Boolean(options?.forceResend),
       );
+      const verificationId = String(confirmation?.verificationId || '').trim();
+      if (!verificationId) {
+        return {
+          success: false,
+          e164,
+          message: 'Could not start phone verification. Please try again.',
+        };
+      }
       this.pendingConfirmation = confirmation;
       this.pendingE164 = e164;
+      await persist({
+        verificationId,
+        e164,
+        savedAt: Date.now(),
+      });
       return {
         success: true,
         confirmation,
+        verificationId,
         e164,
       };
     } catch (error: any) {
       console.log('Send OTP Error:', e164, error?.code, error?.message);
-      this.pendingConfirmation = null;
-      this.pendingE164 = null;
+      // A failed resend must not throw away a code the devotee already received.
       return {
         success: false,
         e164,
@@ -102,55 +175,82 @@ class FirebaseAuthService {
     }
   }
 
-  async verifyPendingOTP(otp: string): Promise<VerifyOtpResponse> {
-    if (!this.pendingConfirmation) {
+  async verifyCode(
+    otp: string,
+    verificationId?: string | null,
+  ): Promise<VerifyOtpResponse> {
+    const code = String(otp || '').trim();
+    const stored = await readStored();
+    const id = String(verificationId || stored?.verificationId || '').trim();
+    if (!id) {
       return {
         success: false,
         message: 'OTP session expired. Request a new code.',
       };
     }
-    return this.verifyOTP(this.pendingConfirmation, otp);
+    try {
+      // Use the saved verification id. confirmation.confirm() only works while
+      // Android still holds the original native session, which is often gone
+      // by the time the devotee types the SMS code.
+      const credential = PhoneAuthProvider.credential(id, code);
+      const userCredential = await auth().signInWithCredential(credential);
+      const user = userCredential?.user;
+      if (!user) {
+        return {
+          success: false,
+          message: 'OTP verification failed.',
+        };
+      }
+      const idToken = await user.getIdToken(true);
+      this.pendingConfirmation = null;
+      this.pendingE164 = null;
+      await clearStored();
+      return {
+        success: true,
+        user,
+        idToken,
+      };
+    } catch (error: any) {
+      console.log('Verify OTP Error:', error?.code, error?.message);
+      const errorCode = String(error?.code || '');
+      if (
+        errorCode === 'auth/session-expired' ||
+        errorCode === 'auth/code-expired' ||
+        errorCode === 'auth/invalid-verification-id'
+      ) {
+        this.pendingConfirmation = null;
+        await clearStored();
+      }
+      return {
+        success: false,
+        message: friendlyAuthError(error),
+      };
+    }
+  }
+
+  async verifyPendingOTP(
+    otp: string,
+    verificationId?: string | null,
+  ): Promise<VerifyOtpResponse> {
+    return this.verifyCode(otp, verificationId);
   }
 
   async verifyOTP(
     confirmation: FirebaseAuthTypes.ConfirmationResult,
     otp: string,
   ): Promise<VerifyOtpResponse> {
-    try {
-      const credential = await confirmation.confirm(String(otp || '').trim());
-
-      if (!credential || !credential.user) {
-        return {
-          success: false,
-          message: 'OTP verification failed.',
-        };
-      }
-
-      const idToken = await credential.user.getIdToken(true);
-      this.pendingConfirmation = null;
-      this.pendingE164 = null;
-
-      return {
-        success: true,
-        user: credential.user,
-        idToken,
-      };
-    } catch (error: any) {
-      console.log('Verify OTP Error:', error?.code, error?.message);
-      return {
-        success: false,
-        message: friendlyAuthError(error),
-      };
-    }
+    return this.verifyCode(otp, confirmation?.verificationId);
   }
 
   getPendingE164(): string | null {
-    return this.pendingE164;
+    return this.pendingE164 || memory?.e164 || null;
   }
 
   clearPending(): void {
     this.pendingConfirmation = null;
     this.pendingE164 = null;
+    memory = null;
+    AsyncStorage.removeItem(STORAGE_KEY).catch(() => undefined);
   }
 
   getCurrentUser(): FirebaseAuthTypes.User | null {

@@ -30,6 +30,9 @@ const OtpScreen = ({route, navigation}: any) => {
   const bottomPad = useBottomNavPad();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verificationId, setVerificationId] = useState(
+    String(route?.params?.verificationId || ''),
+  );
   const isLogin = mode === 'login';
   const otpChannel = channel === 'phone' ? 'phone' : 'email';
   // Firebase SMS codes are 6 digits; email OTP from our backend is 4.
@@ -47,7 +50,7 @@ const OtpScreen = ({route, navigation}: any) => {
     if (otpChannel === 'phone') {
       setLoading(true);
       try {
-        const fb = await firebaseAuthService.verifyPendingOTP(otp);
+        const fb = await firebaseAuthService.verifyCode(otp, verificationId);
         if (!fb.success || !fb.idToken) {
           throw new Error(fb.message || t('otpVerificationFailed'));
         }
@@ -232,9 +235,11 @@ const OtpScreen = ({route, navigation}: any) => {
         const fb = await firebaseAuthService.sendOTP(e164, {
           forceResend: true,
         });
-        if (!fb.success) {
+        if (!fb.success || !fb.verificationId) {
           throw new Error(fb.message || t('unableResendOtp'));
         }
+        setVerificationId(fb.verificationId);
+        navigation.setParams?.({verificationId: fb.verificationId});
         setOtp('');
         Alert.alert(
           t('otpSentTitle'),
@@ -262,7 +267,11 @@ const OtpScreen = ({route, navigation}: any) => {
       );
     } catch (error: any) {
       if (otpChannel === 'phone') {
-        Alert.alert(t('otpFailed'), t('phoneOtpUnavailableTryEmail'), [
+        const phoneMessage =
+          error?.response?.data?.message ||
+          error?.message ||
+          t('unableResendOtp');
+        Alert.alert(t('otpFailed'), phoneMessage, [
           {text: t('ok')},
           {
             text: t('useEmailOtp'),
