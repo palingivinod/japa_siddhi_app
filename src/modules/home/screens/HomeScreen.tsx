@@ -1,7 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
-  Alert,
-  Linking,
   NativeModules,
   Platform,
   RefreshControl,
@@ -12,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
@@ -38,7 +35,7 @@ import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
 import {dailyPlanForToday} from '../../../utils/dailyGoal';
-import {getAppVersionName, isUpdateAvailable} from '../../../utils/appVersion';
+import {getAppVersionName} from '../../../utils/appVersion';
 
 type ActiveGoal = {
   id: number;
@@ -358,50 +355,13 @@ const HomeScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      let cancelled = false;
       const installed = getAppVersionName();
       if (installed && installed !== '—') {
         apiService
           .post('/auth/app-version', {appVersion: installed})
           .catch(() => undefined);
       }
-      apiService
-        .get('/auth/app-release')
-        .then(async response => {
-          if (cancelled) {
-            return;
-          }
-          const latest = String(
-            response.data?.data?.latestVersion || '',
-          ).trim();
-          if (!latest || !isUpdateAvailable(installed, latest)) {
-            return;
-          }
-          const seenKey = 'app_update_prompt';
-          const seen = await AsyncStorage.getItem(seenKey);
-          if (cancelled || seen === latest) {
-            return;
-          }
-          await AsyncStorage.setItem(seenKey, latest);
-          Alert.alert(
-            t('updateAvailableTitle'),
-            t('updateAvailableBody', {version: latest}),
-            [
-              {text: t('later'), style: 'cancel'},
-              {
-                text: t('updateNow'),
-                onPress: () => {
-                  Linking.openURL(PLAYSTORE_URL).catch(() => undefined);
-                },
-              },
-            ],
-          );
-        })
-        .catch(() => undefined);
-      return () => {
-        cancelled = true;
-      };
-    }, [t]),
+    }, []),
   );
 
   const onRefresh = async () => {

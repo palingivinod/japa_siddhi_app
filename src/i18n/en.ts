@@ -566,8 +566,7 @@
   ok: 'OK',
   later: 'Later',
   updateAvailableTitle: 'Update available',
-  updateAvailableBody:
-    'A new version of Japa Siddhi ({{version}}) is available. Please update the app.',
+  updateAvailableBody: 'Please update to continue.',
   updateNow: 'Update',
   socialDetailsTitle: 'Your details',
   socialDetailsMessage: 'Please enter your mobile and date of birth.',

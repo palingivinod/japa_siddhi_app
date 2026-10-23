@@ -229,7 +229,7 @@ const CompleteProfileScreen = ({
     isFormValid,
   });
 
-  if (!isFormValid || !address.trim()) {
+  if (!isFormValid) {
     Alert.alert(t('validation'), t('fillRequiredSignup'));
     return;
   }
@@ -607,7 +607,7 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          {t('address')} *
+          {t('address')}
         </Text>
         <TextInput
           style={styles.input}

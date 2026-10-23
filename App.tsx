@@ -4,6 +4,7 @@ import {Provider} from 'react-redux';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import AppNavigator from './src/navigation/AppNavigator';
+import ForceUpdateGate from './src/modules/common/ForceUpdateGate';
 import ErrorBoundary from './src/modules/common/ErrorBoundary';
 import {LanguageProvider} from './src/i18n/LanguageContext';
 import {store} from './src/redux/store';
@@ -70,7 +71,9 @@ export default function App() {
       <Provider store={store}>
         <SafeAreaProvider>
           <LanguageProvider>
-            <AppNavigator />
+            <ForceUpdateGate>
+              <AppNavigator />
+            </ForceUpdateGate>
           </LanguageProvider>
         </SafeAreaProvider>
       </Provider>
