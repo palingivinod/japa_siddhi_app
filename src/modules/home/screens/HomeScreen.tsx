@@ -34,7 +34,12 @@ import BottomTabs from '../../common/BottomTabs';
 import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
-import {dailyPlanForToday} from '../../../utils/dailyGoal';
+import {istIsoDate} from '../../../utils/dateUtils';
+import {
+  readDailyPlanSnaps,
+  resolveMantraDailyTarget,
+  writeDailyPlanSnap,
+} from '../../../utils/mantraDailyPlan';
 import {getAppVersionName} from '../../../utils/appVersion';
 
 type ActiveGoal = {
@@ -173,7 +178,7 @@ const HomeScreen = () => {
           Array.isArray(todayTotalsRes.value.data?.data)
             ? todayTotalsRes.value.data.data
             : [];
-        const todayStr = new Date().toISOString().slice(0, 10);
+        const todayStr = istIsoDate();
         const activeGoals = goalList.filter((item: any) => {
           if (String(item.status || '').toUpperCase() !== 'ACTIVE') {
             return false;
@@ -207,34 +212,25 @@ const HomeScreen = () => {
         let active: any = null;
 
         if (lastChanted && activeGoals.length > 0) {
-          active = activeGoals.find((g: any) => {
-            if (lastChanted.goalId && Number(g.id) === Number(lastChanted.goalId)) {
-              return true;
-            }
-            if (
-              lastChanted.personalMantraId &&
-              Number(g.personalMantraId ?? g.personal_mantra_id) ===
-                Number(lastChanted.personalMantraId)
-            ) {
-              return true;
-            }
-            if (
-              lastChanted.mantraId &&
-              Number(g.mantraId ?? g.mantra_id) === Number(lastChanted.mantraId)
-            ) {
-              return true;
-            }
-            if (
-              lastChanted.mantraName &&
-              (String(g.mantraName ?? g.mantra_name ?? '').trim().toLowerCase() ===
-                String(lastChanted.mantraName).trim().toLowerCase() ||
-                String(g.goalName ?? g.goal_name ?? '').trim().toLowerCase() ===
-                  String(lastChanted.mantraName).trim().toLowerCase())
-            ) {
-              return true;
-            }
-            return false;
-          });
+          if (lastChanted.goalId) {
+            active = activeGoals.find(
+              (g: any) => Number(g.id) === Number(lastChanted.goalId),
+            );
+          }
+          if (!active && lastChanted.personalMantraId) {
+            active = activeGoals.find(
+              (g: any) =>
+                Number(g.personalMantraId ?? g.personal_mantra_id) ===
+                Number(lastChanted.personalMantraId),
+            );
+          }
+          if (!active && lastChanted.mantraId && !lastChanted.personalMantraId) {
+            active = activeGoals.find(
+              (g: any) =>
+                Number(g.mantraId ?? g.mantra_id) === Number(lastChanted.mantraId) &&
+                !Number(g.personalMantraId ?? g.personal_mantra_id),
+            );
+          }
         }
 
         // If recently chanted mantra is completed or not found, fall back to the first ongoing active goal
@@ -255,25 +251,14 @@ const HomeScreen = () => {
           // Cross check with today's totals for this specific mantra to ensure accuracy
           if (todayTotals.length > 0) {
             const matchToday = todayTotals.find((m: any) => {
-              if (
-                active.personalMantraId &&
-                Number(m.personalMantraId || m.personal_mantra_id) ===
+              if (active.personalMantraId) {
+                return (
+                  Number(m.personalMantraId || m.personal_mantra_id) ===
                   Number(active.personalMantraId)
-              ) {
-                return true;
+                );
               }
-              if (
-                active.mantraId &&
-                Number(m.mantraId || m.mantra_id) === Number(active.mantraId)
-              ) {
-                return true;
-              }
-              if (
-                active.mantraName &&
-                String(m.mantraName || m.mantra_name || '').trim().toLowerCase() ===
-                  String(active.mantraName).trim().toLowerCase()
-              ) {
-                return true;
+              if (active.mantraId) {
+                return Number(m.mantraId || m.mantra_id) === Number(active.mantraId);
               }
               return false;
             });
@@ -285,8 +270,18 @@ const HomeScreen = () => {
             }
           }
 
-          const dailyTarget =
-            Number(active.dailyTarget ?? active.daily_target) || 0;
+          const planSnaps = await readDailyPlanSnaps();
+          const plan = resolveMantraDailyTarget({
+            today: todayStr,
+            endDate: active.endDate ?? active.end_date,
+            remainingNow: Math.max(0, targetCount - completedCount),
+            doneToday: todayCompletedCount,
+            serverTarget: Number(active.dailyTarget ?? active.daily_target) || 0,
+            serverPlanDate: active.dailyPlanDate ?? active.daily_plan_date,
+            saved: planSnaps[String(active.id)] || null,
+          });
+          const dailyTarget = plan.target;
+          void writeDailyPlanSnap(Number(active.id), plan.snap);
           setActiveJapaGoal({
             id: Number(active.id),
             goalName: String(
@@ -378,22 +373,6 @@ const HomeScreen = () => {
     return num.toLocaleString('en-IN');
   };
 
-  const totalGoalDays = (startDateStr?: string, endDateStr?: string) => {
-    if (!endDateStr) {
-      return 1;
-    }
-    const endIso = String(endDateStr).slice(0, 10);
-    const endMatch = endIso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!endMatch) {
-      return 1;
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const end = new Date(Number(endMatch[1]), Number(endMatch[2]) - 1, Number(endMatch[3]));
-    end.setHours(0, 0, 0, 0);
-    return Math.max(1, Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-  };
-
   const hasActiveGoal = Boolean(activeJapaGoal && activeJapaGoal.targetCount > 0);
 
   const activeMantraTodayCount = useMemo(() => {
@@ -403,27 +382,7 @@ const HomeScreen = () => {
     return 0;
   }, [activeJapaGoal]);
 
-  const userDailyGoal = useMemo(() => {
-    if (activeJapaGoal && activeJapaGoal.targetCount > 0) {
-      const remainingCount = Math.max(
-        0,
-        Number(activeJapaGoal.remainingCount) ||
-          activeJapaGoal.targetCount - activeJapaGoal.completedCount,
-      );
-      // Today's plan stays the start-of-day figure. Tomorrow uses
-      // whatever japas are still left divided by the days still left.
-      return dailyPlanForToday({
-        remainingNow: remainingCount,
-        doneToday: Number(activeJapaGoal.todayCompletedCount || 0),
-        remainingDays: totalGoalDays(
-          activeJapaGoal.startDate,
-          activeJapaGoal.endDate,
-        ),
-        endDate: activeJapaGoal.endDate,
-      });
-    }
-    return 0;
-  }, [activeJapaGoal]);
+  const userDailyGoal = Number(activeJapaGoal?.dailyTarget || 0);
 
   const dailyProgress = Math.min(
     100,

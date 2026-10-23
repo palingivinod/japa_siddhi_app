@@ -734,6 +734,7 @@ export const flushDeadlineReminders = async () => {
         jg.end_date AS endDate,
         IFNULL(jg.target_count, 0) AS targetCount,
         IFNULL(jg.completed_count, 0) AS completedCount,
+        IFNULL(jg.daily_target, 0) AS dailyTarget,
         IFNULL(
           (
             SELECT SUM(js.session_count)
@@ -767,7 +768,11 @@ export const flushDeadlineReminders = async () => {
 
       const endDate = toYmd(row.endDate);
       const remDays = endDate ? Math.max(1, (daysUntil(today, endDate) ?? 0) + 1) : 1;
-      const dailyTarget = Math.max(1, Math.ceil(remainingTotal / remDays));
+      const storedDaily = Number(row.dailyTarget || 0);
+      const dailyTarget =
+        storedDaily > 0
+          ? storedDaily
+          : Math.max(1, Math.ceil(remainingTotal / remDays));
 
       if (todayCount < dailyTarget) {
         const pending = dailyTarget - todayCount;

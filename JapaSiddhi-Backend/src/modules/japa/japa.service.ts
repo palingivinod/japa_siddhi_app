@@ -131,6 +131,14 @@ class JapaService {
         const japaGoalRepository = (
           await import('../japaGoal/japaGoal.repository')
         ).default;
+        await japaGoalRepository.syncDailyPlans(userId);
+      } catch {
+        // The chant is saved. The daily goal stays at this morning's number.
+      }
+      try {
+        const japaGoalRepository = (
+          await import('../japaGoal/japaGoal.repository')
+        ).default;
         const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
         if (
           goal &&
@@ -999,37 +1007,8 @@ class JapaService {
       }
       return true;
     });
-    // Dynamic daily = remaining ÷ days left (keep in sync with reminders / app UI).
-    let dailyGoal = 0;
-    if (active) {
-      const remaining = Math.max(
-        0,
-        Number(active.remainingCount ?? 0) ||
-          Number(active.targetCount ?? 0) - Number(active.completedCount ?? 0),
-      );
-      const endRaw = active.endDate ? String(active.endDate).slice(0, 10) : '';
-      let remDays = 1;
-      if (/^\d{4}-\d{2}-\d{2}$/.test(endRaw)) {
-        const endMs = Date.parse(`${endRaw}T00:00:00`);
-        const now = new Date();
-        const ist = new Date(now.getTime() + 330 * 60 * 1000);
-        const todayStr = ist.toISOString().slice(0, 10);
-        const todayMs = Date.parse(`${todayStr}T00:00:00`);
-        if (!Number.isNaN(endMs) && !Number.isNaN(todayMs)) {
-          remDays = Math.max(1, Math.round((endMs - todayMs) / 86400000) + 1);
-        }
-      }
-      const dayDivisor = remDays >= 900 ? 30 : remDays;
-      dailyGoal =
-        remaining <= 0
-          ? 0
-          : dayDivisor <= 1
-            ? remaining
-            : Math.max(1, Math.ceil(remaining / dayDivisor));
-    }
-    if (dailyGoal <= 0) {
-      dailyGoal = Number(active?.dailyTarget ?? goals?.[0]?.dailyTarget ?? 0) || 0;
-    }
+    const dailyGoal =
+      Number(active?.dailyTarget ?? goals?.[0]?.dailyTarget ?? 0) || 0;
     const today = Number(
       active?.todayCompletedCount ?? summary.todayJapaCount ?? 0,
     );

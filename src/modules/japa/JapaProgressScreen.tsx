@@ -7,7 +7,15 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
-import {dailyPlanForToday, dailyPlansForDays} from '../../utils/dailyGoal';
+import {dailyPlansForDays} from '../../utils/dailyGoal';
+import {istIsoDate} from '../../utils/dateUtils';
+import {getLastChantedJapa} from '../../services/session';
+import {
+  pickMantraGoal,
+  readDailyPlanSnaps,
+  resolveMantraDailyTarget,
+  writeDailyPlanSnap,
+} from '../../utils/mantraDailyPlan';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -28,11 +36,17 @@ const JapaProgressScreen = () => {
       apiService.get('/japa/summary'),
       apiService.get('/japa-goals').catch(() => ({data: {data: []}})),
     ])
-      .then(([progress, summary, goalsRes]) => {
+      .then(async ([progress, summary, goalsRes]) => {
         const data = progress.data.data ?? {};
         const totals = summary.data.data ?? {};
         const goalsList: any[] = goalsRes?.data?.data ?? [];
-        const activeGoal = goalsList.find((g: any) => {
+        const lastChanted = await getLastChantedJapa();
+        const picked = pickMantraGoal(goalsList, {
+          goalId: lastChanted?.goalId,
+          personalMantraId: lastChanted?.personalMantraId,
+          mantraId: lastChanted?.mantraId,
+        });
+        const activeGoal = picked || goalsList.find((g: any) => {
           if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
             return false;
           }
@@ -71,15 +85,20 @@ const JapaProgressScreen = () => {
         if (activeGoal) {
           const target = Number(activeGoal.targetCount ?? 0);
           const completed = Number(activeGoal.completedCount ?? 0);
-          const remaining = Math.max(
-            0,
-            Number(activeGoal.remainingCount ?? target - completed) || 0,
-          );
-          dailyGoal = dailyPlanForToday({
+          const remaining = Math.max(0, target - completed);
+          const snaps = await readDailyPlanSnaps();
+          const plan = resolveMantraDailyTarget({
+            today: istIsoDate(),
+            endDate: activeGoal.endDate,
             remainingNow: remaining,
             doneToday: todayCount,
-            endDate: activeGoal.endDate,
+            serverTarget: Number(activeGoal.dailyTarget || 0),
+            serverPlanDate:
+              activeGoal.dailyPlanDate || activeGoal.daily_plan_date,
+            saved: snaps[String(activeGoal.id)] || null,
           });
+          dailyGoal = plan.target;
+          void writeDailyPlanSnap(Number(activeGoal.id), plan.snap);
           plans = dailyPlansForDays(weekRows, {
             target,
             completed,

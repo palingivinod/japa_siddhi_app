@@ -13,7 +13,13 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
-import {calcDaysRemaining, dailyPlanForToday} from '../../utils/dailyGoal';
+import {calcDaysRemaining} from '../../utils/dailyGoal';
+import {istIsoDate} from '../../utils/dateUtils';
+import {
+  readDailyPlanSnaps,
+  resolveMantraDailyTarget,
+  writeDailyPlanSnap,
+} from '../../utils/mantraDailyPlan';
 import PrimaryButton from '../common/PrimaryButton';
 import OutlineButton from '../common/OutlineButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -93,6 +99,8 @@ const YourJapasScreen = () => {
       // 1. Process Japa Goals (Own / Antharanga & Community Goals)
       if (goalsRes.status === 'fulfilled') {
         const rawGoals = goalsRes.value.data?.data ?? [];
+        const planSnaps = await readDailyPlanSnaps();
+        const todayIso = istIsoDate();
         const validGoals = rawGoals.filter((goal: any) => {
           const status = String(goal.status || 'ACTIVE').toUpperCase();
           if (status !== 'ACTIVE') return false;
@@ -137,15 +145,18 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          // Today's plan is the start-of-day figure. Japas done today are
-          // put back, so the number stays put until tomorrow, when the
-          // japas still left are divided by the days still left.
-          const dailyTarget = dailyPlanForToday({
-            remainingNow: remainingCount,
-            doneToday: Number(goal.todayCompletedCount || 0),
-            remainingDays,
+          const doneToday = Number(goal.todayCompletedCount || 0);
+          const plan = resolveMantraDailyTarget({
+            today: todayIso,
             endDate: goal.endDate,
+            remainingNow: remainingCount,
+            doneToday,
+            serverTarget: Number(goal.dailyTarget || 0),
+            serverPlanDate: goal.dailyPlanDate || goal.daily_plan_date,
+            saved: planSnaps[String(goal.id)] || null,
           });
+          const dailyTarget = plan.target;
+          void writeDailyPlanSnap(Number(goal.id), plan.snap);
 
           const isPersonal =
             goal.mantraType === 'PERSONAL' ||

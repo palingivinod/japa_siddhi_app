@@ -25,12 +25,28 @@ class JapaGoalService {
         ? customDaily
         : minDividedDailyTarget;
 
-    const startDate = new Date(data.startDate || new Date().toISOString().slice(0, 10));
-    let endDateStr = data.endDate ? String(data.endDate).slice(0, 10) : '';
+    const istDay = (value?: string | Date | null) => {
+      const text = String(value || '').slice(0, 10);
+      if (/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        return text;
+      }
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(value instanceof Date ? value : new Date());
+    };
+    const addDays = (day: string, offset: number) => {
+      const [year, month, date] = day.split('-').map(Number);
+      return new Date(Date.UTC(year, month - 1, date + offset))
+        .toISOString()
+        .slice(0, 10);
+    };
+    const startDateStr = istDay(data.startDate);
+    let endDateStr = data.endDate ? istDay(data.endDate) : '';
     if (!endDateStr) {
-      const end = new Date(startDate);
-      end.setDate(end.getDate() + (days - 1));
-      endDateStr = end.toISOString().split('T')[0];
+      endDateStr = addDays(startDateStr, days - 1);
     }
 
     const goalId =
@@ -59,9 +75,7 @@ class JapaGoalService {
         dailyTarget,
 
         startDate:
-          startDate
-            .toISOString()
-            .split('T')[0],
+          startDateStr,
 
         endDate:
           endDateStr,

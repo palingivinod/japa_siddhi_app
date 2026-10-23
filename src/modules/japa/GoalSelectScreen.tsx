@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {inclusiveIstDays, istIsoDate} from '../../utils/dateUtils';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
@@ -41,14 +42,7 @@ const daysUntil = (value?: Date | null) => {
   if (!value) {
     return 1;
   }
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(value);
-  end.setHours(0, 0, 0, 0);
-  return Math.max(
-    1,
-    Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1,
-  );
+  return Math.max(1, inclusiveIstDays(istIsoDate(), istIsoDate(value)));
 };
 
 const getDateFromDays = (days: number) => {
@@ -203,8 +197,8 @@ const GoalSelectScreen = () => {
             targetCount: goal,
             dailyTarget: effectiveTodayTarget,
             days: remainingDays,
-            startDate: new Date().toISOString().slice(0, 10),
-            endDate: endDate ? endDate.toISOString().slice(0, 10) : undefined,
+            startDate: istIsoDate(),
+            endDate: endDate ? istIsoDate(endDate) : undefined,
             notes: isCommunity ? 'Samuhika japa' : undefined,
           });
           createdGoalId =

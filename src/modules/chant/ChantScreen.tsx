@@ -27,7 +27,13 @@ import {
 } from '../../services/chantBeep';
 import Colors from '../../theme/colors';
 import {formMessageColor} from '../../theme/formMessage';
-import {calcDaysRemaining, dailyPlanForToday} from '../../utils/dailyGoal';
+import {
+  pickMantraGoal,
+  readDailyPlanSnaps,
+  resolveMantraDailyTarget,
+  writeDailyPlanSnap,
+} from '../../utils/mantraDailyPlan';
+import {istIsoDate} from '../../utils/dateUtils';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -114,6 +120,7 @@ const ChantScreen = () => {
   const circleReadyRef = useRef(false);
   const leftChantRef = useRef(false);
   const dailyTargetRef = useRef(dailyTarget);
+  const matchedGoalIdRef = useRef(0);
   const dailyGoalCompletedShownRef = useRef(false);
 
   countRef.current = count;
@@ -234,7 +241,11 @@ const ChantScreen = () => {
             ? listItems.find(item => !item.own) || listItems[0] || null
             : null);
 
-      setSelected(current => current ?? preferred);
+      if (preferred) {
+        setSelected(preferred);
+      } else {
+        setSelected(current => current ?? null);
+      }
       setShowMantraPicker(isRecentOnly || (!preferred && mode === 'private'));
       let initialCount = Number(route.params?.initialCount || 0);
       let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
@@ -243,63 +254,37 @@ const ChantScreen = () => {
       let resolvedTodayBaseline = 0;
       if (!challengeId) {
         resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
-        // Always load this goal's today + remaining so "completed" uses real progress,
-        // and daily target can stay dynamic after over-chanting.
         const paramGoalId = Number(route.params?.japaGoalId || 0);
         try {
           const goalsRes = await apiService.get('/japa-goals');
           const goals: any[] = goalsRes.data?.data ?? [];
-          const match = goals.find((g: any) => {
-            const gid = Number(g.id || 0);
-            if (paramGoalId && gid === paramGoalId) {
-              return true;
-            }
-            const status = String(g.status || 'ACTIVE').toUpperCase();
-            if (status !== 'ACTIVE') {
-              return false;
-            }
-            if (
-              personalMantraId &&
-              Number(g.personalMantraId || 0) === personalMantraId
-            ) {
-              return true;
-            }
-            if (
-              preferredId &&
-              Number(g.mantraId || g.mantra_id || 0) === preferredId
-            ) {
-              return true;
-            }
-            return false;
+          const match = pickMantraGoal(goals, {
+            goalId: paramGoalId,
+            personalMantraId,
+            mantraId: preferredId,
           });
           if (match) {
-            const remaining = Math.max(
-              0,
-              Number(
-                match.remainingCount ??
-                  Number(match.targetCount || 0) -
-                    Number(match.completedCount || 0),
-              ) || 0,
-            );
-            const remDays = calcDaysRemaining(match.endDate);
+            const completed = Number(match.completedCount || 0);
+            const target = Number(match.targetCount || 0);
+            const remaining = Math.max(0, target - completed);
             resolvedTodayBaseline =
               Number(match.todayCompletedCount || 0) || 0;
-            // Today's plan stays the start-of-day figure. Doing more today
-            // does not change the number on the line; tomorrow divides
-            // whatever is still left by the days still left.
-            resolvedDailyTarget = dailyPlanForToday({
+            const snaps = await readDailyPlanSnaps();
+            const plan = resolveMantraDailyTarget({
+              today: istIsoDate(),
+              endDate: match.endDate,
               remainingNow: remaining,
               doneToday: resolvedTodayBaseline,
-              remainingDays: remDays,
-              endDate: match.endDate,
+              serverTarget: Number(match.dailyTarget || 0),
+              serverPlanDate: match.dailyPlanDate || match.daily_plan_date,
+              saved: snaps[String(match.id)] || null,
             });
-          } else if (!resolvedDailyTarget && data.dailyTarget) {
-            resolvedDailyTarget = Number(data.dailyTarget) || 0;
+            resolvedDailyTarget = plan.target;
+            matchedGoalIdRef.current = Number(match.id) || 0;
+            await writeDailyPlanSnap(Number(match.id), plan.snap);
           }
         } catch {
-          if (!resolvedDailyTarget && data.dailyTarget) {
-            resolvedDailyTarget = Number(data.dailyTarget) || 0;
-          }
+          // Keep the daily goal passed in with this mantra.
         }
       }
       todaySavedRef.current = resolvedTodayBaseline;
@@ -442,7 +427,13 @@ const ChantScreen = () => {
         // ignore
       }
     };
-  }, []);
+  }, [
+    route.params?.japaGoalId,
+    route.params?.personalMantraId,
+    route.params?.mantraId,
+    route.params?.privateMantra,
+    route.params?.challengeId,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
@@ -711,6 +702,14 @@ const ChantScreen = () => {
       const nextSaved = todaySavedRef.current + added;
       todaySavedRef.current = nextSaved;
       setTodaySaved(nextSaved);
+      const lockedGoalId = matchedGoalIdRef.current || Number(route.params?.japaGoalId || 0);
+      if (lockedGoalId && dailyTargetRef.current > 0) {
+        void writeDailyPlanSnap(lockedGoalId, {
+          date: istIsoDate(),
+          target: dailyTargetRef.current,
+          counted: nextSaved,
+        });
+      }
       const unsaved = Math.max(0, countRef.current - postedCountRef.current);
       const plan = dailyTargetRef.current;
       if (plan > 0 && nextSaved + unsaved >= plan) {

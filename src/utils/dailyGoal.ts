@@ -1,25 +1,17 @@
-/** Calendar days left including today (IST-local device date). */
-export function calcDaysRemaining(endDateStr?: string | null): number {
-  if (!endDateStr) {
+import {inclusiveIstDays, istIsoDate} from './dateUtils';
+
+/** Calendar days left including today, counted in India. */
+export function calcDaysRemaining(
+  endDateStr?: string | null,
+  todayIso?: string,
+): number {
+  const end = String(endDateStr || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(end)) {
     return 999;
   }
-  const match = String(endDateStr)
-    .slice(0, 10)
-    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) {
-    return 999;
-  }
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const end = new Date(
-    Number(match[1]),
-    Number(match[2]) - 1,
-    Number(match[3]),
-  );
-  end.setHours(0, 0, 0, 0);
-  const diffDays =
-    Math.round((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, diffDays);
+  const today =
+    todayIso && /^\d{4}-\d{2}-\d{2}$/.test(todayIso) ? todayIso : istIsoDate();
+  return Math.max(1, inclusiveIstDays(today, end));
 }
 
 /**
@@ -46,28 +38,14 @@ export function computeEffectiveDailyTarget(opts: {
   return Math.max(1, Math.ceil(remaining / dayDivisor));
 }
 
-const asDate = (value?: string | null) => {
-  const match = String(value || '')
-    .slice(0, 10)
-    .match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) {
-    return null;
-  }
-  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  date.setHours(0, 0, 0, 0);
-  return date;
-};
-
-/** Inclusive days from one calendar date through the goal end date. */
+/** Inclusive days from one Indian calendar date through the goal end date. */
 export function daysFromDate(fromDate?: string | null, endDate?: string | null) {
-  const from = asDate(fromDate);
-  const end = asDate(endDate);
-  if (!from || !end) {
+  const from = String(fromDate || '').slice(0, 10);
+  const end = String(endDate || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
     return 999;
   }
-  const diffDays =
-    Math.round((end.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-  return Math.max(1, diffDays);
+  return Math.max(1, inclusiveIstDays(from, end));
 }
 
 /**

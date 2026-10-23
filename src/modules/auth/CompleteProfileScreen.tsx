@@ -16,6 +16,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {istIsoDate} from '../../utils/dateUtils';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import {useBottomNavPad} from '../../utils/safeArea';
 
@@ -273,7 +274,7 @@ const CompleteProfileScreen = ({
         email: email.trim(),
         phoneNumber,
         gender: gender as CompleteProfileRequest['gender'],
-        dob: dob.toISOString().slice(0, 10),
+        dob: istIsoDate(dob),
         // Always default to India (id=1) when country is missing; user can change.
         countryId: Number(matchedCountry?.id) || 1,
         stateId: Number(stateModel?.id) || 0,
@@ -284,11 +285,11 @@ const CompleteProfileScreen = ({
         spouseName: maritalStatus === 'Married' ? spouseName.trim() : undefined,
         spouseDob:
           maritalStatus === 'Married'
-            ? spouseDob.toISOString().slice(0, 10)
+            ? istIsoDate(spouseDob)
             : undefined,
         anniversaryDate:
           maritalStatus === 'Married'
-            ? anniversaryDate.toISOString().slice(0, 10)
+            ? istIsoDate(anniversaryDate)
             : undefined,
         gothram: gothram.trim() || undefined,
         nakshatram: nakshatram.trim() || undefined,

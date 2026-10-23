@@ -9,6 +9,7 @@ import {
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {clearJapaDraft, saveJapaDraft} from '../../services/japaDraft';
+import {istIsoDate} from '../../utils/dateUtils';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
@@ -108,7 +109,7 @@ const JapaGoalCompleteScreen = () => {
             : 'Extended Japa',
           targetCount: nextGoal,
           days: 1,
-          startDate: new Date().toISOString().slice(0, 10),
+          startDate: istIsoDate(),
           notes: feedback
             ? `Extended after ${completedCount}; rating ${rating}. ${feedback}`
             : `Extended after ${completedCount}; rating ${rating}.`,

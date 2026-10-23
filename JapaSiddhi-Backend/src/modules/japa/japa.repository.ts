@@ -169,35 +169,12 @@ class JapaRepository {
     const targetCount = this.toCount(goalRows[0]?.targetCount);
     const remaining = Math.max(0, targetCount - completed);
 
-    // Keep daily_target in sync with remaining ÷ days left (IST calendar).
-    let remDays = 1;
-    const endRaw = goalRows[0]?.endDate;
-    if (endRaw) {
-      const endStr = String(endRaw).slice(0, 10);
-      const endMs = Date.parse(`${endStr}T00:00:00`);
-      if (!Number.isNaN(endMs)) {
-        const now = new Date();
-        const ist = new Date(now.getTime() + 330 * 60 * 1000);
-        const todayStr = ist.toISOString().slice(0, 10);
-        const todayMs = Date.parse(`${todayStr}T00:00:00`);
-        remDays = Math.max(1, Math.round((endMs - todayMs) / 86400000) + 1);
-      }
-    }
-    const dayDivisor = remDays >= 900 ? 30 : remDays;
-    const dailyTarget =
-      remaining <= 0
-        ? 0
-        : dayDivisor <= 1
-          ? remaining
-          : Math.max(1, Math.ceil(remaining / dayDivisor));
-
     await mysql.query(
       `
       UPDATE japa_goals
       SET
         completed_count = ?,
         remaining_count = ?,
-        daily_target = ?,
         status =
           CASE
             WHEN ? <= 0 THEN 'COMPLETED'
@@ -206,7 +183,7 @@ class JapaRepository {
       WHERE id = ?
       AND user_id = ?
       `,
-      [completed, remaining, dailyTarget, remaining, goalId, userId],
+      [completed, remaining, remaining, goalId, userId],
     );
   }
 
