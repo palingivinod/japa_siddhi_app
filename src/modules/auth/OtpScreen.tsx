@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
@@ -38,8 +38,9 @@ const OtpScreen = ({route, navigation}: any) => {
   // Firebase SMS codes are 6 digits; email OTP from our backend is 4.
   const otpLength = otpChannel === 'phone' ? 6 : 4;
 
-  const verifyOTP = async () => {
-    if (otp.length !== otpLength) {
+  const verifyOTP = async (autoCode?: string) => {
+    const entered = String(autoCode || otp);
+    if (entered.length !== otpLength) {
       Alert.alert(
         t('invalidOtp'),
         otpChannel === 'phone' ? t('enterSixDigitOtp') : t('enterFourDigitOtp'),
@@ -50,7 +51,10 @@ const OtpScreen = ({route, navigation}: any) => {
     if (otpChannel === 'phone') {
       setLoading(true);
       try {
-        const fb = await firebaseAuthService.verifyCode(otp, verificationId);
+        if (autoCode) {
+          setOtp(autoCode);
+        }
+        const fb = await firebaseAuthService.verifyCode(entered, verificationId);
         if (!fb.success || !fb.idToken) {
           throw new Error(fb.message || t('otpVerificationFailed'));
         }
@@ -243,7 +247,7 @@ const OtpScreen = ({route, navigation}: any) => {
         setOtp('');
         Alert.alert(
           t('otpSentTitle'),
-          t('otpSentToValue', {to: fb.e164 || sentTo || e164}),
+          t('otpSentToPhone', {to: fb.e164 || sentTo || e164}),
         );
         return;
       }
@@ -287,6 +291,24 @@ const OtpScreen = ({route, navigation}: any) => {
     }
   };
 
+  const verifyRef = useRef(verifyOTP);
+  verifyRef.current = verifyOTP;
+  const autoHandled = useRef(false);
+
+  useEffect(() => {
+    if (otpChannel !== 'phone') {
+      return;
+    }
+    return firebaseAuthService.subscribeAutoCode(code => {
+      if (autoHandled.current || code.length !== otpLength) {
+        return;
+      }
+      autoHandled.current = true;
+      setOtp(code);
+      verifyRef.current(code);
+    });
+  }, [otpChannel, otpLength]);
+
   const headerTitle = isLogin
     ? t('verifyOtpTitle')
     : otpChannel === 'phone'
@@ -316,7 +338,7 @@ const OtpScreen = ({route, navigation}: any) => {
         ) : (
           <ContinueButton
             title={isLogin ? t('verifyAndLogin') : t('verifyAndContinue')}
-            onPress={verifyOTP}
+            onPress={() => verifyOTP()}
           />
         )}
         <Text style={styles.change} onPress={() => navigation.goBack()}>

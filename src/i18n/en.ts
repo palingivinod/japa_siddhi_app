@@ -134,6 +134,7 @@
     'Enter your email or mobile number. We will send a 4-digit OTP to the registered email so you can set a new password.',
   otpSentTitle: 'OTP sent',
   otpSentToValue: 'A 4-digit code was sent to {{to}}.',
+  otpSentToPhone: 'A 6-digit code was sent to {{to}}.',
   otpSentToHint: 'OTP sent to {{to}}',
   couldNotSendOtp: 'Could not send OTP.',
   enterFourDigitOtpFromEmail: 'Enter the 4-digit OTP from email.',
