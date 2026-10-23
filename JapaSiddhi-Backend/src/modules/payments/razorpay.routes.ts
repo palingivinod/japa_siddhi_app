@@ -60,6 +60,61 @@ router.post('/order', async (req: Request, res: Response) => {
   }
 });
 
+const clip = (value: unknown, max: number) =>
+  String(value ?? '')
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .trim()
+    .slice(0, max);
+
+const escapeAttr = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+
+const appReturnPage = (target: string) => `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Returning to Japa Siddhi</title>
+<meta http-equiv="refresh" content="0;url=${escapeAttr(target)}">
+</head>
+<body style="font-family:sans-serif;padding:24px">
+<p>Returning to the Japa Siddhi app…</p>
+<p><a href="${escapeAttr(target)}">Open the app</a></p>
+</body>
+</html>`;
+
+const sendAppReturn = (req: Request, res: Response) => {
+  const orderId = clip(req.body?.razorpay_order_id || req.query.razorpay_order_id, 40);
+  const paymentId = clip(req.body?.razorpay_payment_id || req.query.razorpay_payment_id, 40);
+  const signature = clip(req.body?.razorpay_signature || req.query.razorpay_signature, 128);
+  const paid =
+    Boolean(orderId && paymentId && signature) &&
+    verifyPaymentSignature(orderId, paymentId, signature);
+  const query = new URLSearchParams();
+  const purpose = clip(req.query.purpose, 80);
+  const seva = clip(req.query.seva, 40);
+  const amount = clip(req.query.amount, 7).replace(/\D/g, '');
+  const name = clip(req.query.name, 60);
+  const phone = clip(req.query.phone, 15).replace(/\D/g, '').slice(-10);
+  if (purpose) query.set('purpose', purpose);
+  if (seva) query.set('seva', seva);
+  if (amount) query.set('amount', amount);
+  if (name) query.set('name', name);
+  if (phone.length === 10) query.set('phone', phone);
+  if (paid) {
+    query.set('payment_id', paymentId);
+    query.set('order_id', orderId);
+  }
+  const target = `japasiddhi://payment/${paid ? 'success' : 'failure'}?${query.toString()}`;
+  res.status(200).type('html').send(appReturnPage(target));
+};
+
+router.get('/app-return', sendAppReturn);
+router.post('/app-return', sendAppReturn);
+
 router.post('/verify', (req: Request, res: Response) => {
   if (!razorpayReady()) {
     return apiResponse.error(res, 'Online payment is not set up yet.', 503);

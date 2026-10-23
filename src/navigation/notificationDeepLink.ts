@@ -1,5 +1,6 @@
-import {Linking} from 'react-native';
+import {Alert, Linking} from 'react-native';
 
+import {paymentsPageUrl} from '../modules/payments/paymentsPageUrl';
 import apiService from '../services/apiService';
 import {navigateTo} from './navigationRef';
 
@@ -229,17 +230,74 @@ export const openFromNotifyUrl = async (url: string | null | undefined) => {
   await openFromNotificationPayload(data);
 };
 
+let lastPaymentResult = '';
+let lastPaymentAt = 0;
+
+const paymentQuery = (raw: string) => {
+  const params = new URL(raw.replace('japasiddhi://', 'https://japasiddhi.app/')).searchParams;
+  return {
+    paymentId: params.get('payment_id') || '',
+    orderId: params.get('order_id') || '',
+    purpose: params.get('purpose') || '',
+    seva: params.get('seva') || '',
+    amount: Number(params.get('amount')),
+    name: params.get('name') || '',
+    phone: params.get('phone') || '',
+  };
+};
+
+const acceptPaymentResult = (result: string) => {
+  const now = Date.now();
+  if (result === lastPaymentResult && now - lastPaymentAt < 5000) {
+    return false;
+  }
+  lastPaymentResult = result;
+  lastPaymentAt = now;
+  return true;
+};
+
 /** Subscribe to cold-start + warm deep links from the tray. */
 export const bindNotifyDeepLinks = () => {
   const handle = (url: string | null) => {
     const raw = String(url || '');
-    if (raw.startsWith('japasiddhi://payment/success')) {
-      const paymentId = new URL(raw.replace('japasiddhi://', 'https://japasiddhi.app/')).searchParams.get('payment_id');
+    if (raw.startsWith('japasiddhi://payment/success') || raw.startsWith('japasiddhi://payment/failure')) {
+      const failed = raw.startsWith('japasiddhi://payment/failure');
+      if (!acceptPaymentResult(failed ? 'failure' : 'success')) {
+        return;
+      }
+      let payment;
+      try {
+        payment = paymentQuery(raw);
+      } catch {
+        return;
+      }
+      if (failed) {
+        Alert.alert('Payment failed', 'Please try again.', [
+          {text: 'OK', style: 'cancel'},
+          {
+            text: 'Retry',
+            onPress: () => {
+              Linking.openURL(
+                paymentsPageUrl({
+                  amount: Number.isFinite(payment.amount) && payment.amount > 0 ? payment.amount : undefined,
+                  purpose: payment.purpose,
+                  seva: payment.seva,
+                  name: payment.name,
+                  phone: payment.phone,
+                }),
+              ).catch(() => undefined);
+            },
+          },
+        ]);
+        return;
+      }
       navigateTo('PaymentConfirmation', {
         kind: 'RAZORPAY',
-        itemName: 'Seva offering',
-        orderNumber: paymentId || '',
-        confirmationId: paymentId || '',
+        seva: payment.seva,
+        itemName: payment.seva || payment.purpose || 'Seva offering',
+        purpose: payment.purpose,
+        orderNumber: payment.paymentId,
+        confirmationId: payment.paymentId,
       });
       return;
     }

@@ -1,16 +1,18 @@
 import React, {useCallback, useState} from 'react';
-import {Alert, Linking} from 'react-native';
+import {Alert, Linking, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import {getStoredUser} from '../../services/session';
+import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {paymentsPageUrl} from '../payments/paymentsPageUrl';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
-const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
+const HOMAM_AMOUNT = 500;
 
 const HomamEnrollScreen = () => {
   const navigation = useNavigation<any>();
@@ -95,21 +97,17 @@ const HomamEnrollScreen = () => {
       return;
     }
 
-    Alert.alert(
-      t('requestSubmittedTitle'),
-      t('requestSubmittedMessage'),
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            Linking.openURL(PAYMENTS_URL).catch(() => {
-              Alert.alert('Payment', 'Could not open payments page.');
-            });
-          },
-        },
-      ],
-      {cancelable: false},
-    );
+    Linking.openURL(
+      paymentsPageUrl({
+        amount: HOMAM_AMOUNT,
+        purpose: `Nithya Homam: ${cleanPurpose}`.slice(0, 80),
+        seva: 'Nithya Homam',
+        name: cleanName,
+        phone: cleanMobile,
+      }),
+    ).catch(() => {
+      Alert.alert('Payment', 'Could not open payments page.');
+    });
   };
 
   const detailsReady =
@@ -155,8 +153,16 @@ const HomamEnrollScreen = () => {
         value={purpose}
         onChangeText={setPurpose}
       />
+      <View style={styles.amountCard}>
+        <Text style={styles.amountLabel}>Nithya Homam</Text>
+        <Text style={styles.amountValue}>₹{HOMAM_AMOUNT.toLocaleString('en-IN')}</Text>
+      </View>
       <PrimaryButton
-        title={detailsReady ? 'CONTINUE TO PAYMENT' : 'ENTER REQUIRED DETAILS'}
+        title={
+          detailsReady
+            ? `CONTINUE TO PAYMENT (₹${HOMAM_AMOUNT.toLocaleString('en-IN')})`
+            : 'ENTER REQUIRED DETAILS'
+        }
         onPress={continuePay}
         disabled={!detailsReady}
       />
@@ -165,3 +171,29 @@ const HomamEnrollScreen = () => {
 };
 
 export default HomamEnrollScreen;
+
+const styles = StyleSheet.create({
+  amountCard: {
+    marginTop: 8,
+    marginBottom: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    backgroundColor: '#FFF4E0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  amountLabel: {
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  amountValue: {
+    color: Colors.sacredBrown,
+    fontSize: 22,
+    fontWeight: '800',
+  },
+});

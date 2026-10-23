@@ -10,22 +10,21 @@ const PaymentConfirmationScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const data = route.params || {};
+  const sevaName = String(data.seva || '').trim() || 'your offering';
 
   return (
-    <ScreenLayout title="Placed Successful" showBack tab="Orders">
+    <ScreenLayout title={data.kind === 'RAZORPAY' ? 'Payment successful' : 'Placed Successful'} showBack tab="Orders">
       <SuccessHero
         title={
           data.kind === 'BANA_LINGAM'
             ? 'Order Under Review'
             : data.kind === 'RAZORPAY'
-              ? 'Payment Successful'
+              ? 'Payment successful'
               : 'Order Placed'
         }
         subtitle={
           data.kind === 'RAZORPAY'
-            ? data.orderNumber
-              ? `Payment ${data.orderNumber}`
-              : 'Your offering was received.'
+            ? `Thank you for ${sevaName}.`
             : data.orderNumber
             ? data.orderNumber.startsWith('BL-')
               ? `Order ${data.orderNumber}`
@@ -35,12 +34,12 @@ const PaymentConfirmationScreen = () => {
       />
       <MenuCard
         emoji="✅"
-        title={data.itemName || 'Baanalingam'}
+        title={data.kind === 'RAZORPAY' ? 'Request submitted successfully' : data.itemName || 'Baanalingam'}
         subtitle={
           data.kind === 'BANA_LINGAM'
             ? 'Your application has been submitted and is under review.'
             : data.kind === 'RAZORPAY'
-              ? 'Your payment was confirmed. You can continue in the app.'
+              ? 'We will get back to you soon.'
               : 'Your order has been created successfully.'
         }
       />

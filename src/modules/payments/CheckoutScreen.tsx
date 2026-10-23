@@ -18,8 +18,7 @@ import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
-
-const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
+import {paymentsPageUrl} from './paymentsPageUrl';
 
 /*
 const TRUST_UPI_ID = 'q007640149@ybl';
@@ -61,7 +60,15 @@ const CheckoutScreen = () => {
 
   const pay = async () => {
     try {
-      await Linking.openURL(PAYMENTS_URL);
+      const passedAmount = Number(params.amount);
+      const item = String(params.itemName || '');
+      await Linking.openURL(
+        paymentsPageUrl({
+          amount: Number.isFinite(passedAmount) && passedAmount > 0 ? passedAmount : undefined,
+          purpose: params.itemName,
+          seva: params.seva || (/homam/i.test(item) ? 'Nithya Homam' : /anna|santharpana/i.test(item) ? 'Annadanam' : undefined),
+        }),
+      );
     } catch {
       Alert.alert('Payment', 'Could not open payments page.');
     }

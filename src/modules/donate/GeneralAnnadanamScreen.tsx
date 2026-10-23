@@ -11,9 +11,8 @@ import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
+import {paymentsPageUrl} from '../payments/paymentsPageUrl';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
-
-const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
 
 const GeneralAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
@@ -81,21 +80,17 @@ const GeneralAnnadanamScreen = () => {
       return;
     }
 
-    Alert.alert(
-      t('requestSubmittedTitle'),
-      t('requestSubmittedMessage'),
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            Linking.openURL(PAYMENTS_URL).catch(() => {
-              Alert.alert('Payment', 'Could not open payments page.');
-            });
-          },
-        },
-      ],
-      {cancelable: false},
-    );
+    Linking.openURL(
+      paymentsPageUrl({
+        amount: totalAmount,
+        purpose: occasion.trim() || 'General Anna Santharpana',
+        seva: 'Annadanam',
+        name: fullName.trim(),
+        phone: cleanMobile,
+      }),
+    ).catch(() => {
+      Alert.alert('Payment', 'Could not open payments page.');
+    });
   };
 
   return (
