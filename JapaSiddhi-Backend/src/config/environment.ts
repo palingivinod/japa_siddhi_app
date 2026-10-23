@@ -73,6 +73,12 @@ const environment = {
   /** Newest app release. Devotees on an older install are asked to update. */
   LATEST_APP_VERSION: String(process.env.LATEST_APP_VERSION || '1.1.3').trim(),
 
+  RAZORPAY_KEY_ID: String(process.env.RAZORPAY_KEY_ID || '').trim(),
+
+  RAZORPAY_KEY_SECRET: String(process.env.RAZORPAY_KEY_SECRET || '').trim(),
+
+  RAZORPAY_WEBHOOK_SECRET: String(process.env.RAZORPAY_WEBHOOK_SECRET || '').trim(),
+
   // Phone OTP is sent by Firebase Auth on the app (not Twilio).
   // Backend only verifies the Firebase ID token after the user confirms SMS.
 

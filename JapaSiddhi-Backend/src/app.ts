@@ -27,6 +27,7 @@ import annadanamRoutes from './modules/annadanam/annadanam.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
 import screensRoutes from './modules/screens/screens.routes';
 import publicWebsiteRoutes from './modules/public/publicWebsite.routes';
+import razorpayRoutes from './modules/payments/razorpay.routes';
 import database from './database/mysql';
 import {getSqlitePath} from './database/sqliteEngine';
 const app = express();
@@ -39,12 +40,19 @@ app.use(helmet());
 
 app.use(compression());
 
-
+// Razorpay signs the raw body. This must run before JSON parsing.
 app.use(
-  express.json({
-    limit: '20mb',
-  }),
+  '/api/v1/payments/razorpay/webhook',
+  express.raw({type: 'application/json'}),
 );
+
+app.use((req, res, next) => {
+  if (req.path === '/api/v1/payments/razorpay/webhook') {
+    next();
+    return;
+  }
+  express.json({limit: '20mb'})(req, res, next);
+});
 
 
 app.use(
@@ -216,6 +224,10 @@ app.use(
 app.use(
   '/api/v1/public',
   publicWebsiteRoutes,
+);
+app.use(
+  '/api/v1/payments/razorpay',
+  razorpayRoutes,
 );
 
 app.use((error: any, _req: any, res: any, _next: any) => {

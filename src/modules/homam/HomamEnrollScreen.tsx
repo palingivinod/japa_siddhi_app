@@ -10,7 +10,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
-const PAYMENTS_URL = 'https://japasiddhi.com/payments';
+const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
 
 const HomamEnrollScreen = () => {
   const navigation = useNavigation<any>();

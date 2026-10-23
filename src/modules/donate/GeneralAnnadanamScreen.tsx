@@ -13,7 +13,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
-const PAYMENTS_URL = 'https://japasiddhi.com/payments';
+const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
 
 const GeneralAnnadanamScreen = () => {
   const navigation = useNavigation<any>();

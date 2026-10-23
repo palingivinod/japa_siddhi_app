@@ -232,6 +232,17 @@ export const openFromNotifyUrl = async (url: string | null | undefined) => {
 /** Subscribe to cold-start + warm deep links from the tray. */
 export const bindNotifyDeepLinks = () => {
   const handle = (url: string | null) => {
+    const raw = String(url || '');
+    if (raw.startsWith('japasiddhi://payment/success')) {
+      const paymentId = new URL(raw.replace('japasiddhi://', 'https://japasiddhi.app/')).searchParams.get('payment_id');
+      navigateTo('PaymentConfirmation', {
+        kind: 'RAZORPAY',
+        itemName: 'Seva offering',
+        orderNumber: paymentId || '',
+        confirmationId: paymentId || '',
+      });
+      return;
+    }
     openFromNotifyUrl(url).catch(() => undefined);
   };
   Linking.getInitialURL()

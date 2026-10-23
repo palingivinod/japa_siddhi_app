@@ -19,7 +19,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
 
-const PAYMENTS_URL = 'https://japasiddhi.com/payments';
+const PAYMENTS_URL = 'https://japasiddhi.com/payments?from=app';
 
 /*
 const TRUST_UPI_ID = 'q007640149@ybl';

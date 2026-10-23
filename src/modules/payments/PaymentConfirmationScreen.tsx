@@ -14,9 +14,19 @@ const PaymentConfirmationScreen = () => {
   return (
     <ScreenLayout title="Placed Successful" showBack tab="Orders">
       <SuccessHero
-        title={data.kind === 'BANA_LINGAM' ? 'Order Under Review' : 'Order Placed'}
+        title={
+          data.kind === 'BANA_LINGAM'
+            ? 'Order Under Review'
+            : data.kind === 'RAZORPAY'
+              ? 'Payment Successful'
+              : 'Order Placed'
+        }
         subtitle={
-          data.orderNumber
+          data.kind === 'RAZORPAY'
+            ? data.orderNumber
+              ? `Payment ${data.orderNumber}`
+              : 'Your offering was received.'
+            : data.orderNumber
             ? data.orderNumber.startsWith('BL-')
               ? `Order ${data.orderNumber}`
               : `Order #${data.orderNumber}`
@@ -29,16 +39,20 @@ const PaymentConfirmationScreen = () => {
         subtitle={
           data.kind === 'BANA_LINGAM'
             ? 'Your application has been submitted and is under review.'
-            : 'Your order has been created successfully.'
+            : data.kind === 'RAZORPAY'
+              ? 'Your payment was confirmed. You can continue in the app.'
+              : 'Your order has been created successfully.'
         }
       />
       <PrimaryButton
-        title="VIEW ORDER"
+        title={data.kind === 'RAZORPAY' ? 'CONTINUE' : 'VIEW ORDER'}
         onPress={() =>
-          navigation.navigate('OrderDetails', {
-            id: data.orderId,
-            order: data,
-          })
+          data.kind === 'RAZORPAY'
+            ? navigation.navigate('Home')
+            : navigation.navigate('OrderDetails', {
+                id: data.orderId,
+                order: data,
+              })
         }
       />
     </ScreenLayout>
