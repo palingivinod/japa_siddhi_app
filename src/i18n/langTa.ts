@@ -195,7 +195,7 @@ export const ta: TranslationDict = {
   mantraCatDevi: 'தேவி மந்திரங்கள்',
   mantraCatGanapathy: 'கணபதி மந்திரங்கள்',
   mantraCatDasa: 'தச மகாவித்யா மந்திரங்கள்',
-  mantraCatSaptha: 'சப்த மந்திரங்கள்',
+  mantraCatSaptha: 'சர்ப்ப மந்திரங்கள்',
   mantraCatGuru: 'குரு மந்திரங்கள்',
   mantraCatUnassigned: 'இன்னும் பிரிவில் இல்லை',
   selectCategoryForMantra: 'மந்திரத்தைத் தேர்ந்தெடுக்க ஒரு வகையைத் தேர்ந்தெடுக்கவும்',

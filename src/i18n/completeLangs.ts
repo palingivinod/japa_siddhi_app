@@ -194,7 +194,7 @@ export const kn: TranslationDict = {
   mantraCatDevi: 'ದೇವಿ ಮಂತ್ರಗಳು',
   mantraCatGanapathy: 'ಗಣಪತಿ ಮಂತ್ರಗಳು',
   mantraCatDasa: 'ದಶ ಮಹಾವಿದ್ಯಾ ಮಂತ್ರಗಳು',
-  mantraCatSaptha: 'ಸಪ್ತ ಮಂತ್ರಗಳು',
+  mantraCatSaptha: 'ಸರ್ಪ ಮಂತ್ರಗಳು',
   mantraCatGuru: 'ಗುರು ಮಂತ್ರಗಳು',
   mantraCatUnassigned: 'ಇನ್ನೂ ವರ್ಗದಲ್ಲಿ ಇಲ್ಲ',
   selectCategoryForMantra: 'ಮಂತ್ರವನ್ನು ಆಯ್ಕೆಮಾಡಲು ಒಂದು ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ',

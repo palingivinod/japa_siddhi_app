@@ -107,6 +107,13 @@ class MantraRepository {
         seeded INTEGER NOT NULL
       )
     `);
+    await mysql.query(
+      `
+      UPDATE mantra_categories
+      SET name = 'Sarpa mantras'
+      WHERE lower(replace(name, 'tha', 'ta')) LIKE 'sapta mantra%'
+      `,
+    );
     const seeded = await mysql.query<any[]>(
       `SELECT seeded FROM mantra_category_seed WHERE id = 1 LIMIT 1`,
     );
@@ -189,6 +196,36 @@ class MantraRepository {
       [code, clean, displayOrder],
     );
     return {category: {code, name: clean, displayOrder}};
+  }
+
+  async renameCategory(code: string, name: string) {
+    await this.ensureMantraLists();
+    const category = normalizeMantraCategory(code);
+    if (!category || !(await this.categoryExists(category))) {
+      return {error: 'Category not found.' as const};
+    }
+    const clean = String(name || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, 80);
+    if (clean.length < 2) {
+      return {error: 'Enter a category name.' as const};
+    }
+    const existing = await this.listCategories();
+    if (
+      existing.some(
+        (item: any) =>
+          item.code !== category &&
+          String(item.name || '').toLowerCase() === clean.toLowerCase(),
+      )
+    ) {
+      return {error: 'That category already exists.' as const};
+    }
+    await mysql.query(
+      `UPDATE mantra_categories SET name = ? WHERE code = ?`,
+      [clean, category],
+    );
+    return {category: {code: category, name: clean}};
   }
 
   async deleteCategory(code: string) {

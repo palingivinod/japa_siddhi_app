@@ -195,7 +195,7 @@ export const or: TranslationDict = {
   mantraCatDevi: 'ଦେବୀ ମନ୍ତ୍ର',
   mantraCatGanapathy: 'ଗଣପତି ମନ୍ତ୍ର',
   mantraCatDasa: 'ଦଶ ମହାବିଦ୍ୟା ମନ୍ତ୍ର',
-  mantraCatSaptha: 'ସପ୍ତ ମନ୍ତ୍ର',
+  mantraCatSaptha: 'ସର୍ପ ମନ୍ତ୍ର',
   mantraCatGuru: 'ଗୁରୁ ମନ୍ତ୍ର',
   mantraCatUnassigned: 'ଏଯାଏ ବର୍ଗରେ ନାହିଁ',
   selectCategoryForMantra: 'ମନ୍ତ୍ର ବାଛିବାକୁ ଗୋଟିଏ ବର୍ଗ ବାଛନ୍ତୁ',

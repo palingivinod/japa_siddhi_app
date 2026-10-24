@@ -195,7 +195,7 @@ export const bn: TranslationDict = {
   mantraCatDevi: 'দেবী মন্ত্র',
   mantraCatGanapathy: 'গণপতি মন্ত্র',
   mantraCatDasa: 'দশ মহাবিদ্যা মন্ত্র',
-  mantraCatSaptha: 'সপ্ত মন্ত্র',
+  mantraCatSaptha: 'সর্প মন্ত্র',
   mantraCatGuru: 'গুরু মন্ত্র',
   mantraCatUnassigned: 'এখনও কোনো বিভাগে নেই',
   selectCategoryForMantra: 'মন্ত্র বেছে নিতে একটি বিভাগ বেছে নিন',

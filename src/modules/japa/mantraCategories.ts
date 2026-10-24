@@ -10,7 +10,7 @@ export const MANTRA_CATEGORIES: Array<{
   {code: 'devi', label: 'Devi mantras', labelKey: 'mantraCatDevi'},
   {code: 'ganapathy', label: 'Ganapathy mantras', labelKey: 'mantraCatGanapathy'},
   {code: 'dasa_maha_vidya', label: 'Dasa maha vidya mantras', labelKey: 'mantraCatDasa'},
-  {code: 'saptha', label: 'Saptha mantras', labelKey: 'mantraCatSaptha'},
+  {code: 'saptha', label: 'Sarpa mantras', labelKey: 'mantraCatSaptha'},
   {code: 'guru', label: 'Guru mantras', labelKey: 'mantraCatGuru'},
 ];
 
@@ -32,7 +32,14 @@ export const categoryTitle = (
   t: (key: TranslationKey) => string,
 ) => {
   const builtin = MANTRA_CATEGORIES.find(item => item.code === category.code);
-  return builtin ? t(builtin.labelKey) : category.name;
+  const saved = String(category.name || '').trim();
+  if (
+    !builtin ||
+    (saved && saved.toLowerCase() !== builtin.label.trim().toLowerCase())
+  ) {
+    return saved || (builtin ? t(builtin.labelKey) : '');
+  }
+  return t(builtin.labelKey);
 };
 
 export const groupByCategory = <T extends {categoryCode?: string | null}>(

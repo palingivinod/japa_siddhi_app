@@ -195,7 +195,7 @@ export const mr: TranslationDict = {
   mantraCatDevi: 'देवी मंत्र',
   mantraCatGanapathy: 'गणपती मंत्र',
   mantraCatDasa: 'दश महाविद्या मंत्र',
-  mantraCatSaptha: 'सप्त मंत्र',
+  mantraCatSaptha: 'सर्प मंत्र',
   mantraCatGuru: 'गुरु मंत्र',
   mantraCatUnassigned: 'अजून वर्गात नाही',
   selectCategoryForMantra: 'मंत्र निवडण्यासाठी एक वर्ग निवडा',

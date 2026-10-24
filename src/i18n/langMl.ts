@@ -195,7 +195,7 @@ export const ml: TranslationDict = {
   mantraCatDevi: 'ദേവി മന്ത്രങ്ങൾ',
   mantraCatGanapathy: 'ഗണപതി മന്ത്രങ്ങൾ',
   mantraCatDasa: 'ദശ മഹാവിദ്യാ മന്ത്രങ്ങൾ',
-  mantraCatSaptha: 'സപ്ത മന്ത്രങ്ങൾ',
+  mantraCatSaptha: 'സർപ്പ മന്ത്രങ്ങൾ',
   mantraCatGuru: 'ഗുരു മന്ത്രങ്ങൾ',
   mantraCatUnassigned: 'ഇതുവരെ വിഭാഗത്തിലല്ല',
   selectCategoryForMantra: 'മന്ത്രം തിരഞ്ഞെടുക്കാൻ ഒരു വിഭാഗം തിരഞ്ഞെടുക്കുക',

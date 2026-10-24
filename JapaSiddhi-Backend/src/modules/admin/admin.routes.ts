@@ -1280,6 +1280,33 @@ router.post('/mantra-categories', async (req: Request, res: Response) => {
   }
 });
 
+router.put('/mantra-categories/:code', async (req: Request, res: Response) => {
+  try {
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    const result = await mantraRepository.renameCategory(
+      String(req.params.code || ''),
+      String(req.body?.name || ''),
+    );
+    if (result.error || !result.category) {
+      const missing = result.error === 'Category not found.';
+      return res.status(missing ? 404 : 400).json({
+        success: false,
+        message: result.error || 'Could not save the category.',
+      });
+    }
+    return res.json({
+      success: true,
+      message: 'Category updated.',
+      data: result.category,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to save the category.',
+    });
+  }
+});
+
 router.delete('/mantra-categories/:code', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;

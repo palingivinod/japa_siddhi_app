@@ -4,7 +4,7 @@ export const MANTRA_CATEGORIES = [
   {code: 'devi', label: 'Devi mantras'},
   {code: 'ganapathy', label: 'Ganapathy mantras'},
   {code: 'dasa_maha_vidya', label: 'Dasa maha vidya mantras'},
-  {code: 'saptha', label: 'Saptha mantras'},
+  {code: 'saptha', label: 'Sarpa mantras'},
   {code: 'guru', label: 'Guru mantras'},
 ] as const;
 

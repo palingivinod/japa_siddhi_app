@@ -46,6 +46,9 @@ const AdminMantrasScreen = () => {
   const [moving, setMoving] = useState<ListedMantra | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<MantraCategoryOption | null>(
+    null,
+  );
   const [categoryName, setCategoryName] = useState('');
   const [savingCategory, setSavingCategory] = useState(false);
 
@@ -180,6 +183,47 @@ const AdminMantrasScreen = () => {
     }
   };
 
+  const startEditCategory = (category: MantraCategoryOption) => {
+    setMoving(null);
+    setAddingCategory(false);
+    setDeletingCategory(false);
+    setEditingCategory(category);
+    setCategoryName(category.name);
+  };
+
+  const saveCategoryEdit = async () => {
+    if (!editingCategory) {
+      return;
+    }
+    const name = categoryName.trim();
+    if (name.length < 2) {
+      Alert.alert('Required', 'Enter a category name.');
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const response = await apiService.put(
+        `/admin/mantra-categories/${editingCategory.code}`,
+        {name},
+      );
+      const saved = String(response.data?.data?.name || name);
+      setCategories(current =>
+        current.map(row =>
+          row.code === editingCategory.code ? {...row, name: saved} : row,
+        ),
+      );
+      setEditingCategory(null);
+      setCategoryName('');
+    } catch (err) {
+      Alert.alert(
+        'Could not save category',
+        getApiError(err, 'Could not save the category.'),
+      );
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
   const saveCategory = async () => {
     const name = categoryName.trim();
     if (name.length < 2) {
@@ -295,6 +339,8 @@ const AdminMantrasScreen = () => {
               onPress={() => {
                 setMoving(null);
                 setDeletingCategory(false);
+                setEditingCategory(null);
+                setCategoryName('');
                 setAddingCategory(true);
               }}>
               <Text style={styles.pinText}>ADD CATEGORY</Text>
@@ -304,6 +350,7 @@ const AdminMantrasScreen = () => {
               onPress={() => {
                 setMoving(null);
                 setAddingCategory(false);
+                setEditingCategory(null);
                 setDeletingCategory(true);
               }}>
               <Text style={styles.deletePinText}>DELETE CATEGORY</Text>
@@ -334,6 +381,37 @@ const AdminMantrasScreen = () => {
               </View>
             </View>
           ) : null}
+          {editingCategory ? (
+            <View style={styles.picker}>
+              <Text style={styles.pickerTitle}>
+                Edit {editingCategory.name}
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={categoryName}
+                onChangeText={setCategoryName}
+                placeholder="Category name"
+                placeholderTextColor={Colors.placeholder}
+              />
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  disabled={savingCategory}
+                  onPress={saveCategoryEdit}>
+                  <Text style={styles.editText}>
+                    {savingCategory ? 'Saving' : 'Save'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setEditingCategory(null);
+                    setCategoryName('');
+                  }}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
         </View>
       }>
       {loading ? (
@@ -350,20 +428,26 @@ const AdminMantrasScreen = () => {
 
       {!loading
         ? groups.map(group => (
-            <TouchableOpacity
-              key={group.code}
-              style={styles.categoryBtn}
-              onPress={() =>
-                navigation.navigate('AdminMantraCategory', {
-                  list: japaList,
-                  categoryCode: group.code,
-                  categoryName: group.name,
-                })
-              }
-              activeOpacity={0.8}>
-              <Text style={styles.categoryText}>{group.name}</Text>
-              <Text style={styles.categoryCount}>{group.items.length}</Text>
-            </TouchableOpacity>
+            <View key={group.code} style={styles.categoryBtn}>
+              <TouchableOpacity
+                style={styles.categoryMain}
+                onPress={() =>
+                  navigation.navigate('AdminMantraCategory', {
+                    list: japaList,
+                    categoryCode: group.code,
+                    categoryName: group.name,
+                  })
+                }
+                activeOpacity={0.8}>
+                <Text style={styles.categoryText}>{group.name}</Text>
+                <Text style={styles.categoryCount}>{group.items.length}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => startEditCategory(group)}>
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
           ))
         : null}
 
@@ -437,14 +521,22 @@ const styles = StyleSheet.create({
   categoryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: Colors.white,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingLeft: 16,
+    paddingRight: 10,
+    paddingVertical: 8,
     marginBottom: 8,
+  },
+  categoryMain: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+    marginRight: 8,
   },
   categoryBtnOpen: {
     backgroundColor: Colors.templeGold,

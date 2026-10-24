@@ -407,7 +407,7 @@
   mantraCatDevi: 'Devi mantras',
   mantraCatGanapathy: 'Ganapathy mantras',
   mantraCatDasa: 'Dasa maha vidya mantras',
-  mantraCatSaptha: 'Saptha mantras',
+  mantraCatSaptha: 'Sarpa mantras',
   mantraCatGuru: 'Guru mantras',
   mantraCatUnassigned: 'Not in a category yet',
   selectCategoryForMantra: 'Select a category to select a mantra',
