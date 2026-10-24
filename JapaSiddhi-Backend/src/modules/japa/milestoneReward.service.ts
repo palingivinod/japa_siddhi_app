@@ -39,6 +39,16 @@ const rewardJapaRequirement = (name: string) => {
   ) {
     return 50000;
   }
+  if (
+    lower.includes('rudraksh') ||
+    lower.includes('tulasi') ||
+    lower.includes('tulsi') ||
+    lower.includes('pasupu') ||
+    lower.includes('turmeric') ||
+    lower.includes('haldi')
+  ) {
+    return 2498;
+  }
   return 0;
 };
 

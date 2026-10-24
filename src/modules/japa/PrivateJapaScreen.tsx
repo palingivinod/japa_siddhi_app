@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Platform,
   ScrollView,
@@ -71,6 +71,7 @@ const PrivateJapaScreen = () => {
   const [isTodayCustom, setIsTodayCustom] = useState(false);
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
+  const startingRef = useRef(false);
   const [recentMantras, setRecentMantras] = useState<SavedMantra[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const keyboardOpen = useKeyboardOpen();
@@ -191,6 +192,9 @@ const PrivateJapaScreen = () => {
   };
 
   const start = () => {
+    if (startingRef.current) {
+      return;
+    }
     const name = mantra.trim();
     if (!name) {
       setMessage(t('enterYourMantra'));
@@ -215,9 +219,10 @@ const PrivateJapaScreen = () => {
       }
     }
 
+    startingRef.current = true;
+    setSaving(true);
     // Close IME before API + navigate — open keyboard + screen change crashes many Androids.
     dismissKeyboardThen(async () => {
-      setSaving(true);
       setMessage('');
 
       let personalMantraId: number | undefined;
@@ -252,6 +257,7 @@ const PrivateJapaScreen = () => {
       }
 
       setSaving(false);
+      startingRef.current = false;
       navigation.navigate('Chant', {
         mode: 'private',
         privateMantra: name,
@@ -302,6 +308,20 @@ const PrivateJapaScreen = () => {
             <Text style={styles.title}>{t('privateMantra')}</Text>
             <Text style={styles.meta}>{t('mantraHiddenSecure')}</Text>
           </View>
+        </View>
+
+        <View style={styles.listedMantra}>
+          <OutlineButton
+            title={t('mantrasBtn')}
+            onPress={startWithListedMantra}
+          />
+          <Text style={styles.hint}>{t('chantListedMantraHint')}</Text>
+        </View>
+
+        <View style={styles.orRow}>
+          <View style={styles.rule} />
+          <Text style={styles.orText}>{(t('or') || 'OR').toUpperCase()}</Text>
+          <View style={styles.rule} />
         </View>
 
         {/* 1. Mantra Name Input */}
@@ -569,20 +589,9 @@ const PrivateJapaScreen = () => {
           <PrimaryButton
             title={saving ? t('loading') : t('startPrivateJapa')}
             onPress={start}
+            disabled={saving}
           />
         </View>
-
-        <View style={styles.orRow}>
-          <View style={styles.rule} />
-          <Text style={styles.orText}>{(t('or') || 'OR').toUpperCase()}</Text>
-          <View style={styles.rule} />
-        </View>
-
-        <OutlineButton
-          title={t('mantrasBtn')}
-          onPress={startWithListedMantra}
-        />
-        <Text style={styles.hint}>{t('chantListedMantraHint')}</Text>
       </ScrollView>
     </ScreenLayout>
   );
@@ -892,6 +901,9 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     fontWeight: '700',
     color: Colors.selectedOrange,
+  },
+  listedMantra: {
+    marginTop: 16,
   },
   buttonSpacing: {
     marginTop: 6,

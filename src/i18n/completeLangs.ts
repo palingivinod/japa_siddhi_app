@@ -710,6 +710,8 @@ export const kn: TranslationDict = {
     'ಈ ಬಹುಮಾನವು {{required}} ಜಪಗಳ ನಂತರ ಲಭ್ಯವಿದೆ.\n\nಇದನ್ನು ಪಡೆಯಲು ನೀವು ಇನ್ನೂ {{remaining}} ಜಪಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಬೇಕು.\n\nನಿಮ್ಮ ಪ್ರಸ್ತುತ ಜಪಗಳು: {{current}}',
   rewardEligibleMsg: 'ನೀವು ಈ ಬಹುಮಾನಕ್ಕೆ ಅರ್ಹರಾಗಿದ್ದೀರಿ.',
   youAreEligibleForReward: 'ನೀವು ಈ ಬಹುಮಾನಕ್ಕೆ ಅರ್ಹರಾಗಿದ್ದೀರಿ.',
+  youAreNotEligibleReward:
+    'ನೀವು ಈ ಬಹುಮಾನಕ್ಕೆ ಅರ್ಹರಾಗಿಲ್ಲ. ನೀವು {{count}} ಜಪಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿದ್ದೀರಿ. ಅರ್ಹರಾಗಲು {{required}} ಜಪಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ.',
   clickHereToGrabReward: 'ನಿಮ್ಮ ಬಹುಮಾನವನ್ನು ಪಡೆಯಲು ಇಲ್ಲಿ ಒತ್ತಿ',
   outOfStockTitle: 'ಸ್ಟಾಕ್ ಇಲ್ಲ',
   outOfStockRewardMsg: 'ಈ ಬಹುಮಾನವು ಈಗ ಸ್ಟಾಕ್‌ನಲ್ಲಿಲ್ಲ.',

@@ -677,6 +677,8 @@ export const or: TranslationDict = {
     'ଏହି ପୁରସ୍କାର {{required}} ଜପ ପରେ ଉପଲବ୍ଧ ହେବ।\n\nଏହା ପାଇବା ପାଇଁ ଆପଣଙ୍କୁ ଆହୁରି {{remaining}} ଜପ ପୂରଣ କରିବାକୁ ହେବ।\n\nଆପଣଙ୍କର ବର୍ତ୍ତମାନର ଜପ: {{current}}',
   rewardEligibleMsg: 'ଆପଣ ଏହି ପୁରସ୍କାର ପାଇଁ ଯୋଗ୍ୟ।',
   youAreEligibleForReward: 'ଆପଣ ଏହି ପୁରସ୍କାର ପାଇଁ ଯୋଗ୍ୟ।',
+  youAreNotEligibleReward:
+    'ଆପଣ ଏହି ପୁରସ୍କାର ପାଇଁ ଯୋଗ୍ୟ ନୁହଁନ୍ତି। ଆପଣ {{count}} ଜପ ପୂରଣ କରିଛନ୍ତି। ଯୋଗ୍ୟ ହେବାକୁ {{required}} ଜପ ପୂରଣ କରନ୍ତୁ।',
   clickHereToGrabReward: 'ଆପଣଙ୍କ ପୁରସ୍କାର ନେବାକୁ ଏଠାରେ କ୍ଲିକ୍ କରନ୍ତୁ',
   outOfStockTitle: 'ଷ୍ଟକ୍ ନାହିଁ',
   outOfStockRewardMsg: 'ଏହି ପୁରସ୍କାର ବର୍ତ୍ତମାନ ଷ୍ଟକ୍‌ରେ ନାହିଁ।',

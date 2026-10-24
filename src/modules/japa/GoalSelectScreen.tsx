@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {
   Alert,
   ScrollView,
@@ -71,6 +71,8 @@ const GoalSelectScreen = () => {
   );
   const [endDate, setEndDate] = useState<Date | null>(() => new Date());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const startingRef = useRef(false);
   const [todayTargetInput, setTodayTargetInput] = useState('');
   const [isTodayCustom, setIsTodayCustom] = useState(false);
 
@@ -153,6 +155,9 @@ const GoalSelectScreen = () => {
   );
 
   const start = () => {
+    if (startingRef.current) {
+      return;
+    }
     if (goal < 1) {
       Alert.alert(t('setYourGoal'), t('setGoalCountToStart'));
       return;
@@ -173,6 +178,8 @@ const GoalSelectScreen = () => {
       }
     }
 
+    startingRef.current = true;
+    setSaving(true);
     dismissKeyboardThen(async () => {
       const challengeId = Number(route.params?.challengeId || 0) || undefined;
       let createdGoalId: number | undefined;
@@ -208,6 +215,8 @@ const GoalSelectScreen = () => {
           undefined;
         }
       }
+      startingRef.current = false;
+      setSaving(false);
       navigation.navigate('Chant', {
         mode: route.params?.mode || 'community',
         mantraId: route.params?.mantraId,
@@ -415,7 +424,7 @@ const GoalSelectScreen = () => {
         ) : null}
 
         <View style={styles.buttonSpacing}>
-          <PrimaryButton title={t('startJapa')} onPress={start} />
+          <PrimaryButton title={t('startJapa')} onPress={start} disabled={saving} />
         </View>
       </ScrollView>
     </ScreenLayout>

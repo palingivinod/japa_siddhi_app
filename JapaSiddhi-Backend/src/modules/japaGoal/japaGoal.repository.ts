@@ -197,15 +197,8 @@ class JapaGoalRepository {
     for (const goal of goals) {
       const counts = new Map<string, number>();
       for (const row of sessionRows || []) {
-        const goalPersonal = Number(goal.personalMantraId || 0);
-        const goalMantra = Number(goal.mantraId || 0);
-        const rowPersonal = Number(row.personalMantraId || 0);
-        const rowMantra = Number(row.mantraId || 0);
         const sameGoal = Number(row.goalId || 0) === Number(goal.id);
-        const samePersonal = goalPersonal > 0 && rowPersonal === goalPersonal;
-        const sameMantra =
-          !goalPersonal && goalMantra > 0 && rowMantra === goalMantra;
-        if (!sameGoal && !samePersonal && !sameMantra) {
+        if (!sameGoal) {
           continue;
         }
         const day = this.asIsoDate(row.day);
@@ -290,6 +283,91 @@ class JapaGoalRepository {
 
 
     await this.ensurePlanDateColumn();
+    const sameMantra = await mysql.query<any[]>(
+      `
+      SELECT id, created_at AS createdAt
+      FROM japa_goals
+      WHERE user_id = ?
+        AND status = 'ACTIVE'
+        AND (
+          (? IS NOT NULL AND personal_mantra_id = ?)
+          OR (
+            ? IS NULL
+            AND ? IS NOT NULL
+            AND mantra_id = ?
+            AND personal_mantra_id IS NULL
+          )
+        )
+      ORDER BY id DESC
+      `,
+      [
+        data.userId,
+        data.personalMantraId ?? null,
+        data.personalMantraId ?? null,
+        data.personalMantraId ?? null,
+        data.mantraId ?? null,
+        data.mantraId ?? null,
+      ],
+    );
+    const recentCutoff = Date.now() - 20000;
+    let recentId = 0;
+    for (const row of sameMantra || []) {
+      const created = new Date(row.createdAt).getTime();
+      if (!recentId && Number.isFinite(created) && created >= recentCutoff) {
+        recentId = Number(row.id);
+        continue;
+      }
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        AND user_id = ?
+        AND status = 'ACTIVE'
+        `,
+        [row.id, data.userId],
+      );
+    }
+    if (recentId) {
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET
+          mantra_type = ?,
+          mantra_id = ?,
+          personal_mantra_id = ?,
+          goal_name = ?,
+          target_count = ?,
+          completed_count = 0,
+          remaining_count = ?,
+          start_date = ?,
+          end_date = ?,
+          daily_target = ?,
+          daily_plan_date = ?,
+          notes = ?,
+          status = 'ACTIVE',
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        AND user_id = ?
+        `,
+        [
+          data.mantraType,
+          data.mantraId ?? null,
+          data.personalMantraId ?? null,
+          data.goalName,
+          data.targetCount,
+          data.remainingCount,
+          data.startDate,
+          data.endDate,
+          data.dailyTarget,
+          data.startDate,
+          data.notes ?? null,
+          recentId,
+          data.userId,
+        ],
+      );
+      return recentId;
+    }
     const result =
       await mysql.query<ResultSetHeader>(
         `
@@ -548,26 +626,14 @@ class JapaGoalRepository {
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.user_id = j.user_id
-          AND (
-            js.japa_goal_id = j.id
-            OR (
-              (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
-              OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
-            )
-          )
+          AND js.japa_goal_id = j.id
         ), 0) AS completedCount,
 
         COALESCE((
           SELECT SUM(js.session_count)
           FROM japa_sessions js
           WHERE js.user_id = j.user_id
-          AND (
-            js.japa_goal_id = j.id
-            OR (
-              (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
-              OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
-            )
-          )
+          AND js.japa_goal_id = j.id
           AND ${todayCondition}
         ), 0) AS todayCompletedCount,
 
@@ -576,25 +642,13 @@ class JapaGoalRepository {
             SELECT SUM(js.session_count)
             FROM japa_sessions js
             WHERE js.user_id = j.user_id
-            AND (
-              js.japa_goal_id = j.id
-              OR (
-                (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
-                OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
-              )
-            )
+            AND js.japa_goal_id = j.id
           ), 0) < 0 THEN 0
           ELSE j.target_count - COALESCE((
             SELECT SUM(js.session_count)
             FROM japa_sessions js
             WHERE js.user_id = j.user_id
-            AND (
-              js.japa_goal_id = j.id
-              OR (
-                (j.personal_mantra_id IS NOT NULL AND js.personal_mantra_id = j.personal_mantra_id)
-                OR (j.mantra_id IS NOT NULL AND js.mantra_id = j.mantra_id)
-              )
-            )
+            AND js.japa_goal_id = j.id
           ), 0)
         END AS remainingCount,
 
@@ -695,24 +749,80 @@ class JapaGoalRepository {
     id: number,
     userId: number,
   ): Promise<void> {
-
-
-    await mysql.query(
+    const rows = await mysql.query<any[]>(
       `
-      UPDATE japa_goals
-
-      SET status = 'CANCELLED'
-
+      SELECT
+        id,
+        mantra_type AS mantraType,
+        mantra_id AS mantraId,
+        personal_mantra_id AS personalMantraId,
+        target_count AS targetCount,
+        end_date AS endDate
+      FROM japa_goals
       WHERE id = ?
-
       AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    const goal = rows?.[0];
+    if (!goal) {
+      return;
+    }
+    const twins = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM japa_goals
+      WHERE user_id = ?
+        AND mantra_type = ?
+        AND target_count = ?
+        AND end_date = ?
+        AND (
+          (? IS NOT NULL AND personal_mantra_id = ?)
+          OR (
+            ? IS NULL
+            AND ? IS NOT NULL
+            AND mantra_id = ?
+            AND personal_mantra_id IS NULL
+          )
+        )
       `,
       [
-        id,
         userId,
+        goal.mantraType,
+        goal.targetCount,
+        goal.endDate,
+        goal.personalMantraId ?? null,
+        goal.personalMantraId ?? null,
+        goal.personalMantraId ?? null,
+        goal.mantraId ?? null,
+        goal.mantraId ?? null,
       ],
     );
-
+    const ids = (twins?.length ? twins : [{id}]).map(row => Number(row.id));
+    for (const goalId of ids) {
+      await mysql.query(
+        `DELETE FROM japa_sessions WHERE japa_goal_id = ? AND user_id = ?`,
+        [goalId, userId],
+      );
+      await mysql.query(
+        `DELETE FROM japa_goals WHERE id = ? AND user_id = ?`,
+        [goalId, userId],
+      );
+    }
+    try {
+      await mysql.query(
+        `
+        UPDATE global_japa_counter
+        SET total_japa_count = (
+          SELECT COALESCE(SUM(session_count), 0) FROM japa_sessions
+        )
+        WHERE id = 1
+        `,
+      );
+    } catch {
+      // The goal and its sessions are already removed.
+    }
   }
 
 

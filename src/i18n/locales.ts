@@ -742,6 +742,8 @@ export const hi: TranslationDict = {
     'यह पुरस्कार {{required}} जप के बाद उपलब्ध होगा।\n\nइसे पाने के लिए आपको {{remaining}} और जप पूरे करने होंगे।\n\nआपके वर्तमान पूर्ण जप: {{current}}',
   rewardEligibleMsg: 'आप इस पुरस्कार के पात्र हैं।',
   youAreEligibleForReward: 'आप इस पुरस्कार के पात्र हैं।',
+  youAreNotEligibleReward:
+    'आप इस पुरस्कार के पात्र नहीं हैं। आपने {{count}} जप पूरे किए हैं। पात्र होने के लिए {{required}} जप पूरे करें।',
   clickHereToGrabReward: 'अपना पुरस्कार पाने के लिए यहाँ क्लिक करें',
   outOfStockTitle: 'स्टॉक में नहीं',
   outOfStockRewardMsg: 'यह पुरस्कार अभी स्टॉक में नहीं है।',
@@ -1545,6 +1547,8 @@ export const te: TranslationDict = {
     'ఈ బహుమతి {{required}} జపాల తర్వాత అందుబాటులోకి వస్తుంది.\n\nఈ బహుమతి పొందడానికి మీరు ఇంకా {{remaining}} జపాలు పూర్తి చేయాలి.\n\nమీ ప్రస్తుత జపాలు: {{current}}',
   rewardEligibleMsg: 'మీరు ఈ బహుమతికి అర్హులు.',
   youAreEligibleForReward: 'మీరు ఈ బహుమతికి అర్హులు.',
+  youAreNotEligibleReward:
+    'మీరు ఈ బహుమతికి అర్హులు కారు. మీరు {{count}} జపాలు పూర్తి చేశారు. అర్హత కోసం {{required}} జపాలు పూర్తి చేయండి.',
   clickHereToGrabReward: 'మీ బహుమతి పొందడానికి ఇక్కడ నొక్కండి',
   outOfStockTitle: 'స్టాక్ లేదు',
   outOfStockRewardMsg: 'ఈ బహుమతి ప్రస్తుతం స్టాక్‌లో లేదు.',

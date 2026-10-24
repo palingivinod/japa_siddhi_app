@@ -905,6 +905,8 @@
     'This reward is available after {{required}} Japas.\n\nYou need to complete {{remaining}} more Japas to grab this reward.\n\nYour current completed Japas: {{current}}',
   rewardEligibleMsg: 'You are eligible for this reward.',
   youAreEligibleForReward: 'You are eligible for this reward.',
+  youAreNotEligibleReward:
+    'You are not eligible. You have completed {{count}} Japas. Complete {{required}} Japas to be eligible for this reward.',
   clickHereToGrabReward: 'Click here to grab your reward',
   outOfStockTitle: 'Out of Stock',
   outOfStockRewardMsg: 'This reward item is currently out of stock.',

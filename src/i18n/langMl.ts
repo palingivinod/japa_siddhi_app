@@ -693,6 +693,8 @@ export const ml: TranslationDict = {
     'ഈ റിവാർഡ് {{required}} ജപങ്ങൾക്ക് ശേഷം ലഭ്യമാകും.\n\nഇത് നേടാൻ നിങ്ങൾ ഇനിയും {{remaining}} ജപങ്ങൾ പൂർത്തിയാക്കണം.\n\nനിങ്ങളുടെ നിലവിലെ ജപങ്ങൾ: {{current}}',
   rewardEligibleMsg: 'നിങ്ങൾ ഈ റിവാർഡിന് അർഹരാണ്.',
   youAreEligibleForReward: 'നിങ്ങൾ ഈ റിവാർഡിന് അർഹരാണ്.',
+  youAreNotEligibleReward:
+    'നിങ്ങൾ ഈ റിവാർഡിന് അർഹരല്ല. നിങ്ങൾ {{count}} ജപങ്ങൾ പൂർത്തിയാക്കി. അർഹതയ്ക്ക് {{required}} ജപങ്ങൾ പൂർത്തിയാക്കുക.',
   clickHereToGrabReward: 'നിങ്ങളുടെ റിവാർഡ് നേടാൻ ഇവിടെ അമർത്തുക',
   outOfStockTitle: 'സ്റ്റോക്കില്ല',
   outOfStockRewardMsg: 'ഈ റിവാർഡ് ഇപ്പോൾ സ്റ്റോക്കിലില്ല.',

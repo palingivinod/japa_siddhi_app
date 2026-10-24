@@ -455,6 +455,22 @@ class ChallengeService {
       }
     }
 
+    if (
+      rewardNameLower.includes('rudraksh') ||
+      rewardNameLower.includes('tulasi') ||
+      rewardNameLower.includes('tulsi') ||
+      rewardNameLower.includes('pasupu') ||
+      rewardNameLower.includes('turmeric') ||
+      rewardNameLower.includes('haldi')
+    ) {
+      if (userTotalJapa < 2498) {
+        const remaining = 2498 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 2,498 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
     const rewardName = String(reward.name || '');
     let changed = false;
     if (existing) {

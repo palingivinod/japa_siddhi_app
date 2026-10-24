@@ -675,6 +675,8 @@ export const bn: TranslationDict = {
     'এই পুরষ্কারটি {{required}} জপের পর উপলব্ধ হবে।\n\nএটি পেতে আপনাকে আরও {{remaining}} জপ সম্পূর্ণ করতে হবে।\n\nআপনার বর্তমান সমাপ্ত জপ: {{current}}',
   rewardEligibleMsg: 'আপনি এই পুরস্কারের জন্য যোগ্য।',
   youAreEligibleForReward: 'আপনি এই পুরস্কারের জন্য যোগ্য।',
+  youAreNotEligibleReward:
+    'আপনি এই পুরস্কারের জন্য যোগ্য নন। আপনি {{count}} জপ সম্পন্ন করেছেন। যোগ্য হতে {{required}} জপ সম্পন্ন করুন।',
   clickHereToGrabReward: 'আপনার পুরস্কার নিতে এখানে চাপুন',
   outOfStockTitle: 'স্টক নেই',
   outOfStockRewardMsg: 'এই পুরস্কারটি এখন স্টকে নেই।',

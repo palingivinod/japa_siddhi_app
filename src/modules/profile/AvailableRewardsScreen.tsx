@@ -104,33 +104,30 @@ const AvailableRewardsScreen = () => {
 
   const handleCardPress = (item: RewardItem, localized: any) => {
     const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
+    const description = String(localized.description || '').trim();
+    const title = localized.title || tt(item.name);
+    const message = (line: string) =>
+      description ? `${description}\n\n${line}` : line;
     if (!eligibility.isEligible) {
       Alert.alert(
-        t('rewardLockedTitle') || 'Reward Locked',
-        t('rewardLockedMsg', {
-          required: eligibility.requiredLabel,
-          remaining: eligibility.remainingJapas.toLocaleString('en-IN'),
-          current: userTotalJapas.toLocaleString('en-IN'),
-        }) ||
-          `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.\n\nYour current completed Japas: ${userTotalJapas.toLocaleString()}`,
-        [{text: t('ok') || 'OK'}],
+        title,
+        message(
+          t('youAreNotEligibleReward', {
+            count: userTotalJapas.toLocaleString('en-IN'),
+            required: eligibility.requiredLabel,
+          }),
+        ),
+        [{text: t('ok')}],
       );
-    } else {
-      const description = String(localized.description || '').trim();
-      Alert.alert(
-        localized.title || tt(item.name),
-        description
-          ? `${description}\n\n${t('youAreEligibleForReward')}`
-          : t('youAreEligibleForReward'),
-        [
-          {text: t('ok')},
-          {
-            text: t('clickHereToGrabReward'),
-            onPress: () => navigation.navigate('MilestoneNotifications'),
-          },
-        ],
-      );
+      return;
     }
+    Alert.alert(title, message(t('youAreEligibleForReward')), [
+      {text: t('ok')},
+      {
+        text: t('clickHereToGrabReward'),
+        onPress: () => navigation.navigate('MilestoneNotifications'),
+      },
+    ]);
   };
 
   return (

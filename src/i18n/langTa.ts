@@ -713,6 +713,8 @@ export const ta: TranslationDict = {
     'இந்த வெகுமதி {{required}} ஜபங்களுக்குப் பிறகு கிடைக்கும்.\n\nஇதைப் பெற இன்னும் {{remaining}} ஜபங்களை முடிக்க வேண்டும்.\n\nஉங்கள் தற்போதைய ஜபங்கள்: {{current}}',
   rewardEligibleMsg: 'நீங்கள் இந்த வெகுமதிக்கு தகுதியானவர்.',
   youAreEligibleForReward: 'நீங்கள் இந்த வெகுமதிக்கு தகுதியானவர்.',
+  youAreNotEligibleReward:
+    'நீங்கள் இந்த வெகுமதிக்கு தகுதியானவர் அல்ல. நீங்கள் {{count}} ஜபங்களை முடித்துள்ளீர்கள். தகுதி பெற {{required}} ஜபங்களை முடிக்கவும்.',
   clickHereToGrabReward: 'உங்கள் வெகுமதியைப் பெற இங்கே சொடுக்கவும்',
   outOfStockTitle: 'இருப்பு இல்லை',
   outOfStockRewardMsg: 'இந்த வெகுமதி தற்போது இருப்பு இல்லை.',

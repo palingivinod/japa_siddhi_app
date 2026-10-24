@@ -674,6 +674,8 @@ export const mr: TranslationDict = {
     'हा रिवॉर्ड {{required}} जप पूर्ण झाल्यावर उपलब्ध होईल.\n\nहा रिवॉर्ड मिळवण्यासाठी तुम्हाला आणखी {{remaining}} जप करावे लागतील.\n\nतुमचे सध्याचे जप: {{current}}',
   rewardEligibleMsg: 'तुम्ही या रिवॉर्डसाठी पात्र आहात.',
   youAreEligibleForReward: 'तुम्ही या रिवॉर्डसाठी पात्र आहात.',
+  youAreNotEligibleReward:
+    'तुम्ही या रिवॉर्डसाठी पात्र नाही. तुम्ही {{count}} जप पूर्ण केले आहेत. पात्र होण्यासाठी {{required}} जप पूर्ण करा.',
   clickHereToGrabReward: 'तुमचा रिवॉर्ड घेण्यासाठी येथे क्लिक करा',
   outOfStockTitle: 'स्टॉक नाही',
   outOfStockRewardMsg: 'हा रिवॉर्ड सध्या स्टॉकमध्ये नाही.',
