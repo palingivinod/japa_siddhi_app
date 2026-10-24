@@ -72,10 +72,10 @@ const ChallengeRewardSelectScreen = () => {
         }
       })
       .catch(err => {
-        Alert.alert('Rewards', getApiError(err, 'Could not load rewards.'));
+        Alert.alert(t('rewards'), getApiError(err, t('couldNotLoadRewards')));
       })
       .finally(() => setLoading(false));
-  }, [challengeId]);
+  }, [challengeId, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -111,7 +111,7 @@ const ChallengeRewardSelectScreen = () => {
     }
     // Already-selected reward stays tappable; other rewards need stock.
     if (!item.inStock && item.id !== claimedId) {
-      Alert.alert('Out of Stock', 'This reward item is currently out of stock.');
+      Alert.alert(t('outOfStockTitle'), t('outOfStockRewardMsg'));
       return;
     }
     setSelectedId(item.id);
@@ -124,13 +124,13 @@ const ChallengeRewardSelectScreen = () => {
         return;
       }
       Alert.alert(
-        'Already ordered',
-        `You already chose ${claimedName} for this challenge.`,
+        t('alreadyOrderedTitle'),
+        t('alreadyChoseChallengeReward', {name: claimedName}),
       );
       return;
     }
     if (!selected) {
-      Alert.alert('Select reward', 'Choose a sacred reward to continue.');
+      Alert.alert(t('selectRewardTitle'), t('chooseSacredRewardContinue'));
       return;
     }
     const eligibility = checkRewardEligibility(selected.name, userTotalJapas, language);
@@ -147,7 +147,7 @@ const ChallengeRewardSelectScreen = () => {
       return;
     }
     if (!selected.inStock && selected.id !== claimedId) {
-      Alert.alert('Out of stock', 'Choose an in-stock reward to continue.');
+      Alert.alert(t('outOfStockTitle'), t('chooseInStockReward'));
       return;
     }
     // Same claimed reward → continue to delivery without re-confirm.
@@ -227,7 +227,7 @@ const ChallengeRewardSelectScreen = () => {
                   styles.stock,
                   item.inStock ? styles.inStock : styles.outStock,
                 ]}>
-                {item.inStock ? (t('available') || 'IN STOCK') : 'OUT OF STOCK'}
+                {item.inStock ? t('available') : t('outOfStockTitle')}
               </Text>
               {!item.inStock ? <Text style={styles.x}>×</Text> : null}
             </TouchableOpacity>

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import {getStoredUser} from '../../services/session';
 import apiService, {getApiError} from '../../services/apiService';
@@ -20,6 +21,7 @@ import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 const ChallengeRewardDeliveryScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const challengeId = Number(route.params?.id || 0);
   const rewardName = String(route.params?.rewardName || 'Reward');
 
@@ -97,18 +99,18 @@ const ChallengeRewardDeliveryScreen = () => {
       !state.trim() ||
       !pinCode.trim()
     ) {
-      Alert.alert('Required', 'Enter all delivery details.');
+      Alert.alert(t('required'), t('enterAllDeliveryDetails'));
       return;
     }
     if (!isMobile(mobile)) {
       Alert.alert(
-        'Required',
-        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+        t('required'),
+        t('enterValidMobileDigits', {digits: MOBILE_DIGITS}),
       );
       return;
     }
     if (!challengeId) {
-      Alert.alert('Reward', 'Missing challenge details.');
+      Alert.alert(t('rewards'), t('missingChallengeDetails'));
       return;
     }
     setSaving(true);
@@ -133,8 +135,8 @@ const ChallengeRewardDeliveryScreen = () => {
       });
     } catch (err) {
       Alert.alert(
-        'Delivery',
-        getApiError(err, 'Could not save delivery details.'),
+        t('deliveryTitle'),
+        getApiError(err, t('couldNotSaveDelivery')),
       );
     } finally {
       setSaving(false);

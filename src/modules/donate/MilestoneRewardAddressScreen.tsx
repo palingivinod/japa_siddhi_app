@@ -124,15 +124,18 @@ const MilestoneRewardAddressScreen = () => {
       !stateName.trim() ||
       !pinCode.trim()
     ) {
-      Alert.alert('Required', 'Enter all delivery details.');
+      Alert.alert(t('required'), t('enterAllDeliveryDetails'));
       return;
     }
     if (!isMobile(mobile)) {
-      Alert.alert('Required', `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`);
+      Alert.alert(
+        t('required'),
+        t('enterValidMobileDigits', {digits: MOBILE_DIGITS}),
+      );
       return;
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
-      Alert.alert('Required', 'Enter a valid 6-digit PIN code.');
+      Alert.alert(t('required'), t('enterValidPin'));
       return;
     }
     navigation.navigate('MilestoneRewardOverview', {

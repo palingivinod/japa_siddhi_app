@@ -30,7 +30,7 @@ const MilestoneRewardOverviewScreen = () => {
 
   const submit = async () => {
     if (!target || !rewardId) {
-      Alert.alert('Reward', 'Missing reward details.');
+      Alert.alert(t('rewards'), t('missingRewardDetails'));
       return;
     }
     setSaving(true);
@@ -47,20 +47,20 @@ const MilestoneRewardOverviewScreen = () => {
       const data = response.data?.data || {};
       const orderNumber = String(data.orderNumber || '');
       Alert.alert(
-        'Reward submitted',
+        t('rewardSubmittedTitle'),
         orderNumber
-          ? `Your reward order ${orderNumber} has been sent.`
-          : 'Your reward order has been sent.',
+          ? t('rewardOrderSentNumber', {order: orderNumber})
+          : t('rewardOrderSent'),
         [
           {
-            text: t('ok') || 'OK',
+            text: t('ok'),
             onPress: () => navigation.navigate('MilestoneNotifications'),
           },
         ],
         {cancelable: false},
       );
     } catch (error) {
-      Alert.alert('Reward', getApiError(error, 'Could not submit this reward.'));
+      Alert.alert(t('rewards'), getApiError(error, t('couldNotSubmitReward')));
     } finally {
       setSaving(false);
     }

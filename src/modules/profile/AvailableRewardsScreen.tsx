@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import AppIcon from '../../components/icons/AppIcon';
@@ -42,6 +42,7 @@ const DEFAULT_REWARDS: RewardItem[] = [
 ];
 
 const AvailableRewardsScreen = () => {
+  const navigation = useNavigation<any>();
   const {t, tt, language} = useLanguage();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [userTotalJapas, setUserTotalJapas] = useState(0);
@@ -115,12 +116,19 @@ const AvailableRewardsScreen = () => {
         [{text: t('ok') || 'OK'}],
       );
     } else {
+      const description = String(localized.description || '').trim();
       Alert.alert(
         localized.title || tt(item.name),
-        `${localized.description || ''}\n\n${t('rewardEligibleMsg', {
-          count: userTotalJapas.toLocaleString('en-IN'),
-        }) || `✓ Eligible: You have completed ${userTotalJapas.toLocaleString()} Japas. Complete challenges or milestones to claim this reward for delivery.`}`,
-        [{text: t('ok') || 'OK'}],
+        description
+          ? `${description}\n\n${t('youAreEligibleForReward')}`
+          : t('youAreEligibleForReward'),
+        [
+          {text: t('ok')},
+          {
+            text: t('clickHereToGrabReward'),
+            onPress: () => navigation.navigate('MilestoneNotifications'),
+          },
+        ],
       );
     }
   };

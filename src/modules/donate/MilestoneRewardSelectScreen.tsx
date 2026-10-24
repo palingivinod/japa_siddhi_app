@@ -52,10 +52,10 @@ const MilestoneRewardSelectScreen = () => {
         setReached(Boolean(data.reached));
       })
       .catch(err => {
-        Alert.alert('Rewards', getApiError(err, 'Could not load rewards.'));
+        Alert.alert(t('rewards'), getApiError(err, t('couldNotLoadRewards')));
       })
       .finally(() => setLoading(false));
-  }, [target]);
+  }, [target, t]);
 
   useFocusEffect(
     useCallback(() => {
@@ -84,7 +84,7 @@ const MilestoneRewardSelectScreen = () => {
       return;
     }
     if (!item.inStock) {
-      Alert.alert('Out of Stock', 'This reward item is currently out of stock.');
+      Alert.alert(t('outOfStockTitle'), t('outOfStockRewardMsg'));
       return;
     }
     setSelectedId(item.id);
@@ -92,11 +92,11 @@ const MilestoneRewardSelectScreen = () => {
 
   const continueNext = () => {
     if (claimed) {
-      Alert.alert('Reward', 'This milestone reward is already submitted.');
+      Alert.alert(t('rewards'), t('rewardAlreadySubmitted'));
       return;
     }
     if (!selected) {
-      Alert.alert('Select reward', 'Choose a reward to continue.');
+      Alert.alert(t('selectRewardTitle'), t('chooseRewardToContinue'));
       return;
     }
     navigation.navigate('MilestoneRewardAddress', {
@@ -157,7 +157,7 @@ const MilestoneRewardSelectScreen = () => {
                   styles.stock,
                   item.inStock ? styles.inStock : styles.outStock,
                 ]}>
-                {item.inStock ? t('available') || 'IN STOCK' : 'OUT OF STOCK'}
+                {item.inStock ? t('available') : t('outOfStockTitle')}
               </Text>
             </TouchableOpacity>
           );

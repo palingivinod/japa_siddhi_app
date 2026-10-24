@@ -20,7 +20,7 @@ const ChallengeRewardConfirmScreen = () => {
 
   const confirm = async () => {
     if (!challengeId || !rewardId) {
-      Alert.alert('Reward', 'Missing reward details.');
+      Alert.alert(t('rewards'), t('missingRewardDetails'));
       return;
     }
     setSaving(true);
@@ -34,7 +34,7 @@ const ChallengeRewardConfirmScreen = () => {
         rewardName,
       });
     } catch (err) {
-      Alert.alert('Reward', getApiError(err, 'Could not confirm reward.'));
+      Alert.alert(t('rewards'), getApiError(err, t('couldNotConfirmReward')));
     } finally {
       setSaving(false);
     }
