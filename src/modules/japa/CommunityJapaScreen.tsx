@@ -8,6 +8,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {groupByCategory} from './mantraCategories';
 
 interface MantraStat {
   totalChants: number;
@@ -64,6 +65,7 @@ const CommunityJapaScreen = () => {
     }, []),
   );
 
+  const {unassigned, groups} = groupByCategory(mantras);
   const selectedStat = selected ? stats[Number(selected.id)] : undefined;
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
@@ -154,16 +156,45 @@ const CommunityJapaScreen = () => {
         style={styles.mantraScroll}
         contentContainerStyle={styles.mantraScrollContent}
         showsVerticalScrollIndicator={false}>
-        {mantras.map(item => (
-          <MenuCard
-            key={item.id}
-            emoji="🕉️"
-            title={item.mantraName || item.transliteration}
-            subtitle={selected?.id === item.id ? (t('selected') || 'Selected') : (t('tapToSelect') || 'Tap to select')}
-            tone="gold"
-            selected={selected?.id === item.id}
-            onPress={() => setSelected(item)}
-          />
+        {unassigned.length > 0 ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
+            {unassigned.map(item => (
+              <MenuCard
+                key={item.id}
+                emoji="🕉️"
+                title={item.mantraName || item.transliteration}
+                subtitle={
+                  selected?.id === item.id
+                    ? t('selected') || 'Selected'
+                    : t('tapToSelect') || 'Tap to select'
+                }
+                tone="gold"
+                selected={selected?.id === item.id}
+                onPress={() => setSelected(item)}
+              />
+            ))}
+          </View>
+        ) : null}
+        {groups.map(group => (
+          <View key={group.code} style={styles.section}>
+            <Text style={styles.sectionTitle}>{t(group.labelKey)}</Text>
+            {group.items.map(item => (
+              <MenuCard
+                key={item.id}
+                emoji="🕉️"
+                title={item.mantraName || item.transliteration}
+                subtitle={
+                  selected?.id === item.id
+                    ? t('selected') || 'Selected'
+                    : t('tapToSelect') || 'Tap to select'
+                }
+                tone="gold"
+                selected={selected?.id === item.id}
+                onPress={() => setSelected(item)}
+              />
+            ))}
+          </View>
         ))}
       </ScrollView>
     </ScreenLayout>
@@ -210,5 +241,15 @@ const styles = StyleSheet.create({
   },
   mantraScrollContent: {
     paddingBottom: 40,
+  },
+  section: {
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    marginTop: 8,
+    marginBottom: 8,
   },
 });

@@ -179,7 +179,14 @@ const ChantScreen = () => {
     setRawError(null);
     try {
       const [mantraResponse, summaryResponse, ownResponse] = await Promise.all([
-        apiService.get('/mantras'),
+        apiService.get('/mantras', {
+          params: {
+            list: mode === 'private' ? 'antharanga' : 'samuhika',
+            ...(Number(route.params?.mantraId || 0)
+              ? {include: Number(route.params.mantraId)}
+              : {}),
+          },
+        }),
         apiService.get('/japa/summary'),
         apiService.get('/personal-mantras').catch(() => null),
       ]);

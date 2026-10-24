@@ -8,6 +8,7 @@ import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedMantra} from '../../utils/localizedContent';
+import {groupByCategory} from './mantraCategories';
 
 const MantraSelectScreen = () => {
   const navigation = useNavigation<any>();
@@ -22,7 +23,8 @@ const MantraSelectScreen = () => {
   const [picking, setPicking] = useState(!passedId);
 
   useEffect(() => {
-    apiService.get('/mantras').then(response => {
+    const list = route.params?.mode === 'private' ? 'antharanga' : 'samuhika';
+    apiService.get('/mantras', {params: {list}}).then(response => {
       const items = response.data.data ?? [];
       setMantras(items);
       setSelected(current => current ?? items[0]?.id ?? null);
@@ -61,6 +63,33 @@ const MantraSelectScreen = () => {
       ...(route.params?.goal ? {goal: route.params.goal} : {}),
     });
   };
+
+  const mantraLabel = (item: any) => {
+    const loc = getLocalizedMantra(item, language).name;
+    return (
+      tt(loc || item.mantraName || item.transliteration || '') ||
+      loc ||
+      item.mantraName ||
+      item.transliteration
+    );
+  };
+
+  const renderChip = (item: any) => {
+    const active = item.id === selected;
+    return (
+      <TouchableOpacity
+        key={item.id}
+        style={[styles.chip, active && styles.chipActive]}
+        activeOpacity={0.7}
+        onPress={() => setSelected(item.id)}>
+        <Text style={[styles.chipText, active && styles.chipTextActive]}>
+          {mantraLabel(item)}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
+  const {unassigned, groups} = groupByCategory(mantras);
 
   const handleSetGoal = () => {
     if (!selected) return;
@@ -107,33 +136,20 @@ const MantraSelectScreen = () => {
       {picking ? (
         <>
           <Text style={styles.hint}>{t('chooseOneMantra')}</Text>
-          <View style={styles.chipRow}>
-            {mantras.map(item => {
-              const active = item.id === selected;
-              const loc = getLocalizedMantra(item, language).name;
-              // Prefer full i18n phrase (tt) so English API names become Telugu etc.
-              const displayName =
-                tt(loc || item.mantraName || item.transliteration || '') ||
-                loc ||
-                item.mantraName ||
-                item.transliteration;
-              return (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[styles.chip, active && styles.chipActive]}
-                  activeOpacity={0.7}
-                  onPress={() => setSelected(item.id)}>
-                  <Text
-                    style={[
-                      styles.chipText,
-                      active && styles.chipTextActive,
-                    ]}>
-                    {displayName}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          {unassigned.length > 0 ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
+              <View style={styles.chipRow}>{unassigned.map(renderChip)}</View>
+            </View>
+          ) : null}
+          {groups.map(group => (
+            <View key={group.code} style={styles.section}>
+              <Text style={styles.sectionTitle}>{t(group.labelKey)}</Text>
+              {group.items.length > 0 ? (
+                <View style={styles.chipRow}>{group.items.map(renderChip)}</View>
+              ) : null}
+            </View>
+          ))}
         </>
       ) : (
         <View style={styles.selectedContainer}>
@@ -174,11 +190,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  section: {
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    marginBottom: 8,
+  },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   chip: {
     borderWidth: 1,

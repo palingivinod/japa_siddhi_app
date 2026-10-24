@@ -328,8 +328,10 @@ export type RootStackParamList = {
   AdminUserDetails: {userId?: string} | undefined;
   AdminUserEdit: {userId?: string} | undefined;
   AdminJapa: undefined;
-  AdminMantras: undefined;
-  AdminMantraEdit: {mantraId?: string} | undefined;
+  AdminMantras: {list?: 'SAMUHIKA' | 'ANTHARANGA'} | undefined;
+  AdminMantraEdit:
+    | {mantraId?: string; japaList?: string; categoryCode?: string}
+    | undefined;
   AdminChallengeCreate:
     | {
         id?: string;

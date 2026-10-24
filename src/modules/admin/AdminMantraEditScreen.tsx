@@ -20,6 +20,10 @@ import AdminLanguageTabs, {
   AdminSupportedLang,
 } from './components/AdminLanguageTabs';
 import {parseTranslationsMap} from '../../utils/localizedContent';
+import {
+  MANTRA_CATEGORIES,
+  mantraListLabel,
+} from '../japa/mantraCategories';
 
 interface MantraLangFields {
   name: string;
@@ -76,6 +80,16 @@ const AdminMantraEditScreen = () => {
     ? String(route.params.mantraId)
     : '';
   const isEdit = Boolean(mantraId);
+  const japaList =
+    String(route.params?.japaList || 'SAMUHIKA').toUpperCase() === 'ANTHARANGA'
+      ? 'ANTHARANGA'
+      : 'SAMUHIKA';
+  const categoryCode = String(route.params?.categoryCode || '');
+  const [shownList, setShownList] = useState(japaList);
+  const [shownCategory, setShownCategory] = useState(categoryCode);
+  const categoryLabel =
+    MANTRA_CATEGORIES.find(item => item.code === shownCategory)?.label ||
+    'Not in a category yet';
 
   const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
@@ -144,6 +158,12 @@ const AdminMantraEditScreen = () => {
       skipAutoTranslateRef.current = true;
       setTarget(String(data.target || 108));
       setActive(Boolean(data.active));
+      if (data.japaList) {
+        setShownList(String(data.japaList));
+      }
+      if (data.categoryCode) {
+        setShownCategory(String(data.categoryCode));
+      }
     } catch (err) {
       Alert.alert('Error', getApiError(err, 'Could not load mantra.'));
     } finally {
@@ -281,6 +301,11 @@ const AdminMantraEditScreen = () => {
     const targetNum = Number(String(target).replace(/,/g, '')) || 108;
     setSaving(true);
     try {
+      if (!isEdit && !categoryCode) {
+        Alert.alert('Required', 'Choose a category before adding the mantra.');
+        setSaving(false);
+        return;
+      }
       const payload = {
         mantraName:
           translations.en.name.trim() || translations[activeLang].name.trim(),
@@ -299,6 +324,7 @@ const AdminMantraEditScreen = () => {
         defaultJapaCount: targetNum,
         isActive: active,
         translations: JSON.stringify(translations),
+        ...(!isEdit ? {japaList, categoryCode} : {}),
       };
       if (isEdit) {
         await apiService.put(`/admin/mantras/${mantraId}`, payload);
@@ -326,6 +352,9 @@ const AdminMantraEditScreen = () => {
       title={isEdit ? 'Edit Mantra' : 'Create Mantra'}
       tab="AdminJapa"
       showBack>
+      <Text style={styles.placeLine}>
+        {mantraListLabel(shownList)} · {categoryLabel}
+      </Text>
       <Text style={styles.heading}>
         {isEdit ? 'Edit Mantra' : 'Create Mantra'}
       </Text>
@@ -456,6 +485,12 @@ const AdminMantraEditScreen = () => {
 export default AdminMantraEditScreen;
 
 const styles = StyleSheet.create({
+  placeLine: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    marginBottom: 6,
+  },
   heading: {
     fontSize: 26,
     fontWeight: '800',

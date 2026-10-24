@@ -939,6 +939,8 @@ class JapaService {
   }
 
   async getCommunity(userId: number) {
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    await mantraRepository.ensureMantraLists();
     const [mantras, totalChants, devotees, summary, mantraStats] = await Promise.all([
       mysql.query<any[]>(
         `
@@ -946,10 +948,13 @@ class JapaService {
           id,
           mantra_name AS mantraName,
           deity_name AS deityName,
-          transliteration
+          transliteration,
+          category_code AS categoryCode,
+          japa_list AS japaList
         FROM mantras
         WHERE is_active = 1
-        ORDER BY display_order ASC
+          AND japa_list = 'SAMUHIKA'
+        ORDER BY display_order ASC, id ASC
         `,
       ),
       japaRepository.getGlobalJapaCount(),

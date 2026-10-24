@@ -1240,14 +1240,18 @@ const mapMantraRow = (row: any) => ({
   active: Number(row.isActive) === 1 || row.isActive === true,
   isFeatured: Number(row.isFeatured) === 1 || row.isFeatured === true,
   translations: parseJsonSafely(row.translations),
+  japaList: row.japaList || 'SAMUHIKA',
+  categoryCode: row.categoryCode || '',
 });
 
-router.get('/mantras', async (_req: Request, res: Response) => {
+router.get('/mantras', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository'))
       .default;
     // Admin sees all mantras (active + inactive). Users only get active ones.
-    const rows = await mantraRepository.getAllMantras();
+    const rows = await mantraRepository.getAllMantras(
+      String(req.query.list || ''),
+    );
     return res.json({
       success: true,
       data: (rows || []).map((row: any) => mapMantraRow(row)),
@@ -1290,6 +1294,17 @@ router.post('/mantras', async (req: Request, res: Response) => {
         message: 'Mantra name is required.',
       });
     }
+    const {normalizeMantraCategory, normalizeMantraList} = await import(
+      '../mantra/mantraCategories'
+    );
+    const japaList = normalizeMantraList(req.body?.japaList);
+    const categoryCode = normalizeMantraCategory(req.body?.categoryCode);
+    if (!japaList || !categoryCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Choose Samuhika or Antharanga, and a mantra category.',
+      });
+    }
     const mantraRepository = (await import('../mantra/mantra.repository'))
       .default;
     const created = await mantraRepository.create({
@@ -1301,6 +1316,8 @@ router.post('/mantras', async (req: Request, res: Response) => {
       isActive: req.body?.isActive !== false && req.body?.active !== false,
       isFeatured: Boolean(req.body?.isFeatured),
       translations: req.body?.translations,
+      japaList,
+      categoryCode,
     });
     const mapped = mapMantraRow(created);
     try {
@@ -1324,6 +1341,37 @@ router.post('/mantras', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to create mantra.',
+    });
+  }
+});
+
+router.put('/mantras/:id/category', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid mantra id.'});
+    }
+    const mantraRepository = (await import('../mantra/mantra.repository'))
+      .default;
+    const updated = await mantraRepository.setCategory(
+      id,
+      String(req.body?.categoryCode || ''),
+    );
+    if (!updated) {
+      return res.status(400).json({
+        success: false,
+        message: 'Choose a mantra category.',
+      });
+    }
+    return res.json({
+      success: true,
+      message: 'Mantra moved.',
+      data: mapMantraRow(updated),
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to move mantra.',
     });
   }
 });
@@ -1408,8 +1456,8 @@ router.delete('/mantras/:id', async (req: Request, res: Response) => {
     }
     return res.json({
       success: true,
-      message: 'Mantra deleted successfully.',
-      data: mapMantraRow({...deleted, isActive: 0}),
+      message: 'Mantra deleted from the database.',
+      data: {id: String(deleted.id), name: deleted.mantraName || ''},
     });
   } catch (error: any) {
     return res.status(500).json({
