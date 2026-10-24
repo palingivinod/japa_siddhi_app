@@ -142,6 +142,11 @@ const allowGuestDonation = async () => {
   await mysql.query('SELECT 1');
   if (mysql.getEngineName() === 'mysql') {
     try {
+      await mysql.query(`ALTER TABLE donations DROP FOREIGN KEY fk_donation_user`);
+    } catch {
+      // The foreign key is already gone, or it has another name.
+    }
+    try {
       await mysql.query(
         `ALTER TABLE donations MODIFY COLUMN user_id BIGINT UNSIGNED NULL`,
       );
@@ -241,11 +246,15 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   if (existing?.length) {
     return false;
   }
-  const notes = payment.notes || {};
+  const notes =
+    payment.notes && !Array.isArray(payment.notes) ? payment.notes : {};
+  const source = String(notes.source || '').trim().toLowerCase();
+  if (source !== 'app') {
+    return false;
+  }
   const name = String(notes.name || '').trim();
   const phone = String(notes.phone || payment.contact || '').trim();
   const note = String(notes.note || 'Seva offering').trim();
-  const source = String(notes.source || '').trim();
   const userId = await userIdForPhone(phone);
   const remarks = [
     `Seva: ${note}`,
@@ -297,19 +306,35 @@ export const recordRazorpayPaymentById = async (paymentId: string) => {
 
 let recentSyncStarted = false;
 
+const removeNonAppRazorpayDonations = async () => {
+  await mysql.query(
+    `
+    DELETE FROM donations
+    WHERE UPPER(IFNULL(payment_method, '')) = 'RAZORPAY'
+      AND IFNULL(remarks, '') NOT LIKE '%Source: app%'
+    `,
+  );
+};
+
 export const syncRecentRazorpayDonations = async () => {
   if (recentSyncStarted || !razorpayReady()) {
     return;
   }
   recentSyncStarted = true;
   try {
-    const body = await razorpayGet('payments?count=20');
-    const items = Array.isArray(body.items) ? body.items : [];
-    for (const payment of items) {
-      try {
-        await recordRazorpayPayment(payment);
-      } catch (error: any) {
-        console.error('Could not save a Razorpay donation:', error?.message || error);
+    await removeNonAppRazorpayDonations();
+    for (let skip = 0; skip < 100; skip += 20) {
+      const body = await razorpayGet(`payments?count=20&skip=${skip}`);
+      const items = Array.isArray(body.items) ? body.items : [];
+      for (const payment of items) {
+        try {
+          await recordRazorpayPayment(payment);
+        } catch (error: any) {
+          console.error('Could not save a Razorpay donation:', error?.message || error);
+        }
+      }
+      if (items.length < 20) {
+        break;
       }
     }
   } catch (error: any) {

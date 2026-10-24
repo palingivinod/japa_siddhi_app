@@ -17,10 +17,20 @@ export const demoUserSql = (alias = 'u') => {
   `;
 };
 
-/** Safe filter for donation reports — excludes TXN-DEMO-* seed rows only. */
+/**
+ * Admin donation lists count app payments only.
+ * Older in-app UPI rows are kept. Razorpay rows copied from the shared
+ * account are shown only when the order was started in the app.
+ */
 export const demoDonationSql = (alias = 'd') => {
+  const method = `UPPER(IFNULL(${alias}.payment_method, ''))`;
+  const remarks = `IFNULL(${alias}.remarks, '')`;
   return `
     AND IFNULL(${alias}.transaction_id, '') NOT LIKE 'TXN-DEMO-%'
+    AND (
+      ${method} <> 'RAZORPAY'
+      OR ${remarks} LIKE '%Source: app%'
+    )
   `;
 };
 
