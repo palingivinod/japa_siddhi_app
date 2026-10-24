@@ -177,12 +177,8 @@ class MilestoneRewardService {
     }
 
     const reward = await challengeRepository.getRewardById(rewardId);
-    if (!reward || Number(reward.isActive ?? reward.is_active ?? 1) !== 1) {
+    if (!reward) {
       throw new Error('Reward not found');
-    }
-    const stock = Number(reward.stock || 0);
-    if (stock < 1) {
-      throw new Error('Selected reward is out of stock');
     }
     const required = rewardJapaRequirement(String(reward.name || ''));
     if (required > 0 && total < required) {

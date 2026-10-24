@@ -83,10 +83,6 @@ const MilestoneRewardSelectScreen = () => {
       );
       return;
     }
-    if (!item.inStock) {
-      Alert.alert(t('outOfStockTitle'), t('outOfStockRewardMsg'));
-      return;
-    }
     setSelectedId(item.id);
   };
 
@@ -132,7 +128,7 @@ const MilestoneRewardSelectScreen = () => {
               style={[
                 styles.card,
                 isSelected && styles.cardSelected,
-                (isLocked || !item.inStock || claimed) && styles.cardLocked,
+                (isLocked || claimed) && styles.cardLocked,
               ]}
               activeOpacity={0.85}
               disabled={claimed}
@@ -152,13 +148,6 @@ const MilestoneRewardSelectScreen = () => {
                     `Unlocks at ${eligibility.requiredLabel}`}
                 </Text>
               ) : null}
-              <Text
-                style={[
-                  styles.stock,
-                  item.inStock ? styles.inStock : styles.outStock,
-                ]}>
-                {item.inStock ? t('available') : t('outOfStockTitle')}
-              </Text>
             </TouchableOpacity>
           );
         })}

@@ -93,8 +93,6 @@ const AdminRewardStockScreen = () => {
     return Math.max(0, Math.round(safeBase + safeDelta));
   }, [currentStock, quantity]);
 
-  const inStock = previewStock > 0;
-
   const save = async () => {
     if (!rewardId) {
       Alert.alert('Missing reward', 'Reward id is required.');
@@ -109,7 +107,7 @@ const AdminRewardStockScreen = () => {
       await apiService.put(`/admin/rewards/${rewardId}`, {
         name: name.trim(),
         stock: previewStock,
-        active: previewStock > 0,
+        active: true,
       });
       Alert.alert('Stock updated', `${name.trim()} stock is now ${previewStock}.`, [
         {text: 'OK', onPress: () => navigation.goBack()},
@@ -146,19 +144,6 @@ const AdminRewardStockScreen = () => {
             keyboardType="numeric"
           />
 
-          <Text style={styles.label}>Stock state</Text>
-          <View style={[styles.badge, inStock ? styles.badgeOn : styles.badgeOff]}>
-            <Text
-              style={[
-                styles.badgeText,
-                inStock ? styles.badgeTextOn : styles.badgeTextOff,
-              ]}>
-              {inStock ? 'IN STOCK' : 'OUT OF STOCK'}
-            </Text>
-          </View>
-          <Text style={styles.hint}>
-            If stock reaches 0, user selection is disabled automatically.
-          </Text>
           <Text style={styles.preview}>
             After update: {previewStock} available
           </Text>

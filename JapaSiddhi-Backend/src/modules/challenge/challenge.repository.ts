@@ -509,7 +509,6 @@ class ChallengeRepository {
         is_active AS isActive,
         display_order AS displayOrder
       FROM challenge_rewards
-      WHERE is_active = 1
       ORDER BY display_order ASC, id ASC
       `,
     );

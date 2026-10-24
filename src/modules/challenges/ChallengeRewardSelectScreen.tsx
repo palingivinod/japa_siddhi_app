@@ -109,11 +109,6 @@ const ChallengeRewardSelectScreen = () => {
       );
       return;
     }
-    // Already-selected reward stays tappable; other rewards need stock.
-    if (!item.inStock && item.id !== claimedId) {
-      Alert.alert(t('outOfStockTitle'), t('outOfStockRewardMsg'));
-      return;
-    }
     setSelectedId(item.id);
   };
 
@@ -144,10 +139,6 @@ const ChallengeRewardSelectScreen = () => {
         }) ||
           `This reward is available after ${eligibility.requiredLabel} Japas.\n\nYou need to complete ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward.`,
       );
-      return;
-    }
-    if (!selected.inStock && selected.id !== claimedId) {
-      Alert.alert(t('outOfStockTitle'), t('chooseInStockReward'));
       return;
     }
     // Same claimed reward → continue to delivery without re-confirm.
@@ -189,8 +180,6 @@ const ChallengeRewardSelectScreen = () => {
           const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
           const localized = getLocalizedReward(item.name, language);
           const isLocked = !eligibility.isEligible;
-          const lockedOut =
-            !item.inStock && item.id !== claimedId && !isLocked;
 
           return (
             <TouchableOpacity
@@ -198,7 +187,6 @@ const ChallengeRewardSelectScreen = () => {
               style={[
                 styles.card,
                 isSelected && styles.cardSelected,
-                lockedOut && styles.cardOut,
                 isLocked && styles.cardLocked,
               ]}
               activeOpacity={0.85}
@@ -221,15 +209,6 @@ const ChallengeRewardSelectScreen = () => {
                     `Unlocks at ${eligibility.requiredLabel}`}
                 </Text>
               ) : null}
-
-              <Text
-                style={[
-                  styles.stock,
-                  item.inStock ? styles.inStock : styles.outStock,
-                ]}>
-                {item.inStock ? t('available') : t('outOfStockTitle')}
-              </Text>
-              {!item.inStock ? <Text style={styles.x}>×</Text> : null}
             </TouchableOpacity>
           );
         })}

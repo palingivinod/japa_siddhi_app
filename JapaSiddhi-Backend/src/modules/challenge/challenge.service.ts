@@ -420,16 +420,8 @@ class ChallengeService {
     }
 
     const reward = await challengeRepository.getRewardById(rewardId);
-    if (!reward || Number(reward.isActive ?? reward.is_active ?? 1) !== 1) {
+    if (!reward) {
       throw new Error('Reward not found');
-    }
-    // When changing, the previously reserved unit is returned first — still
-    // require stock for a brand-new selection (or a different reward).
-    const stock = Number(reward.stock || 0);
-    const sameAsReserved =
-      existing && Number(existing.rewardId) === Number(rewardId);
-    if (!sameAsReserved && stock < 1) {
-      throw new Error('Selected reward is out of stock');
     }
 
     const rewardNameLower = String(reward.name || '').toLowerCase();
