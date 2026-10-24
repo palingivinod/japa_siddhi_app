@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -64,6 +65,18 @@ app.use(
 
 
 app.use(morgan('dev'));
+
+// Intro MP4s ship with the server. Render has no persistent disk, and more
+// than one instance cannot share an uploaded folder.
+const bundledVideos = path.resolve(process.cwd(), 'public', 'videos');
+app.use(
+  '/uploads/videos',
+  express.static(bundledVideos, {
+    setHeaders: res => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    },
+  }),
+);
 
 app.use(
   '/uploads',
