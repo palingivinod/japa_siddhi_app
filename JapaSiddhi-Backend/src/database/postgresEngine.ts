@@ -862,7 +862,24 @@ export const translateToPg = (rawSql: string): {sql: string; isInsertWithId: boo
       }
     } else if (ch === '?' && !inSingle) {
       paramIdx++;
-      out += `$${paramIdx}`;
+      const rest = sql.slice(i + 1);
+      const notNull = rest.match(/^\s+IS\s+NOT\s+NULL/i);
+      const isNull = rest.match(/^\s+IS\s+NULL/i);
+      const numericCompare = rest.match(/^\s*(<=|>=|<>)/);
+      if (notNull) {
+        // A bare "? IS NOT NULL" has no column type. PostgreSQL rejects a
+        // null parameter there: "could not determine data type of parameter".
+        out += `CAST($${paramIdx} AS TEXT) IS NOT NULL`;
+        i += notNull[0].length;
+      } else if (isNull) {
+        out += `CAST($${paramIdx} AS TEXT) IS NULL`;
+        i += isNull[0].length;
+      } else if (numericCompare) {
+        out += `CAST($${paramIdx} AS INTEGER) ${numericCompare[1]}`;
+        i += numericCompare[0].length;
+      } else {
+        out += `$${paramIdx}`;
+      }
     } else {
       out += ch;
     }
