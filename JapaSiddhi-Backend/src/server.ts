@@ -17,6 +17,10 @@ const PORT = Number(process.env.PORT) || 5000;
 
 const server = http.createServer(app);
 
+// Keep-alive timeout > Render load balancer's 60s timeout to prevent 502 Bad Gateway under high load
+server.keepAliveTimeout = 65000;
+server.headersTimeout = 66000;
+
 // Initialize Socket.IO
 initializeSocket(server);
 

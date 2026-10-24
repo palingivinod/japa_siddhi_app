@@ -562,6 +562,16 @@ CREATE TABLE IF NOT EXISTS admin_notification_queue (
   processed_at TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_japa_sessions_user_id ON japa_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_japa_sessions_created_at ON japa_sessions(created_at);
+CREATE INDEX IF NOT EXISTS idx_japa_sessions_mantra_id ON japa_sessions(mantra_id);
+CREATE INDEX IF NOT EXISTS idx_japa_goals_user_id ON japa_goals(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
+CREATE INDEX IF NOT EXISTS idx_donations_user_id ON donations(user_id);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_mobile ON users(mobile_number);
+
 CREATE OR REPLACE FUNCTION ifnull(anyelement, anyelement)
 RETURNS anyelement LANGUAGE sql IMMUTABLE AS $$
   SELECT COALESCE($1, $2);
@@ -903,9 +913,10 @@ class PostgresEngine {
     this.pool = new Pool({
       connectionString,
       ssl: useSsl ? {rejectUnauthorized: false} : false,
-      max: 20,
+      max: Number(process.env.PG_POOL_MAX || 12),
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 15000,
+      keepAlive: true,
     });
 
     await this.pool.query('SELECT 1');

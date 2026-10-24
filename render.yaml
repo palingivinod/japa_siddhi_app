@@ -7,12 +7,11 @@ services:
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/v1/health
-    # Persistent disk keeps SQLite users/japa/donations across deploys.
-    # Do NOT remove this disk or change SQLITE_PATH — that wipes production data.
-    disk:
-      name: japasiddhi-data
-      mountPath: /var/data
-      sizeGB: 1
+    scaling:
+      minInstances: 2
+      maxInstances: 5
+      targetMemoryPercent: 70
+      targetCPUPercent: 60
     envVars:
       # better-sqlite3 ships a Node-API binary that needs Node 22 or newer.
       # Pinned so a default-version change never breaks the database driver.
@@ -26,10 +25,8 @@ services:
         fromDatabase:
           name: japasiddhi-database
           property: connectionString
-      - key: SQLITE_PATH
-        value: /var/data/japa_siddhi.sqlite
       - key: UPLOAD_PATH
-        value: /var/data/uploads
+        value: uploads
       # Must stay stable across deploys or every user session is invalidated.
       - key: JWT_SECRET
         sync: false
