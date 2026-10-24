@@ -6,6 +6,8 @@ import {
   createRazorpayOrder,
   razorpayPublicConfig,
   razorpayReady,
+  recordRazorpayPayment,
+  recordRazorpayPaymentById,
   rupeesToPaise,
   verifyPaymentSignature,
   verifyWebhookSignature,
@@ -107,6 +109,9 @@ const sendAppReturn = (req: Request, res: Response) => {
   if (paid) {
     query.set('payment_id', paymentId);
     query.set('order_id', orderId);
+    void recordRazorpayPaymentById(paymentId).catch((error: any) => {
+      console.error('Could not save the Razorpay donation:', error?.message || error);
+    });
   }
   const target = `japasiddhi://payment/${paid ? 'success' : 'failure'}?${query.toString()}`;
   res.status(200).type('html').send(appReturnPage(target));
@@ -115,7 +120,7 @@ const sendAppReturn = (req: Request, res: Response) => {
 router.get('/app-return', sendAppReturn);
 router.post('/app-return', sendAppReturn);
 
-router.post('/verify', (req: Request, res: Response) => {
+router.post('/verify', async (req: Request, res: Response) => {
   if (!razorpayReady()) {
     return apiResponse.error(res, 'Online payment is not set up yet.', 503);
   }
@@ -129,17 +134,34 @@ router.post('/verify', (req: Request, res: Response) => {
   if (!valid) {
     return apiResponse.error(res, 'Payment could not be confirmed.', 400);
   }
+  try {
+    await recordRazorpayPaymentById(paymentId);
+  } catch (error: any) {
+    console.error('Could not save the Razorpay donation:', error?.message || error);
+  }
   return apiResponse.success(res, 'Payment successful', {
     orderId,
     paymentId,
   });
 });
 
-router.post('/webhook', (req: Request, res: Response) => {
+router.post('/webhook', async (req: Request, res: Response) => {
   const raw = Buffer.isBuffer(req.body) ? req.body : Buffer.from('');
   const signature = String(req.header('x-razorpay-signature') || '');
   if (!verifyWebhookSignature(raw, signature)) {
     return apiResponse.error(res, 'Invalid webhook signature.', 400);
+  }
+  try {
+    const event = JSON.parse(raw.toString('utf8')) as {
+      event?: string;
+      payload?: {payment?: {entity?: Record<string, unknown>}};
+    };
+    const payment = event.payload?.payment?.entity;
+    if (payment && String(event.event || '').startsWith('payment.')) {
+      await recordRazorpayPayment(payment as any);
+    }
+  } catch (error: any) {
+    console.error('Could not save the Razorpay webhook:', error?.message || error);
   }
   return apiResponse.success(res, 'Webhook received');
 });

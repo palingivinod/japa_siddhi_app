@@ -1,6 +1,8 @@
 import crypto from 'crypto';
 
 import environment from '../../config/environment';
+import mysql from '../../database/mysql';
+import emailOtpService from '../../services/emailOtp.service';
 
 const MIN_PAISE = 100;
 const MAX_PAISE = 50000000;
@@ -83,6 +85,237 @@ export const verifyPaymentSignature = (
     .update(`${orderId}|${paymentId}`)
     .digest('hex');
   return safeEqual(expected, signature);
+};
+
+type RazorpayPayment = {
+  id?: string;
+  amount?: number;
+  status?: string;
+  order_id?: string;
+  contact?: string;
+  email?: string;
+  created_at?: number;
+  notes?: Record<string, string>;
+};
+
+const razorpayGet = async (path: string) => {
+  const response = await fetch(`https://api.razorpay.com/v1/${path}`, {
+    headers: {Authorization: authHeader()},
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error('Could not read the Razorpay payment.');
+  }
+  return body as {items?: RazorpayPayment} & RazorpayPayment;
+};
+
+const sevaType = (note: string) => {
+  if (/homam/i.test(note)) {
+    return 'NITHYA_HOMAM';
+  }
+  if (/anna|santharpana/i.test(note)) {
+    return 'ANNADANAM';
+  }
+  return 'GENERAL';
+};
+
+const istStamp = (unixSeconds?: number) => {
+  const date = new Date((Number(unixSeconds) || Math.floor(Date.now() / 1000)) * 1000);
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+};
+
+let donationUserReady = false;
+
+const allowGuestDonation = async () => {
+  if (donationUserReady) {
+    return;
+  }
+  await mysql.query('SELECT 1');
+  if (mysql.getEngineName() === 'mysql') {
+    try {
+      await mysql.query(
+        `ALTER TABLE donations MODIFY COLUMN user_id BIGINT UNSIGNED NULL`,
+      );
+    } catch {
+      // Already nullable, or this database keeps the original column.
+    }
+  }
+  donationUserReady = true;
+};
+
+const userIdForPhone = async (phone: string) => {
+  const last10 = phone.replace(/\D/g, '').slice(-10);
+  if (last10.length !== 10) {
+    return null;
+  }
+  await mysql.query('SELECT 1');
+  const phoneExpr =
+    mysql.getEngineName() === 'mysql'
+      ? `RIGHT(REPLACE(REPLACE(IFNULL(mobile_number, ''), ' ', ''), '-', ''), 10)`
+      : `substr(replace(replace(IFNULL(mobile_number, ''), ' ', ''), '-', ''), -10)`;
+  const rows = await mysql.query<any[]>(
+    `
+    SELECT id
+    FROM users
+    WHERE ${phoneExpr} = ?
+    ORDER BY id DESC
+    LIMIT 1
+    `,
+    [last10],
+  );
+  const id = Number(rows?.[0]?.id || 0);
+  return id > 0 ? id : null;
+};
+
+const insertDonation = async (input: {
+  userId: number | null;
+  donationType: string;
+  amount: number;
+  paymentId: string;
+  orderId: string;
+  donatedAt: string;
+  remarks: string;
+}) => {
+  const columns = [
+    'user_id',
+    'donation_type',
+    'amount',
+    'currency',
+    'payment_method',
+    'transaction_id',
+    'payment_status',
+    'donated_at',
+    'remarks',
+  ];
+  const values = [
+    input.userId,
+    input.donationType,
+    input.amount,
+    'INR',
+    'RAZORPAY',
+    input.paymentId,
+    'SUCCESS',
+    input.donatedAt,
+    input.remarks,
+  ];
+  try {
+    await mysql.query(
+      `
+      INSERT INTO donations (${columns.join(', ')}, donation_status, payment_reference)
+      VALUES (${columns.map(() => '?').join(', ')}, 'SUCCESS', ?)
+      `,
+      [...values, input.orderId || null],
+    );
+  } catch {
+    await mysql.query(
+      `
+      INSERT INTO donations (${columns.join(', ')})
+      VALUES (${columns.map(() => '?').join(', ')})
+      `,
+      values,
+    );
+  }
+};
+
+export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
+  const paymentId = String(payment.id || '').trim();
+  const status = String(payment.status || '').toLowerCase();
+  const amount = Math.round(Number(payment.amount || 0) / 100);
+  if (!paymentId || status !== 'captured' || !Number.isFinite(amount) || amount < 1) {
+    return false;
+  }
+  await allowGuestDonation();
+  const existing = await mysql.query<any[]>(
+    `SELECT id FROM donations WHERE transaction_id = ? LIMIT 1`,
+    [paymentId],
+  );
+  if (existing?.length) {
+    return false;
+  }
+  const notes = payment.notes || {};
+  const name = String(notes.name || '').trim();
+  const phone = String(notes.phone || payment.contact || '').trim();
+  const note = String(notes.note || 'Seva offering').trim();
+  const source = String(notes.source || '').trim();
+  const userId = await userIdForPhone(phone);
+  const remarks = [
+    `Seva: ${note}`,
+    name ? `Name: ${name}` : '',
+    phone ? `Phone: ${phone}` : '',
+    source ? `Source: ${source}` : '',
+  ]
+    .filter(Boolean)
+    .join(' | ')
+    .slice(0, 500);
+  const specificType = sevaType(note);
+  try {
+    await insertDonation({
+      userId,
+      donationType: specificType,
+      amount,
+      paymentId,
+      orderId: String(payment.order_id || ''),
+      donatedAt: istStamp(payment.created_at),
+      remarks,
+    });
+  } catch {
+    await insertDonation({
+      userId,
+      donationType: 'GENERAL',
+      amount,
+      paymentId,
+      orderId: String(payment.order_id || ''),
+      donatedAt: istStamp(payment.created_at),
+      remarks,
+    });
+  }
+  await emailOtpService.notifyAdmin(
+    'Razorpay donation received',
+    [`A Razorpay payment was saved.`, `Amount: ₹${amount}`, remarks, `Payment: ${paymentId}`].join(
+      '\n',
+    ),
+  );
+  return true;
+};
+
+export const recordRazorpayPaymentById = async (paymentId: string) => {
+  if (!razorpayReady() || !paymentId) {
+    return false;
+  }
+  const payment = await razorpayGet(`payments/${encodeURIComponent(paymentId)}`);
+  return recordRazorpayPayment(payment);
+};
+
+let recentSyncStarted = false;
+
+export const syncRecentRazorpayDonations = async () => {
+  if (recentSyncStarted || !razorpayReady()) {
+    return;
+  }
+  recentSyncStarted = true;
+  try {
+    const body = await razorpayGet('payments?count=20');
+    const items = Array.isArray(body.items) ? body.items : [];
+    for (const payment of items) {
+      try {
+        await recordRazorpayPayment(payment);
+      } catch (error: any) {
+        console.error('Could not save a Razorpay donation:', error?.message || error);
+      }
+    }
+  } catch (error: any) {
+    recentSyncStarted = false;
+    console.error('Could not read recent Razorpay payments:', error?.message || error);
+  }
 };
 
 export const verifyWebhookSignature = (rawBody: Buffer, signature: string) => {

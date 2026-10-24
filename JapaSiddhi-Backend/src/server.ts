@@ -8,6 +8,7 @@ import { initializeSocket } from './socket/socketServer';
 import { initializeFirebase } from './firebase/firebase';
 import { purgeDemoData } from './utils/demoData';
 import { startNotificationReminderScheduler } from './modules/notification/notificationReminder.service';
+import { syncRecentRazorpayDonations } from './modules/payments/razorpay.service';
 
 // ✅ Initialize Firebase Admin BEFORE starting the server
 initializeFirebase();
@@ -21,6 +22,7 @@ initializeSocket(server);
 
 server.listen(PORT, '0.0.0.0', async () => {
     await purgeDemoData();
+    await syncRecentRazorpayDonations();
     startNotificationReminderScheduler();
     console.log('========================================');
     console.log(`🚀 Japa Siddhi Backend Started`);
