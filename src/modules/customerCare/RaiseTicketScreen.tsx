@@ -86,19 +86,16 @@ const RaiseTicketScreen = () => {
     } catch (error: any) {
       const code = String(error?.message || '');
       if (code === 'permission') {
-        Alert.alert(
-          'Screenshot',
-          'Please allow camera / gallery access to upload a screenshot.',
-        );
+        Alert.alert(t('uploadScreenshot'), t('allowScreenshot'));
         return;
       }
-      Alert.alert('Screenshot', 'Could not pick a photo. Please try again.');
+      Alert.alert(t('uploadScreenshot'), t('couldNotPickPhoto'));
     }
   };
 
   const submit = async () => {
     if (!subject.trim() || !message.trim()) {
-      Alert.alert('Ticket', 'Subject and description are required.');
+      Alert.alert(t('raiseTicket'), t('ticketSubjectRequired'));
       return;
     }
     setSaving(true);
@@ -115,13 +112,10 @@ const RaiseTicketScreen = () => {
         } as any);
       }
       await apiService.post('/customer-care', formData);
-      Alert.alert(
-        'Ticket',
-        'Your ticket was submitted. Check My Tickets for the status and support reply.',
-      );
+      Alert.alert(t('raiseTicket'), t('ticketSubmittedCheck'));
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Ticket', getApiError(error, 'Could not submit ticket.'));
+      Alert.alert(t('raiseTicket'), getApiError(error, t('couldNotSubmitTicket')));
     } finally {
       setSaving(false);
     }

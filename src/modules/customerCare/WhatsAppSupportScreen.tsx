@@ -1,12 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import {Image, Linking, StyleSheet, Text, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const WhatsAppSupportScreen = () => {
+  const {t} = useLanguage();
   const [url, setUrl] = useState('https://wa.me/919849535599');
 
   useEffect(() => {
@@ -21,18 +23,18 @@ const WhatsAppSupportScreen = () => {
   }, []);
 
   return (
-    <ScreenLayout title="WhatsApp Support" showBack tab="Profile">
+    <ScreenLayout title={t('whatsappSupport')} showBack tab="Profile">
       <View style={styles.center}>
         <Image
           source={require('../../assets/images/whatsapp_logo.png')}
           style={styles.icon}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Chat with our support team</Text>
-        <Text style={styles.sub}>Available for service and order help.</Text>
+        <Text style={styles.title}>{t('chatWithSupportTeam')}</Text>
+        <Text style={styles.sub}>{t('availableForServiceHelp')}</Text>
       </View>
       <PrimaryButton
-        title="OPEN WHATSAPP"
+        title={t('openWhatsapp')}
         onPress={() => Linking.openURL(url)}
       />
     </ScreenLayout>

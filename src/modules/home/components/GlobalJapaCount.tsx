@@ -5,6 +5,7 @@ import {
   View,
 } from 'react-native';
 
+import {useLanguage} from '../../../i18n/LanguageContext';
 import Colors from '../../../theme/colors';
 import {GlobalJapaCount as GlobalJapaCountModel} from '../types/home';
 
@@ -17,13 +18,14 @@ interface Props {
 const GlobalJapaCount: React.FC<Props> = ({
   data,
 }) => {
+  const {t} = useLanguage();
 
   return (
 
     <View style={styles.container}>
 
       <Text style={styles.title}>
-        Your Japa Count
+        {t('yourJapaCount')}
       </Text>
 
 
@@ -35,10 +37,9 @@ const GlobalJapaCount: React.FC<Props> = ({
 
 
       <Text style={styles.subtitle}>
-        Community total:{' '}
-        {(
-          data?.totalCount ?? 0
-        ).toLocaleString()}
+        {t('communityTotal', {
+          count: (data?.totalCount ?? 0).toLocaleString(),
+        })}
       </Text>
 
 

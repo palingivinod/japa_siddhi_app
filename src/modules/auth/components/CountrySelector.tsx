@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 
+import {useLanguage} from '../../../i18n/LanguageContext';
 import Colors from '../../../theme/colors';
 import countries, {
   CountryItem,
@@ -25,6 +26,7 @@ const CountrySelector: React.FC<Props> = ({
   onClose,
   onSelect,
 }) => {
+  const {t} = useLanguage();
   const [search, setSearch] = useState('');
 
   const filteredCountries = useMemo(() => {
@@ -58,7 +60,7 @@ const CountrySelector: React.FC<Props> = ({
       onRequestClose={onClose}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Select Country</Text>
+          <Text style={styles.title}>{t('selectCountryTitle')}</Text>
           <TouchableOpacity
             style={styles.closeBtn}
             onPress={onClose}
@@ -69,7 +71,7 @@ const CountrySelector: React.FC<Props> = ({
 
         <TextInput
           style={styles.search}
-          placeholder="Search Country (e.g. India, +91)"
+          placeholder={t('searchCountry')}
           placeholderTextColor={Colors.textSecondary}
           value={search}
           onChangeText={setSearch}

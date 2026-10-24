@@ -2,6 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {ActivityIndicator} from 'react-native';
 import {useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -11,6 +12,7 @@ import StatCards from '../common/StatCards';
 
 const DeliveryStatusScreen = () => {
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [item, setItem] = useState<any>(route.params?.order || null);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -28,7 +30,7 @@ const DeliveryStatusScreen = () => {
       .then(response => setItem(response.data.data))
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load delivery status.'));
+        setError(getApiError(err, t('couldNotLoadDelivery')));
       })
       .finally(() => setLoading(false));
   };
@@ -38,20 +40,20 @@ const DeliveryStatusScreen = () => {
   }, [id]);
 
   return (
-    <ScreenLayout title="Delivery Status" showBack tab="Orders">
+    <ScreenLayout title={t('deliveryStatus')} showBack tab="Orders">
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       <MenuCard
         emoji="🚚"
-        title={item?.currentStatus || 'Out for delivery'}
-        subtitle="Your spiritual item is on the way."
+        title={item?.currentStatus || t('outForDelivery')}
+        subtitle={t('itemOnTheWay')}
       />
       <StatCards
         items={[
-          {label: 'STATUS', value: item?.orderStatus || 'Shipped'},
-          {label: 'ETA', value: item?.eta || 'Aug 22'},
+          {label: t('statusLabel'), value: item?.orderStatus || t('shipped')},
+          {label: t('etaLabel'), value: item?.eta || '—'},
         ]}
       />
     </ScreenLayout>

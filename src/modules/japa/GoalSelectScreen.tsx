@@ -258,7 +258,7 @@ const GoalSelectScreen = () => {
               setTodayTargetInput('');
             }}
             keyboardType="numeric"
-            placeholder="Enter your total count"
+            placeholder={t('enterTotalCount')}
             placeholderTextColor={Colors.placeholder}
             textAlign="center"
             multiline={false}
@@ -394,7 +394,7 @@ const GoalSelectScreen = () => {
                   placeholderTextColor={Colors.placeholder}
                   underlineColorAndroid="transparent"
                 />
-                <Text style={styles.todayInputUnit}>Japas today</Text>
+                <Text style={styles.todayInputUnit}>{t('japasToday')}</Text>
               </View>
 
               {isTodayCustom &&

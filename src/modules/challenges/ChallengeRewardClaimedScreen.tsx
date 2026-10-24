@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -12,11 +13,12 @@ const ChallengeRewardClaimedScreen = () => {
   const route = useRoute<any>();
   const challengeId = Number(route.params?.id || 0);
   const rewardName = String(route.params?.rewardName || 'Reward');
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Reward Claimed" showBack tab="JapaHub">
+    <ScreenLayout title={t('rewardClaimedTitle')} showBack tab="JapaHub">
       <SuccessHero
-        title="Reward claimed successfully"
+        title={t('rewardClaimedSuccess')}
         subtitle={rewardName}
       />
 
@@ -25,15 +27,13 @@ const ChallengeRewardClaimedScreen = () => {
           <View style={styles.dotInner} />
         </View>
         <View style={styles.copy}>
-          <Text style={styles.cardTitle}>Claim details</Text>
-          <Text style={styles.cardBody}>
-            One Mala • Eligibility consumed. Stock updated automatically.
-          </Text>
+          <Text style={styles.cardTitle}>{t('claimDetails')}</Text>
+          <Text style={styles.cardBody}>{t('rewardClaimedMalaNote')}</Text>
         </View>
       </View>
 
       <PrimaryButton
-        title="VIEW REWARD STATUS"
+        title={t('viewRewardStatus')}
         onPress={() =>
           navigation.replace('ChallengeRewardDelivery', {
             id: challengeId,

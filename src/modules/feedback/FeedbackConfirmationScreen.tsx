@@ -1,21 +1,23 @@
 import React from 'react';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SuccessHero from '../common/SuccessHero';
 
 const FeedbackConfirmationScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Thank You" showBack tab="Home">
+    <ScreenLayout title={t('thankYou')} showBack tab="Home">
       <SuccessHero
-        title="Thank you for your feedback"
-        subtitle="Your feedback helps us improve Japa Siddhi."
+        title={t('thankYouForFeedback')}
+        subtitle={t('feedbackHelpsImprove')}
       />
       <PrimaryButton
-        title="BACK TO HOME"
+        title={t('backToHome')}
         onPress={() => navigation.navigate('Home')}
       />
     </ScreenLayout>

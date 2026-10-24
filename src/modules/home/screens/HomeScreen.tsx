@@ -490,7 +490,7 @@ const HomeScreen = () => {
       <View style={styles.body}>
         <AppHeader
           title="Japa Siddhi"
-          subtitle="Unit of Bilva Patra Trust"
+          subtitle={t('unitOfTrust')}
           showBell
           leftAction={
             <TouchableOpacity

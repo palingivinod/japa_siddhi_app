@@ -6,9 +6,11 @@ import {
   StyleSheet,
 } from 'react-native';
 
+import {useLanguage} from '../../../i18n/LanguageContext';
 import Colors from '../../../theme/colors';
 
 const LoginHeader: React.FC = () => {
+  const {t} = useLanguage();
   return (
     <View style={styles.container}>
       <Image
@@ -21,14 +23,9 @@ const LoginHeader: React.FC = () => {
         Japa Siddhi
       </Text>
 
-      <Text style={styles.subtitle}>
-        Your Spiritual Companion
-      </Text>
+      <Text style={styles.subtitle}>{t('spiritualCompanion')}</Text>
 
-      <Text style={styles.description}>
-        Chant divine mantras, achieve your Japa Goals,
-        and grow spiritually with Bilva Patra.
-      </Text>
+      <Text style={styles.description}>{t('loginHeaderBody')}</Text>
     </View>
   );
 };

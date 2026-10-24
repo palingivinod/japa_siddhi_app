@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
@@ -49,9 +50,10 @@ const PAY_APPS = [
 const CheckoutScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const params = route.params || {};
   const [saving, setSaving] = useState(false);
-  const title = params.title || 'Proceed to Pay';
+  const title = params.title || t('proceedToPayHeading');
   const itemName = params.itemName || 'Anna Santharpana Seva';
   const subtitle = params.subtitle || 'Complete payment at https://japasiddhi.com/payments';
   const amount = Number(params.amount || 1008);
@@ -79,12 +81,12 @@ const CheckoutScreen = () => {
 
   return (
     <ScreenLayout title={title} showBack tab="SevaHub">
-      <Text style={styles.heading}>{params.heading || 'Proceed to pay'}</Text>
+      <Text style={styles.heading}>{params.heading || t('proceedToPayHeading')}</Text>
       <MenuCard title={itemName} subtitle={subtitle} emoji="💳" />
       <StatCards
         items={[
-          {label: 'AMOUNT', value: `₹ ${amount.toLocaleString()}`},
-          {label: params.methodLabel || 'METHOD', value: 'Online Payment'},
+          {label: t('amountLabel'), value: `₹ ${amount.toLocaleString()}`},
+          {label: params.methodLabel || t('methodLabel'), value: t('onlinePayment')},
         ]}
       />
       {/* Payment screen QR codes, PhonePe, and GPay options hidden/commented out
@@ -110,10 +112,10 @@ const CheckoutScreen = () => {
       </View>
       */}
       <Text style={styles.hint}>
-        Tap below to continue to the secure online payments page.
+        {t('checkoutPayHint')}
       </Text>
       <PrimaryButton
-        title={params.button || 'CONTINUE TO PAYMENT'}
+        title={params.button || t('continueToPayment')}
         onPress={pay}
         disabled={saving}
       />

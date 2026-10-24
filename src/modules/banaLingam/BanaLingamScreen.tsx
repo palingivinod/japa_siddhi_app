@@ -78,13 +78,13 @@ const BanaLingamScreen = () => {
 
   const submit = async () => {
     if (!fullName.trim() || !mobile.trim() || !address.trim()) {
-      Alert.alert('Baanalingam', 'Name, mobile and address are required.');
+      Alert.alert(t('baanalingamSeva'), t('baanalingamFieldsRequired'));
       return;
     }
     if (!isMobile(mobile)) {
       Alert.alert(
-        'Baanalingam',
-        `Enter a valid ${MOBILE_DIGITS}-digit mobile number.`,
+        t('baanalingamSeva'),
+        t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}),
       );
       return;
     }
@@ -100,7 +100,7 @@ const BanaLingamScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Baanalingam" showBack tab="SevaHub">
+    <ScreenLayout title={t('baanalingamSeva')} showBack tab="SevaHub">
       <Text style={styles.heading}>{t('baanalingamDistribution')}</Text>
       <MenuCard
         icon="banalingam"
@@ -108,14 +108,14 @@ const BanaLingamScreen = () => {
         subtitle={t('applyBaanalingamDelivery')}
       />
       <FormField
-        label="Name"
-        placeholder="Full name"
+        label={t('nameLabel')}
+        placeholder={t('fullName')}
         value={fullName}
         onChangeText={setFullName}
       />
       <FormField
-        label="Mobile"
-        placeholder="Mobile number"
+        label={t('mobile')}
+        placeholder={t('placeholderMobile')}
         keyboardType="phone-pad"
         maxLength={MOBILE_DIGITS}
         value={mobile}

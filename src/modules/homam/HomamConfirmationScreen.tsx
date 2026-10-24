@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -10,26 +11,27 @@ import SuccessHero from '../common/SuccessHero';
 const HomamConfirmationScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const data = route.params || {};
   const pending =
     String(data.paymentStatus || 'PENDING').toUpperCase() === 'PENDING';
 
   return (
-    <ScreenLayout title="Enrollment Submitted" showBack={false} tab="SevaHub">
+    <ScreenLayout title={t('enrollmentSubmitted')} showBack={false} tab="SevaHub">
       <SuccessHero
-        title={pending ? 'Submitted for verification' : 'Enrollment Confirmed'}
-        subtitle={`Nithya Homam • ID ${data.confirmationId || `NH${data.orderId || ''}`}`}
+        title={pending ? t('submittedForVerification') : t('enrollmentConfirmed')}
+        subtitle={t('homamIdLine', {
+          id: data.confirmationId || `NH${data.orderId || ''}`,
+        })}
       />
       <Text style={styles.copy}>
-        {pending
-          ? 'Thank you. Your payment UTR was sent to admin. Enrollment will become active after the UTR is verified.'
-          : 'Your Nithya Homam enrollment is active.'}
+        {pending ? t('homamPendingUtr') : t('homamEnrollmentActive')}
       </Text>
       {data.utr ? (
         <Text style={styles.utr}>UTR: {String(data.utr)}</Text>
       ) : null}
       <PrimaryButton
-        title="BACK TO NITHYA HOMAM"
+        title={t('backToNithyaHomam')}
         onPress={() =>
           navigation.reset({
             index: 1,

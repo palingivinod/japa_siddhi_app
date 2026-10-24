@@ -152,12 +152,12 @@ const MilestoneRewardAddressScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Delivery details" showBack tab="SevaHub">
+    <ScreenLayout title={t('deliveryDetailsTitle')} showBack tab="SevaHub">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Text style={styles.heading}>{rewardName}</Text>
         <Text style={styles.hint}>
-          Your saved details are filled in. Change anything before you continue.
+          {t('deliveryPrefillHint')}
         </Text>
         <Field label={t('fullName')} value={fullName} onChangeText={setFullName} />
         <Field

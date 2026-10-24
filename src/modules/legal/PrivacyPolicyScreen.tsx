@@ -2,44 +2,29 @@ import React from 'react';
 import {Linking, StyleSheet, Text, TouchableOpacity} from 'react-native';
 
 import ENV from '../../env';
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 
 const PrivacyPolicyScreen = () => {
+  const {t} = useLanguage();
   return (
-    <ScreenLayout title="Privacy Policy">
-      <Text style={styles.updated}>Last updated: 16 August 2026</Text>
+    <ScreenLayout title={t('privacyPolicy')}>
+      <Text style={styles.updated}>{t('privacyUpdated')}</Text>
+      <Text style={styles.body}>{t('privacyIntro')}</Text>
+      <Text style={styles.heading}>{t('privacyCollectTitle')}</Text>
+      <Text style={styles.body}>{t('privacyCollectBody')}</Text>
+      <Text style={styles.heading}>{t('privacyUseTitle')}</Text>
+      <Text style={styles.body}>{t('privacyUseBody')}</Text>
+      <Text style={styles.heading}>{t('privacyDeleteTitle')}</Text>
+      <Text style={styles.body}>{t('privacyDeleteBody')}</Text>
+      <Text style={styles.heading}>{t('privacyContact')}</Text>
       <Text style={styles.body}>
-        Japa Siddhi is operated by Bilva Patra Trust. This policy explains what
-        we collect and how we use it when you use the Japa Siddhi app.
-      </Text>
-      <Text style={styles.heading}>Information we collect</Text>
-      <Text style={styles.body}>
-        We collect your name, mobile number, email address, date of birth,
-        gender, address, language, and optional spiritual details such as
-        gothram and nakshatram. We also store japa counts, seva participation you record,
-        orders, feedback, and support messages.
-      </Text>
-      <Text style={styles.heading}>How we use it</Text>
-      <Text style={styles.body}>
-        We use this information to create your account, send a login OTP to your
-        email, save your japa progress, process seva requests, and contact you
-        about your account. Seva offerings are completed as voluntary
-        contributions to Bilva Patra Trust and are not Google Play purchases. We do
-        not sell your personal data and we do not use advertising IDs.
-      </Text>
-      <Text style={styles.heading}>Account deletion</Text>
-      <Text style={styles.body}>
-        You can delete your account from Profile → Delete account. This removes
-        your login and personal profile from our systems.
-      </Text>
-      <Text style={styles.heading}>Contact</Text>
-      <Text style={styles.body}>
-        Email {ENV.SUPPORT_EMAIL} for privacy questions.
+        {t('privacyContactBody', {email: ENV.SUPPORT_EMAIL})}
       </Text>
       <TouchableOpacity
         onPress={() => Linking.openURL(ENV.PRIVACY_POLICY_URL)}>
-        <Text style={styles.link}>Open privacy policy online</Text>
+        <Text style={styles.link}>{t('privacyOpenOnline')}</Text>
       </TouchableOpacity>
     </ScreenLayout>
   );

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import {clearJapaDraft, saveJapaDraft} from '../../services/japaDraft';
 import {istIsoDate} from '../../utils/dateUtils';
 import apiService from '../../services/apiService';
@@ -24,6 +25,7 @@ const EXTEND_PRESETS = [108, 500, 1000, 2000, 5000];
 const JapaGoalCompleteScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const completedCount = Number(route.params?.count || 0);
   const completedGoal = Number(route.params?.goal || 0);
   const mode = route.params?.mode === 'private' ? 'private' : 'community';
@@ -146,26 +148,28 @@ const JapaGoalCompleteScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Goal Complete" showBack tab="JapaHub">
+    <ScreenLayout title={t('goalCompleteTitle')} showBack tab="JapaHub">
       <SuccessHero
-        title="Well done!"
-        subtitle="You completed your japa goal."
+        title={t('wellDone')}
+        subtitle={t('youCompletedJapaGoal')}
       />
-      <Text style={styles.section}>Rate your experience</Text>
+      <Text style={styles.section}>{t('rateYourExperience')}</Text>
       <StarPicker value={rating} onChange={setRating} />
       <FormField
-        label="Feedback"
-        placeholder="Share your experience"
+        label={t('feedback')}
+        placeholder={t('shareYourExperience')}
         value={feedback}
         onChangeText={setFeedback}
         multiline
         style={styles.area}
       />
 
-      <Text style={styles.section}>Extend your japa goal</Text>
+      <Text style={styles.section}>{t('extendYourJapaGoal')}</Text>
       <Text style={styles.hint}>
-        Keep going from {completedCount.toLocaleString()} toward{' '}
-        {nextGoal.toLocaleString()} japas
+        {t('keepGoingToward', {
+          done: completedCount.toLocaleString(),
+          next: nextGoal.toLocaleString(),
+        })}
       </Text>
       <View style={styles.row}>
         {EXTEND_PRESETS.map(item => (
@@ -188,17 +192,17 @@ const JapaGoalCompleteScreen = () => {
         value={customExtend}
         onChangeText={setCustomExtend}
         keyboardType="number-pad"
-        placeholder="Custom extra count"
+        placeholder={t('customExtraCount')}
         placeholderTextColor={Colors.leafGreen}
       />
 
       <PrimaryButton
-        title={busy ? 'EXTENDING...' : 'EXTEND JAPA GOAL'}
+        title={busy ? t('extendingGoal') : t('extendJapaGoalBtn')}
         onPress={extendGoal}
         disabled={busy || extra < 1}
       />
       <View style={styles.gap} />
-      <OutlineButton title="DONE / VIEW PROGRESS" onPress={goProgress} />
+      <OutlineButton title={t('doneViewProgress')} onPress={goProgress} />
     </ScreenLayout>
   );
 };

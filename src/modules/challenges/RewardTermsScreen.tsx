@@ -2,31 +2,33 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
-const TERMS = [
-  'Reward choice is made after challenge completion.',
-  'Only eligible, in-stock rewards can be selected.',
-  'You may change to another eligible reward before placing the order.',
-  'After the order is placed, the reward cannot be changed.',
-  'Stock changes are reflected automatically.',
-];
+const TERM_KEYS = [
+  'rewardTerm1',
+  'rewardTerm2',
+  'rewardTerm3',
+  'rewardTerm4',
+  'rewardTerm5',
+] as const;
 
 const RewardTermsScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Reward Terms" showBack tab="JapaHub">
-      {TERMS.map(term => (
-        <View key={term} style={styles.row}>
+    <ScreenLayout title={t('rewardTermsTitle')} showBack tab="JapaHub">
+      {TERM_KEYS.map(key => (
+        <View key={key} style={styles.row}>
           <View style={styles.bullet} />
-          <Text style={styles.text}>{term}</Text>
+          <Text style={styles.text}>{t(key)}</Text>
         </View>
       ))}
       <View style={styles.gap} />
-      <PrimaryButton title="I UNDERSTAND" onPress={() => navigation.goBack()} />
+      <PrimaryButton title={t('iUnderstand')} onPress={() => navigation.goBack()} />
     </ScreenLayout>
   );
 };

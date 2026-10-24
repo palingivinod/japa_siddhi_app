@@ -122,12 +122,12 @@ const ChallengeDetailsScreen = () => {
       const refreshed = await apiService.get(`/challenges/${route.params?.id}`);
       const next = refreshed.data.data;
       setItem(next);
-      Alert.alert('Joined', 'You joined this challenge.');
+      Alert.alert(t('joinedTitle'), t('joinedChallengeMsg'));
       startChallengeJapa(navigation, next);
     } catch (err: any) {
       Alert.alert(
-        'Challenge',
-        err?.response?.data?.message || 'Could not join this challenge.',
+        t('challenge'),
+        err?.response?.data?.message || t('couldNotJoinChallenge'),
       );
     } finally {
       setJoining(false);
@@ -136,7 +136,7 @@ const ChallengeDetailsScreen = () => {
 
   if (loading && !item) {
     return (
-      <ScreenLayout title="Challenge Details" showBack tab="JapaHub">
+      <ScreenLayout title={t('challengeDetails')} showBack tab="JapaHub">
         <ActivityIndicator color={Colors.templeGold} />
       </ScreenLayout>
     );
@@ -144,7 +144,7 @@ const ChallengeDetailsScreen = () => {
 
   if (!item) {
     return (
-      <ScreenLayout title="Challenge Details" showBack tab="JapaHub">
+      <ScreenLayout title={t('challengeDetails')} showBack tab="JapaHub">
         <Text style={styles.meta}>{error || 'Challenge not found.'}</Text>
       </ScreenLayout>
     );
@@ -163,33 +163,33 @@ const ChallengeDetailsScreen = () => {
   const description =
     rawDesc ||
     (target
-      ? `Complete ${target.toLocaleString()} chants. Progress and streak are tracked automatically.`
-      : 'Join this community challenge.');
+      ? t('completeChantsTracked', {count: target.toLocaleString()})
+      : t('joinCommunityChallenge'));
 
   return (
-    <ScreenLayout title="Challenge Details" showBack tab="JapaHub">
+    <ScreenLayout title={t('challengeDetails')} showBack tab="JapaHub">
       <Text style={styles.title}>{loc.title || tt(item.title)}</Text>
-      <Text style={styles.badge}>Admin-created challenge</Text>
+      <Text style={styles.badge}>{t('adminCreatedChallenge')}</Text>
 
       <View style={styles.card}>
         <View style={styles.dot}>
           <View style={styles.dotInner} />
         </View>
         <View style={styles.cardCopy}>
-          <Text style={styles.cardTitle}>Challenge Description</Text>
+          <Text style={styles.cardTitle}>{t('challengeDescription')}</Text>
           <Text style={styles.meta}>{description}</Text>
         </View>
       </View>
 
       <View style={styles.mantraBlock}>
-        <Text style={styles.label}>Mantra</Text>
+        <Text style={styles.label}>{t('mantraWord')}</Text>
         <Text style={styles.mantraValue}>
           {loc.mantra || mantraLabel(item)}
         </Text>
       </View>
 
       <View style={styles.targetBlock}>
-        <Text style={styles.label}>Target Count</Text>
+        <Text style={styles.label}>{t('targetCountLabel')}</Text>
         <Text style={styles.value}>
           {target ? target.toLocaleString() : '—'}
         </Text>
@@ -197,16 +197,16 @@ const ChallengeDetailsScreen = () => {
 
       <View style={styles.grid}>
         <View style={styles.cell}>
-          <Text style={styles.label}>Start Date</Text>
+          <Text style={styles.label}>{t('startDateLabel')}</Text>
           <Text style={styles.value}>{formatDay(item.startDate)}</Text>
         </View>
         <View style={styles.cell}>
-          <Text style={styles.label}>End Date</Text>
+          <Text style={styles.label}>{t('endDateLabel')}</Text>
           <Text style={styles.value}>{formatDay(item.endDate)}</Text>
         </View>
       </View>
 
-      <Text style={styles.section}>Your progress</Text>
+      <Text style={styles.section}>{t('yourProgress')}</Text>
       <Text style={styles.progressCount}>
         {current.toLocaleString()} / {target ? target.toLocaleString() : '—'}
       </Text>
@@ -217,20 +217,20 @@ const ChallengeDetailsScreen = () => {
         <Text style={styles.percent}>{percent}%</Text>
       </View>
       {!joined ? (
-        <Text style={styles.hint}>Join to start counting toward this goal.</Text>
+        <Text style={styles.hint}>{t('joinToStartCounting')}</Text>
       ) : null}
 
       <View style={styles.links}>
         <TouchableOpacity
           onPress={() => navigation.navigate('ChallengeRules')}
           hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}>
-          <Text style={styles.link}>Challenge Rules</Text>
+          <Text style={styles.link}>{t('challengeRulesTitle')}</Text>
         </TouchableOpacity>
         <Text style={styles.linkSep}>•</Text>
         <TouchableOpacity
           onPress={() => navigation.navigate('RewardTerms')}
           hitSlop={{top: 8, bottom: 8, left: 4, right: 4}}>
-          <Text style={styles.link}>Reward Terms</Text>
+          <Text style={styles.link}>{t('rewardTermsTitle')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -240,7 +240,7 @@ const ChallengeDetailsScreen = () => {
           {!completed ? (
             <>
               <PrimaryButton
-                title="CONTINUE JAPA"
+                title={t('continueJapa')}
                 onPress={() => startChallengeJapa(navigation, item)}
               />
               <View style={styles.gap} />
@@ -301,7 +301,7 @@ const ChallengeDetailsScreen = () => {
         </>
       ) : (
         <PrimaryButton
-          title={joining ? 'JOINING...' : 'JOIN CHALLENGE'}
+          title={joining ? t('joiningChallenge') : t('joinChallengeBtn')}
           onPress={join}
           disabled={joining}
         />

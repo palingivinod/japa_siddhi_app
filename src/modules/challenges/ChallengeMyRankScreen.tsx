@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -12,6 +13,7 @@ const ChallengeMyRankScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const challengeId = Number(route.params?.id || 0);
+  const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -24,7 +26,7 @@ const ChallengeMyRankScreen = () => {
   const load = useCallback(() => {
     if (!challengeId) {
       setLoading(false);
-      setError('Challenge not found.');
+      setError(t('challengeNotFound'));
       return;
     }
     setLoading(true);
@@ -45,7 +47,7 @@ const ChallengeMyRankScreen = () => {
       })
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load your rank.'));
+        setError(getApiError(err, t('couldNotLoadRank')));
       })
       .finally(() => setLoading(false));
   }, [challengeId, route.params?.rank, route.params?.currentValue]);
@@ -62,7 +64,7 @@ const ChallengeMyRankScreen = () => {
       : 0;
 
   return (
-    <ScreenLayout title="My Rank" showBack tab="JapaHub">
+    <ScreenLayout title={t('myRankTitle')} showBack tab="JapaHub">
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
@@ -73,20 +75,20 @@ const ChallengeMyRankScreen = () => {
           <View style={styles.badge}>
             <Text style={styles.badgeText}>#{rank || '—'}</Text>
           </View>
-          <Text style={styles.subtitle}>Your current rank</Text>
+          <Text style={styles.subtitle}>{t('yourCurrentRank')}</Text>
 
           <View style={styles.card}>
             <View style={styles.cardLeft}>
-              <Text style={styles.label}>Japas completed</Text>
+              <Text style={styles.label}>{t('japasCompletedLabel')}</Text>
               <Text style={styles.value}>{japas.toLocaleString()}</Text>
             </View>
             {topPercent > 0 ? (
-              <Text style={styles.top}>Top {topPercent}%</Text>
+              <Text style={styles.top}>{t('topPercentLabel', {percent: String(topPercent)})}</Text>
             ) : null}
           </View>
 
           <PrimaryButton
-            title="VIEW LEADERBOARD"
+            title={t('viewLeaderboard')}
             onPress={() =>
               navigation.navigate('ChallengeLeaderboard', {id: challengeId})
             }

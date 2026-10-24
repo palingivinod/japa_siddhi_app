@@ -35,13 +35,10 @@ const FeedbackScreen = () => {
     } catch (error: any) {
       const code = String(error?.message || '');
       if (code === 'permission') {
-        Alert.alert(
-          'Feedback video',
-          'Please allow camera / gallery access to attach a video.',
-        );
+        Alert.alert(t('feedback'), t('allowCameraVideo'));
         return;
       }
-      Alert.alert('Feedback video', 'Could not pick a video. Please try again.');
+      Alert.alert(t('feedback'), t('couldNotPickVideo'));
     }
   };
 
@@ -51,7 +48,7 @@ const FeedbackScreen = () => {
     }
     const text = message.trim();
     if (!text && !video) {
-      Alert.alert('Feedback', 'Add a comment or a video, then submit.');
+      Alert.alert(t('feedback'), t('feedbackNeedComment'));
       return;
     }
     setSaving(true);
@@ -69,9 +66,9 @@ const FeedbackScreen = () => {
       await apiService.post('/feedback', formData);
       setMessage('');
       setVideo(null);
-      Alert.alert('Feedback', 'Thank you. Your feedback was sent.');
+      Alert.alert(t('feedback'), t('feedbackThanksSent'));
     } catch (error) {
-      Alert.alert('Feedback', getApiError(error, 'Could not send feedback.'));
+      Alert.alert(t('feedback'), getApiError(error, t('feedbackCouldNotSend')));
     } finally {
       setSaving(false);
     }

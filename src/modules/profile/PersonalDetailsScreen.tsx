@@ -124,7 +124,7 @@ const PersonalDetailsScreen = () => {
       const data = await ProfileApi.getProfile();
       applyProfile(data);
     } catch {
-      Alert.alert('Profile', 'Could not load profile details.');
+      Alert.alert(t('profileTitle'), t('couldNotLoadProfile'));
     } finally {
       setLoading(false);
     }
@@ -157,7 +157,7 @@ const PersonalDetailsScreen = () => {
       return;
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
-      Alert.alert('Validation', 'Spouse name is required for married devotees.');
+      Alert.alert(t('validationTitle'), t('spouseNameRequired'));
       return;
     }
 
@@ -203,12 +203,11 @@ const PersonalDetailsScreen = () => {
       }
 
       setEditing(false);
-      Alert.alert('Saved', 'Personal details updated.');
+      Alert.alert(t('savedTitle'), t('personalDetailsUpdated'));
     } catch (error: any) {
       Alert.alert(
-        'Update failed',
-        error?.response?.data?.message ||
-          'Could not save personal details. Please try again.',
+        t('updateFailedTitle'),
+        error?.response?.data?.message || t('couldNotSavePersonal'),
       );
     } finally {
       setSaving(false);

@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import {saveDeliveryAddress} from '../../services/savedAddresses';
 import Colors from '../../theme/colors';
@@ -12,6 +13,7 @@ import ScreenLayout from '../common/ScreenLayout';
 const BanaLingamReviewScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [saving, setSaving] = useState(false);
   const params = route.params || {};
   const address = String(params.address || '').trim();
@@ -19,7 +21,7 @@ const BanaLingamReviewScreen = () => {
 
   const placeOrder = async () => {
     if (!hasAddress) {
-      Alert.alert('Baanalingam', 'Add a delivery address before submitting the application.');
+      Alert.alert(t('baanalingamSeva'), t('addAddressBeforeApplication'));
       return;
     }
     setSaving(true);
@@ -35,50 +37,50 @@ const BanaLingamReviewScreen = () => {
         remarks: 'Baanalingam application',
       });
       Alert.alert(
-        'Request submitted',
-        'Your request is submitted. We will contact you soon.',
+        t('requestSubmittedTitle'),
+        t('weWillContactSoon'),
         [
           {
-            text: 'OK',
+            text: t('ok'),
             onPress: () => navigation.navigate('Orders'),
           },
         ],
         {cancelable: false},
       );
     } catch (error) {
-      Alert.alert('Application', getApiError(error, 'Could not submit this application.'));
+      Alert.alert(t('applicationOverview'), getApiError(error, t('couldNotSubmitApplication')));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <ScreenLayout title="Application Overview" showBack tab="SevaHub">
+    <ScreenLayout title={t('applicationOverview')} showBack tab="SevaHub">
       <MenuCard
         icon="banalingam"
-        title="Baanalingam Seva"
-        subtitle="Review your details before final submission"
+        title={t('baanalingamSeva')}
+        subtitle={t('reviewBeforeSubmit')}
       />
 
       <View style={styles.overviewCard}>
-        <Text style={styles.cardHeader}>Devotee & Delivery Details</Text>
+        <Text style={styles.cardHeader}>{t('devoteeDeliveryDetails')}</Text>
 
         <View style={styles.row}>
-          <Text style={styles.label}>Name</Text>
+          <Text style={styles.label}>{t('nameLabel')}</Text>
           <Text style={styles.value}>{params.fullName || '—'}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.row}>
-          <Text style={styles.label}>Mobile</Text>
+          <Text style={styles.label}>{t('mobileLabel')}</Text>
           <Text style={styles.value}>{params.mobile || '—'}</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.row}>
-          <Text style={styles.label}>Address</Text>
+          <Text style={styles.label}>{t('address')}</Text>
           <Text style={styles.valueAddress}>{hasAddress ? address : '—'}</Text>
         </View>
 
@@ -86,7 +88,7 @@ const BanaLingamReviewScreen = () => {
           <>
             <View style={styles.divider} />
             <View style={styles.row}>
-              <Text style={styles.label}>Gothram</Text>
+              <Text style={styles.label}>{t('gothram')}</Text>
               <Text style={styles.value}>{params.gothram}</Text>
             </View>
           </>
@@ -96,7 +98,7 @@ const BanaLingamReviewScreen = () => {
           <>
             <View style={styles.divider} />
             <View style={styles.row}>
-              <Text style={styles.label}>Nakshatram</Text>
+              <Text style={styles.label}>{t('nakshatram')}</Text>
               <Text style={styles.value}>{params.nakshatram}</Text>
             </View>
           </>
@@ -106,7 +108,7 @@ const BanaLingamReviewScreen = () => {
       {hasAddress ? (
         <>
           <PrimaryButton
-            title={saving ? 'SUBMITTING...' : 'SUBMIT'}
+            title={saving ? t('submitting') : t('submit')}
             onPress={placeOrder}
             disabled={saving}
           />
@@ -114,16 +116,16 @@ const BanaLingamReviewScreen = () => {
             style={styles.editBtn}
             onPress={() => navigation.goBack()}
             activeOpacity={0.8}>
-            <Text style={styles.editBtnText}>Edit Details</Text>
+            <Text style={styles.editBtnText}>{t('editDetailsLink')}</Text>
           </TouchableOpacity>
         </>
       ) : (
         <>
           <Text style={styles.hint}>
-            Please add your delivery address to submit this application.
+            {t('pleaseAddDeliveryAddress')}
           </Text>
           <PrimaryButton
-            title="ADD ADDRESS"
+            title={t('addAddress')}
             onPress={() => navigation.navigate('BanaLingam')}
           />
         </>

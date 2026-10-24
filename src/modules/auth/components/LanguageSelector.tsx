@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 
+import {useLanguage} from '../../../i18n/LanguageContext';
 import Colors from '../../../theme/colors';
 import {dismissKeyboardThen} from '../../../utils/keyboard';
 import profileApi from '../services/profileApi';
@@ -29,6 +30,7 @@ const LanguageSelector: React.FC<Props> = ({
   value,
   onChange,
 }) => {
+  const {t} = useLanguage();
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -103,15 +105,15 @@ const LanguageSelector: React.FC<Props> = ({
         onRequestClose={() => setVisible(false)}>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.title}>Select Language</Text>
+            <Text style={styles.title}>{t('selectLanguageTitle')}</Text>
             <TouchableOpacity onPress={() => setVisible(false)}>
-              <Text style={styles.close}>Close</Text>
+              <Text style={styles.close}>{t('closeLabel')}</Text>
             </TouchableOpacity>
           </View>
 
           <TextInput
             style={styles.search}
-            placeholder="Search Language"
+            placeholder={t('searchLanguage')}
             placeholderTextColor={Colors.textSecondary}
             value={search}
             onChangeText={setSearch}
@@ -127,7 +129,7 @@ const LanguageSelector: React.FC<Props> = ({
                 item.code || String(item.id) || String(index)
               }
               ListEmptyComponent={
-                <Text style={styles.empty}>No languages found.</Text>
+                <Text style={styles.empty}>{t('noLanguagesFound')}</Text>
               }
               renderItem={({item}) => (
                 <TouchableOpacity

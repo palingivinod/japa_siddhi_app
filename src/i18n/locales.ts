@@ -7,6 +7,7 @@ import {bn} from './langBn';
 import {or} from './langOr';
 import {authLangPack} from './authLangPack';
 import {aboutLangPack} from './aboutLangPack';
+import {uiLangPack} from './uiLangPack';
 
 
 /** Hindi */
@@ -220,6 +221,19 @@ export const hi: TranslationDict = {
   homamEnrollment: 'होम नामांकन',
   trackOrder: 'ऑर्डर ट्रैक करें',
   thankYou: 'धन्यवाद',
+  paymentSuccessful: 'भुगतान सफल',
+  orderUnderReview: 'ऑर्डर समीक्षा में है',
+  orderPlaced: 'ऑर्डर दर्ज हो गया',
+  thankYouForSeva: '{{name}} के लिए धन्यवाद।',
+  requestSubmittedSuccessfully: 'अनुरोध सफलतापूर्वक भेजा गया',
+  weWillContactSoon: 'हम जल्द ही आपसे संपर्क करेंगे।',
+  applicationUnderReview: 'आपका आवेदन भेज दिया गया है और समीक्षा में है।',
+  orderCreatedSuccessfully: 'आपका ऑर्डर सफलतापूर्वक बन गया है।',
+  yourOffering: 'आपका अर्पण',
+  annadanamName: 'अन्नदान',
+  nithyaHomam: 'नित्य होम',
+  orderNumberPlain: 'ऑर्डर {{number}}',
+  orderNumberHash: 'ऑर्डर #{{number}}',
   japaPaused: 'जप रुका',
   challengeComplete: 'चुनौती पूर्ण',
   challengeDetails: 'चुनौती विवरण',
@@ -1315,6 +1329,19 @@ export const te: TranslationDict = {
   deliveryStatus: 'డెలివరీ స్థితి',
   placedSuccessful: 'విజయవంతంగా నమోదైంది',
   thankYou: 'ధన్యవాదాలు',
+  paymentSuccessful: 'చెల్లింపు విజయవంతమైంది',
+  orderUnderReview: 'ఆర్డర్ సమీక్షలో ఉంది',
+  orderPlaced: 'ఆర్డర్ నమోదైంది',
+  thankYouForSeva: '{{name}} కోసం ధన్యవాదాలు.',
+  requestSubmittedSuccessfully: 'అభ్యర్థన విజయవంతంగా పంపబడింది',
+  weWillContactSoon: 'మేము త్వరలో మిమ్మల్ని సంప్రదిస్తాము.',
+  applicationUnderReview: 'మీ దరఖాస్తు పంపబడింది మరియు సమీక్షలో ఉంది.',
+  orderCreatedSuccessfully: 'మీ ఆర్డర్ విజయవంతంగా సృష్టించబడింది.',
+  yourOffering: 'మీ సేవ',
+  annadanamName: 'అన్నదానం',
+  nithyaHomam: 'నిత్య హోమం',
+  orderNumberPlain: 'ఆర్డర్ {{number}}',
+  orderNumberHash: 'ఆర్డర్ #{{number}}',
   donationForm: 'సేవా ఫారం',
   donationConfirmed: 'ఖరారైంది',
   referenceChant: 'సూచన మంత్రం',
@@ -1621,14 +1648,14 @@ export {kn, ta, ml, mr, bn, or};
 
 export const dictionaries: Record<string, TranslationDict> = {
   en,
-  hi: {...hi, ...authLangPack.hi, ...aboutLangPack.hi} as TranslationDict,
-  te: {...te, ...authLangPack.te, ...aboutLangPack.te} as TranslationDict,
-  kn: {...kn, ...authLangPack.kn, ...aboutLangPack.kn} as TranslationDict,
-  ta: {...ta, ...authLangPack.ta, ...aboutLangPack.ta} as TranslationDict,
-  ml: {...ml, ...authLangPack.ml, ...aboutLangPack.ml} as TranslationDict,
-  mr: {...mr, ...authLangPack.mr, ...aboutLangPack.mr} as TranslationDict,
-  bn: {...bn, ...authLangPack.bn, ...aboutLangPack.bn} as TranslationDict,
-  or: {...or, ...authLangPack.or, ...aboutLangPack.or} as TranslationDict,
+  hi: {...hi, ...authLangPack.hi, ...aboutLangPack.hi, ...uiLangPack.hi} as TranslationDict,
+  te: {...te, ...authLangPack.te, ...aboutLangPack.te, ...uiLangPack.te} as TranslationDict,
+  kn: {...kn, ...authLangPack.kn, ...aboutLangPack.kn, ...uiLangPack.kn} as TranslationDict,
+  ta: {...ta, ...authLangPack.ta, ...aboutLangPack.ta, ...uiLangPack.ta} as TranslationDict,
+  ml: {...ml, ...authLangPack.ml, ...aboutLangPack.ml, ...uiLangPack.ml} as TranslationDict,
+  mr: {...mr, ...authLangPack.mr, ...aboutLangPack.mr, ...uiLangPack.mr} as TranslationDict,
+  bn: {...bn, ...authLangPack.bn, ...aboutLangPack.bn, ...uiLangPack.bn} as TranslationDict,
+  or: {...or, ...authLangPack.or, ...aboutLangPack.or, ...uiLangPack.or} as TranslationDict,
 };
 
 export const TITLE_TO_KEY: Record<string, TranslationKey> = {

@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -13,12 +14,15 @@ const ChallengeRewardOrderCreatedScreen = () => {
   const rewardName = String(route.params?.rewardName || 'Reward');
   const orderId = route.params?.orderId;
   const orderNumber = String(route.params?.orderNumber || '');
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Reward Order Created" showBack tab="JapaHub">
+    <ScreenLayout title={t('rewardOrderCreatedTitle')} showBack tab="JapaHub">
       <SuccessHero
-        title="Reward order created"
-        subtitle={orderNumber ? `Order #${orderNumber}` : undefined}
+        title={t('rewardOrderCreated')}
+        subtitle={
+          orderNumber ? t('orderNumberHash', {number: orderNumber}) : undefined
+        }
       />
 
       <View style={styles.card}>
@@ -27,12 +31,12 @@ const ChallengeRewardOrderCreatedScreen = () => {
         </View>
         <View style={styles.copy}>
           <Text style={styles.name}>{rewardName}</Text>
-          <Text style={styles.body}>Delivery details saved successfully.</Text>
+          <Text style={styles.body}>{t('deliveryDetailsSaved')}</Text>
         </View>
       </View>
 
       <PrimaryButton
-        title="TRACK REWARD"
+        title={t('trackReward')}
         onPress={() => {
           if (orderId) {
             navigation.navigate('OrderDetails', {

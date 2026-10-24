@@ -72,7 +72,7 @@ const SpiritualDetailsScreen = () => {
       applyProfile(data);
     } catch {
       if (!route.params?.profile) {
-        Alert.alert('Profile', 'Could not load spiritual details.');
+        Alert.alert(t('profileTitle'), t('couldNotLoadSpiritual'));
       }
     } finally {
       setLoading(false);
@@ -114,12 +114,11 @@ const SpiritualDetailsScreen = () => {
       }
 
       setEditing(false);
-      Alert.alert('Saved', 'Spiritual details updated.');
+      Alert.alert(t('savedTitle'), t('spiritualDetailsUpdated'));
     } catch (error: any) {
       Alert.alert(
-        'Update failed',
-        error?.response?.data?.message ||
-          'Could not save spiritual details. Please try again.',
+        t('updateFailedTitle'),
+        error?.response?.data?.message || t('couldNotSaveSpiritual'),
       );
     } finally {
       setSaving(false);

@@ -144,25 +144,22 @@ const ChallengeRewardDeliveryScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Reward Delivery" showBack tab="JapaHub">
+    <ScreenLayout title={t('rewardDeliveryTitle')} showBack tab="JapaHub">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 12 : 0}>
-        <Text style={styles.heading}>Enter delivery details</Text>
-        <Text style={styles.hint}>
-          Prefills from your profile when available. Edit any field before
-          submitting.
-        </Text>
+        <Text style={styles.heading}>{t('enterDeliveryDetailsHeading')}</Text>
+        <Text style={styles.hint}>{t('deliveryPrefillHint')}</Text>
 
         <FormField
-          label="Full Name"
-          placeholder="Enter here"
+          label={t('fullName')}
+          placeholder={t('enterHere')}
           value={fullName}
           onChangeText={setFullName}
         />
         <FormField
-          label="Mobile Number"
-          placeholder="Enter here"
+          label={t('mobileNumber')}
+          placeholder={t('enterHere')}
           value={mobile}
           onChangeText={text =>
             setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))
@@ -171,26 +168,26 @@ const ChallengeRewardDeliveryScreen = () => {
           maxLength={MOBILE_DIGITS}
         />
         <FormField
-          label="Address"
-          placeholder="Enter here"
+          label={t('address')}
+          placeholder={t('enterHere')}
           value={address}
           onChangeText={setAddress}
         />
         <FormField
-          label="City"
-          placeholder="Enter here"
+          label={t('city')}
+          placeholder={t('enterHere')}
           value={city}
           onChangeText={setCity}
         />
         <FormField
-          label="State"
-          placeholder="Enter here"
+          label={t('state')}
+          placeholder={t('enterHere')}
           value={state}
           onChangeText={setState}
         />
         <FormField
-          label="PIN Code"
-          placeholder="Enter here"
+          label={t('pinCode')}
+          placeholder={t('enterHere')}
           value={pinCode}
           onChangeText={text => setPinCode(digitsOnly(text).slice(0, 6))}
           keyboardType="number-pad"
@@ -198,7 +195,7 @@ const ChallengeRewardDeliveryScreen = () => {
         />
 
         <PrimaryButton
-          title={saving ? 'SUBMITTING...' : 'SUBMIT DELIVERY DETAILS'}
+          title={saving ? t('submitting') : t('submitDeliveryDetails')}
           onPress={submit}
           disabled={saving}
         />

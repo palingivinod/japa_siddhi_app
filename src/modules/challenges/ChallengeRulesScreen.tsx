@@ -1,28 +1,32 @@
 import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 
-const RULES = [
-  'One user can join a challenge once.',
-  'Progress tracking updates from Japa counts.',
-  'Completion percentage is based on target count.',
-  'Leaderboard ranks participating users.',
-  'One eligible user can claim one Mala.',
-  'Out-of-stock rewards are disabled automatically.',
-];
+const RULE_KEYS = [
+  'challengeRule1',
+  'challengeRule2',
+  'challengeRule3',
+  'challengeRule4',
+  'challengeRule5',
+  'challengeRule6',
+] as const;
 
-const ChallengeRulesScreen = () => (
-  <ScreenLayout title="Challenge Rules" showBack tab="JapaHub">
-    {RULES.map(rule => (
-      <View key={rule} style={styles.row}>
-        <View style={styles.bullet} />
-        <Text style={styles.text}>{rule}</Text>
-      </View>
-    ))}
-  </ScreenLayout>
-);
+const ChallengeRulesScreen = () => {
+  const {t} = useLanguage();
+  return (
+    <ScreenLayout title={t('challengeRulesTitle')} showBack tab="JapaHub">
+      {RULE_KEYS.map(key => (
+        <View key={key} style={styles.row}>
+          <View style={styles.bullet} />
+          <Text style={styles.text}>{t(key)}</Text>
+        </View>
+      ))}
+    </ScreenLayout>
+  );
+};
 
 export default ChallengeRulesScreen;
 

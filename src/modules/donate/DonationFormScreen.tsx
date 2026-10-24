@@ -68,16 +68,19 @@ const DonationFormScreen = () => {
 
   const pay = async () => {
     if (fullName.trim().length < 2) {
-      Alert.alert('Required', 'Please enter devotee name.');
+      Alert.alert(t('validationTitle'), t('enterDevoteeName'));
       return;
     }
     const cleanMobile = mobile.replace(/\D/g, '');
     if (!isMobile(cleanMobile) || /^0+$/.test(cleanMobile)) {
-      Alert.alert('Required', `Please enter a valid ${MOBILE_DIGITS}-digit mobile number.`);
+      Alert.alert(
+        t('validationTitle'),
+        t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}),
+      );
       return;
     }
     if (persons <= 0) {
-      Alert.alert('Required', 'Please select or enter the number of persons.');
+      Alert.alert(t('validationTitle'), t('enterPersonsCount'));
       return;
     }
 

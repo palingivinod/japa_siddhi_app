@@ -84,11 +84,11 @@ const NithyaHomamScreen = () => {
   );
 
   return (
-    <ScreenLayout title="Nithya Homam" showBack tab="SevaHub">
+    <ScreenLayout title={t('nithyaHomam')} showBack tab="SevaHub">
       <MenuCard
         emoji="🔥"
-        title="Daily Sacred Homam"
-        subtitle="Enroll for Nithya Homam participation."
+        title={t('dailySacredHomam')}
+        subtitle={t('enrollNithyaHomam')}
       />
 
       {loading ? (
@@ -102,7 +102,21 @@ const NithyaHomamScreen = () => {
           <Text style={styles.statusLabel}>{t('yourEnrollment')}</Text>
           <Text style={styles.statusCode}>{enrollment.code}</Text>
           <Text style={styles.statusMeta}>
-            {enrollment.stage} • {enrollment.status}
+            {t(
+              enrollment.stage === 'Verified'
+                ? 'stageVerified'
+                : enrollment.stage === 'Inactive'
+                  ? 'stageInactive'
+                  : 'stagePendingVerification',
+            )}{' '}
+            •{' '}
+            {t(
+              enrollment.status === 'Active'
+                ? 'statusActive'
+                : enrollment.status === 'Inactive'
+                  ? 'statusInactive'
+                  : 'statusPending',
+            )}
           </Text>
           {enrollment.status === 'Pending' ? (
             <Text style={styles.hint}>{t('homamPendingHint')}</Text>

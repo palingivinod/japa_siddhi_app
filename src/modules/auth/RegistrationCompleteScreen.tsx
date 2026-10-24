@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
@@ -9,26 +10,27 @@ import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 
 const RegistrationCompleteScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Registration Complete" showBack>
+    <ScreenLayout title={t('registrationComplete')} showBack>
       <View style={styles.check}>
         <Text style={styles.mark}>✓</Text>
       </View>
-      <Text style={styles.title}>Welcome to Japa Siddhi</Text>
-      <Text style={styles.copy}>Your spiritual journey begins today.</Text>
+      <Text style={styles.title}>{t('welcomeToJapaSiddhi')}</Text>
+      <Text style={styles.copy}>{t('journeyBeginsToday')}</Text>
       <View style={styles.card}>
         <View style={styles.dot}>
           <Text style={styles.emoji}>👤</Text>
         </View>
         <View>
-          <Text style={styles.cardTitle}>Your Profile</Text>
-          <Text style={styles.meta}>Profile created successfully</Text>
-          <Text style={styles.meta}>Personal + spiritual details saved</Text>
+          <Text style={styles.cardTitle}>{t('yourProfile')}</Text>
+          <Text style={styles.meta}>{t('profileCreatedSuccess')}</Text>
+          <Text style={styles.meta}>{t('personalSpiritualSaved')}</Text>
         </View>
       </View>
       <PrimaryButton
-        title="GO TO HOME"
+        title={t('goToHome')}
         onPress={() => void resetToHomeAfterAuth(navigation)}
       />
     </ScreenLayout>

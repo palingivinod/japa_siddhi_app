@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {Alert, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
@@ -15,6 +16,7 @@ const ChallengeCompleteScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const challengeId = Number(route.params?.id || 0);
+  const {t} = useLanguage();
   const [rating, setRating] = useState(4);
   const [feedback, setFeedback] = useState('');
   const [saving, setSaving] = useState(false);
@@ -43,30 +45,30 @@ const ChallengeCompleteScreen = () => {
       });
       navigation.navigate('ChallengeLeaderboard', {id: challengeId});
     } catch (error) {
-      Alert.alert('Rating', getApiError(error, 'Could not save rating.'));
+      Alert.alert(t('ratingTitle'), getApiError(error, t('couldNotSaveRating')));
     } finally {
       setSaving(false);
     }
   };
 
   return (
-    <ScreenLayout title="Challenge Complete" showBack tab="JapaHub">
+    <ScreenLayout title={t('challengeComplete')} showBack tab="JapaHub">
       <SuccessHero
-        title="Well done!"
-        subtitle="You completed the challenge."
+        title={t('wellDone')}
+        subtitle={t('youCompletedChallenge')}
       />
-      <Text style={styles.section}>Rate your experience</Text>
+      <Text style={styles.section}>{t('rateYourExperience')}</Text>
       <StarPicker value={rating} onChange={setRating} />
       <FormField
-        label="Feedback"
-        placeholder="Share your experience"
+        label={t('feedback')}
+        placeholder={t('shareYourExperience')}
         value={feedback}
         onChangeText={setFeedback}
         multiline
         style={styles.area}
       />
       <PrimaryButton
-        title={saving ? 'SUBMITTING...' : 'SUBMIT RATING'}
+        title={saving ? t('submitting') : t('submitRating')}
         onPress={submit}
         disabled={saving}
       />
@@ -74,7 +76,7 @@ const ChallengeCompleteScreen = () => {
         <>
           <View style={styles.gap} />
           <OutlineButton
-            title="CHOOSE REWARD"
+            title={t('chooseReward')}
             onPress={() =>
               navigation.navigate('ChallengeRewardSelect', {id: challengeId})
             }

@@ -22,9 +22,9 @@ const DonationConfirmationScreen = () => {
       <MenuCard
         emoji="🍲"
         title={data.itemName || 'Annadanam'}
-        subtitle="Your offering supports food service."
+        subtitle={t('offeringSupportsFood')}
       />
-      <PrimaryButton title="BACK TO HOME" onPress={() => navigation.navigate('Home')} />
+      <PrimaryButton title={t('backToHome')} onPress={() => navigation.navigate('Home')} />
     </ScreenLayout>
   );
 };

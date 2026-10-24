@@ -1,6 +1,7 @@
 import React from 'react';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -9,44 +10,59 @@ import SuccessHero from '../common/SuccessHero';
 const PaymentConfirmationScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const data = route.params || {};
-  const sevaName = String(data.seva || '').trim() || 'your offering';
+  const isRazorpay = data.kind === 'RAZORPAY';
+  const isBana = data.kind === 'BANA_LINGAM';
+  const rawSeva = String(data.seva || '').trim().toLowerCase();
+  const sevaName =
+    rawSeva === 'annadanam'
+      ? t('annadanamName')
+      : rawSeva === 'nithya homam'
+        ? t('nithyaHomam')
+        : String(data.seva || '').trim() || t('yourOffering');
+  const orderNumber = data.orderNumber
+    ? String(data.orderNumber).startsWith('BL-')
+      ? t('orderNumberPlain', {number: data.orderNumber})
+      : t('orderNumberHash', {number: data.orderNumber})
+    : t('orderNumberHash', {number: data.confirmationId || 'BL-0001'});
 
   return (
-    <ScreenLayout title={data.kind === 'RAZORPAY' ? 'Payment successful' : 'Placed Successful'} showBack tab="Orders">
+    <ScreenLayout
+      title={isRazorpay ? t('paymentSuccessful') : t('placedSuccessful')}
+      showBack
+      tab="Orders">
       <SuccessHero
         title={
-          data.kind === 'BANA_LINGAM'
-            ? 'Order Under Review'
-            : data.kind === 'RAZORPAY'
-              ? 'Payment successful'
-              : 'Order Placed'
+          isBana
+            ? t('orderUnderReview')
+            : isRazorpay
+              ? t('paymentSuccessful')
+              : t('orderPlaced')
         }
         subtitle={
-          data.kind === 'RAZORPAY'
-            ? `Thank you for ${sevaName}.`
-            : data.orderNumber
-            ? data.orderNumber.startsWith('BL-')
-              ? `Order ${data.orderNumber}`
-              : `Order #${data.orderNumber}`
-            : `Order #${data.confirmationId || 'BL-0001'}`
+          isRazorpay ? t('thankYouForSeva', {name: sevaName}) : orderNumber
         }
       />
       <MenuCard
         emoji="✅"
-        title={data.kind === 'RAZORPAY' ? 'Request submitted successfully' : data.itemName || 'Baanalingam'}
+        title={
+          isRazorpay
+            ? t('requestSubmittedSuccessfully')
+            : data.itemName || 'Baanalingam'
+        }
         subtitle={
-          data.kind === 'BANA_LINGAM'
-            ? 'Your application has been submitted and is under review.'
-            : data.kind === 'RAZORPAY'
-              ? 'We will get back to you soon.'
-              : 'Your order has been created successfully.'
+          isBana
+            ? t('applicationUnderReview')
+            : isRazorpay
+              ? t('weWillContactSoon')
+              : t('orderCreatedSuccessfully')
         }
       />
       <PrimaryButton
-        title={data.kind === 'RAZORPAY' ? 'CONTINUE' : 'VIEW ORDER'}
+        title={isRazorpay ? t('continue') : t('viewOrder')}
         onPress={() =>
-          data.kind === 'RAZORPAY'
+          isRazorpay
             ? navigation.navigate('Home')
             : navigation.navigate('OrderDetails', {
                 id: data.orderId,

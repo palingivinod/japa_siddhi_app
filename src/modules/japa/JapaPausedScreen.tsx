@@ -2,6 +2,7 @@ import React from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import Colors from '../../theme/colors';
 import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
@@ -10,30 +11,31 @@ import ScreenLayout from '../common/ScreenLayout';
 const JapaPausedScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
 
   return (
-    <ScreenLayout title="Japa Paused" showBack tab="JapaHub">
+    <ScreenLayout title={t('japaPaused')} showBack tab="JapaHub">
       <View style={styles.circle}>
         <Text style={styles.pause}>❚❚</Text>
       </View>
-      <Text style={styles.title}>Japa is paused</Text>
-      <Text style={styles.copy}>Your count is safely preserved.</Text>
+      <Text style={styles.title}>{t('japaIsPaused')}</Text>
+      <Text style={styles.copy}>{t('countSafelyPreserved')}</Text>
       <View style={styles.card}>
         <View style={styles.dot}>
           <Text style={styles.emoji}>🔒</Text>
         </View>
         <View>
-          <Text style={styles.cardTitle}>Auto-lock active</Text>
-          <Text style={styles.meta}>Screen lock prevents accidental counts.</Text>
+          <Text style={styles.cardTitle}>{t('autoLockActive')}</Text>
+          <Text style={styles.meta}>{t('screenLockPreventsCounts')}</Text>
         </View>
       </View>
       <PrimaryButton
-        title="RESUME JAPA"
+        title={t('resumeJapa')}
         onPress={() => navigation.goBack()}
       />
       <View style={styles.gap} />
       <OutlineButton
-        title="END SESSION"
+        title={t('endSession')}
         onPress={() =>
           navigation.replace('JapaProgress', {
             count: route.params?.count,

@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -18,6 +19,7 @@ const ChallengeLeaderboardScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const challengeId = Number(route.params?.id || 0);
+  const {t} = useLanguage();
   const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -30,7 +32,7 @@ const ChallengeLeaderboardScreen = () => {
       .then(response => setRows(response.data.data ?? []))
       .catch(err => {
         setRawError(err);
-        setError(getApiError(err, 'Could not load leaderboard.'));
+        setError(getApiError(err, t('couldNotLoadLeaderboard')));
       })
       .finally(() => setLoading(false));
   };
@@ -49,15 +51,15 @@ const ChallengeLeaderboardScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Challenge Leaderboard" showBack tab="JapaHub">
-      <Text style={styles.heading}>Top devotees</Text>
+    <ScreenLayout title={t('challengeLeaderboardTitle')} showBack tab="JapaHub">
+      <Text style={styles.heading}>{t('topDevotees')}</Text>
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
         <ApiErrorPanel error={error} rawError={rawError} onRetry={load} />
       ) : null}
       {rows.map(item => {
         const isYou = Boolean(item.isYou);
-        const name = item.displayName || item.fullName || 'Devotee';
+        const name = item.displayName || item.fullName || t('devotee');
         const Row = isYou ? TouchableOpacity : View;
         return (
           <Row

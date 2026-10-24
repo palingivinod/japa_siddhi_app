@@ -53,31 +53,28 @@ const ChallengeRewardConfirmScreen = () => {
   };
 
   return (
-    <ScreenLayout title="Reward Selected" showBack tab="JapaHub">
+    <ScreenLayout title={t('rewardSelectedTitle')} showBack tab="JapaHub">
       <View style={styles.checkWrap}>
         <View style={styles.checkCircle}>
           <Text style={styles.check}>✓</Text>
         </View>
       </View>
       <Text style={styles.name}>{rewardName}</Text>
-      <Text style={styles.sub}>Your selected Mala</Text>
+      <Text style={styles.sub}>{t('yourSelectedMala')}</Text>
 
       <View style={styles.card}>
         <View style={styles.dot}>
           <View style={styles.dotInner} />
         </View>
         <View style={styles.copy}>
-          <Text style={styles.policyTitle}>Reward Policy</Text>
-          <Text style={styles.policy}>One user • One Mala</Text>
-          <Text style={styles.policy}>
-            You can change to another eligible in-stock reward before placing
-            the order.
-          </Text>
+          <Text style={styles.policyTitle}>{t('rewardPolicy')}</Text>
+          <Text style={styles.policy}>{t('oneUserOneMala')}</Text>
+          <Text style={styles.policy}>{t('changeRewardHint')}</Text>
         </View>
       </View>
 
       <PrimaryButton
-        title={saving ? 'CONFIRMING...' : 'CONFIRM SELECTION'}
+        title={saving ? t('confirmingSelection') : t('confirmSelectionBtn')}
         onPress={confirm}
         disabled={saving}
       />

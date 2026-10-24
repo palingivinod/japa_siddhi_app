@@ -554,7 +554,7 @@ const PrivateJapaScreen = () => {
                   blurOnSubmit
                   textAlignVertical="center"
                 />
-                <Text style={styles.todayInputUnit}>Japas today</Text>
+                <Text style={styles.todayInputUnit}>{t('japasToday')}</Text>
               </View>
 
               {isTodayCustom &&
