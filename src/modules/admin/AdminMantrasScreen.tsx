@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import MoveCategoryModal from './MoveCategoryModal';
 import {
   MantraCategoryOption,
   builtinCategories,
@@ -43,9 +44,8 @@ const AdminMantrasScreen = () => {
     builtinCategories(),
   );
   const [moving, setMoving] = useState<ListedMantra | null>(null);
-  const [pickingCategory, setPickingCategory] = useState(false);
-  const [openCode, setOpenCode] = useState<string | null>(null);
   const [addingCategory, setAddingCategory] = useState(false);
+  const [deletingCategory, setDeletingCategory] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [savingCategory, setSavingCategory] = useState(false);
 
@@ -117,24 +117,42 @@ const AdminMantrasScreen = () => {
     );
   };
 
-  const moveTo = async (categoryCode: string) => {
-    if (!moving) {
-      return;
-    }
-    const target = moving;
-    setMoving(null);
+  const moveTo = async (item: ListedMantra, categoryCode: string) => {
     try {
-      await apiService.put(`/admin/mantras/${target.id}/category`, {
+      await apiService.put(`/admin/mantras/${item.id}/category`, {
         categoryCode,
       });
       setMantras(current =>
         current.map(row =>
-          row.id === target.id ? {...row, categoryCode} : row,
+          row.id === item.id ? {...row, categoryCode} : row,
         ),
       );
     } catch (err) {
       Alert.alert('Move failed', getApiError(err, 'Could not move mantra.'));
     }
+  };
+
+  const askMove = (category: MantraCategoryOption) => {
+    const target = moving;
+    setMoving(null);
+    if (!target) {
+      return;
+    }
+    if (target.categoryCode === category.code) {
+      Alert.alert(
+        'Already there',
+        `"${target.name}" is already in ${category.name}.`,
+      );
+      return;
+    }
+    Alert.alert(
+      'Move mantra',
+      `Move "${target.name}" to ${category.name}?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {text: 'Move', onPress: () => moveTo(target, category.code)},
+      ],
+    );
   };
 
   const toggle = async (item: ListedMantra) => {
@@ -190,19 +208,40 @@ const AdminMantrasScreen = () => {
     }
   };
 
-  const openAddMantra = (category: MantraCategoryOption) => {
-    setPickingCategory(false);
-    setAddingCategory(false);
-    setOpenCode(category.code);
-    navigation.navigate('AdminMantraEdit', {
-      japaList,
-      categoryCode: category.code,
-      categoryName: category.name,
-    });
+  const removeCategory = async (category: MantraCategoryOption) => {
+    try {
+      await apiService.delete(`/admin/mantra-categories/${category.code}`);
+      setCategories(current => current.filter(row => row.code !== category.code));
+      setMantras(current =>
+        current.map(row =>
+          row.categoryCode === category.code ? {...row, categoryCode: ''} : row,
+        ),
+      );
+    } catch (err) {
+      Alert.alert(
+        'Could not delete category',
+        getApiError(err, 'Could not delete the category.'),
+      );
+    }
+  };
+
+  const askDeleteCategory = (category: MantraCategoryOption) => {
+    setDeletingCategory(false);
+    Alert.alert(
+      'Delete category',
+      `Delete "${category.name}"? It is removed from the database for both Samuhika and Antharanga. Mantras in it stay, without a category.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => removeCategory(category),
+        },
+      ],
+    );
   };
 
   const {unassigned, groups} = groupByCategory(mantras, categories);
-  const openCategory = categories.find(category => category.code === openCode);
 
   const renderMantra = (item: ListedMantra) => (
     <View key={item.id} style={styles.card}>
@@ -243,45 +282,6 @@ const AdminMantrasScreen = () => {
     </View>
   );
 
-  const confirmMove = (category: MantraCategoryOption) => {
-    if (!moving) {
-      return;
-    }
-    if (moving.categoryCode === category.code) {
-      Alert.alert(
-        'Already there',
-        `"${moving.name}" is already in ${category.name}.`,
-      );
-      return;
-    }
-    Alert.alert(
-      'Move mantra',
-      `Move "${moving.name}" to ${category.name}?`,
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Move',
-          onPress: () => {
-            setOpenCode(category.code);
-            moveTo(category.code);
-          },
-        },
-      ],
-    );
-  };
-
-  const onCategoryPress = (category: MantraCategoryOption) => {
-    if (moving) {
-      confirmMove(category);
-      return;
-    }
-    if (pickingCategory) {
-      openAddMantra(category);
-      return;
-    }
-    setOpenCode(current => (current === category.code ? null : category.code));
-  };
-
   return (
     <AdminScreenLayout
       title={listTitle}
@@ -294,22 +294,19 @@ const AdminMantrasScreen = () => {
               style={styles.pinBtn}
               onPress={() => {
                 setMoving(null);
-                setPickingCategory(false);
+                setDeletingCategory(false);
                 setAddingCategory(true);
               }}>
               <Text style={styles.pinText}>ADD CATEGORY</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.pinBtn}
+              style={[styles.pinBtn, styles.deletePinBtn]}
               onPress={() => {
+                setMoving(null);
                 setAddingCategory(false);
-                if (openCategory) {
-                  openAddMantra(openCategory);
-                  return;
-                }
-                setPickingCategory(true);
+                setDeletingCategory(true);
               }}>
-              <Text style={styles.pinText}>ADD MANTRA</Text>
+              <Text style={styles.deletePinText}>DELETE CATEGORY</Text>
             </TouchableOpacity>
           </View>
           {addingCategory ? (
@@ -337,24 +334,6 @@ const AdminMantrasScreen = () => {
               </View>
             </View>
           ) : null}
-          {moving ? (
-            <Text style={styles.hint}>
-              Tap a category to move "{moving.name}".{' '}
-              <Text style={styles.cancelInline} onPress={() => setMoving(null)}>
-                Cancel
-              </Text>
-            </Text>
-          ) : null}
-          {pickingCategory ? (
-            <Text style={styles.hint}>
-              Tap a category to add the mantra there.{' '}
-              <Text
-                style={styles.cancelInline}
-                onPress={() => setPickingCategory(false)}>
-                Cancel
-              </Text>
-            </Text>
-          ) : null}
         </View>
       }>
       {loading ? (
@@ -370,54 +349,22 @@ const AdminMantrasScreen = () => {
       ) : null}
 
       {!loading
-        ? groups.map(group => {
-            const open = !moving && openCode === group.code;
-            return (
-              <View key={group.code} style={styles.section}>
-                <TouchableOpacity
-                  style={[
-                    styles.categoryBtn,
-                    moving && styles.categoryBtnMove,
-                    open && styles.categoryBtnOpen,
-                  ]}
-                  onPress={() => onCategoryPress(group)}
-                  activeOpacity={0.8}>
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      moving && styles.categoryTextMove,
-                      open && styles.categoryTextOpen,
-                    ]}>
-                    {group.name}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.categoryCount,
-                      moving && styles.categoryCountMove,
-                      open && styles.categoryTextOpen,
-                    ]}>
-                    {group.items.length}
-                  </Text>
-                </TouchableOpacity>
-                {open ? (
-                  <View style={styles.openBox}>
-                    {group.items.length === 0 ? (
-                      <Text style={styles.empty}>No mantras in this category yet.</Text>
-                    ) : (
-                      group.items.map(renderMantra)
-                    )}
-                    <TouchableOpacity
-                      style={styles.addInCategory}
-                      onPress={() => openAddMantra(group)}>
-                      <Text style={styles.addInCategoryText}>
-                        ADD MANTRA IN {group.name.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-              </View>
-            );
-          })
+        ? groups.map(group => (
+            <TouchableOpacity
+              key={group.code}
+              style={styles.categoryBtn}
+              onPress={() =>
+                navigation.navigate('AdminMantraCategory', {
+                  list: japaList,
+                  categoryCode: group.code,
+                  categoryName: group.name,
+                })
+              }
+              activeOpacity={0.8}>
+              <Text style={styles.categoryText}>{group.name}</Text>
+              <Text style={styles.categoryCount}>{group.items.length}</Text>
+            </TouchableOpacity>
+          ))
         : null}
 
       {!loading && unassigned.length > 0 ? (
@@ -429,6 +376,21 @@ const AdminMantrasScreen = () => {
           {unassigned.map(renderMantra)}
         </View>
       ) : null}
+      <MoveCategoryModal
+        visible={Boolean(moving)}
+        mantraName={moving?.name || ''}
+        categories={categories}
+        onCancel={() => setMoving(null)}
+        onSelect={askMove}
+      />
+      <MoveCategoryModal
+        visible={deletingCategory}
+        title="Delete a category"
+        subtitle="Choose the category to remove."
+        categories={categories}
+        onCancel={() => setDeletingCategory(false)}
+        onSelect={askDeleteCategory}
+      />
     </AdminScreenLayout>
   );
 };
@@ -447,8 +409,18 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  deletePinBtn: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.error,
+  },
   pinText: {
     color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  deletePinText: {
+    color: Colors.error,
     fontWeight: '800',
     fontSize: 12,
   },

@@ -29,6 +29,7 @@ const MantraSelectScreen = () => {
   // Arriving with a mantra already chosen (community japa) only needs
   // confirming, so the full list stays collapsed until it is asked for.
   const [picking, setPicking] = useState(!passedId);
+  const [openCode, setOpenCode] = useState<string | null>(null);
 
   useEffect(() => {
     const list = route.params?.mode === 'private' ? 'antharanga' : 'samuhika';
@@ -157,21 +158,43 @@ const MantraSelectScreen = () => {
     <ScreenLayout title={t('selectMantra')} showBack tab="JapaHub">
       {picking ? (
         <>
-          <Text style={styles.hint}>{t('chooseOneMantra')}</Text>
+          <Text style={styles.hint}>{t('selectCategoryForMantra')}</Text>
+          {groups.map(group => {
+            const open = openCode === group.code;
+            return (
+              <View key={group.code} style={styles.section}>
+                <TouchableOpacity
+                  style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
+                  activeOpacity={0.8}
+                  onPress={() =>
+                    setOpenCode(current =>
+                      current === group.code ? null : group.code,
+                    )
+                  }>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      open && styles.categoryTextOpen,
+                    ]}>
+                    {categoryTitle(group, t)}
+                  </Text>
+                </TouchableOpacity>
+                {open ? (
+                  group.items.length > 0 ? (
+                    <View style={styles.chipRow}>{group.items.map(renderChip)}</View>
+                  ) : (
+                    <Text style={styles.empty}>{t('noMantrasInCategory')}</Text>
+                  )
+                ) : null}
+              </View>
+            );
+          })}
           {unassigned.length > 0 ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
               <View style={styles.chipRow}>{unassigned.map(renderChip)}</View>
             </View>
           ) : null}
-          {groups.map(group => (
-            <View key={group.code} style={styles.section}>
-                <Text style={styles.sectionTitle}>{categoryTitle(group, t)}</Text>
-              {group.items.length > 0 ? (
-                <View style={styles.chipRow}>{group.items.map(renderChip)}</View>
-              ) : null}
-            </View>
-          ))}
         </>
       ) : (
         <View style={styles.selectedContainer}>
@@ -220,6 +243,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
     marginBottom: 8,
+  },
+  categoryBtn: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
+  categoryBtnOpen: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
+  categoryText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  categoryTextOpen: {
+    color: Colors.white,
+  },
+  empty: {
+    color: Colors.textSecondary,
+    marginBottom: 10,
   },
   chipRow: {
     flexDirection: 'row',

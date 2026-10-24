@@ -101,12 +101,23 @@ class MantraRepository {
         )
       `);
     }
-    for (const category of MANTRA_CATEGORIES) {
-      const existing = await mysql.query<any[]>(
-        `SELECT code FROM mantra_categories WHERE code = ? LIMIT 1`,
-        [category.code],
-      );
-      if (!existing?.length) {
+    await mysql.query(`
+      CREATE TABLE IF NOT EXISTS mantra_category_seed (
+        id INTEGER PRIMARY KEY,
+        seeded INTEGER NOT NULL
+      )
+    `);
+    const seeded = await mysql.query<any[]>(
+      `SELECT seeded FROM mantra_category_seed WHERE id = 1 LIMIT 1`,
+    );
+    if (seeded?.length) {
+      return;
+    }
+    const counted = await mysql.query<any[]>(
+      `SELECT COUNT(*) AS total FROM mantra_categories`,
+    );
+    if (Number(counted?.[0]?.total) === 0) {
+      for (const category of MANTRA_CATEGORIES) {
         await mysql.query(
           `
           INSERT INTO mantra_categories (code, name, display_order)
@@ -120,6 +131,9 @@ class MantraRepository {
         );
       }
     }
+    await mysql.query(
+      `INSERT INTO mantra_category_seed (id, seeded) VALUES (1, 1)`,
+    );
   }
 
   async listCategories() {
@@ -175,6 +189,20 @@ class MantraRepository {
       [code, clean, displayOrder],
     );
     return {category: {code, name: clean, displayOrder}};
+  }
+
+  async deleteCategory(code: string) {
+    await this.ensureMantraLists();
+    const category = normalizeMantraCategory(code);
+    if (!category || !(await this.categoryExists(category))) {
+      return null;
+    }
+    await mysql.query(
+      `UPDATE mantras SET category_code = NULL WHERE category_code = ?`,
+      [category],
+    );
+    await mysql.query(`DELETE FROM mantra_categories WHERE code = ?`, [category]);
+    return {code: category};
   }
 
   private async categoryExists(code: string) {

@@ -198,6 +198,8 @@ export const or: TranslationDict = {
   mantraCatSaptha: 'ସପ୍ତ ମନ୍ତ୍ର',
   mantraCatGuru: 'ଗୁରୁ ମନ୍ତ୍ର',
   mantraCatUnassigned: 'ଏଯାଏ ବର୍ଗରେ ନାହିଁ',
+  selectCategoryForMantra: 'ମନ୍ତ୍ର ବାଛିବାକୁ ଗୋଟିଏ ବର୍ଗ ବାଛନ୍ତୁ',
+  noMantrasInCategory: 'ଏହି ବର୍ଗରେ ଏଯାଏ କୌଣସି ମନ୍ତ୍ର ନାହିଁ।',
   homamEnrollment: 'ହୋମ ନାମ ଲେଖା',
   trackOrder: 'ଅର୍ଡର ଟ୍ରାକ୍ କରନ୍ତୁ',
   thankYou: 'ଧନ୍ୟବାଦ',

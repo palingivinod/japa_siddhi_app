@@ -198,6 +198,8 @@ export const ta: TranslationDict = {
   mantraCatSaptha: 'சப்த மந்திரங்கள்',
   mantraCatGuru: 'குரு மந்திரங்கள்',
   mantraCatUnassigned: 'இன்னும் பிரிவில் இல்லை',
+  selectCategoryForMantra: 'மந்திரத்தைத் தேர்ந்தெடுக்க ஒரு வகையைத் தேர்ந்தெடுக்கவும்',
+  noMantrasInCategory: 'இந்த வகையில் இன்னும் மந்திரங்கள் இல்லை.',
   homamEnrollment: 'Homam பதிவு',
   trackOrder: 'ஆர்டரைக் கண்காணி',
   thankYou: 'நன்றி',

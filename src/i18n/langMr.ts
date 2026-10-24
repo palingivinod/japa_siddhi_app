@@ -198,6 +198,8 @@ export const mr: TranslationDict = {
   mantraCatSaptha: 'सप्त मंत्र',
   mantraCatGuru: 'गुरु मंत्र',
   mantraCatUnassigned: 'अजून वर्गात नाही',
+  selectCategoryForMantra: 'मंत्र निवडण्यासाठी एक वर्ग निवडा',
+  noMantrasInCategory: 'या वर्गात अजून मंत्र नाहीत.',
   homamEnrollment: 'होम नोंदणी',
   trackOrder: 'ऑर्डर ट्रॅक करा',
   thankYou: 'धन्यवाद',

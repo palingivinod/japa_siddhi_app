@@ -198,6 +198,8 @@ export const ml: TranslationDict = {
   mantraCatSaptha: 'സപ്ത മന്ത്രങ്ങൾ',
   mantraCatGuru: 'ഗുരു മന്ത്രങ്ങൾ',
   mantraCatUnassigned: 'ഇതുവരെ വിഭാഗത്തിലല്ല',
+  selectCategoryForMantra: 'മന്ത്രം തിരഞ്ഞെടുക്കാൻ ഒരു വിഭാഗം തിരഞ്ഞെടുക്കുക',
+  noMantrasInCategory: 'ഈ വിഭാഗത്തിൽ ഇതുവരെ മന്ത്രങ്ങളില്ല.',
   homamEnrollment: 'Homam രജിസ്ട്രേഷൻ',
   trackOrder: 'ഓർഡർ ട്രാക്ക് ചെയ്യുക',
   thankYou: 'നന്ദി',

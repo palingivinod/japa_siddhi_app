@@ -197,6 +197,8 @@ export const kn: TranslationDict = {
   mantraCatSaptha: 'ಸಪ್ತ ಮಂತ್ರಗಳು',
   mantraCatGuru: 'ಗುರು ಮಂತ್ರಗಳು',
   mantraCatUnassigned: 'ಇನ್ನೂ ವರ್ಗದಲ್ಲಿ ಇಲ್ಲ',
+  selectCategoryForMantra: 'ಮಂತ್ರವನ್ನು ಆಯ್ಕೆಮಾಡಲು ಒಂದು ವರ್ಗವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
+  noMantrasInCategory: 'ಈ ವರ್ಗದಲ್ಲಿ ಇನ್ನೂ ಮಂತ್ರಗಳಿಲ್ಲ.',
   homamEnrollment: 'ಹೋಮ ನೋಂದಣಿ',
   trackOrder: 'ಆರ್ಡರ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
   thankYou: 'ಧನ್ಯವಾದಗಳು',

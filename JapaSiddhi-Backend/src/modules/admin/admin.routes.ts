@@ -1280,6 +1280,29 @@ router.post('/mantra-categories', async (req: Request, res: Response) => {
   }
 });
 
+router.delete('/mantra-categories/:code', async (req: Request, res: Response) => {
+  try {
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    const removed = await mantraRepository.deleteCategory(String(req.params.code || ''));
+    if (!removed) {
+      return res.status(404).json({
+        success: false,
+        message: 'Category not found.',
+      });
+    }
+    return res.json({
+      success: true,
+      message: 'Category deleted from the database.',
+      data: removed,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to delete the category.',
+    });
+  }
+});
+
 router.get('/mantras', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository'))

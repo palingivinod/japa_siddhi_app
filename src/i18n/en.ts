@@ -410,6 +410,8 @@
   mantraCatSaptha: 'Saptha mantras',
   mantraCatGuru: 'Guru mantras',
   mantraCatUnassigned: 'Not in a category yet',
+  selectCategoryForMantra: 'Select a category to select a mantra',
+  noMantrasInCategory: 'No mantras in this category yet.',
   homamEnrollment: 'Homam Enrollment',
   trackOrder: 'Track Order',
   thankYou: 'Thank You',

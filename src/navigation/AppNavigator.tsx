@@ -105,6 +105,7 @@ import AdminUserDetailsScreen from '../modules/admin/AdminUserDetailsScreen';
 import AdminUserEditScreen from '../modules/admin/AdminUserEditScreen';
 import AdminJapaScreen from '../modules/admin/AdminJapaScreen';
 import AdminMantrasScreen from '../modules/admin/AdminMantrasScreen';
+import AdminMantraCategoryScreen from '../modules/admin/AdminMantraCategoryScreen';
 import AdminMantraEditScreen from '../modules/admin/AdminMantraEditScreen';
 import AdminChallengeCreateScreen from '../modules/admin/AdminChallengeCreateScreen';
 import AdminChallengesScreen from '../modules/admin/AdminChallengesScreen';
@@ -329,6 +330,13 @@ export type RootStackParamList = {
   AdminUserEdit: {userId?: string} | undefined;
   AdminJapa: undefined;
   AdminMantras: {list?: 'SAMUHIKA' | 'ANTHARANGA'} | undefined;
+  AdminMantraCategory:
+    | {
+        list?: 'SAMUHIKA' | 'ANTHARANGA';
+        categoryCode?: string;
+        categoryName?: string;
+      }
+    | undefined;
   AdminMantraEdit:
     | {
         mantraId?: string;
@@ -486,6 +494,7 @@ const ProtectedAdminUserDetails = withAdminAuth(AdminUserDetailsScreen);
 const ProtectedAdminUserEdit = withAdminAuth(AdminUserEditScreen);
 const ProtectedAdminJapa = withAdminAuth(AdminJapaScreen);
 const ProtectedAdminMantras = withAdminAuth(AdminMantrasScreen);
+const ProtectedAdminMantraCategory = withAdminAuth(AdminMantraCategoryScreen);
 const ProtectedAdminMantraEdit = withAdminAuth(AdminMantraEditScreen);
 const ProtectedAdminChallengeCreate = withAdminAuth(AdminChallengeCreateScreen);
 const ProtectedAdminChallenges = withAdminAuth(AdminChallengesScreen);
@@ -755,6 +764,10 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="AdminJapa" component={ProtectedAdminJapa} />
         <Stack.Screen name="AdminMantras" component={ProtectedAdminMantras} />
+        <Stack.Screen
+          name="AdminMantraCategory"
+          component={ProtectedAdminMantraCategory}
+        />
         <Stack.Screen
           name="AdminMantraEdit"
           component={ProtectedAdminMantraEdit}

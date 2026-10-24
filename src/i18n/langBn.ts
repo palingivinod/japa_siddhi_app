@@ -198,6 +198,8 @@ export const bn: TranslationDict = {
   mantraCatSaptha: 'সপ্ত মন্ত্র',
   mantraCatGuru: 'গুরু মন্ত্র',
   mantraCatUnassigned: 'এখনও কোনো বিভাগে নেই',
+  selectCategoryForMantra: 'মন্ত্র বেছে নিতে একটি বিভাগ বেছে নিন',
+  noMantrasInCategory: 'এই বিভাগে এখনও কোনো মন্ত্র নেই।',
   homamEnrollment: 'হোম নথিভুক্তি',
   trackOrder: 'অর্ডার ট্র্যাক করুন',
   thankYou: 'ধন্যবাদ',

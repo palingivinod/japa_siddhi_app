@@ -1,5 +1,12 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import apiService from '../../services/apiService';
@@ -30,6 +37,7 @@ const CommunityJapaScreen = () => {
   const [categories, setCategories] = useState<MantraCategoryOption[]>(
     builtinCategories(),
   );
+  const [openCode, setOpenCode] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -174,6 +182,7 @@ const CommunityJapaScreen = () => {
         </View>
 
         <Text style={styles.heading}>{t('selectMantra') || 'Select a mantra'}</Text>
+        <Text style={styles.categoryHint}>{t('selectCategoryForMantra')}</Text>
       </View>
 
       {/* Scrollable list of mantras below */}
@@ -181,6 +190,45 @@ const CommunityJapaScreen = () => {
         style={styles.mantraScroll}
         contentContainerStyle={styles.mantraScrollContent}
         showsVerticalScrollIndicator={false}>
+        {groups.map(group => {
+          const open = openCode === group.code;
+          const title = categoryTitle(group, t);
+          return (
+            <View key={group.code} style={styles.section}>
+              <TouchableOpacity
+                style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
+                activeOpacity={0.8}
+                onPress={() =>
+                  setOpenCode(current => (current === group.code ? null : group.code))
+                }>
+                <Text style={[styles.categoryText, open && styles.categoryTextOpen]}>
+                  {title}
+                </Text>
+              </TouchableOpacity>
+              {open ? (
+                group.items.length > 0 ? (
+                  group.items.map(item => (
+                    <MenuCard
+                      key={item.id}
+                      emoji="🕉️"
+                      title={item.mantraName || item.transliteration}
+                      subtitle={
+                        selected?.id === item.id
+                          ? t('selected') || 'Selected'
+                          : t('tapToSelect') || 'Tap to select'
+                      }
+                      tone="gold"
+                      selected={selected?.id === item.id}
+                      onPress={() => setSelected(item)}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.empty}>{t('noMantrasInCategory')}</Text>
+                )
+              ) : null}
+            </View>
+          );
+        })}
         {unassigned.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
@@ -201,26 +249,6 @@ const CommunityJapaScreen = () => {
             ))}
           </View>
         ) : null}
-        {groups.map(group => (
-          <View key={group.code} style={styles.section}>
-            <Text style={styles.sectionTitle}>{categoryTitle(group, t)}</Text>
-            {group.items.map(item => (
-              <MenuCard
-                key={item.id}
-                emoji="🕉️"
-                title={item.mantraName || item.transliteration}
-                subtitle={
-                  selected?.id === item.id
-                    ? t('selected') || 'Selected'
-                    : t('tapToSelect') || 'Tap to select'
-                }
-                tone="gold"
-                selected={selected?.id === item.id}
-                onPress={() => setSelected(item)}
-              />
-            ))}
-          </View>
-        ))}
       </ScrollView>
     </ScreenLayout>
   );
@@ -259,6 +287,36 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    marginBottom: 4,
+  },
+  categoryHint: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  categoryBtn: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
+  categoryBtnOpen: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
+  categoryText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  categoryTextOpen: {
+    color: Colors.white,
+  },
+  empty: {
+    color: Colors.textSecondary,
     marginBottom: 8,
   },
   mantraScroll: {
