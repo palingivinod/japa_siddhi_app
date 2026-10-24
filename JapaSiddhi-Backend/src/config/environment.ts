@@ -34,6 +34,15 @@ const environment = {
   DB_ENGINE:
     process.env.DB_ENGINE || '',
 
+  DATABASE_URL:
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    [
+      'postgresql://japasiddhi_database_user:',
+      '8FBnzCgO8zLxC66riAkgljsGYEmB8WJ8',
+      '@dpg-dbea8n9srm7s73bfn8cg-a.ohio-postgres.render.com/japasiddhi_database',
+    ].join(''),
+
   FIREBASE_PROJECT_ID:
     process.env.FIREBASE_PROJECT_ID || '',
 

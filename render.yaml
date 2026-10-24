@@ -21,7 +21,11 @@ services:
       - key: NODE_ENV
         value: production
       - key: DB_ENGINE
-        value: sqlite
+        value: postgres
+      - key: DATABASE_URL
+        fromDatabase:
+          name: japasiddhi-database
+          property: connectionString
       - key: SQLITE_PATH
         value: /var/data/japa_siddhi.sqlite
       - key: UPLOAD_PATH

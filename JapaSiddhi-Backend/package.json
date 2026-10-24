@@ -17,6 +17,7 @@
     "db:reset": "node -e \"require('fs').rmSync('data/japa_siddhi.sqlite',{force:true}); console.log('SQLite database removed');\""
   },
   "dependencies": {
+    "@types/pg": "^8.23.1",
     "archiver": "^8.0.0",
     "bcrypt": "^6.0.0",
     "better-sqlite3": "^13.0.3",
@@ -39,6 +40,7 @@
     "nodemailer": "^9.0.5",
     "pdfkit": "^0.19.1",
     "pdfmake": "^0.3.11",
+    "pg": "^8.23.1",
     "socket.io": "^4.8.3",
     "sql.js": "^1.14.2",
     "uuid": "^13.0.0",

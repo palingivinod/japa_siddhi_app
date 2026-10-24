@@ -11,7 +11,7 @@ COPY . .
 RUN npm run build
 
 ENV NODE_ENV=production
-ENV DB_ENGINE=sqlite
+ENV DB_ENGINE=postgres
 ENV SQLITE_PATH=/var/data/japa_siddhi.sqlite
 
 EXPOSE 5000
