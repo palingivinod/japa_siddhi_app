@@ -4,17 +4,18 @@ import {
   Alert,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
-import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {
-  MANTRA_CATEGORIES,
+  MantraCategoryOption,
+  builtinCategories,
   groupByCategory,
   mantraListLabel,
 } from '../japa/mantraCategories';
@@ -38,16 +39,35 @@ const AdminMantrasScreen = () => {
   const [mantras, setMantras] = useState<ListedMantra[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<MantraCategoryOption[]>(
+    builtinCategories(),
+  );
   const [moving, setMoving] = useState<ListedMantra | null>(null);
   const [pickingCategory, setPickingCategory] = useState(false);
+  const [openCode, setOpenCode] = useState<string | null>(null);
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
 
   const loadMantras = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiService.get('/admin/mantras', {
-        params: {list: japaList},
-      });
+      const [response, categoryResponse] = await Promise.all([
+        apiService.get('/admin/mantras', {params: {list: japaList}}),
+        apiService.get('/admin/mantra-categories'),
+      ]);
+      const categoryRows = Array.isArray(categoryResponse.data?.data)
+        ? categoryResponse.data.data
+        : [];
+      if (categoryRows.length > 0) {
+        setCategories(
+          categoryRows.map((row: any) => ({
+            code: String(row.code || ''),
+            name: String(row.name || ''),
+          })),
+        );
+      }
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
       setMantras(
         rows.map((row: any) => ({
@@ -142,7 +162,47 @@ const AdminMantrasScreen = () => {
     }
   };
 
-  const {unassigned, groups} = groupByCategory(mantras);
+  const saveCategory = async () => {
+    const name = categoryName.trim();
+    if (name.length < 2) {
+      Alert.alert('Required', 'Enter a category name.');
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const response = await apiService.post('/admin/mantra-categories', {name});
+      const created = response.data?.data;
+      if (created?.code) {
+        setCategories(current => [
+          ...current,
+          {code: String(created.code), name: String(created.name || name)},
+        ]);
+      }
+      setCategoryName('');
+      setAddingCategory(false);
+    } catch (err) {
+      Alert.alert(
+        'Could not add category',
+        getApiError(err, 'Could not add the category.'),
+      );
+    } finally {
+      setSavingCategory(false);
+    }
+  };
+
+  const openAddMantra = (category: MantraCategoryOption) => {
+    setPickingCategory(false);
+    setAddingCategory(false);
+    setOpenCode(category.code);
+    navigation.navigate('AdminMantraEdit', {
+      japaList,
+      categoryCode: category.code,
+      categoryName: category.name,
+    });
+  };
+
+  const {unassigned, groups} = groupByCategory(mantras, categories);
+  const openCategory = categories.find(category => category.code === openCode);
 
   const renderMantra = (item: ListedMantra) => (
     <View key={item.id} style={styles.card}>
@@ -162,6 +222,9 @@ const AdminMantrasScreen = () => {
               mantraId: item.id,
               japaList,
               categoryCode: item.categoryCode,
+              categoryName:
+                categories.find(category => category.code === item.categoryCode)
+                  ?.name || '',
             })
           }>
           <Text style={styles.editText}>Edit</Text>
@@ -180,55 +243,120 @@ const AdminMantrasScreen = () => {
     </View>
   );
 
+  const confirmMove = (category: MantraCategoryOption) => {
+    if (!moving) {
+      return;
+    }
+    if (moving.categoryCode === category.code) {
+      Alert.alert(
+        'Already there',
+        `"${moving.name}" is already in ${category.name}.`,
+      );
+      return;
+    }
+    Alert.alert(
+      'Move mantra',
+      `Move "${moving.name}" to ${category.name}?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Move',
+          onPress: () => {
+            setOpenCode(category.code);
+            moveTo(category.code);
+          },
+        },
+      ],
+    );
+  };
+
+  const onCategoryPress = (category: MantraCategoryOption) => {
+    if (moving) {
+      confirmMove(category);
+      return;
+    }
+    if (pickingCategory) {
+      openAddMantra(category);
+      return;
+    }
+    setOpenCode(current => (current === category.code ? null : category.code));
+  };
+
   return (
-    <AdminScreenLayout title={listTitle} tab="AdminJapa" showBack>
-      <Text style={styles.heading}>{listTitle}</Text>
-      <Text style={styles.sub}>
-        Mantras in this list stay separate from the other japa list. Move puts a
-        mantra in a category. Edit corrects the spelling. Delete removes it from
-        this list only.
-      </Text>
-
-      {moving ? (
-        <View style={styles.picker}>
-          <Text style={styles.pickerTitle}>Move "{moving.name}" to</Text>
-          {MANTRA_CATEGORIES.map(category => (
+    <AdminScreenLayout
+      title={listTitle}
+      tab="AdminJapa"
+      showBack
+      pinned={
+        <View>
+          <View style={styles.pinRow}>
             <TouchableOpacity
-              key={category.code}
-              style={styles.pickerRow}
-              onPress={() => moveTo(category.code)}>
-              <Text style={styles.pickerText}>{category.label}</Text>
-            </TouchableOpacity>
-          ))}
-          <TouchableOpacity onPress={() => setMoving(null)}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      {pickingCategory ? (
-        <View style={styles.picker}>
-          <Text style={styles.pickerTitle}>Add the mantra in</Text>
-          {MANTRA_CATEGORIES.map(category => (
-            <TouchableOpacity
-              key={category.code}
-              style={styles.pickerRow}
+              style={styles.pinBtn}
               onPress={() => {
+                setMoving(null);
                 setPickingCategory(false);
-                navigation.navigate('AdminMantraEdit', {
-                  japaList,
-                  categoryCode: category.code,
-                });
+                setAddingCategory(true);
               }}>
-              <Text style={styles.pickerText}>{category.label}</Text>
+              <Text style={styles.pinText}>ADD CATEGORY</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity onPress={() => setPickingCategory(false)}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pinBtn}
+              onPress={() => {
+                setAddingCategory(false);
+                if (openCategory) {
+                  openAddMantra(openCategory);
+                  return;
+                }
+                setPickingCategory(true);
+              }}>
+              <Text style={styles.pinText}>ADD MANTRA</Text>
+            </TouchableOpacity>
+          </View>
+          {addingCategory ? (
+            <View style={styles.picker}>
+              <Text style={styles.pickerTitle}>New category</Text>
+              <TextInput
+                style={styles.input}
+                value={categoryName}
+                onChangeText={setCategoryName}
+                placeholder="Category name"
+                placeholderTextColor={Colors.placeholder}
+              />
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  style={styles.editBtn}
+                  disabled={savingCategory}
+                  onPress={saveCategory}>
+                  <Text style={styles.editText}>
+                    {savingCategory ? 'Saving' : 'Save'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setAddingCategory(false)}>
+                  <Text style={styles.cancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+          {moving ? (
+            <Text style={styles.hint}>
+              Tap a category to move "{moving.name}".{' '}
+              <Text style={styles.cancelInline} onPress={() => setMoving(null)}>
+                Cancel
+              </Text>
+            </Text>
+          ) : null}
+          {pickingCategory ? (
+            <Text style={styles.hint}>
+              Tap a category to add the mantra there.{' '}
+              <Text
+                style={styles.cancelInline}
+                onPress={() => setPickingCategory(false)}>
+                Cancel
+              </Text>
+            </Text>
+          ) : null}
         </View>
-      ) : null}
-
+      }>
       {loading ? (
         <View style={styles.centerBox}>
           <ActivityIndicator color={Colors.templeGold} />
@@ -241,30 +369,66 @@ const AdminMantrasScreen = () => {
         </TouchableOpacity>
       ) : null}
 
+      {!loading
+        ? groups.map(group => {
+            const open = !moving && openCode === group.code;
+            return (
+              <View key={group.code} style={styles.section}>
+                <TouchableOpacity
+                  style={[
+                    styles.categoryBtn,
+                    moving && styles.categoryBtnMove,
+                    open && styles.categoryBtnOpen,
+                  ]}
+                  onPress={() => onCategoryPress(group)}
+                  activeOpacity={0.8}>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      moving && styles.categoryTextMove,
+                      open && styles.categoryTextOpen,
+                    ]}>
+                    {group.name}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.categoryCount,
+                      moving && styles.categoryCountMove,
+                      open && styles.categoryTextOpen,
+                    ]}>
+                    {group.items.length}
+                  </Text>
+                </TouchableOpacity>
+                {open ? (
+                  <View style={styles.openBox}>
+                    {group.items.length === 0 ? (
+                      <Text style={styles.empty}>No mantras in this category yet.</Text>
+                    ) : (
+                      group.items.map(renderMantra)
+                    )}
+                    <TouchableOpacity
+                      style={styles.addInCategory}
+                      onPress={() => openAddMantra(group)}>
+                      <Text style={styles.addInCategoryText}>
+                        ADD MANTRA IN {group.name.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            );
+          })
+        : null}
+
       {!loading && unassigned.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Not in a category yet</Text>
+          <Text style={styles.meta}>
+            Move each mantra into a category when you are ready.
+          </Text>
           {unassigned.map(renderMantra)}
         </View>
       ) : null}
-
-      {!loading
-        ? groups.map(group => (
-            <View key={group.code} style={styles.section}>
-              <Text style={styles.sectionTitle}>{group.label}</Text>
-              {group.items.length === 0 ? (
-                <Text style={styles.empty}>No mantras in this category yet.</Text>
-              ) : (
-                group.items.map(renderMantra)
-              )}
-            </View>
-          ))
-        : null}
-
-      <PrimaryButton
-        title="ADD MANTRA"
-        onPress={() => setPickingCategory(true)}
-      />
     </AdminScreenLayout>
   );
 };
@@ -272,16 +436,88 @@ const AdminMantrasScreen = () => {
 export default AdminMantrasScreen;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
+  pinRow: {
+    flexDirection: 'row',
+    gap: 8,
   },
-  sub: {
-    marginTop: 6,
-    marginBottom: 16,
-    color: Colors.textSecondary,
+  pinBtn: {
+    flex: 1,
+    backgroundColor: Colors.templeGold,
+    borderRadius: 24,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  pinText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  hint: {
+    marginTop: 8,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
     lineHeight: 20,
+  },
+  cancelInline: {
+    color: Colors.textSecondary,
+    fontWeight: '800',
+  },
+  categoryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
+  categoryBtnOpen: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
+  categoryBtnMove: {
+    paddingVertical: 22,
+    marginBottom: 18,
+  },
+  categoryText: {
+    flex: 1,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  categoryTextMove: {
+    fontSize: 22,
+    lineHeight: 28,
+  },
+  categoryCountMove: {
+    fontSize: 18,
+  },
+  categoryTextOpen: {
+    color: Colors.white,
+  },
+  categoryCount: {
+    marginLeft: 8,
+    color: Colors.leafGreen,
+    fontWeight: '800',
+  },
+  openBox: {
+    marginBottom: 8,
+  },
+  addInCategory: {
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  addInCategoryText: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 12,
   },
   centerBox: {
     paddingVertical: 20,
@@ -379,5 +615,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     color: Colors.textSecondary,
     fontWeight: '800',
+  },
+  input: {
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: Colors.sacredBrown,
+    fontSize: 16,
+  },
+  buttonGap: {
+    height: 10,
   },
 });

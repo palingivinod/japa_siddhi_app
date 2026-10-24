@@ -14,16 +14,33 @@ export const MANTRA_CATEGORIES: Array<{
   {code: 'guru', label: 'Guru mantras', labelKey: 'mantraCatGuru'},
 ];
 
+export type MantraCategoryOption = {
+  code: string;
+  name: string;
+};
+
+export const builtinCategories = (): MantraCategoryOption[] =>
+  MANTRA_CATEGORIES.map(item => ({code: item.code, name: item.label}));
+
 export const mantraListLabel = (list?: string) =>
   String(list || '').toUpperCase() === 'ANTHARANGA'
     ? 'Antharanga Japa'
     : 'Samuhika Japa';
 
+export const categoryTitle = (
+  category: MantraCategoryOption,
+  t: (key: TranslationKey) => string,
+) => {
+  const builtin = MANTRA_CATEGORIES.find(item => item.code === category.code);
+  return builtin ? t(builtin.labelKey) : category.name;
+};
+
 export const groupByCategory = <T extends {categoryCode?: string | null}>(
   rows: T[],
+  categories: MantraCategoryOption[] = builtinCategories(),
 ) => {
   const unassigned = rows.filter(row => !row.categoryCode);
-  const groups = MANTRA_CATEGORIES.map(category => ({
+  const groups = categories.map(category => ({
     ...category,
     items: rows.filter(row => row.categoryCode === category.code),
   }));

@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {Alert, ScrollView, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -8,7 +8,12 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import {groupByCategory} from './mantraCategories';
+import {
+  MantraCategoryOption,
+  builtinCategories,
+  categoryTitle,
+  groupByCategory,
+} from './mantraCategories';
 
 interface MantraStat {
   totalChants: number;
@@ -22,6 +27,9 @@ const CommunityJapaScreen = () => {
   const [selected, setSelected] = useState<any>(null);
   const [stats, setStats] = useState<Record<number, MantraStat>>({});
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [categories, setCategories] = useState<MantraCategoryOption[]>(
+    builtinCategories(),
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -65,7 +73,24 @@ const CommunityJapaScreen = () => {
     }, []),
   );
 
-  const {unassigned, groups} = groupByCategory(mantras);
+  useEffect(() => {
+    apiService
+      .get('/mantras/categories')
+      .then(response => {
+        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+        if (rows.length > 0) {
+          setCategories(
+            rows.map((row: any) => ({
+              code: String(row.code || ''),
+              name: String(row.name || ''),
+            })),
+          );
+        }
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const {unassigned, groups} = groupByCategory(mantras, categories);
   const selectedStat = selected ? stats[Number(selected.id)] : undefined;
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
@@ -178,7 +203,7 @@ const CommunityJapaScreen = () => {
         ) : null}
         {groups.map(group => (
           <View key={group.code} style={styles.section}>
-            <Text style={styles.sectionTitle}>{t(group.labelKey)}</Text>
+            <Text style={styles.sectionTitle}>{categoryTitle(group, t)}</Text>
             {group.items.map(item => (
               <MenuCard
                 key={item.id}

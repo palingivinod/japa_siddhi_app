@@ -1244,6 +1244,42 @@ const mapMantraRow = (row: any) => ({
   categoryCode: row.categoryCode || '',
 });
 
+router.get('/mantra-categories', async (_req: Request, res: Response) => {
+  try {
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    const rows = await mantraRepository.listCategories();
+    return res.json({success: true, data: rows});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load categories.',
+    });
+  }
+});
+
+router.post('/mantra-categories', async (req: Request, res: Response) => {
+  try {
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    const result = await mantraRepository.createCategory(String(req.body?.name || ''));
+    if (result.error || !result.category) {
+      return res.status(400).json({
+        success: false,
+        message: result.error || 'Could not add the category.',
+      });
+    }
+    return res.status(201).json({
+      success: true,
+      message: 'Category added.',
+      data: result.category,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to add the category.',
+    });
+  }
+});
+
 router.get('/mantras', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository'))

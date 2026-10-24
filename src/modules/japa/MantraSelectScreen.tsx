@@ -8,7 +8,12 @@ import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedMantra} from '../../utils/localizedContent';
-import {groupByCategory} from './mantraCategories';
+import {
+  MantraCategoryOption,
+  builtinCategories,
+  categoryTitle,
+  groupByCategory,
+} from './mantraCategories';
 
 const MantraSelectScreen = () => {
   const navigation = useNavigation<any>();
@@ -18,6 +23,9 @@ const MantraSelectScreen = () => {
   const [mantras, setMantras] = useState<any[]>([]);
   const [selected, setSelected] = useState<number | null>(passedId);
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [categories, setCategories] = useState<MantraCategoryOption[]>(
+    builtinCategories(),
+  );
   // Arriving with a mantra already chosen (community japa) only needs
   // confirming, so the full list stays collapsed until it is asked for.
   const [picking, setPicking] = useState(!passedId);
@@ -29,6 +37,20 @@ const MantraSelectScreen = () => {
       setMantras(items);
       setSelected(current => current ?? items[0]?.id ?? null);
     });
+    apiService
+      .get('/mantras/categories')
+      .then(response => {
+        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
+        if (rows.length > 0) {
+          setCategories(
+            rows.map((row: any) => ({
+              code: String(row.code || ''),
+              name: String(row.name || ''),
+            })),
+          );
+        }
+      })
+      .catch(() => undefined);
     apiService
       .get('/japa-goals')
       .then(res => {
@@ -89,7 +111,7 @@ const MantraSelectScreen = () => {
     );
   };
 
-  const {unassigned, groups} = groupByCategory(mantras);
+  const {unassigned, groups} = groupByCategory(mantras, categories);
 
   const handleSetGoal = () => {
     if (!selected) return;
@@ -144,7 +166,7 @@ const MantraSelectScreen = () => {
           ) : null}
           {groups.map(group => (
             <View key={group.code} style={styles.section}>
-              <Text style={styles.sectionTitle}>{t(group.labelKey)}</Text>
+                <Text style={styles.sectionTitle}>{categoryTitle(group, t)}</Text>
               {group.items.length > 0 ? (
                 <View style={styles.chipRow}>{group.items.map(renderChip)}</View>
               ) : null}

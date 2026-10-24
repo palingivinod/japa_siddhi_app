@@ -3,6 +3,15 @@ import mantraRepository from './mantra.repository';
 import apiResponse from '../../utils/apiResponse';
 
 class MantraController {
+  async categories(_req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await mantraRepository.listCategories();
+      return apiResponse.success(res, 'Mantra categories fetched successfully', data);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async list(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await mantraRepository.getActiveMantras(

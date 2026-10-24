@@ -1,5 +1,6 @@
 import mysql from '../../database/mysql';
 import {
+  MANTRA_CATEGORIES,
   normalizeMantraCategory,
   normalizeMantraList,
 } from './mantraCategories';
@@ -71,7 +72,117 @@ class MantraRepository {
     await mysql.query(
       `SELECT japa_list, category_code, copied_from_id FROM mantras LIMIT 1`,
     );
+    await this.ensureCategoryTable();
     this.columnsReady = true;
+  }
+
+  private async ensureCategoryTable() {
+    const engine = mysql.getEngineName() || 'sqlite';
+    if (engine === 'mysql') {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS mantra_categories (
+          id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+          code VARCHAR(40) NOT NULL,
+          name VARCHAR(100) NOT NULL,
+          display_order INT NOT NULL DEFAULT 0,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          UNIQUE KEY uq_mantra_category_code (code)
+        )
+      `);
+    } else {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS mantra_categories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          code TEXT NOT NULL UNIQUE,
+          name TEXT NOT NULL,
+          display_order INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    }
+    for (const category of MANTRA_CATEGORIES) {
+      const existing = await mysql.query<any[]>(
+        `SELECT code FROM mantra_categories WHERE code = ? LIMIT 1`,
+        [category.code],
+      );
+      if (!existing?.length) {
+        await mysql.query(
+          `
+          INSERT INTO mantra_categories (code, name, display_order)
+          VALUES (?, ?, ?)
+          `,
+          [
+            category.code,
+            category.label,
+            MANTRA_CATEGORIES.findIndex(item => item.code === category.code) + 1,
+          ],
+        );
+      }
+    }
+  }
+
+  async listCategories() {
+    await this.ensureMantraLists();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT code, name, display_order AS displayOrder
+      FROM mantra_categories
+      ORDER BY display_order ASC, id ASC
+      `,
+    );
+    return rows || [];
+  }
+
+  async createCategory(name: string) {
+    await this.ensureMantraLists();
+    const clean = String(name || '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, 80);
+    if (clean.length < 2) {
+      return {error: 'Enter a category name.' as const};
+    }
+    const existing = await this.listCategories();
+    if (
+      existing.some(
+        (item: any) => String(item.name || '').toLowerCase() === clean.toLowerCase(),
+      )
+    ) {
+      return {error: 'That category already exists.' as const};
+    }
+    const slug = clean
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+      .slice(0, 24);
+    let code = slug || `cat_${Date.now().toString(36)}`;
+    let extra = 2;
+    while (existing.some((item: any) => item.code === code)) {
+      code = `${(slug || 'cat').slice(0, 20)}_${extra}`;
+      extra += 1;
+    }
+    const displayOrder =
+      existing.reduce(
+        (max: number, item: any) => Math.max(max, Number(item.displayOrder) || 0),
+        0,
+      ) + 1;
+    await mysql.query(
+      `
+      INSERT INTO mantra_categories (code, name, display_order)
+      VALUES (?, ?, ?)
+      `,
+      [code, clean, displayOrder],
+    );
+    return {category: {code, name: clean, displayOrder}};
+  }
+
+  private async categoryExists(code: string) {
+    const rows = await mysql.query<any[]>(
+      `SELECT code FROM mantra_categories WHERE code = ? LIMIT 1`,
+      [code],
+    );
+    return Boolean(rows?.length);
   }
 
   /**
@@ -173,6 +284,9 @@ class MantraRepository {
     const name = String(input.mantraName || '').trim();
     const japaList = normalizeMantraList(input.japaList) || 'SAMUHIKA';
     const categoryCode = normalizeMantraCategory(input.categoryCode);
+    if (!categoryCode || !(await this.categoryExists(categoryCode))) {
+      throw new Error('Choose a mantra category.');
+    }
     const deity = String(input.deityName || 'Community').trim() || 'Community';
     const sanskrit = String(input.sanskritText || name).trim() || name;
     const transliteration =
@@ -229,7 +343,7 @@ class MantraRepository {
     await this.ensureMantraLists();
     const category = normalizeMantraCategory(categoryCode);
     const existing = await this.getById(id);
-    if (!existing || !category) {
+    if (!existing || !category || !(await this.categoryExists(category))) {
       return null;
     }
     await mysql.query(

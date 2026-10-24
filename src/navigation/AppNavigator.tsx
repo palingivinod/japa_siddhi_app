@@ -330,7 +330,12 @@ export type RootStackParamList = {
   AdminJapa: undefined;
   AdminMantras: {list?: 'SAMUHIKA' | 'ANTHARANGA'} | undefined;
   AdminMantraEdit:
-    | {mantraId?: string; japaList?: string; categoryCode?: string}
+    | {
+        mantraId?: string;
+        japaList?: string;
+        categoryCode?: string;
+        categoryName?: string;
+      }
     | undefined;
   AdminChallengeCreate:
     | {

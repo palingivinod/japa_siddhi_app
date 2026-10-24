@@ -87,8 +87,12 @@ const AdminMantraEditScreen = () => {
   const categoryCode = String(route.params?.categoryCode || '');
   const [shownList, setShownList] = useState(japaList);
   const [shownCategory, setShownCategory] = useState(categoryCode);
+  const [shownCategoryName, setShownCategoryName] = useState(
+    String(route.params?.categoryName || ''),
+  );
   const categoryLabel =
     MANTRA_CATEGORIES.find(item => item.code === shownCategory)?.label ||
+    shownCategoryName ||
     'Not in a category yet';
 
   const [loading, setLoading] = useState(isEdit);

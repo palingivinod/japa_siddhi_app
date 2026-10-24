@@ -24,12 +24,12 @@ export const normalizeMantraList = (value?: unknown): MantraListCode | '' => {
   return '';
 };
 
-export const normalizeMantraCategory = (
-  value?: unknown,
-): MantraCategoryCode | null => {
+export const normalizeMantraCategory = (value?: unknown): string | null => {
   const code = String(value || '')
     .trim()
     .toLowerCase();
-  const match = MANTRA_CATEGORIES.find(item => item.code === code);
-  return match ? match.code : null;
+  if (!/^[a-z0-9_]{1,40}$/.test(code)) {
+    return null;
+  }
+  return code;
 };
