@@ -1,6 +1,7 @@
 import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,7 +12,7 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
-import apiService from '../../services/apiService';
+import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import {calcDaysRemaining} from '../../utils/dailyGoal';
 import {istIsoDate} from '../../utils/dateUtils';
@@ -61,6 +62,7 @@ const YourJapasScreen = () => {
   const [japas, setJapas] = useState<ActiveJapaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const getSourceBadge = (type: JapaSourceType) => {
     switch (type) {
@@ -334,6 +336,43 @@ const YourJapasScreen = () => {
     });
   };
 
+  const deleteJapa = async (item: ActiveJapaItem) => {
+    if (deletingId) {
+      return;
+    }
+    setDeletingId(item.id);
+    try {
+      if (item.isChallenge && item.challengeId) {
+        await apiService.delete(`/challenges/${item.challengeId}/join`);
+      } else if (item.goalId) {
+        await apiService.delete(`/japa-goals/${item.goalId}`);
+      } else {
+        return;
+      }
+      setJapas(current => current.filter(row => row.id !== item.id));
+    } catch (error) {
+      Alert.alert(t('delete'), getApiError(error, t('deleteJapaFailed')));
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const confirmDelete = (item: ActiveJapaItem) => {
+    if (!item.goalId && !item.challengeId) {
+      return;
+    }
+    Alert.alert(t('deleteJapaTitle'), t('deleteJapaMessage'), [
+      {text: t('cancel'), style: 'cancel'},
+      {
+        text: t('delete'),
+        style: 'destructive',
+        onPress: () => {
+          void deleteJapa(item);
+        },
+      },
+    ]);
+  };
+
   return (
     <ScreenLayout
       title={t('yourJapas') || 'Your Japas'}
@@ -525,7 +564,6 @@ const YourJapasScreen = () => {
                   </View>
                 </View>
 
-                {/* Action: Chant Now / Completed */}
                 {item.isCompleted ? (
                   <TouchableOpacity
                     style={[styles.chantBtn, styles.completedBtn]}
@@ -545,6 +583,15 @@ const YourJapasScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  activeOpacity={0.85}
+                  disabled={deletingId === item.id}
+                  onPress={() => confirmDelete(item)}>
+                  <Text style={styles.deleteBtnText}>
+                    {deletingId === item.id ? t('loading') : t('delete')}
+                  </Text>
+                </TouchableOpacity>
               </View>
             );
           })
@@ -836,6 +883,23 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: Colors.templeGold,
     borderRadius: 4,
+  },
+  deleteBtn: {
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.error,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  deleteBtnText: {
+    color: Colors.error,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
+    includeFontPadding: true,
   },
   chantBtn: {
     backgroundColor: Colors.templeGold,

@@ -134,6 +134,23 @@ class ChallengeController {
 
   }
 
+  async leave(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      await challengeService.leave(Number(req.params.id), userId);
+      return apiResponse.success(res, 'Challenge removed');
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateProgress(
     req: Request,
     res: Response,

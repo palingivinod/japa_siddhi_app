@@ -533,6 +533,9 @@ export const mr: TranslationDict = {
   viewChallengeProgress: 'आव्हान प्रगती पहा',
   goalWithCount: 'ध्येय {{count}}',
   goalWithLifetime: 'ध्येय {{count}} · एकूण {{lifetime}}',
+  deleteJapaTitle: 'हे जप काढायचे?',
+  deleteJapaMessage: 'हे तुमच्या जपांमधून काढले जाईल.',
+  deleteJapaFailed: 'हे जप काढता आले नाही.',
   challengeGoalWithCount: 'आव्हान ध्येय {{count}}',
   challengeCountingHint: 'फक्त या आव्हानासाठी मोजणी — अंतरंग जपापासून वेगळी.',
 

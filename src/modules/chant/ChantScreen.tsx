@@ -1104,12 +1104,7 @@ const ChantScreen = () => {
         <Text style={styles.goal}>
           {challengeId
             ? t('challengeGoalWithCount', {count: goal.toLocaleString()})
-            : savedTotal > 0
-              ? t('goalWithLifetime', {
-                  count: goal.toLocaleString(),
-                  lifetime: savedTotal.toLocaleString(),
-                })
-              : t('goalWithCount', {count: goal.toLocaleString()})}
+            : t('goalWithCount', {count: goal.toLocaleString()})}
         </Text>
         {!challengeId && dailyTarget > 0 ? (
           <Text style={styles.dailyGoalLine}>

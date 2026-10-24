@@ -1,6 +1,6 @@
 import {Alert, Linking} from 'react-native';
 
-import {paymentsPageUrl} from '../modules/payments/paymentsPageUrl';
+import {startAppPayment} from '../modules/payments/startAppPayment';
 import apiService from '../services/apiService';
 import {navigateTo} from './navigationRef';
 
@@ -277,15 +277,16 @@ export const bindNotifyDeepLinks = () => {
           {
             text: 'Retry',
             onPress: () => {
-              Linking.openURL(
-                paymentsPageUrl({
-                  amount: Number.isFinite(payment.amount) && payment.amount > 0 ? payment.amount : undefined,
-                  purpose: payment.purpose,
-                  seva: payment.seva,
-                  name: payment.name,
-                  phone: payment.phone,
-                }),
-              ).catch(() => undefined);
+              void startAppPayment({
+                amount:
+                  Number.isFinite(payment.amount) && payment.amount > 0
+                    ? payment.amount
+                    : undefined,
+                purpose: payment.purpose,
+                seva: payment.seva,
+                name: payment.name,
+                phone: payment.phone,
+              });
             },
           },
         ]);

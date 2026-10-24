@@ -551,6 +551,9 @@ export const ta: TranslationDict = {
   viewChallengeProgress: 'சவால் முன்னேற்றத்தைப் பார்',
   goalWithCount: 'இலக்கு {{count}}',
   goalWithLifetime: 'இலக்கு {{count}} · மொத்தம் {{lifetime}}',
+  deleteJapaTitle: 'இந்த ஜபத்தை நீக்கவா?',
+  deleteJapaMessage: 'இது உங்கள் ஜபங்களிலிருந்து நீக்கப்படும்.',
+  deleteJapaFailed: 'இந்த ஜபத்தை நீக்க முடியவில்லை.',
   challengeGoalWithCount: 'சவால் இலக்கு {{count}}',
   challengeCountingHint:
     'இந்தச் சவாலுக்கு மட்டும் எண்ணிக்கை — அந்தரங்க ஜபத்திலிருந்து தனி.',

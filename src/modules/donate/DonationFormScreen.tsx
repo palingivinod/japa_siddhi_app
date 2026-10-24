@@ -1,5 +1,5 @@
 ﻿import React, {useCallback, useState} from 'react';
-import {Alert, Linking} from 'react-native';
+import {Alert} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -10,7 +10,7 @@ import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
-import {paymentsPageUrl} from '../payments/paymentsPageUrl';
+import {startAppPayment} from '../payments/startAppPayment';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const DonationFormScreen = () => {
@@ -81,16 +81,12 @@ const DonationFormScreen = () => {
       return;
     }
 
-    Linking.openURL(
-      paymentsPageUrl({
-        amount: totalAmount,
-        purpose: occasion.trim() || params.itemName || 'Anna Santharpana',
-        seva: 'Annadanam',
-        name: fullName.trim(),
-        phone: cleanMobile,
-      }),
-    ).catch(() => {
-      Alert.alert('Payment', 'Could not open payments page.');
+    await startAppPayment({
+      amount: totalAmount,
+      purpose: occasion.trim() || params.itemName || 'Anna Santharpana',
+      seva: 'Annadanam',
+      name: fullName.trim(),
+      phone: cleanMobile,
     });
   };
 

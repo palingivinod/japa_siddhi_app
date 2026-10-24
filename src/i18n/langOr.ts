@@ -535,6 +535,9 @@ export const or: TranslationDict = {
   viewChallengeProgress: 'ଚ୍ୟାଲେଞ୍ଜ ପ୍ରଗତି ଦେଖନ୍ତୁ',
   goalWithCount: 'ଲକ୍ଷ୍ୟ {{count}}',
   goalWithLifetime: 'ଲକ୍ଷ୍ୟ {{count}} · ମୋଟ {{lifetime}}',
+  deleteJapaTitle: 'ଏହି ଜପ ଡିଲିଟ୍ କରିବେ?',
+  deleteJapaMessage: 'ଏହା ଆପଣଙ୍କ ଜପରୁ ହଟିଯିବ।',
+  deleteJapaFailed: 'ଏହି ଜପ ଡିଲିଟ୍ ହେଲା ନାହିଁ।',
   challengeGoalWithCount: 'ଚ୍ୟାଲେଞ୍ଜ ଲକ୍ଷ୍ୟ {{count}}',
   challengeCountingHint:
     'କେବଳ ଏହି ଚ୍ୟାଲେଞ୍ଜ ପାଇଁ ଗଣନା — ଅନ୍ତରଙ୍ଗ ଜପଠାରୁ ଅଲଗା।',

@@ -226,6 +226,14 @@ class ChallengeService {
 
   }
 
+  async leave(
+    challengeId: number,
+    userId: number,
+  ) {
+    await challengeRepository.leave(challengeId, userId);
+    return {success: true};
+  }
+
   async updateProgress(
     challengeId: number,
     userId: number,

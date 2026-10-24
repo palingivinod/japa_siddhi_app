@@ -531,6 +531,9 @@ export const ml: TranslationDict = {
   viewChallengeProgress: 'വെല്ലുവിളി പ്രോഗ്രസ് കാണുക',
   goalWithCount: 'ലക്ഷ്യം {{count}}',
   goalWithLifetime: 'ലക്ഷ്യം {{count}} · ആകെ {{lifetime}}',
+  deleteJapaTitle: 'ഈ ജപം നീക്കണോ?',
+  deleteJapaMessage: 'ഇത് നിങ്ങളുടെ ജപങ്ങളിൽ നിന്ന് നീക്കം ചെയ്യും.',
+  deleteJapaFailed: 'ഈ ജപം നീക്കാൻ കഴിഞ്ഞില്ല.',
   challengeGoalWithCount: 'വെല്ലുവിളി ലക്ഷ്യം {{count}}',
   challengeCountingHint:
     'ഈ വെല്ലുവിളിക്ക് മാത്രമുള്ള എണ്ണം — അന്തരംഗ ജപത്തിൽ നിന്ന് വേറിട്ട്.',

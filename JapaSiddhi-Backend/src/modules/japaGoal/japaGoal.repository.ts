@@ -14,6 +14,7 @@ const istToday = () =>
 class JapaGoalRepository {
 
   private planDateReady = false;
+  private utcDateRepairReady = false;
 
   private async ensurePlanDateColumn() {
     if (this.planDateReady) {
@@ -36,6 +37,65 @@ class JapaGoalRepository {
       // The column is already present.
     }
     this.planDateReady = true;
+  }
+
+  /**
+   * Goals saved before the Indian-date fix stored the phone's local midnight
+   * as the previous UTC day. That is exactly one day before the Indian day
+   * the goal was created. Move those dates forward once. Later saves already
+   * match the creation day, so they are left alone.
+   */
+  private async repairUtcGoalDates() {
+    if (this.utcDateRepairReady) {
+      return;
+    }
+    await this.ensurePlanDateColumn();
+    const isMysql = mysql.getEngineName() === 'mysql';
+    if (isMysql) {
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET
+          start_date = DATE_ADD(start_date, INTERVAL 1 DAY),
+          end_date = DATE_ADD(end_date, INTERVAL 1 DAY),
+          daily_plan_date = NULL
+        WHERE start_date = DATE_SUB(
+          DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)),
+          INTERVAL 1 DAY
+        )
+        `,
+      );
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
+        WHERE status = 'EXPIRED'
+          AND end_date >= DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))
+          AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
+        `,
+      );
+    } else {
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET
+          start_date = date(start_date, '+1 day'),
+          end_date = date(end_date, '+1 day'),
+          daily_plan_date = NULL
+        WHERE date(start_date) = date(created_at, '+5 hours', '30 minutes', '-1 day')
+        `,
+      );
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET status = 'ACTIVE', updated_at = CURRENT_TIMESTAMP
+        WHERE status = 'EXPIRED'
+          AND date(end_date) >= date('now', '+5 hours', '30 minutes')
+          AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
+        `,
+      );
+    }
+    this.utcDateRepairReady = true;
   }
 
   private asIsoDate(value: unknown) {
@@ -398,6 +458,7 @@ class JapaGoalRepository {
   ) {
     try {
       await this.ensurePlanDateColumn();
+      await this.repairUtcGoalDates();
       const isMysql = mysql.getEngineName() === 'mysql';
       const expiredBeforeToday = isMysql
         ? `end_date < DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`

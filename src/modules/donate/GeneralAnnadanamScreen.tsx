@@ -1,5 +1,5 @@
 ﻿import React, {useCallback, useEffect, useState} from 'react';
-import {Alert, Linking, StyleSheet, Text} from 'react-native';
+import {Alert, StyleSheet, Text} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -11,7 +11,7 @@ import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
-import {paymentsPageUrl} from '../payments/paymentsPageUrl';
+import {startAppPayment} from '../payments/startAppPayment';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const GeneralAnnadanamScreen = () => {
@@ -80,16 +80,12 @@ const GeneralAnnadanamScreen = () => {
       return;
     }
 
-    Linking.openURL(
-      paymentsPageUrl({
-        amount: totalAmount,
-        purpose: occasion.trim() || 'General Anna Santharpana',
-        seva: 'Annadanam',
-        name: fullName.trim(),
-        phone: cleanMobile,
-      }),
-    ).catch(() => {
-      Alert.alert('Payment', 'Could not open payments page.');
+    await startAppPayment({
+      amount: totalAmount,
+      purpose: occasion.trim() || 'General Anna Santharpana',
+      seva: 'Annadanam',
+      name: fullName.trim(),
+      phone: cleanMobile,
     });
   };
 

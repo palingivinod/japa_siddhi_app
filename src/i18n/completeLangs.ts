@@ -549,6 +549,9 @@ export const kn: TranslationDict = {
   viewChallengeProgress: 'ಸವಾಲಿನ ಪ್ರಗತಿ ನೋಡಿ',
   goalWithCount: 'ಗುರಿ {{count}}',
   goalWithLifetime: 'ಗುರಿ {{count}} · ಒಟ್ಟು {{lifetime}}',
+  deleteJapaTitle: 'ಈ ಜಪವನ್ನು ಅಳಿಸುವುದೇ?',
+  deleteJapaMessage: 'ಇದು ನಿಮ್ಮ ಜಪಗಳಿಂದ ತೆಗೆದುಹಾಕಲಾಗುತ್ತದೆ.',
+  deleteJapaFailed: 'ಈ ಜಪವನ್ನು ಅಳಿಸಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
   challengeGoalWithCount: 'ಸವಾಲಿನ ಗುರಿ {{count}}',
   challengeCountingHint: 'ಈ ಸವಾಲಿಗೆ ಮಾತ್ರ ಎಣಿಕೆ — ಅಂತರಂಗ ಜಪದಿಂದ ಪ್ರತ್ಯೇಕ.',
 

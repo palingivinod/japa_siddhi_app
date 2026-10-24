@@ -533,6 +533,9 @@ export const bn: TranslationDict = {
   viewChallengeProgress: 'চ্যালেঞ্জের অগ্রগতি দেখুন',
   goalWithCount: 'লক্ষ্য {{count}}',
   goalWithLifetime: 'লক্ষ্য {{count}} · মোট {{lifetime}}',
+  deleteJapaTitle: 'এই জপ মুছবেন?',
+  deleteJapaMessage: 'এটি আপনার জপ থেকে সরে যাবে।',
+  deleteJapaFailed: 'এই জপ মুছা যায়নি।',
   challengeGoalWithCount: 'চ্যালেঞ্জ লক্ষ্য {{count}}',
   challengeCountingHint:
     'শুধু এই চ্যালেঞ্জের জন্য গণনা — অন্তরঙ্গ জপ থেকে পৃথক।',

@@ -1,8 +1,6 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {
-  Alert,
   Image,
-  Linking,
   Platform,
   StyleSheet,
   Text,
@@ -18,7 +16,7 @@ import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
-import {paymentsPageUrl} from './paymentsPageUrl';
+import {startAppPayment} from './startAppPayment';
 
 /*
 const TRUST_UPI_ID = 'q007640149@ybl';
@@ -59,18 +57,23 @@ const CheckoutScreen = () => {
   const amount = Number(params.amount || 1008);
 
   const pay = async () => {
+    const passedAmount = Number(params.amount);
+    const item = String(params.itemName || '');
+    setSaving(true);
     try {
-      const passedAmount = Number(params.amount);
-      const item = String(params.itemName || '');
-      await Linking.openURL(
-        paymentsPageUrl({
-          amount: Number.isFinite(passedAmount) && passedAmount > 0 ? passedAmount : undefined,
-          purpose: params.itemName,
-          seva: params.seva || (/homam/i.test(item) ? 'Nithya Homam' : /anna|santharpana/i.test(item) ? 'Annadanam' : undefined),
-        }),
-      );
-    } catch {
-      Alert.alert('Payment', 'Could not open payments page.');
+      await startAppPayment({
+        amount: Number.isFinite(passedAmount) && passedAmount > 0 ? passedAmount : undefined,
+        purpose: params.itemName,
+        seva:
+          params.seva ||
+          (/homam/i.test(item)
+            ? 'Nithya Homam'
+            : /anna|santharpana/i.test(item)
+              ? 'Annadanam'
+              : undefined),
+      });
+    } finally {
+      setSaving(false);
     }
   };
 

@@ -573,6 +573,9 @@ export const hi: TranslationDict = {
   viewChallengeProgress: 'चुनौती प्रगति देखें',
   goalWithCount: 'लक्ष्य {{count}}',
   goalWithLifetime: 'लक्ष्य {{count}} · कुल {{lifetime}}',
+  deleteJapaTitle: 'यह जप हटाएँ?',
+  deleteJapaMessage: 'यह आपके जप से हट जाएगा।',
+  deleteJapaFailed: 'यह जप नहीं हट सका।',
   challengeGoalWithCount: 'चुनौती लक्ष्य {{count}}',
   challengeCountingHint: 'केवल इस चुनौती के लिए गिनती — अंतरंग जप से अलग।',
 
@@ -1341,6 +1344,9 @@ export const te: TranslationDict = {
   viewChallengeProgress: 'సవాలు ప్రగతి చూడండి',
   goalWithCount: 'లక్ష్యం {{count}}',
   goalWithLifetime: 'లక్ష్యం {{count}} · మొత్తం {{lifetime}}',
+  deleteJapaTitle: 'ఈ జపను తొలగించాలా?',
+  deleteJapaMessage: 'ఇది మీ జపల నుండి తొలగించబడుతుంది.',
+  deleteJapaFailed: 'ఈ జపను తొలగించలేకపోయాం.',
   challengeGoalWithCount: 'సవాలు లక్ష్యం {{count}}',
   challengeCountingHint:
     'ఈ సవాలు కోసం మాత్రమే లెక్కింపు — అంతరంగ జపం నుండి వేరు.',

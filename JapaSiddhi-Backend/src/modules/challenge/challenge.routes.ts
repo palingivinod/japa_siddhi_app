@@ -38,6 +38,12 @@ router.post(
   challengeController.join,
 );
 
+router.delete(
+  '/:id/join',
+  authenticate,
+  challengeController.leave,
+);
+
 router.put(
   '/:id/progress',
   authenticate,

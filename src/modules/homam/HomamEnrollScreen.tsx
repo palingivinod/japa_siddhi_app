@@ -1,5 +1,5 @@
 import React, {useCallback, useState} from 'react';
-import {Alert, Linking, StyleSheet, Text, View} from 'react-native';
+import {Alert, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -9,7 +9,7 @@ import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import {paymentsPageUrl} from '../payments/paymentsPageUrl';
+import {startAppPayment} from '../payments/startAppPayment';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const HOMAM_AMOUNT = 500;
@@ -97,16 +97,12 @@ const HomamEnrollScreen = () => {
       return;
     }
 
-    Linking.openURL(
-      paymentsPageUrl({
-        amount: HOMAM_AMOUNT,
-        purpose: `Nithya Homam: ${cleanPurpose}`.slice(0, 80),
-        seva: 'Nithya Homam',
-        name: cleanName,
-        phone: cleanMobile,
-      }),
-    ).catch(() => {
-      Alert.alert('Payment', 'Could not open payments page.');
+    await startAppPayment({
+      amount: HOMAM_AMOUNT,
+      purpose: `Nithya Homam: ${cleanPurpose}`.slice(0, 80),
+      seva: 'Nithya Homam',
+      name: cleanName,
+      phone: cleanMobile,
     });
   };
 

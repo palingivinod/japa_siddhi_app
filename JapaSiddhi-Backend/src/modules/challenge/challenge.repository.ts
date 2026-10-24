@@ -247,6 +247,20 @@ class ChallengeRepository {
 
   }
 
+  async leave(
+    challengeId: number,
+    userId: number,
+  ): Promise<void> {
+    await mysql.query(
+      `
+      DELETE FROM challenge_participants
+      WHERE challenge_id = ?
+      AND user_id = ?
+      `,
+      [challengeId, userId],
+    );
+  }
+
   async getOpenParticipations(userId: number) {
     return mysql.query<any[]>(
       `

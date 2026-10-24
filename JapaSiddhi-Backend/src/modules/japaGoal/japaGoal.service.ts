@@ -43,10 +43,15 @@ class JapaGoalService {
         .toISOString()
         .slice(0, 10);
     };
-    const startDateStr = istDay(data.startDate);
+    let startDateStr = istDay(data.startDate);
     let endDateStr = data.endDate ? istDay(data.endDate) : '';
     if (!endDateStr) {
       endDateStr = addDays(startDateStr, days - 1);
+    }
+    const today = istDay(new Date());
+    if (startDateStr === addDays(today, -1)) {
+      startDateStr = today;
+      endDateStr = addDays(endDateStr, 1);
     }
 
     const goalId =

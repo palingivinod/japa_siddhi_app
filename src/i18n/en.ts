@@ -803,6 +803,9 @@
   viewChallengeProgress: 'View Challenge Progress',
   goalWithCount: 'Goal {{count}}',
   goalWithLifetime: 'Goal {{count}} · Lifetime {{lifetime}}',
+  deleteJapaTitle: 'Delete this japa?',
+  deleteJapaMessage: 'It will be removed from Your Japas.',
+  deleteJapaFailed: 'Could not delete this japa.',
   challengeGoalWithCount: 'Challenge goal {{count}}',
   challengeCountingHint:
     'Counting only for this challenge — separate from Antharanga japa.',
