@@ -73,6 +73,7 @@ export const emptyPanchang = (): PanchangPayload => ({
 });
 
 import {TranslationKey} from '../i18n/en';
+import {translatePanchangValue} from './panchangTerms';
 
 const DAY_KEYS: TranslationKey[] = [
   'daySun',
@@ -149,6 +150,67 @@ export const formatPanchangDisplayDate = (
     }
   }
   return panchang.displayDate || '';
+};
+
+type Translator = (key: TranslationKey, vars?: any) => string;
+
+const shareLine = (lines: string[], label: string, value?: string | null) => {
+  const text = String(value || '').trim();
+  if (text && text !== '—') {
+    lines.push(`${label}: ${text}`);
+  }
+};
+
+export const buildPanchangShareText = (
+  panchang: PanchangPayload,
+  t: Translator,
+  language: string,
+  extras?: {festival?: string; nextLine?: string},
+) => {
+  const name = (value?: string | null) => translatePanchangValue(value, language);
+  const weekday = name(panchang.weekday);
+  const vara = name(panchang.vara);
+  const varaText =
+    weekday && vara && weekday !== vara ? `${weekday} · ${vara}` : weekday || vara;
+  const nakshatra = [
+    name(panchang.nakshatra),
+    panchang.pada ? t('padaLabel', {n: panchang.pada}) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const amrutha = (panchang.auspiciousTimings?.amruthaGadiyalu || [])
+    .map(slot => `${slot.startTime} – ${slot.endTime}`)
+    .filter(Boolean)
+    .join(', ');
+  const lines = ['Japa Siddhi', t('todaysPanchangam')];
+  const date = formatPanchangDisplayDate(panchang, t);
+  if (date) {
+    lines.push(date);
+  }
+  if (extras?.festival || extras?.nextLine) {
+    lines.push('');
+    if (extras.festival) {
+      lines.push(extras.festival);
+    }
+    if (extras.nextLine) {
+      lines.push(extras.nextLine);
+    }
+  }
+  lines.push('');
+  shareLine(lines, t('labelNakshatra'), nakshatra);
+  shareLine(lines, t('labelTithi'), name(panchang.tithi || panchang.tithiName));
+  shareLine(lines, t('labelVara'), varaText);
+  shareLine(lines, t('labelPaksha'), name(panchang.paksha));
+  shareLine(lines, t('labelYoga'), name(panchang.yoga));
+  shareLine(lines, t('labelKarana'), name(panchang.karana));
+  shareLine(lines, t('labelRahuKalam'), panchang.rahuKalam);
+  shareLine(lines, t('labelMoonRashi'), name(panchang.moonRashi));
+  shareLine(lines, t('labelSunRashi'), name(panchang.sunRashi));
+  shareLine(lines, t('labelSunrise'), panchang.sunrise);
+  shareLine(lines, t('labelSunset'), panchang.sunset);
+  shareLine(lines, t('labelYamagandam'), panchang.yamagandam);
+  shareLine(lines, t('labelAmruthaGadiyalu'), amrutha);
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
 };
 
 export const currentChoghadiya = (

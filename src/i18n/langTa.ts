@@ -64,6 +64,7 @@ export const ta: TranslationDict = {
   startChanting: 'ஜபம் தொடங்கு',
   todayFestival: 'இன்று · திருவிழா',
   todayPanchangam: 'இன்று · பஞ்சாங்கம்',
+  sharePanchangam: 'பகிர்',
   loadingToday: 'இன்று ஏற்றுகிறது...',
   todaysPanchangam: 'இன்றைய பஞ்சாங்கம்',
   panchangMeta: 'இன்றைய Nakshatram, திதி மற்றும் பஞ்சாங்கம்.',

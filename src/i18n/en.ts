@@ -243,6 +243,7 @@
   startChanting: 'Start Chanting',
   todayFestival: 'TODAY · FESTIVAL',
   todayPanchangam: 'TODAY · PANCHANGAM',
+  sharePanchangam: 'SHARE',
   loadingToday: 'Loading today...',
   todaysPanchangam: "Today's Panchangam",
   panchangMeta: 'Nakshatra, tithi and panchangam for today.',

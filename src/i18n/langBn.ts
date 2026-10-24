@@ -64,6 +64,7 @@ export const bn: TranslationDict = {
   startChanting: 'জপ শুরু করুন',
   todayFestival: 'আজ · উৎসব',
   todayPanchangam: 'আজ · পঞ্জিকা',
+  sharePanchangam: 'শেয়ার',
   loadingToday: 'আজ লোড হচ্ছে...',
   todaysPanchangam: 'আজকের পঞ্জিকা',
   panchangMeta: 'আজকের নক্ষত্র, তিথি ও পঞ্জিকা।',

@@ -64,6 +64,7 @@ export const mr: TranslationDict = {
   startChanting: 'जप सुरू करा',
   todayFestival: 'आज · सण',
   todayPanchangam: 'आज · पंचांग',
+  sharePanchangam: 'शेअर',
   loadingToday: 'आज लोड होत आहे...',
   todaysPanchangam: 'आजचे पंचांग',
   panchangMeta: 'आजचे नक्षत्र, तिथी आणि पंचांग.',

@@ -18,6 +18,7 @@ import {useLanguage} from '../../../i18n/LanguageContext';
 import AppIcon, {AppIconName} from '../../../components/icons/AppIcon';
 import apiService from '../../../services/apiService';
 import {
+  buildPanchangShareText,
   emptyPanchang,
   festivalDateLabel,
   festivalName,
@@ -428,6 +429,27 @@ const HomeScreen = () => {
     navigation.navigate('YourJapas');
   };
 
+  const onSharePanchang = async () => {
+    const festival = panchang.festival ? tt(festivalName(panchang.festival)) : '';
+    const nextLine =
+      panchang.nextFestival && !panchang.festival
+        ? `${t('next')}: ${tt(festivalName(panchang.nextFestival))} · ${festivalDateLabel(
+            panchang.nextFestival.festivalDate,
+            t,
+          )}`
+        : '';
+    const message = buildPanchangShareText(panchang, t, language, {
+      festival,
+      nextLine,
+    });
+    (Clipboard as {setString?: (value: string) => void}).setString?.(message);
+    try {
+      await Share.share({message});
+    } catch {
+      // The text is already on the clipboard if the share sheet is dismissed.
+    }
+  };
+
   const onShareApp = async () => {
     Clipboard.setString(PLAYSTORE_URL);
     const message = `Japa Siddhi\n${PLAYSTORE_URL}`;
@@ -522,12 +544,26 @@ const HomeScreen = () => {
             </View>
           ))}
 
-          <TouchableOpacity
-            style={styles.festival}
-            onPress={() => navigation.navigate('Festivals')}>
-            <Text style={styles.kicker}>
-              {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
-            </Text>
+          <View style={styles.festival}>
+            <View style={styles.panchangHead}>
+              <TouchableOpacity
+                style={styles.panchangHeadTitle}
+                onPress={() => navigation.navigate('Festivals')}
+                activeOpacity={0.85}>
+                <Text style={styles.kicker}>
+                  {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={onSharePanchang}
+                hitSlop={{top: 10, bottom: 10, left: 8, right: 4}}
+                activeOpacity={0.7}>
+                <Text style={styles.kicker}>{t('sharePanchangam')}</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Festivals')}
+              activeOpacity={0.85}>
             <Text style={styles.dateLine}>
               {formatPanchangDisplayDate(panchang, t) ||
                 panchang.displayDate ||
@@ -552,7 +588,8 @@ const HomeScreen = () => {
               </Text>
             ) : null}
             <PanchangDetails panchang={panchang} compact />
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.progressCard}>
             {hasActiveGoal ? (
@@ -812,6 +849,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     marginBottom: 14,
+  },
+  panchangHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  panchangHeadTitle: {
+    flex: 1,
   },
   dateLine: {
     marginTop: 8,

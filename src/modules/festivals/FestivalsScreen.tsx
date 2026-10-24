@@ -1,9 +1,18 @@
 import React, {useCallback, useEffect, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import {
+  buildPanchangShareText,
   emptyPanchang,
   festivalDateLabel,
   festivalName,
@@ -65,6 +74,27 @@ const FestivalsScreen = () => {
     load();
   }, [load]);
 
+  const onSharePanchang = async () => {
+    const festival = panchang.festival ? tt(festivalName(panchang.festival)) : '';
+    const nextLine =
+      panchang.nextFestival && !panchang.festival
+        ? `${t('next')}: ${tt(festivalName(panchang.nextFestival))} · ${festivalDateLabel(
+            panchang.nextFestival.festivalDate,
+            t,
+          )}`
+        : '';
+    const message = buildPanchangShareText(panchang, t, language, {
+      festival,
+      nextLine,
+    });
+    (Clipboard as {setString?: (value: string) => void}).setString?.(message);
+    try {
+      await Share.share({message});
+    } catch {
+      // The text is already on the clipboard if the share sheet is dismissed.
+    }
+  };
+
   return (
     <ScreenLayout title="">
       {loading ? <ActivityIndicator color={Colors.primary} /> : null}
@@ -73,7 +103,15 @@ const FestivalsScreen = () => {
       ) : null}
 
       <View style={styles.card}>
-        <Text style={styles.kicker}>{t('todayPanchangam')}</Text>
+        <View style={styles.kickerRow}>
+          <Text style={[styles.kicker, styles.kickerTitle]}>{t('todayPanchangam')}</Text>
+          <TouchableOpacity
+            onPress={onSharePanchang}
+            hitSlop={{top: 10, bottom: 10, left: 8, right: 4}}
+            activeOpacity={0.7}>
+            <Text style={styles.kicker}>{t('sharePanchangam')}</Text>
+          </TouchableOpacity>
+        </View>
         <Text style={styles.date}>
           {formatPanchangDisplayDate(panchang, t) ||
             panchang.displayDate ||
@@ -138,6 +176,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderWidth: 1,
     borderColor: Colors.border,
+  },
+  kickerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  kickerTitle: {
+    flex: 1,
   },
   kicker: {
     color: Colors.leafGreen,

@@ -3,6 +3,7 @@ import {StyleSheet, Text, View} from 'react-native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import {PanchangPayload} from '../../services/panchang';
+import {translatePanchangValue} from '../../services/panchangTerms';
 import Colors from '../../theme/colors';
 
 type Props = {
@@ -20,26 +21,36 @@ type PanchangItem = {
 const value = (text?: string) => text || '—';
 
 const PanchangDetails = ({panchang, compact}: Props) => {
-  const {t} = useLanguage();
+  const {t, language} = useLanguage();
+  const shown = (text?: string | null) =>
+    translatePanchangValue(text, language) || '—';
+  const weekday = translatePanchangValue(panchang.weekday, language);
+  const vara = translatePanchangValue(panchang.vara, language);
+  const varaText =
+    weekday && vara && weekday !== vara ? `${weekday} · ${vara}` : weekday || vara;
+  const nakshatra = [
+    translatePanchangValue(panchang.nakshatra, language),
+    panchang.pada ? t('padaLabel', {n: panchang.pada}) : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const items: PanchangItem[] = [
     {
       key: 'nakshatra',
       label: t('labelNakshatra'),
-      text: panchang.pada
-        ? `${value(panchang.nakshatra)} · ${t('padaLabel', {n: panchang.pada})}`
-        : value(panchang.nakshatra),
+      text: nakshatra || '—',
       wide: true,
     },
-    {key: 'tithi', label: t('labelTithi'), text: value(panchang.tithi)},
+    {key: 'tithi', label: t('labelTithi'), text: shown(panchang.tithi)},
     {
       key: 'vara',
       label: t('labelVara'),
-      text: panchang.vara ? `${panchang.weekday} · ${panchang.vara}` : '—',
+      text: varaText || '—',
     },
-    {key: 'paksha', label: t('labelPaksha'), text: value(panchang.paksha)},
-    {key: 'yoga', label: t('labelYoga'), text: value(panchang.yoga)},
-    {key: 'karana', label: t('labelKarana'), text: value(panchang.karana)},
+    {key: 'paksha', label: t('labelPaksha'), text: shown(panchang.paksha)},
+    {key: 'yoga', label: t('labelYoga'), text: shown(panchang.yoga)},
+    {key: 'karana', label: t('labelKarana'), text: shown(panchang.karana)},
     {
       key: 'rahu',
       label: t('labelRahuKalam') || 'RAHU KALAM',
@@ -49,8 +60,8 @@ const PanchangDetails = ({panchang, compact}: Props) => {
 
   if (!compact) {
     items.push(
-      {key: 'moon', label: t('labelMoonRashi'), text: value(panchang.moonRashi)},
-      {key: 'sun', label: t('labelSunRashi'), text: value(panchang.sunRashi)},
+      {key: 'moon', label: t('labelMoonRashi'), text: shown(panchang.moonRashi)},
+      {key: 'sun', label: t('labelSunRashi'), text: shown(panchang.sunRashi)},
       {key: 'sunrise', label: t('labelSunrise'), text: value(panchang.sunrise)},
       {key: 'sunset', label: t('labelSunset'), text: value(panchang.sunset)},
       {

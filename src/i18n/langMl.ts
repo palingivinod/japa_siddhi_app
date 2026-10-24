@@ -64,6 +64,7 @@ export const ml: TranslationDict = {
   startChanting: 'ജപം ആരംഭിക്കുക',
   todayFestival: 'ഇന്ന് · ഉത്സവം',
   todayPanchangam: 'ഇന്ന് · പഞ്ചാംഗം',
+  sharePanchangam: 'പങ്കിടുക',
   loadingToday: 'ഇന്ന് ലോഡ് ചെയ്യുന്നു...',
   todaysPanchangam: 'ഇന്നത്തെ പഞ്ചാംഗം',
   panchangMeta: 'ഇന്നത്തെ Nakshatram, തിഥി, പഞ്ചാംഗം.',

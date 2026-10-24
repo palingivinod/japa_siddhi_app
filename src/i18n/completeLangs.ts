@@ -63,6 +63,7 @@ export const kn: TranslationDict = {
   startChanting: 'ಜಪ ಪ್ರಾರಂಭಿಸಿ',
   todayFestival: 'ಇಂದು · ಹಬ್ಬ',
   todayPanchangam: 'ಇಂದು · ಪಂಚಾಂಗ',
+  sharePanchangam: 'ಹಂಚಿ',
   loadingToday: 'ಇಂದು ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
   todaysPanchangam: 'ಇಂದಿನ ಪಂಚಾಂಗ',
   panchangMeta: 'ಇಂದಿನ ನಕ್ಷತ್ರ, ತಿಥಿ ಮತ್ತು ಪಂಚಾಂಗ.',
