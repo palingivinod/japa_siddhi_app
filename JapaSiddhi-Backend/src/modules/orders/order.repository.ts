@@ -25,7 +25,27 @@ class OrderRepository {
     }
   }
 
-  async getNextOrderNumber(): Promise<string> {
+  async getNextOrderNumber(prefix?: string): Promise<string> {
+    if (String(prefix || '').toUpperCase() === 'RK') {
+      try {
+        const rows = await mysql.query<any[]>(`
+          SELECT order_number FROM orders WHERE upper(order_number) LIKE 'RK%' ORDER BY id DESC LIMIT 200
+        `);
+        let maxSeq = 0;
+        for (const row of rows || []) {
+          const match = String(row.order_number || '').match(/^RK(\d+)/i);
+          if (match) {
+            const parsed = parseInt(match[1], 10);
+            if (parsed > maxSeq) {
+              maxSeq = parsed;
+            }
+          }
+        }
+        return `RK${String(maxSeq + 1).padStart(2, '0')}`;
+      } catch {
+        return 'RK01';
+      }
+    }
     try {
       const rows = await mysql.query<any[]>(`
         SELECT order_number FROM orders WHERE order_number LIKE 'BL-%' ORDER BY id DESC LIMIT 50

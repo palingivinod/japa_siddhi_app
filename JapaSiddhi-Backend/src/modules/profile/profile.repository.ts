@@ -11,6 +11,14 @@ import {isPlaceholderMobile} from '../auth/auth.repository';
 
 
 
+const ensurePostalColumn = async () => {
+  try {
+    await mysql.query(`ALTER TABLE users ADD COLUMN postal_code TEXT`);
+  } catch {
+    // The column is already on the table.
+  }
+};
+
 class ProfileRepository {
 
 
@@ -19,6 +27,7 @@ class ProfileRepository {
   ) {
 
 
+    await ensurePostalColumn();
     const rows =
       await mysql.query<any[]>(
         `
@@ -64,6 +73,8 @@ class ProfileRepository {
           u.profile_photo AS profilePhoto,
 
           u.address,
+
+          u.postal_code AS postalCode,
 
           u.marital_status AS maritalStatus,
 
@@ -148,6 +159,7 @@ class ProfileRepository {
     userId: number,
     data: UpdateProfileRequest,
   ): Promise<void> {
+    await ensurePostalColumn();
     await mysql.query<ResultSetHeader>(
       `
       UPDATE users
@@ -167,6 +179,7 @@ class ProfileRepository {
         anniversary_date = COALESCE(?, anniversary_date),
         gothram = COALESCE(?, gothram),
         nakshatram = COALESCE(?, nakshatram),
+        postal_code = COALESCE(?, postal_code),
         profile_completed = 1,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -188,6 +201,7 @@ class ProfileRepository {
         data.anniversaryDate ?? null,
         data.gothram ?? null,
         data.nakshatram ?? null,
+        data.postalCode ?? null,
         userId,
       ],
     );

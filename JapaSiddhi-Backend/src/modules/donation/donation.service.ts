@@ -316,6 +316,7 @@ class DonationService {
       data.gothram ? `Gothram: ${data.gothram}` : '',
       data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
       data.occasion ? `Occasion: ${data.occasion}` : '',
+      data.address ? `Address: ${data.address}` : '',
       purpose ? `Purpose: ${purpose}` : '',
       utr ? `UTR: ${utr}` : '',
     ]
@@ -325,13 +326,19 @@ class DonationService {
     let donationId: number | null = null;
     let requestId: number | null = null;
     let itemName = 'Annadanam';
-    let orderType: 'BANA_LINGAM' | 'ANNADANAM' | 'NITHYA_HOMAM' =
+    let orderType: 'BANA_LINGAM' | 'RAMAKOTI_BOOKS' | 'ANNADANAM' | 'NITHYA_HOMAM' =
       'ANNADANAM';
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
 
     if (kind === 'BANA_LINGAM') {
       itemName = 'Baanalingam';
       orderType = 'BANA_LINGAM';
+    } else if (kind === 'RAMAKOTI_BOOKS') {
+      itemName = 'Ramakoti Books';
+      orderType = 'RAMAKOTI_BOOKS';
+      if (!String(data.address || '').trim()) {
+        throw new AppError('Add your address in Personal Details.', 400);
+      }
     } else if (kind === 'NITHYA_HOMAM') {
       itemName = 'Nithya Homam';
       orderType = 'NITHYA_HOMAM';
@@ -344,7 +351,7 @@ class DonationService {
       donationType = 'ANNADANAM';
     }
 
-    if (kind !== 'BANA_LINGAM') {
+    if (kind !== 'BANA_LINGAM' && kind !== 'RAMAKOTI_BOOKS') {
       const donation = await this.create(userId, {
         donationType,
         amount,
@@ -357,6 +364,14 @@ class DonationService {
       donationId = donation.id;
     }
 
+    const orderRemarks =
+      kind === 'RAMAKOTI_BOOKS'
+        ? [
+            `Name: ${data.fullName || 'Devotee'}`,
+            `Mobile: ${mobile || '-'}`,
+            `Address: ${String(data.address || '').trim()}`,
+          ].join('\n')
+        : remarks || `Paid ₹${amount} via UPI QR`;
     const order = await orderService.create({
       userId,
       orderType,
@@ -364,7 +379,8 @@ class DonationService {
       itemName,
       quantity: 1,
       orderStatus: 'UNDER_REVIEW',
-      remarks: remarks || `Paid ₹${amount} via UPI QR`,
+      remarks: orderRemarks,
+      numberPrefix: kind === 'RAMAKOTI_BOOKS' ? 'RK' : undefined,
     });
 
     if (kind === 'NITHYA_HOMAM') {
@@ -413,8 +429,12 @@ class DonationService {
       }
     }
 
+    if (kind === 'RAMAKOTI_BOOKS' && data.address) {
+      await profileRepository.saveAddress(userId, data.address);
+    }
+
     const confirmationId =
-      kind === 'BANA_LINGAM'
+      kind === 'BANA_LINGAM' || kind === 'RAMAKOTI_BOOKS'
         ? order.orderNumber
         : kind === 'NITHYA_HOMAM'
           ? `NH${order.id}${String(Date.now()).slice(-3)}`

@@ -112,6 +112,7 @@ const CompleteProfileScreen = ({
   const [country, setCountry] =
     useState<CountryItem | null>(() => defaultIndia);
 
+  const [pinCode, setPinCode] = useState('');
   const [stateModel, setStateModel] =
     useState<StateModel | null>(null);
 
@@ -175,6 +176,9 @@ const CompleteProfileScreen = ({
       isDOBValid &&
       gender !== '' &&
       country !== null &&
+      pinCode.length === 6 &&
+      Boolean(stateModel?.id) &&
+      Boolean(cityModel?.id) &&
       acceptedTerms
     );
   }, [
@@ -184,6 +188,9 @@ const CompleteProfileScreen = ({
     isDOBValid,
     gender,
     country,
+    pinCode,
+    stateModel,
+    cityModel,
     acceptedTerms,
   ]);
 
@@ -281,6 +288,7 @@ const CompleteProfileScreen = ({
         cityId: Number(cityModel?.id) || 0,
         languageId: Number(language?.id || DEFAULT_LANGUAGE.id || 1),
         address: address.trim(),
+        postalCode: pinCode,
         maritalStatus,
         spouseName: maritalStatus === 'Married' ? spouseName.trim() : undefined,
         spouseDob:
@@ -306,6 +314,7 @@ const CompleteProfileScreen = ({
           mobileCountryCode: code,
           mobileNumber: number,
           dateOfBirth: profilePayload.dob,
+          postalCode: pinCode,
           profileCompleted: 1,
         });
       } else {
@@ -338,7 +347,7 @@ const CompleteProfileScreen = ({
         if (!token) {
           throw new Error('Registration token was not created.');
         }
-        await saveSession(token, user);
+        await saveSession(token, {...(user || {}), postalCode: pinCode});
       }
 
       if (pickedPhoto) {
@@ -579,6 +588,34 @@ const CompleteProfileScreen = ({
     setCityModel(null);
   }}
 />
+
+        <Text style={styles.label}>
+          {t('pinCode')} *
+        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t('pinCode')}
+          placeholderTextColor={Colors.textSecondary}
+          value={pinCode}
+          keyboardType="number-pad"
+          maxLength={6}
+          onChangeText={async value => {
+            const digits = value.replace(/\D/g, '').slice(0, 6);
+            setPinCode(digits);
+            if (digits.length !== 6) {
+              return;
+            }
+            try {
+              const found = await ProfileApi.lookupPin(digits);
+              setStateModel({id: Number(found.stateId), name: found.stateName});
+              setCityModel({id: Number(found.cityId), name: found.cityName});
+            } catch {
+              setStateModel(null);
+              setCityModel(null);
+              Alert.alert(t('pinCode'), t('pinNotFound'));
+            }
+          }}
+        />
 
         <Text style={styles.label}>
           {t('state')}

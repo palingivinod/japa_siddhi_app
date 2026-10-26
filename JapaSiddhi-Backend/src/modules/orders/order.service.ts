@@ -13,14 +13,15 @@ import orderRepository from './order.repository';
 class OrderService {
 
   async create(
-    data: CreateOrderRequest,
+    data: CreateOrderRequest & {numberPrefix?: string},
   ) {
 
-    const orderNumber = await orderRepository.getNextOrderNumber();
+    const {numberPrefix, ...order} = data;
+    const orderNumber = await orderRepository.getNextOrderNumber(numberPrefix);
 
     const id =
       await orderRepository.create(
-        data,
+        order,
         orderNumber,
       );
 

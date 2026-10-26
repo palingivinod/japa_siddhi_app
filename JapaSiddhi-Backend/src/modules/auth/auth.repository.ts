@@ -79,6 +79,7 @@ const mapUser = (row: any): AuthUser | null => {
     stateId: row.stateId ?? row.state_id,
     cityId: row.cityId ?? row.city_id,
     address: row.address ?? null,
+    postalCode: row.postalCode ?? row.postal_code ?? null,
     maritalStatus: row.maritalStatus ?? row.marital_status ?? 'Bachelor',
     spouseName: row.spouseName ?? row.spouse_name ?? null,
     spouseDob: row.spouseDob ?? row.spouse_dob ?? null,
@@ -637,10 +638,16 @@ class AuthRepository {
       anniversaryDate?: string;
       gothram?: string;
       nakshatram?: string;
+      postalCode?: string;
       preferredLanguageId: number;
       profilePhoto?: string;
     },
   ): Promise<void> {
+    try {
+      await mysql.query(`ALTER TABLE users ADD COLUMN postal_code TEXT`);
+    } catch {
+      // The column is already on the table.
+    }
     await mysql.query<ResultSetHeader>(
       `
       UPDATE users
@@ -653,6 +660,7 @@ class AuthRepository {
         state_id = ?,
         city_id = ?,
         address = ?,
+        postal_code = ?,
         marital_status = ?,
         spouse_name = ?,
         spouse_dob = ?,
@@ -673,6 +681,7 @@ class AuthRepository {
         data.stateId,
         data.cityId,
         data.address ?? null,
+        data.postalCode || null,
         data.maritalStatus ?? 'Bachelor',
         data.spouseName ?? null,
         data.spouseDob ?? null,

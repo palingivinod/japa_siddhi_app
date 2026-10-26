@@ -19,15 +19,27 @@ export default async function donationExcel(
   worksheet.columns = [
 
     {
-      header: 'ID',
-      key: 'id',
-      width: 10,
+      header: 'Serial No',
+      key: 'sno',
+      width: 12,
     },
 
     {
-      header: 'Donor Name',
+      header: 'Name',
       key: 'fullName',
       width: 30,
+    },
+
+    {
+      header: 'Phone',
+      key: 'phone',
+      width: 16,
+    },
+
+    {
+      header: 'Prefer date',
+      key: 'preferDate',
+      width: 16,
     },
 
     {
@@ -73,13 +85,17 @@ export default async function donationExcel(
       req.query as any,
     );
       rows.forEach(
-    (row: any) => {
+    (row: any, index: number) => {
 
       worksheet.addRow({
 
-        id: row.id,
+        sno: index + 1,
 
         fullName: row.fullName,
+
+        phone: row.phone,
+
+        preferDate: row.preferDate,
 
         donationType: row.donationType,
 

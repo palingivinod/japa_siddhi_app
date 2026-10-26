@@ -16,6 +16,7 @@ export interface CompleteProfileRequest {
   cityId: number;
   languageId: number;
   address?: string;
+  postalCode?: string;
   maritalStatus?: 'Bachelor' | 'Married';
   spouseName?: string;
   spouseDob?: string;
@@ -34,6 +35,7 @@ export interface UpdateProfileRequest {
   cityId?: number;
   preferredLanguageId?: number;
   address?: string;
+  postalCode?: string;
   maritalStatus?: 'Bachelor' | 'Married';
   spouseName?: string;
   spouseDob?: string;
@@ -93,6 +95,7 @@ export const mapProfile = (data: any) => {
     preferredLanguageName:
       data.preferredLanguageName ?? data.preferred_language_name ?? '',
     address: data.address ?? '',
+    postalCode: data.postalCode ?? data.postal_code ?? data.pinCode ?? '',
     maritalStatus: data.maritalStatus ?? data.marital_status ?? '',
     spouseName: data.spouseName ?? data.spouse_name ?? '',
     spouseDob: data.spouseDob ?? data.spouse_dob ?? '',
@@ -182,6 +185,8 @@ class ProfileApi {
       preferredLanguageId: data.languageId,
       languageId: data.languageId,
       address: data.address,
+      postalCode: data.postalCode,
+      pinCode: data.postalCode,
       maritalStatus: data.maritalStatus,
       spouseName: data.spouseName,
       spouseDob: data.spouseDob,
@@ -213,6 +218,8 @@ class ProfileApi {
       preferredLanguageId: data.languageId,
       languageId: data.languageId,
       address: data.address,
+      postalCode: data.postalCode,
+      pinCode: data.postalCode,
       maritalStatus: data.maritalStatus,
       spouseName: data.spouseName,
       spouseDob: data.spouseDob,
@@ -223,6 +230,11 @@ class ProfileApi {
       profileImage: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
     });
     return response.data;
+  }
+
+  async lookupPin(pin: string) {
+    const response = await apiService.get(`/master/pincode/${pin}`);
+    return response.data?.data;
   }
 
   async uploadPhoto(photo: PickedPhoto) {

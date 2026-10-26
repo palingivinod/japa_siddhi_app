@@ -60,6 +60,7 @@ const PersonalDetailsScreen = () => {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [showDobPicker, setShowDobPicker] = useState(false);
   const [gender, setGender] = useState('');
+  const [pinCode, setPinCode] = useState('');
   const [address, setAddress] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Bachelor' | 'Married'>(
     'Bachelor',
@@ -83,6 +84,7 @@ const PersonalDetailsScreen = () => {
     );
     setGender(data.gender || '');
     setAddress(data.address || '');
+    setPinCode(String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6));
     setMaritalStatus(
       data.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
     );
@@ -156,6 +158,10 @@ const PersonalDetailsScreen = () => {
       Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
+    if (!/^[0-9]{6}$/.test(pinCode)) {
+      Alert.alert(t('required'), t('enterPinCode'));
+      return;
+    }
     if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
       Alert.alert(t('validationTitle'), t('spouseNameRequired'));
       return;
@@ -186,6 +192,7 @@ const PersonalDetailsScreen = () => {
           ? Number(language.id)
           : undefined,
         address: address.trim(),
+        postalCode: pinCode,
         maritalStatus,
         spouseName:
           maritalStatus === 'Married' ? spouseName.trim() : '',
@@ -242,6 +249,7 @@ const PersonalDetailsScreen = () => {
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
         <Row label={t('dateOfBirth')} value={dateOfBirth} />
+        <Row label={t('pinCode')} value={pinCode} />
         <Row label="Email" value={email} />
         <Row label="Gender" value={gender} />
         <Row label="Location" value={location} />
@@ -350,6 +358,31 @@ const PersonalDetailsScreen = () => {
           setCountry(item);
           setStateModel(null);
           setCityModel(null);
+        }}
+      />
+
+      <Text style={styles.label}>{t('pinCode')} *</Text>
+      <TextInput
+        style={styles.input}
+        value={pinCode}
+        keyboardType="number-pad"
+        maxLength={6}
+        placeholder={t('pinCode')}
+        onChangeText={async value => {
+          const digits = value.replace(/\D/g, '').slice(0, 6);
+          setPinCode(digits);
+          if (digits.length !== 6) {
+            return;
+          }
+          try {
+            const found = await ProfileApi.lookupPin(digits);
+            setStateModel({id: Number(found.stateId), name: found.stateName});
+            setCityModel({id: Number(found.cityId), name: found.cityName});
+          } catch {
+            setStateModel(null);
+            setCityModel(null);
+            Alert.alert(t('pinCode'), t('pinNotFound'));
+          }
         }}
       />
 

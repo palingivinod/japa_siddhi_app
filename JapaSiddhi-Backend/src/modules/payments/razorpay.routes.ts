@@ -42,6 +42,8 @@ router.post('/order', async (req: Request, res: Response) => {
     const phone = String(req.body?.phone || '').replace(/\D/g, '').slice(0, 15);
     const note = String(req.body?.note || 'Seva offering').trim().slice(0, 80);
     const source = String(req.body?.source || 'website').trim().slice(0, 40);
+    const preferDate = String(req.body?.preferDate || '').trim().slice(0, 10);
+    const occasion = String(req.body?.occasion || '').trim().slice(0, 40);
     const order = await createRazorpayOrder({
       amountPaise: paise,
       receipt: `js${Date.now()}`,
@@ -50,6 +52,8 @@ router.post('/order', async (req: Request, res: Response) => {
         phone,
         note,
         source,
+        preferDate,
+        occasion,
       },
     });
     return apiResponse.success(res, 'Payment started', order);

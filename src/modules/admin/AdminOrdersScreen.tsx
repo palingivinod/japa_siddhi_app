@@ -55,9 +55,12 @@ const orderGroupOf = (row: {
   }
   if (
     type === 'BANA_LINGAM' ||
+    type === 'RAMAKOTI_BOOKS' ||
     number.startsWith('BL-') ||
+    number.startsWith('RK') ||
     product.includes('baanalingam') ||
-    product.includes('banalingam')
+    product.includes('banalingam') ||
+    product.includes('ramakoti')
   ) {
     return 'normal';
   }

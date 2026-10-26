@@ -46,7 +46,7 @@ android {
         applicationId "com.japasiddhi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 29
+        versionCode 32
         versionName "1.1.6"
     }
     signingConfigs {
@@ -81,9 +81,8 @@ android {
             shrinkResources enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
             ndk {
-                // arm64 for modern phones; armeabi-v7a for older 32-bit devices.
-                // Play serves each device only its matching ABI from the AAB.
-                abiFilters "arm64-v8a", "armeabi-v7a"
+                // All phone chip types. Play still sends each device only its own library.
+                abiFilters "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
             }
         }
     }

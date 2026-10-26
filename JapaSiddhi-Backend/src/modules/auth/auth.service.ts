@@ -76,6 +76,7 @@ const profileFields = (data: any) => ({
   anniversaryDate: data.anniversaryDate,
   gothram: data.gothram,
   nakshatram: data.nakshatram,
+  postalCode: String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6),
   preferredLanguageId:
     Number(data.preferredLanguageId || data.languageId) || 1,
   profilePhoto: data.profilePhoto || data.profileImage,

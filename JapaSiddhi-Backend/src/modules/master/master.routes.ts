@@ -23,6 +23,11 @@ router.get(
   masterController.cities,
 );
 
+router.get(
+  '/pincode/:pin',
+  masterController.pincode,
+);
+
 
 router.get(
   '/languages',

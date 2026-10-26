@@ -75,6 +75,19 @@ class MasterController {
 
 
 
+  async pincode(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const result = await masterService.lookupPincode(String(req.params.pin || ''));
+      return apiResponse.success(res, 'PIN code found', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async cities(
     req: Request,
     res: Response,

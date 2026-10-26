@@ -93,6 +93,8 @@ import PrivacyPolicyScreen from '../modules/legal/PrivacyPolicyScreen';
 import DesignSystemScreen from '../modules/screens/DesignSystemScreen';
 import ScreenIndexScreen from '../modules/screens/ScreenIndexScreen';
 import BanaLingamReviewScreen from '../modules/banaLingam/BanaLingamReviewScreen';
+import RamakotiBooksScreen from '../modules/ramakoti/RamakotiBooksScreen';
+import RamakotiBooksReviewScreen from '../modules/ramakoti/RamakotiBooksReviewScreen';
 import DonationConfirmationScreen from '../modules/donate/DonationConfirmationScreen';
 import WelcomeGiftScreen from '../modules/auth/WelcomeGiftScreen';
 import AdminHubScreen from '../modules/admin/AdminHubScreen';
@@ -319,6 +321,8 @@ export type RootStackParamList = {
   DesignSystem: undefined;
   ScreenIndex: undefined;
   BanaLingamReview: any;
+  RamakotiBooks: undefined;
+  RamakotiBooksReview: any;
   DonationConfirmation: any;
   AdminHub: undefined;
   AdminLogin: undefined;
@@ -482,6 +486,8 @@ const ProtectedFeedbackConfirmation = withAuth(FeedbackConfirmationScreen);
 const ProtectedDesignSystem = withAuth(DesignSystemScreen);
 const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
 const ProtectedBanaReview = withAuth(BanaLingamReviewScreen);
+const ProtectedRamakoti = withAuth(RamakotiBooksScreen);
+const ProtectedRamakotiReview = withAuth(RamakotiBooksReviewScreen);
 const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
 const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
 const ProtectedAdminHub = AdminHubScreen;
@@ -711,6 +717,8 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="BanaLingam" component={ProtectedBanaLingam} />
         <Stack.Screen name="BanaLingamReview" component={ProtectedBanaReview} />
+        <Stack.Screen name="RamakotiBooks" component={ProtectedRamakoti} />
+        <Stack.Screen name="RamakotiBooksReview" component={ProtectedRamakotiReview} />
         <Stack.Screen name="BanaLingamPayment" component={ProtectedCheckout} />
         <Stack.Screen
           name="PaymentConfirmation"

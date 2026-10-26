@@ -10,6 +10,8 @@ export type AppPaymentInput = {
   seva?: string;
   name?: string;
   phone?: string;
+  preferDate?: string;
+  occasion?: string;
 };
 
 const websiteFallback = (input: AppPaymentInput) =>
@@ -98,6 +100,8 @@ export async function startAppPayment(input: AppPaymentInput) {
       phone: input.phone || '',
       note: String(input.seva || input.purpose || 'Seva offering').slice(0, 80),
       source: 'app',
+      preferDate: String(input.preferDate || '').slice(0, 10),
+      occasion: String(input.occasion || input.purpose || '').slice(0, 40),
     });
     const order = orderRes.data?.data || {};
     const keyId = String(order.keyId || '');

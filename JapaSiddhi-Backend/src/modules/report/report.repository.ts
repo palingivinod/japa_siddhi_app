@@ -1,4 +1,5 @@
 import mysql from '../../database/mysql';
+import {ensureDonationColumns} from '../payments/razorpay.service';
 
 import {
   DashboardAnalytics,
@@ -322,6 +323,7 @@ class ReportRepository {
   async donationReport(
     filter: DonationReportFilter,
   ) {
+    await ensureDonationColumns();
         const page =
       Number(filter.page ?? 1);
 
@@ -336,7 +338,11 @@ class ReportRepository {
 
         d.id,
 
-        u.full_name AS fullName,
+        IFNULL(NULLIF(d.donor_name, ''), u.full_name) AS fullName,
+
+        IFNULL(NULLIF(d.donor_phone, ''), u.mobile_number) AS phone,
+
+        IFNULL(d.prefer_date, '') AS preferDate,
 
         d.donation_type AS donationType,
 

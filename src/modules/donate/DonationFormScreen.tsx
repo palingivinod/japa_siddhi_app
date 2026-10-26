@@ -1,10 +1,12 @@
 ﻿import React, {useCallback, useState} from 'react';
-import {Alert} from 'react-native';
+import {Alert, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import {getStoredUser} from '../../services/session';
+import Colors from '../../theme/colors';
+import DatePickerModal from '../common/DatePickerModal';
 import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
@@ -23,6 +25,8 @@ const DonationFormScreen = () => {
     digitsOnly(params.mobile || '').slice(-MOBILE_DIGITS),
   );
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
+  const [preferDate, setPreferDate] = useState('');
+  const [showDate, setShowDate] = useState(false);
   const [persons, setPersons] = useState(
     Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),
   );
@@ -64,6 +68,7 @@ const DonationFormScreen = () => {
     fullName.trim().length >= 2 &&
     isMobile(cleanMobile) &&
     !/^0+$/.test(cleanMobile) &&
+    /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
     persons > 0;
 
   const pay = async () => {
@@ -79,6 +84,10 @@ const DonationFormScreen = () => {
       );
       return;
     }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
+      Alert.alert(t('validationTitle'), t('selectPreferDate'));
+      return;
+    }
     if (persons <= 0) {
       Alert.alert(t('validationTitle'), t('enterPersonsCount'));
       return;
@@ -87,6 +96,8 @@ const DonationFormScreen = () => {
     await startAppPayment({
       amount: totalAmount,
       purpose: occasion.trim() || params.itemName || 'Anna Santharpana',
+      occasion: occasion.trim(),
+      preferDate,
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
@@ -120,6 +131,32 @@ const DonationFormScreen = () => {
         value={occasion}
         onChangeText={setOccasion}
       />
+      <Text style={styles.label}>{t('preferDate')} *</Text>
+      <TouchableOpacity style={styles.dateField} onPress={() => setShowDate(true)}>
+        <Text style={preferDate ? styles.dateValue : styles.datePlaceholder}>
+          {preferDate || t('selectDate')}
+        </Text>
+      </TouchableOpacity>
+      <DatePickerModal
+        visible={showDate}
+        value={
+          /^\d{4}-\d{2}-\d{2}$/.test(preferDate)
+            ? new Date(
+                Number(preferDate.slice(0, 4)),
+                Number(preferDate.slice(5, 7)) - 1,
+                Number(preferDate.slice(8, 10)),
+              )
+            : new Date()
+        }
+        minimumDate={new Date()}
+        onCancel={() => setShowDate(false)}
+        onConfirm={selected => {
+          const month = String(selected.getMonth() + 1).padStart(2, '0');
+          const day = String(selected.getDate()).padStart(2, '0');
+          setPreferDate(`${selected.getFullYear()}-${month}-${day}`);
+          setShowDate(false);
+        }}
+      />
       <AnnadanamMembersSelector
         persons={persons}
         onChangePersons={setPersons}
@@ -139,3 +176,29 @@ const DonationFormScreen = () => {
 };
 
 export default DonationFormScreen;
+
+const styles = StyleSheet.create({
+  label: {
+    marginTop: 12,
+    marginBottom: 6,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  dateField: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
+  dateValue: {
+    color: Colors.textPrimary,
+    fontSize: 16,
+  },
+  datePlaceholder: {
+    color: Colors.placeholder,
+    fontSize: 16,
+  },
+});

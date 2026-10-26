@@ -39,7 +39,13 @@ const SevaHubScreen = () => {
   );
 
   const items = useMemo(() => {
-    const all = [
+    const all: Array<{
+      icon?: AppIconName;
+      emoji?: string;
+      title: string;
+      sub: string;
+      route: string;
+    }> = [
       {
         icon: 'banalingam' as AppIconName,
         title: t('tileBaanalingam'),
@@ -57,6 +63,12 @@ const SevaHubScreen = () => {
         title: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
+      },
+      {
+        emoji: '📖',
+        title: t('tileRamakoti'),
+        sub: t('tileRamakotiSub'),
+        route: 'RamakotiBooks',
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
@@ -82,7 +94,11 @@ const SevaHubScreen = () => {
               style={styles.card}
               onPress={() => navigation.navigate(item.route)}>
               <View style={styles.dot}>
-                <AppIcon name={item.icon} size={44} color={Colors.sacredBrown} />
+                {item.emoji ? (
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                ) : (
+                  <AppIcon name={item.icon || 'bowl'} size={44} color={Colors.sacredBrown} />
+                )}
               </View>
               <View style={styles.copy}>
                 <Text style={styles.title}>{item.title}</Text>
@@ -135,6 +151,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   copy: {flex: 1, paddingVertical: 1},
+  emoji: {fontSize: 22},
   title: {
     fontSize: 16,
     lineHeight: 22,

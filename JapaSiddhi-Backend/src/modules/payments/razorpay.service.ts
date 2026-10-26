@@ -181,6 +181,22 @@ const userIdForPhone = async (phone: string) => {
   return id > 0 ? id : null;
 };
 
+export const ensureDonationColumns = async () => {
+  const alters = [
+    `ALTER TABLE donations ADD COLUMN donor_name TEXT`,
+    `ALTER TABLE donations ADD COLUMN donor_phone TEXT`,
+    `ALTER TABLE donations ADD COLUMN prefer_date TEXT`,
+    `ALTER TABLE donations ADD COLUMN occasion TEXT`,
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // The column is already on the table.
+    }
+  }
+};
+
 const insertDonation = async (input: {
   userId: number | null;
   donationType: string;
@@ -189,7 +205,12 @@ const insertDonation = async (input: {
   orderId: string;
   donatedAt: string;
   remarks: string;
+  donorName: string;
+  donorPhone: string;
+  preferDate: string;
+  occasion: string;
 }) => {
+  await ensureDonationColumns();
   const columns = [
     'user_id',
     'donation_type',
@@ -200,6 +221,10 @@ const insertDonation = async (input: {
     'payment_status',
     'donated_at',
     'remarks',
+    'donor_name',
+    'donor_phone',
+    'prefer_date',
+    'occasion',
   ];
   const values = [
     input.userId,
@@ -211,6 +236,10 @@ const insertDonation = async (input: {
     'SUCCESS',
     input.donatedAt,
     input.remarks,
+    input.donorName || null,
+    input.donorPhone || null,
+    input.preferDate || null,
+    input.occasion || null,
   ];
   try {
     await mysql.query(
@@ -255,11 +284,15 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   const name = String(notes.name || '').trim();
   const phone = String(notes.phone || payment.contact || '').trim();
   const note = String(notes.note || 'Seva offering').trim();
+  const preferDate = String(notes.preferDate || '').trim().slice(0, 10);
+  const occasion = String(notes.occasion || '').trim().slice(0, 40);
   const userId = await userIdForPhone(phone);
   const remarks = [
     `Seva: ${note}`,
     name ? `Name: ${name}` : '',
     phone ? `Phone: ${phone}` : '',
+    preferDate ? `Prefer date: ${preferDate}` : '',
+    occasion ? `Occasion: ${occasion}` : '',
     source ? `Source: ${source}` : '',
   ]
     .filter(Boolean)
@@ -275,6 +308,10 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
       orderId: String(payment.order_id || ''),
       donatedAt: istStamp(payment.created_at),
       remarks,
+      donorName: name,
+      donorPhone: phone,
+      preferDate,
+      occasion,
     });
   } catch {
     await insertDonation({
@@ -285,6 +322,10 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
       orderId: String(payment.order_id || ''),
       donatedAt: istStamp(payment.created_at),
       remarks,
+      donorName: name,
+      donorPhone: phone,
+      preferDate,
+      occasion,
     });
   }
   await emailOtpService.notifyAdmin(

@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 
 import mysql from '../../database/mysql';
 import adminAccountService from './adminAccount.service';
+import {ensureDonationColumns} from '../payments/razorpay.service';
 import {demoDonationSql, demoUserSql} from '../../utils/demoData';
 
 const router = Router();
@@ -2498,9 +2499,12 @@ const isNormalBaanalingamOrder = (row: any) => {
   const number = String(row.orderNumber || '').toUpperCase();
   return (
     type === 'BANA_LINGAM' ||
+    type === 'RAMAKOTI_BOOKS' ||
     number.startsWith('BL-') ||
+    number.startsWith('RK') ||
     item.includes('baanalingam') ||
-    item.includes('banalingam')
+    item.includes('banalingam') ||
+    item.includes('ramakoti')
   );
 };
 
@@ -3030,6 +3034,16 @@ router.get('/payment-reports', async (_req: Request, res: Response) => {
   }
 });
 
+const remarkField = (remarks: string, label: string) => {
+  const match = String(remarks || '').match(new RegExp(`${label}:\\s*([^|]+)`, 'i'));
+  return match ? match[1].trim() : '';
+};
+
+const exportMonth = (value: unknown) => {
+  const month = String(value || '').replace(/\D/g, '').padStart(2, '0').slice(-2);
+  return /^(0[1-9]|1[0-2])$/.test(month) ? month : '';
+};
+
 router.get('/payment-reports/export', async (req: Request, res: Response) => {
   try {
     const ExcelJS = (await import('exceljs')).default;
@@ -3038,10 +3052,15 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
     const {uploadsRoot} = await import('../../middleware/upload.middleware');
 
     const summary = await buildPaymentReportRows();
+    await ensureDonationColumns();
     const donations = await mysql.query<any[]>(`
       SELECT
         d.id,
-        IFNULL(u.full_name, 'Devotee') AS donorName,
+        d.remarks,
+        IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
+        IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+        IFNULL(d.prefer_date, '') AS preferDate,
+        IFNULL(d.occasion, '') AS occasion,
         d.donation_type AS donationType,
         d.amount,
         d.payment_status AS paymentStatus,
@@ -3073,8 +3092,11 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
 
     const detailSheet = workbook.addWorksheet('Donations');
     detailSheet.columns = [
-      {header: 'ID', key: 'id', width: 8},
-      {header: 'Donor', key: 'donorName', width: 24},
+      {header: 'Serial No', key: 'sno', width: 12},
+      {header: 'Name', key: 'donorName', width: 24},
+      {header: 'Phone', key: 'donorPhone', width: 16},
+      {header: 'Prefer date', key: 'preferDate', width: 16},
+      {header: 'Occasion', key: 'occasion', width: 18},
       {header: 'Type', key: 'donationType', width: 16},
       {header: 'Amount', key: 'amount', width: 12},
       {header: 'Payment Status', key: 'paymentStatus', width: 16},
@@ -3083,7 +3105,22 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
       {header: 'Txn ID', key: 'transactionId', width: 28},
       {header: 'Donated At', key: 'donatedAt', width: 22},
     ];
-    (donations || []).forEach((row: any) => detailSheet.addRow(row));
+    (donations || []).forEach((row: any, index: number) =>
+      detailSheet.addRow({
+        sno: index + 1,
+        donorName: row.donorName || remarkField(row.remarks, 'Name') || 'Devotee',
+        donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
+        preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
+        occasion: row.occasion || remarkField(row.remarks, 'Occasion'),
+        donationType: row.donationType,
+        amount: row.amount,
+        paymentStatus: row.paymentStatus,
+        donationStatus: row.donationStatus,
+        paymentMethod: row.paymentMethod,
+        transactionId: row.transactionId,
+        donatedAt: row.donatedAt,
+      }),
+    );
     detailSheet.getRow(1).font = {bold: true};
 
     const reportsDir = path.join(uploadsRoot, 'reports');
@@ -3757,10 +3794,15 @@ router.get('/reports/export', async (req: Request, res: Response) => {
     };
 
     const addDonations = async () => {
+      await ensureDonationColumns();
       const rows = await mysql.query<any[]>(`
         SELECT
           d.id,
-          IFNULL(u.full_name, 'Devotee') AS donorName,
+          d.remarks,
+          IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
+          IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+          IFNULL(d.prefer_date, '') AS preferDate,
+          IFNULL(d.occasion, '') AS occasion,
           d.donation_type AS donationType,
           d.amount,
           d.payment_status AS paymentStatus,
@@ -3777,8 +3819,11 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       `);
       const sheet = workbook.addWorksheet('Donations');
       sheet.columns = [
-        {header: 'ID', key: 'id', width: 8},
-        {header: 'Donor', key: 'donorName', width: 24},
+        {header: 'Serial No', key: 'sno', width: 12},
+        {header: 'Name', key: 'donorName', width: 24},
+        {header: 'Phone', key: 'donorPhone', width: 16},
+        {header: 'Prefer date', key: 'preferDate', width: 16},
+        {header: 'Occasion', key: 'occasion', width: 18},
         {header: 'Type', key: 'donationType', width: 16},
         {header: 'Amount', key: 'amount', width: 12},
         {header: 'Payment Status', key: 'paymentStatus', width: 16},
@@ -3787,7 +3832,92 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         {header: 'Txn ID', key: 'transactionId', width: 28},
         {header: 'Donated At', key: 'donatedAt', width: 22},
       ];
-      (rows || []).forEach((row: any) => sheet.addRow(row));
+      (rows || []).forEach((row: any, index: number) =>
+        sheet.addRow({
+          sno: index + 1,
+          donorName: row.donorName || remarkField(row.remarks, 'Name') || 'Devotee',
+          donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
+          preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
+          occasion: row.occasion || remarkField(row.remarks, 'Occasion'),
+          donationType: row.donationType,
+          amount: row.amount,
+          paymentStatus: row.paymentStatus,
+          donationStatus: row.donationStatus,
+          paymentMethod: row.paymentMethod,
+          transactionId: row.transactionId,
+          donatedAt: row.donatedAt,
+        }),
+      );
+      sheet.getRow(1).font = {bold: true};
+    };
+
+    const addBirthdaySheet = async (month: string) => {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT
+          u.full_name AS fullName,
+          IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+          IFNULL(u.mobile_number, '') AS mobileNumber,
+          u.date_of_birth AS dateOfBirth
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?
+          ${demoUserSql('u')}
+        ORDER BY substr(u.date_of_birth, 9, 2), u.full_name
+        `,
+        [month],
+      );
+      const sheet = workbook.addWorksheet('Birthdays');
+      sheet.columns = [
+        {header: 'Serial No', key: 'sno', width: 12},
+        {header: 'Name', key: 'fullName', width: 24},
+        {header: 'Phone', key: 'phone', width: 16},
+        {header: 'DOB', key: 'dateOfBirth', width: 16},
+      ];
+      (rows || []).forEach((row: any, index: number) =>
+        sheet.addRow({
+          sno: index + 1,
+          fullName: row.fullName || 'Devotee',
+          phone: `${row.mobileCountryCode || ''}${row.mobileNumber || ''}`.trim(),
+          dateOfBirth: row.dateOfBirth || '',
+        }),
+      );
+      sheet.getRow(1).font = {bold: true};
+    };
+
+    const addOccasionSheet = async (title: string, month: string) => {
+      await ensureDonationColumns();
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT
+          IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
+          IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+          IFNULL(d.prefer_date, '') AS preferDate,
+          d.remarks
+        FROM donations d
+        LEFT JOIN users u ON u.id = d.user_id
+        WHERE lower(IFNULL(d.occasion, '')) = lower(?)
+          AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?
+          ${demoDonationSql('d')}
+        ORDER BY d.prefer_date, d.id
+        `,
+        [title, month],
+      );
+      const sheet = workbook.addWorksheet(title);
+      sheet.columns = [
+        {header: 'Serial No', key: 'sno', width: 12},
+        {header: 'Name', key: 'donorName', width: 24},
+        {header: 'Phone', key: 'donorPhone', width: 16},
+        {header: 'Prefer date', key: 'preferDate', width: 16},
+      ];
+      (rows || []).forEach((row: any, index: number) =>
+        sheet.addRow({
+          sno: index + 1,
+          donorName: row.donorName || remarkField(row.remarks, 'Name') || 'Devotee',
+          donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
+          preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
+        }),
+      );
       sheet.getRow(1).font = {bold: true};
     };
 
@@ -3843,6 +3973,30 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       );
     } else if (type === 'donations' || type === 'donation') {
       await addDonations();
+    } else if (
+      type === 'birthdays' ||
+      type === 'jayanthi' ||
+      type === 'vardhanti' ||
+      type === 'anniversary'
+    ) {
+      const month = exportMonth(req.query.month);
+      if (!month) {
+        return res.status(400).json({
+          success: false,
+          message: 'Select a month.',
+        });
+      }
+      if (type === 'birthdays') {
+        await addBirthdaySheet(month);
+      } else {
+        const title =
+          type === 'jayanthi'
+            ? 'Jayanthi'
+            : type === 'vardhanti'
+              ? 'Vardhanti'
+              : 'Anniversary';
+        await addOccasionSheet(title, month);
+      }
     } else if (type === 'orders' || type === 'order') {
       await addOrders();
     } else {

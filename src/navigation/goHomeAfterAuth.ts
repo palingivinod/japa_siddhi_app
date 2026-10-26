@@ -1,7 +1,7 @@
 import {Alert} from 'react-native';
 import {CommonActions} from '@react-navigation/native';
 
-/** Google and Facebook accounts. Mobile and date of birth are required before Home. */
+/** Google and Facebook accounts. Mobile, date of birth, and PIN code are required before Home. */
 export const isSocialLoginUser = (user: any) => {
   const provider = String(
     user?.authProvider ||
@@ -12,7 +12,7 @@ export const isSocialLoginUser = (user: any) => {
   return provider === 'google' || provider === 'facebook';
 };
 
-/** Mobile or date of birth is still empty. */
+/** Mobile, date of birth, or PIN code is still empty. */
 export const profileNeedsDetails = (user: any) => {
   const mobile = String(
     user?.mobileNumber || user?.mobile_number || '',
@@ -20,9 +20,13 @@ export const profileNeedsDetails = (user: any) => {
   const dob = String(
     user?.dateOfBirth || user?.date_of_birth || user?.dob || '',
   ).slice(0, 10);
+  const pin = String(
+    user?.postalCode || user?.postal_code || user?.pinCode || '',
+  ).replace(/\D/g, '');
   const mobileMissing = mobile.length < 6 || /^0+$/.test(mobile);
   const dobMissing = !/^\d{4}-\d{2}-\d{2}$/.test(dob);
-  return mobileMissing || dobMissing;
+  const pinMissing = pin.length !== 6;
+  return mobileMissing || dobMissing || pinMissing;
 };
 
 const socialProvider = (user: any) => {
@@ -57,8 +61,8 @@ const openSocialDetailsForm = (navigation: any, user?: any) => {
 };
 
 /**
- * Google and Facebook only. If mobile or DOB is missing, the devotee must
- * enter them. OK opens the details form. Saved details skip the popup.
+ * Google and Facebook only. If mobile, date of birth, or PIN code is missing,
+ * the devotee must enter them. OK opens the details form. Saved details skip the popup.
  */
 export const promptSocialDetails = (
   navigation: any,
@@ -81,7 +85,7 @@ export const promptSocialDetails = (
   );
 };
 
-/** After Google or Facebook sign-in, prompt only when mobile or DOB is missing. */
+/** After Google or Facebook sign-in, prompt when mobile, date of birth, or PIN code is missing. */
 export const resetAfterSocialAuth = (
   navigation: any,
   user?: any,
@@ -90,7 +94,9 @@ export const resetAfterSocialAuth = (
   if (isSocialLoginUser(user) && profileNeedsDetails(user)) {
     return promptSocialDetails(navigation, user, {
       title: copy?.title || 'Your details',
-      message: copy?.message || 'Please enter your mobile and date of birth.',
+      message:
+        copy?.message ||
+        'Please enter your mobile, date of birth, and PIN code.',
       ok: copy?.ok || 'OK',
     });
   }

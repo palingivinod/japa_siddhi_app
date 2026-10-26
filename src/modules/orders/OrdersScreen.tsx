@@ -139,6 +139,7 @@ const OrdersScreen = () => {
       {visible.map(item => {
         const itemText = `${item.itemName || ''} ${item.productName || ''} ${item.donationType || ''} ${item.orderNumber || ''}`.toLowerCase();
         const isBaanalingam = itemText.includes('banalingam') || itemText.includes('baanalingam') || itemText.includes('lingam') || itemText.includes('shiva');
+        const isRamakoti = itemText.includes('ramakoti') || itemText.includes('rk0');
         const rawStatus = statusOf(item);
         const canCancel = !rawStatus.includes('deliver') && !rawStatus.includes('cancel');
 
@@ -147,6 +148,8 @@ const OrdersScreen = () => {
             <View style={styles.dot}>
               {isBaanalingam ? (
                 <AppIcon name="banalingam" size={30} />
+              ) : isRamakoti ? (
+                <Text style={styles.emoji}>📖</Text>
               ) : (
                 <Text style={styles.emoji}>📦</Text>
               )}

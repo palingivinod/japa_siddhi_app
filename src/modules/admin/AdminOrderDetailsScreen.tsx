@@ -249,13 +249,12 @@ const AdminOrderDetailsScreen = () => {
     }
   };
 
-  const isBaanalingam =
-    String(order?.product || '').toLowerCase().includes('banalingam') ||
-    String(order?.product || '').toLowerCase().includes('baanalingam') ||
-    String(order?.orderType || '').toLowerCase().includes('banalingam') ||
-    String(order?.orderType || '').toLowerCase().includes('baanalingam') ||
-    String(order?.rewardName || '').toLowerCase().includes('banalingam') ||
-    String(order?.rewardName || '').toLowerCase().includes('baanalingam');
+  const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''}`.toLowerCase();
+  const isRequestOrder =
+    orderText.includes('banalingam') ||
+    orderText.includes('baanalingam') ||
+    orderText.includes('ramakoti') ||
+    orderText.includes('rk');
 
   const delivery = order?.delivery || {};
   const fullAddress = [
@@ -296,7 +295,7 @@ const AdminOrderDetailsScreen = () => {
             <DetailRow label="Quantity" value={order.quantity} />
             <DetailRow label="Order type" value={order.orderType} />
             <DetailRow label="Source" value={order.orderSource} />
-            {!isBaanalingam ? (
+            {!isRequestOrder ? (
               <DetailRow label="Payment status" value={order.paymentStatus} />
             ) : null}
             <DetailRow label="Order status" value={order.status} />

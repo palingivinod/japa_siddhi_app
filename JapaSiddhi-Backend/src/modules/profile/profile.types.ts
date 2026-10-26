@@ -17,6 +17,7 @@ export interface UpdateProfileRequest {
   gothram?: string | null;
   nakshatram?: string | null;
   profilePhoto?: string | null;
+  postalCode?: string | null;
 }
 
 export interface ProfileResponse {

@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -8,6 +9,7 @@ import {
 } from 'react-native';
 
 import Colors from '../../theme/colors';
+import SelectField from '../common/SelectField';
 import AdminScreenLayout from './AdminScreenLayout';
 import {ADMIN_EXPORT_REPORTS} from './adminData';
 import {
@@ -28,13 +30,40 @@ const TYPE_BY_ID: Record<string, string> = {
   orders: 'orders',
 };
 
+const MONTHS = [
+  {label: 'January', value: '01'},
+  {label: 'February', value: '02'},
+  {label: 'March', value: '03'},
+  {label: 'April', value: '04'},
+  {label: 'May', value: '05'},
+  {label: 'June', value: '06'},
+  {label: 'July', value: '07'},
+  {label: 'August', value: '08'},
+  {label: 'September', value: '09'},
+  {label: 'October', value: '10'},
+  {label: 'November', value: '11'},
+  {label: 'December', value: '12'},
+];
+
+const OCCASION_SHEETS = [
+  {type: 'birthdays', label: 'Birthdays XL'},
+  {type: 'jayanthi', label: 'Jayanthi XL'},
+  {type: 'vardhanti', label: 'Vardhanti XL'},
+  {type: 'anniversary', label: 'Anniversary XL'},
+];
+
 const AdminExportReportsScreen = () => {
   const [exporting, setExporting] = useState('');
+  const [month, setMonth] = useState('');
 
-  const downloadExcel = async (type: string, label: string) => {
+  const downloadExcel = async (
+    type: string,
+    label: string,
+    extra?: Record<string, string>,
+  ) => {
     setExporting(type);
     try {
-      await downloadAdminExcel(type, label);
+      await downloadAdminExcel(type, label, extra);
     } catch (err) {
       alertExcelError(err);
     } finally {
@@ -100,6 +129,32 @@ const AdminExportReportsScreen = () => {
         onPress={() => downloadExcel('donations', 'Donation Reports')}>
         <Text style={styles.outlineText}>EXPORT DONATIONS XL</Text>
       </TouchableOpacity>
+
+      <Text style={styles.monthLabel}>Date of birth / prefer date month</Text>
+      <SelectField
+        value={month}
+        onChange={setMonth}
+        placeholder="Select month"
+        title="Select month"
+        options={MONTHS}
+      />
+      {OCCASION_SHEETS.map(item => (
+        <TouchableOpacity
+          key={item.type}
+          style={[styles.outlineBtn, exporting === item.type && styles.pillBusy]}
+          disabled={Boolean(exporting)}
+          onPress={() => {
+            if (!month) {
+              Alert.alert('Select a month', 'Choose a month, then download the sheet.');
+              return;
+            }
+            downloadExcel(item.type, item.label, {month});
+          }}>
+          <Text style={styles.outlineText}>
+            {exporting === item.type ? 'PREPARING EXCEL...' : item.label.toUpperCase()}
+          </Text>
+        </TouchableOpacity>
+      ))}
     </AdminScreenLayout>
   );
 };
@@ -159,6 +214,12 @@ const styles = StyleSheet.create({
     borderColor: Colors.sacredBrown,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  monthLabel: {
+    marginTop: 18,
+    marginBottom: 8,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
   },
   outlineText: {
     color: Colors.sacredBrown,
