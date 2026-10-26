@@ -77,6 +77,19 @@ const AdminExportReportsScreen = () => {
       })}
 
       <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.8}
+        onPress={() => navigation.navigate('AdminDobDetails')}>
+        <View style={styles.copy}>
+          <Text style={styles.name}>DOB / other details</Text>
+          <Text style={styles.meta}>Birthdays and occasions</Text>
+        </View>
+        <View style={styles.pill}>
+          <Text style={styles.pillText}>Open</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         style={[styles.outlineBtn, exporting === 'japa' && styles.pillBusy]}
         disabled={Boolean(exporting)}
         onPress={() =>
@@ -113,12 +126,6 @@ const AdminExportReportsScreen = () => {
         <Text style={styles.outlineText}>
           {exporting === 'rewards' ? 'PREPARING EXCEL...' : 'REWARDS XL'}
         </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.outlineBtn}
-        disabled={Boolean(exporting)}
-        onPress={() => navigation.navigate('AdminDobDetails')}>
-        <Text style={styles.outlineText}>DOB / OTHER DETAILS</Text>
       </TouchableOpacity>
     </AdminScreenLayout>
   );
