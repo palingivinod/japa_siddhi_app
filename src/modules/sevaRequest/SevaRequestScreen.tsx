@@ -1,5 +1,13 @@
 import React, {useCallback, useState} from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  Alert,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -17,6 +25,11 @@ import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
 
+const BIRAVA_PHOTOS = [
+  require('../../assets/images/birava_pendant.jpg'),
+  require('../../assets/images/birava_pendant_back.jpg'),
+];
+
 const SevaRequestScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -28,6 +41,7 @@ const SevaRequestScreen = () => {
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
+  const [largePhoto, setLargePhoto] = useState<number | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -106,6 +120,33 @@ const SevaRequestScreen = () => {
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
       <Text style={styles.heading}>{t(request.titleKey)}</Text>
       <MenuCard icon={request.icon} title={t('sacredService')} subtitle={t(request.detailKey)} />
+      {request.kind === 'BIRAVA_PENDANT' ? (
+        <View style={styles.photos}>
+          {BIRAVA_PHOTOS.map((photo, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.thumbWrap}
+              activeOpacity={0.85}
+              onPress={() => setLargePhoto(photo)}>
+              <Image source={photo} style={styles.thumb} resizeMode="contain" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
+      <Modal
+        visible={largePhoto != null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLargePhoto(null)}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setLargePhoto(null)}>
+          {largePhoto != null ? (
+            <Image source={largePhoto} style={styles.large} resizeMode="contain" />
+          ) : null}
+        </TouchableOpacity>
+      </Modal>
       <FormField
         label={t('nameLabel')}
         placeholder={t('fullName')}
@@ -196,5 +237,35 @@ const styles = StyleSheet.create({
   chipText: {
     color: Colors.sacredBrown,
     fontWeight: '700',
+  },
+  photos: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 4,
+    marginBottom: 16,
+  },
+  thumbWrap: {
+    width: 84,
+    height: 84,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    overflow: 'hidden',
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  large: {
+    width: '100%',
+    height: '78%',
   },
 });

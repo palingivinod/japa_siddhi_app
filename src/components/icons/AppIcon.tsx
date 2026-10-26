@@ -82,7 +82,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   spatikaMala: require('../../assets/images/spatika_mala.png'),
   tulasiMala: require('../../assets/images/tulasi_mala.png'),
   homaBhasma: require('../../assets/images/festival_annadanam.png'),
-  biravaPendant: require('../../assets/images/spatika_mala.png'),
+  biravaPendant: require('../../assets/images/birava_pendant.jpg'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 

@@ -306,7 +306,7 @@
   tileHomaBhasmaSub: 'Request havan bhasma',
   homaBhasma: 'Homa Bhasma',
   homaBhasmaDesc:
-    'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and help you from obstructing.',
+    'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
   tileBirava: 'Birava pendant',
   tileBiravaSub: 'Request a pendant',
   biravaPendant: 'Birava pendant',
