@@ -1,6 +1,8 @@
 export type OrderType =
   | 'BANA_LINGAM'
   | 'RAMAKOTI_BOOKS'
+  | 'HOMA_BHASMA'
+  | 'BIRAVA_PENDANT'
   | 'SPIRITUAL_PRODUCT'
   | 'ANNADANAM'
   | 'NITHYA_HOMAM';

@@ -188,12 +188,12 @@ const ChallengeDetailsScreen = () => {
         </Text>
       </View>
 
-      <View style={styles.targetBlock}>
-        <Text style={styles.label}>{t('targetCountLabel')}</Text>
-        <Text style={styles.value}>
-          {target ? target.toLocaleString() : '—'}
-        </Text>
-      </View>
+      {target > 0 ? (
+        <View style={styles.targetBlock}>
+          <Text style={styles.label}>{t('targetCountLabel')}</Text>
+          <Text style={styles.value}>{target.toLocaleString()}</Text>
+        </View>
+      ) : null}
 
       <View style={styles.grid}>
         <View style={styles.cell}>
@@ -208,7 +208,9 @@ const ChallengeDetailsScreen = () => {
 
       <Text style={styles.section}>{t('yourProgress')}</Text>
       <Text style={styles.progressCount}>
-        {current.toLocaleString()} / {target ? target.toLocaleString() : '—'}
+        {target > 0
+          ? `${current.toLocaleString()} / ${target.toLocaleString()}`
+          : current.toLocaleString()}
       </Text>
       <View style={styles.barRow}>
         <View style={styles.track}>

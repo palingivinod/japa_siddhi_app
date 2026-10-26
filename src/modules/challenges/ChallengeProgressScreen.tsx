@@ -40,11 +40,13 @@ const ChallengeProgressScreen = () => {
   );
 
   const current = Number(item?.currentValue || 0);
-  const target = Number(item?.targetValue || 10000);
-  const percent = Number(
-    item?.progressPercent ??
-      Math.min(100, Math.round((current / Math.max(target, 1)) * 100)),
-  );
+  const target = Number(item?.targetValue || 0);
+  const percent = target > 0
+    ? Number(
+        item?.progressPercent ??
+          Math.min(100, Math.round((current / target) * 100)),
+      )
+    : 0;
   const today = Number(item?.todayCount || 0);
   const week = Number(item?.weekCount || 0);
   const remaining = Number(
@@ -112,10 +114,12 @@ const ChallengeProgressScreen = () => {
               <Text style={styles.statLabel}>{t('thisWeek')}</Text>
               <Text style={styles.statValue}>{week.toLocaleString()}</Text>
             </View>
-            <View style={styles.stat}>
-              <Text style={styles.statLabel}>{t('remainingLabel')}</Text>
-              <Text style={styles.statValue}>{remaining.toLocaleString()}</Text>
-            </View>
+            {target > 0 ? (
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>{t('remainingLabel')}</Text>
+                <Text style={styles.statValue}>{remaining.toLocaleString()}</Text>
+              </View>
+            ) : null}
           </View>
 
           <Text style={styles.section}>{t('dailyActivity')}</Text>

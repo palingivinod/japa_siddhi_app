@@ -326,8 +326,13 @@ class DonationService {
     let donationId: number | null = null;
     let requestId: number | null = null;
     let itemName = 'Annadanam';
-    let orderType: 'BANA_LINGAM' | 'RAMAKOTI_BOOKS' | 'ANNADANAM' | 'NITHYA_HOMAM' =
-      'ANNADANAM';
+    let orderType:
+      | 'BANA_LINGAM'
+      | 'RAMAKOTI_BOOKS'
+      | 'HOMA_BHASMA'
+      | 'BIRAVA_PENDANT'
+      | 'ANNADANAM'
+      | 'NITHYA_HOMAM' = 'ANNADANAM';
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
 
     if (kind === 'BANA_LINGAM') {
@@ -338,6 +343,18 @@ class DonationService {
       orderType = 'RAMAKOTI_BOOKS';
       if (!String(data.address || '').trim()) {
         throw new AppError('Add your address in Personal Details.', 400);
+      }
+    } else if (kind === 'HOMA_BHASMA') {
+      itemName = 'Homa Bhasma';
+      orderType = 'HOMA_BHASMA';
+      if (!String(data.address || '').trim()) {
+        throw new AppError('Enter a delivery address.', 400);
+      }
+    } else if (kind === 'BIRAVA_PENDANT') {
+      itemName = 'Birava pendant';
+      orderType = 'BIRAVA_PENDANT';
+      if (!String(data.address || '').trim()) {
+        throw new AppError('Enter a delivery address.', 400);
       }
     } else if (kind === 'NITHYA_HOMAM') {
       itemName = 'Nithya Homam';
@@ -351,7 +368,13 @@ class DonationService {
       donationType = 'ANNADANAM';
     }
 
-    if (kind !== 'BANA_LINGAM' && kind !== 'RAMAKOTI_BOOKS') {
+    const isRequestOrder =
+      kind === 'BANA_LINGAM' ||
+      kind === 'RAMAKOTI_BOOKS' ||
+      kind === 'HOMA_BHASMA' ||
+      kind === 'BIRAVA_PENDANT';
+
+    if (!isRequestOrder) {
       const donation = await this.create(userId, {
         donationType,
         amount,
@@ -364,14 +387,29 @@ class DonationService {
       donationId = donation.id;
     }
 
+    const deliveryLines = [
+      `Name: ${data.fullName || 'Devotee'}`,
+      `Mobile: ${mobile || '-'}`,
+      `Address: ${String(data.address || '').trim()}`,
+      data.gothram ? `Gothram: ${data.gothram}` : '',
+      data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
     const orderRemarks =
-      kind === 'RAMAKOTI_BOOKS'
-        ? [
-            `Name: ${data.fullName || 'Devotee'}`,
-            `Mobile: ${mobile || '-'}`,
-            `Address: ${String(data.address || '').trim()}`,
-          ].join('\n')
+      kind === 'RAMAKOTI_BOOKS' ||
+      kind === 'HOMA_BHASMA' ||
+      kind === 'BIRAVA_PENDANT'
+        ? deliveryLines
         : remarks || `Paid ₹${amount} via UPI QR`;
+    const numberPrefix =
+      kind === 'RAMAKOTI_BOOKS'
+        ? 'RK'
+        : kind === 'HOMA_BHASMA'
+          ? 'HB'
+          : kind === 'BIRAVA_PENDANT'
+            ? 'BP'
+            : undefined;
     const order = await orderService.create({
       userId,
       orderType,
@@ -380,7 +418,7 @@ class DonationService {
       quantity: 1,
       orderStatus: 'UNDER_REVIEW',
       remarks: orderRemarks,
-      numberPrefix: kind === 'RAMAKOTI_BOOKS' ? 'RK' : undefined,
+      numberPrefix,
     });
 
     if (kind === 'NITHYA_HOMAM') {
@@ -429,12 +467,17 @@ class DonationService {
       }
     }
 
-    if (kind === 'RAMAKOTI_BOOKS' && data.address) {
+    if (
+      (kind === 'RAMAKOTI_BOOKS' ||
+        kind === 'HOMA_BHASMA' ||
+        kind === 'BIRAVA_PENDANT') &&
+      data.address
+    ) {
       await profileRepository.saveAddress(userId, data.address);
     }
 
     const confirmationId =
-      kind === 'BANA_LINGAM' || kind === 'RAMAKOTI_BOOKS'
+      isRequestOrder
         ? order.orderNumber
         : kind === 'NITHYA_HOMAM'
           ? `NH${order.id}${String(Date.now()).slice(-3)}`

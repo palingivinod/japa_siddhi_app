@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {
+  Alert,
   NativeModules,
   Platform,
   RefreshControl,
@@ -26,7 +27,9 @@ import {
   PanchangPayload,
 } from '../../../services/panchang';
 import {useTabSwipe} from '../../../navigation/useTabSwipe';
-import {getLastChantedJapa, getStoredUser} from '../../../services/session';
+import {getLastChantedJapa, getStoredUser, hydrateSession, saveSession} from '../../../services/session';
+import ProfileApi from '../../auth/services/profileApi';
+import {promptRegion, regionMissing} from '../../../navigation/goHomeAfterAuth';
 import {getJapaDraft} from '../../../services/japaDraft';
 import Colors from '../../../theme/colors';
 import {PLAYSTORE_URL} from '../../../constants/app';
@@ -351,6 +354,44 @@ const HomeScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      let active = true;
+      const askForRegion = async () => {
+        const session = await hydrateSession();
+        if (!active || !session.token) {
+          return;
+        }
+        let user = session.user;
+        try {
+          const profile = await ProfileApi.getProfile();
+          if (profile) {
+            user = {...(user || {}), ...profile};
+            await saveSession(session.token, user);
+          }
+        } catch {
+          // Use the stored profile if the refresh fails.
+        }
+        if (!active) {
+          return;
+        }
+        const role = String(user?.role || '').toUpperCase();
+        if (role === 'ADMIN' || !regionMissing(user)) {
+          return;
+        }
+        promptRegion(navigation, {
+          title: t('regionRequiredTitle'),
+          message: t('regionRequiredMessage'),
+          ok: t('ok'),
+        });
+      };
+      askForRegion();
+      return () => {
+        active = false;
+      };
+    }, [navigation, t]),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
       const installed = getAppVersionName();
       if (installed && installed !== '—') {
         apiService
@@ -473,7 +514,7 @@ const HomeScreen = () => {
   };
 
   const showJapaAnnadanam =
-    annadanamVisibility.japa && lifetime >= 10000;
+    annadanamVisibility.japa && lifetime >= 5000;
   const visibleTiles = tiles.filter(item => {
     if (item.route !== 'Donate') {
       return true;

@@ -95,6 +95,7 @@ CREATE TABLE IF NOT EXISTS users (
   anniversary_date TEXT,
   gothram TEXT,
   nakshatram TEXT,
+  region TEXT,
   preferred_language_id INTEGER,
   timezone TEXT NOT NULL DEFAULT 'Asia/Kolkata',
   password_hash TEXT,

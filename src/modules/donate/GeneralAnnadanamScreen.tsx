@@ -22,6 +22,10 @@ const GeneralAnnadanamScreen = () => {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [occasion, setOccasion] = useState('');
+  const [forWhom, setForWhom] = useState('');
+  const [personName, setPersonName] = useState('');
+  const [gender, setGender] = useState('');
+  const [spouseName, setSpouseName] = useState('');
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
   const [persons, setPersons] = useState(0);
@@ -29,11 +33,21 @@ const GeneralAnnadanamScreen = () => {
 
   const totalAmount = persons * RATE_PER_PERSON;
   const cleanMobileReady = mobile.replace(/\D/g, '');
+  const genderKey = gender.trim().toLowerCase();
+  const anniversaryRelation =
+    genderKey === 'female' ? 'Husband' : genderKey === 'male' ? 'Wife' : '';
+  const needsPersonName = forWhom.length > 0 && forWhom !== 'Self' && occasion !== 'Anniversary';
+  const personReady =
+    occasion === 'Anniversary'
+      ? anniversaryRelation.length > 0 && spouseName.trim().length >= 2
+      : forWhom === 'Self' || (needsPersonName && personName.trim().length >= 2);
   const detailsReady =
     fullName.trim().length >= 2 &&
     isMobile(cleanMobileReady) &&
     !/^0+$/.test(cleanMobileReady) &&
     occasion.length > 0 &&
+    forWhom.length > 0 &&
+    personReady &&
     /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
     persons > 0;
 
@@ -52,6 +66,8 @@ const GeneralAnnadanamScreen = () => {
 
           setFullName(current => current || String(name));
           setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          setGender(String(profile?.gender || stored?.gender || ''));
+          setSpouseName(String(profile?.spouseName || stored?.spouseName || stored?.spouse_name || ''));
         } catch {
           // ignore profile load error
         }
@@ -63,6 +79,14 @@ const GeneralAnnadanamScreen = () => {
       };
     }, []),
   );
+
+  useEffect(() => {
+    if (occasion !== 'Anniversary') {
+      return;
+    }
+    setForWhom(anniversaryRelation);
+    setPersonName(spouseName.trim());
+  }, [occasion, anniversaryRelation, spouseName]);
 
   useEffect(() => {
     apiService
@@ -88,6 +112,18 @@ const GeneralAnnadanamScreen = () => {
       Alert.alert(t('validationTitle'), t('selectOccasion'));
       return;
     }
+    if (occasion === 'Anniversary') {
+      if (!anniversaryRelation || spouseName.trim().length < 2) {
+        Alert.alert(t('validationTitle'), t('addSpouseInProfile'));
+        return;
+      }
+    } else if (!forWhom) {
+      Alert.alert(t('validationTitle'), t('selectForWhom'));
+      return;
+    } else if (forWhom !== 'Self' && personName.trim().length < 2) {
+      Alert.alert(t('validationTitle'), t('enterPersonName'));
+      return;
+    }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
       Alert.alert(t('validationTitle'), t('selectPreferDate'));
       return;
@@ -102,6 +138,14 @@ const GeneralAnnadanamScreen = () => {
       purpose: occasion,
       occasion,
       preferDate,
+      forWhom: occasion === 'Anniversary' ? anniversaryRelation : forWhom,
+      personName:
+        (occasion === 'Anniversary'
+          ? spouseName
+          : forWhom === 'Self'
+            ? fullName
+            : personName
+        ).trim(),
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
@@ -144,11 +188,60 @@ const GeneralAnnadanamScreen = () => {
           <Text style={styles.label}>{t('occasionLabel')} *</Text>
           <SelectField
             value={occasion}
-            onChange={setOccasion}
+            onChange={value => {
+              setOccasion(value);
+              if (value !== 'Anniversary') {
+                setForWhom('');
+                setPersonName('');
+              }
+            }}
             placeholder={t('selectShort')}
             title={t('occasionLabel')}
             options={occasions}
           />
+          {occasion === 'Anniversary' ? (
+            spouseName.trim().length >= 2 && anniversaryRelation ? (
+              <Text style={styles.picked}>
+                {t('forWhom')}: {t(anniversaryRelation === 'Wife' ? 'forWhomWife' : 'forWhomHusband')}
+                {'\n'}
+                {t('personNameLabel')}: {spouseName.trim()}
+              </Text>
+            ) : (
+              <Text style={styles.pickedWarn}>{t('addSpouseInProfile')}</Text>
+            )
+          ) : occasion ? (
+            <>
+              <Text style={styles.label}>{t('forWhom')} *</Text>
+              <SelectField
+                value={forWhom}
+                onChange={value => {
+                  setForWhom(value);
+                  if (value === 'Self') {
+                    setPersonName('');
+                  }
+                }}
+                placeholder={t('selectShort')}
+                title={t('forWhom')}
+                options={[
+                  {label: t('forWhomSelf'), value: 'Self'},
+                  {label: t('forWhomFather'), value: 'Father'},
+                  {label: t('forWhomMother'), value: 'Mother'},
+                  {label: t('forWhomChildren'), value: 'Children'},
+                  {label: t('forWhomHusband'), value: 'Husband'},
+                  {label: t('forWhomWife'), value: 'Wife'},
+                  {label: t('forWhomOther'), value: 'Other'},
+                ]}
+              />
+              {needsPersonName ? (
+                <FormField
+                  label={t('personNameLabel')}
+                  placeholder={t('personNameLabel')}
+                  value={personName}
+                  onChangeText={setPersonName}
+                />
+              ) : null}
+            </>
+          ) : null}
           <Text style={styles.label}>{t('preferDate')} *</Text>
           <TouchableOpacity style={styles.dateField} onPress={() => setShowDate(true)}>
             <Text style={preferDate ? styles.dateValue : styles.datePlaceholder}>
@@ -220,6 +313,20 @@ const styles = StyleSheet.create({
   datePlaceholder: {
     color: Colors.placeholder,
     fontSize: 16,
+  },
+  picked: {
+    marginTop: 8,
+    marginBottom: 8,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    lineHeight: 22,
+  },
+  pickedWarn: {
+    marginTop: 8,
+    marginBottom: 8,
+    color: Colors.error,
+    fontWeight: '700',
+    lineHeight: 22,
   },
   disabled: {
     marginTop: 20,

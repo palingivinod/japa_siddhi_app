@@ -23,6 +23,7 @@ export interface CompleteProfileRequest {
   anniversaryDate?: string;
   gothram?: string;
   nakshatram?: string;
+  region?: string;
   profileImage?: string | null;
 }
 
@@ -42,6 +43,7 @@ export interface UpdateProfileRequest {
   anniversaryDate?: string;
   gothram?: string;
   nakshatram?: string;
+  region?: string;
 }
 
 const isPlaceholderMobile = (
@@ -102,6 +104,7 @@ export const mapProfile = (data: any) => {
     anniversaryDate: data.anniversaryDate ?? data.anniversary_date ?? '',
     gothram: data.gothram ?? '',
     nakshatram: data.nakshatram ?? '',
+    region: data.region ?? '',
     profilePhoto: data.profilePhoto ?? data.profile_photo ?? data.profileImage ?? null,
     profileImage: data.profilePhoto ?? data.profile_photo ?? data.profileImage ?? null,
     profileCompleted: data.profileCompleted ?? data.profile_completed,
@@ -193,6 +196,7 @@ class ProfileApi {
       anniversaryDate: data.anniversaryDate,
       gothram: data.gothram,
       nakshatram: data.nakshatram,
+      region: data.region,
       profilePhoto: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
       profileImage: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
       deviceType: 'ANDROID',
@@ -226,6 +230,7 @@ class ProfileApi {
       anniversaryDate: data.anniversaryDate,
       gothram: data.gothram,
       nakshatram: data.nakshatram,
+      region: data.region,
       profilePhoto: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
       profileImage: isRemotePhoto(data.profileImage) ? data.profileImage : undefined,
     });

@@ -254,7 +254,12 @@ const AdminOrderDetailsScreen = () => {
     orderText.includes('banalingam') ||
     orderText.includes('baanalingam') ||
     orderText.includes('ramakoti') ||
-    orderText.includes('rk');
+    orderText.includes('rk') ||
+    orderText.includes('homa bhasma') ||
+    orderText.includes('homa_bhasma') ||
+    orderText.includes('birava') ||
+    orderText.includes('hb0') ||
+    orderText.includes('bp0');
 
   const delivery = order?.delivery || {};
   const fullAddress = [

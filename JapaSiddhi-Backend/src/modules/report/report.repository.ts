@@ -344,6 +344,10 @@ class ReportRepository {
 
         IFNULL(d.prefer_date, '') AS preferDate,
 
+        IFNULL(d.for_whom, '') AS forWhom,
+
+        IFNULL(d.person_name, '') AS personName,
+
         d.donation_type AS donationType,
 
         d.amount,

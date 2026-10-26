@@ -71,7 +71,7 @@ const AdminMantraCategoryScreen = () => {
             id: String(row.id),
             name: row.name || '',
             active: Boolean(row.active),
-            target: Number(row.target) || 108,
+            target: Number(row.target) || 0,
             categoryCode: String(row.categoryCode || ''),
           }))
           .filter((row: ListedMantra) => row.categoryCode === categoryCode),
@@ -208,10 +208,12 @@ const AdminMantraCategoryScreen = () => {
       {mantras.map(item => (
         <View key={item.id} style={styles.card}>
           <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.meta}>
-            Target {item.target.toLocaleString('en-IN')}
-            {item.active ? '' : ' • Inactive'}
-          </Text>
+          {item.target > 0 || !item.active ? (
+            <Text style={styles.meta}>
+              {item.target > 0 ? `Target ${item.target.toLocaleString('en-IN')}` : ''}
+              {!item.active ? `${item.target > 0 ? ' • ' : ''}Inactive` : ''}
+            </Text>
+          ) : null}
           <View style={styles.actions}>
             <TouchableOpacity style={styles.editBtn} onPress={() => setMoving(item)}>
               <Text style={styles.editText}>Move</Text>

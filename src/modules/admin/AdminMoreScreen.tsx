@@ -28,6 +28,11 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     route: 'AdminExportReports',
     sub: 'Download Excel and report files',
   },
+  {
+    title: 'Region analytics',
+    route: 'AdminRegionAnalytics',
+    sub: 'People, japa count, and mantras by place',
+  },
 ];
 
 const AdminMoreScreen = () => {

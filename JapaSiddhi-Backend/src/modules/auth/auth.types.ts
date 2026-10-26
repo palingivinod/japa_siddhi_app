@@ -20,6 +20,7 @@ export interface CompleteProfileRequest {
   anniversaryDate?: string;
   gothram?: string;
   nakshatram?: string;
+  region?: string;
   preferredLanguageId: number;
 
   timezone?: string;

@@ -26,14 +26,22 @@ class OrderRepository {
   }
 
   async getNextOrderNumber(prefix?: string): Promise<string> {
-    if (String(prefix || '').toUpperCase() === 'RK') {
+    const code = String(prefix || '').toUpperCase();
+    if (code === 'RK' || code === 'HB' || code === 'BP') {
       try {
-        const rows = await mysql.query<any[]>(`
-          SELECT order_number FROM orders WHERE upper(order_number) LIKE 'RK%' ORDER BY id DESC LIMIT 200
-        `);
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT order_number FROM orders
+          WHERE upper(order_number) LIKE ?
+          ORDER BY id DESC
+          LIMIT 200
+          `,
+          [`${code}%`],
+        );
         let maxSeq = 0;
+        const pattern = new RegExp(`^${code}(\\d+)`, 'i');
         for (const row of rows || []) {
-          const match = String(row.order_number || '').match(/^RK(\d+)/i);
+          const match = String(row.order_number || '').match(pattern);
           if (match) {
             const parsed = parseInt(match[1], 10);
             if (parsed > maxSeq) {
@@ -41,9 +49,9 @@ class OrderRepository {
             }
           }
         }
-        return `RK${String(maxSeq + 1).padStart(2, '0')}`;
+        return `${code}${String(maxSeq + 1).padStart(2, '0')}`;
       } catch {
-        return 'RK01';
+        return `${code}01`;
       }
     }
     try {

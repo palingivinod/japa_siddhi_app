@@ -608,55 +608,55 @@ const REQUIREMENT_LABELS: Record<
   {first: string; fiftyK: string; one: string; two: string}
 > = {
   te: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 వేలు)',
     one: '1,00,000 (1 లక్ష)',
     two: '2,00,000 (2 లక్షలు)',
   },
   hi: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 हज़ार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
   },
   ta: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 ஆயிரம்)',
     one: '1,00,000 (1 லட்சம்)',
     two: '2,00,000 (2 லட்சம்)',
   },
   kn: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 ಸಾವಿರ)',
     one: '1,00,000 (1 ಲಕ್ಷ)',
     two: '2,00,000 (2 ಲಕ್ಷ)',
   },
   ml: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 ആയിരം)',
     one: '1,00,000 (1 ലക്ഷം)',
     two: '2,00,000 (2 ലക്ഷം)',
   },
   mr: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 हजार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
   },
   bn: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 হাজার)',
     one: '1,00,000 (1 লাখ)',
     two: '2,00,000 (2 লাখ)',
   },
   or: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50 ହଜାର)',
     one: '1,00,000 (1 ଲକ୍ଷ)',
     two: '2,00,000 (2 ଲକ୍ଷ)',
   },
   en: {
-    first: '2,498',
+    first: '5,000',
     fiftyK: '50,000 (50k)',
     one: '1,00,000 (1 Lakh)',
     two: '2,00,000 (2 Lakhs)',
@@ -710,7 +710,7 @@ export const getRewardRequirement = (
     lower.includes('turmeric') ||
     lower.includes('haldi')
   ) {
-    return {count: 2498, label: reqText.first};
+    return {count: 5000, label: reqText.first};
   }
   return {count: 0, label: 'Standard'};
 };

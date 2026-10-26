@@ -132,9 +132,10 @@ const AdminChallengeCreateScreen = () => {
     Record<AdminSupportedLang, ChallengeLangFields>
   >(defaultTranslations);
 
-  const [target, setTarget] = useState(
-    String(route.params?.targetValue || route.params?.target || '10000'),
-  );
+  const [target, setTarget] = useState(() => {
+    const initial = Number(route.params?.targetValue || route.params?.target || 0);
+    return initial > 0 ? String(initial) : '';
+  });
   const [startDate, setStartDate] = useState<Date | null>(
     () => parseDateValue(route.params?.startDate) || new Date(),
   );
@@ -247,7 +248,7 @@ const AdminChallengeCreateScreen = () => {
           mantra: nextTrans.en.mantra,
         };
         skipAutoTranslateRef.current = true;
-        setTarget(String(match.targetValue || '10000'));
+        setTarget(Number(match.targetValue) > 0 ? String(match.targetValue) : '');
         setStartDate(parseDateValue(match.startDate) || new Date());
         setEndDate(
           parseDateValue(match.endDate) ||
@@ -572,7 +573,7 @@ const AdminChallengeCreateScreen = () => {
             label="Target Count"
             value={target}
             onChangeText={setTarget}
-            placeholder="10000"
+            placeholder="Optional"
           />
 
           <View style={styles.field}>

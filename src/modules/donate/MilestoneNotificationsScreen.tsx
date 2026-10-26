@@ -1,6 +1,7 @@
 import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -171,11 +172,23 @@ const MilestoneNotificationsScreen = () => {
                 <TouchableOpacity
                   style={[styles.cta, rewardClaimed && styles.ctaDisabled]}
                   disabled={rewardClaimed}
-                  onPress={() =>
+                  onPress={() => {
+                    if (total < 5000) {
+                      const remaining = Math.max(0, 5000 - total);
+                      Alert.alert(
+                        t('rewardLockedTitle'),
+                        t('rewardLockedMsg', {
+                          required: '5,000',
+                          remaining: remaining.toLocaleString('en-IN'),
+                          current: total.toLocaleString('en-IN'),
+                        }),
+                      );
+                      return;
+                    }
                     navigation.navigate('MilestoneRewardSelect', {
                       target: latest,
-                    })
-                  }>
+                    });
+                  }}>
                   <Text style={styles.ctaText}>
                     {rewardClaimed ? t('rewardClaimed') : t('grabReward')}
                   </Text>

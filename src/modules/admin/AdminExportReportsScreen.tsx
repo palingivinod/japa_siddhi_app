@@ -129,6 +129,14 @@ const AdminExportReportsScreen = () => {
         onPress={() => downloadExcel('donations', 'Donation Reports')}>
         <Text style={styles.outlineText}>EXPORT DONATIONS XL</Text>
       </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.outlineBtn, exporting === 'rewards' && styles.pillBusy]}
+        disabled={Boolean(exporting)}
+        onPress={() => downloadExcel('rewards', 'Rewards')}>
+        <Text style={styles.outlineText}>
+          {exporting === 'rewards' ? 'PREPARING EXCEL...' : 'REWARDS XL'}
+        </Text>
+      </TouchableOpacity>
 
       <Text style={styles.monthLabel}>Date of birth / prefer date month</Text>
       <SelectField

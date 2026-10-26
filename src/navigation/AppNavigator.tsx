@@ -95,6 +95,8 @@ import ScreenIndexScreen from '../modules/screens/ScreenIndexScreen';
 import BanaLingamReviewScreen from '../modules/banaLingam/BanaLingamReviewScreen';
 import RamakotiBooksScreen from '../modules/ramakoti/RamakotiBooksScreen';
 import RamakotiBooksReviewScreen from '../modules/ramakoti/RamakotiBooksReviewScreen';
+import SevaRequestScreen from '../modules/sevaRequest/SevaRequestScreen';
+import SevaRequestReviewScreen from '../modules/sevaRequest/SevaRequestReviewScreen';
 import DonationConfirmationScreen from '../modules/donate/DonationConfirmationScreen';
 import WelcomeGiftScreen from '../modules/auth/WelcomeGiftScreen';
 import AdminHubScreen from '../modules/admin/AdminHubScreen';
@@ -134,6 +136,7 @@ import AdminFestivalAnalyticsScreen from '../modules/admin/AdminFestivalAnalytic
 import AdminLanguagesScreen from '../modules/admin/AdminLanguagesScreen';
 import AdminMultilingualContentScreen from '../modules/admin/AdminMultilingualContentScreen';
 import AdminExportReportsScreen from '../modules/admin/AdminExportReportsScreen';
+import AdminRegionAnalyticsScreen from '../modules/admin/AdminRegionAnalyticsScreen';
 import AdminMoreScreen from '../modules/admin/AdminMoreScreen';
 
 export type RootStackParamList = {
@@ -323,6 +326,10 @@ export type RootStackParamList = {
   BanaLingamReview: any;
   RamakotiBooks: undefined;
   RamakotiBooksReview: any;
+  HomaBhasma: undefined;
+  HomaBhasmaReview: any;
+  BiravaPendant: undefined;
+  BiravaPendantReview: any;
   DonationConfirmation: any;
   AdminHub: undefined;
   AdminLogin: undefined;
@@ -404,6 +411,7 @@ export type RootStackParamList = {
   AdminLanguages: undefined;
   AdminMultilingualContent: undefined;
   AdminExportReports: undefined;
+  AdminRegionAnalytics: undefined;
   AdminMore: undefined;
 };
 
@@ -488,6 +496,8 @@ const ProtectedScreenIndex = withAuth(ScreenIndexScreen);
 const ProtectedBanaReview = withAuth(BanaLingamReviewScreen);
 const ProtectedRamakoti = withAuth(RamakotiBooksScreen);
 const ProtectedRamakotiReview = withAuth(RamakotiBooksReviewScreen);
+const ProtectedSevaRequest = withAuth(SevaRequestScreen);
+const ProtectedSevaRequestReview = withAuth(SevaRequestReviewScreen);
 const ProtectedDonationConfirmation = withAuth(DonationConfirmationScreen);
 const ProtectedWelcomeGift = withAuth(WelcomeGiftScreen);
 const ProtectedAdminHub = AdminHubScreen;
@@ -531,6 +541,7 @@ const ProtectedAdminMultilingualContent = withAdminAuth(
   AdminMultilingualContentScreen,
 );
 const ProtectedAdminExportReports = withAdminAuth(AdminExportReportsScreen);
+const ProtectedAdminRegionAnalytics = withAdminAuth(AdminRegionAnalyticsScreen);
 const ProtectedAdminMore = withAdminAuth(AdminMoreScreen);
 
 const AppNavigator = () => {
@@ -719,6 +730,10 @@ const AppNavigator = () => {
         <Stack.Screen name="BanaLingamReview" component={ProtectedBanaReview} />
         <Stack.Screen name="RamakotiBooks" component={ProtectedRamakoti} />
         <Stack.Screen name="RamakotiBooksReview" component={ProtectedRamakotiReview} />
+        <Stack.Screen name="HomaBhasma" component={ProtectedSevaRequest} />
+        <Stack.Screen name="HomaBhasmaReview" component={ProtectedSevaRequestReview} />
+        <Stack.Screen name="BiravaPendant" component={ProtectedSevaRequest} />
+        <Stack.Screen name="BiravaPendantReview" component={ProtectedSevaRequestReview} />
         <Stack.Screen name="BanaLingamPayment" component={ProtectedCheckout} />
         <Stack.Screen
           name="PaymentConfirmation"
@@ -854,6 +869,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminMultilingualContent"
           component={ProtectedAdminMultilingualContent}
+        />
+        <Stack.Screen
+          name="AdminRegionAnalytics"
+          component={ProtectedAdminRegionAnalytics}
         />
         <Stack.Screen
           name="AdminExportReports"

@@ -47,7 +47,7 @@ const rewardJapaRequirement = (name: string) => {
     lower.includes('turmeric') ||
     lower.includes('haldi')
   ) {
-    return 2498;
+    return 5000;
   }
   return 0;
 };
@@ -160,6 +160,12 @@ class MilestoneRewardService {
     const total = await japaRepository.getUserMilestoneJapa(userId);
     if (total < milestone.target) {
       throw new Error('Reach this milestone before grabbing a reward');
+    }
+    if (milestone.target < 5000) {
+      const remaining = Math.max(0, 5000 - total);
+      throw new Error(
+        `Rewards are available after 5,000 Japas. You need ${remaining.toLocaleString()} more Japas.`,
+      );
     }
     const existing = await mysql.query<any[]>(
       `

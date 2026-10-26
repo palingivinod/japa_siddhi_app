@@ -187,6 +187,8 @@ export const ensureDonationColumns = async () => {
     `ALTER TABLE donations ADD COLUMN donor_phone TEXT`,
     `ALTER TABLE donations ADD COLUMN prefer_date TEXT`,
     `ALTER TABLE donations ADD COLUMN occasion TEXT`,
+    `ALTER TABLE donations ADD COLUMN for_whom TEXT`,
+    `ALTER TABLE donations ADD COLUMN person_name TEXT`,
   ];
   for (const sql of alters) {
     try {
@@ -209,6 +211,8 @@ const insertDonation = async (input: {
   donorPhone: string;
   preferDate: string;
   occasion: string;
+  forWhom: string;
+  personName: string;
 }) => {
   await ensureDonationColumns();
   const columns = [
@@ -225,6 +229,8 @@ const insertDonation = async (input: {
     'donor_phone',
     'prefer_date',
     'occasion',
+    'for_whom',
+    'person_name',
   ];
   const values = [
     input.userId,
@@ -240,6 +246,8 @@ const insertDonation = async (input: {
     input.donorPhone || null,
     input.preferDate || null,
     input.occasion || null,
+    input.forWhom || null,
+    input.personName || null,
   ];
   try {
     await mysql.query(
@@ -286,6 +294,8 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   const note = String(notes.note || 'Seva offering').trim();
   const preferDate = String(notes.preferDate || '').trim().slice(0, 10);
   const occasion = String(notes.occasion || '').trim().slice(0, 40);
+  const forWhom = String(notes.forWhom || '').trim().slice(0, 20);
+  const personName = String(notes.personName || '').trim().slice(0, 80);
   const userId = await userIdForPhone(phone);
   const remarks = [
     `Seva: ${note}`,
@@ -293,11 +303,13 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
     phone ? `Phone: ${phone}` : '',
     preferDate ? `Prefer date: ${preferDate}` : '',
     occasion ? `Occasion: ${occasion}` : '',
+    forWhom ? `For whom: ${forWhom}` : '',
+    personName ? `Person name: ${personName}` : '',
     source ? `Source: ${source}` : '',
   ]
     .filter(Boolean)
     .join(' | ')
-    .slice(0, 500);
+    .slice(0, 700);
   const specificType = sevaType(note);
   try {
     await insertDonation({
@@ -312,6 +324,8 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
       donorPhone: phone,
       preferDate,
       occasion,
+      forWhom,
+      personName,
     });
   } catch {
     await insertDonation({
@@ -326,6 +340,8 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
       donorPhone: phone,
       preferDate,
       occasion,
+      forWhom,
+      personName,
     });
   }
   await emailOtpService.notifyAdmin(

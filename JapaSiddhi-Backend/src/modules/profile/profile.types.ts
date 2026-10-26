@@ -18,6 +18,7 @@ export interface UpdateProfileRequest {
   nakshatram?: string | null;
   profilePhoto?: string | null;
   postalCode?: string | null;
+  region?: string | null;
 }
 
 export interface ProfileResponse {
@@ -45,6 +46,7 @@ export interface ProfileResponse {
   anniversaryDate: string | null;
   gothram: string | null;
   nakshatram: string | null;
+  region: string | null;
   profileCompleted: boolean;
   role: string;
 }

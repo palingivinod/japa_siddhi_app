@@ -70,6 +70,18 @@ const SevaHubScreen = () => {
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
       },
+      {
+        emoji: '🪔',
+        title: t('tileHomaBhasma'),
+        sub: t('tileHomaBhasmaSub'),
+        route: 'HomaBhasma',
+      },
+      {
+        emoji: '🧿',
+        title: t('tileBirava'),
+        sub: t('tileBiravaSub'),
+        route: 'BiravaPendant',
+      },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
   }, [t, annadanamEnabled]);

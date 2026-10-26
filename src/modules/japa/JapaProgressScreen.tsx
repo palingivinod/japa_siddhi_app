@@ -130,7 +130,7 @@ const JapaProgressScreen = () => {
   );
 
   const resumeJapa = async () => {
-    if (lifetime >= 10000) {
+    if (lifetime >= 5000) {
       navigation.navigate('JapaAnnadanam');
       return;
     }
@@ -265,7 +265,7 @@ const JapaProgressScreen = () => {
       />
       <View style={styles.gap} />
       <OutlineButton
-        title={lifetime >= 10000 ? t('donateNowAction') : t('resumeJapa')}
+        title={lifetime >= 5000 ? t('donateNowAction') : t('resumeJapa')}
         onPress={resumeJapa}
       />
     </ScreenLayout>

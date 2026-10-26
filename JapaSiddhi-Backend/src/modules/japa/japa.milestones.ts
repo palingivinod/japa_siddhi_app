@@ -1,6 +1,6 @@
 export const SPIRITUAL_MILESTONES = [
   {target: 2498, title: 'Praramba Diksha', key: 'prarambaDiksha'},
-  {target: 10000, title: 'Yogam', key: 'yogam'},
+  {target: 5000, title: 'Yogam', key: 'yogam'},
   {target: 30000, title: 'Siddhi Yogam', key: 'siddhiYogam'},
   {target: 50000, title: 'Maha Siddhi Yogam', key: 'mahaSiddhiYogam'},
   {target: 75000, title: 'Ati Siddhi Yogam', key: 'atiSiddhiYogam'},

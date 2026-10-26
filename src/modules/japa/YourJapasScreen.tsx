@@ -543,15 +543,21 @@ const YourJapasScreen = () => {
                 <View style={styles.progressSection}>
                   <View style={styles.progressLabelRow}>
                     <Text style={styles.progressText}>
-                      {t('overallProgressJapas', {
-                        completed: item.completedCount.toLocaleString('en-IN'),
-                        target: item.targetCount.toLocaleString('en-IN'),
-                      }) ||
-                        `Overall: ${item.completedCount.toLocaleString('en-IN')} / ${item.targetCount.toLocaleString('en-IN')} Japas`}
+                      {item.targetCount > 0
+                        ? t('overallProgressJapas', {
+                            completed: item.completedCount.toLocaleString('en-IN'),
+                            target: item.targetCount.toLocaleString('en-IN'),
+                          }) ||
+                          `Overall: ${item.completedCount.toLocaleString('en-IN')} / ${item.targetCount.toLocaleString('en-IN')} Japas`
+                        : t('japasCountLabel', {
+                            count: item.completedCount.toLocaleString('en-IN'),
+                          })}
                     </Text>
-                    <Text style={styles.progressPercentText}>
-                      {item.progressPercent}%
-                    </Text>
+                    {item.targetCount > 0 ? (
+                      <Text style={styles.progressPercentText}>
+                        {item.progressPercent}%
+                      </Text>
+                    ) : null}
                   </View>
 
                   <View style={styles.progressBarTrack}>

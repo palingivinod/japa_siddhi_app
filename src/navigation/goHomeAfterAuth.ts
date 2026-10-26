@@ -103,6 +103,28 @@ export const resetAfterSocialAuth = (
   return resetToHomeAfterAuth(navigation);
 };
 
+/** Region or place is still empty. */
+export const regionMissing = (user: any) =>
+  String(user?.region || '').trim().length < 2;
+
+/** Every devotee must save a region or place. OK opens Personal Details. */
+export const promptRegion = (
+  navigation: any,
+  copy: {title: string; message: string; ok: string},
+) => {
+  Alert.alert(
+    copy.title,
+    copy.message,
+    [
+      {
+        text: copy.ok,
+        onPress: () => navigation.navigate('PersonalDetails'),
+      },
+    ],
+    {cancelable: false},
+  );
+};
+
 /** After login/signup always open Home (no auto intro video). */
 export const resetToHomeAfterAuth = async (navigation: any) => {
   navigation.dispatch(

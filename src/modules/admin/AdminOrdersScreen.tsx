@@ -56,11 +56,17 @@ const orderGroupOf = (row: {
   if (
     type === 'BANA_LINGAM' ||
     type === 'RAMAKOTI_BOOKS' ||
+    type === 'HOMA_BHASMA' ||
+    type === 'BIRAVA_PENDANT' ||
     number.startsWith('BL-') ||
     number.startsWith('RK') ||
+    number.startsWith('HB') ||
+    number.startsWith('BP') ||
     product.includes('baanalingam') ||
     product.includes('banalingam') ||
-    product.includes('ramakoti')
+    product.includes('ramakoti') ||
+    product.includes('homa bhasma') ||
+    product.includes('birava')
   ) {
     return 'normal';
   }

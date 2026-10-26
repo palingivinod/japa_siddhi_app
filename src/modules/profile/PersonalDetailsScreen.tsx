@@ -26,6 +26,44 @@ import {hydrateSession, saveSession} from '../../services/session';
 import DatePickerModal from '../common/DatePickerModal';
 import {isMobile, MOBILE_DIGITS} from '../../utils/validators';
 
+const formatDobDisplay = (iso: string) => {
+  const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : '';
+};
+
+const parseDob = (raw: string): string | null => {
+  const text = String(raw || '').trim();
+  const dmy = text.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const day = Number(dmy?.[1] || iso?.[3] || 0);
+  const month = Number(dmy?.[2] || iso?.[2] || 0);
+  const year = Number(dmy?.[3] || iso?.[1] || 0);
+  if (!dmy && !iso) {
+    return null;
+  }
+  const date = new Date(year, month - 1, day);
+  if (
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day ||
+    date > new Date()
+  ) {
+    return null;
+  }
+  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+const maskDob = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+  }
+  return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
+};
+
 interface StateModel {
   id: number;
   name: string;
@@ -58,10 +96,12 @@ const PersonalDetailsScreen = () => {
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [dobText, setDobText] = useState('');
   const [showDobPicker, setShowDobPicker] = useState(false);
   const [gender, setGender] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [address, setAddress] = useState('');
+  const [region, setRegion] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Bachelor' | 'Married'>(
     'Bachelor',
   );
@@ -79,11 +119,15 @@ const PersonalDetailsScreen = () => {
     setFullName(data.fullName || '');
     setEmail(data.email || '');
     setMobileNumber(data.mobileNumber || '');
-    setDateOfBirth(
-      String(data.dateOfBirth || data.dob || '').slice(0, 10),
-    );
+    const isoDob = String(data.dateOfBirth || data.dob || '').slice(0, 10);
+    setDateOfBirth(isoDob);
+    setDobText(formatDobDisplay(isoDob));
     setGender(data.gender || '');
     setAddress(data.address || '');
+    setRegion(String(data.region || '').trim());
+    if (String(data.region || '').trim().length < 2) {
+      setEditing(true);
+    }
     setPinCode(String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6));
     setMaritalStatus(
       data.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
@@ -154,12 +198,17 @@ const PersonalDetailsScreen = () => {
       Alert.alert(t('required'), t('enterValidMobileNumber'));
       return;
     }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    const isoDob = parseDob(dobText);
+    if (!isoDob) {
       Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
       Alert.alert(t('required'), t('enterPinCode'));
+      return;
+    }
+    if (region.trim().length < 2) {
+      Alert.alert(t('required'), t('enterRegionPlace'));
       return;
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
@@ -183,7 +232,7 @@ const PersonalDetailsScreen = () => {
 
       const updated = await ProfileApi.updateProfile({
         mobileNumber: mobile,
-        dateOfBirth,
+        dateOfBirth: isoDob,
         gender: gender || undefined,
         countryId,
         stateId: stateModel?.id ? Number(stateModel.id) : undefined,
@@ -193,6 +242,7 @@ const PersonalDetailsScreen = () => {
           : undefined,
         address: address.trim(),
         postalCode: pinCode,
+        region: region.trim(),
         maritalStatus,
         spouseName:
           maritalStatus === 'Married' ? spouseName.trim() : '',
@@ -248,11 +298,12 @@ const PersonalDetailsScreen = () => {
         {userCode ? <Row label={t('userId')} value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
-        <Row label={t('dateOfBirth')} value={dateOfBirth} />
+        <Row label={t('dateOfBirth')} value={formatDobDisplay(dateOfBirth)} />
         <Row label={t('pinCode')} value={pinCode} />
         <Row label="Email" value={email} />
         <Row label="Gender" value={gender} />
         <Row label="Location" value={location} />
+        <Row label={t('regionPlace')} value={region} />
         <Row label="Address" value={address} />
         <Row
           label="Language"
@@ -302,30 +353,42 @@ const PersonalDetailsScreen = () => {
       />
 
       <Text style={styles.label}>{t('dateOfBirth')} *</Text>
-      <TouchableOpacity
-        style={styles.input}
-        onPress={() => setShowDobPicker(true)}>
-        <Text style={dateOfBirth ? styles.rowValue : styles.placeholder}>
-          {dateOfBirth || t('selectDate')}
-        </Text>
-      </TouchableOpacity>
+      <View style={styles.dobRow}>
+        <TextInput
+          style={[styles.input, styles.dobInput]}
+          value={dobText}
+          onChangeText={value => setDobText(maskDob(value))}
+          placeholder={t('dobFormatPlaceholder')}
+          placeholderTextColor={Colors.placeholder}
+          keyboardType="number-pad"
+          maxLength={10}
+        />
+        <TouchableOpacity
+          style={styles.dobButton}
+          onPress={() => setShowDobPicker(true)}>
+          <Text style={styles.dobButtonText}>📅</Text>
+        </TouchableOpacity>
+      </View>
       <DatePickerModal
         visible={showDobPicker}
-        value={
-          /^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)
+        value={(() => {
+          const picked = parseDob(dobText);
+          return picked
             ? new Date(
-                Number(dateOfBirth.slice(0, 4)),
-                Number(dateOfBirth.slice(5, 7)) - 1,
-                Number(dateOfBirth.slice(8, 10)),
+                Number(picked.slice(0, 4)),
+                Number(picked.slice(5, 7)) - 1,
+                Number(picked.slice(8, 10)),
               )
-            : new Date(1995, 0, 1)
-        }
+            : new Date(1995, 0, 1);
+        })()}
         maximumDate={new Date()}
         onCancel={() => setShowDobPicker(false)}
         onConfirm={selected => {
           const month = String(selected.getMonth() + 1).padStart(2, '0');
           const day = String(selected.getDate()).padStart(2, '0');
-          setDateOfBirth(`${selected.getFullYear()}-${month}-${day}`);
+          const iso = `${selected.getFullYear()}-${month}-${day}`;
+          setDateOfBirth(iso);
+          setDobText(formatDobDisplay(iso));
           setShowDobPicker(false);
         }}
       />
@@ -401,6 +464,15 @@ const PersonalDetailsScreen = () => {
         state={stateModel}
         value={cityModel}
         onChange={(item: CityModel) => setCityModel(item)}
+      />
+
+      <Text style={styles.label}>{t('regionPlace')} *</Text>
+      <TextInput
+        style={styles.input}
+        value={region}
+        onChangeText={setRegion}
+        placeholder={t('enterRegionPlace')}
+        maxLength={80}
       />
 
       <Text style={styles.label}>{t('address')}</Text>
@@ -491,6 +563,29 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
     fontSize: 16,
     fontWeight: '600',
+  },
+  dobRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dobInput: {
+    flex: 1,
+    marginBottom: 8,
+  },
+  dobButton: {
+    width: 50,
+    height: 50,
+    marginBottom: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dobButtonText: {
+    fontSize: 22,
   },
   input: {
     backgroundColor: Colors.white,

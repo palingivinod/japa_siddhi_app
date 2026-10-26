@@ -140,6 +140,8 @@ const OrdersScreen = () => {
         const itemText = `${item.itemName || ''} ${item.productName || ''} ${item.donationType || ''} ${item.orderNumber || ''}`.toLowerCase();
         const isBaanalingam = itemText.includes('banalingam') || itemText.includes('baanalingam') || itemText.includes('lingam') || itemText.includes('shiva');
         const isRamakoti = itemText.includes('ramakoti') || itemText.includes('rk0');
+        const isHoma = itemText.includes('homa bhasma') || itemText.includes('hb0');
+        const isBirava = itemText.includes('birava') || itemText.includes('bp0');
         const rawStatus = statusOf(item);
         const canCancel = !rawStatus.includes('deliver') && !rawStatus.includes('cancel');
 
@@ -150,6 +152,10 @@ const OrdersScreen = () => {
                 <AppIcon name="banalingam" size={30} />
               ) : isRamakoti ? (
                 <Text style={styles.emoji}>📖</Text>
+              ) : isHoma ? (
+                <Text style={styles.emoji}>🪔</Text>
+              ) : isBirava ? (
+                <Text style={styles.emoji}>🧿</Text>
               ) : (
                 <Text style={styles.emoji}>📦</Text>
               )}

@@ -101,7 +101,7 @@ const AdminMantraEditScreen = () => {
   const [translations, setTranslations] = useState<
     Record<AdminSupportedLang, MantraLangFields>
   >(defaultTranslations);
-  const [target, setTarget] = useState('10000');
+  const [target, setTarget] = useState('');
   const [active, setActive] = useState(true);
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
@@ -160,7 +160,7 @@ const AdminMantraEditScreen = () => {
         transliteration: nextTrans.en.transliteration,
       };
       skipAutoTranslateRef.current = true;
-      setTarget(String(data.target || 108));
+      setTarget(Number(data.target) > 0 ? String(data.target) : '');
       setActive(Boolean(data.active));
       if (data.japaList) {
         setShownList(String(data.japaList));
@@ -302,7 +302,8 @@ const AdminMantraEditScreen = () => {
       return;
     }
 
-    const targetNum = Number(String(target).replace(/,/g, '')) || 108;
+    const parsedTarget = Number(String(target).replace(/,/g, ''));
+    const targetNum = Number.isFinite(parsedTarget) && parsedTarget > 0 ? parsedTarget : 0;
     setSaving(true);
     try {
       if (!isEdit && !categoryCode) {
@@ -449,7 +450,7 @@ const AdminMantraEditScreen = () => {
             value={target}
             onChangeText={setTarget}
             keyboardType="numeric"
-            placeholder="10000"
+            placeholder="Optional"
           />
 
           <Text style={styles.label}>Status</Text>

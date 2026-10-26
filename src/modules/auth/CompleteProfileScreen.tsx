@@ -113,6 +113,7 @@ const CompleteProfileScreen = ({
     useState<CountryItem | null>(() => defaultIndia);
 
   const [pinCode, setPinCode] = useState('');
+  const [region, setRegion] = useState('');
   const [stateModel, setStateModel] =
     useState<StateModel | null>(null);
 
@@ -177,6 +178,7 @@ const CompleteProfileScreen = ({
       gender !== '' &&
       country !== null &&
       pinCode.length === 6 &&
+      region.trim().length >= 2 &&
       Boolean(stateModel?.id) &&
       Boolean(cityModel?.id) &&
       acceptedTerms
@@ -189,6 +191,7 @@ const CompleteProfileScreen = ({
     gender,
     country,
     pinCode,
+    region,
     stateModel,
     cityModel,
     acceptedTerms,
@@ -262,6 +265,11 @@ const CompleteProfileScreen = ({
       }
     }
 
+  if (region.trim().length < 2) {
+    Alert.alert(t('required'), t('enterRegionPlace'));
+    return;
+  }
+
   if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
     Alert.alert(t('validation'), t('spouseNameRequiredMarried'));
     return;
@@ -289,6 +297,7 @@ const CompleteProfileScreen = ({
         languageId: Number(language?.id || DEFAULT_LANGUAGE.id || 1),
         address: address.trim(),
         postalCode: pinCode,
+        region: region.trim(),
         maritalStatus,
         spouseName: maritalStatus === 'Married' ? spouseName.trim() : undefined,
         spouseDob:
@@ -315,6 +324,7 @@ const CompleteProfileScreen = ({
           mobileNumber: number,
           dateOfBirth: profilePayload.dob,
           postalCode: pinCode,
+          region: region.trim(),
           profileCompleted: 1,
         });
       } else {
@@ -347,7 +357,11 @@ const CompleteProfileScreen = ({
         if (!token) {
           throw new Error('Registration token was not created.');
         }
-        await saveSession(token, {...(user || {}), postalCode: pinCode});
+        await saveSession(token, {
+          ...(user || {}),
+          postalCode: pinCode,
+          region: region.trim(),
+        });
       }
 
       if (pickedPhoto) {
@@ -642,6 +656,18 @@ const CompleteProfileScreen = ({
           onChange={(item: CityModel) => {
   setCityModel(item);
 }}
+        />
+
+        <Text style={styles.label}>
+          {t('regionPlace')} *
+        </Text>
+        <TextInput
+          style={styles.input}
+          placeholder={t('enterRegionPlace')}
+          placeholderTextColor={Colors.textSecondary}
+          value={region}
+          onChangeText={setRegion}
+          maxLength={80}
         />
 
         <Text style={styles.label}>

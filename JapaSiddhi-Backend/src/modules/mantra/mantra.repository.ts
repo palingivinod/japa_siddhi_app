@@ -19,6 +19,11 @@ export type MantraInput = {
   categoryCode?: string | null;
 };
 
+const storedJapaTarget = (value: unknown) => {
+  const count = Number(value);
+  return Number.isFinite(count) && count > 0 ? Math.round(count) : 0;
+};
+
 const normalizeTranslations = (raw?: string | Record<string, any>) => {
   if (!raw) {
     return null;
@@ -356,7 +361,7 @@ class MantraRepository {
     const sanskrit = String(input.sanskritText || name).trim() || name;
     const transliteration =
       String(input.transliteration || name).trim() || name;
-    const target = Math.max(1, Number(input.defaultJapaCount) || 108);
+    const target = storedJapaTarget(input.defaultJapaCount);
     const isActive = input.isActive === false ? 0 : 1;
     const isFeatured = input.isFeatured ? 1 : 0;
     const translations = normalizeTranslations(input.translations);
@@ -440,12 +445,10 @@ class MantraRepository {
     const transliteration =
       String(input.transliteration ?? existing.transliteration ?? name).trim() ||
       name;
-    const target = Math.max(
-      1,
-      Number(
-        input.defaultJapaCount ?? existing.defaultJapaCount ?? 108,
-      ) || 108,
-    );
+    const target =
+      input.defaultJapaCount === undefined
+        ? storedJapaTarget(existing.defaultJapaCount)
+        : storedJapaTarget(input.defaultJapaCount);
     const isActive =
       input.isActive === undefined
         ? Number(existing.isActive) ? 1 : 0

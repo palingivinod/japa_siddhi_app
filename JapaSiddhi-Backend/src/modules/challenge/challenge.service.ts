@@ -463,10 +463,10 @@ class ChallengeService {
       rewardNameLower.includes('turmeric') ||
       rewardNameLower.includes('haldi')
     ) {
-      if (userTotalJapa < 2498) {
-        const remaining = 2498 - userTotalJapa;
+      if (userTotalJapa < 5000) {
+        const remaining = 5000 - userTotalJapa;
         throw new Error(
-          `This reward is available after 2,498 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+          `This reward is available after 5,000 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
         );
       }
     }

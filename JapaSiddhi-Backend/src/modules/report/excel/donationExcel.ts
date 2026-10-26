@@ -43,6 +43,18 @@ export default async function donationExcel(
     },
 
     {
+      header: 'For whom',
+      key: 'forWhom',
+      width: 16,
+    },
+
+    {
+      header: 'Person name',
+      key: 'personName',
+      width: 24,
+    },
+
+    {
       header: 'Donation Type',
       key: 'donationType',
       width: 20,
@@ -96,6 +108,10 @@ export default async function donationExcel(
         phone: row.phone,
 
         preferDate: row.preferDate,
+
+        forWhom: row.forWhom,
+
+        personName: row.personName,
 
         donationType: row.donationType,
 

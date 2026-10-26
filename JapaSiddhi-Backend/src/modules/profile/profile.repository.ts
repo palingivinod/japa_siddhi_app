@@ -19,6 +19,14 @@ const ensurePostalColumn = async () => {
   }
 };
 
+export const ensureRegionColumn = async () => {
+  try {
+    await mysql.query(`ALTER TABLE users ADD COLUMN region TEXT`);
+  } catch {
+    // The column is already on the table.
+  }
+};
+
 class ProfileRepository {
 
 
@@ -28,6 +36,7 @@ class ProfileRepository {
 
 
     await ensurePostalColumn();
+    await ensureRegionColumn();
     const rows =
       await mysql.query<any[]>(
         `
@@ -87,6 +96,8 @@ class ProfileRepository {
           u.gothram,
 
           u.nakshatram,
+
+          u.region,
 
           u.profile_completed AS profileCompleted,
 
@@ -160,6 +171,7 @@ class ProfileRepository {
     data: UpdateProfileRequest,
   ): Promise<void> {
     await ensurePostalColumn();
+    await ensureRegionColumn();
     await mysql.query<ResultSetHeader>(
       `
       UPDATE users
@@ -180,6 +192,7 @@ class ProfileRepository {
         gothram = COALESCE(?, gothram),
         nakshatram = COALESCE(?, nakshatram),
         postal_code = COALESCE(?, postal_code),
+        region = COALESCE(NULLIF(TRIM(?), ''), region),
         profile_completed = 1,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -202,6 +215,7 @@ class ProfileRepository {
         data.gothram ?? null,
         data.nakshatram ?? null,
         data.postalCode ?? null,
+        data.region ?? null,
         userId,
       ],
     );

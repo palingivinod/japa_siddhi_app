@@ -86,6 +86,7 @@ const mapUser = (row: any): AuthUser | null => {
     anniversaryDate: row.anniversaryDate ?? row.anniversary_date ?? null,
     gothram: row.gothram ?? null,
     nakshatram: row.nakshatram ?? null,
+    region: row.region ?? null,
     preferredLanguageId: row.preferredLanguageId ?? row.preferred_language_id,
     profileCompleted: row.profileCompleted ?? row.profile_completed,
     authProvider: row.authProvider ?? row.auth_provider ?? null,
@@ -639,12 +640,18 @@ class AuthRepository {
       gothram?: string;
       nakshatram?: string;
       postalCode?: string;
+      region?: string;
       preferredLanguageId: number;
       profilePhoto?: string;
     },
   ): Promise<void> {
     try {
       await mysql.query(`ALTER TABLE users ADD COLUMN postal_code TEXT`);
+    } catch {
+      // The column is already on the table.
+    }
+    try {
+      await mysql.query(`ALTER TABLE users ADD COLUMN region TEXT`);
     } catch {
       // The column is already on the table.
     }
@@ -661,6 +668,7 @@ class AuthRepository {
         city_id = ?,
         address = ?,
         postal_code = ?,
+        region = COALESCE(NULLIF(TRIM(?), ''), region),
         marital_status = ?,
         spouse_name = ?,
         spouse_dob = ?,
@@ -682,6 +690,7 @@ class AuthRepository {
         data.cityId,
         data.address ?? null,
         data.postalCode || null,
+        data.region || null,
         data.maritalStatus ?? 'Bachelor',
         data.spouseName ?? null,
         data.spouseDob ?? null,

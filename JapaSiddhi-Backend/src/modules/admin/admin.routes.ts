@@ -5,6 +5,7 @@ import mysql from '../../database/mysql';
 import adminAccountService from './adminAccount.service';
 import {ensureDonationColumns} from '../payments/razorpay.service';
 import {demoDonationSql, demoUserSql} from '../../utils/demoData';
+import {ensureRegionColumn} from '../profile/profile.repository';
 
 const router = Router();
 
@@ -130,6 +131,12 @@ router.delete('/auth/accounts/:id', async (req: Request, res: Response) => {
 const num = (value: unknown) => {
   const n = Number(value ?? 0);
   return Number.isFinite(n) ? n : 0;
+};
+
+/** Blank or invalid admin target counts stay empty instead of a filled-in number. */
+const positiveCount = (value: unknown) => {
+  const n = Number(String(value ?? '').replace(/,/g, '').trim());
+  return Number.isFinite(n) && n > 0 ? Math.round(n) : 0;
 };
 
 /**
@@ -1237,7 +1244,7 @@ const mapMantraRow = (row: any) => ({
   deityName: row.deityName || '',
   sanskritText: row.sanskritText || '',
   transliteration: row.transliteration || '',
-  target: num(row.defaultJapaCount) || 108,
+  target: num(row.defaultJapaCount),
   active: Number(row.isActive) === 1 || row.isActive === true,
   isFeatured: Number(row.isFeatured) === 1 || row.isFeatured === true,
   translations: parseJsonSafely(row.translations),
@@ -1399,7 +1406,7 @@ router.post('/mantras', async (req: Request, res: Response) => {
       deityName: req.body?.deityName || req.body?.subtitle,
       sanskritText: req.body?.sanskritText,
       transliteration: req.body?.transliteration,
-      defaultJapaCount: Number(req.body?.defaultJapaCount || req.body?.target || 10000),
+      defaultJapaCount: positiveCount(req.body?.defaultJapaCount ?? req.body?.target),
       isActive: req.body?.isActive !== false && req.body?.active !== false,
       isFeatured: Boolean(req.body?.isFeatured),
       translations: req.body?.translations,
@@ -1500,7 +1507,7 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
           transliteration: req.body?.transliteration,
           defaultJapaCount:
             req.body?.defaultJapaCount != null || req.body?.target != null
-              ? Number(req.body?.defaultJapaCount ?? req.body?.target)
+              ? positiveCount(req.body?.defaultJapaCount ?? req.body?.target)
               : undefined,
           isActive: nextActive,
           isFeatured:
@@ -1595,7 +1602,11 @@ const mapChallengeRow = (row: any) => {
   return {
     id: String(row.id),
     title: row.title || '',
-    detail: row.description || `${Number(row.targetValue || 0).toLocaleString('en-IN')} target`,
+    detail:
+      row.description ||
+      (Number(row.targetValue) > 0
+        ? `${Number(row.targetValue).toLocaleString('en-IN')} target`
+        : ''),
     description: row.description || '',
     challengeType: row.challengeType || 'JAPA_COUNT',
     targetValue: Number(row.targetValue) || 0,
@@ -1705,11 +1716,7 @@ router.post('/challenges', async (req: Request, res: Response) => {
       });
     }
 
-    const targetValue = Math.max(
-      1,
-      Number(String(req.body?.targetValue || req.body?.target || '10000').replace(/,/g, '')) ||
-        10000,
-    );
+    const targetValue = positiveCount(req.body?.targetValue ?? req.body?.target);
     const parsedStart = parseChallengeDate(req.body?.startDate);
     const parsedEnd = parseChallengeDate(req.body?.endDate);
     if (String(req.body?.startDate || '').trim() && !parsedStart) {
@@ -1885,15 +1892,7 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
       req.body?.targetValue !== undefined ||
       req.body?.target !== undefined
     ) {
-      targetValue = Math.max(
-        1,
-        Number(
-          String(req.body?.targetValue ?? req.body?.target ?? targetValue).replace(
-            /,/g,
-            '',
-          ),
-        ) || targetValue || 1,
-      );
+      targetValue = positiveCount(req.body?.targetValue ?? req.body?.target);
     }
 
     let startDate = parseChallengeDate(current.startDate) || String(current.startDate || '');
@@ -2500,11 +2499,17 @@ const isNormalBaanalingamOrder = (row: any) => {
   return (
     type === 'BANA_LINGAM' ||
     type === 'RAMAKOTI_BOOKS' ||
+    type === 'HOMA_BHASMA' ||
+    type === 'BIRAVA_PENDANT' ||
     number.startsWith('BL-') ||
     number.startsWith('RK') ||
+    number.startsWith('HB') ||
+    number.startsWith('BP') ||
     item.includes('baanalingam') ||
     item.includes('banalingam') ||
-    item.includes('ramakoti')
+    item.includes('ramakoti') ||
+    item.includes('homa bhasma') ||
+    item.includes('birava')
   );
 };
 
@@ -3061,6 +3066,8 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
         IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
         IFNULL(d.prefer_date, '') AS preferDate,
         IFNULL(d.occasion, '') AS occasion,
+        IFNULL(d.for_whom, '') AS forWhom,
+        IFNULL(d.person_name, '') AS personName,
         d.donation_type AS donationType,
         d.amount,
         d.payment_status AS paymentStatus,
@@ -3097,6 +3104,8 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
       {header: 'Phone', key: 'donorPhone', width: 16},
       {header: 'Prefer date', key: 'preferDate', width: 16},
       {header: 'Occasion', key: 'occasion', width: 18},
+      {header: 'For whom', key: 'forWhom', width: 16},
+      {header: 'Person name', key: 'personName', width: 24},
       {header: 'Type', key: 'donationType', width: 16},
       {header: 'Amount', key: 'amount', width: 12},
       {header: 'Payment Status', key: 'paymentStatus', width: 16},
@@ -3112,6 +3121,8 @@ router.get('/payment-reports/export', async (req: Request, res: Response) => {
         donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
         preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
         occasion: row.occasion || remarkField(row.remarks, 'Occasion'),
+        forWhom: row.forWhom || remarkField(row.remarks, 'For whom'),
+        personName: row.personName || remarkField(row.remarks, 'Person name'),
         donationType: row.donationType,
         amount: row.amount,
         paymentStatus: row.paymentStatus,
@@ -3365,6 +3376,154 @@ const sendExcelResponse = async (
     },
   });
 };
+
+const loadRegionAnalytics = async (region?: string) => {
+  await ensureRegionColumn();
+  const placeRows = await mysql.query<any[]>(`
+    SELECT MIN(TRIM(u.region)) AS region
+    FROM users u
+    WHERE u.deleted_at IS NULL
+      AND TRIM(IFNULL(u.region, '')) != ''
+      ${demoUserSql('u')}
+    GROUP BY LOWER(TRIM(u.region))
+    ORDER BY region
+  `);
+  const regions = (placeRows || [])
+    .map((row: any) => String(row.region || '').trim())
+    .filter(Boolean);
+  const selected = String(region || '').trim();
+  if (!selected) {
+    return {
+      regions,
+      selected: '',
+      people: 0,
+      japaCount: 0,
+      mantras: [] as Array<{name: string; japaCount: number; people: number}>,
+      peopleRows: [] as Array<{
+        name: string;
+        phone: string;
+        japaCount: number;
+        mantras: string;
+      }>,
+    };
+  }
+
+  const peopleRowsRaw = await mysql.query<any[]>(
+    `
+    SELECT
+      u.id AS userId,
+      u.full_name AS fullName,
+      u.mobile_country_code AS countryCode,
+      u.mobile_number AS mobile,
+      COALESCE(SUM(js.session_count), 0) AS japaCount
+    FROM users u
+    LEFT JOIN japa_sessions js ON js.user_id = u.id
+    WHERE u.deleted_at IS NULL
+      AND LOWER(TRIM(IFNULL(u.region, ''))) = LOWER(?)
+      ${demoUserSql('u')}
+    GROUP BY u.id, u.full_name, u.mobile_country_code, u.mobile_number
+    ORDER BY japaCount DESC, fullName ASC
+    `,
+    [selected],
+  );
+
+  const mantraRows = await mysql.query<any[]>(
+    `
+    SELECT
+      js.user_id AS userId,
+      COALESCE(
+        m.mantra_name,
+        upm.mantra_name,
+        CASE
+          WHEN js.mantra_type = 'PERSONAL' THEN 'Private Japa'
+          ELSE 'Japa'
+        END
+      ) AS mantra,
+      COALESCE(SUM(js.session_count), 0) AS japaCount
+    FROM japa_sessions js
+    INNER JOIN users u ON u.id = js.user_id
+    LEFT JOIN mantras m ON m.id = js.mantra_id
+    LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
+    WHERE u.deleted_at IS NULL
+      AND LOWER(TRIM(IFNULL(u.region, ''))) = LOWER(?)
+      ${demoUserSql('u')}
+    GROUP BY js.user_id, m.mantra_name, upm.mantra_name, js.mantra_type
+    HAVING COALESCE(SUM(js.session_count), 0) > 0
+    `,
+    [selected],
+  );
+
+  const mantrasByUser = new Map<number, Array<{name: string; japaCount: number}>>();
+  const mantraTotals = new Map<string, {japaCount: number; people: Set<number>}>();
+  (mantraRows || []).forEach((row: any) => {
+    const userId = Number(row.userId ?? row.user_id ?? 0);
+    const name = String(row.mantra || 'Japa').trim() || 'Japa';
+    const count = Number(row.japaCount ?? row.japa_count ?? 0);
+    if (!userId || count <= 0) {
+      return;
+    }
+    const list = mantrasByUser.get(userId) || [];
+    list.push({name, japaCount: count});
+    mantrasByUser.set(userId, list);
+    const total = mantraTotals.get(name) || {japaCount: 0, people: new Set<number>()};
+    total.japaCount += count;
+    total.people.add(userId);
+    mantraTotals.set(name, total);
+  });
+
+  const peopleRows = (peopleRowsRaw || []).map((row: any) => {
+    const userId = Number(row.userId ?? row.user_id ?? 0);
+    const code = String(row.countryCode ?? row.country_code ?? '').replace(/\D/g, '');
+    const mobile = String(row.mobile || '').replace(/\D/g, '');
+    const chants = (mantrasByUser.get(userId) || [])
+      .sort((a, b) => b.japaCount - a.japaCount)
+      .map(item => `${item.name} (${item.japaCount})`);
+    return {
+      name: String(row.fullName ?? row.full_name ?? '').trim() || `User #${userId}`,
+      phone: mobile ? `${code ? `+${code} ` : ''}${mobile}` : '',
+      japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
+      mantras: chants.join(', '),
+    };
+  });
+
+  const mantras = Array.from(mantraTotals.entries())
+    .map(([name, total]) => ({
+      name,
+      japaCount: total.japaCount,
+      people: total.people.size,
+    }))
+    .sort((a, b) => b.japaCount - a.japaCount);
+
+  return {
+    regions,
+    selected,
+    people: peopleRows.length,
+    japaCount: peopleRows.reduce((sum, row) => sum + row.japaCount, 0),
+    mantras,
+    peopleRows,
+  };
+};
+
+router.get('/region-analytics', async (req: Request, res: Response) => {
+  try {
+    const data = await loadRegionAnalytics(String(req.query.region || ''));
+    return res.json({
+      success: true,
+      data: {
+        regions: data.regions,
+        selected: data.selected,
+        people: data.people,
+        japaCount: data.japaCount,
+        mantras: data.mantras,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load region analytics.',
+    });
+  }
+});
 
 router.get('/reports/export', async (req: Request, res: Response) => {
   try {
@@ -3803,6 +3962,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
           IFNULL(d.prefer_date, '') AS preferDate,
           IFNULL(d.occasion, '') AS occasion,
+          IFNULL(d.for_whom, '') AS forWhom,
+          IFNULL(d.person_name, '') AS personName,
           d.donation_type AS donationType,
           d.amount,
           d.payment_status AS paymentStatus,
@@ -3824,6 +3985,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         {header: 'Phone', key: 'donorPhone', width: 16},
         {header: 'Prefer date', key: 'preferDate', width: 16},
         {header: 'Occasion', key: 'occasion', width: 18},
+        {header: 'For whom', key: 'forWhom', width: 16},
+        {header: 'Person name', key: 'personName', width: 24},
         {header: 'Type', key: 'donationType', width: 16},
         {header: 'Amount', key: 'amount', width: 12},
         {header: 'Payment Status', key: 'paymentStatus', width: 16},
@@ -3839,6 +4002,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
           preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
           occasion: row.occasion || remarkField(row.remarks, 'Occasion'),
+          forWhom: row.forWhom || remarkField(row.remarks, 'For whom'),
+          personName: row.personName || remarkField(row.remarks, 'Person name'),
           donationType: row.donationType,
           amount: row.amount,
           paymentStatus: row.paymentStatus,
@@ -3893,6 +4058,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
           IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
           IFNULL(d.prefer_date, '') AS preferDate,
+          IFNULL(d.for_whom, '') AS forWhom,
+          IFNULL(d.person_name, '') AS personName,
           d.remarks
         FROM donations d
         LEFT JOIN users u ON u.id = d.user_id
@@ -3909,6 +4076,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         {header: 'Name', key: 'donorName', width: 24},
         {header: 'Phone', key: 'donorPhone', width: 16},
         {header: 'Prefer date', key: 'preferDate', width: 16},
+        {header: 'For whom', key: 'forWhom', width: 16},
+        {header: 'Person name', key: 'personName', width: 24},
       ];
       (rows || []).forEach((row: any, index: number) =>
         sheet.addRow({
@@ -3916,6 +4085,68 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           donorName: row.donorName || remarkField(row.remarks, 'Name') || 'Devotee',
           donorPhone: row.donorPhone || remarkField(row.remarks, 'Phone'),
           preferDate: row.preferDate || remarkField(row.remarks, 'Prefer date'),
+          forWhom: row.forWhom || remarkField(row.remarks, 'For whom'),
+          personName: row.personName || remarkField(row.remarks, 'Person name'),
+        }),
+      );
+      sheet.getRow(1).font = {bold: true};
+    };
+
+    const addRewardsSheet = async () => {
+      const phoneOf = (row: any) => {
+        const claim = String(row.claimPhone || '').trim();
+        if (claim) {
+          return claim;
+        }
+        return `${row.mobileCountryCode || ''}${row.mobileNumber || ''}`.trim();
+      };
+      let rows: any[] = [];
+      try {
+        rows = await mysql.query<any[]>(`
+          SELECT fullName, claimPhone, mobileCountryCode, mobileNumber, rewardName
+          FROM (
+            SELECT
+              IFNULL(NULLIF(m.full_name, ''), IFNULL(u.full_name, 'Devotee')) AS fullName,
+              IFNULL(m.mobile, '') AS claimPhone,
+              IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+              IFNULL(u.mobile_number, '') AS mobileNumber,
+              m.reward_name AS rewardName,
+              m.created_at AS createdAt
+            FROM milestone_reward_claims m
+            LEFT JOIN users u ON u.id = m.user_id
+            WHERE IFNULL(m.reward_name, '') <> ''
+              ${demoUserSql('u')}
+            UNION ALL
+            SELECT
+              IFNULL(NULLIF(c.full_name, ''), IFNULL(u.full_name, 'Devotee')) AS fullName,
+              IFNULL(c.mobile, '') AS claimPhone,
+              IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+              IFNULL(u.mobile_number, '') AS mobileNumber,
+              c.reward_name AS rewardName,
+              c.created_at AS createdAt
+            FROM challenge_reward_claims c
+            LEFT JOIN users u ON u.id = c.user_id
+            WHERE IFNULL(c.reward_name, '') <> ''
+              ${demoUserSql('u')}
+          ) rewards
+          ORDER BY createdAt
+        `);
+      } catch {
+        rows = [];
+      }
+      const sheet = workbook.addWorksheet('Rewards');
+      sheet.columns = [
+        {header: 'Serial No', key: 'sno', width: 12},
+        {header: 'Name', key: 'fullName', width: 24},
+        {header: 'Phone', key: 'phone', width: 16},
+        {header: 'Reward item', key: 'rewardName', width: 28},
+      ];
+      (rows || []).forEach((row: any, index: number) =>
+        sheet.addRow({
+          sno: index + 1,
+          fullName: row.fullName || 'Devotee',
+          phone: phoneOf(row),
+          rewardName: row.rewardName || '',
         }),
       );
       sheet.getRow(1).font = {bold: true};
@@ -3997,6 +4228,48 @@ router.get('/reports/export', async (req: Request, res: Response) => {
               : 'Anniversary';
         await addOccasionSheet(title, month);
       }
+    } else if (type === 'rewards' || type === 'reward') {
+      await addRewardsSheet();
+    } else if (type === 'region' || type === 'regions') {
+      const region = String(req.query.region || '').trim();
+      if (!region) {
+        return res.status(400).json({
+          success: false,
+          message: 'Select a region or place.',
+        });
+      }
+      const data = await loadRegionAnalytics(region);
+      const summary = workbook.addWorksheet('Summary');
+      summary.columns = [
+        {header: 'Region / Place', key: 'region', width: 28},
+        {header: 'People', key: 'people', width: 12},
+        {header: 'Total japa count', key: 'japaCount', width: 18},
+      ];
+      summary.addRow({
+        region: data.selected,
+        people: data.people,
+        japaCount: data.japaCount,
+      });
+      summary.getRow(1).font = {bold: true};
+
+      const mantraSheet = workbook.addWorksheet('Mantras');
+      mantraSheet.columns = [
+        {header: 'Mantra', key: 'name', width: 32},
+        {header: 'Japa count', key: 'japaCount', width: 14},
+        {header: 'People', key: 'people', width: 12},
+      ];
+      data.mantras.forEach(row => mantraSheet.addRow(row));
+      mantraSheet.getRow(1).font = {bold: true};
+
+      const peopleSheet = workbook.addWorksheet('People');
+      peopleSheet.columns = [
+        {header: 'Name', key: 'name', width: 26},
+        {header: 'Phone', key: 'phone', width: 18},
+        {header: 'Japa count', key: 'japaCount', width: 14},
+        {header: 'Mantras', key: 'mantras', width: 48},
+      ];
+      data.peopleRows.forEach(row => peopleSheet.addRow(row));
+      peopleSheet.getRow(1).font = {bold: true};
     } else if (type === 'orders' || type === 'order') {
       await addOrders();
     } else {

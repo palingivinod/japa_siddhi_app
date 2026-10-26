@@ -96,6 +96,12 @@ export const updateProfileValidation = [
 
   body('nakshatram').optional({nullable: true}).isString(),
 
+  body('region')
+    .optional({nullable: true})
+    .isString()
+    .isLength({max: 80})
+    .withMessage('Region or place must be 80 characters or less'),
+
   body('profilePhoto')
     .optional({
       nullable: true,
