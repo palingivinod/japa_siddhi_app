@@ -71,13 +71,13 @@ const SevaHubScreen = () => {
         route: 'RamakotiBooks',
       },
       {
-        emoji: '🪔',
+        icon: 'homaBhasma' as AppIconName,
         title: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
       },
       {
-        emoji: '🧿',
+        icon: 'biravaPendant' as AppIconName,
         title: t('tileBirava'),
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',

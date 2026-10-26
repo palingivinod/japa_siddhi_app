@@ -105,7 +105,7 @@ const SevaRequestScreen = () => {
   return (
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
       <Text style={styles.heading}>{t(request.titleKey)}</Text>
-      <MenuCard emoji={request.emoji} title={t('sacredService')} subtitle={t(request.detailKey)} />
+      <MenuCard icon={request.icon} title={t('sacredService')} subtitle={t(request.detailKey)} />
       <FormField
         label={t('nameLabel')}
         placeholder={t('fullName')}

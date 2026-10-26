@@ -2,6 +2,7 @@ package com.japasiddhi
 
 import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import androidx.core.content.FileProvider
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -42,7 +43,23 @@ class AppShareModule(
           clipData = ClipData.newUri(reactContext.contentResolver, "Japa Siddhi", uri)
           addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
+      val targets =
+        reactContext.packageManager.queryIntentActivities(
+          send,
+          PackageManager.MATCH_DEFAULT_ONLY,
+        )
+      for (info in targets) {
+        reactContext.grantUriPermission(
+          info.activityInfo.packageName,
+          uri,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION,
+        )
+      }
       val chooser = Intent.createChooser(send, "Share app")
+      // The chooser is the activity that opens WhatsApp or Messages. The
+      // read grant has to sit on this intent, or the logo is dropped and
+      // only the link is delivered.
+      chooser.clipData = ClipData.newUri(reactContext.contentResolver, "Japa Siddhi", uri)
       chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       val activity = reactContext.currentActivity
       if (activity != null) {

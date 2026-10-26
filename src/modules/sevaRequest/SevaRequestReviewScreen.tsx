@@ -60,7 +60,7 @@ const SevaRequestReviewScreen = () => {
   return (
     <ScreenLayout title={t('applicationOverview')} showBack tab="SevaHub">
       <MenuCard
-        emoji={request.emoji}
+        icon={request.icon}
         title={t(request.titleKey)}
         subtitle={t('reviewBeforeSubmit')}
       />

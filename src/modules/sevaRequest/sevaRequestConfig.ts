@@ -1,10 +1,12 @@
+import {AppIconName} from '../../components/icons/AppIcon';
+
 export type SevaRequestKey = 'HomaBhasma' | 'BiravaPendant';
 
 export type SevaRequestConfig = {
   kind: 'HOMA_BHASMA' | 'BIRAVA_PENDANT';
   formRoute: SevaRequestKey;
   reviewRoute: 'HomaBhasmaReview' | 'BiravaPendantReview';
-  emoji: string;
+  icon: AppIconName;
   titleKey: 'homaBhasma' | 'biravaPendant';
   detailKey: 'homaBhasmaDesc' | 'biravaPendantSub';
 };
@@ -14,7 +16,7 @@ export const SEVA_REQUESTS: Record<SevaRequestKey, SevaRequestConfig> = {
     kind: 'HOMA_BHASMA',
     formRoute: 'HomaBhasma',
     reviewRoute: 'HomaBhasmaReview',
-    emoji: '🪔',
+    icon: 'homaBhasma',
     titleKey: 'homaBhasma',
     detailKey: 'homaBhasmaDesc',
   },
@@ -22,7 +24,7 @@ export const SEVA_REQUESTS: Record<SevaRequestKey, SevaRequestConfig> = {
     kind: 'BIRAVA_PENDANT',
     formRoute: 'BiravaPendant',
     reviewRoute: 'BiravaPendantReview',
-    emoji: '🧿',
+    icon: 'biravaPendant',
     titleKey: 'biravaPendant',
     detailKey: 'biravaPendantSub',
   },

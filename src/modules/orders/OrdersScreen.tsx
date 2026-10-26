@@ -153,9 +153,9 @@ const OrdersScreen = () => {
               ) : isRamakoti ? (
                 <Text style={styles.emoji}>📖</Text>
               ) : isHoma ? (
-                <Text style={styles.emoji}>🪔</Text>
+                <AppIcon name="homaBhasma" size={30} />
               ) : isBirava ? (
-                <Text style={styles.emoji}>🧿</Text>
+                <AppIcon name="biravaPendant" size={30} />
               ) : (
                 <Text style={styles.emoji}>📦</Text>
               )}
