@@ -6,6 +6,15 @@ const titleCase = (value: string) =>
     .toLowerCase()
     .replace(/\b[a-z]/g, letter => letter.toUpperCase());
 
+type PostalLookup = {
+  Status?: string;
+  PostOffice?: Array<{
+    Name?: string;
+    District?: string;
+    State?: string;
+  }> | null;
+};
+
 
 
 class MasterService {
@@ -49,7 +58,7 @@ class MasterService {
       throw new AppError('Enter a 6-digit PIN code.', 400);
     }
     const response = await fetch(`https://api.postalpincode.in/pincode/${code}`);
-    const body = await response.json();
+    const body = (await response.json()) as PostalLookup[];
     const office = body?.[0]?.PostOffice?.[0];
     if (!office || String(body?.[0]?.Status || '') !== 'Success') {
       throw new AppError('Could not find that PIN code.', 400);
