@@ -136,6 +136,7 @@ import AdminFestivalAnalyticsScreen from '../modules/admin/AdminFestivalAnalytic
 import AdminLanguagesScreen from '../modules/admin/AdminLanguagesScreen';
 import AdminMultilingualContentScreen from '../modules/admin/AdminMultilingualContentScreen';
 import AdminExportReportsScreen from '../modules/admin/AdminExportReportsScreen';
+import AdminDobDetailsScreen from '../modules/admin/AdminDobDetailsScreen';
 import AdminRegionAnalyticsScreen from '../modules/admin/AdminRegionAnalyticsScreen';
 import AdminMoreScreen from '../modules/admin/AdminMoreScreen';
 
@@ -411,6 +412,7 @@ export type RootStackParamList = {
   AdminLanguages: undefined;
   AdminMultilingualContent: undefined;
   AdminExportReports: undefined;
+  AdminDobDetails: undefined;
   AdminRegionAnalytics: undefined;
   AdminMore: undefined;
 };
@@ -541,6 +543,7 @@ const ProtectedAdminMultilingualContent = withAdminAuth(
   AdminMultilingualContentScreen,
 );
 const ProtectedAdminExportReports = withAdminAuth(AdminExportReportsScreen);
+const ProtectedAdminDobDetails = withAdminAuth(AdminDobDetailsScreen);
 const ProtectedAdminRegionAnalytics = withAdminAuth(AdminRegionAnalyticsScreen);
 const ProtectedAdminMore = withAdminAuth(AdminMoreScreen);
 
@@ -877,6 +880,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminExportReports"
           component={ProtectedAdminExportReports}
+        />
+        <Stack.Screen
+          name="AdminDobDetails"
+          component={ProtectedAdminDobDetails}
         />
         <Stack.Screen name="AdminMore" component={ProtectedAdminMore} />
       </Stack.Navigator>

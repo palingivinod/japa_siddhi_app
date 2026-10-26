@@ -1,5 +1,12 @@
 import React, {useCallback, useRef, useState} from 'react';
-import {Alert, StyleSheet, Text} from 'react-native';
+import {
+  Alert,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -12,6 +19,8 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
+const RAMAKOTI_POSTER = require('../../assets/images/ramakoti_poster.jpg');
+
 const RamakotiBooksScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
@@ -19,6 +28,7 @@ const RamakotiBooksScreen = () => {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
+  const [photoOpen, setPhotoOpen] = useState(false);
 
   const askForProfileAddress = useCallback(() => {
     Alert.alert(t('ramakotiSeva'), t('addAddressInProfile'), [
@@ -91,7 +101,25 @@ const RamakotiBooksScreen = () => {
   return (
     <ScreenLayout title={t('ramakotiSeva')} showBack tab="SevaHub">
       <Text style={styles.heading}>{t('ramakotiSeva')}</Text>
-      <MenuCard emoji="📖" title={t('ramakotiSeva')} subtitle={t('ramakotiIntro')} />
+      <MenuCard icon="ramakoti" title={t('ramakotiSeva')} subtitle={t('ramakotiIntro')} />
+      <TouchableOpacity
+        style={styles.thumbWrap}
+        activeOpacity={0.85}
+        onPress={() => setPhotoOpen(true)}>
+        <Image source={RAMAKOTI_POSTER} style={styles.thumb} resizeMode="contain" />
+      </TouchableOpacity>
+      <Modal
+        visible={photoOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPhotoOpen(false)}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={() => setPhotoOpen(false)}>
+          <Image source={RAMAKOTI_POSTER} style={styles.large} resizeMode="contain" />
+        </TouchableOpacity>
+      </Modal>
       <FormField
         label={t('nameLabel')}
         placeholder={t('fullName')}
@@ -133,5 +161,29 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     marginBottom: 14,
+  },
+  thumbWrap: {
+    height: 110,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  thumb: {
+    width: '100%',
+    height: '100%',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.82)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  large: {
+    width: '100%',
+    height: '78%',
   },
 });

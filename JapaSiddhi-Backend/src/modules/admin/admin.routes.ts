@@ -4017,6 +4017,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
     };
 
     const addBirthdaySheet = async (month: string) => {
+      const allYear = !month;
       const rows = await mysql.query<any[]>(
         `
         SELECT
@@ -4026,11 +4027,12 @@ router.get('/reports/export', async (req: Request, res: Response) => {
           u.date_of_birth AS dateOfBirth
         FROM users u
         WHERE u.deleted_at IS NULL
-          AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?
+          AND substr(IFNULL(u.date_of_birth, ''), 6, 2) <> ''
+          ${allYear ? '' : "AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?"}
           ${demoUserSql('u')}
-        ORDER BY substr(u.date_of_birth, 9, 2), u.full_name
+        ORDER BY substr(u.date_of_birth, 6, 2), substr(u.date_of_birth, 9, 2), u.full_name
         `,
-        [month],
+        allYear ? [] : [month],
       );
       const sheet = workbook.addWorksheet('Birthdays');
       sheet.columns = [
@@ -4052,6 +4054,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
 
     const addOccasionSheet = async (title: string, month: string) => {
       await ensureDonationColumns();
+      const allYear = !month;
       const rows = await mysql.query<any[]>(
         `
         SELECT
@@ -4064,11 +4067,12 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         FROM donations d
         LEFT JOIN users u ON u.id = d.user_id
         WHERE lower(IFNULL(d.occasion, '')) = lower(?)
-          AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?
+          AND substr(IFNULL(d.prefer_date, ''), 6, 2) <> ''
+          ${allYear ? '' : "AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?"}
           ${demoDonationSql('d')}
-        ORDER BY d.prefer_date, d.id
+        ORDER BY substr(IFNULL(d.prefer_date, ''), 6, 2), d.prefer_date, d.id
         `,
-        [title, month],
+        allYear ? [title] : [title, month],
       );
       const sheet = workbook.addWorksheet(title);
       sheet.columns = [
@@ -4102,6 +4106,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       };
       let rows: any[] = [];
       try {
+        const confirmedSql = `UPPER(IFNULL(o.order_status, '')) IN ('CONFIRMED', 'PROCESSING', 'READY', 'SHIPPED', 'DELIVERED')`;
         rows = await mysql.query<any[]>(`
           SELECT fullName, claimPhone, mobileCountryCode, mobileNumber, rewardName
           FROM (
@@ -4113,8 +4118,10 @@ router.get('/reports/export', async (req: Request, res: Response) => {
               m.reward_name AS rewardName,
               m.created_at AS createdAt
             FROM milestone_reward_claims m
+            INNER JOIN orders o ON o.id = m.order_id
             LEFT JOIN users u ON u.id = m.user_id
             WHERE IFNULL(m.reward_name, '') <> ''
+              AND ${confirmedSql}
               ${demoUserSql('u')}
             UNION ALL
             SELECT
@@ -4125,8 +4132,10 @@ router.get('/reports/export', async (req: Request, res: Response) => {
               c.reward_name AS rewardName,
               c.created_at AS createdAt
             FROM challenge_reward_claims c
+            INNER JOIN orders o ON o.id = c.order_id
             LEFT JOIN users u ON u.id = c.user_id
             WHERE IFNULL(c.reward_name, '') <> ''
+              AND ${confirmedSql}
               ${demoUserSql('u')}
           ) rewards
           ORDER BY createdAt
@@ -4210,11 +4219,13 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       type === 'vardhanti' ||
       type === 'anniversary'
     ) {
-      const month = exportMonth(req.query.month);
-      if (!month) {
+      const span = String(req.query.month || '').trim().toLowerCase();
+      const allYear = span === 'year' || span === 'all' || span === 'total';
+      const month = allYear ? '' : exportMonth(req.query.month);
+      if (!allYear && !month) {
         return res.status(400).json({
           success: false,
-          message: 'Select a month.',
+          message: 'Select a month or Total year.',
         });
       }
       if (type === 'birthdays') {

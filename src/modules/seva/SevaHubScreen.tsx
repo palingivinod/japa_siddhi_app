@@ -65,7 +65,7 @@ const SevaHubScreen = () => {
         route: 'NithyaHomam',
       },
       {
-        emoji: '📖',
+        icon: 'ramakoti' as AppIconName,
         title: t('tileRamakoti'),
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',

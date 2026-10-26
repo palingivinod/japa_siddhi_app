@@ -54,7 +54,7 @@ const RamakotiBooksReviewScreen = () => {
 
   return (
     <ScreenLayout title={t('applicationOverview')} showBack tab="SevaHub">
-      <MenuCard emoji="📖" title={t('ramakotiSeva')} subtitle={t('reviewBeforeSubmit')} />
+      <MenuCard icon="ramakoti" title={t('ramakotiSeva')} subtitle={t('reviewBeforeSubmit')} />
       <View style={styles.overviewCard}>
         <Text style={styles.cardHeader}>{t('devoteeDeliveryDetails')}</Text>
         <View style={styles.row}>

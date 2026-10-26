@@ -25,7 +25,7 @@ const DonationFormScreen = () => {
     digitsOnly(params.mobile || '').slice(-MOBILE_DIGITS),
   );
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
-  const [preferDate, setPreferDate] = useState('');
+  const [preferDate, setPreferDate] = useState(params.preferDate || '');
   const [showDate, setShowDate] = useState(false);
   const [persons, setPersons] = useState(
     Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),

@@ -307,10 +307,11 @@
   homaBhasma: 'Homa Bhasma',
   homaBhasmaDesc:
     'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
-  tileBirava: 'Birava pendant',
-  tileBiravaSub: 'Request a pendant',
-  biravaPendant: 'Birava pendant',
-  biravaPendantSub: 'Request a Birava pendant for delivery.',
+  tileBirava: 'Bhirava Pendent',
+  tileBiravaSub: 'Request a Pendent',
+  biravaPendant: 'Bhirava Pendent',
+  biravaPendantSub:
+    'Wearing a locket with Kaala Bhirava on one side and the Sri Chakra on the other helps prevent evil forces from entering. You will get this Bhirava Pendent free of charge.',
   addAddressInProfile:
     'Add your address in Personal Details. This form will fill it in, and you can still change it.',
   tileOrders: 'Orders & Tracking',

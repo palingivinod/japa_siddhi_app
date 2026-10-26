@@ -1,10 +1,11 @@
 ﻿import React, {useEffect, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -14,8 +15,11 @@ const JapaAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [persons, setPersons] = useState(0);
+  const [preferDate, setPreferDate] = useState('');
+  const [showDate, setShowDate] = useState(false);
   const [completed, setCompleted] = useState(0);
   const [enabled, setEnabled] = useState(true);
+  const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(preferDate);
 
   const totalAmount = persons * RATE_PER_PERSON;
 
@@ -54,23 +58,56 @@ const JapaAnnadanamScreen = () => {
             onChangePersons={setPersons}
             title={t('selectNoOfPersons')}
           />
+          <Text style={styles.label}>{t('preferDate')} *</Text>
+          <TouchableOpacity style={styles.dateField} onPress={() => setShowDate(true)}>
+            <Text style={preferDate ? styles.dateValue : styles.datePlaceholder}>
+              {preferDate || t('selectDate')}
+            </Text>
+          </TouchableOpacity>
+          <DatePickerModal
+            visible={showDate}
+            value={
+              dateReady
+                ? new Date(
+                    Number(preferDate.slice(0, 4)),
+                    Number(preferDate.slice(5, 7)) - 1,
+                    Number(preferDate.slice(8, 10)),
+                  )
+                : new Date()
+            }
+            minimumDate={new Date()}
+            onCancel={() => setShowDate(false)}
+            onConfirm={selected => {
+              const month = String(selected.getMonth() + 1).padStart(2, '0');
+              const day = String(selected.getDate()).padStart(2, '0');
+              setPreferDate(`${selected.getFullYear()}-${month}-${day}`);
+              setShowDate(false);
+            }}
+          />
           <PrimaryButton
             title={
-              persons > 0
+              persons > 0 && dateReady
                 ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${
                     persons === 1 ? 'PERSON' : 'PERSONS'
                   })`
-                : 'SELECT OR ENTER NO OF PERSONS'
+                : persons > 0
+                  ? 'ENTER REQUIRED DETAILS'
+                  : 'SELECT OR ENTER NO OF PERSONS'
             }
-            disabled={persons <= 0}
-            onPress={() =>
+            disabled={persons <= 0 || !dateReady}
+            onPress={() => {
+              if (!dateReady) {
+                Alert.alert(t('validationTitle'), t('selectPreferDate'));
+                return;
+              }
               navigation.navigate('DonationForm', {
                 kind: 'JAPA_ANNADANAM',
                 persons,
                 amount: totalAmount,
                 itemName: t('japaAnnadanam'),
-              })
-            }
+                preferDate,
+              });
+            }}
           />
         </>
       )}
@@ -136,5 +173,28 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  label: {
+    marginTop: 4,
+    marginBottom: 6,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  dateField: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    marginBottom: 14,
+  },
+  dateValue: {
+    color: Colors.textPrimary,
+    fontSize: 16,
+  },
+  datePlaceholder: {
+    color: Colors.placeholder,
+    fontSize: 16,
   },
 });

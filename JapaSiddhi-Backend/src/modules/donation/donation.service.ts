@@ -351,7 +351,7 @@ class DonationService {
         throw new AppError('Enter a delivery address.', 400);
       }
     } else if (kind === 'BIRAVA_PENDANT') {
-      itemName = 'Birava pendant';
+      itemName = 'Bhirava Pendent';
       orderType = 'BIRAVA_PENDANT';
       if (!String(data.address || '').trim()) {
         throw new AppError('Enter a delivery address.', 400);

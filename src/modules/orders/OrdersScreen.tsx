@@ -151,7 +151,7 @@ const OrdersScreen = () => {
               {isBaanalingam ? (
                 <AppIcon name="banalingam" size={30} />
               ) : isRamakoti ? (
-                <Text style={styles.emoji}>📖</Text>
+                <AppIcon name="ramakoti" size={30} />
               ) : isHoma ? (
                 <AppIcon name="homaBhasma" size={30} />
               ) : isBirava ? (
