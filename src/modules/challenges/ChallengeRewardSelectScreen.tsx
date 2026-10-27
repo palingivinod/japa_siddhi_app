@@ -18,6 +18,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  isCanonicalReward,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
@@ -53,7 +54,13 @@ const ChallengeRewardSelectScreen = () => {
         const milestoneData = milestoneRes?.data?.data || {};
         const total = Number(milestoneData.total || milestoneData.milestoneTotal || 0);
         setUserTotalJapas(total);
-        setRewards(sortRewardsCanonical<RewardItem>(data.rewards || []));
+        setRewards(
+          sortRewardsCanonical<RewardItem>(
+            (data.rewards || []).filter((row: RewardItem) =>
+              isCanonicalReward(String(row.name || '')),
+            ),
+          ),
+        );
         setDeliverySubmitted(Boolean(data.deliverySubmitted));
         if (data.claimed && data.claimedReward?.name) {
           const id = Number(data.claimedReward.id) || null;

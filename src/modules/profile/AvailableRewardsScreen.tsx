@@ -19,6 +19,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  isCanonicalReward,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
@@ -75,15 +76,19 @@ const AvailableRewardsScreen = () => {
       const rows: any[] = Array.isArray(raw) ? raw : [];
 
       if (rows.length > 0) {
-        const mapped = rows.map((row: any) => ({
-          id: row.id,
-          name: String(row.name || ''),
-          stock: Number(row.stock || 0),
-          inStock: Number(row.stock ?? 1) > 0,
-          emoji: row.emoji,
-          description: row.description,
-        }));
-        setRewards(sortRewardsCanonical(mapped));
+        const mapped = rows
+          .map((row: any) => ({
+            id: row.id,
+            name: String(row.name || ''),
+            stock: Number(row.stock || 0),
+            inStock: Number(row.stock ?? 1) > 0,
+            emoji: row.emoji,
+            description: row.description,
+          }))
+          .filter(row => isCanonicalReward(row.name));
+        setRewards(
+          mapped.length > 0 ? sortRewardsCanonical(mapped) : DEFAULT_REWARDS,
+        );
       } else {
         setRewards(DEFAULT_REWARDS);
       }

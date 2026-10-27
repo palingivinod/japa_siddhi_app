@@ -18,6 +18,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  isCanonicalReward,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
@@ -47,7 +48,13 @@ const MilestoneRewardSelectScreen = () => {
       .then(response => {
         const data = response.data?.data || {};
         setUserTotalJapas(Number(data.total || 0));
-        setRewards(sortRewardsCanonical<RewardItem>(data.rewards || []));
+        setRewards(
+          sortRewardsCanonical<RewardItem>(
+            (data.rewards || []).filter((row: RewardItem) =>
+              isCanonicalReward(String(row.name || '')),
+            ),
+          ),
+        );
         setClaimed(Boolean(data.claimed));
         setReached(Boolean(data.reached));
       })

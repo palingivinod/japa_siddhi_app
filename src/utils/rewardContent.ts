@@ -780,6 +780,10 @@ export const getRewardSortRank = (rewardName: string): number => {
   return 99;
 };
 
+/** True for the seven known mala/agate rewards; false for generic leftovers. */
+export const isCanonicalReward = (rewardName: string): boolean =>
+  getRewardSortRank(rewardName) < 99;
+
 export const sortRewardsCanonical = <T extends {name?: string}>(list: T[]): T[] => {
   return [...list].sort((a, b) => {
     const rankA = getRewardSortRank(a.name || '');
