@@ -2966,9 +2966,15 @@ const buildPaymentReportRows = async () => {
          WHERE ${successFilter}
            AND YEAR(${stamp}) = YEAR(CURDATE())
            AND MONTH(${stamp}) = MONTH(CURDATE()) ${demoDonationFilter}`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
-         WHERE ${successFilter}
-           AND strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now') ${demoDonationFilter}`;
+      : engine === 'postgres'
+        ? `SELECT COALESCE(SUM(amount), 0) AS total FROM donations d
+           WHERE ${successFilter}
+             AND to_char((COALESCE(donated_at, created_at))::timestamp, 'YYYY-MM')
+               = to_char((CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), 'YYYY-MM')
+             ${demoDonationFilter}`
+        : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+           WHERE ${successFilter}
+             AND strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now') ${demoDonationFilter}`;
 
   const refundSql = `
     SELECT IFNULL(SUM(amount), 0) AS total
@@ -3383,10 +3389,10 @@ const loadRegionAnalytics = async (region?: string) => {
     SELECT MIN(TRIM(u.region)) AS region
     FROM users u
     WHERE u.deleted_at IS NULL
-      AND TRIM(IFNULL(u.region, '')) != ''
+      AND TRIM(COALESCE(u.region, '')) != ''
       ${demoUserSql('u')}
     GROUP BY LOWER(TRIM(u.region))
-    ORDER BY region
+    ORDER BY 1
   `);
   const regions = (placeRows || [])
     .map((row: any) => String(row.region || '').trim())
@@ -3408,21 +3414,23 @@ const loadRegionAnalytics = async (region?: string) => {
     };
   }
 
+  // Match the same LOWER(TRIM(...)) key used to build the dropdown.
+  // Order by expressions (not camelCase aliases) so Postgres stays happy.
   const peopleRowsRaw = await mysql.query<any[]>(
     `
     SELECT
-      u.id AS userId,
-      u.full_name AS fullName,
-      u.mobile_country_code AS countryCode,
+      u.id AS user_id,
+      u.full_name AS full_name,
+      u.mobile_country_code AS country_code,
       u.mobile_number AS mobile,
-      COALESCE(SUM(js.session_count), 0) AS japaCount
+      COALESCE(SUM(js.session_count), 0) AS japa_count
     FROM users u
     LEFT JOIN japa_sessions js ON js.user_id = u.id
     WHERE u.deleted_at IS NULL
-      AND LOWER(TRIM(IFNULL(u.region, ''))) = LOWER(?)
+      AND LOWER(TRIM(COALESCE(u.region, ''))) = LOWER(TRIM(?))
       ${demoUserSql('u')}
     GROUP BY u.id, u.full_name, u.mobile_country_code, u.mobile_number
-    ORDER BY japaCount DESC, fullName ASC
+    ORDER BY COALESCE(SUM(js.session_count), 0) DESC, u.full_name ASC
     `,
     [selected],
   );
@@ -3430,7 +3438,7 @@ const loadRegionAnalytics = async (region?: string) => {
   const mantraRows = await mysql.query<any[]>(
     `
     SELECT
-      js.user_id AS userId,
+      js.user_id AS user_id,
       COALESCE(
         m.mantra_name,
         upm.mantra_name,
@@ -3439,13 +3447,13 @@ const loadRegionAnalytics = async (region?: string) => {
           ELSE 'Japa'
         END
       ) AS mantra,
-      COALESCE(SUM(js.session_count), 0) AS japaCount
+      COALESCE(SUM(js.session_count), 0) AS japa_count
     FROM japa_sessions js
     INNER JOIN users u ON u.id = js.user_id
     LEFT JOIN mantras m ON m.id = js.mantra_id
     LEFT JOIN user_personal_mantras upm ON upm.id = js.personal_mantra_id
     WHERE u.deleted_at IS NULL
-      AND LOWER(TRIM(IFNULL(u.region, ''))) = LOWER(?)
+      AND LOWER(TRIM(COALESCE(u.region, ''))) = LOWER(TRIM(?))
       ${demoUserSql('u')}
     GROUP BY js.user_id, m.mantra_name, upm.mantra_name, js.mantra_type
     HAVING COALESCE(SUM(js.session_count), 0) > 0
@@ -3456,9 +3464,9 @@ const loadRegionAnalytics = async (region?: string) => {
   const mantrasByUser = new Map<number, Array<{name: string; japaCount: number}>>();
   const mantraTotals = new Map<string, {japaCount: number; people: Set<number>}>();
   (mantraRows || []).forEach((row: any) => {
-    const userId = Number(row.userId ?? row.user_id ?? 0);
+    const userId = Number(row.user_id ?? row.userId ?? 0);
     const name = String(row.mantra || 'Japa').trim() || 'Japa';
-    const count = Number(row.japaCount ?? row.japa_count ?? 0);
+    const count = Number(row.japa_count ?? row.japaCount ?? 0);
     if (!userId || count <= 0) {
       return;
     }
@@ -3472,16 +3480,16 @@ const loadRegionAnalytics = async (region?: string) => {
   });
 
   const peopleRows = (peopleRowsRaw || []).map((row: any) => {
-    const userId = Number(row.userId ?? row.user_id ?? 0);
-    const code = String(row.countryCode ?? row.country_code ?? '').replace(/\D/g, '');
+    const userId = Number(row.user_id ?? row.userId ?? 0);
+    const code = String(row.country_code ?? row.countryCode ?? '').replace(/\D/g, '');
     const mobile = String(row.mobile || '').replace(/\D/g, '');
     const chants = (mantrasByUser.get(userId) || [])
       .sort((a, b) => b.japaCount - a.japaCount)
       .map(item => `${item.name} (${item.japaCount})`);
     return {
-      name: String(row.fullName ?? row.full_name ?? '').trim() || `User #${userId}`,
+      name: String(row.full_name ?? row.fullName ?? '').trim() || `User #${userId}`,
       phone: mobile ? `${code ? `+${code} ` : ''}${mobile}` : '',
-      japaCount: Number(row.japaCount ?? row.japa_count ?? 0),
+      japaCount: Number(row.japa_count ?? row.japaCount ?? 0),
       mantras: chants.join(', '),
     };
   });

@@ -2,6 +2,8 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -9,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import {useFocusEffect} from '@react-navigation/native';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
@@ -103,6 +106,7 @@ const statusStyle = (status: AdminBannerStatus) => {
 };
 
 const AdminBannersScreen = () => {
+  const insets = useSafeAreaInsets();
   const [banners, setBanners] = useState<AdminBanner[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
@@ -463,180 +467,206 @@ const AdminBannersScreen = () => {
         );
       })}
 
-      {showForm ? (
-        <View style={styles.form}>
-          <Text style={styles.formTitle}>
-            {editingId ? 'Edit banner' : 'New banner'}
-          </Text>
+      <PrimaryButton
+        title="ADD BANNER"
+        onPress={() => {
+          setEditingId('');
+          setShowForm(true);
+        }}
+      />
 
-          <AdminLanguageTabs
-            activeLang={activeLang}
-            onSelectLang={setActiveLang}
-            completedMap={completedMap}
-            onCopyFromEnglish={copyFromEnglish}
-          />
+      <Modal
+        visible={showForm}
+        animationType="slide"
+        transparent
+        statusBarTranslucent
+        onRequestClose={resetForm}>
+        <View style={styles.modalBackdrop}>
+          <View
+            style={[
+              styles.modalSheet,
+              {
+                paddingTop: Math.max(insets.top, 12),
+                paddingBottom: Math.max(insets.bottom, 16),
+              },
+            ]}>
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalContent}>
+              <Text style={styles.formTitle}>
+                {editingId ? 'Edit banner' : 'New banner'}
+              </Text>
 
-          <View style={styles.langHeaderCard}>
-            <View style={styles.langHeaderTop}>
-              <View style={styles.langHeaderCopy}>
-                <Text style={styles.langHeaderTitle}>
-                  {activeLang === 'en'
-                    ? 'English (Primary)'
-                    : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
-                </Text>
-                <Text style={styles.langHeaderHint}>
-                  {activeLang === 'en'
-                    ? 'Type here — automatically translates into all 4 other languages.'
-                    : `Auto-translated from English. You can edit any words here before saving.`}
-                </Text>
-              </View>
-              {translating ? (
-                <View style={styles.translatingBadge}>
-                  <ActivityIndicator size="small" color={Colors.leafGreen} />
-                  <Text style={styles.translatingText}>Translating...</Text>
+              <AdminLanguageTabs
+                activeLang={activeLang}
+                onSelectLang={setActiveLang}
+                completedMap={completedMap}
+                onCopyFromEnglish={copyFromEnglish}
+              />
+
+              <View style={styles.langHeaderCard}>
+                <View style={styles.langHeaderTop}>
+                  <View style={styles.langHeaderCopy}>
+                    <Text style={styles.langHeaderTitle}>
+                      {activeLang === 'en'
+                        ? 'English (Primary)'
+                        : `${activeLangOption?.nativeName} (${activeLangOption?.label})`}
+                    </Text>
+                    <Text style={styles.langHeaderHint}>
+                      {activeLang === 'en'
+                        ? 'Type here — automatically translates into all 4 other languages.'
+                        : `Auto-translated from English. You can edit any words here before saving.`}
+                    </Text>
+                  </View>
+                  {translating ? (
+                    <View style={styles.translatingBadge}>
+                      <ActivityIndicator size="small" color={Colors.leafGreen} />
+                      <Text style={styles.translatingText}>Translating...</Text>
+                    </View>
+                  ) : lastAutoTranslatedAt ? (
+                    <View style={styles.translatedBadge}>
+                      <Text style={styles.translatedText}>✓ Auto-translated</Text>
+                    </View>
+                  ) : null}
                 </View>
-              ) : lastAutoTranslatedAt ? (
-                <View style={styles.translatedBadge}>
-                  <Text style={styles.translatedText}>✓ Auto-translated</Text>
+              </View>
+
+              <Text style={styles.label}>
+                Title ({activeLangOption?.nativeName || 'Title'})
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={currentFields.title}
+                onChangeText={v => updateField('title', v)}
+                placeholder={
+                  activeLang === 'en'
+                    ? 'Title'
+                    : `Title in ${activeLangOption?.nativeName}`
+                }
+                placeholderTextColor={Colors.placeholder}
+              />
+              <Text style={styles.label}>
+                Subtitle ({activeLangOption?.nativeName || 'Subtitle'})
+              </Text>
+              <TextInput
+                style={styles.input}
+                value={currentFields.subtitle}
+                onChangeText={v => updateField('subtitle', v)}
+                placeholder={
+                  activeLang === 'en'
+                    ? 'Subtitle (optional)'
+                    : `Subtitle in ${activeLangOption?.nativeName}`
+                }
+                placeholderTextColor={Colors.placeholder}
+              />
+              <Text style={styles.label}>Module</Text>
+              <View style={styles.moduleRow}>
+                {MODULES.map(option => {
+                  const active = option === moduleName;
+                  return (
+                    <TouchableOpacity
+                      key={option}
+                      style={[styles.chip, active && styles.chipActive]}
+                      onPress={() => setModuleName(option)}>
+                      <Text
+                        style={[
+                          styles.chipText,
+                          active && styles.chipTextActive,
+                        ]}>
+                        {option}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <Text style={styles.label}>Schedule (IST)</Text>
+              <TouchableOpacity
+                style={[styles.chip, scheduleOn && styles.chipActive]}
+                onPress={() => setScheduleOn(value => !value)}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    scheduleOn && styles.chipTextActive,
+                  ]}>
+                  {scheduleOn ? 'Scheduled' : 'Show now'}
+                </Text>
+              </TouchableOpacity>
+              {scheduleOn ? (
+                <View style={styles.scheduleRow}>
+                  <TouchableOpacity
+                    style={styles.scheduleBtn}
+                    onPress={() => setSchedulePicker('date')}>
+                    <Text style={styles.scheduleText}>
+                      {scheduleAt.toLocaleDateString('en-IN')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.scheduleBtn}
+                    onPress={() => setSchedulePicker('time')}>
+                    <Text style={styles.scheduleText}>
+                      {scheduleAt.toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ) : null}
-            </View>
-          </View>
-
-          <Text style={styles.label}>
-            Title ({activeLangOption?.nativeName || 'Title'})
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={currentFields.title}
-            onChangeText={v => updateField('title', v)}
-            placeholder={
-              activeLang === 'en'
-                ? 'Title'
-                : `Title in ${activeLangOption?.nativeName}`
-            }
-            placeholderTextColor={Colors.placeholder}
-          />
-          <Text style={styles.label}>
-            Subtitle ({activeLangOption?.nativeName || 'Subtitle'})
-          </Text>
-          <TextInput
-            style={styles.input}
-            value={currentFields.subtitle}
-            onChangeText={v => updateField('subtitle', v)}
-            placeholder={
-              activeLang === 'en'
-                ? 'Subtitle (optional)'
-                : `Subtitle in ${activeLangOption?.nativeName}`
-            }
-            placeholderTextColor={Colors.placeholder}
-          />
-          <Text style={styles.label}>Module</Text>
-          <View style={styles.moduleRow}>
-            {MODULES.map(option => {
-              const active = option === moduleName;
-              return (
-                <TouchableOpacity
-                  key={option}
-                  style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => setModuleName(option)}>
-                  <Text
-                    style={[styles.chipText, active && styles.chipTextActive]}>
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-          <Text style={styles.label}>Schedule (IST)</Text>
-          <TouchableOpacity
-            style={[styles.chip, scheduleOn && styles.chipActive]}
-            onPress={() => setScheduleOn(value => !value)}>
-            <Text style={[styles.chipText, scheduleOn && styles.chipTextActive]}>
-              {scheduleOn ? 'Scheduled' : 'Show now'}
-            </Text>
-          </TouchableOpacity>
-          {scheduleOn ? (
-            <View style={styles.scheduleRow}>
-              <TouchableOpacity
-                style={styles.scheduleBtn}
-                onPress={() => setSchedulePicker('date')}>
-                <Text style={styles.scheduleText}>
-                  {scheduleAt.toLocaleDateString('en-IN')}
+              {scheduleOn ? (
+                <Text style={styles.scheduleHint}>
+                  Users see this banner at {formatIstLabel(toIstIso(scheduleAt))}.
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.scheduleBtn}
-                onPress={() => setSchedulePicker('time')}>
-                <Text style={styles.scheduleText}>
-                  {scheduleAt.toLocaleTimeString('en-IN', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : null}
-          {scheduleOn ? (
-            <Text style={styles.scheduleHint}>
-              Users see this banner at {formatIstLabel(toIstIso(scheduleAt))}.
-            </Text>
-          ) : null}
-          <DatePickerModal
-            visible={schedulePicker != null}
-            mode={schedulePicker === 'time' ? 'time' : 'date'}
-            value={scheduleAt}
-            minimumDate={
-              schedulePicker === 'date'
-                ? new Date(
-                    new Date().getFullYear(),
-                    new Date().getMonth(),
-                    new Date().getDate(),
-                  )
-                : undefined
-            }
-            onCancel={() => setSchedulePicker(null)}
-            onConfirm={selected => {
-              setScheduleAt(prev => {
-                const next = new Date(prev);
-                if (schedulePicker === 'time') {
-                  next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-                } else {
-                  next.setFullYear(
-                    selected.getFullYear(),
-                    selected.getMonth(),
-                    selected.getDate(),
-                  );
+              ) : null}
+              <PrimaryButton
+                title={
+                  saving
+                    ? 'SAVING...'
+                    : editingId
+                      ? 'UPDATE BANNER'
+                      : 'SAVE BANNER'
                 }
-                return next;
-              });
-              setSchedulePicker(null);
-            }}
-          />
-          <PrimaryButton
-            title={
-              saving
-                ? 'SAVING...'
-                : editingId
-                  ? 'UPDATE BANNER'
-                  : 'SAVE BANNER'
-            }
-            onPress={saveBanner}
-            disabled={saving || translating}
-          />
-          <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
+                onPress={saveBanner}
+                disabled={saving || translating}
+              />
+              <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
         </View>
-      ) : (
-        <PrimaryButton
-          title="ADD BANNER"
-          onPress={() => {
-            setEditingId('');
-            setShowForm(true);
+        <DatePickerModal
+          visible={schedulePicker != null}
+          mode={schedulePicker === 'time' ? 'time' : 'date'}
+          value={scheduleAt}
+          minimumDate={
+            schedulePicker === 'date'
+              ? new Date(
+                  new Date().getFullYear(),
+                  new Date().getMonth(),
+                  new Date().getDate(),
+                )
+              : undefined
+          }
+          onCancel={() => setSchedulePicker(null)}
+          onConfirm={selected => {
+            setScheduleAt(prev => {
+              const next = new Date(prev);
+              if (schedulePicker === 'time') {
+                next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+              } else {
+                next.setFullYear(
+                  selected.getFullYear(),
+                  selected.getMonth(),
+                  selected.getDate(),
+                );
+              }
+              return next;
+            });
+            setSchedulePicker(null);
           }}
         />
-      )}
+      </Modal>
     </AdminScreenLayout>
   );
 };
@@ -715,6 +745,22 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 13,
     color: Colors.error,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: Colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '92%',
+    minHeight: '70%',
+  },
+  modalContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   form: {
     marginTop: 8,

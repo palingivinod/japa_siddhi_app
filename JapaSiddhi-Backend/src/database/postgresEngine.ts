@@ -841,8 +841,31 @@ export const translateToPg = (rawSql: string): {sql: string; isInsertWithId: boo
       return match;
     },
   );
-  // Quote known ORDER BY / GROUP BY mixed-case alias references (e.g. japaDate, userName, japaName, totalJapa, progressPct)
-  for (const alias of ['japaDate', 'userName', 'japaName', 'totalJapa', 'progressPct', 'japaCount', 'mantraId', 'displayOrder']) {
+  // Quote known ORDER BY / GROUP BY mixed-case alias references
+  for (const alias of [
+    'japaDate',
+    'userName',
+    'japaName',
+    'totalJapa',
+    'progressPct',
+    'japaCount',
+    'mantraId',
+    'displayOrder',
+    'fullName',
+    'userId',
+    'countryCode',
+    'mobileCountryCode',
+    'mobileNumber',
+    'dateOfBirth',
+    'preferDate',
+    'forWhom',
+    'personName',
+    'donorName',
+    'donorPhone',
+    'claimPhone',
+    'rewardName',
+    'createdAt',
+  ]) {
     const re = new RegExp(`(?<!")\\b${alias}\\b(?!")`, 'g');
     sql = sql.replace(re, `"${alias}"`);
   }
