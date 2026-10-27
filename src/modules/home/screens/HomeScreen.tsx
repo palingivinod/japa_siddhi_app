@@ -123,6 +123,27 @@ const HomeScreen = () => {
         tone: 'green' as const,
       },
       {
+        title: t('tileRamakoti'),
+        sub: t('tileRamakotiSub'),
+        route: 'RamakotiBooks',
+        icon: 'ramakoti' as AppIconName,
+        tone: 'gold' as const,
+      },
+      {
+        title: t('tileHomaBhasma'),
+        sub: t('tileHomaBhasmaSub'),
+        route: 'HomaBhasma',
+        icon: 'homaBhasma' as AppIconName,
+        tone: 'green' as const,
+      },
+      {
+        title: t('tileBirava'),
+        sub: t('tileBiravaSub'),
+        route: 'BiravaPendant',
+        icon: 'biravaPendant' as AppIconName,
+        tone: 'gold' as const,
+      },
+      {
         title: t('tileOrders'),
         sub: t('tileOrdersSub'),
         route: 'Orders',
