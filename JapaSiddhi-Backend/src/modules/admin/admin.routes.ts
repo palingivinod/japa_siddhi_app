@@ -3525,6 +3525,130 @@ router.get('/region-analytics', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/dob-details', async (req: Request, res: Response) => {
+  try {
+    await mysql.query('SELECT 1');
+    const type = String(req.query.type || '')
+      .trim()
+      .toLowerCase();
+    const span = String(req.query.month || '').trim().toLowerCase();
+    const allYear = span === 'year' || span === 'all' || span === 'total';
+    const month = allYear ? '' : exportMonth(req.query.month);
+    if (
+      type !== 'birthdays' &&
+      type !== 'jayanthi' &&
+      type !== 'vardhanti' &&
+      type !== 'anniversary'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select birthdays, jayanthi, vardhanti, or anniversary.',
+      });
+    }
+    if (!allYear && !month) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select a month or Total year.',
+      });
+    }
+
+    const phoneOf = (code: string, number: string) =>
+      `${String(code || '').trim()}${String(number || '').trim()}`.trim();
+
+    if (type === 'birthdays') {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT
+          u.id,
+          u.full_name AS fullName,
+          IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+          IFNULL(u.mobile_number, '') AS mobileNumber,
+          u.date_of_birth AS dateOfBirth
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND substr(IFNULL(u.date_of_birth, ''), 6, 2) <> ''
+          ${allYear ? '' : "AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?"}
+          ${demoUserSql('u')}
+        ORDER BY substr(u.date_of_birth, 6, 2), substr(u.date_of_birth, 9, 2), u.full_name
+        `,
+        allYear ? [] : [month],
+      );
+      return res.json({
+        success: true,
+        data: {
+          type,
+          month: allYear ? 'year' : month,
+          people: (rows || []).map((row: any) => ({
+            id: String(row.id),
+            fullName: row.fullName || 'Devotee',
+            phone: phoneOf(row.mobileCountryCode, row.mobileNumber),
+            date: row.dateOfBirth || '',
+          })),
+        },
+      });
+    }
+
+    await ensureDonationColumns();
+    const occasionTitle =
+      type === 'jayanthi'
+        ? 'Jayanthi'
+        : type === 'vardhanti'
+          ? 'Vardhanti'
+          : 'Anniversary';
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        d.id,
+        IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS fullName,
+        IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+        IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+        IFNULL(u.mobile_number, '') AS mobileNumber,
+        IFNULL(d.prefer_date, '') AS preferDate,
+        IFNULL(d.for_whom, '') AS forWhom,
+        IFNULL(d.person_name, '') AS personName,
+        d.remarks
+      FROM donations d
+      LEFT JOIN users u ON u.id = d.user_id
+      WHERE lower(IFNULL(d.occasion, '')) = lower(?)
+        AND substr(IFNULL(d.prefer_date, ''), 6, 2) <> ''
+        ${allYear ? '' : "AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?"}
+        ${demoDonationSql('d')}
+      ORDER BY substr(IFNULL(d.prefer_date, ''), 6, 2), d.prefer_date, d.id
+      `,
+      allYear ? [occasionTitle] : [occasionTitle, month],
+    );
+    return res.json({
+      success: true,
+      data: {
+        type,
+        month: allYear ? 'year' : month,
+        people: (rows || []).map((row: any) => {
+          const remarkPhone = remarkField(row.remarks, 'Phone');
+          const phone =
+            String(row.donorPhone || '').trim() ||
+            phoneOf(row.mobileCountryCode, row.mobileNumber) ||
+            remarkPhone;
+          return {
+            id: String(row.id),
+            fullName:
+              row.fullName || remarkField(row.remarks, 'Name') || 'Devotee',
+            phone,
+            date: row.preferDate || remarkField(row.remarks, 'Prefer date'),
+            forWhom: row.forWhom || remarkField(row.remarks, 'For whom'),
+            personName:
+              row.personName || remarkField(row.remarks, 'Person name'),
+          };
+        }),
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load DOB details.',
+    });
+  }
+});
+
 router.get('/reports/export', async (req: Request, res: Response) => {
   try {
     await mysql.query('SELECT 1');

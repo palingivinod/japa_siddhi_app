@@ -111,9 +111,11 @@ export type AdminBannerStatus = 'Active' | 'Scheduled' | 'Blocked';
 export type AdminBanner = {
   id: string;
   title: string;
+  subtitle?: string;
   module: string;
   status: AdminBannerStatus;
   startsAt?: string;
+  translations?: Record<string, {title?: string; subtitle?: string}>;
 };
 
 export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';

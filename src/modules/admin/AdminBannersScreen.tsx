@@ -107,6 +107,7 @@ const AdminBannersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState('');
   const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
   const [translations, setTranslations] = useState(defaultTranslations);
   const [moduleName, setModuleName] = useState('Home');
@@ -135,12 +136,17 @@ const AdminBannersScreen = () => {
         rows.map((row: any) => ({
           id: String(row.id),
           title: row.title || '',
+          subtitle: row.subtitle || '',
           module: row.module || 'Home',
           status:
             row.status === 'Scheduled' || row.status === 'Blocked'
               ? row.status
               : 'Active',
           startsAt: String(row.startsAt || ''),
+          translations:
+            row.translations && typeof row.translations === 'object'
+              ? row.translations
+              : undefined,
         })),
       );
     } catch (err) {
@@ -256,7 +262,61 @@ const AdminBannersScreen = () => {
     setScheduleAt(new Date());
     setSchedulePicker(null);
     setActiveLang('en');
+    setEditingId('');
     setShowForm(false);
+  };
+
+  const parseStartsAt = (raw?: string) => {
+    const match = String(raw || '').match(
+      /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/,
+    );
+    if (!match) {
+      return new Date();
+    }
+    return new Date(
+      Number(match[1]),
+      Number(match[2]) - 1,
+      Number(match[3]),
+      Number(match[4]),
+      Number(match[5]),
+      0,
+      0,
+    );
+  };
+
+  const startEdit = (item: AdminBanner) => {
+    const next = defaultTranslations();
+    const pack = item.translations || {};
+    ADMIN_LANGUAGES.forEach(lang => {
+      const fields = pack[lang.code] || {};
+      next[lang.code] = {
+        title:
+          String(fields.title || (lang.code === 'en' ? item.title : '') || '').trim(),
+        subtitle: String(
+          fields.subtitle || (lang.code === 'en' ? item.subtitle : '') || '',
+        ).trim(),
+      };
+    });
+    if (!next.en.title.trim()) {
+      next.en.title = item.title || '';
+    }
+    if (!next.en.subtitle.trim()) {
+      next.en.subtitle = item.subtitle || '';
+    }
+    setTranslations(next);
+    latestEnRef.current = {
+      title: next.en.title.trim(),
+      subtitle: next.en.subtitle.trim(),
+    };
+    setModuleName(item.module || 'Home');
+    const scheduled = item.status === 'Scheduled' || Boolean(item.startsAt);
+    setScheduleOn(scheduled);
+    setScheduleAt(parseStartsAt(item.startsAt));
+    setSchedulePicker(null);
+    setActiveLang('en');
+    setLastAutoTranslatedAt(null);
+    setEditingId(item.id);
+    setShowForm(true);
   };
 
   const cycle = async (item: AdminBanner) => {
@@ -301,31 +361,44 @@ const AdminBannersScreen = () => {
     ]);
   };
 
-  const create = async () => {
+  const saveBanner = async () => {
     const primaryTitle =
       translations.en.title.trim() || translations[activeLang].title.trim();
     if (!primaryTitle) {
       Alert.alert('Required', 'Enter at least an English banner title.');
       return;
     }
+    const existing = banners.find(row => row.id === editingId);
+    const payload = {
+      title: primaryTitle,
+      subtitle:
+        translations.en.subtitle.trim() ||
+        translations[activeLang].subtitle.trim(),
+      module: moduleName,
+      status: scheduleOn
+        ? 'Scheduled'
+        : existing?.status === 'Blocked'
+          ? 'Blocked'
+          : 'Active',
+      startsAt: scheduleOn ? toIstIso(scheduleAt) : '',
+      translations,
+    };
     setSaving(true);
     try {
-      await apiService.post('/admin/banners', {
-        title: primaryTitle,
-        subtitle:
-          translations.en.subtitle.trim() ||
-          translations[activeLang].subtitle.trim(),
-        module: moduleName,
-        status: scheduleOn ? 'Scheduled' : 'Active',
-        startsAt: scheduleOn ? toIstIso(scheduleAt) : '',
-        translations,
-      });
+      if (editingId) {
+        await apiService.put(`/admin/banners/${editingId}`, payload);
+      } else {
+        await apiService.post('/admin/banners', payload);
+      }
       resetForm();
       await load();
     } catch (err) {
       Alert.alert(
-        'Create failed',
-        getApiError(err, 'Could not create banner.'),
+        editingId ? 'Update failed' : 'Create failed',
+        getApiError(
+          err,
+          editingId ? 'Could not update banner.' : 'Could not create banner.',
+        ),
       );
     } finally {
       setSaving(false);
@@ -374,6 +447,12 @@ const AdminBannersScreen = () => {
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
+                style={styles.editBtn}
+                onPress={() => startEdit(item)}
+                disabled={busy || saving}>
+                <Text style={styles.editText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={styles.deleteBtn}
                 onPress={() => remove(item)}
                 disabled={busy}>
@@ -386,7 +465,9 @@ const AdminBannersScreen = () => {
 
       {showForm ? (
         <View style={styles.form}>
-          <Text style={styles.formTitle}>New banner</Text>
+          <Text style={styles.formTitle}>
+            {editingId ? 'Edit banner' : 'New banner'}
+          </Text>
 
           <AdminLanguageTabs
             activeLang={activeLang}
@@ -533,8 +614,14 @@ const AdminBannersScreen = () => {
             }}
           />
           <PrimaryButton
-            title={saving ? 'SAVING...' : 'SAVE BANNER'}
-            onPress={create}
+            title={
+              saving
+                ? 'SAVING...'
+                : editingId
+                  ? 'UPDATE BANNER'
+                  : 'SAVE BANNER'
+            }
+            onPress={saveBanner}
             disabled={saving || translating}
           />
           <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
@@ -542,7 +629,13 @@ const AdminBannersScreen = () => {
           </TouchableOpacity>
         </View>
       ) : (
-        <PrimaryButton title="ADD BANNER" onPress={() => setShowForm(true)} />
+        <PrimaryButton
+          title="ADD BANNER"
+          onPress={() => {
+            setEditingId('');
+            setShowForm(true);
+          }}
+        />
       )}
     </AdminScreenLayout>
   );
@@ -593,6 +686,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   pillText: {fontWeight: '800', fontSize: 13},
+  editBtn: {
+    marginTop: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.sacredBrown,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 92,
+    alignItems: 'center',
+  },
+  editText: {
+    fontWeight: '800',
+    fontSize: 13,
+    color: Colors.sacredBrown,
+  },
   deleteBtn: {
     marginTop: 8,
     borderRadius: 20,

@@ -275,13 +275,23 @@ const OtpScreen = ({route, navigation}: any) => {
           error?.response?.data?.message ||
           error?.message ||
           t('unableResendOtp');
-        Alert.alert(t('otpFailed'), phoneMessage, [
-          {text: t('ok')},
-          {
-            text: t('useEmailOtp'),
-            onPress: () => navigation.goBack(),
-          },
-        ]);
+        const alreadyInUse =
+          /already (registered|exists|in use)|belongs to another|please sign in|is already/i.test(
+            String(phoneMessage),
+          );
+        Alert.alert(
+          t('otpFailed'),
+          phoneMessage,
+          alreadyInUse
+            ? [{text: t('ok')}]
+            : [
+                {text: t('ok')},
+                {
+                  text: t('useEmailOtp'),
+                  onPress: () => navigation.goBack(),
+                },
+              ],
+        );
       } else {
         Alert.alert(
           t('errorTitle'),

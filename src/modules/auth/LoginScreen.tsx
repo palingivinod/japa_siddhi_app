@@ -302,10 +302,23 @@ const LoginScreen = () => {
           error?.response?.data?.message ||
           error?.message ||
           t('unableSendOtpRetry');
-        Alert.alert(t('otpFailed'), phoneMessage, [
-          {text: t('ok')},
-          {text: t('useEmailOtp'), onPress: () => setOtpChannel('email')},
-        ]);
+        const alreadyInUse =
+          /already (registered|exists|in use)|belongs to another|please sign in|is already/i.test(
+            String(phoneMessage),
+          );
+        Alert.alert(
+          t('otpFailed'),
+          phoneMessage,
+          alreadyInUse
+            ? [{text: t('ok')}]
+            : [
+                {text: t('ok')},
+                {
+                  text: t('useEmailOtp'),
+                  onPress: () => setOtpChannel('email'),
+                },
+              ],
+        );
       } else {
         const serverMessage =
           error?.response?.data?.message ||

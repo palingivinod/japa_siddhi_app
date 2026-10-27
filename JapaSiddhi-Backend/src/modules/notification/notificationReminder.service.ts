@@ -900,6 +900,71 @@ export const flushDeadlineReminders = async () => {
   return {created, date: today};
 };
 
+/**
+ * Devotees who have never completed even one chant. Runs once per IST day
+ * during allowed notification hours; inbox + FCM when a token exists.
+ */
+export const flushNeverChantedReminders = async () => {
+  const today = todayYmdIst();
+  let created = 0;
+
+  try {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        u.id AS userId
+      FROM users u
+      LEFT JOIN user_settings us ON us.user_id = u.id
+      WHERE u.deleted_at IS NULL
+        AND UPPER(IFNULL(u.role, 'USER')) <> 'ADMIN'
+        AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
+        AND IFNULL(us.notifications_on, 1) = 1
+        AND IFNULL((
+          SELECT SUM(js.session_count)
+          FROM japa_sessions js
+          WHERE js.user_id = u.id
+        ), 0) = 0
+      LIMIT 500
+      `,
+    );
+
+    const dayKey = Number(today.replace(/-/g, ''));
+    for (const row of rows || []) {
+      const branded = brandJapaNotification(
+        'Your Japa',
+        'Daily reminder',
+        'start your first chant',
+        'You have not done a japa yet. Begin with a few chants today.',
+      );
+      const ok = await notifyOnce({
+        userId: Number(row.userId),
+        title: branded.title,
+        message: branded.message,
+        notificationType: 'JAPA_REMINDER',
+        actionType: 'ZERO_JAPA_REMINDER',
+        actionId: dayKey,
+        extraData: {
+          date: today,
+          mantraName: branded.mantraName,
+          category: branded.category,
+          shortLine: branded.shortLine,
+          detail: branded.detail,
+          pushTitle: branded.pushTitle,
+          pushBody: branded.pushBody,
+        },
+        expiresAt: endOfDayStamp(today),
+      });
+      if (ok) {
+        created += 1;
+      }
+    }
+  } catch (error) {
+    console.warn('Never-chanted reminders failed:', error);
+  }
+
+  return {created, date: today};
+};
+
 let reminderTimer: NodeJS.Timeout | null = null;
 let queueTimer: NodeJS.Timeout | null = null;
 let reminderRunning = false;
@@ -922,6 +987,7 @@ export const runReminderSweep = async () => {
     await flushDueAdminNotifications().catch(() => undefined);
     await notificationService.purgeExpiredReminders().catch(() => undefined);
     await flushDeadlineReminders();
+    await flushNeverChantedReminders();
   } catch (error) {
     console.warn('Notification reminder sweep failed:', error);
   } finally {
