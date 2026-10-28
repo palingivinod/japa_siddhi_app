@@ -157,7 +157,7 @@ const allowGuestDonation = async () => {
   donationUserReady = true;
 };
 
-const userIdForPhone = async (phone: string) => {
+export const userIdForPhone = async (phone: string) => {
   const last10 = phone.replace(/\D/g, '').slice(-10);
   if (last10.length !== 10) {
     return null;
@@ -189,6 +189,8 @@ export const ensureDonationColumns = async () => {
     `ALTER TABLE donations ADD COLUMN occasion TEXT`,
     `ALTER TABLE donations ADD COLUMN for_whom TEXT`,
     `ALTER TABLE donations ADD COLUMN person_name TEXT`,
+    `ALTER TABLE donations ADD COLUMN admin_reply TEXT`,
+    `ALTER TABLE donations ADD COLUMN admin_replied_at TEXT`,
   ];
   for (const sql of alters) {
     try {
@@ -296,6 +298,7 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   const occasion = String(notes.occasion || '').trim().slice(0, 40);
   const forWhom = String(notes.forWhom || '').trim().slice(0, 20);
   const personName = String(notes.personName || '').trim().slice(0, 80);
+  const comments = String(notes.comments || '').trim().slice(0, 500);
   const userId = await userIdForPhone(phone);
   const remarks = [
     `Seva: ${note}`,
@@ -305,6 +308,7 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
     occasion ? `Occasion: ${occasion}` : '',
     forWhom ? `For whom: ${forWhom}` : '',
     personName ? `Person name: ${personName}` : '',
+    comments ? `Comments: ${comments}` : '',
     source ? `Source: ${source}` : '',
   ]
     .filter(Boolean)
@@ -350,6 +354,116 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
       '\n',
     ),
   );
+
+  const sevaLabel =
+    specificType === 'ANNADANAM'
+      ? 'Anna Santharpana'
+      : specificType === 'NITHYA_HOMAM'
+      ? 'Nithya Homam'
+      : note || 'Seva';
+
+  // 1. Send confirmation notification to devotee
+  if (userId) {
+    try {
+      const notificationService = (
+        await import('../notification/notification.service')
+      ).default;
+      const devoteeTitle = 'Seva Request Received 🙏';
+      const devoteeMessage = `Thanks for your request. We have received your payment of ₹${amount} for ${sevaLabel}. We will contact you soon.\n\nTeam Japasiddhi`;
+
+      await notificationService.create({
+        userId,
+        title: devoteeTitle,
+        message: devoteeMessage,
+        notificationType: 'SYSTEM',
+        actionType: 'SEVA_PAYMENT_CONFIRMATION',
+        extraData: {
+          donationType: specificType,
+          amount,
+          paymentId,
+          preferDate,
+          seva: sevaLabel,
+        },
+      });
+
+      const tokenRows = await mysql.query<any[]>(
+        `SELECT fcm_token AS fcmToken FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
+        [userId],
+      );
+      const userToken = String(tokenRows?.[0]?.fcmToken || '').trim();
+      if (userToken) {
+        const {sendPushToTokens} = await import(
+          '../admin/adminNotification.service'
+        );
+        await sendPushToTokens(
+          [userToken],
+          devoteeTitle,
+          devoteeMessage,
+          'SEVA_PAYMENT_CONFIRMATION',
+          {donationId: String(paymentId)},
+          true,
+        );
+      }
+    } catch (notifyErr) {
+      console.warn('Devotee payment confirmation notification failed:', notifyErr);
+    }
+  }
+
+  // 2. Send notification to admin(s)
+  try {
+    const adminRows = await mysql.query<any[]>(
+      `SELECT id, fcm_token AS fcmToken FROM users WHERE UPPER(IFNULL(role, 'USER')) = 'ADMIN' AND deleted_at IS NULL`,
+    );
+    const adminTitle = 'New Seva Offering Received 🪔';
+    const adminMessage = `Payment done of ₹${amount} for ${sevaLabel} by ${name || 'Devotee'} (${phone || 'N/A'}).`;
+    const notificationService = (
+      await import('../notification/notification.service')
+    ).default;
+    const adminTokens: string[] = [];
+
+    for (const adm of adminRows || []) {
+      const adminId = Number(adm.id);
+      if (adminId) {
+        await notificationService.create({
+          userId: adminId,
+          title: adminTitle,
+          message: adminMessage,
+          notificationType: 'SYSTEM',
+          actionType: 'ADMIN_SEVA_ALERT',
+          extraData: {
+            donationType: specificType,
+            amount,
+            paymentId,
+            donorName: name,
+            donorPhone: phone,
+            preferDate,
+            seva: sevaLabel,
+          },
+        }).catch(() => {});
+      }
+      const tok = String(adm.fcmToken || '').trim();
+      if (tok) {
+        adminTokens.push(tok);
+      }
+    }
+
+    if (adminTokens.length > 0) {
+      const {sendPushToTokens} = await import(
+        '../admin/adminNotification.service'
+      );
+      await sendPushToTokens(
+        adminTokens,
+        adminTitle,
+        adminMessage,
+        'ADMIN_SEVA_ALERT',
+        {donationId: String(paymentId)},
+        true,
+      );
+    }
+  } catch (adminNotifyErr) {
+    console.warn('Admin payment alert notification failed:', adminNotifyErr);
+  }
+
   return true;
 };
 

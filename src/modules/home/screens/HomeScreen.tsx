@@ -1,6 +1,10 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Alert,
+  Animated,
+  Clipboard,
+  Linking,
+  Modal,
   NativeModules,
   Platform,
   RefreshControl,
@@ -11,7 +15,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -75,7 +78,77 @@ const HomeScreen = () => {
   const [challenge, setChallenge] = useState<any>(null);
   const [milestone, setMilestone] = useState<any>(null);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
+  const [panchangModalVisible, setPanchangModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Blinking pulse animation for the Panchangam button
+  const panchangBlinkAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(panchangBlinkAnim, {
+          toValue: 0.38,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(panchangBlinkAnim, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [panchangBlinkAnim]);
+
+  // Active meeting configured by Admin
+  const [activeMeeting, setActiveMeeting] = useState<{
+    enabled: boolean;
+    title: string;
+    link: string;
+    time: string;
+  } | null>(null);
+
+  // Blinking pulse animation for the Meeting / Class button
+  const meetingBlinkAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(meetingBlinkAnim, {
+          toValue: 0.38,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+        Animated.timing(meetingBlinkAnim, {
+          toValue: 1,
+          duration: 750,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [meetingBlinkAnim]);
+
+  const onOpenMeeting = async (meetingUrl: string, meetingTitle?: string) => {
+    const trimmed = String(meetingUrl || '').trim();
+    if (!trimmed) {
+      return;
+    }
+    const targetUrl =
+      trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : `https://${trimmed}`;
+    try {
+      await Linking.openURL(targetUrl);
+    } catch {
+      Alert.alert(
+        meetingTitle || t('lalithaSahasramClass') || 'Online Class',
+        'Could not open Google Meet. Please ensure a browser or the Google Meet app is installed.',
+      );
+    }
+  };
   const [homeBanners, setHomeBanners] = useState<
     Array<{
       id: number;
@@ -112,6 +185,13 @@ const HomeScreen = () => {
         title: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
+        icon: 'bowl' as AppIconName,
+        tone: 'gold' as const,
+      },
+      {
+        title: t('tileMonthlySupport'),
+        sub: t('tileMonthlySupportSub'),
+        route: 'MonthlySupport',
         icon: 'bowl' as AppIconName,
         tone: 'gold' as const,
       },
@@ -176,6 +256,7 @@ const HomeScreen = () => {
         bannersRes,
         annadanamRes,
         todayTotalsRes,
+        meetingRes,
       ] = await Promise.allSettled([
         apiService.get('/japa/summary'),
         apiService.get('/japa-goals'),
@@ -186,6 +267,7 @@ const HomeScreen = () => {
         }),
         apiService.get('/annadanam/visibility'),
         apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
+        apiService.get('/home/meeting'),
       ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
@@ -361,6 +443,16 @@ const HomeScreen = () => {
           campaigns: data.campaigns !== false,
           any: data.any !== false,
         });
+      }
+      if (meetingRes.status === 'fulfilled' && meetingRes.value?.data?.data) {
+        const m = meetingRes.value.data.data;
+        if (m.enabled && m.link) {
+          setActiveMeeting(m);
+        } else {
+          setActiveMeeting(null);
+        }
+      } else {
+        setActiveMeeting(null);
       }
     } catch (error) {
       console.log('Home summary unavailable', error);
@@ -606,52 +698,152 @@ const HomeScreen = () => {
             </View>
           ))}
 
-          <View style={styles.festival}>
-            <View style={styles.panchangHead}>
-              <TouchableOpacity
-                style={styles.panchangHeadTitle}
-                onPress={() => navigation.navigate('Festivals')}
-                activeOpacity={0.85}>
-                <Text style={styles.kicker}>
-                  {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={onSharePanchang}
-                hitSlop={{top: 10, bottom: 10, left: 8, right: 4}}
-                activeOpacity={0.7}>
-                <Text style={styles.kicker}>{t('sharePanchangam')}</Text>
-              </TouchableOpacity>
-            </View>
+          {/* Blinking Panchangam Button */}
+          <Animated.View style={{opacity: panchangBlinkAnim, marginBottom: 10}}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('Festivals')}
+              style={styles.panchangButton}
+              onPress={() => setPanchangModalVisible(true)}
               activeOpacity={0.85}>
-            <Text style={styles.dateLine}>
-              {formatPanchangDisplayDate(panchang, t) ||
-                panchang.displayDate ||
-                t('loadingToday')}
-            </Text>
-            {panchang.festival ? (
-              <>
-                <Text style={styles.cardTitle}>
-                  {tt(festivalName(panchang.festival))}
+              <View style={styles.panchangButtonLeft}>
+                <Text style={styles.panchangButtonIcon}>📅</Text>
+                <Text style={styles.panchangButtonText}>
+                  {t('panchangam') || 'Panchangam'}
                 </Text>
-                {panchang.festival.description ? (
-                  <Text style={styles.cardMeta}>
-                    {tt(panchang.festival.description)}
-                  </Text>
-                ) : null}
-              </>
-            ) : null}
-            {panchang.nextFestival && !panchang.festival ? (
-              <Text style={styles.nextFestival}>
-                {t('next')}: {tt(festivalName(panchang.nextFestival))} ·{' '}
-                {festivalDateLabel(panchang.nextFestival.festivalDate, t)}
-              </Text>
-            ) : null}
-            <PanchangDetails panchang={panchang} compact />
+                <View style={styles.panchangLiveTag}>
+                  <Text style={styles.panchangLiveDot}>●</Text>
+                  <Text style={styles.panchangLiveText}>LIVE</Text>
+                </View>
+              </View>
+              <View style={styles.panchangButtonRight}>
+                <Text style={styles.panchangButtonDate} numberOfLines={1}>
+                  {formatPanchangDisplayDate(panchang, t) ||
+                    panchang.displayDate ||
+                    ''}
+                </Text>
+                <Text style={styles.panchangButtonArrow}>→</Text>
+              </View>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
+
+          {/* Blinking Meeting / Class Button (Configured by Admin) */}
+          {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
+            <Animated.View style={{opacity: meetingBlinkAnim, marginBottom: 16}}>
+              <TouchableOpacity
+                style={styles.lalithaClassCard}
+                onPress={() =>
+                  onOpenMeeting(activeMeeting.link, activeMeeting.title)
+                }
+                activeOpacity={0.85}>
+                <View style={styles.lalithaClassLeft}>
+                  <View style={styles.lalithaClassIconBox}>
+                    <Text style={styles.lalithaClassEmoji}>🪔</Text>
+                  </View>
+                  <View style={styles.lalithaClassCopy}>
+                    <View style={styles.lalithaClassTitleRow}>
+                      <Text style={styles.lalithaClassTitle} numberOfLines={1}>
+                        {activeMeeting.title || t('lalithaSahasramClass')}
+                      </Text>
+                      <View style={styles.gmeetPill}>
+                        <Text style={styles.gmeetPillText}>📹 GMeet</Text>
+                      </View>
+                      <View style={styles.panchangLiveTag}>
+                        <Text style={styles.panchangLiveDot}>●</Text>
+                        <Text style={styles.panchangLiveText}>LIVE</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.lalithaClassSub} numberOfLines={1}>
+                      {activeMeeting.time
+                        ? `⏰ ${activeMeeting.time}`
+                        : t('lalithaSahasramClassSub')}
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.lalithaJoinBtn}>
+                  <Text style={styles.lalithaJoinText}>
+                    {t('joinClass') || 'JOIN'}
+                  </Text>
+                  <Text style={styles.lalithaJoinArrow}>↗</Text>
+                </View>
+              </TouchableOpacity>
+            </Animated.View>
+          ) : null}
+
+          <Modal
+            visible={panchangModalVisible}
+            animationType="fade"
+            transparent={true}
+            onRequestClose={() => setPanchangModalVisible(false)}>
+            <View style={styles.modalBackdrop}>
+              <TouchableOpacity
+                style={styles.modalDismissArea}
+                activeOpacity={1}
+                onPress={() => setPanchangModalVisible(false)}
+              />
+              <View style={styles.panchangModalCard}>
+                <View style={styles.modalHeaderRow}>
+                  <Text style={styles.modalKicker}>
+                    {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
+                  </Text>
+                  <View style={styles.modalActionRow}>
+                    <TouchableOpacity
+                      onPress={onSharePanchang}
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      style={styles.modalShareBadge}
+                      activeOpacity={0.7}>
+                      <Text style={styles.modalShareBadgeText}>
+                        {t('sharePanchangam')}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => setPanchangModalVisible(false)}
+                      hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+                      style={styles.modalCloseBtn}
+                      activeOpacity={0.7}>
+                      <Text style={styles.modalCloseText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  contentContainerStyle={styles.panchangModalScrollContent}>
+                  <Text style={styles.dateLine}>
+                    {formatPanchangDisplayDate(panchang, t) ||
+                      panchang.displayDate ||
+                      t('loadingToday')}
+                  </Text>
+                  {panchang.festival ? (
+                    <View style={styles.modalFestivalBlock}>
+                      <Text style={styles.cardTitle}>
+                        {tt(festivalName(panchang.festival))}
+                      </Text>
+                      {panchang.festival.description ? (
+                        <Text style={styles.cardMeta}>
+                          {tt(panchang.festival.description)}
+                        </Text>
+                      ) : null}
+                    </View>
+                  ) : null}
+                  {panchang.nextFestival && !panchang.festival ? (
+                    <Text style={styles.nextFestival}>
+                      {t('next')}: {tt(festivalName(panchang.nextFestival))} ·{' '}
+                      {festivalDateLabel(panchang.nextFestival.festivalDate, t)}
+                    </Text>
+                  ) : null}
+                  <PanchangDetails panchang={panchang} />
+                </ScrollView>
+
+                <TouchableOpacity
+                  style={styles.modalCloseFullBtn}
+                  onPress={() => setPanchangModalVisible(false)}
+                  activeOpacity={0.85}>
+                  <Text style={styles.modalCloseFullBtnText}>
+                    {t('cancel') || 'Close'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
 
           <View style={styles.progressCard}>
             {hasActiveGoal ? (
@@ -748,68 +940,6 @@ const HomeScreen = () => {
             milestone={milestone}
             onPress={() => navigation.navigate('MilestoneNotifications')}
           />
-
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.half}
-              onPress={() => navigation.navigate('StreakAnalytics')}>
-              <Text style={styles.kicker}>{t('streak')}</Text>
-              <Text style={styles.big}>
-                {streak} {t('days')}
-              </Text>
-              <Text style={styles.cardMeta}>{t('keepDailyJapa')}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.half}
-              onPress={() =>
-                challenge
-                  ? navigation.navigate('ChallengeDetails', {id: challenge.id})
-                  : navigation.navigate('Challenges')
-              }>
-              <Text style={styles.kicker}>{t('challenge')}</Text>
-              <Text style={styles.big} numberOfLines={2}>
-                {challenge?.title || t('joinChallenge')}
-              </Text>
-              <Text style={styles.cardMeta}>
-                {challenge
-                  ? t('percentComplete', {
-                      percent: Number(challenge.progressPercent || 0),
-                    })
-                  : t('spiritualChallenges')}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {showJapaAnnadanam ? (
-            <TouchableOpacity
-              style={styles.promo}
-              onPress={() => navigation.navigate('JapaAnnadanam')}>
-              <Text style={styles.kicker}>{t('annadanam')}</Text>
-              <Text style={styles.cardTitle}>
-                {t('completedJapas', {count: lifetime.toLocaleString()})}
-              </Text>
-              <Text style={styles.cardMeta}>{t('considerAnnadanam')}</Text>
-              <Text style={styles.link}>{t('donateNow')}</Text>
-            </TouchableOpacity>
-          ) : annadanamVisibility.general || annadanamVisibility.campaigns ? (
-            <TouchableOpacity
-              style={styles.promo}
-              onPress={() => navigation.navigate('Donate')}>
-              <Text style={styles.kicker}>{t('annadanam')}</Text>
-              <Text style={styles.cardTitle}>{t('offerFoodSeva')}</Text>
-              <Text style={styles.cardMeta}>{t('supportAnnadanam')}</Text>
-              <Text style={styles.link}>{t('donateNow')}</Text>
-            </TouchableOpacity>
-          ) : null}
-
-          <TouchableOpacity
-            style={styles.promo}
-            onPress={() => navigation.navigate('NithyaHomam')}>
-            <Text style={styles.kicker}>{t('nithyaHomam')}</Text>
-            <Text style={styles.cardTitle}>{t('enrollDailyHomam')}</Text>
-            <Text style={styles.cardMeta}>{t('participateHomam')}</Text>
-            <Text style={styles.link}>{t('enrollNow')}</Text>
-          </TouchableOpacity>
 
           <Text style={styles.section}>{t('quickActions')}</Text>
           <View style={styles.grid}>
@@ -911,6 +1041,259 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     marginBottom: 14,
+  },
+  panchangButton: {
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  panchangLiveTag: {
+    backgroundColor: '#DC2626',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 4,
+  },
+  panchangLiveDot: {
+    color: '#FFF',
+    fontSize: 7,
+  },
+  panchangLiveText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  lalithaClassCard: {
+    backgroundColor: '#FFFDF7',
+    borderWidth: 1.5,
+    borderColor: '#E8D2A6',
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#56350F',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  lalithaClassLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    paddingRight: 8,
+  },
+  lalithaClassIconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lalithaClassEmoji: {
+    fontSize: 22,
+  },
+  lalithaClassCopy: {
+    flex: 1,
+  },
+  lalithaClassTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+  },
+  lalithaClassTitle: {
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  gmeetPill: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 1,
+    borderColor: '#BAE6FD',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  gmeetPillText: {
+    color: '#0369A1',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  lalithaClassSub: {
+    color: '#8C6C42',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  lalithaJoinBtn: {
+    backgroundColor: Colors.templeGold,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  lalithaJoinText: {
+    color: Colors.sacredBrown,
+    fontWeight: '900',
+    fontSize: 12,
+    letterSpacing: 0.4,
+  },
+  lalithaJoinArrow: {
+    color: Colors.sacredBrown,
+    fontWeight: '900',
+    fontSize: 13,
+  },
+  panchangButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  panchangButtonIcon: {
+    fontSize: 18,
+  },
+  panchangButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    includeFontPadding: true,
+  },
+  panchangButtonRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 1,
+  },
+  panchangButtonDate: {
+    color: '#E4EFDF',
+    fontSize: 13,
+    fontWeight: '600',
+    maxWidth: 150,
+    includeFontPadding: true,
+  },
+  panchangButtonArrow: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalDismissArea: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  panchangModalCard: {
+    width: '100%',
+    maxHeight: '85%',
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F2EBE0',
+  },
+  modalKicker: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.5,
+    includeFontPadding: true,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  modalShareBadge: {
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    backgroundColor: '#E4EFDF',
+    borderRadius: 12,
+  },
+  modalShareBadgeText: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 12,
+    letterSpacing: 0.5,
+  },
+  modalCloseBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F3EBE0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  panchangModalScrollContent: {
+    paddingVertical: 8,
+  },
+  modalFestivalBlock: {
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  modalCloseFullBtn: {
+    marginTop: 12,
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseFullBtnText: {
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: '800',
   },
   panchangHead: {
     flexDirection: 'row',

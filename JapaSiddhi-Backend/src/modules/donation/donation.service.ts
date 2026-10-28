@@ -281,6 +281,7 @@ class DonationService {
       gothram?: string;
       remarks?: string;
       purpose?: string;
+      comments?: string;
       transactionId?: string;
       utr?: string;
     },
@@ -288,6 +289,7 @@ class DonationService {
     const kind = String(data.kind || 'ANNADANAM').toUpperCase();
     const amount = Number(data.amount || 1008);
     const purpose = String(data.purpose || data.remarks || '').trim();
+    const comments = String(data.comments || '').trim().slice(0, 1000);
     const utr = String(data.transactionId || data.utr || '')
       .trim()
       .replace(/\s+/g, '')
@@ -318,6 +320,7 @@ class DonationService {
       data.occasion ? `Occasion: ${data.occasion}` : '',
       data.address ? `Address: ${data.address}` : '',
       purpose ? `Purpose: ${purpose}` : '',
+      comments ? `Comments: ${comments}` : '',
       utr ? `UTR: ${utr}` : '',
     ]
       .filter(Boolean)
@@ -336,6 +339,25 @@ class DonationService {
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
 
     if (kind === 'BANA_LINGAM') {
+      const activeBanaOrder = await mysql.query<any[]>(
+        `
+        SELECT id, order_number, order_status
+        FROM orders
+        WHERE user_id = ?
+          AND (order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%')
+          AND upper(order_status) NOT IN ('DELIVERED', 'CANCELLED')
+        LIMIT 1
+        `,
+        [userId],
+      );
+
+      if (activeBanaOrder && activeBanaOrder.length > 0) {
+        throw new AppError(
+          'Already one order is in review. You can order another once your previous order is delivered.',
+          400,
+        );
+      }
+
       itemName = 'Baanalingam';
       orderType = 'BANA_LINGAM';
     } else if (kind === 'RAMAKOTI_BOOKS') {

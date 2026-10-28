@@ -36,7 +36,8 @@ const SevaRequestReviewScreen = () => {
         address,
         nakshatram: params.nakshatram,
         gothram: params.gothram,
-        remarks: `${t(request.titleKey)} request`,
+        comments: params.comments?.trim() || undefined,
+        remarks: params.comments?.trim() || `${t(request.titleKey)} request`,
       });
       const orderNumber = String(response.data?.data?.orderNumber || '');
       Alert.alert(
@@ -95,6 +96,15 @@ const SevaRequestReviewScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>{t('nakshatram')}</Text>
               <Text style={styles.value}>{params.nakshatram}</Text>
+            </View>
+          </>
+        ) : null}
+        {params.comments ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('comments')}</Text>
+              <Text style={styles.value}>{params.comments}</Text>
             </View>
           </>
         ) : null}

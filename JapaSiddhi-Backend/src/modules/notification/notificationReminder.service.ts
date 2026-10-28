@@ -834,9 +834,9 @@ export const flushDeadlineReminders = async () => {
   }
 
   try {
-    // Active devotees who chanted in the last 14 days but not today.
+    // Active devotees who chanted in the last 6 days but not today.
     const since = new Date(`${today}T00:00:00`);
-    since.setDate(since.getDate() - 14);
+    since.setDate(since.getDate() - 6);
     const sinceYmd = toYmd(since) || today;
     const idleRows = await mysql.query<any[]>(
       `
@@ -901,14 +901,20 @@ export const flushDeadlineReminders = async () => {
 };
 
 /**
- * Devotees who have never completed even one chant. Runs once per IST day
- * during allowed notification hours; inbox + FCM when a token exists.
+ * Devotees who have been idle for 7 days without a single chant/session
+ * (including users registered >= 7 days ago with 0 chants, or users whose last chant was >= 7 days ago).
+ * Deduplicated per 7-day period so users are not spammed.
  */
-export const flushNeverChantedReminders = async () => {
+export const flushIdleDevoteeReminders = async () => {
   const today = todayYmdIst();
   let created = 0;
 
   try {
+    const sevenDaysAgo = new Date(`${today}T00:00:00`);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoYmd = toYmd(sevenDaysAgo) || today;
+
+    // Account created at least 7 days ago, and NO chants in the last 7 days
     const rows = await mysql.query<any[]>(
       `
       SELECT
@@ -919,51 +925,61 @@ export const flushNeverChantedReminders = async () => {
         AND UPPER(IFNULL(u.role, 'USER')) <> 'ADMIN'
         AND UPPER(IFNULL(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
         AND IFNULL(us.notifications_on, 1) = 1
-        AND IFNULL((
-          SELECT SUM(js.session_count)
+        AND date(u.created_at) <= date(?)
+        AND NOT EXISTS (
+          SELECT 1
           FROM japa_sessions js
           WHERE js.user_id = u.id
-        ), 0) = 0
+            AND date(js.created_at) >= date(?)
+        )
       LIMIT 500
       `,
+      [sevenDaysAgoYmd, sevenDaysAgoYmd],
     );
 
-    const dayKey = Number(today.replace(/-/g, ''));
+    // Week cycle key to avoid duplicate alerts within the same 7-day period
+    const weekKey = Math.floor(
+      new Date(`${today}T00:00:00`).getTime() / (7 * 86400000),
+    );
+
+    const idleMessage =
+      'It is seen that you are idle from sometime not doing mantra Japa.  We request you to do the mantra japa regularly, duly increasing or decreasing the targets as your convenience and receive the blessings of mantra devata \n\nTeam Japasiddhi';
+
+    const expiresAtDate = new Date(`${today}T00:00:00`);
+    expiresAtDate.setDate(expiresAtDate.getDate() + 7);
+    const expiresAt = `${toYmd(expiresAtDate) || today} 23:59:59`;
+
     for (const row of rows || []) {
-      const branded = brandJapaNotification(
-        'Your Japa',
-        'Daily reminder',
-        'start your first chant',
-        'You have not done a japa yet. Begin with a few chants today.',
-      );
       const ok = await notifyOnce({
         userId: Number(row.userId),
-        title: branded.title,
-        message: branded.message,
+        title: 'Mantra Japa Reminder',
+        message: idleMessage,
         notificationType: 'JAPA_REMINDER',
-        actionType: 'ZERO_JAPA_REMINDER',
-        actionId: dayKey,
+        actionType: 'IDLE_7_DAYS_REMINDER',
+        actionId: weekKey,
         extraData: {
           date: today,
-          mantraName: branded.mantraName,
-          category: branded.category,
-          shortLine: branded.shortLine,
-          detail: branded.detail,
-          pushTitle: branded.pushTitle,
-          pushBody: branded.pushBody,
+          mantraName: 'Mantra Japa',
+          category: 'Daily reminder',
+          shortLine: 'Idle reminder',
+          detail: idleMessage,
+          pushTitle: 'Mantra Japa Reminder',
+          pushBody: idleMessage,
         },
-        expiresAt: endOfDayStamp(today),
+        expiresAt,
       });
       if (ok) {
         created += 1;
       }
     }
   } catch (error) {
-    console.warn('Never-chanted reminders failed:', error);
+    console.warn('Idle 7 days devotee reminders failed:', error);
   }
 
   return {created, date: today};
 };
+
+export const flushNeverChantedReminders = flushIdleDevoteeReminders;
 
 let reminderTimer: NodeJS.Timeout | null = null;
 let queueTimer: NodeJS.Timeout | null = null;
@@ -987,7 +1003,7 @@ export const runReminderSweep = async () => {
     await flushDueAdminNotifications().catch(() => undefined);
     await notificationService.purgeExpiredReminders().catch(() => undefined);
     await flushDeadlineReminders();
-    await flushNeverChantedReminders();
+    await flushIdleDevoteeReminders();
   } catch (error) {
     console.warn('Notification reminder sweep failed:', error);
   } finally {

@@ -427,6 +427,39 @@ class ChallengeService {
     const rewardNameLower = String(reward.name || '').toLowerCase();
     const userTotalJapa = await japaRepository.getUserTotalJapa(userId);
 
+    // Spiritual Reward requires 10,00,000 Japas
+    if (
+      rewardNameLower.includes('spiritual reward') ||
+      rewardNameLower.includes('spiritual offering') ||
+      rewardNameLower.includes('spiritual product')
+    ) {
+      if (userTotalJapa < 1000000) {
+        const remaining = 1000000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 10,00,000 (10 Lakhs) Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
+    // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) requires 5,00,000 Japas
+    if (
+      rewardNameLower.includes('marakatha') ||
+      rewardNameLower.includes('marakata') ||
+      rewardNameLower.includes('green jade') ||
+      rewardNameLower.includes('aventurine') ||
+      rewardNameLower.includes('sri chakram') ||
+      rewardNameLower.includes('sri chakra') ||
+      rewardNameLower.includes('sree chakra') ||
+      rewardNameLower.includes('sri yantra')
+    ) {
+      if (userTotalJapa < 500000) {
+        const remaining = 500000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 5,00,000 (5 Lakhs) Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
     // Yellow Agate / Green Agate requires 2,00,000 Japas
     if (
       (rewardNameLower.includes('yellow') || rewardNameLower.includes('green')) &&

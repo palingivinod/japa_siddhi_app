@@ -100,6 +100,74 @@ app.get('/', async (_, res) => {
   });
 });
 
+// Direct Web Landing & Deep Link Redirect for Anna Santharpana
+app.get(['/annasantharpana', '/annadanam'], (_req, res) => {
+  res.status(200).send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>General Anna Santharpana - Japa Siddhi</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 24px 16px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #FFFDF9; color: #3A2010;
+      display: flex; justify-content: center; align-items: center; min-height: 90vh;
+    }
+    .card {
+      background: #FFFFFF; border-radius: 20px; padding: 32px 24px;
+      max-width: 440px; width: 100%; text-align: center;
+      border: 1.5px solid #F3E6D0; box-shadow: 0 10px 30px rgba(86,53,15,0.09);
+    }
+    .icon { font-size: 52px; margin-bottom: 14px; }
+    h1 { font-size: 22px; color: #2D5016; margin: 0 0 10px; font-weight: 800; }
+    p { font-size: 14px; color: #665242; line-height: 1.6; margin: 0 0 24px; }
+    .btn-app {
+      display: block; background: #DDA15E; color: #2C1810; font-weight: 800;
+      padding: 15px 20px; border-radius: 12px; text-decoration: none; font-size: 16px;
+      box-shadow: 0 4px 14px rgba(221,161,94,0.35); margin-bottom: 12px;
+    }
+    .btn-play {
+      display: block; background: #2D5016; color: #FFFFFF; font-weight: 700;
+      padding: 13px 20px; border-radius: 12px; text-decoration: none; font-size: 14px;
+    }
+  </style>
+  <script>
+    // Automatically trigger app launch if app is installed
+    setTimeout(function() {
+      window.location.href = "japasiddhi://annasantharpana";
+    }, 200);
+  </script>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">🍲</div>
+    <h1>General Anna Santharpana</h1>
+    <p>Offer Anna Santharpana for your special occasions and receive divine blessings through Japa Siddhi.</p>
+    <a href="japasiddhi://annasantharpana" class="btn-app">🪔 Open in Japa Siddhi App</a>
+    <a href="https://play.google.com/store/apps/details?id=com.japasiddhi" class="btn-play">📲 Download on Google Play Store</a>
+  </div>
+</body>
+</html>
+  `.trim());
+});
+
+app.get('/.well-known/assetlinks.json', (_req, res) => {
+  res.json([
+    {
+      relation: ['delegate_permission/common.handle_all_urls'],
+      target: {
+        namespace: 'android_app',
+        package_name: 'com.japasiddhi.app',
+        sha256_cert_fingerprints: [],
+      },
+    },
+  ]);
+});
+
 app.get('/api/v1/health', async (_, res) => {
   await database.query('SELECT 1');
   let usersActive = 0;

@@ -29,7 +29,8 @@ const RamakotiBooksReviewScreen = () => {
         fullName: params.fullName,
         mobile: params.mobile,
         address,
-        remarks: 'Ramakoti Books request',
+        comments: params.comments?.trim() || undefined,
+        remarks: params.comments?.trim() || 'Ramakoti Books request',
       });
       const orderNumber = String(response.data?.data?.orderNumber || '');
       Alert.alert(
@@ -71,6 +72,15 @@ const RamakotiBooksReviewScreen = () => {
           <Text style={styles.label}>{t('address')}</Text>
           <Text style={styles.value}>{address || '—'}</Text>
         </View>
+        {params.comments ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('comments')}</Text>
+              <Text style={styles.value}>{params.comments}</Text>
+            </View>
+          </>
+        ) : null}
       </View>
       <PrimaryButton
         title={saving ? t('submitting') : t('submit')}

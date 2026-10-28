@@ -261,8 +261,9 @@ const tryPush = async (
   message: string,
   dataType = 'ADMIN_BROADCAST',
   extraData?: Record<string, string>,
+  bypassHours = false,
 ) => {
-  if (!isWithinNotificationHoursIST()) {
+  if (!bypassHours && !isWithinNotificationHoursIST()) {
     return {
       pushSent: 0,
       pushFailed: 0,
@@ -358,7 +359,8 @@ export const sendPushToTokens = (
   message: string,
   dataType = 'REMINDER',
   extraData?: Record<string, string>,
-) => tryPush(tokens, title, message, dataType, extraData);
+  bypassHours = false,
+) => tryPush(tokens, title, message, dataType, extraData, bypassHours);
 
 const routingExtraKeys = [
   'challengeId',

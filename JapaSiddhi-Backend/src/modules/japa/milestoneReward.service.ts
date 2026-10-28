@@ -18,6 +18,25 @@ export type MilestoneDelivery = {
 const rewardJapaRequirement = (name: string) => {
   const lower = String(name || '').toLowerCase();
   if (
+    lower.includes('spiritual reward') ||
+    lower.includes('spiritual offering') ||
+    lower.includes('spiritual product')
+  ) {
+    return 1000000;
+  }
+  if (
+    lower.includes('marakatha') ||
+    lower.includes('marakata') ||
+    lower.includes('green jade') ||
+    lower.includes('aventurine') ||
+    lower.includes('sri chakram') ||
+    lower.includes('sri chakra') ||
+    lower.includes('sree chakra') ||
+    lower.includes('sri yantra')
+  ) {
+    return 500000;
+  }
+  if (
     (lower.includes('yellow') || lower.includes('green')) &&
     (lower.includes('agate') || lower.includes('hakik'))
   ) {

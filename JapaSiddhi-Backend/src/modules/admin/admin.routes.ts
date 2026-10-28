@@ -4148,6 +4148,136 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       sheet.getRow(1).font = {bold: true};
     };
 
+    const addSevaDonationsSheet = async (query: any) => {
+      await ensureDonationColumns();
+      const sevaType = String(query.sevaType || query.type || 'ALL').toUpperCase();
+      const scope = String(query.scope || 'all').toLowerCase();
+      const preferDate = String(query.preferDate || '').trim();
+
+      const today = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+
+      const whereClauses: string[] = ["UPPER(IFNULL(d.payment_status, 'SUCCESS')) = 'SUCCESS'"];
+      const params: any[] = [];
+
+      if (sevaType === 'ANNADANAM') {
+        whereClauses.push(
+          "(UPPER(IFNULL(d.donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(d.remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(d.remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(d.remarks, '')) LIKE '%annadanam%')",
+        );
+        whereClauses.push("LOWER(IFNULL(d.remarks, '')) NOT LIKE '%homam%'");
+      } else if (sevaType === 'NITHYA_HOMAM') {
+        whereClauses.push(
+          "(UPPER(IFNULL(d.donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(d.remarks, '')) LIKE '%homam%')",
+        );
+      }
+
+      if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
+        whereClauses.push('d.prefer_date = ?');
+        params.push(preferDate);
+      }
+
+      if (scope === 'upcoming') {
+        whereClauses.push('d.prefer_date > ?');
+        params.push(today);
+      } else if (scope === 'past') {
+        whereClauses.push('(d.prefer_date <= ? OR d.prefer_date IS NULL OR d.prefer_date = "")');
+        params.push(today);
+      }
+
+      const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+      const orderSql =
+        scope === 'upcoming'
+          ? 'ORDER BY d.prefer_date ASC, d.id ASC'
+          : 'ORDER BY d.prefer_date DESC, d.id DESC';
+
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT
+          d.id,
+          IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
+          IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+          d.donation_type AS donationType,
+          d.amount,
+          IFNULL(d.prefer_date, '') AS preferDate,
+          IFNULL(d.occasion, '') AS occasion,
+          IFNULL(d.for_whom, '') AS forWhom,
+          IFNULL(d.person_name, '') AS personName,
+          d.remarks,
+          d.transaction_id AS transactionId,
+          IFNULL(d.donated_at, d.created_at) AS donatedAt,
+          d.admin_reply AS adminReply,
+          d.admin_replied_at AS adminRepliedAt
+        FROM donations d
+        LEFT JOIN users u ON u.id = d.user_id
+        ${whereSql}
+        ${orderSql}
+        LIMIT 10000
+        `,
+        params,
+      );
+
+      const sheetName =
+        sevaType === 'ANNADANAM'
+          ? 'Anna Santharpana'
+          : sevaType === 'NITHYA_HOMAM'
+          ? 'Nithya Homam'
+          : 'Seva Offerings';
+
+      const sheet = workbook.addWorksheet(sheetName);
+      sheet.columns = [
+        {header: 'S.No', key: 'sno', width: 8},
+        {header: 'Devotee Name', key: 'donorName', width: 24},
+        {header: 'Mobile Number', key: 'donorPhone', width: 16},
+        {header: 'Seva', key: 'sevaName', width: 20},
+        {header: 'Prefer Date', key: 'preferDate', width: 14},
+        {header: 'Timing', key: 'timing', width: 12},
+        {header: 'Occasion / Purpose', key: 'occasion', width: 20},
+        {header: 'For Whom', key: 'forWhom', width: 16},
+        {header: 'Person Name', key: 'personName', width: 22},
+        {header: 'Amount (₹)', key: 'amount', width: 14},
+        {header: 'Comments / Remarks', key: 'remarks', width: 35},
+        {header: 'Txn ID', key: 'transactionId', width: 26},
+        {header: 'Donated At', key: 'donatedAt', width: 20},
+        {header: 'Admin Reply', key: 'adminReply', width: 30},
+        {header: 'Replied At', key: 'adminRepliedAt', width: 18},
+      ];
+
+      (rows || []).forEach((row: any, index: number) => {
+        const isUp = row.preferDate && row.preferDate > today;
+        const timing = isUp ? 'Upcoming' : row.preferDate ? 'Past' : '—';
+        const sevaLabel =
+          row.donationType === 'ANNADANAM'
+            ? 'Anna Santharpana'
+            : row.donationType === 'NITHYA_HOMAM'
+            ? 'Nithya Homam'
+            : 'Seva Offering';
+
+        sheet.addRow({
+          sno: index + 1,
+          donorName: row.donorName || 'Devotee',
+          donorPhone: row.donorPhone || '',
+          sevaName: sevaLabel,
+          preferDate: row.preferDate || '—',
+          timing,
+          occasion: row.occasion || '',
+          forWhom: row.forWhom || '',
+          personName: row.personName || '',
+          amount: row.amount || 0,
+          remarks: row.remarks || '',
+          transactionId: row.transactionId || '',
+          donatedAt: row.donatedAt || '',
+          adminReply: row.adminReply || '',
+          adminRepliedAt: row.adminRepliedAt || '',
+        });
+      });
+
+      sheet.getRow(1).font = {bold: true};
+    };
+
     const addBirthdaySheet = async (month: string) => {
       const allYear = !month;
       const rows = await mysql.query<any[]>(
@@ -4345,6 +4475,8 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       );
     } else if (type === 'donations' || type === 'donation') {
       await addDonations();
+    } else if (type === 'seva' || type === 'annadanam' || type === 'nithya_homam') {
+      await addSevaDonationsSheet(req.query);
     } else if (
       type === 'birthdays' ||
       type === 'jayanthi' ||
@@ -4451,6 +4583,8 @@ const CANONICAL_REWARDS = [
   {name: 'Spatik Mala', stock: 50, order: 5, aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
   {name: 'Green Agate', stock: 50, order: 6, aliases: ['green agate', 'green hakik']},
   {name: 'Yellow Agate', stock: 50, order: 7, aliases: ['yellow agate', 'yellow hakik']},
+  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 8, aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
+  {name: 'Spiritual Reward', stock: 50, order: 9, aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];
 
 const ensureRewardSeed = async () => {
@@ -5078,6 +5212,336 @@ router.put('/daily-goal', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to update daily goal.',
+    });
+  }
+});
+
+router.get('/autopay-requests', async (_req: Request, res: Response) => {
+  try {
+    const {getAutopayRequests} = await import('../donation/autopay.service');
+    const data = await getAutopayRequests();
+    return res.json({success: true, data});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load autopay requests.',
+    });
+  }
+});
+
+router.patch('/autopay-requests/:id/status', async (req: Request, res: Response) => {
+  try {
+    const {updateAutopayStatus} = await import('../donation/autopay.service');
+    const data = await updateAutopayStatus(
+      String(req.params.id),
+      String(req.body?.status || 'Contacted'),
+    );
+    return res.json({
+      success: true,
+      message: 'Autopay request status updated',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update autopay request status.',
+    });
+  }
+});
+
+router.get('/seva-donations', async (req: Request, res: Response) => {
+  try {
+    await ensureDonationColumns();
+    const type = String(req.query.type || 'ALL').toUpperCase();
+    const scope = String(req.query.scope || 'all').toLowerCase();
+    const preferDate = String(req.query.preferDate || '').trim();
+    const search = String(req.query.search || '').trim();
+
+    const today = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
+    const whereClauses: string[] = ["UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'"];
+    const params: any[] = [];
+
+    if (type === 'ANNADANAM') {
+      whereClauses.push(
+        "(UPPER(IFNULL(donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%')",
+      );
+      whereClauses.push("LOWER(IFNULL(remarks, '')) NOT LIKE '%homam%'");
+    } else if (type === 'NITHYA_HOMAM') {
+      whereClauses.push(
+        "(UPPER(IFNULL(donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(remarks, '')) LIKE '%homam%')",
+      );
+    }
+
+    if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
+      whereClauses.push('prefer_date = ?');
+      params.push(preferDate);
+    }
+
+    if (scope === 'upcoming') {
+      whereClauses.push('prefer_date > ?');
+      params.push(today);
+    } else if (scope === 'past') {
+      whereClauses.push('(prefer_date <= ? OR prefer_date IS NULL OR prefer_date = "")');
+      params.push(today);
+    }
+
+    if (search) {
+      const q = `%${search}%`;
+      whereClauses.push(
+        '(donor_name LIKE ? OR donor_phone LIKE ? OR person_name LIKE ? OR occasion LIKE ? OR remarks LIKE ?)',
+      );
+      params.push(q, q, q, q, q);
+    }
+
+    const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const orderSql =
+      scope === 'upcoming'
+        ? 'ORDER BY prefer_date ASC, id ASC'
+        : 'ORDER BY prefer_date DESC, id DESC';
+
+    const sql = `
+      SELECT
+        id,
+        user_id AS userId,
+        donation_type AS donationType,
+        amount,
+        donor_name AS donorName,
+        donor_phone AS donorPhone,
+        prefer_date AS preferDate,
+        occasion,
+        for_whom AS forWhom,
+        person_name AS personName,
+        remarks,
+        transaction_id AS transactionId,
+        donated_at AS donatedAt,
+        admin_reply AS adminReply,
+        admin_replied_at AS adminRepliedAt
+      FROM donations
+      ${whereSql}
+      ${orderSql}
+    `;
+
+    const rows = await mysql.query<any[]>(sql, params);
+
+    // Compute counts for tabs
+    const countWhereClauses: string[] = ["UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'"];
+    if (type === 'ANNADANAM') {
+      countWhereClauses.push(
+        "(UPPER(IFNULL(donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%')",
+      );
+      countWhereClauses.push("LOWER(IFNULL(remarks, '')) NOT LIKE '%homam%'");
+    } else if (type === 'NITHYA_HOMAM') {
+      countWhereClauses.push(
+        "(UPPER(IFNULL(donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(remarks, '')) LIKE '%homam%')",
+      );
+    }
+    const countBaseSql = countWhereClauses.length ? `WHERE ${countWhereClauses.join(' AND ')}` : '';
+
+    const allCounts = await mysql.query<any[]>(`
+      SELECT
+        COUNT(*) AS totalCount,
+        SUM(CASE WHEN prefer_date > '${today}' THEN 1 ELSE 0 END) AS upcomingCount,
+        SUM(CASE WHEN prefer_date <= '${today}' OR prefer_date IS NULL OR prefer_date = '' THEN 1 ELSE 0 END) AS pastCount
+      FROM donations
+      ${countBaseSql}
+    `);
+
+    const counts = {
+      total: Number(allCounts?.[0]?.totalCount || 0),
+      upcoming: Number(allCounts?.[0]?.upcomingCount || 0),
+      past: Number(allCounts?.[0]?.pastCount || 0),
+    };
+
+    return res.json({
+      success: true,
+      data: {
+        items: rows || [],
+        counts,
+        today,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load seva donations.',
+    });
+  }
+});
+
+router.post('/seva-donations/:id/reply', async (req: Request, res: Response) => {
+  try {
+    await ensureDonationColumns();
+    const donationId = String(req.params.id);
+    const cleanReply = String(req.body?.reply || '').trim();
+
+    if (!cleanReply) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reply message cannot be empty.',
+      });
+    }
+
+    const rows = await mysql.query<any[]>(
+      `SELECT * FROM donations WHERE id = ? LIMIT 1`,
+      [donationId],
+    );
+
+    if (!rows || rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Donation record not found.',
+      });
+    }
+
+    const donation = rows[0];
+
+    const istNow = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date());
+
+    await mysql.query(
+      `UPDATE donations SET admin_reply = ?, admin_replied_at = ? WHERE id = ?`,
+      [cleanReply, istNow, donationId],
+    );
+
+    let targetUserId = Number(donation.user_id || 0);
+    if (!targetUserId && donation.donor_phone) {
+      const {userIdForPhone} = await import('../payments/razorpay.service');
+      targetUserId = Number((await userIdForPhone(donation.donor_phone)) || 0);
+    }
+
+    let pushSent = false;
+    if (targetUserId > 0) {
+      try {
+        const notificationService = (
+          await import('../notification/notification.service')
+        ).default;
+        const replyTitle = 'Message from Japasiddhi Admin 🪔';
+
+        await notificationService.create({
+          userId: targetUserId,
+          title: replyTitle,
+          message: cleanReply,
+          notificationType: 'SYSTEM',
+          actionType: 'ADMIN_SEVA_REPLY',
+          actionId: Number(donationId),
+          extraData: {
+            donationId: Number(donationId),
+            reply: cleanReply,
+            donorName: donation.donor_name || '',
+            sevaType: donation.donation_type || '',
+            preferDate: donation.prefer_date || '',
+          },
+        });
+
+        const userTokenRows = await mysql.query<any[]>(
+          `SELECT fcm_token AS fcmToken FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
+          [targetUserId],
+        );
+        const userFcm = String(userTokenRows?.[0]?.fcmToken || '').trim();
+
+        if (userFcm) {
+          const {sendPushToTokens} = await import(
+            './adminNotification.service'
+          );
+          const pushRes = await sendPushToTokens(
+            [userFcm],
+            replyTitle,
+            cleanReply,
+            'ADMIN_SEVA_REPLY',
+            {donationId: String(donationId)},
+            true,
+          );
+          pushSent = Boolean(pushRes.pushSent > 0);
+        }
+      } catch (notifyErr) {
+        console.warn('Admin seva reply notification error:', notifyErr);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Reply sent to devotee successfully',
+      data: {
+        donationId,
+        adminReply: cleanReply,
+        adminRepliedAt: istNow,
+        userId: targetUserId || null,
+        pushSent,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to send reply.',
+    });
+  }
+});
+
+router.get('/meeting', async (_req: Request, res: Response) => {
+  try {
+    const appSettingsService = (await import('./appSettings.service')).default;
+    const meeting = await appSettingsService.getMeetingConfig();
+    return res.json({
+      success: true,
+      data: meeting,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load meeting configuration.',
+    });
+  }
+});
+
+router.put('/meeting', async (req: Request, res: Response) => {
+  try {
+    const appSettingsService = (await import('./appSettings.service')).default;
+    const {enabled, title, link, time} = req.body || {};
+    const updated = await appSettingsService.setMeetingConfig({
+      enabled: enabled !== undefined ? Boolean(enabled) : undefined,
+      title: typeof title === 'string' ? title : undefined,
+      link: typeof link === 'string' ? link : undefined,
+      time: typeof time === 'string' ? time : undefined,
+    });
+    return res.json({
+      success: true,
+      message: 'Meeting configuration updated successfully.',
+      data: updated,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update meeting configuration.',
+    });
+  }
+});
+
+router.delete('/meeting', async (_req: Request, res: Response) => {
+  try {
+    const appSettingsService = (await import('./appSettings.service')).default;
+    await appSettingsService.removeMeetingConfig();
+    return res.json({
+      success: true,
+      message: 'Meeting removed successfully.',
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to remove meeting configuration.',
     });
   }
 });

@@ -22,6 +22,7 @@ const HomamEnrollScreen = () => {
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
   const [purpose, setPurpose] = useState('');
+  const [comments, setComments] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -103,6 +104,7 @@ const HomamEnrollScreen = () => {
       seva: 'Nithya Homam',
       name: cleanName,
       phone: cleanMobile,
+      comments: comments.trim(),
     });
   };
 
@@ -149,6 +151,16 @@ const HomamEnrollScreen = () => {
         value={purpose}
         onChangeText={setPurpose}
       />
+      <FormField
+        label={t('comments')}
+        placeholder={t('homamCommentsPlaceholder')}
+        value={comments}
+        onChangeText={setComments}
+        maxLength={1000}
+        multiline
+        numberOfLines={3}
+        style={styles.commentsInput}
+      />
       <View style={styles.amountCard}>
         <Text style={styles.amountLabel}>Nithya Homam</Text>
         <Text style={styles.amountValue}>₹{HOMAM_AMOUNT.toLocaleString('en-IN')}</Text>
@@ -169,6 +181,10 @@ const HomamEnrollScreen = () => {
 export default HomamEnrollScreen;
 
 const styles = StyleSheet.create({
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
   amountCard: {
     marginTop: 8,
     marginBottom: 14,

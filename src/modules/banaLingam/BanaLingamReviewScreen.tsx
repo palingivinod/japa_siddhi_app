@@ -19,6 +19,14 @@ const BanaLingamReviewScreen = () => {
   const address = String(params.address || '').trim();
   const hasAddress = address.length > 0;
 
+  const getPurposeLabel = (val?: string) => {
+    if (!val) return '—';
+    if (val === 'For Home pooja') return t('purposeHomePooja');
+    if (val === 'For Archaka Sanchara pooja') return t('purposeArchakaPooja');
+    if (val === 'For Temple Pratistha') return t('purposeTemplePratistha');
+    return val;
+  };
+
   const placeOrder = async () => {
     if (!hasAddress) {
       Alert.alert(t('baanalingamSeva'), t('addAddressBeforeApplication'));
@@ -34,7 +42,12 @@ const BanaLingamReviewScreen = () => {
         address,
         nakshatram: params.nakshatram,
         gothram: params.gothram,
-        remarks: 'Baanalingam application',
+        purpose: params.purpose,
+        comments: params.comments?.trim() || undefined,
+        remarks: [
+          params.purpose ? `Purpose: ${params.purpose}` : '',
+          params.comments?.trim() || '',
+        ].filter(Boolean).join(' | ') || 'Baanalingam application',
       });
       Alert.alert(
         t('requestSubmittedTitle'),
@@ -48,7 +61,28 @@ const BanaLingamReviewScreen = () => {
         {cancelable: false},
       );
     } catch (error) {
-      Alert.alert(t('applicationOverview'), getApiError(error, t('couldNotSubmitApplication')));
+      const msg = getApiError(error, t('couldNotSubmitApplication'));
+      const isPendingOrder =
+        msg.toLowerCase().includes('already one order') ||
+        msg.toLowerCase().includes('in review');
+      if (isPendingOrder) {
+        Alert.alert(
+          t('banaLingamPendingOrderTitle'),
+          t('banaLingamPendingOrderMessage'),
+          [
+            {
+              text: t('myOrders'),
+              onPress: () => navigation.navigate('Orders'),
+            },
+            {
+              text: t('ok'),
+              style: 'cancel',
+            },
+          ],
+        );
+      } else {
+        Alert.alert(t('applicationOverview'), msg);
+      }
     } finally {
       setSaving(false);
     }
@@ -84,6 +118,16 @@ const BanaLingamReviewScreen = () => {
           <Text style={styles.valueAddress}>{hasAddress ? address : '—'}</Text>
         </View>
 
+        {params.purpose ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('purpose')}</Text>
+              <Text style={styles.value}>{getPurposeLabel(params.purpose)}</Text>
+            </View>
+          </>
+        ) : null}
+
         {params.gothram ? (
           <>
             <View style={styles.divider} />
@@ -100,6 +144,16 @@ const BanaLingamReviewScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>{t('nakshatram')}</Text>
               <Text style={styles.value}>{params.nakshatram}</Text>
+            </View>
+          </>
+        ) : null}
+
+        {params.comments ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('comments')}</Text>
+              <Text style={styles.valueAddress}>{params.comments}</Text>
             </View>
           </>
         ) : null}

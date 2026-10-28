@@ -68,41 +68,50 @@ class DonationRepository {
   async getHistory(
     userId: number,
   ) {
+    await mysql.query('SELECT 1');
+    const userRows = await mysql.query<any[]>(
+      `SELECT mobile_number FROM users WHERE id = ? LIMIT 1`,
+      [userId],
+    );
+    const rawMobile = String(userRows?.[0]?.mobile_number || '').replace(/\D/g, '').slice(-10);
 
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const phoneExpr = isMysql
+      ? `RIGHT(REPLACE(REPLACE(IFNULL(donor_phone, ''), ' ', ''), '-', ''), 10)`
+      : `substr(replace(replace(IFNULL(donor_phone, ''), ' ', ''), '-', ''), -10)`;
+
+    const phoneClause =
+      rawMobile && rawMobile.length === 10 ? `OR (${phoneExpr} = ?)` : '';
+    const params = phoneClause ? [userId, rawMobile] : [userId];
 
     return mysql.query<any[]>(
       `
       SELECT
-
         id,
-
         user_id AS userId,
-
         donation_type AS donationType,
-
         amount,
-
         payment_method AS paymentMethod,
-
         transaction_id AS transactionId,
-
         payment_reference AS paymentReference,
-
         donation_status AS donationStatus,
-
-        donated_at AS donatedAt
-
+        donated_at AS donatedAt,
+        donor_name AS donorName,
+        donor_phone AS donorPhone,
+        prefer_date AS preferDate,
+        occasion,
+        for_whom AS forWhom,
+        person_name AS personName,
+        remarks,
+        admin_reply AS adminReply,
+        admin_replied_at AS adminRepliedAt
       FROM donations
-
-      WHERE user_id = ?
-
-      ORDER BY donated_at DESC
+      WHERE (user_id = ? ${phoneClause})
+        AND UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'
+      ORDER BY id DESC
       `,
-      [
-        userId,
-      ],
+      params,
     );
-
   }
 
 

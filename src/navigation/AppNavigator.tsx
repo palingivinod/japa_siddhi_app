@@ -54,6 +54,7 @@ import MilestoneRewardAddressScreen from '../modules/donate/MilestoneRewardAddre
 import MilestoneRewardOverviewScreen from '../modules/donate/MilestoneRewardOverviewScreen';
 import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
 import DonationFormScreen from '../modules/donate/DonationFormScreen';
+import MonthlySupportScreen from '../modules/home/screens/MonthlySupportScreen';
 import FestivalsScreen from '../modules/festivals/FestivalsScreen';
 import ProgressScreen from '../modules/progress/ProgressScreen';
 import AnalyticsHubScreen from '../modules/analytics/AnalyticsHubScreen';
@@ -70,6 +71,7 @@ import SpiritualDetailsScreen from '../modules/profile/SpiritualDetailsScreen';
 import SettingsScreen from '../modules/profile/SettingsScreen';
 import AboutAppScreen from '../modules/profile/AboutAppScreen';
 import AvailableRewardsScreen from '../modules/profile/AvailableRewardsScreen';
+import TransactionHistoryScreen from '../modules/profile/TransactionHistoryScreen';
 import BanaLingamScreen from '../modules/banaLingam/BanaLingamScreen';
 import NithyaHomamScreen from '../modules/homam/NithyaHomamScreen';
 import HomamEnrollScreen from '../modules/homam/HomamEnrollScreen';
@@ -124,6 +126,7 @@ import AdminPaymentsScreen from '../modules/admin/AdminPaymentsScreen';
 import AdminAnnadanamScreen from '../modules/admin/AdminAnnadanamScreen';
 import AdminBaanalingamScreen from '../modules/admin/AdminBaanalingamScreen';
 import AdminNithyaHomamScreen from '../modules/admin/AdminNithyaHomamScreen';
+import AdminMeetingScreen from '../modules/admin/AdminMeetingScreen';
 import AdminSupportScreen from '../modules/admin/AdminSupportScreen';
 import AdminFeedbackScreen from '../modules/admin/AdminFeedbackScreen';
 import AdminFeedbackDetailsScreen from '../modules/admin/AdminFeedbackDetailsScreen';
@@ -138,6 +141,9 @@ import AdminMultilingualContentScreen from '../modules/admin/AdminMultilingualCo
 import AdminExportReportsScreen from '../modules/admin/AdminExportReportsScreen';
 import AdminDobDetailsScreen from '../modules/admin/AdminDobDetailsScreen';
 import AdminRegionAnalyticsScreen from '../modules/admin/AdminRegionAnalyticsScreen';
+import AdminAutopayRequestsScreen from '../modules/admin/AdminAutopayRequestsScreen';
+import AdminSevaScreen from '../modules/admin/AdminSevaScreen';
+import AdminSevaDetailListScreen from '../modules/admin/AdminSevaDetailListScreen';
 import AdminMoreScreen from '../modules/admin/AdminMoreScreen';
 
 export type RootStackParamList = {
@@ -258,6 +264,7 @@ export type RootStackParamList = {
     | undefined;
   FamilyJapa: undefined;
   Donate: undefined;
+  MonthlySupport: undefined;
   JapaAnnadanam: undefined;
   MilestoneNotifications: undefined;
   MilestoneRewardSelect: {target?: number} | undefined;
@@ -309,6 +316,7 @@ export type RootStackParamList = {
   HomamPayment: any;
   HomamConfirmation: any;
   Orders: undefined;
+  TransactionHistory: undefined;
   OrderDetails: {id?: number; order?: any} | undefined;
   OrderTracking: {id?: number; order?: any} | undefined;
   DeliveryStatus: {id?: number; order?: any} | undefined;
@@ -381,6 +389,15 @@ export type RootStackParamList = {
     | undefined;
   AdminNotifications: undefined;
   AdminOrders: undefined;
+  AdminAutopayRequests: undefined;
+  AdminSeva: undefined;
+  AdminSevaDetailList:
+    | {
+        type?: 'ANNADANAM' | 'NITHYA_HOMAM';
+        title?: string;
+      }
+    | undefined;
+  AdminMeeting: undefined;
   AdminOrderDetails: {orderId?: string} | undefined;
   AdminProducts: undefined;
   AdminBanners: undefined;
@@ -458,6 +475,7 @@ const ProtectedMilestoneRewardAddress = withAuth(MilestoneRewardAddressScreen);
 const ProtectedMilestoneRewardOverview = withAuth(MilestoneRewardOverviewScreen);
 const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
 const ProtectedDonationForm = withAuth(DonationFormScreen);
+const ProtectedMonthlySupport = withAuth(MonthlySupportScreen);
 const ProtectedCheckout = withAuth(CheckoutScreen);
 const ProtectedPaymentConfirmation = withAuth(PaymentConfirmationScreen);
 const ProtectedFestivals = withAuth(FestivalsScreen);
@@ -481,6 +499,7 @@ const ProtectedHomam = withAuth(NithyaHomamScreen);
 const ProtectedHomamEnroll = withAuth(HomamEnrollScreen);
 const ProtectedHomamConfirmation = withAuth(HomamConfirmationScreen);
 const ProtectedOrders = withAuth(OrdersScreen);
+const ProtectedTransactionHistory = withAuth(TransactionHistoryScreen);
 const ProtectedOrderDetails = withAuth(OrderDetailsScreen);
 const ProtectedOrderTracking = withAuth(OrderTrackingScreen);
 const ProtectedDeliveryStatus = withAuth(DeliveryStatusScreen);
@@ -520,6 +539,10 @@ const ProtectedAdminRewards = withAdminAuth(AdminRewardsScreen);
 const ProtectedAdminRewardStock = withAdminAuth(AdminRewardStockScreen);
 const ProtectedAdminNotifications = withAdminAuth(AdminNotificationsScreen);
 const ProtectedAdminOrders = withAdminAuth(AdminOrdersScreen);
+const ProtectedAdminAutopayRequests = withAdminAuth(AdminAutopayRequestsScreen);
+const ProtectedAdminSeva = withAdminAuth(AdminSevaScreen);
+const ProtectedAdminSevaDetailList = withAdminAuth(AdminSevaDetailListScreen);
+const ProtectedAdminMeeting = withAdminAuth(AdminMeetingScreen);
 const ProtectedAdminOrderDetails = withAdminAuth(AdminOrderDetailsScreen);
 const ProtectedAdminProducts = withAdminAuth(AdminProductsScreen);
 const ProtectedAdminBanners = withAdminAuth(AdminBannersScreen);
@@ -667,6 +690,7 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="FamilyJapa" component={ProtectedFamily} />
         <Stack.Screen name="Donate" component={ProtectedDonate} />
+        <Stack.Screen name="MonthlySupport" component={ProtectedMonthlySupport} />
         <Stack.Screen name="JapaAnnadanam" component={ProtectedJapaAnnadanam} />
         <Stack.Screen
           name="MilestoneNotifications"
@@ -750,6 +774,10 @@ const AppNavigator = () => {
           component={ProtectedHomamConfirmation}
         />
         <Stack.Screen name="Orders" component={ProtectedOrders} />
+        <Stack.Screen
+          name="TransactionHistory"
+          component={ProtectedTransactionHistory}
+        />
         <Stack.Screen name="OrderDetails" component={ProtectedOrderDetails} />
         <Stack.Screen name="OrderTracking" component={ProtectedOrderTracking} />
         <Stack.Screen name="DeliveryStatus" component={ProtectedDeliveryStatus} />
@@ -816,6 +844,16 @@ const AppNavigator = () => {
           component={ProtectedAdminNotifications}
         />
         <Stack.Screen name="AdminOrders" component={ProtectedAdminOrders} />
+        <Stack.Screen
+          name="AdminAutopayRequests"
+          component={ProtectedAdminAutopayRequests}
+        />
+        <Stack.Screen name="AdminSeva" component={ProtectedAdminSeva} />
+        <Stack.Screen
+          name="AdminSevaDetailList"
+          component={ProtectedAdminSevaDetailList}
+        />
+        <Stack.Screen name="AdminMeeting" component={ProtectedAdminMeeting} />
         <Stack.Screen
           name="AdminOrderDetails"
           component={ProtectedAdminOrderDetails}

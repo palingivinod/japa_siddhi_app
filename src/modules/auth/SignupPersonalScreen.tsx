@@ -268,6 +268,7 @@ const SignupPersonalScreen = () => {
         onChangeText={setAddress}
         placeholderTextColor={Colors.placeholder}
       />
+      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
       <Text style={styles.label}>{t('city')}</Text>
       <TextInput
         style={styles.input}
@@ -427,5 +428,14 @@ const styles = StyleSheet.create({
   actions: {
     marginTop: 28,
     marginBottom: 24,
+  },
+  addressNote: {
+    color: '#D32F2F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: -4,
+    marginBottom: 10,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
 });

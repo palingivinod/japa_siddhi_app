@@ -70,6 +70,78 @@ class AppSettingsService {
     await this.setSetting('daily_japa_goal', String(val));
     return val;
   }
+
+  async getMeetingConfig(): Promise<{
+    enabled: boolean;
+    title: string;
+    link: string;
+    time: string;
+    updatedAt?: string;
+  }> {
+    const raw = await this.getSetting('active_meeting_config', '');
+    if (!raw) {
+      return {
+        enabled: true,
+        title: 'Lalitha Sahasram Class',
+        link: 'https://meet.google.com/ryz-hxyg-byc',
+        time: '',
+      };
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        enabled: Boolean(parsed.enabled),
+        title: String(parsed.title || 'Lalitha Sahasram Class'),
+        link: String(parsed.link || ''),
+        time: String(parsed.time || ''),
+        updatedAt: parsed.updatedAt,
+      };
+    } catch {
+      return {
+        enabled: false,
+        title: 'Lalitha Sahasram Class',
+        link: '',
+        time: '',
+      };
+    }
+  }
+
+  async setMeetingConfig(config: {
+    enabled?: boolean;
+    title?: string;
+    link?: string;
+    time?: string;
+  }): Promise<{
+    enabled: boolean;
+    title: string;
+    link: string;
+    time: string;
+    updatedAt: string;
+  }> {
+    const current = await this.getMeetingConfig();
+    const updated = {
+      enabled: config.enabled !== undefined ? Boolean(config.enabled) : current.enabled,
+      title: config.title !== undefined ? String(config.title).trim() : current.title,
+      link: config.link !== undefined ? String(config.link).trim() : current.link,
+      time: config.time !== undefined ? String(config.time).trim() : current.time,
+      updatedAt: new Date().toISOString(),
+    };
+    await this.setSetting('active_meeting_config', JSON.stringify(updated));
+    return updated;
+  }
+
+  async removeMeetingConfig(): Promise<void> {
+    await this.setSetting(
+      'active_meeting_config',
+      JSON.stringify({
+        enabled: false,
+        title: '',
+        link: '',
+        time: '',
+        updatedAt: new Date().toISOString(),
+      }),
+    );
+  }
 }
 
 export default new AppSettingsService();

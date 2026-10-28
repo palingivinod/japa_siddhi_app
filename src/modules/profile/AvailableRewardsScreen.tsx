@@ -40,6 +40,8 @@ const DEFAULT_REWARDS: RewardItem[] = [
   {id: 5, name: 'Spatik Mala', inStock: true},
   {id: 6, name: 'Green Agate', inStock: true},
   {id: 7, name: 'Yellow Agate', inStock: true},
+  {id: 8, name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', inStock: true},
+  {id: 9, name: 'Spiritual Reward', inStock: true},
 ];
 
 const AvailableRewardsScreen = () => {

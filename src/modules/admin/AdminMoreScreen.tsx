@@ -9,6 +9,11 @@ import {resetAdminAuthGate} from './AdminAuthGate';
 
 const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
   {
+    title: 'Seva Management',
+    route: 'AdminSeva',
+    sub: 'Anna Santharpana & Nithya Homam devotee requests',
+  },
+  {
     title: 'Add Admin',
     route: 'AdminAccounts',
     sub: 'Create login credentials for another admin',

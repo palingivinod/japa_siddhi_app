@@ -492,7 +492,9 @@ class ChallengeRepository {
             ('Karungali Mala', 50, 1, 4),
             ('Spatik Mala', 50, 1, 5),
             ('Green Agate', 50, 1, 6),
-            ('Yellow Agate', 50, 1, 7)
+            ('Yellow Agate', 50, 1, 7),
+            ('Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', 50, 1, 8),
+            ('Spiritual Reward', 50, 1, 9)
           `,
         );
       }

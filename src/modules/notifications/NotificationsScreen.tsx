@@ -22,6 +22,12 @@ import {getLocalizedNotification} from '../../utils/localizedContent';
 const notificationEmoji = (item: any) => {
   const action = String(item.actionType || '');
   const text = `${action} ${item.title || ''} ${item.message || item.body || ''}`.toLowerCase();
+  if (action === 'ADMIN_SEVA_REPLY') {
+    return '🪔';
+  }
+  if (action === 'SEVA_PAYMENT_CONFIRMATION') {
+    return '🍲';
+  }
   if (action === 'JAPA_MILESTONE' || text.includes('milestone')) {
     return '🏅';
   }
@@ -43,7 +49,14 @@ const notificationEmoji = (item: any) => {
   if (action === 'DAILY_JAPA_PENDING' || text.includes('pending')) {
     return '⏰';
   }
-  if (action === 'DAILY_JAPA_REMINDER' || text.includes('daily japa') || text.includes('not chanted')) {
+  if (
+    action === 'DAILY_JAPA_REMINDER' ||
+    action === 'IDLE_7_DAYS_REMINDER' ||
+    text.includes('daily japa') ||
+    text.includes('not chanted') ||
+    text.includes('idle from sometime') ||
+    text.includes('mantra devata')
+  ) {
     return '🙏';
   }
   if (action === 'GOAL_COMPLETED' || action === 'DAILY_GOAL_COMPLETED') {

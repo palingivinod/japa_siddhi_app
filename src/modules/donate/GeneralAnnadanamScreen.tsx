@@ -1,5 +1,13 @@
-﻿import React, {useCallback, useEffect, useState} from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity} from 'react-native';
+import React, {useCallback, useEffect, useState} from 'react';
+import {
+  Alert,
+  Clipboard,
+  Share,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -28,6 +36,7 @@ const GeneralAnnadanamScreen = () => {
   const [spouseName, setSpouseName] = useState('');
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
+  const [comments, setComments] = useState('');
   const [persons, setPersons] = useState(0);
   const [enabled, setEnabled] = useState(true);
 
@@ -149,7 +158,36 @@ const GeneralAnnadanamScreen = () => {
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
+      comments: comments.trim(),
     });
+  };
+
+  const onShareForm = async () => {
+    const appUrl = 'https://japasiddhi.onrender.com/annasantharpana';
+    const deepLink = 'japasiddhi://annasantharpana';
+    const message = `${t('generalAnnadanam')} - Japa Siddhi\n\nOffer Anna Santharpana for your special occasions & receive divine blessings.\n\nOpen Form in App:\n${appUrl}\n\nDirect App Link: ${deepLink}`;
+    try {
+      await Share.share({
+        message,
+        url: appUrl,
+        title: t('generalAnnadanam') || 'General Anna Santharpana',
+      });
+    } catch {
+      Clipboard.setString(appUrl);
+      Alert.alert(
+        t('shareFormLink') || 'Share Form Link',
+        t('formLinkCopied') || 'Form link copied to clipboard!',
+      );
+    }
+  };
+
+  const onCopyLink = () => {
+    const appUrl = 'https://japasiddhi.onrender.com/annasantharpana';
+    Clipboard.setString(appUrl);
+    Alert.alert(
+      t('shareFormLink') || 'Share Form Link',
+      t('formLinkCopied') || 'Form link copied to clipboard!',
+    );
   };
 
   const occasions = [
@@ -169,6 +207,34 @@ const GeneralAnnadanamScreen = () => {
         </Text>
       ) : (
         <>
+          {/* Shareable Form Link Banner */}
+          <View style={styles.shareBannerCard}>
+            <View style={styles.shareBannerLeft}>
+              <Text style={styles.shareBannerTitle}>
+                🔗 {t('shareFormLink') || 'Share Form Link'}
+              </Text>
+              <Text style={styles.shareBannerUrl} numberOfLines={1}>
+                https://japasiddhi.onrender.com/annasantharpana
+              </Text>
+            </View>
+            <View style={styles.shareBannerActions}>
+              <TouchableOpacity
+                style={styles.shareBannerCopyBtn}
+                onPress={onCopyLink}
+                activeOpacity={0.7}>
+                <Text style={styles.shareBannerCopyText}>📋</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.shareBannerShareBtn}
+                onPress={onShareForm}
+                activeOpacity={0.8}>
+                <Text style={styles.shareBannerShareText}>
+                  📤 {t('shareFormLink') ? 'Share' : 'Share'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <FormField
             label={t('nameLabel')}
             placeholder={t('fullName')}
@@ -273,6 +339,16 @@ const GeneralAnnadanamScreen = () => {
             onChangePersons={setPersons}
             title={t('selectNoOfPersons')}
           />
+          <FormField
+            label={t('comments')}
+            placeholder={t('annadanamCommentsPlaceholder')}
+            value={comments}
+            onChangeText={setComments}
+            maxLength={1000}
+            multiline
+            numberOfLines={3}
+            style={styles.commentsInput}
+          />
           <PrimaryButton
             title={
               detailsReady
@@ -333,5 +409,68 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
+  shareBannerCard: {
+    backgroundColor: '#FFFDF7',
+    borderWidth: 1.5,
+    borderColor: '#E8D2A6',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    shadowColor: '#56350F',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  shareBannerLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  shareBannerTitle: {
+    color: Colors.sacredBrown,
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  shareBannerUrl: {
+    color: '#8C6C42',
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  shareBannerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  shareBannerCopyBtn: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  shareBannerCopyText: {
+    fontSize: 14,
+  },
+  shareBannerShareBtn: {
+    backgroundColor: Colors.templeGold,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  shareBannerShareText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 12,
   },
 });

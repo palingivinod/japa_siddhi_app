@@ -19,6 +19,7 @@ export type RootStackParamList = {
   };
   Home: undefined;
   JapaHub: undefined;
+  YourJapas: undefined;
   SevaHub: undefined;
   Chant:
     | {
@@ -58,4 +59,19 @@ export type RootStackParamList = {
   Notifications: {highlightId?: string | number} | undefined;
   Feedback: undefined;
   PrivacyPolicy: undefined;
+  TransactionHistory: undefined;
+  AdminSeva: undefined;
+  AdminSevaDetailList:
+    | {
+        type?: 'ANNADANAM' | 'NITHYA_HOMAM';
+        title?: string;
+      }
+    | undefined;
+  GeneralAnnadanam: undefined;
+  PaymentConfirmation: any;
+  MilestoneNotifications: undefined;
+  ChallengeDetails: {id?: number} | undefined;
+  ChallengeRewardSelect: {id?: number} | undefined;
+  MantraSelect: any;
+  AdminMeeting: undefined;
 };

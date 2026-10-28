@@ -41,6 +41,7 @@ const SevaRequestScreen = () => {
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
+  const [comments, setComments] = useState('');
   const [largePhoto, setLargePhoto] = useState<number | null>(null);
 
   useFocusEffect(
@@ -111,6 +112,7 @@ const SevaRequestScreen = () => {
       address: address.trim(),
       gothram,
       nakshatram,
+      comments: comments.trim(),
     });
   };
 
@@ -187,12 +189,23 @@ const SevaRequestScreen = () => {
         value={address}
         onChangeText={setAddress}
       />
+      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
       <FormField label="Gothram" placeholder="Optional" value={gothram} onChangeText={setGothram} />
       <FormField
         label="Nakshatram"
         placeholder="Optional"
         value={nakshatram}
         onChangeText={setNakshatram}
+      />
+      <FormField
+        label={t('comments')}
+        placeholder={t('generalCommentsPlaceholder')}
+        value={comments}
+        onChangeText={setComments}
+        maxLength={1000}
+        multiline
+        numberOfLines={3}
+        style={styles.commentsInput}
       />
       <PrimaryButton
         title={ready ? 'OVERVIEW' : 'ENTER REQUIRED DETAILS'}
@@ -267,5 +280,18 @@ const styles = StyleSheet.create({
   large: {
     width: '100%',
     height: '78%',
+  },
+  addressNote: {
+    color: '#D32F2F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: -6,
+    marginBottom: 14,
+    lineHeight: 18,
+    includeFontPadding: true,
+  },
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });

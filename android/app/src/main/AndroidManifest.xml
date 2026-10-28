@@ -151,6 +151,24 @@
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="japasiddhi" android:host="payment" android:pathPrefix="/failure" />
         </intent-filter>
+        <!-- Anna Santharpana / Annadanam Form Deep Link -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="japasiddhi" android:host="annasantharpana" />
+            <data android:scheme="japasiddhi" android:host="annadanam" />
+            <data android:scheme="japasiddhi" android:host="seva" />
+        </intent-filter>
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/annasantharpana" />
+            <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/annadanam" />
+            <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annasantharpana" />
+            <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annadanam" />
+        </intent-filter>
       </activity>
     </application>
 </manifest>

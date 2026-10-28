@@ -38,6 +38,7 @@ export type AppIconName =
   | 'logoutDoor'
   | 'greenAgate'
   | 'yellowAgate'
+  | 'marakathaSriChakra'
   | 'pasupuKommulaMala'
   | 'karungaliMala'
   | 'spatikaMala'
@@ -78,6 +79,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   logoutDoor: require('../../assets/images/menu_logout.png'),
   greenAgate: require('../../assets/images/green_agate.jpg'),
   yellowAgate: require('../../assets/images/yellow_agate.jpg'),
+  marakathaSriChakra: require('../../assets/images/marakatha_sri_chakra.png'),
   pasupuKommulaMala: require('../../assets/images/pasupu_kommula_mala.jpg'),
   karungaliMala: require('../../assets/images/karungali_mala.jpg'),
   spatikaMala: require('../../assets/images/spatika_mala.png'),

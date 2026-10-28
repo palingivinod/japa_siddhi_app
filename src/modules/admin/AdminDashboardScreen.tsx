@@ -141,7 +141,15 @@ const AdminDashboardScreen = () => {
           onPress={() => openControl(item.route, item.title)}>
           <View style={styles.controlCopy}>
             <Text style={styles.controlTitle}>{item.title}</Text>
-            <Text style={styles.controlSub}>Central management</Text>
+            <Text style={styles.controlSub}>
+              {item.title === 'Autopay Requests'
+                ? 'Manage devotee auto-debit requests'
+                : item.title === 'Seva Management'
+                ? 'Anna Santharpana & Nithya Homam offerings'
+                : item.title === 'Meeting Management'
+                ? 'Schedule Google Meet & live classes'
+                : 'Central management'}
+            </Text>
           </View>
           <View style={styles.openBtn}>
             <Text style={styles.openText}>Open</Text>

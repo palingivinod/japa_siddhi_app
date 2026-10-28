@@ -165,7 +165,11 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
   }
 
   // Idle / expired → Your Japas (not inbox, not welcome/splash).
-  if (action === 'DAILY_JAPA_REMINDER' || action === 'GOAL_EXPIRED') {
+  if (
+    action === 'DAILY_JAPA_REMINDER' ||
+    action === 'IDLE_7_DAYS_REMINDER' ||
+    action === 'GOAL_EXPIRED'
+  ) {
     navigateTo('YourJapas');
     return;
   }
@@ -177,7 +181,9 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     (blob.includes('not chanted') ||
       blob.includes('no japas yet today') ||
       blob.includes("didn't chant") ||
-      blob.includes('did not chant'))
+      blob.includes('did not chant') ||
+      blob.includes('idle from sometime') ||
+      blob.includes('mantra devata'))
   ) {
     navigateTo('YourJapas');
     return;
@@ -302,6 +308,19 @@ export const bindNotifyDeepLinks = () => {
       });
       return;
     }
+
+    // Direct deep links for Anna Santharpana / Annadanam donation form
+    const lower = raw.toLowerCase();
+    if (
+      lower.includes('annasantharpana') ||
+      lower.includes('annadanam') ||
+      lower.startsWith('japasiddhi://seva/annadanam') ||
+      lower.startsWith('japasiddhi://seva/annasantharpana')
+    ) {
+      navigateTo('GeneralAnnadanam');
+      return;
+    }
+
     openFromNotifyUrl(url).catch(() => undefined);
   };
   Linking.getInitialURL()

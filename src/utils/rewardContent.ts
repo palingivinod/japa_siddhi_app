@@ -7,10 +7,59 @@ export interface LocalizedReward {
   imageName?: AppIconName;
 }
 
+export const SPIRITUAL_REWARD_CONTENT: LocalizedReward = {
+  emoji: '🎁',
+  title: {
+    en: 'Spiritual Reward',
+    te: 'ఆధ్యాత్మిక కానుక',
+    hi: 'आध्यात्मिक उपहार',
+    ta: 'ஆன்மீக பரிசு',
+    kn: 'ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ',
+    ml: 'ആത്മീയ സമ്മാനം',
+    mr: 'आध्यात्मिक भेट',
+    bn: 'আধ্যাত্মিক উপহার',
+    or: 'ଆଧ୍ୟାତ୍ମିକ ଉପହାର',
+  },
+  description: {
+    en: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.',
+    te: 'దివ్య అనుగ్రహం, శాంతి మరియు మంగళాన్ని అందించే పవిత్ర ఆధ్యాత్మిక కానుక.',
+    hi: 'सकारात्मक ऊर्जा, शांति और शुभाशीष से परिपूर्ण पावन आध्यात्मिक उपहार।',
+    ta: 'நேர்மறை ஆற்றல், அமைதி மற்றும் மங்களம் தரும் புனித ஆன்மீக பரிசு.',
+    kn: 'ಧನಾತ್ಮಕ ಶಕ್ತಿ, ಶಾಂತಿ ಮತ್ತು ಶುಭವನ್ನು ತರುವ పವಿತ್ರ ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ.',
+    ml: 'ശാന്തിയും ഐശ്വര്യവും പ്രദാനം ചെയ്യുന്ന പവിത്രമായ ആത്മീയ സമ്മാനം.',
+    mr: 'सकारात्मक ऊर्जा आणि मांगल्याचा आशीर्वाद देणारी पवित्र आध्यात्मिक भेट.',
+    bn: 'ইতিবাচক শক্তি ও শুভাশিস যুক্ত পরম পবিত্র আধ্যাত্মিক উপহার।',
+    or: 'ସକାରାତ୍ମକ ଉର୍ଜା ଏବଂ ଶାନ୍ତି ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ଆଧ୍ୟାତ୍ମିକ ଉପହାର।',
+  },
+};
+
+const FALLBACK_CONTENT: LocalizedReward = SPIRITUAL_REWARD_CONTENT;
+
 const REWARD_LOCALIZATIONS: Array<{
   match: (name: string) => boolean;
   content: LocalizedReward;
 }> = [
+  // Spiritual Reward (10 Lakhs)
+  {
+    match: name => {
+      const lower = name.toLowerCase();
+      return (
+        lower.includes('spiritual reward') ||
+        lower.includes('spiritual offering') ||
+        lower.includes('spiritual product') ||
+        lower.includes('ఆధ్యాత్మిక కానుక') ||
+        lower.includes('ఆధ్యాత్మిక బహుమతి') ||
+        lower.includes('आध्यात्मिक उपहार') ||
+        lower.includes('ஆன்மீக பரிசு') ||
+        lower.includes('ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ') ||
+        lower.includes('ആത്മീയ സമ്മാനം') ||
+        lower.includes('आध्यात्मिक भेट') ||
+        lower.includes('আধ্যাত্মিক উপহার') ||
+        lower.includes('ଆଧ୍ୟାତ୍ମିକ ଉପହାର')
+      );
+    },
+    content: SPIRITUAL_REWARD_CONTENT,
+  },
   // 1. Spatik Mala / Sphatik / Crystal
   {
     match: name => {
@@ -208,7 +257,55 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 6. Rudraksha Mala / Rudrakshi
+  // 6. Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)
+  {
+    match: name => {
+      const lower = name.toLowerCase();
+      return (
+        lower.includes('marakatha') ||
+        lower.includes('marakata') ||
+        lower.includes('green jade') ||
+        lower.includes('aventurine') ||
+        lower.includes('sri chakram') ||
+        lower.includes('sri chakra') ||
+        lower.includes('sree chakra') ||
+        lower.includes('sri yantra') ||
+        lower.includes('emerald sri') ||
+        lower.includes('మరకత') ||
+        lower.includes('मरकत') ||
+        lower.includes('జేడ్') ||
+        lower.includes('जेड')
+      );
+    },
+    content: {
+      emoji: '✨',
+      imageName: 'marakathaSriChakra',
+      title: {
+        en: 'Green Jade / Aventurine Sree Chakra\n(Marakata Sree Chakra)',
+        te: 'గ్రీన్ జేడ్ / అవెంచురిన్ శ్రీ చక్రం\n(మరకత శ్రీ చక్రం)',
+        hi: 'ग्रीन जेड / एवेंट्यूरिन श्री चक्र\n(मरकत श्री चक्र)',
+        ta: 'கிரீன் ஜேட் / அவென்டுரின் ஸ்ரீ சக்கரம்\n(மரகத ஸ்ரீ சக்கரம்)',
+        kn: 'ಗ್ರೀನ್ ಜೇಡ್ / ಅವೆಂಚುರಿನ್ ಶ್ರೀ ಚಕ್ರ\n(ಮರಕತ ಶ್ರೀ ಚಕ್ರ)',
+        ml: 'ഗ്രീൻ ജേഡ് / അവഞ്ചുറിൻ ശ്രീ ചക്രം\n(മരതക ശ്രീ ചക്രം)',
+        mr: 'ग्रीन जेड / एव्हेंचरिन श्री चक्र\n(मरकत श्री चक्र)',
+        bn: 'গ্রিন জেড / অ্যাভেঞ্চুরিন শ্রী চক্র\n(মরকত শ্রী চক্র)',
+        or: 'ଗ୍ରୀନ ଜେଡ୍ / ଆଭେଞ୍ଚୁରିନ ଶ୍ରୀ ଚକ୍ର\n(ମରକତ ଶ୍ରୀ ଚକ୍ର)',
+      },
+      description: {
+        en: 'Sacred 3D Meru Sri Chakra carved in pure Green Jade / Aventurine (Marakata), combining supreme cosmic geometry of Goddess Lalita Tripura Sundari with Mercury\'s healing energy to bestow immense wealth, wisdom, Vastu harmony, and spiritual liberation.',
+        te: 'లలితా త్రిపుర సుందరీ దేవి దివ్య శక్తి, బుధ గ్రహ అనుగ్రహం, అఖండ ఐశ్వర్యం, జ్ఞానం మరియు సర్వ వాస్తు శాంతిని ప్రసాదించే అత్యంత పవిత్రమైన గ్రీన్ జేడ్ / అవెంచురిన్ (మరకత) శ్రీ చక్రం (మేరు).',
+        hi: 'माता ललिता त्रिपुर सुंदरी की दिव्य ऊर्जा, अपार सुख-समृद्धि, ज्ञान, शांति और वास्तु दोष निवारण का वरदान देने वाला अत्यंत पवित्र ग्रीन जेड / एवेंट्यूरिन (मरकत) श्री चक्र।',
+        ta: 'லலிதா திரிபுர சுந்தரி தேவியின் அருள், பெரும் செல்வம், ஞானம் மற்றும் வாஸ்து தோஷ நிவர்த்தி தரும் அதியற்புத கிரீன் ஜேட் / அவென்டுரின் (மரகத) ஸ்ரீ சக்கரம்.',
+        kn: 'ಲಲಿತಾ ತ್ರಿಪುರ ಸುಂದರಿ ದೇವಿಯ ಅನುಗ್ರಹ, ಅಪಾರ ಸಂಪತ್ತು, ಜ್ಞಾನ ಮತ್ತು ವಾಸ್ತು ದೋಷ ನಿವಾರಣೆ ನೀಡುವ ಪರಮ ಪವಿತ್ರ ಗ್ರೀನ್ ಜೇಡ್ / ಅವೆಂಚುರಿನ್ (ಮರಕತ) ಶ್ರೀ ಚಕ್ರ.',
+        ml: 'ലളിതാ ത്രിപുരസുന്ദരീ ദേവിയുടെ അനുഗ്രഹവും അപാരമായ ഐശ്വര്യവും ജ്ഞാനവും വാസ്തുദോഷ നിവാരണവും പ്രദാനം ചെയ്യുന്ന പവിത്രമായ ഗ്രീൻ ജേഡ് / അവഞ്ചുറിൻ (മരതക) ശ്രീ ചക്രം.',
+        mr: 'माता ललिता त्रिपुर सुंदरीचा आशीर्वाद, अपार धन-समृद्धी, ज्ञान आणि वास्तू शांती प्रदान करणारे अत्यंत पवित्र ग्रीन जेड / एव्हेंचरिन (मरकत) श्री चक्र.',
+        bn: 'মা ললিতা ত্রিপুরা সুন্দরীর আশীর্বাদ, অফুরন্ত ধন-সম্পদ, প্রজ্ঞা ও বাস্তু শান্তি প্রদানকারী পরম পবিত্র গ্রিন জেড / অ্যাভেঞ্চুরিন (মরকত) শ্রী चक्र।',
+        or: 'ମା\' ଲଳିତା ତ୍ରିପୁର ସୁନ୍ଦରୀଙ୍କ ଦିବ୍ୟ କୃପା, ଅପାର ସୁଖ-ସମୃଦ୍ଧି, ଜ୍ଞାନ ଏବଂ ବାସ୍ତୁ ଶାନ୍ତି ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ଗ୍ରୀନ ଜେଡ୍ / ଆଭେଞ୍ଚୁରିନ (ମରକତ) ଶ୍ରୀ ଚକ୍ର।',
+      },
+    },
+  },
+
+  // 7. Rudraksha Mala / Rudrakshi
   {
     match: name => name.toLowerCase().includes('rudraksh'),
     content: {
@@ -547,32 +644,6 @@ const REWARD_LOCALIZATIONS: Array<{
   },
 ];
 
-const FALLBACK_CONTENT: LocalizedReward = {
-  emoji: '🎁',
-  title: {
-    en: 'Spiritual Reward',
-    te: 'ఆధ్యాత్మిక కానుక',
-    hi: 'आध्यात्मिक उपहार',
-    ta: 'ஆன்மீக பரிசு',
-    kn: 'ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ',
-    ml: 'ആത്മീയ സമ്മാനം',
-    mr: 'आध्यात्मिक भेट',
-    bn: 'আধ্যাত্মিক উপহার',
-    or: 'ଆଧ୍ୟାତ୍ମିକ ଉପହାର',
-  },
-  description: {
-    en: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.',
-    te: 'దివ్య అనుగ్రహం, శాంతి మరియు మంగళాన్ని అందించే పవిత్ర ఆధ్యాత్మిక కానుక.',
-    hi: 'सकारात्मक ऊर्जा, शांति और शुभाशीष से परिपूर्ण पावन आध्यात्मिक उपहार।',
-    ta: 'நேர்மறை ஆற்றல், அமைதி மற்றும் மங்களம் தரும் புனித ஆன்மீக பரிசு.',
-    kn: 'ಧನಾತ್ಮಕ ಶಕ್ತಿ, ಶಾಂತಿ ಮತ್ತು ಶುಭವನ್ನು ತರುವ పవిತ್ರ ಆಧ್ಯಾತ್ಮಿಕ ಉಡುಗೊರೆ.',
-    ml: 'ശാന്തിയും ഐശ്വര്യവും പ്രദാനം ചെയ്യുന്ന പവിത്രമായ ആത്മീയ സമ്മാനം.',
-    mr: 'सकारात्मक ऊर्जा आणि मांगल्याचा आशीर्वाद देणारी पवित्र आध्यात्मिक भेट.',
-    bn: 'ইতিবাচক শক্তি ও শুভাশিস যুক্ত পরম পবিত্র আধ্যাত্মিক উপহার।',
-    or: 'ସକାରାତ୍ମକ ଉର୍ଜା ଏବଂ ଶାନ୍ତି ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ଆଧ୍ୟାତ୍ମିକ ଉପହାର।',
-  },
-};
-
 export const getLocalizedReward = (
   rawName: string,
   lang: string = 'en',
@@ -605,61 +676,79 @@ export interface RewardEligibility {
 
 const REQUIREMENT_LABELS: Record<
   string,
-  {first: string; fiftyK: string; one: string; two: string}
+  {first: string; fiftyK: string; one: string; two: string; five: string; ten: string}
 > = {
   te: {
     first: '5,000',
     fiftyK: '50,000 (50 వేలు)',
     one: '1,00,000 (1 లక్ష)',
     two: '2,00,000 (2 లక్షలు)',
+    five: '5,00,000 (5 లక్షలు)',
+    ten: '10,00,000 (10 లక్షలు)',
   },
   hi: {
     first: '5,000',
     fiftyK: '50,000 (50 हज़ार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
+    five: '5,00,000 (5 लाख)',
+    ten: '10,00,000 (10 लाख)',
   },
   ta: {
     first: '5,000',
     fiftyK: '50,000 (50 ஆயிரம்)',
     one: '1,00,000 (1 லட்சம்)',
     two: '2,00,000 (2 லட்சம்)',
+    five: '5,00,000 (5 லட்சம்)',
+    ten: '10,00,000 (10 லட்சம்)',
   },
   kn: {
     first: '5,000',
     fiftyK: '50,000 (50 ಸಾವಿರ)',
     one: '1,00,000 (1 ಲಕ್ಷ)',
     two: '2,00,000 (2 ಲಕ್ಷ)',
+    five: '5,00,000 (5 ಲಕ್ಷ)',
+    ten: '10,00,000 (10 ಲಕ್ಷ)',
   },
   ml: {
     first: '5,000',
     fiftyK: '50,000 (50 ആയിരം)',
     one: '1,00,000 (1 ലക്ഷം)',
     two: '2,00,000 (2 ലക്ഷം)',
+    five: '5,00,000 (5 ലക്ഷം)',
+    ten: '10,00,000 (10 ലക്ഷം)',
   },
   mr: {
     first: '5,000',
     fiftyK: '50,000 (50 हजार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
+    five: '5,00,000 (5 लाख)',
+    ten: '10,00,000 (10 लाख)',
   },
   bn: {
     first: '5,000',
     fiftyK: '50,000 (50 হাজার)',
     one: '1,00,000 (1 লাখ)',
     two: '2,00,000 (2 লাখ)',
+    five: '5,00,000 (5 লাখ)',
+    ten: '10,00,000 (10 লাখ)',
   },
   or: {
     first: '5,000',
     fiftyK: '50,000 (50 ହଜାର)',
     one: '1,00,000 (1 ଲକ୍ଷ)',
     two: '2,00,000 (2 ଲକ୍ଷ)',
+    five: '5,00,000 (5 ଲକ୍ଷ)',
+    ten: '10,00,000 (10 ଲକ୍ଷ)',
   },
   en: {
     first: '5,000',
     fiftyK: '50,000 (50k)',
     one: '1,00,000 (1 Lakh)',
     two: '2,00,000 (2 Lakhs)',
+    five: '5,00,000 (5 Lakhs)',
+    ten: '10,00,000 (10 Lakhs)',
   },
 };
 
@@ -670,6 +759,35 @@ export const getRewardRequirement = (
   const lower = String(rewardName || '').toLowerCase();
   const reqText = REQUIREMENT_LABELS[lang] || REQUIREMENT_LABELS.en;
 
+  // Spiritual Reward => 10,00,000 Japas (10 Lakhs)
+  if (
+    lower.includes('spiritual reward') ||
+    lower.includes('spiritual offering') ||
+    lower.includes('spiritual product') ||
+    lower.includes('ఆధ్యాత్మిక కానుక') ||
+    lower.includes('ఆధ్యాత్మిక బహుమతి') ||
+    lower.includes('आध्यात्मिक उपहार')
+  ) {
+    return {count: 1000000, label: reqText.ten};
+  }
+  // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) => 5,00,000 Japas (5 Lakhs)
+  if (
+    lower.includes('marakatha') ||
+    lower.includes('marakata') ||
+    lower.includes('green jade') ||
+    lower.includes('aventurine') ||
+    lower.includes('sri chakram') ||
+    lower.includes('sri chakra') ||
+    lower.includes('sree chakra') ||
+    lower.includes('sri yantra') ||
+    lower.includes('emerald sri') ||
+    lower.includes('మరకత') ||
+    lower.includes('मरकत') ||
+    lower.includes('జేడ్') ||
+    lower.includes('जेड')
+  ) {
+    return {count: 500000, label: reqText.five};
+  }
   // Yellow Agate or Green Agate => 2,00,000 Japas (2 Lakhs)
   if (
     lower.includes('yellow agate') ||
@@ -741,6 +859,8 @@ export const checkRewardEligibility = (
  * 5. Spatik Mala (1 Lakh eligibility)
  * 6. Green Agate (2 Lakhs eligibility)
  * 7. Yellow Agate (2 Lakhs eligibility)
+ * 8. Marakatha Sri Chakram (5 Lakhs eligibility)
+ * 9. Spiritual Reward (10 Lakhs eligibility)
  */
 export const getRewardSortRank = (rewardName: string): number => {
   const lower = String(rewardName || '').toLowerCase();
@@ -777,10 +897,37 @@ export const getRewardSortRank = (rewardName: string): number => {
   ) {
     return 7;
   }
+  if (
+    lower.includes('marakatha') ||
+    lower.includes('marakata') ||
+    lower.includes('green jade') ||
+    lower.includes('aventurine') ||
+    lower.includes('sri chakram') ||
+    lower.includes('sri chakra') ||
+    lower.includes('sree chakra') ||
+    lower.includes('sri yantra') ||
+    lower.includes('emerald sri') ||
+    lower.includes('మరకత') ||
+    lower.includes('मरकत') ||
+    lower.includes('జేడ్') ||
+    lower.includes('जेड')
+  ) {
+    return 8;
+  }
+  if (
+    lower.includes('spiritual reward') ||
+    lower.includes('spiritual offering') ||
+    lower.includes('spiritual product') ||
+    lower.includes('ఆధ్యాత్మిక కానుక') ||
+    lower.includes('ఆధ్యాత్మిక బహుమతి') ||
+    lower.includes('आध्यात्मिक उपहार')
+  ) {
+    return 9;
+  }
   return 99;
 };
 
-/** True for the seven known mala/agate rewards; false for generic leftovers. */
+/** True for the known sacred mala/agate/sri-chakra/spiritual rewards; false for generic leftovers. */
 export const isCanonicalReward = (rewardName: string): boolean =>
   getRewardSortRank(rewardName) < 99;
 

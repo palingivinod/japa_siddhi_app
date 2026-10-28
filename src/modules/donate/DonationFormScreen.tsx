@@ -1,4 +1,4 @@
-﻿import React, {useCallback, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity} from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
@@ -27,6 +27,7 @@ const DonationFormScreen = () => {
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
   const [preferDate, setPreferDate] = useState(params.preferDate || '');
   const [showDate, setShowDate] = useState(false);
+  const [comments, setComments] = useState('');
   const [persons, setPersons] = useState(
     Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),
   );
@@ -101,6 +102,7 @@ const DonationFormScreen = () => {
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
+      comments: comments.trim(),
     });
   };
 
@@ -162,6 +164,16 @@ const DonationFormScreen = () => {
         onChangePersons={setPersons}
         title={t('selectNoOfPersons')}
       />
+      <FormField
+        label={t('comments')}
+        placeholder={t('annadanamCommentsPlaceholder')}
+        value={comments}
+        onChangeText={setComments}
+        maxLength={1000}
+        multiline
+        numberOfLines={3}
+        style={styles.commentsInput}
+      />
       <PrimaryButton
         title={
           detailsReady
@@ -200,5 +212,9 @@ const styles = StyleSheet.create({
   datePlaceholder: {
     color: Colors.placeholder,
     fontSize: 16,
+  },
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });

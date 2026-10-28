@@ -680,6 +680,7 @@ const CompleteProfileScreen = ({
           value={address}
           onChangeText={setAddress}
         />
+        <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
 
         <Text style={styles.label}>
           {t('maritalStatus')} *
@@ -1026,5 +1027,14 @@ const styles = StyleSheet.create({
 
   bottomSpacing: {
     height: 60,
+  },
+  addressNote: {
+    color: '#D32F2F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: -4,
+    marginBottom: 10,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
 });

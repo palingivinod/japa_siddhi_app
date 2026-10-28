@@ -1,12 +1,20 @@
 pluginManagement {
   // Windows: node_modules/@react-native/gradle-plugin can be EPERM-locked.
   // Prefer JAPA_RN_GRADLE_PLUGIN, then a known clean temp copy, then node_modules.
+  // A leftover temp folder without settings.gradle.kts must not win — Gradle
+  // then cannot see com.facebook.react.settings.
   def envPath = System.getenv("JAPA_RN_GRADLE_PLUGIN")
   def tempPath = "${System.getenv('LOCALAPPDATA')}\\Temp\\rn-gp-0.81.0\\package"
-  def rnGp = "../node_modules/@react-native/gradle-plugin"
-  for (def c : [envPath, tempPath, rnGp]) {
-    if (c != null && !c.toString().trim().isEmpty() && file(c).exists()) {
-      rnGp = c.toString()
+  def nodePath = "../node_modules/@react-native/gradle-plugin"
+  def rnGp = file(nodePath).absolutePath
+  for (def c : [envPath, tempPath, nodePath]) {
+    if (c == null || c.toString().trim().isEmpty()) {
+      continue
+    }
+    def dir = file(c.toString())
+    def hasSettings = new File(dir, "settings.gradle.kts").exists() || new File(dir, "settings.gradle").exists()
+    if (dir.exists() && hasSettings) {
+      rnGp = dir.absolutePath
       break
     }
   }

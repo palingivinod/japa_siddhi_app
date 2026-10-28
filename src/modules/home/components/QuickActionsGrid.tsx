@@ -21,7 +21,7 @@ const QuickActionsGrid: React.FC<Props> = ({
     return (
       <View style={styles.emptyContainer}>
         <Text style={styles.emptyText}>
-          No Quick Actions Available
+          No Services Available
         </Text>
       </View>
     );

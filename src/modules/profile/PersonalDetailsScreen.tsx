@@ -482,6 +482,7 @@ const PersonalDetailsScreen = () => {
         onChangeText={setAddress}
         placeholder={t('enterAddress')}
       />
+      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
 
       <Text style={styles.label}>{t('language')}</Text>
       <LanguageSelector
@@ -607,5 +608,14 @@ const styles = StyleSheet.create({
   },
   gap: {
     height: 12,
+  },
+  addressNote: {
+    color: '#D32F2F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: -2,
+    marginBottom: 10,
+    lineHeight: 18,
+    includeFontPadding: true,
   },
 });

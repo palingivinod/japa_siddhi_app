@@ -285,6 +285,12 @@ const ProfileViewScreen = () => {
         onPress={() => navigation.navigate('Orders')}
       />
       <MenuCard
+        emoji="📜"
+        title={t('transactionHistory')}
+        subtitle={t('transactionHistorySub')}
+        onPress={() => navigation.navigate('TransactionHistory')}
+      />
+      <MenuCard
         icon="feedback"
         title={t('feedback')}
         onPress={() => navigation.navigate('Feedback')}

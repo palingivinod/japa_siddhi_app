@@ -46,6 +46,7 @@ router.post('/order', async (req: Request, res: Response) => {
     const occasion = String(req.body?.occasion || '').trim().slice(0, 40);
     const forWhom = String(req.body?.forWhom || '').trim().slice(0, 20);
     const personName = String(req.body?.personName || '').trim().slice(0, 80);
+    const comments = String(req.body?.comments || '').trim().slice(0, 1000);
     const order = await createRazorpayOrder({
       amountPaise: paise,
       receipt: `js${Date.now()}`,
@@ -58,6 +59,7 @@ router.post('/order', async (req: Request, res: Response) => {
         occasion,
         forWhom,
         personName,
+        comments,
       },
     });
     return apiResponse.success(res, 'Payment started', order);

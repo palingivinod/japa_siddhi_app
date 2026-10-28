@@ -2,6 +2,7 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -27,6 +28,85 @@ const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
   {id: 'normal', label: 'Normal'},
   {id: 'reward', label: 'Rewards'},
 ];
+
+export type ProductFilterType = 'ALL' | 'RK' | 'BP' | 'HB' | 'BL';
+
+export const ITEM_FILTERS: Array<{
+  id: ProductFilterType;
+  code: string;
+  label: string;
+}> = [
+  {id: 'ALL', code: 'ALL', label: 'All Items'},
+  {id: 'RK', code: 'RK', label: 'Ramakoti'},
+  {id: 'BP', code: 'BP', label: 'Bhirava Pendant'},
+  {id: 'HB', code: 'HB', label: 'Homa Bhasmam'},
+  {id: 'BL', code: 'BL', label: 'Baanalingam'},
+];
+
+const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): boolean => {
+  if (filterId === 'ALL') return true;
+  const num = String(order.orderNo || '').toUpperCase();
+  const prod = String(order.product || '').toLowerCase();
+  const type = String(order.orderType || '').toUpperCase();
+  const remarks = String(order.remarks || '').toLowerCase();
+
+  if (filterId === 'RK') {
+    return (
+      num.startsWith('#RK') ||
+      num.startsWith('RK') ||
+      num.includes('RK') ||
+      type === 'RAMAKOTI_BOOKS' ||
+      type.includes('RAMAKOTI') ||
+      prod.includes('ramakoti') ||
+      remarks.includes('ramakoti')
+    );
+  }
+  if (filterId === 'BP') {
+    return (
+      num.startsWith('#BP') ||
+      num.startsWith('BP') ||
+      num.includes('BP') ||
+      type === 'BIRAVA_PENDANT' ||
+      type.includes('BIRAVA') ||
+      type.includes('PENDANT') ||
+      prod.includes('birava') ||
+      prod.includes('bhirava') ||
+      prod.includes('pendant') ||
+      prod.includes('pendent') ||
+      remarks.includes('birava') ||
+      remarks.includes('bhirava') ||
+      remarks.includes('pendant')
+    );
+  }
+  if (filterId === 'HB') {
+    return (
+      num.startsWith('#HB') ||
+      num.startsWith('HB') ||
+      num.includes('HB') ||
+      type === 'HOMA_BHASMA' ||
+      type.includes('BHASMA') ||
+      prod.includes('homa') ||
+      prod.includes('bhasma') ||
+      remarks.includes('homa') ||
+      remarks.includes('bhasma')
+    );
+  }
+  if (filterId === 'BL') {
+    return (
+      num.startsWith('#BL') ||
+      num.startsWith('BL') ||
+      num.includes('BL-') ||
+      type === 'BANA_LINGAM' ||
+      type.includes('LINGAM') ||
+      prod.includes('baana') ||
+      prod.includes('banalingam') ||
+      prod.includes('lingam') ||
+      remarks.includes('baanalingam') ||
+      remarks.includes('banalingam')
+    );
+  }
+  return true;
+};
 
 const orderGroupOf = (row: {
   orderGroup?: string;
@@ -97,6 +177,7 @@ const AdminOrdersScreen = () => {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [tab, setTab] = useState('All');
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
+  const [itemFilter, setItemFilter] = useState<ProductFilterType>('ALL');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -220,22 +301,37 @@ const AdminOrdersScreen = () => {
     [orders, orderType],
   );
 
-  const orderCounts = useMemo(() => {
-    const total = typedOrders.length;
-    const underReview = typedOrders.filter(o => o.status === 'Under Review').length;
-    const confirmed = typedOrders.filter(o => o.status === 'Confirmed').length;
-    const shipped = typedOrders.filter(o => o.status === 'Shipped').length;
-    const delivered = typedOrders.filter(o => o.status === 'Delivered').length;
-    const cancelled = typedOrders.filter(o => o.status === 'Cancelled').length;
-    return {total, underReview, confirmed, shipped, delivered, cancelled};
+  const itemCounts = useMemo(() => {
+    return {
+      ALL: typedOrders.length,
+      RK: typedOrders.filter(o => matchesItemFilter(o, 'RK')).length,
+      BP: typedOrders.filter(o => matchesItemFilter(o, 'BP')).length,
+      HB: typedOrders.filter(o => matchesItemFilter(o, 'HB')).length,
+      BL: typedOrders.filter(o => matchesItemFilter(o, 'BL')).length,
+    };
   }, [typedOrders]);
+
+  const itemFilteredOrders = useMemo(
+    () => typedOrders.filter(order => matchesItemFilter(order, itemFilter)),
+    [typedOrders, itemFilter],
+  );
+
+  const orderCounts = useMemo(() => {
+    const total = itemFilteredOrders.length;
+    const underReview = itemFilteredOrders.filter(o => o.status === 'Under Review').length;
+    const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
+    const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
+    const delivered = itemFilteredOrders.filter(o => o.status === 'Delivered').length;
+    const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
+    return {total, underReview, confirmed, shipped, delivered, cancelled};
+  }, [itemFilteredOrders]);
 
   const visibleOrders = useMemo(() => {
     if (tab === 'All') {
-      return typedOrders;
+      return itemFilteredOrders;
     }
-    return typedOrders.filter(o => o.status === tab);
-  }, [typedOrders, tab]);
+    return itemFilteredOrders.filter(o => o.status === tab);
+  }, [itemFilteredOrders, tab]);
 
   const tabCount = (tabId: string) => {
     if (tabId === 'All') return orderCounts.total;
@@ -256,11 +352,25 @@ const AdminOrdersScreen = () => {
       <View style={styles.statsSummaryCard}>
         <View style={styles.totalOrdersHeader}>
           <View>
-            <Text style={styles.totalOrdersLabel}>TOTAL ORDERS</Text>
+            <Text style={styles.totalOrdersLabel}>
+              {itemFilter === 'ALL'
+                ? 'TOTAL ORDERS'
+                : `${itemFilter} ORDERS`}
+            </Text>
             <Text style={styles.totalOrdersCount}>{orderCounts.total}</Text>
           </View>
           <View style={styles.totalOrdersBadge}>
-            <Text style={styles.totalOrdersBadgeText}>📦 Live Orders</Text>
+            <Text style={styles.totalOrdersBadgeText}>
+              {itemFilter === 'ALL'
+                ? '📦 Live Orders'
+                : itemFilter === 'RK'
+                  ? '📖 Ramakoti'
+                  : itemFilter === 'BP'
+                    ? '🛡️ Bhirava Pendant'
+                    : itemFilter === 'HB'
+                      ? '🔥 Homa Bhasma'
+                      : '🪨 Baanalingam'}
+            </Text>
           </View>
         </View>
         <View style={styles.miniStatsRow}>
@@ -311,6 +421,64 @@ const AdminOrdersScreen = () => {
         ))}
       </View>
 
+      {/* Product / Item Filter Section */}
+      <View style={styles.itemFilterContainer}>
+        <Text style={styles.itemFilterHeader}>FILTER BY ITEM</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.itemFilterScroll}>
+          {ITEM_FILTERS.map(item => {
+            const active = itemFilter === item.id;
+            const count = itemCounts[item.id] || 0;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                activeOpacity={0.8}
+                style={[
+                  styles.itemFilterChip,
+                  active && styles.itemFilterChipActive,
+                ]}
+                onPress={() => setItemFilter(item.id)}>
+                <View
+                  style={[
+                    styles.codeBadge,
+                    active && styles.codeBadgeActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.codeBadgeText,
+                      active && styles.codeBadgeTextActive,
+                    ]}>
+                    {item.code}
+                  </Text>
+                </View>
+                <Text
+                  style={[
+                    styles.itemFilterLabel,
+                    active && styles.itemFilterLabelActive,
+                  ]}>
+                  {item.label}
+                </Text>
+                <View
+                  style={[
+                    styles.itemCountBadge,
+                    active && styles.itemCountBadgeActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.itemCountText,
+                      active && styles.itemCountTextActive,
+                    ]}>
+                    {count}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+
       <View style={styles.tabBar}>
         {TABS.map(item => {
           const count = tabCount(item.id);
@@ -344,10 +512,21 @@ const AdminOrdersScreen = () => {
       ) : null}
 
       {!loading && !error && visibleOrders.length === 0 ? (
-        <Text style={styles.empty}>
-          No {orderType === 'reward' ? 'reward' : 'normal'} orders
-          {tab !== 'All' ? ` in ${tab}` : ''}.
-        </Text>
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyTitle}>No Orders Found</Text>
+          <Text style={styles.empty}>
+            No {itemFilter !== 'ALL' ? `${itemFilter} ` : ''}
+            {orderType === 'reward' ? 'reward' : 'normal'} orders
+            {tab !== 'All' ? ` in ${tab}` : ''}.
+          </Text>
+          {itemFilter !== 'ALL' ? (
+            <TouchableOpacity
+              style={styles.resetFilterBtn}
+              onPress={() => setItemFilter('ALL')}>
+              <Text style={styles.resetFilterBtnText}>Show All Items</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
 
       {visibleOrders.map(order => {
@@ -510,7 +689,116 @@ const styles = StyleSheet.create({
   typeBar: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 10,
+    marginBottom: 12,
+  },
+  itemFilterContainer: {
+    marginBottom: 14,
+  },
+  itemFilterHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  itemFilterScroll: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 12,
+  },
+  itemFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 22,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    shadowOffset: {width: 0, height: 1},
+    elevation: 1,
+  },
+  itemFilterChipActive: {
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
+    shadowOpacity: 0.15,
+  },
+  codeBadge: {
+    backgroundColor: '#FAF5EA',
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  codeBadgeActive: {
+    backgroundColor: Colors.templeGold,
+    borderColor: Colors.templeGold,
+  },
+  codeBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: Colors.sacredBrown,
+  },
+  codeBadgeTextActive: {
+    color: Colors.white,
+  },
+  itemFilterLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  itemFilterLabelActive: {
+    color: Colors.white,
+  },
+  itemCountBadge: {
+    backgroundColor: '#F3EFEA',
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  itemCountBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  itemCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  itemCountTextActive: {
+    color: Colors.white,
+  },
+  emptyContainer: {
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+  },
+  resetFilterBtn: {
+    marginTop: 10,
+    backgroundColor: Colors.templeGold,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 18,
+  },
+  resetFilterBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
   },
   tabBar: {
     flexDirection: 'row',

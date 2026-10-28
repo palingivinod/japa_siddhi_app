@@ -14,6 +14,7 @@ export type AppPaymentInput = {
   occasion?: string;
   forWhom?: string;
   personName?: string;
+  comments?: string;
 };
 
 const websiteFallback = (input: AppPaymentInput) =>
@@ -106,6 +107,7 @@ export async function startAppPayment(input: AppPaymentInput) {
       occasion: String(input.occasion || input.purpose || '').slice(0, 40),
       forWhom: String(input.forWhom || '').slice(0, 20),
       personName: String(input.personName || '').slice(0, 80),
+      comments: String(input.comments || '').trim().slice(0, 1000),
     });
     const order = orderRes.data?.data || {};
     const keyId = String(order.keyId || '');

@@ -50,8 +50,8 @@ const SocialAuthScreen = () => {
     // Do not flip busy until after the account picker closes — a loading
     // overlay during the native Google UI can leave Activity null on return.
     try {
-      const signedIn = await signInWithGoogle();
       setBusy(true);
+      const signedIn = await signInWithGoogle();
       resetAuthGate();
       setTimeout(() => {
         resetAfterSocialAuth(navigation, signedIn.user, {
@@ -81,18 +81,26 @@ const SocialAuthScreen = () => {
         <Text style={styles.title}>{t('continueWithGoogle')}</Text>
         <Text style={styles.copy}>{t('googleAuthHelper')}</Text>
         {busy ? (
-          <ActivityIndicator color={Colors.templeGold} style={{marginVertical: 16}} />
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={Colors.templeGold} />
+            <Text style={styles.loadingTitle}>Signing in with Google...</Text>
+            <Text style={styles.loadingSubtitle}>
+              Please wait while we connect your account
+            </Text>
+          </View>
         ) : (
-          <PrimaryButton
-            title={t('continueWithGoogleBtn')}
-            onPress={continueWithGoogle}
-          />
+          <>
+            <PrimaryButton
+              title={t('continueWithGoogleBtn')}
+              onPress={continueWithGoogle}
+            />
+            <View style={styles.gap} />
+            <OutlineButton
+              title={t('signInWithEmailPassword')}
+              onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
+            />
+          </>
         )}
-        <View style={styles.gap} />
-        <OutlineButton
-          title={t('signInWithEmailPassword')}
-          onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
-        />
       </ScreenLayout>
     );
   }
@@ -140,4 +148,28 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   gap: {height: 12},
+  loadingBox: {
+    backgroundColor: Colors.cream,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    paddingVertical: 24,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginVertical: 12,
+  },
+  loadingTitle: {
+    marginTop: 14,
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+  },
+  loadingSubtitle: {
+    marginTop: 4,
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
 });

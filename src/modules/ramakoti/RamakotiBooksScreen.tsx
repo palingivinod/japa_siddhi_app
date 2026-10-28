@@ -28,6 +28,7 @@ const RamakotiBooksScreen = () => {
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
+  const [comments, setComments] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
 
   const askForProfileAddress = useCallback(() => {
@@ -95,6 +96,7 @@ const RamakotiBooksScreen = () => {
       fullName: fullName.trim(),
       mobile,
       address: address.trim(),
+      comments: comments.trim(),
     });
   };
 
@@ -139,6 +141,17 @@ const RamakotiBooksScreen = () => {
         placeholder={t('deliveryAddress')}
         value={address}
         onChangeText={setAddress}
+      />
+      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
+      <FormField
+        label={t('comments')}
+        placeholder={t('generalCommentsPlaceholder')}
+        value={comments}
+        onChangeText={setComments}
+        maxLength={1000}
+        multiline
+        numberOfLines={3}
+        style={styles.commentsInput}
       />
       <PrimaryButton
         title={
@@ -185,5 +198,18 @@ const styles = StyleSheet.create({
   large: {
     width: '100%',
     height: '78%',
+  },
+  addressNote: {
+    color: '#D32F2F',
+    fontSize: 12.5,
+    fontWeight: '700',
+    marginTop: -6,
+    marginBottom: 14,
+    lineHeight: 18,
+    includeFontPadding: true,
+  },
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });
