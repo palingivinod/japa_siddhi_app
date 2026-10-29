@@ -398,6 +398,8 @@ export const deliverAdminNotification = async (input: {
   extraData?: Record<string, any>;
   actionType?: string;
   actionId?: number | null;
+  /** When true, push even outside 7 AM–10 PM IST (e.g. class going live). */
+  bypassHours?: boolean;
 }) => {
   const recipients = await loadRecipients(input.target);
   const parsedTrans = parseJsonSafely(input.translations);
@@ -479,6 +481,7 @@ export const deliverAdminNotification = async (input: {
         ...buildRoutingPushExtra(actionType, actionId, input.extraData),
         mantraName: subject,
       },
+      Boolean(input.bypassHours),
     );
     totalPushSent += pushResult.pushSent;
     totalPushFailed += pushResult.pushFailed;

@@ -75,6 +75,11 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
+  if (action === 'MEETING_SCHEDULED' || action === 'MEETING_LIVE') {
+    navigateTo('Home');
+    return;
+  }
+
   if (
     action === 'GOAL_COMPLETED' ||
     action === 'DAILY_GOAL_COMPLETED' ||

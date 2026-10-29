@@ -1018,6 +1018,9 @@ export const startNotificationReminderScheduler = () => {
   // First sweep shortly after boot, then every 30 minutes for deadlines.
   setTimeout(() => {
     runReminderSweep().catch(() => undefined);
+    import('../admin/meetingNotify.service')
+      .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
+      .catch(() => undefined);
   }, 15_000);
   reminderTimer = setInterval(() => {
     runReminderSweep().catch(() => undefined);
@@ -1026,13 +1029,16 @@ export const startNotificationReminderScheduler = () => {
     reminderTimer.unref();
   }
 
-  // Admin "Later" queue needs a tighter poll so scheduled pushes fire on time.
+  // Admin "Later" queue + meeting live-start need a tighter poll.
   if (!queueTimer) {
     queueTimer = setInterval(() => {
       import('../admin/adminNotification.service')
         .then(({flushDueAdminNotifications}) =>
           flushDueAdminNotifications(),
         )
+        .catch(() => undefined);
+      import('../admin/meetingNotify.service')
+        .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
         .catch(() => undefined);
     }, 60 * 1000);
     if (typeof queueTimer.unref === 'function') {

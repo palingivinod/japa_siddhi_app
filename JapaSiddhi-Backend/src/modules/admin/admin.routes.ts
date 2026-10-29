@@ -5534,6 +5534,10 @@ router.put('/meeting', async (req: Request, res: Response) => {
       time: typeof time === 'string' ? time : undefined,
       scheduledAt: scheduledAt !== undefined ? (scheduledAt ? String(scheduledAt) : null) : undefined,
     });
+    // Notify all devotees: scheduled (future) or live (already started / no clock).
+    void import('./meetingNotify.service')
+      .then(({notifyMeetingSaved}) => notifyMeetingSaved(updated))
+      .catch(() => undefined);
     return res.json({
       success: true,
       message: 'Meeting configuration updated successfully.',
@@ -5551,6 +5555,9 @@ router.delete('/meeting', async (_req: Request, res: Response) => {
   try {
     const appSettingsService = (await import('./appSettings.service')).default;
     await appSettingsService.removeMeetingConfig();
+    void import('./meetingNotify.service')
+      .then(({clearMeetingNotifyKeys}) => clearMeetingNotifyKeys())
+      .catch(() => undefined);
     return res.json({
       success: true,
       message: 'Meeting removed successfully.',

@@ -139,15 +139,17 @@ const styles = StyleSheet.create({
   },
   buttonStack: {
     position: 'absolute',
-    top: '34%',
+    left: 0,
+    right: 0,
+    bottom: 16,
     alignItems: 'center',
-    gap: 14,
+    gap: 18,
     width: '100%',
     paddingHorizontal: 16,
   },
   buttonStackWithAnnouncement: {
-    top: '25%',
-    gap: 10,
+    bottom: 12,
+    gap: 14,
   },
   button: {
     backgroundColor: Colors.cream,

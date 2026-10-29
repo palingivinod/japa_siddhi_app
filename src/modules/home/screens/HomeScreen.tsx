@@ -81,30 +81,34 @@ const HomeScreen = () => {
   const [panchangModalVisible, setPanchangModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Subtle, slow border pulse animation for the Panchangam button
-  const panchangBorderAnim = useRef(new Animated.Value(0)).current;
+  // Slow border blink so Panchangam / Meeting cards are easy to notice
+  const cardBorderAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(panchangBorderAnim, {
+        Animated.timing(cardBorderAnim, {
           toValue: 1,
-          duration: 1800,
+          duration: 2200,
           useNativeDriver: false,
         }),
-        Animated.timing(panchangBorderAnim, {
+        Animated.timing(cardBorderAnim, {
           toValue: 0,
-          duration: 1800,
+          duration: 2200,
           useNativeDriver: false,
         }),
       ]),
     );
     pulse.start();
     return () => pulse.stop();
-  }, [panchangBorderAnim]);
+  }, [cardBorderAnim]);
 
-  const panchangBorderColor = panchangBorderAnim.interpolate({
+  const panchangBorderColor = cardBorderAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['#E8D2A6', '#8C531B'],
+  });
+  const panchangBorderWidth = cardBorderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1.5, 2.5],
   });
 
   // Active meeting configured by Admin
@@ -119,32 +123,15 @@ const HomeScreen = () => {
   const [meetingCountdown, setMeetingCountdown] = useState<string>('');
   const [isMeetingLive, setIsMeetingLive] = useState<boolean>(true);
 
-  // Subtle, slow border pulse animation for the Meeting / Class button (reduced blink effect)
-  const meetingBorderAnim = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(meetingBorderAnim, {
-          toValue: 1,
-          duration: 1800,
-          useNativeDriver: false,
-        }),
-        Animated.timing(meetingBorderAnim, {
-          toValue: 0,
-          duration: 1800,
-          useNativeDriver: false,
-        }),
-      ]),
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [meetingBorderAnim]);
-
-  const meetingBorderColor = meetingBorderAnim.interpolate({
+  const meetingBorderColor = cardBorderAnim.interpolate({
     inputRange: [0, 1],
     outputRange: isMeetingLive
-      ? ['#E8D2A6', '#C28B38']
-      : ['#E8D2A6', '#F59E0B'],
+      ? ['#F5D0A9', '#C28B38']
+      : ['#FDE68A', '#D97706'],
+  });
+  const meetingBorderWidth = cardBorderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1.5, 2.5],
   });
 
   // Calculate live ticking countdown to scheduled meeting time
@@ -832,11 +819,14 @@ const HomeScreen = () => {
             }))}
           />
 
-          {/* Subtle slow-pulsing border Panchangam Button */}
+          {/* Slow border blink — Panchangam */}
           <Animated.View
             style={[
               styles.panchangCardWrapper,
-              {borderColor: panchangBorderColor},
+              {
+                borderColor: panchangBorderColor,
+                borderWidth: panchangBorderWidth,
+              },
             ]}>
             <TouchableOpacity
               style={styles.panchangButton}
@@ -859,12 +849,15 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Meeting / Class Button (Configured by Admin with Live Countdown & Subtle Border Pulse) */}
+          {/* Meeting / Class — same slow border blink */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
             <Animated.View
               style={[
                 styles.meetingCardWrapper,
-                {borderColor: meetingBorderColor},
+                {
+                  borderColor: meetingBorderColor,
+                  borderWidth: meetingBorderWidth,
+                },
               ]}>
               <TouchableOpacity
                 style={styles.lalithaClassCard}
