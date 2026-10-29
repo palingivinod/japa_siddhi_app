@@ -400,7 +400,7 @@ const NotificationsScreen = () => {
                     isUnread && styles.titleUnread,
                     isHighlighted && styles.titleHighlighted,
                   ]}
-                  numberOfLines={1}>
+                  numberOfLines={3}>
                   {getLocalizedNotification(item, language).brandTitle ||
                     tt(item.title) ||
                     'Japasiddhi - Bilva Patra Trust'}
@@ -453,15 +453,12 @@ const NotificationsScreen = () => {
                         style={[
                           styles.mantraHighlight,
                           isUnread && styles.mantraHighlightUnread,
-                        ]}
-                        numberOfLines={2}>
+                        ]}>
                         {subject}
                       </Text>
                     ) : null}
                     {bodyLine ? (
-                      <Text style={styles.subtitle} numberOfLines={4}>
-                        {bodyLine}
-                      </Text>
+                      <Text style={styles.subtitle}>{bodyLine}</Text>
                     ) : null}
                   </>
                 );
@@ -544,7 +541,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
   cardUnread: {
     backgroundColor: '#FFFCF5',
@@ -608,7 +605,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    lineHeight: 22,
+    lineHeight: 24,
     includeFontPadding: true,
   },
   mantraHighlightUnread: {
@@ -641,10 +638,10 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: Colors.textSecondary,
-    marginTop: 3,
-    lineHeight: 18,
+    marginTop: 4,
+    lineHeight: 22,
     includeFontPadding: true,
   },
   footerRow: {

@@ -27,7 +27,9 @@ const DonationFormScreen = () => {
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
   const [preferDate, setPreferDate] = useState(params.preferDate || '');
   const [showDate, setShowDate] = useState(false);
-  const [comments, setComments] = useState('');
+  const [comments, setComments] = useState(
+    String(params.comments || '').trim(),
+  );
   const [persons, setPersons] = useState(
     Number(params.persons) || (params.amount ? Math.max(1, Math.round(Number(params.amount) / RATE_PER_PERSON)) : 0),
   );

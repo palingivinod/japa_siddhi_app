@@ -905,7 +905,10 @@ export const translateToPg = (rawSql: string): {sql: string; isInsertWithId: boo
       const rest = sql.slice(i + 1);
       const notNull = rest.match(/^\s+IS\s+NOT\s+NULL/i);
       const isNull = rest.match(/^\s+IS\s+NULL/i);
-      const numericCompare = rest.match(/^\s*(<=|>=|<>)/);
+      // Only <= / >= need an integer cast (e.g. "? <= 0"). Do NOT treat "<>"
+      // as numeric — admin updates use "? <> ''" for text fields, and casting
+      // those to INTEGER yields: invalid input syntax for type integer: "".
+      const numericCompare = rest.match(/^\s*(<=|>=)/);
       if (notNull) {
         // A bare "? IS NOT NULL" has no column type. PostgreSQL rejects a
         // null parameter there: "could not determine data type of parameter".

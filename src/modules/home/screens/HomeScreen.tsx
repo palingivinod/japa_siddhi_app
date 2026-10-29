@@ -860,12 +860,9 @@ const HomeScreen = () => {
                   </View>
                   <View style={styles.lalithaClassCopy}>
                     <View style={styles.lalithaClassTitleRow}>
-                      <Text style={styles.lalithaClassTitle} numberOfLines={1}>
+                      <Text style={styles.lalithaClassTitle} numberOfLines={2}>
                         {activeMeeting.title || t('lalithaSahasramClass')}
                       </Text>
-                      <View style={styles.gmeetPill}>
-                        <Text style={styles.gmeetPillText}>📹 GMeet</Text>
-                      </View>
                       {isMeetingLive ? (
                         <View style={styles.panchangLiveTag}>
                           <Text style={styles.panchangLiveDot}>●</Text>
@@ -1314,23 +1311,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   lalithaClassTitle: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: '55%',
     color: Colors.sacredBrown,
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 0.2,
-  },
-  gmeetPill: {
-    backgroundColor: '#E0F2FE',
-    borderWidth: 1,
-    borderColor: '#BAE6FD',
-    borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-  },
-  gmeetPillText: {
-    color: '#0369A1',
-    fontSize: 10,
-    fontWeight: '700',
   },
   meetingUpcomingTag: {
     backgroundColor: '#FEF3C7',

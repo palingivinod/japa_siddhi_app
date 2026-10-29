@@ -6,6 +6,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 import DatePickerModal from '../common/DatePickerModal';
+import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -17,6 +18,7 @@ const JapaAnnadanamScreen = () => {
   const [persons, setPersons] = useState(0);
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
+  const [comments, setComments] = useState('');
   const [completed, setCompleted] = useState(0);
   const [enabled, setEnabled] = useState(true);
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(preferDate);
@@ -84,6 +86,16 @@ const JapaAnnadanamScreen = () => {
               setShowDate(false);
             }}
           />
+          <FormField
+            label={t('comments')}
+            placeholder={t('annadanamCommentsPlaceholder')}
+            value={comments}
+            onChangeText={setComments}
+            maxLength={1000}
+            multiline
+            numberOfLines={3}
+            style={styles.commentsInput}
+          />
           <PrimaryButton
             title={
               persons > 0 && dateReady
@@ -106,6 +118,7 @@ const JapaAnnadanamScreen = () => {
                 amount: totalAmount,
                 itemName: t('japaAnnadanam'),
                 preferDate,
+                comments: comments.trim(),
               });
             }}
           />
@@ -196,5 +209,9 @@ const styles = StyleSheet.create({
   datePlaceholder: {
     color: Colors.placeholder,
     fontSize: 16,
+  },
+  commentsInput: {
+    minHeight: 80,
+    textAlignVertical: 'top',
   },
 });
