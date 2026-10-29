@@ -81,26 +81,31 @@ const HomeScreen = () => {
   const [panchangModalVisible, setPanchangModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Blinking pulse animation for the Panchangam button
-  const panchangBlinkAnim = useRef(new Animated.Value(1)).current;
+  // Subtle, slow border pulse animation for the Panchangam button
+  const panchangBorderAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(panchangBlinkAnim, {
-          toValue: 0.38,
-          duration: 750,
-          useNativeDriver: true,
-        }),
-        Animated.timing(panchangBlinkAnim, {
+        Animated.timing(panchangBorderAnim, {
           toValue: 1,
-          duration: 750,
-          useNativeDriver: true,
+          duration: 1800,
+          useNativeDriver: false,
+        }),
+        Animated.timing(panchangBorderAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: false,
         }),
       ]),
     );
     pulse.start();
     return () => pulse.stop();
-  }, [panchangBlinkAnim]);
+  }, [panchangBorderAnim]);
+
+  const panchangBorderColor = panchangBorderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#E8D2A6', '#8C531B'],
+  });
 
   // Active meeting configured by Admin
   const [activeMeeting, setActiveMeeting] = useState<{
@@ -108,28 +113,150 @@ const HomeScreen = () => {
     title: string;
     link: string;
     time: string;
+    scheduledAt?: string | null;
   } | null>(null);
 
-  // Blinking pulse animation for the Meeting / Class button
-  const meetingBlinkAnim = useRef(new Animated.Value(1)).current;
+  const [meetingCountdown, setMeetingCountdown] = useState<string>('');
+  const [isMeetingLive, setIsMeetingLive] = useState<boolean>(true);
+
+  // Subtle, slow border pulse animation for the Meeting / Class button (reduced blink effect)
+  const meetingBorderAnim = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
-        Animated.timing(meetingBlinkAnim, {
-          toValue: 0.38,
-          duration: 750,
-          useNativeDriver: true,
-        }),
-        Animated.timing(meetingBlinkAnim, {
+        Animated.timing(meetingBorderAnim, {
           toValue: 1,
-          duration: 750,
-          useNativeDriver: true,
+          duration: 1800,
+          useNativeDriver: false,
+        }),
+        Animated.timing(meetingBorderAnim, {
+          toValue: 0,
+          duration: 1800,
+          useNativeDriver: false,
         }),
       ]),
     );
     pulse.start();
     return () => pulse.stop();
-  }, [meetingBlinkAnim]);
+  }, [meetingBorderAnim]);
+
+  const meetingBorderColor = meetingBorderAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: isMeetingLive
+      ? ['#E8D2A6', '#C28B38']
+      : ['#E8D2A6', '#F59E0B'],
+  });
+
+  // Calculate live ticking countdown to scheduled meeting time
+  useEffect(() => {
+    if (!activeMeeting || !activeMeeting.enabled) {
+      setMeetingCountdown('');
+      setIsMeetingLive(true);
+      return;
+    }
+
+    const parseTargetTimestamp = (): number | null => {
+      if (activeMeeting.scheduledAt) {
+        const ms = new Date(activeMeeting.scheduledAt).getTime();
+        if (!isNaN(ms) && ms > 0) {
+          return ms;
+        }
+      }
+      const raw = String(activeMeeting.time || '').trim();
+      if (!raw) {
+        return null;
+      }
+
+      // Direct ISO or full date parse
+      const direct = new Date(raw).getTime();
+      if (!isNaN(direct) && direct > 1000000000000) {
+        return direct;
+      }
+
+      const now = new Date();
+      // Match "3pm", "3:00 PM", "11:30 am", etc.
+      const match12 = raw.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+      if (match12) {
+        let h = parseInt(match12[1], 10);
+        const m = match12[2] ? parseInt(match12[2], 10) : 0;
+        const ampm = match12[3].toLowerCase();
+        if (ampm === 'pm' && h < 12) {
+          h += 12;
+        }
+        if (ampm === 'am' && h === 12) {
+          h = 0;
+        }
+        const t = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          h,
+          m,
+          0,
+          0,
+        );
+        if (/tomorrow/i.test(raw)) {
+          t.setDate(t.getDate() + 1);
+        }
+        return t.getTime();
+      }
+
+      // Match 24-hr "15:00", "09:30"
+      const match24 = raw.match(/\b([01]?\d|2[0-3]):([0-5]\d)\b/);
+      if (match24) {
+        const h = parseInt(match24[1], 10);
+        const m = parseInt(match24[2], 10);
+        const t = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+          h,
+          m,
+          0,
+          0,
+        );
+        if (/tomorrow/i.test(raw)) {
+          t.setDate(t.getDate() + 1);
+        }
+        return t.getTime();
+      }
+      return null;
+    };
+
+    const updateCountdown = () => {
+      const targetMs = parseTargetTimestamp();
+      if (!targetMs) {
+        setMeetingCountdown('');
+        setIsMeetingLive(true);
+        return;
+      }
+
+      const diff = targetMs - Date.now();
+      if (diff <= 0) {
+        setMeetingCountdown('');
+        setIsMeetingLive(true);
+      } else {
+        setIsMeetingLive(false);
+        const totalSec = Math.floor(diff / 1000);
+        const days = Math.floor(totalSec / 86400);
+        const h = Math.floor((totalSec % 86400) / 3600);
+        const m = Math.floor((totalSec % 3600) / 60);
+        const s = totalSec % 60;
+        const pad = (n: number) => String(n).padStart(2, '0');
+        if (days > 0) {
+          setMeetingCountdown(`${days}d ${pad(h)}h ${pad(m)}m ${pad(s)}s`);
+        } else if (h > 0) {
+          setMeetingCountdown(`${pad(h)}h ${pad(m)}m ${pad(s)}s`);
+        } else {
+          setMeetingCountdown(`${pad(m)}m ${pad(s)}s`);
+        }
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [activeMeeting]);
 
   const onOpenMeeting = async (meetingUrl: string, meetingTitle?: string) => {
     const trimmed = String(meetingUrl || '').trim();
@@ -148,6 +275,20 @@ const HomeScreen = () => {
         'Could not open Google Meet. Please ensure a browser or the Google Meet app is installed.',
       );
     }
+  };
+
+  const onMeetingCardPress = () => {
+    if (!activeMeeting || !activeMeeting.link) {
+      return;
+    }
+    if (!isMeetingLive) {
+      Alert.alert(
+        activeMeeting.title || t('lalithaSahasramClass') || 'Online Class',
+        `Class is scheduled at ${activeMeeting.time || 'the announced time'}.\n\n⏳ Starts in: ${meetingCountdown}\n\nThe Join link will activate automatically when the countdown ends!`,
+      );
+      return;
+    }
+    onOpenMeeting(activeMeeting.link, activeMeeting.title);
   };
   const [homeBanners, setHomeBanners] = useState<
     Array<{
@@ -684,35 +825,28 @@ const HomeScreen = () => {
             onPress={handleBannerStartJapa}
             secondaryButtonText={t('whyJapaSiddhiApp')}
             onSecondaryPress={() => navigation.navigate('IntroVideos')}
+            announcements={homeBanners.map(item => ({
+              id: item.id,
+              title: tt(item.title),
+              subtitle: item.subtitle ? tt(item.subtitle) : '',
+            }))}
           />
 
-          {homeBanners.map(item => (
-            <View key={String(item.id)} style={styles.noticeCard}>
-              <View style={styles.noticeCopy}>
-                <Text style={styles.noticeKicker}>{t('announcement')}</Text>
-                <Text style={styles.noticeTitle}>{tt(item.title)}</Text>
-                {item.subtitle ? (
-                  <Text style={styles.noticeSub}>{tt(item.subtitle)}</Text>
-                ) : null}
-              </View>
-            </View>
-          ))}
-
-          {/* Blinking Panchangam Button */}
-          <Animated.View style={{opacity: panchangBlinkAnim, marginBottom: 10}}>
+          {/* Subtle slow-pulsing border Panchangam Button */}
+          <Animated.View
+            style={[
+              styles.panchangCardWrapper,
+              {borderColor: panchangBorderColor},
+            ]}>
             <TouchableOpacity
               style={styles.panchangButton}
-              onPress={() => setPanchangModalVisible(true)}
+              onPress={() => navigation.navigate('Festivals')}
               activeOpacity={0.85}>
               <View style={styles.panchangButtonLeft}>
                 <Text style={styles.panchangButtonIcon}>📅</Text>
                 <Text style={styles.panchangButtonText}>
                   {t('panchangam') || 'Panchangam'}
                 </Text>
-                <View style={styles.panchangLiveTag}>
-                  <Text style={styles.panchangLiveDot}>●</Text>
-                  <Text style={styles.panchangLiveText}>LIVE</Text>
-                </View>
               </View>
               <View style={styles.panchangButtonRight}>
                 <Text style={styles.panchangButtonDate} numberOfLines={1}>
@@ -725,14 +859,16 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </Animated.View>
 
-          {/* Blinking Meeting / Class Button (Configured by Admin) */}
+          {/* Meeting / Class Button (Configured by Admin with Live Countdown & Subtle Border Pulse) */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
-            <Animated.View style={{opacity: meetingBlinkAnim, marginBottom: 16}}>
+            <Animated.View
+              style={[
+                styles.meetingCardWrapper,
+                {borderColor: meetingBorderColor},
+              ]}>
               <TouchableOpacity
                 style={styles.lalithaClassCard}
-                onPress={() =>
-                  onOpenMeeting(activeMeeting.link, activeMeeting.title)
-                }
+                onPress={onMeetingCardPress}
                 activeOpacity={0.85}>
                 <View style={styles.lalithaClassLeft}>
                   <View style={styles.lalithaClassIconBox}>
@@ -746,24 +882,56 @@ const HomeScreen = () => {
                       <View style={styles.gmeetPill}>
                         <Text style={styles.gmeetPillText}>📹 GMeet</Text>
                       </View>
-                      <View style={styles.panchangLiveTag}>
-                        <Text style={styles.panchangLiveDot}>●</Text>
-                        <Text style={styles.panchangLiveText}>LIVE</Text>
-                      </View>
+                      {isMeetingLive ? (
+                        <View style={styles.panchangLiveTag}>
+                          <Text style={styles.panchangLiveDot}>●</Text>
+                          <Text style={styles.panchangLiveText}>
+                            {t('liveNow') || 'LIVE NOW'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.meetingUpcomingTag}>
+                          <Text style={styles.meetingUpcomingTagDot}>⏳</Text>
+                          <Text style={styles.meetingUpcomingTagText}>
+                            {t('startsIn') || 'STARTS IN'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
-                    <Text style={styles.lalithaClassSub} numberOfLines={1}>
-                      {activeMeeting.time
-                        ? `⏰ ${activeMeeting.time}`
-                        : t('lalithaSahasramClassSub')}
-                    </Text>
+                    {!isMeetingLive && meetingCountdown ? (
+                      <View style={styles.meetingCountdownBox}>
+                        <Text style={styles.meetingCountdownDigits}>
+                          ⏳ {meetingCountdown}
+                        </Text>
+                        {activeMeeting.time ? (
+                          <Text
+                            style={styles.meetingScheduledAtText}
+                            numberOfLines={1}>
+                            {' '}({activeMeeting.time})
+                          </Text>
+                        ) : null}
+                      </View>
+                    ) : (
+                      <Text style={styles.lalithaClassSub} numberOfLines={1}>
+                        {activeMeeting.time
+                          ? `⏰ ${activeMeeting.time}`
+                          : t('lalithaSahasramClassSub')}
+                      </Text>
+                    )}
                   </View>
                 </View>
-                <View style={styles.lalithaJoinBtn}>
-                  <Text style={styles.lalithaJoinText}>
-                    {t('joinClass') || 'JOIN'}
-                  </Text>
-                  <Text style={styles.lalithaJoinArrow}>↗</Text>
-                </View>
+                {isMeetingLive ? (
+                  <View style={styles.lalithaJoinBtn}>
+                    <Text style={styles.lalithaJoinText}>
+                      {t('joinClass') || 'JOIN'}
+                    </Text>
+                    <Text style={styles.lalithaJoinArrow}>↗</Text>
+                  </View>
+                ) : (
+                  <View style={styles.meetingSoonBtn}>
+                    <Text style={styles.meetingSoonText}>WAIT ⏳</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </Animated.View>
           ) : null}
@@ -1042,20 +1210,25 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     marginBottom: 14,
   },
-  panchangButton: {
-    backgroundColor: Colors.leafGreen,
+  panchangCardWrapper: {
+    backgroundColor: '#FFFDF7',
     borderRadius: 16,
+    borderWidth: 1.5,
+    marginBottom: 12,
+    shadowColor: '#56350F',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 5,
+    elevation: 2,
+    overflow: 'hidden',
+  },
+  panchangButton: {
+    backgroundColor: '#FFFDF7',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    elevation: 2,
   },
   panchangLiveTag: {
     backgroundColor: '#DC2626',
@@ -1077,22 +1250,25 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 0.5,
   },
-  lalithaClassCard: {
+  meetingCardWrapper: {
     backgroundColor: '#FFFDF7',
-    borderWidth: 1.5,
-    borderColor: '#E8D2A6',
     borderRadius: 16,
-    paddingVertical: 13,
-    paddingHorizontal: 15,
+    borderWidth: 1.5,
     marginBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     shadowColor: '#56350F',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.08,
     shadowRadius: 5,
     elevation: 2,
+    overflow: 'hidden',
+  },
+  lalithaClassCard: {
+    backgroundColor: '#FFFDF7',
+    paddingVertical: 13,
+    paddingHorizontal: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
   lalithaClassLeft: {
     flexDirection: 'row',
@@ -1142,6 +1318,60 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
   },
+  meetingUpcomingTag: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    marginLeft: 4,
+  },
+  meetingUpcomingTagDot: {
+    fontSize: 8,
+  },
+  meetingUpcomingTagText: {
+    color: '#B45309',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  meetingCountdownBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 3,
+    flexWrap: 'wrap',
+  },
+  meetingCountdownDigits: {
+    color: '#D97706',
+    fontSize: 12.5,
+    fontWeight: '800',
+    fontVariant: ['tabular-nums'],
+  },
+  meetingScheduledAtText: {
+    color: '#8C6C42',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  meetingSoonBtn: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    paddingVertical: 8,
+    paddingHorizontal: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  meetingSoonText: {
+    color: '#92400E',
+    fontWeight: '900',
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
   lalithaClassSub: {
     color: '#8C6C42',
     fontSize: 12,
@@ -1182,7 +1412,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   panchangButtonText: {
-    color: Colors.white,
+    color: Colors.sacredBrown,
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.3,
@@ -1195,14 +1425,14 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   panchangButtonDate: {
-    color: '#E4EFDF',
+    color: '#8C6C42',
     fontSize: 13,
-    fontWeight: '600',
-    maxWidth: 150,
+    fontWeight: '700',
+    maxWidth: 160,
     includeFontPadding: true,
   },
   panchangButtonArrow: {
-    color: Colors.white,
+    color: Colors.sacredBrown,
     fontSize: 16,
     fontWeight: '800',
   },

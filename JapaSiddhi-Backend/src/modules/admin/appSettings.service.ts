@@ -76,6 +76,7 @@ class AppSettingsService {
     title: string;
     link: string;
     time: string;
+    scheduledAt?: string | null;
     updatedAt?: string;
   }> {
     const raw = await this.getSetting('active_meeting_config', '');
@@ -85,6 +86,7 @@ class AppSettingsService {
         title: 'Lalitha Sahasram Class',
         link: 'https://meet.google.com/ryz-hxyg-byc',
         time: '',
+        scheduledAt: null,
       };
     }
     try {
@@ -94,6 +96,7 @@ class AppSettingsService {
         title: String(parsed.title || 'Lalitha Sahasram Class'),
         link: String(parsed.link || ''),
         time: String(parsed.time || ''),
+        scheduledAt: parsed.scheduledAt ? String(parsed.scheduledAt) : null,
         updatedAt: parsed.updatedAt,
       };
     } catch {
@@ -102,6 +105,7 @@ class AppSettingsService {
         title: 'Lalitha Sahasram Class',
         link: '',
         time: '',
+        scheduledAt: null,
       };
     }
   }
@@ -111,11 +115,13 @@ class AppSettingsService {
     title?: string;
     link?: string;
     time?: string;
+    scheduledAt?: string | null;
   }): Promise<{
     enabled: boolean;
     title: string;
     link: string;
     time: string;
+    scheduledAt?: string | null;
     updatedAt: string;
   }> {
     const current = await this.getMeetingConfig();
@@ -124,6 +130,12 @@ class AppSettingsService {
       title: config.title !== undefined ? String(config.title).trim() : current.title,
       link: config.link !== undefined ? String(config.link).trim() : current.link,
       time: config.time !== undefined ? String(config.time).trim() : current.time,
+      scheduledAt:
+        config.scheduledAt !== undefined
+          ? config.scheduledAt
+            ? String(config.scheduledAt)
+            : null
+          : current.scheduledAt ?? null,
       updatedAt: new Date().toISOString(),
     };
     await this.setSetting('active_meeting_config', JSON.stringify(updated));
@@ -138,6 +150,7 @@ class AppSettingsService {
         title: '',
         link: '',
         time: '',
+        scheduledAt: null,
         updatedAt: new Date().toISOString(),
       }),
     );

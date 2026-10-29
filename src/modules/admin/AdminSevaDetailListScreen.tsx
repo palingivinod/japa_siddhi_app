@@ -154,6 +154,7 @@ const AdminSevaDetailListScreen = () => {
       }
     } catch (err) {
       setError(getApiError(err, 'Could not load seva offerings.'));
+      setItems([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

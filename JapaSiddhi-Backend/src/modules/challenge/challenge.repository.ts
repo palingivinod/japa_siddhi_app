@@ -478,25 +478,44 @@ class ChallengeRepository {
 
   async listRewards() {
     try {
-      const countRows = await mysql.query<any[]>(
-        `SELECT COUNT(*) AS total FROM challenge_rewards WHERE is_active = 1`,
+      const existingRows = await mysql.query<any[]>(
+        `SELECT id, name, display_order FROM challenge_rewards`,
       );
-      if (Number(countRows?.[0]?.total || 0) === 0) {
-        await mysql.query(
-          `
-          INSERT INTO challenge_rewards (name, stock, is_active, display_order)
-          VALUES
-            ('Rudrakshi Mala', 50, 1, 1),
-            ('Tulasi Mala', 50, 1, 2),
-            ('Pasupu Mala', 50, 1, 3),
-            ('Karungali Mala', 50, 1, 4),
-            ('Spatik Mala', 50, 1, 5),
-            ('Green Agate', 50, 1, 6),
-            ('Yellow Agate', 50, 1, 7),
-            ('Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', 50, 1, 8),
-            ('Spiritual Reward', 50, 1, 9)
-          `,
-        );
+      const existingList = Array.isArray(existingRows) ? existingRows : [];
+      const canonicalItems = [
+        {name: 'Rudrakshi Mala', stock: 50, order: 1, aliases: ['rudraksh']},
+        {name: 'Tulasi Mala', stock: 50, order: 2, aliases: ['tulasi', 'tulsi']},
+        {name: 'Pasupu Mala', stock: 50, order: 3, aliases: ['pasupu', 'turmeric', 'haldi']},
+        {name: 'Sandal Wood Mala', stock: 50, order: 4, aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
+        {name: 'Karungali Mala', stock: 50, order: 5, aliases: ['karungali', 'ebony', 'sacred japa mala', 'black wood']},
+        {name: 'Spatik Mala', stock: 50, order: 6, aliases: ['spatik', 'sphatik', 'crystal', 'quartz']},
+        {name: 'Green Agate', stock: 50, order: 7, aliases: ['green agate', 'green hakik']},
+        {name: 'Yellow Agate', stock: 50, order: 8, aliases: ['yellow agate', 'yellow hakik']},
+        {
+          name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
+          stock: 50,
+          order: 9,
+          aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri'],
+        },
+        {
+          name: 'Spiritual Reward',
+          stock: 50,
+          order: 10,
+          aliases: ['spiritual reward', 'spiritual offering', 'spiritual product'],
+        },
+      ];
+
+      for (const item of canonicalItems) {
+        const found = existingList.find((r: any) => {
+          const rowName = String(r.name || '').toLowerCase().trim();
+          return rowName === item.name.toLowerCase() || item.aliases.some(a => rowName.includes(a));
+        });
+        if (!found) {
+          await mysql.query(
+            `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
+            [item.name, item.stock, item.order],
+          );
+        }
       }
     } catch {
       // ignore seed error

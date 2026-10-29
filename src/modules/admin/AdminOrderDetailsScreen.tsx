@@ -59,21 +59,25 @@ type OrderDetail = {
   };
 };
 
-const formatWhen = (raw?: string | null) => {
+const formatWhen = (raw?: string | null): string => {
   if (!raw) {
     return '—';
   }
-  const date = new Date(raw);
-  if (Number.isNaN(date.getTime())) {
-    return String(raw);
+  const str = String(raw).trim();
+  if (!str) {
+    return '—';
   }
-  return date.toLocaleString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  // Extract YYYY-MM-DD HH:mm:ss directly, removing microsecond fractions and timezone (+00 / Z)
+  const match = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+  const parsed = new Date(str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str);
+  if (!Number.isNaN(parsed.getTime())) {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+  }
+  return str.replace(/\.\d+.*$/, '').trim() || str;
 };
 
 const DetailRow = ({label, value}: {label: string; value?: string | number | null}) => {

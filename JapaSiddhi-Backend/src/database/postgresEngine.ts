@@ -270,6 +270,14 @@ CREATE TABLE IF NOT EXISTS donations (
   donation_status TEXT NOT NULL DEFAULT 'SUCCESS',
   donated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT,
   remarks TEXT,
+  donor_name TEXT,
+  donor_phone TEXT,
+  prefer_date TEXT,
+  occasion TEXT,
+  for_whom TEXT,
+  person_name TEXT,
+  admin_reply TEXT,
+  admin_replied_at TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
 );
@@ -703,6 +711,14 @@ export const translateToPg = (rawSql: string): {sql: string; isInsertWithId: boo
     sql = sql.replace(/INT(?:EGER)?\s+(?:NOT\s+NULL\s+)?AUTO_INCREMENT\s+PRIMARY\s+KEY/gi, 'SERIAL PRIMARY KEY');
   }
 
+  // Handle ALTER TABLE table ADD COLUMN -> ALTER TABLE table ADD COLUMN IF NOT EXISTS
+  if (/^\s*ALTER\s+TABLE\s+(\S+)\s+ADD\s+COLUMN\s+(?!IF\s+NOT\s+EXISTS)/i.test(sql)) {
+    sql = sql.replace(/^\s*ALTER\s+TABLE\s+(\S+)\s+ADD\s+COLUMN\s+/i, 'ALTER TABLE $1 ADD COLUMN IF NOT EXISTS ');
+  }
+
+  // Convert accidental zero-length double-quoted strings `""` in comparisons into standard SQL `''`
+  sql = sql.replace(/=\s*""/g, "= ''").replace(/<>\s*""/g, "<> ''").replace(/!=\s*""/g, "!= ''");
+
   // Handle INSERT OR IGNORE INTO -> INSERT INTO ... ON CONFLICT DO NOTHING
   const isInsertOrIgnore = /^\s*INSERT\s+OR\s+IGNORE\s+INTO\b/i.test(sql) || /^\s*INSERT\s+IGNORE\s+INTO\b/i.test(sql);
   if (isInsertOrIgnore) {
@@ -962,6 +978,21 @@ class PostgresEngine {
 
     await this.pool.query('SELECT 1');
     await this.pool.query(PG_SCHEMA_SQL);
+    try {
+      await this.pool.query(`
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_name TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS prefer_date TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS occasion TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS for_whom TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS person_name TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS admin_reply TEXT;
+        ALTER TABLE donations ADD COLUMN IF NOT EXISTS admin_replied_at TEXT;
+        ALTER TABLE customer_care ADD COLUMN IF NOT EXISTS admin_reply TEXT;
+      `);
+    } catch {
+      // Ignore migration errors if already present
+    }
     await this.autoMigrateFromLocalSqliteIfNeeded();
     console.log('✅ PostgreSQL Connected & Schema Verified');
   }

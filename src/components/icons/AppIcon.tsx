@@ -42,6 +42,7 @@ export type AppIconName =
   | 'pasupuKommulaMala'
   | 'karungaliMala'
   | 'spatikaMala'
+  | 'sandalwoodMala'
   | 'tulasiMala'
   | 'homaBhasma'
   | 'biravaPendant'
@@ -83,6 +84,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   pasupuKommulaMala: require('../../assets/images/pasupu_kommula_mala.jpg'),
   karungaliMala: require('../../assets/images/karungali_mala.jpg'),
   spatikaMala: require('../../assets/images/spatika_mala.png'),
+  sandalwoodMala: require('../../assets/images/sandalwood_mala.png'),
   tulasiMala: require('../../assets/images/tulasi_mala.png'),
   homaBhasma: require('../../assets/images/festival_annadanam.png'),
   biravaPendant: require('../../assets/images/birava_pendant.jpg'),

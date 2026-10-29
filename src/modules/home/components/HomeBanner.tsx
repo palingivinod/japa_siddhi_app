@@ -10,11 +10,19 @@ import {
 import Colors from '../../../theme/colors';
 import {HomeBanner as HomeBannerModel} from '../types/home';
 
+export interface AnnouncementItem {
+  id?: number | string;
+  title: string;
+  subtitle?: string;
+}
+
 interface Props {
   banner?: HomeBannerModel;
   onPress?: () => void;
   secondaryButtonText?: string;
   onSecondaryPress?: () => void;
+  announcements?: AnnouncementItem[] | string[] | string | null;
+  announcementText?: string | null;
 }
 
 const HomeBanner: React.FC<Props> = ({
@@ -22,17 +30,52 @@ const HomeBanner: React.FC<Props> = ({
   onPress,
   secondaryButtonText,
   onSecondaryPress,
+  announcements,
+  announcementText,
 }) => {
   const bannerSource =
     banner?.imageUrl && banner.imageUrl.trim() !== ''
       ? {uri: banner.imageUrl}
       : require('../../../assets/images/home_banner.jpg');
 
+  const announcementList: string[] = [];
+  if (typeof announcementText === 'string' && announcementText.trim()) {
+    announcementList.push(announcementText.trim());
+  } else if (typeof announcements === 'string' && announcements.trim()) {
+    announcementList.push(announcements.trim());
+  } else if (Array.isArray(announcements)) {
+    announcements.forEach(item => {
+      if (typeof item === 'string') {
+        if (item.trim()) {
+          announcementList.push(item.trim());
+        }
+      } else if (item && typeof item === 'object') {
+        const titleStr = String(item.title || '').trim();
+        const subStr = String(item.subtitle || '').trim();
+        const full = [titleStr, subStr].filter(Boolean).join(' • ').trim();
+        if (full) {
+          announcementList.push(full);
+        }
+      }
+    });
+  }
+
+  const hasAnnouncements = announcementList.length > 0;
+
   return (
-    <View style={styles.container}>
-      <Image source={bannerSource} resizeMode="contain" style={styles.image} />
+    <View
+      style={[
+        styles.container,
+        hasAnnouncements && styles.containerWithAnnouncement,
+      ]}>
+      <Image source={bannerSource} resizeMode="cover" style={styles.image} />
       <View style={styles.overlay} pointerEvents="box-none">
-        <View style={styles.buttonStack} pointerEvents="box-none">
+        <View
+          style={[
+            styles.buttonStack,
+            hasAnnouncements && styles.buttonStackWithAnnouncement,
+          ]}
+          pointerEvents="box-none">
           {secondaryButtonText ? (
             <TouchableOpacity
               style={styles.button}
@@ -49,6 +92,17 @@ const HomeBanner: React.FC<Props> = ({
               {banner?.buttonText || 'Start Japa'}
             </Text>
           </TouchableOpacity>
+          {/* Non-clickable announcement text pill placed under chant button */}
+          {announcementList.map((text, idx) => (
+            <View
+              key={`ann-${idx}`}
+              style={styles.announcementPill}
+              pointerEvents="none">
+              <Text style={styles.announcementText} numberOfLines={2}>
+                {text}
+              </Text>
+            </View>
+          ))}
         </View>
       </View>
     </View>
@@ -70,6 +124,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  containerWithAnnouncement: {
+    aspectRatio: 1.76,
+    maxHeight: 245,
+    minHeight: 215,
+  },
   image: {
     width: '100%',
     height: '100%',
@@ -80,15 +139,20 @@ const styles = StyleSheet.create({
   },
   buttonStack: {
     position: 'absolute',
-    // Close under the gold lotus line beneath the Om.
-    top: '36%',
+    top: '34%',
     alignItems: 'center',
-    gap: 16,
+    gap: 14,
+    width: '100%',
+    paddingHorizontal: 16,
+  },
+  buttonStackWithAnnouncement: {
+    top: '25%',
+    gap: 10,
   },
   button: {
     backgroundColor: Colors.cream,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 5,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: Colors.sacredBrown,
@@ -105,6 +169,30 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 15,
     lineHeight: 20,
+    includeFontPadding: true,
+    textAlign: 'center',
+  },
+  announcementPill: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: '92%',
+    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+  },
+  announcementText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 19,
     includeFontPadding: true,
     textAlign: 'center',
   },

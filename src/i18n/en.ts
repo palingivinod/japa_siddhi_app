@@ -1343,6 +1343,9 @@ const en = {
   meetingRemovedSuccess: 'Meeting removed successfully.',
   testLink: 'Test Link',
   noActiveMeeting: 'No meeting is currently configured.',
+  startsIn: 'STARTS IN',
+  soon: 'SOON',
+  liveNow: 'LIVE NOW',
 } as const;
 
 export type TranslationKey = keyof typeof en;

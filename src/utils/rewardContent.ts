@@ -370,12 +370,17 @@ const REWARD_LOCALIZATIONS: Array<{
   {
     match: name => {
       const lower = name.toLowerCase();
-      return lower.includes('chandan') || lower.includes('sandal');
+      return (
+        lower.includes('chandan') ||
+        lower.includes('sandal') ||
+        lower.includes('chandana')
+      );
     },
     content: {
       emoji: '📿',
+      imageName: 'sandalwoodMala',
       title: {
-        en: 'Chandan Mala',
+        en: 'Sandal Wood Mala',
         te: 'చందన మాల',
         hi: 'चंदन माला',
         ta: 'சந்தன மாலை',
@@ -826,7 +831,9 @@ export const getRewardRequirement = (
     lower.includes('tulsi') ||
     lower.includes('pasupu') ||
     lower.includes('turmeric') ||
-    lower.includes('haldi')
+    lower.includes('haldi') ||
+    lower.includes('sandal') ||
+    lower.includes('chandan')
   ) {
     return {count: 5000, label: reqText.first};
   }
@@ -855,25 +862,27 @@ export const checkRewardEligibility = (
  * 1. Rudraksha Mala / Rudrakshi Mala
  * 2. Tulasi Mala
  * 3. Pasupu Mala
- * 4. Karungali Mala (50k eligibility)
- * 5. Spatik Mala (1 Lakh eligibility)
- * 6. Green Agate (2 Lakhs eligibility)
- * 7. Yellow Agate (2 Lakhs eligibility)
- * 8. Marakatha Sri Chakram (5 Lakhs eligibility)
- * 9. Spiritual Reward (10 Lakhs eligibility)
+ * 4. Sandalwood Mala (5k eligibility)
+ * 5. Karungali Mala (50k eligibility)
+ * 6. Spatik Mala (1 Lakh eligibility)
+ * 7. Green Agate (2 Lakhs eligibility)
+ * 8. Yellow Agate (2 Lakhs eligibility)
+ * 9. Marakatha Sri Chakram (5 Lakhs eligibility)
+ * 10. Spiritual Reward (10 Lakhs eligibility)
  */
 export const getRewardSortRank = (rewardName: string): number => {
   const lower = String(rewardName || '').toLowerCase();
   if (lower.includes('rudraksh')) return 1;
   if (lower.includes('tulasi') || lower.includes('tulsi')) return 2;
   if (lower.includes('pasupu') || lower.includes('turmeric') || lower.includes('haldi')) return 3;
+  if (lower.includes('sandal') || lower.includes('chandan')) return 4;
   if (
     lower.includes('karungali') ||
     lower.includes('ebony') ||
     lower.includes('black wood') ||
     lower.includes('sacred japa mala')
   ) {
-    return 4;
+    return 5;
   }
   if (
     lower.includes('spatik') ||
@@ -883,19 +892,19 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('స్పటిక') ||
     lower.includes('स्फटिक')
   ) {
-    return 5;
+    return 6;
   }
   if (
     lower.includes('green agate') ||
     (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik')))
   ) {
-    return 6;
+    return 7;
   }
   if (
     lower.includes('yellow agate') ||
     (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik')))
   ) {
-    return 7;
+    return 8;
   }
   if (
     lower.includes('marakatha') ||
@@ -912,7 +921,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('జేడ్') ||
     lower.includes('जेड')
   ) {
-    return 8;
+    return 9;
   }
   if (
     lower.includes('spiritual reward') ||
@@ -922,7 +931,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('ఆధ్యాత్మిక బహుమతి') ||
     lower.includes('आध्यात्मिक उपहार')
   ) {
-    return 9;
+    return 10;
   }
   return 99;
 };

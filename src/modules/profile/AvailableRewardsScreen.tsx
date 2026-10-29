@@ -36,12 +36,13 @@ const DEFAULT_REWARDS: RewardItem[] = [
   {id: 1, name: 'Rudrakshi Mala', inStock: true},
   {id: 2, name: 'Tulasi Mala', inStock: true},
   {id: 3, name: 'Pasupu Mala', inStock: true},
-  {id: 4, name: 'Karungali Mala', inStock: true},
-  {id: 5, name: 'Spatik Mala', inStock: true},
-  {id: 6, name: 'Green Agate', inStock: true},
-  {id: 7, name: 'Yellow Agate', inStock: true},
-  {id: 8, name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', inStock: true},
-  {id: 9, name: 'Spiritual Reward', inStock: true},
+  {id: 4, name: 'Sandal Wood Mala', inStock: true},
+  {id: 5, name: 'Karungali Mala', inStock: true},
+  {id: 6, name: 'Spatik Mala', inStock: true},
+  {id: 7, name: 'Green Agate', inStock: true},
+  {id: 8, name: 'Yellow Agate', inStock: true},
+  {id: 9, name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', inStock: true},
+  {id: 10, name: 'Spiritual Reward', inStock: true},
 ];
 
 const AvailableRewardsScreen = () => {
@@ -88,8 +89,31 @@ const AvailableRewardsScreen = () => {
             description: row.description,
           }))
           .filter(row => isCanonicalReward(row.name));
+
+        // Guarantee 5 Lakhs & 10 Lakhs canonical rewards are always visible even if backend DB hasn't seeded them
+        const missingCanonical = DEFAULT_REWARDS.filter(def => {
+          const defLower = def.name.toLowerCase();
+          return !mapped.some((m: any) => {
+            const mLower = String(m.name || '').toLowerCase();
+            return (
+              mLower === defLower ||
+              (defLower.includes('sandal') &&
+                (mLower.includes('sandal') || mLower.includes('chandan'))) ||
+              (defLower.includes('marakatha') &&
+                (mLower.includes('marakatha') ||
+                  mLower.includes('green jade') ||
+                  mLower.includes('sri chakra') ||
+                  mLower.includes('sree chakra') ||
+                  mLower.includes('aventurine'))) ||
+              (defLower.includes('spiritual reward') &&
+                mLower.includes('spiritual reward'))
+            );
+          });
+        });
+
+        const combined = [...mapped, ...missingCanonical];
         setRewards(
-          mapped.length > 0 ? sortRewardsCanonical(mapped) : DEFAULT_REWARDS,
+          combined.length > 0 ? sortRewardsCanonical(combined) : DEFAULT_REWARDS,
         );
       } else {
         setRewards(DEFAULT_REWARDS);

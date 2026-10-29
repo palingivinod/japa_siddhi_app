@@ -2513,6 +2513,17 @@ const isNormalBaanalingamOrder = (row: any) => {
   );
 };
 
+const cleanTimestamp = (raw: any): string | null => {
+  if (!raw) return null;
+  const str = String(raw).trim();
+  if (!str) return null;
+  const match = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+  return str.replace(/\.\d+.*$/, '').trim() || str;
+};
+
 const mapOrderRow = (row: any) => {
   const orderNo = String(row.orderNumber || `#${row.id}`);
   return {
@@ -2527,7 +2538,7 @@ const mapOrderRow = (row: any) => {
     remarks: row.remarks || '',
     cancelReason: row.cancelReason || '',
     cancelledBy: row.cancelledBy || '',
-    createdAt: row.createdAt,
+    createdAt: cleanTimestamp(row.createdAt),
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
     orderGroup: isRewardOrder(row)
@@ -2590,7 +2601,7 @@ const mapOrderDetail = (row: any) => {
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
     paymentId: row.paymentId || null,
-    updatedAt: row.updatedAt || null,
+    updatedAt: cleanTimestamp(row.updatedAt),
     customerEmail: email,
     customerMobile: mobile,
     userId: row.userId ? String(row.userId) : null,
@@ -4180,19 +4191,21 @@ router.get('/reports/export', async (req: Request, res: Response) => {
         params.push(preferDate);
       }
 
+      const effectiveDateExprWithD = "COALESCE(NULLIF(d.prefer_date, ''), SUBSTR(IFNULL(d.donated_at, ''), 1, 10))";
+
       if (scope === 'upcoming') {
-        whereClauses.push('d.prefer_date > ?');
+        whereClauses.push(`${effectiveDateExprWithD} >= ?`);
         params.push(today);
       } else if (scope === 'past') {
-        whereClauses.push('(d.prefer_date <= ? OR d.prefer_date IS NULL OR d.prefer_date = "")');
+        whereClauses.push(`${effectiveDateExprWithD} < ?`);
         params.push(today);
       }
 
       const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
       const orderSql =
         scope === 'upcoming'
-          ? 'ORDER BY d.prefer_date ASC, d.id ASC'
-          : 'ORDER BY d.prefer_date DESC, d.id DESC';
+          ? `ORDER BY ${effectiveDateExprWithD} ASC, d.id ASC`
+          : `ORDER BY ${effectiveDateExprWithD} DESC, d.id DESC`;
 
       const rows = await mysql.query<any[]>(
         `
@@ -4579,12 +4592,13 @@ const CANONICAL_REWARDS = [
   {name: 'Rudrakshi Mala', stock: 50, order: 1, aliases: ['rudraksh']},
   {name: 'Tulasi Mala', stock: 50, order: 2, aliases: ['tulasi', 'tulsi']},
   {name: 'Pasupu Mala', stock: 50, order: 3, aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
-  {name: 'Karungali Mala', stock: 50, order: 4, aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
-  {name: 'Spatik Mala', stock: 50, order: 5, aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
-  {name: 'Green Agate', stock: 50, order: 6, aliases: ['green agate', 'green hakik']},
-  {name: 'Yellow Agate', stock: 50, order: 7, aliases: ['yellow agate', 'yellow hakik']},
-  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 8, aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
-  {name: 'Spiritual Reward', stock: 50, order: 9, aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
+  {name: 'Sandal Wood Mala', stock: 50, order: 4, aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
+  {name: 'Karungali Mala', stock: 50, order: 5, aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
+  {name: 'Spatik Mala', stock: 50, order: 6, aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
+  {name: 'Green Agate', stock: 50, order: 7, aliases: ['green agate', 'green hakik']},
+  {name: 'Yellow Agate', stock: 50, order: 8, aliases: ['yellow agate', 'yellow hakik']},
+  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 9, aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
+  {name: 'Spiritual Reward', stock: 50, order: 10, aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];
 
 const ensureRewardSeed = async () => {
@@ -5283,11 +5297,13 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
       params.push(preferDate);
     }
 
+    const effectiveDateExpr = "COALESCE(NULLIF(prefer_date, ''), SUBSTR(IFNULL(donated_at, ''), 1, 10))";
+
     if (scope === 'upcoming') {
-      whereClauses.push('prefer_date > ?');
+      whereClauses.push(`${effectiveDateExpr} >= ?`);
       params.push(today);
     } else if (scope === 'past') {
-      whereClauses.push('(prefer_date <= ? OR prefer_date IS NULL OR prefer_date = "")');
+      whereClauses.push(`${effectiveDateExpr} < ?`);
       params.push(today);
     }
 
@@ -5302,8 +5318,8 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const whereSql = whereClauses.length ? `WHERE ${whereClauses.join(' AND ')}` : '';
     const orderSql =
       scope === 'upcoming'
-        ? 'ORDER BY prefer_date ASC, id ASC'
-        : 'ORDER BY prefer_date DESC, id DESC';
+        ? `ORDER BY ${effectiveDateExpr} ASC, id ASC`
+        : `ORDER BY ${effectiveDateExpr} DESC, id DESC`;
 
     const sql = `
       SELECT
@@ -5346,8 +5362,8 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const allCounts = await mysql.query<any[]>(`
       SELECT
         COUNT(*) AS totalCount,
-        SUM(CASE WHEN prefer_date > '${today}' THEN 1 ELSE 0 END) AS upcomingCount,
-        SUM(CASE WHEN prefer_date <= '${today}' OR prefer_date IS NULL OR prefer_date = '' THEN 1 ELSE 0 END) AS pastCount
+        SUM(CASE WHEN ${effectiveDateExpr} >= '${today}' THEN 1 ELSE 0 END) AS upcomingCount,
+        SUM(CASE WHEN ${effectiveDateExpr} < '${today}' THEN 1 ELSE 0 END) AS pastCount
       FROM donations
       ${countBaseSql}
     `);
@@ -5510,12 +5526,13 @@ router.get('/meeting', async (_req: Request, res: Response) => {
 router.put('/meeting', async (req: Request, res: Response) => {
   try {
     const appSettingsService = (await import('./appSettings.service')).default;
-    const {enabled, title, link, time} = req.body || {};
+    const {enabled, title, link, time, scheduledAt} = req.body || {};
     const updated = await appSettingsService.setMeetingConfig({
       enabled: enabled !== undefined ? Boolean(enabled) : undefined,
       title: typeof title === 'string' ? title : undefined,
       link: typeof link === 'string' ? link : undefined,
       time: typeof time === 'string' ? time : undefined,
+      scheduledAt: scheduledAt !== undefined ? (scheduledAt ? String(scheduledAt) : null) : undefined,
     });
     return res.json({
       success: true,

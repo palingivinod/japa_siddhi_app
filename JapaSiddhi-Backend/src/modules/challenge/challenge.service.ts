@@ -494,7 +494,9 @@ class ChallengeService {
       rewardNameLower.includes('tulsi') ||
       rewardNameLower.includes('pasupu') ||
       rewardNameLower.includes('turmeric') ||
-      rewardNameLower.includes('haldi')
+      rewardNameLower.includes('haldi') ||
+      rewardNameLower.includes('sandal') ||
+      rewardNameLower.includes('chandan')
     ) {
       if (userTotalJapa < 5000) {
         const remaining = 5000 - userTotalJapa;

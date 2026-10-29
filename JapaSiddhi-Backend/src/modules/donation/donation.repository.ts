@@ -65,10 +65,33 @@ class DonationRepository {
 
 
 
+  private columnsEnsured = false;
+  async ensureDonationColumns() {
+    if (this.columnsEnsured) return;
+    const alters = [
+      'ALTER TABLE donations ADD COLUMN donor_name TEXT',
+      'ALTER TABLE donations ADD COLUMN donor_phone TEXT',
+      'ALTER TABLE donations ADD COLUMN prefer_date TEXT',
+      'ALTER TABLE donations ADD COLUMN occasion TEXT',
+      'ALTER TABLE donations ADD COLUMN for_whom TEXT',
+      'ALTER TABLE donations ADD COLUMN person_name TEXT',
+      'ALTER TABLE donations ADD COLUMN admin_reply TEXT',
+      'ALTER TABLE donations ADD COLUMN admin_replied_at TEXT',
+    ];
+    for (const sql of alters) {
+      try {
+        await mysql.query(sql);
+      } catch {
+        // column already exists
+      }
+    }
+    this.columnsEnsured = true;
+  }
+
   async getHistory(
     userId: number,
   ) {
-    await mysql.query('SELECT 1');
+    await this.ensureDonationColumns();
     const userRows = await mysql.query<any[]>(
       `SELECT mobile_number FROM users WHERE id = ? LIMIT 1`,
       [userId],
@@ -84,34 +107,72 @@ class DonationRepository {
       rawMobile && rawMobile.length === 10 ? `OR (${phoneExpr} = ?)` : '';
     const params = phoneClause ? [userId, rawMobile] : [userId];
 
-    return mysql.query<any[]>(
-      `
-      SELECT
-        id,
-        user_id AS userId,
-        donation_type AS donationType,
-        amount,
-        payment_method AS paymentMethod,
-        transaction_id AS transactionId,
-        payment_reference AS paymentReference,
-        donation_status AS donationStatus,
-        donated_at AS donatedAt,
-        donor_name AS donorName,
-        donor_phone AS donorPhone,
-        prefer_date AS preferDate,
-        occasion,
-        for_whom AS forWhom,
-        person_name AS personName,
-        remarks,
-        admin_reply AS adminReply,
-        admin_replied_at AS adminRepliedAt
-      FROM donations
-      WHERE (user_id = ? ${phoneClause})
-        AND UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'
-      ORDER BY id DESC
-      `,
-      params,
-    );
+    try {
+      return await mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          user_id AS userId,
+          donation_type AS donationType,
+          amount,
+          payment_method AS paymentMethod,
+          transaction_id AS transactionId,
+          payment_reference AS paymentReference,
+          donation_status AS donationStatus,
+          donated_at AS donatedAt,
+          donor_name AS donorName,
+          donor_phone AS donorPhone,
+          prefer_date AS preferDate,
+          occasion,
+          for_whom AS forWhom,
+          person_name AS personName,
+          remarks,
+          admin_reply AS adminReply,
+          admin_replied_at AS adminRepliedAt
+        FROM donations
+        WHERE (user_id = ? ${phoneClause})
+          AND UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'
+        ORDER BY id DESC
+        `,
+        params,
+      );
+    } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.includes('admin_reply') || msg.includes('does not exist')) {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            user_id AS userId,
+            donation_type AS donationType,
+            amount,
+            payment_method AS paymentMethod,
+            transaction_id AS transactionId,
+            payment_reference AS paymentReference,
+            donation_status AS donationStatus,
+            donated_at AS donatedAt,
+            remarks
+          FROM donations
+          WHERE (user_id = ? ${phoneClause})
+            AND UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'
+          ORDER BY id DESC
+          `,
+          params,
+        );
+        return (rows || []).map((r: any) => ({
+          ...r,
+          donorName: r.donor_name || null,
+          donorPhone: r.donor_phone || null,
+          preferDate: r.prefer_date || null,
+          occasion: r.occasion || null,
+          forWhom: r.for_whom || null,
+          personName: r.person_name || null,
+          adminReply: null,
+          adminRepliedAt: null,
+        }));
+      }
+      throw err;
+    }
   }
 
 
