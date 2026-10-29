@@ -19,11 +19,49 @@ const defaultIndia: CountryItem =
     flag: '🇮🇳',
   };
 
+const DATE_PLACEHOLDER = 'DD/MM/YYYY';
+
 /** The next steps expect DD/MM/YYYY, so the picker writes that shape back. */
 const formatDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   return `${day}/${month}/${date.getFullYear()}`;
+};
+
+const isValidDdMmYyyy = (value: string) => {
+  const match = String(value || '')
+    .trim()
+    .match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (!match) {
+    return false;
+  }
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) {
+    return false;
+  }
+  const parsed = new Date(year, month - 1, day);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day
+  );
+};
+
+/** Keep typing friendly: digits + auto / separators → DD/MM/YYYY */
+const maskDdMmYyyy = (raw: string) => {
+  const digits = String(raw || '')
+    .replace(/\D/g, '')
+    .slice(0, 8);
+  if (digits.length <= 2) {
+    return digits;
+  }
+  if (digits.length <= 4) {
+    return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  }
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 };
 
 const parseDate = (value: string, fallbackYear: number) => {
@@ -104,15 +142,25 @@ const SignupPersonalScreen = () => {
   const renderDateField = (field: DateField, label: string) => (
     <>
       <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity
-        style={[styles.input, styles.dateField]}
-        onPress={() => dismissKeyboardThen(() => setPicker(field))}>
-        <Text
-          style={dateValues[field] ? styles.dateText : styles.datePlaceholder}>
-          {dateValues[field] || t('selectDate')}
-        </Text>
-        <Text style={styles.dateIcon}>📅</Text>
-      </TouchableOpacity>
+      <View style={[styles.input, styles.dateField]}>
+        <TextInput
+          style={styles.dateInput}
+          value={dateValues[field]}
+          onChangeText={text => setDateValue(field, maskDdMmYyyy(text))}
+          placeholder={DATE_PLACEHOLDER}
+          placeholderTextColor={Colors.placeholder}
+          keyboardType="number-pad"
+          maxLength={10}
+          returnKeyType="done"
+        />
+        <TouchableOpacity
+          style={styles.dateIconBtn}
+          hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
+          onPress={() => dismissKeyboardThen(() => setPicker(field))}
+          accessibilityLabel={t('selectDate')}>
+          <Text style={styles.dateIcon}>📅</Text>
+        </TouchableOpacity>
+      </View>
     </>
   );
 
@@ -144,8 +192,24 @@ const SignupPersonalScreen = () => {
       Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
+    if (!isValidDdMmYyyy(dob)) {
+      Alert.alert(t('required'), t('enterDateOfBirth'));
+      return;
+    }
     if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
       Alert.alert(t('required'), t('enterSpouseNameMarried'));
+      return;
+    }
+    if (maritalStatus === 'Married' && spouseDob.trim() && !isValidDdMmYyyy(spouseDob)) {
+      Alert.alert(t('required'), `${t('spouseDateOfBirth')}: ${DATE_PLACEHOLDER}`);
+      return;
+    }
+    if (
+      maritalStatus === 'Married' &&
+      anniversary.trim() &&
+      !isValidDdMmYyyy(anniversary)
+    ) {
+      Alert.alert(t('required'), `${t('anniversaryDate')}: ${DATE_PLACEHOLDER}`);
       return;
     }
     navigation.navigate('SignupSpiritual', {
@@ -373,10 +437,21 @@ const styles = StyleSheet.create({
   dateField: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingVertical: 0,
+    paddingRight: 8,
   },
-  dateText: {color: Colors.textPrimary, fontSize: 16, fontWeight: '600'},
-  datePlaceholder: {color: Colors.placeholder, fontSize: 16},
+  dateInput: {
+    flex: 1,
+    fontSize: 16,
+    color: Colors.sacredBrown,
+    paddingVertical: 14,
+    paddingRight: 8,
+  },
+  dateIconBtn: {
+    padding: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   dateIcon: {fontSize: 18},
   fieldError: {
     color: Colors.error,

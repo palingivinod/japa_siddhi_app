@@ -141,9 +141,16 @@ const CompleteProfileScreen = ({
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const isNameValid = useMemo(() => {
-    return /^[A-Za-z .'-]{3,50}$/.test(
-      fullName.trim(),
-    );
+    const name = fullName.trim();
+    if (name.length < 3 || name.length > 50) {
+      return false;
+    }
+    // Allow English + Indian-language letters (e.g. Telugu), marks, spaces.
+    try {
+      return /^[\p{L}\p{M} .'-]+$/u.test(name);
+    } catch {
+      return name.replace(/[ .'-]/g, '').length >= 3;
+    }
   }, [fullName]);
 
   const isEmailValid = useMemo(() => {
@@ -225,23 +232,34 @@ const CompleteProfileScreen = ({
   };
 
   const submitProfile = async () => {
-  console.log({
-    fullName,
-    isNameValid,
-    email,
-    isEmailValid,
-    gender,
-    dob,
-    isDOBValid,
-    country,
-    stateModel,
-    cityModel,
-    acceptedTerms,
-    isFormValid,
-  });
-
   if (!isFormValid) {
-    Alert.alert(t('validation'), t('fillRequiredSignup'));
+    // Tell the devotee which field is blocking — generic "fill all" was confusing
+    // especially for Telugu/other names that failed the old A-Za-z-only check.
+    let message = t('fillRequiredSignup');
+    if (!isNameValid) {
+      message = t('enterValidName');
+    } else if (!isEmailValid) {
+      message = t('enterEmailPlaceholder');
+    } else if (!isMobileValid) {
+      message = t('enterValidMobileNumber');
+    } else if (!isDOBValid) {
+      message = t('enterDateOfBirth');
+    } else if (!gender) {
+      message = t('selectGender');
+    } else if (!country) {
+      message = t('selectCountry');
+    } else if (
+      pinCode.length !== 6 ||
+      !stateModel?.id ||
+      !cityModel?.id
+    ) {
+      message = t('pinNotFound');
+    } else if (region.trim().length < 2) {
+      message = t('enterRegionPlace');
+    } else if (!acceptedTerms) {
+      message = t('agreeTermsPrefix');
+    }
+    Alert.alert(t('validation'), message);
     return;
   }
 

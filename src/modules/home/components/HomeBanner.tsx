@@ -61,6 +61,7 @@ const HomeBanner: React.FC<Props> = ({
   }
 
   const hasAnnouncements = announcementList.length > 0;
+  const announcementTextLine = announcementList[0] || '';
 
   return (
     <View
@@ -70,40 +71,38 @@ const HomeBanner: React.FC<Props> = ({
       ]}>
       <Image source={bannerSource} resizeMode="cover" style={styles.image} />
       <View style={styles.overlay} pointerEvents="box-none">
-        <View
-          style={[
-            styles.buttonStack,
-            hasAnnouncements && styles.buttonStackWithAnnouncement,
-          ]}
-          pointerEvents="box-none">
-          {secondaryButtonText ? (
-            <TouchableOpacity
-              style={styles.button}
-              activeOpacity={0.85}
-              onPress={onSecondaryPress}>
-              <Text style={styles.buttonText}>{secondaryButtonText}</Text>
-            </TouchableOpacity>
-          ) : null}
+        {/* Top — near Om */}
+        {secondaryButtonText ? (
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.card, styles.cardTop]}
             activeOpacity={0.85}
-            onPress={onPress}>
-            <Text style={styles.buttonText}>
-              {banner?.buttonText || 'Start Japa'}
+            onPress={onSecondaryPress}>
+            <Text style={styles.cardText} numberOfLines={2}>
+              {secondaryButtonText}
             </Text>
           </TouchableOpacity>
-          {/* Non-clickable announcement text pill placed under chant button */}
-          {announcementList.map((text, idx) => (
-            <View
-              key={`ann-${idx}`}
-              style={styles.announcementPill}
-              pointerEvents="none">
-              <Text style={styles.announcementText} numberOfLines={2}>
-                {text}
-              </Text>
-            </View>
-          ))}
-        </View>
+        ) : null}
+
+        {/* Middle — Start Chanting */}
+        <TouchableOpacity
+          style={[styles.card, styles.cardMid]}
+          activeOpacity={0.85}
+          onPress={onPress}>
+          <Text style={styles.cardText} numberOfLines={2}>
+            {banner?.buttonText || 'Start Japa'}
+          </Text>
+        </TouchableOpacity>
+
+        {/* Bottom — announcement */}
+        {hasAnnouncements ? (
+          <View
+            style={[styles.card, styles.cardBot]}
+            pointerEvents="none">
+            <Text style={styles.cardText} numberOfLines={2}>
+              {announcementTextLine}
+            </Text>
+          </View>
+        ) : null}
       </View>
     </View>
   );
@@ -135,67 +134,43 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
   },
-  buttonStack: {
+  card: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 16,
-    alignItems: 'center',
-    gap: 18,
-    width: '100%',
-    paddingHorizontal: 16,
-  },
-  buttonStackWithAnnouncement: {
-    bottom: 12,
-    gap: 14,
-  },
-  button: {
+    left: '18%',
+    right: '18%',
+    height: 36,
     backgroundColor: Colors.cream,
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: Colors.sacredBrown,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 2,
     elevation: 4,
     shadowColor: '#000000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.3,
     shadowRadius: 3,
   },
-  buttonText: {
-    color: Colors.sacredBrown,
-    fontWeight: '800',
-    fontSize: 15,
-    lineHeight: 20,
-    includeFontPadding: true,
-    textAlign: 'center',
+  cardTop: {
+    top: '4%',
   },
-  announcementPill: {
+  cardMid: {
+    top: '42%',
+  },
+  cardBot: {
+    top: '78%',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 5,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
-    alignItems: 'center',
-    justifyContent: 'center',
-    maxWidth: '92%',
-    elevation: 4,
-    shadowColor: '#000000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
   },
-  announcementText: {
+  cardText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
-    fontSize: 14,
-    lineHeight: 19,
-    includeFontPadding: true,
+    fontSize: 13,
+    lineHeight: 16,
+    includeFontPadding: false,
     textAlign: 'center',
+    width: '100%',
   },
 });

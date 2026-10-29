@@ -123,15 +123,36 @@ const HomeScreen = () => {
   const [meetingCountdown, setMeetingCountdown] = useState<string>('');
   const [isMeetingLive, setIsMeetingLive] = useState<boolean>(true);
 
-  const meetingBorderColor = cardBorderAnim.interpolate({
+  // Stronger, slightly quicker border blink for Meeting so it stands out
+  const meetingBorderAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(meetingBorderAnim, {
+          toValue: 1,
+          duration: 1100,
+          useNativeDriver: false,
+        }),
+        Animated.timing(meetingBorderAnim, {
+          toValue: 0,
+          duration: 1100,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+    pulse.start();
+    return () => pulse.stop();
+  }, [meetingBorderAnim]);
+
+  const meetingBorderColor = meetingBorderAnim.interpolate({
     inputRange: [0, 1],
     outputRange: isMeetingLive
-      ? ['#F5D0A9', '#C28B38']
-      : ['#FDE68A', '#D97706'],
+      ? ['#F5E6C8', '#B45309']
+      : ['#FEF3C7', '#D97706'],
   });
-  const meetingBorderWidth = cardBorderAnim.interpolate({
+  const meetingBorderWidth = meetingBorderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [1.5, 2.5],
+    outputRange: [2, 3.5],
   });
 
   // Calculate live ticking countdown to scheduled meeting time
@@ -819,36 +840,6 @@ const HomeScreen = () => {
             }))}
           />
 
-          {/* Slow border blink — Panchangam */}
-          <Animated.View
-            style={[
-              styles.panchangCardWrapper,
-              {
-                borderColor: panchangBorderColor,
-                borderWidth: panchangBorderWidth,
-              },
-            ]}>
-            <TouchableOpacity
-              style={styles.panchangButton}
-              onPress={() => navigation.navigate('Festivals')}
-              activeOpacity={0.85}>
-              <View style={styles.panchangButtonLeft}>
-                <Text style={styles.panchangButtonIcon}>📅</Text>
-                <Text style={styles.panchangButtonText}>
-                  {t('panchangam') || 'Panchangam'}
-                </Text>
-              </View>
-              <View style={styles.panchangButtonRight}>
-                <Text style={styles.panchangButtonDate} numberOfLines={1}>
-                  {formatPanchangDisplayDate(panchang, t) ||
-                    panchang.displayDate ||
-                    ''}
-                </Text>
-                <Text style={styles.panchangButtonArrow}>→</Text>
-              </View>
-            </TouchableOpacity>
-          </Animated.View>
-
           {/* Meeting / Class — same slow border blink */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
             <Animated.View
@@ -1128,6 +1119,36 @@ const HomeScreen = () => {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* After all Our Services tiles */}
+          <Animated.View
+            style={[
+              styles.panchangCardWrapper,
+              {
+                borderColor: panchangBorderColor,
+                borderWidth: panchangBorderWidth,
+              },
+            ]}>
+            <TouchableOpacity
+              style={styles.panchangButton}
+              onPress={() => navigation.navigate('Festivals')}
+              activeOpacity={0.85}>
+              <View style={styles.panchangButtonLeft}>
+                <Text style={styles.panchangButtonIcon}>📅</Text>
+                <Text style={styles.panchangButtonText}>
+                  {t('panchangam') || 'Panchangam'}
+                </Text>
+              </View>
+              <View style={styles.panchangButtonRight}>
+                <Text style={styles.panchangButtonDate} numberOfLines={1}>
+                  {formatPanchangDisplayDate(panchang, t) ||
+                    panchang.displayDate ||
+                    ''}
+                </Text>
+                <Text style={styles.panchangButtonArrow}>→</Text>
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </View>
       <BottomTabs active="Home" />
