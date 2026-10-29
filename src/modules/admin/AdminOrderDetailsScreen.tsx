@@ -54,6 +54,7 @@ type OrderDetail = {
     city?: string;
     state?: string;
     pinCode?: string;
+    region?: string;
     gothram?: string;
     nakshatram?: string;
   };
@@ -268,6 +269,7 @@ const AdminOrderDetailsScreen = () => {
   const delivery = order?.delivery || {};
   const fullAddress = [
     delivery.address,
+    delivery.region,
     delivery.city,
     delivery.state,
     delivery.pinCode,
@@ -371,6 +373,7 @@ const AdminOrderDetailsScreen = () => {
             />
             <DetailRow label="Email" value={delivery.email} />
             <DetailRow label="Address" value={delivery.address} />
+            <DetailRow label="Region" value={delivery.region} />
             <DetailRow label="City" value={delivery.city} />
             <DetailRow label="State" value={delivery.state} />
             <DetailRow label="PIN code" value={delivery.pinCode} />

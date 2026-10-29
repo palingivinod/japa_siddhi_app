@@ -56,6 +56,13 @@ const ensureBannersTable = async () => {
     } catch {
       // column already exists
     }
+    try {
+      await mysql.query(
+        `ALTER TABLE app_banners ADD COLUMN expires_at VARCHAR(40) NULL`,
+      );
+    } catch {
+      // column already exists
+    }
   } else {
     await mysql.query(`
       CREATE TABLE IF NOT EXISTS app_banners (
@@ -82,6 +89,13 @@ const ensureBannersTable = async () => {
     try {
       await mysql.query(
         `ALTER TABLE app_banners ADD COLUMN starts_at TEXT`,
+      );
+    } catch {
+      // column already exists
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE app_banners ADD COLUMN expires_at TEXT`,
       );
     } catch {
       // column already exists
@@ -155,11 +169,16 @@ const isLiveForUsers = (row: any) => {
   if (status === 'Blocked') {
     return false;
   }
+  const now = Date.now();
+  const expires = parseIstMillis(row.expiresAt || row.expires_at);
+  if (expires != null && now >= expires) {
+    return false;
+  }
   const starts = parseIstMillis(row.startsAt || row.starts_at);
   if (starts == null) {
     return status === 'Active';
   }
-  return Date.now() >= starts;
+  return now >= starts;
 };
 
 const localizeBanner = (row: any, lang?: string) => {
@@ -183,6 +202,7 @@ const localizeBanner = (row: any, lang?: string) => {
     status,
     sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
     startsAt: String(row.startsAt || row.starts_at || ''),
+    expiresAt: String(row.expiresAt || row.expires_at || ''),
     translations,
   };
 };
@@ -205,6 +225,7 @@ export const listBanners = async (
       status,
       sort_order AS sortOrder,
       starts_at AS startsAt,
+      expires_at AS expiresAt,
       translations
     FROM app_banners
     WHERE 1 = 1
@@ -223,7 +244,11 @@ export const listBanners = async (
     return mapped;
   }
   return mapped.filter(row =>
-    isLiveForUsers({status: row.status, startsAt: row.startsAt}),
+    isLiveForUsers({
+      status: row.status,
+      startsAt: row.startsAt,
+      expiresAt: row.expiresAt,
+    }),
   );
 };
 
@@ -235,6 +260,7 @@ export const createBanner = async (input: {
   buttonText?: string;
   status?: string;
   startsAt?: string | null;
+  expiresAt?: string | null;
   translations?: Record<string, any> | string | null;
 }) => {
   await ensureBannersTable();
@@ -260,8 +286,8 @@ export const createBanner = async (input: {
   const result = await mysql.query<ResultSetHeader>(
     `
     INSERT INTO app_banners (
-      title, subtitle, module_name, image_url, button_text, status, sort_order, translations, starts_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)
+      title, subtitle, module_name, image_url, button_text, status, sort_order, translations, starts_at, expires_at
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
     `,
     [
       title,
@@ -272,6 +298,7 @@ export const createBanner = async (input: {
       status,
       translations,
       String(input.startsAt || '').trim() || null,
+      String(input.expiresAt || '').trim() || null,
     ],
   );
 
@@ -280,7 +307,7 @@ export const createBanner = async (input: {
     SELECT
       id, title, subtitle, module_name AS moduleName,
       image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, starts_at AS startsAt, translations
+      sort_order AS sortOrder, starts_at AS startsAt, expires_at AS expiresAt, translations
     FROM app_banners
     WHERE id = ?
     LIMIT 1
@@ -300,6 +327,7 @@ export const updateBanner = async (
     buttonText?: string;
     status?: string;
     startsAt?: string | null;
+    expiresAt?: string | null;
     translations?: Record<string, any> | string | null;
   },
 ) => {
@@ -344,6 +372,7 @@ export const updateBanner = async (
       status = ?,
       translations = COALESCE(?, translations),
       starts_at = CASE WHEN ? = 1 THEN ? ELSE starts_at END,
+      expires_at = CASE WHEN ? = 1 THEN ? ELSE expires_at END,
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
     `,
@@ -359,6 +388,10 @@ export const updateBanner = async (
       input.startsAt !== undefined
         ? String(input.startsAt || '').trim() || null
         : null,
+      input.expiresAt !== undefined ? 1 : 0,
+      input.expiresAt !== undefined
+        ? String(input.expiresAt || '').trim() || null
+        : null,
       id,
     ],
   );
@@ -368,7 +401,7 @@ export const updateBanner = async (
     SELECT
       id, title, subtitle, module_name AS moduleName,
       image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, starts_at AS startsAt, translations
+      sort_order AS sortOrder, starts_at AS startsAt, expires_at AS expiresAt, translations
     FROM app_banners
     WHERE id = ?
     LIMIT 1

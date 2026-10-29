@@ -116,6 +116,7 @@ export type AdminBanner = {
   module: string;
   status: AdminBannerStatus;
   startsAt?: string;
+  expiresAt?: string;
   translations?: Record<string, {title?: string; subtitle?: string}>;
 };
 

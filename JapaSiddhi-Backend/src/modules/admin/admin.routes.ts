@@ -2357,6 +2357,7 @@ router.post('/banners', async (req: Request, res: Response) => {
       buttonText: req.body?.buttonText,
       status: req.body?.status || 'Active',
       startsAt: req.body?.startsAt,
+      expiresAt: req.body?.expiresAt,
       translations: req.body?.translations,
     });
     try {
@@ -2399,6 +2400,7 @@ router.put('/banners/:id', async (req: Request, res: Response) => {
       buttonText: req.body?.buttonText,
       status: req.body?.status,
       startsAt: req.body?.startsAt,
+      expiresAt: req.body?.expiresAt,
       translations: req.body?.translations,
     });
     return res.json({
@@ -2580,16 +2582,31 @@ const mapOrderDetail = (row: any) => {
     row.banaAddress ||
     parseRemarkLine(remarks, 'Address') ||
     '';
+  const profileCity = String(row.profileCityName || '').trim();
+  const profileState = String(row.profileStateName || '').trim();
+  const profilePin = String(row.profilePostalCode || '')
+    .replace(/\D/g, '')
+    .slice(0, 6);
+  const profileRegion = String(row.profileRegion || '').trim();
   const deliveryCity =
-    row.claimCity || parseRemarkLine(remarks, 'City') || '';
+    row.claimCity ||
+    parseRemarkLine(remarks, 'City') ||
+    profileCity ||
+    '';
   const deliveryState =
-    row.claimState || parseRemarkLine(remarks, 'State') || '';
+    row.claimState ||
+    parseRemarkLine(remarks, 'State') ||
+    profileState ||
+    '';
   const deliveryPin =
     row.claimPinCode ||
     row.banaPostalCode ||
     parseRemarkLine(remarks, 'PIN') ||
     parseRemarkLine(remarks, 'PIN Code') ||
+    profilePin ||
     '';
+  const deliveryRegion =
+    parseRemarkLine(remarks, 'Region') || profileRegion || '';
   const email = row.customerEmail || row.banaEmail || '';
   const mobile = [row.customerMobileCode, row.customerMobile]
     .filter(Boolean)
@@ -2613,6 +2630,7 @@ const mapOrderDetail = (row: any) => {
       city: deliveryCity,
       state: deliveryState,
       pinCode: deliveryPin,
+      region: deliveryRegion,
       gothram: row.banaGothram || '',
       nakshatram: row.banaNakshatram || '',
     },
@@ -2642,6 +2660,10 @@ const orderDetailSelect = `
     u.email AS customerEmail,
     u.mobile_country_code AS customerMobileCode,
     u.mobile_number AS customerMobile,
+    u.postal_code AS profilePostalCode,
+    u.region AS profileRegion,
+    s.name AS profileStateName,
+    ci.name AS profileCityName,
     crc.challenge_id AS claimChallengeId,
     crc.reward_name AS claimRewardName,
     crc.full_name AS claimFullName,
@@ -2659,6 +2681,8 @@ const orderDetailSelect = `
     bl.nakshatram AS banaNakshatram
   FROM orders o
   LEFT JOIN users u ON u.id = o.user_id
+  LEFT JOIN states s ON s.id = u.state_id
+  LEFT JOIN cities ci ON ci.id = u.city_id
   LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
   LEFT JOIN bana_lingam bl ON bl.order_id = o.id
 `;

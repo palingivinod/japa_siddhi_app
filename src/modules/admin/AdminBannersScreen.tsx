@@ -118,9 +118,11 @@ const AdminBannersScreen = () => {
   const [saving, setSaving] = useState(false);
   const [scheduleOn, setScheduleOn] = useState(false);
   const [scheduleAt, setScheduleAt] = useState(() => new Date());
-  const [schedulePicker, setSchedulePicker] = useState<'date' | 'time' | null>(
-    null,
-  );
+  const [expireOn, setExpireOn] = useState(false);
+  const [expireAt, setExpireAt] = useState(() => new Date());
+  const [fieldPicker, setFieldPicker] = useState<
+    'schedule-date' | 'schedule-time' | 'expire-date' | 'expire-time' | null
+  >(null);
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
     null,
@@ -147,6 +149,7 @@ const AdminBannersScreen = () => {
               ? row.status
               : 'Active',
           startsAt: String(row.startsAt || ''),
+          expiresAt: String(row.expiresAt || ''),
           translations:
             row.translations && typeof row.translations === 'object'
               ? row.translations
@@ -264,7 +267,9 @@ const AdminBannersScreen = () => {
     setModuleName('Home');
     setScheduleOn(false);
     setScheduleAt(new Date());
-    setSchedulePicker(null);
+    setExpireOn(false);
+    setExpireAt(new Date());
+    setFieldPicker(null);
     setActiveLang('en');
     setEditingId('');
     setShowForm(false);
@@ -316,7 +321,10 @@ const AdminBannersScreen = () => {
     const scheduled = item.status === 'Scheduled' || Boolean(item.startsAt);
     setScheduleOn(scheduled);
     setScheduleAt(parseStartsAt(item.startsAt));
-    setSchedulePicker(null);
+    const hasExpiry = Boolean(String(item.expiresAt || '').trim());
+    setExpireOn(hasExpiry);
+    setExpireAt(hasExpiry ? parseStartsAt(item.expiresAt) : new Date());
+    setFieldPicker(null);
     setActiveLang('en');
     setLastAutoTranslatedAt(null);
     setEditingId(item.id);
@@ -372,6 +380,20 @@ const AdminBannersScreen = () => {
       Alert.alert('Required', 'Enter at least an English banner title.');
       return;
     }
+    if (expireOn && scheduleOn && expireAt.getTime() <= scheduleAt.getTime()) {
+      Alert.alert(
+        'Invalid expiry',
+        'Expire time must be after the schedule start time.',
+      );
+      return;
+    }
+    if (expireOn && !scheduleOn && expireAt.getTime() <= Date.now()) {
+      Alert.alert(
+        'Invalid expiry',
+        'Expire time must be in the future.',
+      );
+      return;
+    }
     const existing = banners.find(row => row.id === editingId);
     const payload = {
       title: primaryTitle,
@@ -385,6 +407,7 @@ const AdminBannersScreen = () => {
           ? 'Blocked'
           : 'Active',
       startsAt: scheduleOn ? toIstIso(scheduleAt) : '',
+      expiresAt: expireOn ? toIstIso(expireAt) : '',
       translations,
     };
     setSaving(true);
@@ -438,7 +461,10 @@ const AdminBannersScreen = () => {
               <Text style={styles.name}>{item.title}</Text>
               <Text style={styles.meta}>
                 {item.module}
-                {item.startsAt ? ` · ${formatIstLabel(item.startsAt)}` : ''}
+                {item.startsAt ? ` · starts ${formatIstLabel(item.startsAt)}` : ''}
+                {item.expiresAt
+                  ? ` · ends ${formatIstLabel(item.expiresAt)}`
+                  : ''}
               </Text>
             </View>
             <View style={styles.actions}>
@@ -596,14 +622,14 @@ const AdminBannersScreen = () => {
                 <View style={styles.scheduleRow}>
                   <TouchableOpacity
                     style={styles.scheduleBtn}
-                    onPress={() => setSchedulePicker('date')}>
+                    onPress={() => setFieldPicker('schedule-date')}>
                     <Text style={styles.scheduleText}>
                       {scheduleAt.toLocaleDateString('en-IN')}
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.scheduleBtn}
-                    onPress={() => setSchedulePicker('time')}>
+                    onPress={() => setFieldPicker('schedule-time')}>
                     <Text style={styles.scheduleText}>
                       {scheduleAt.toLocaleTimeString('en-IN', {
                         hour: '2-digit',
@@ -616,6 +642,44 @@ const AdminBannersScreen = () => {
               {scheduleOn ? (
                 <Text style={styles.scheduleHint}>
                   Users see this banner at {formatIstLabel(toIstIso(scheduleAt))}.
+                </Text>
+              ) : null}
+              <Text style={styles.label}>Expire time (IST)</Text>
+              <TouchableOpacity
+                style={[styles.chip, expireOn && styles.chipActive]}
+                onPress={() => setExpireOn(value => !value)}>
+                <Text
+                  style={[
+                    styles.chipText,
+                    expireOn && styles.chipTextActive,
+                  ]}>
+                  {expireOn ? 'Auto-remove on' : 'No expiry'}
+                </Text>
+              </TouchableOpacity>
+              {expireOn ? (
+                <View style={styles.scheduleRow}>
+                  <TouchableOpacity
+                    style={styles.scheduleBtn}
+                    onPress={() => setFieldPicker('expire-date')}>
+                    <Text style={styles.scheduleText}>
+                      {expireAt.toLocaleDateString('en-IN')}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.scheduleBtn}
+                    onPress={() => setFieldPicker('expire-time')}>
+                    <Text style={styles.scheduleText}>
+                      {expireAt.toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+              {expireOn ? (
+                <Text style={styles.scheduleHint}>
+                  Hidden from Home after {formatIstLabel(toIstIso(expireAt))}.
                 </Text>
               ) : null}
               <PrimaryButton
@@ -636,11 +700,19 @@ const AdminBannersScreen = () => {
           </View>
         </View>
         <DatePickerModal
-          visible={schedulePicker != null}
-          mode={schedulePicker === 'time' ? 'time' : 'date'}
-          value={scheduleAt}
+          visible={fieldPicker != null}
+          mode={
+            fieldPicker === 'schedule-time' || fieldPicker === 'expire-time'
+              ? 'time'
+              : 'date'
+          }
+          value={
+            fieldPicker === 'expire-date' || fieldPicker === 'expire-time'
+              ? expireAt
+              : scheduleAt
+          }
           minimumDate={
-            schedulePicker === 'date'
+            fieldPicker === 'schedule-date' || fieldPicker === 'expire-date'
               ? new Date(
                   new Date().getFullYear(),
                   new Date().getMonth(),
@@ -648,11 +720,14 @@ const AdminBannersScreen = () => {
                 )
               : undefined
           }
-          onCancel={() => setSchedulePicker(null)}
+          onCancel={() => setFieldPicker(null)}
           onConfirm={selected => {
-            setScheduleAt(prev => {
+            const apply = (prev: Date) => {
               const next = new Date(prev);
-              if (schedulePicker === 'time') {
+              if (
+                fieldPicker === 'schedule-time' ||
+                fieldPicker === 'expire-time'
+              ) {
                 next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
               } else {
                 next.setFullYear(
@@ -662,8 +737,16 @@ const AdminBannersScreen = () => {
                 );
               }
               return next;
-            });
-            setSchedulePicker(null);
+            };
+            if (
+              fieldPicker === 'expire-date' ||
+              fieldPicker === 'expire-time'
+            ) {
+              setExpireAt(apply);
+            } else {
+              setScheduleAt(apply);
+            }
+            setFieldPicker(null);
           }}
         />
       </Modal>
