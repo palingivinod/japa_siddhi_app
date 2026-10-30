@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Japasiddhi - Bilva Patra Trust</string>
+
+    <!-- Meta Developer Console → Settings → Basic / Advanced. Keep in sync with src/env.ts. -->
+    <string name="facebook_app_id">3042346889453119</string>
+    <string name="facebook_client_token">be339eb4f3fc489ac6a0e1be11c686f2</string>
+    <string name="fb_login_protocol_scheme">fb3042346889453119</string>
 </resources>

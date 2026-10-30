@@ -206,7 +206,9 @@ export const registerValidation = [
         req.body?.firebaseToken ||
         req.body?.firebaseUid ||
         req.body?.authProvider === 'google' ||
-        req.body?.provider === 'google',
+        req.body?.authProvider === 'facebook' ||
+        req.body?.provider === 'google' ||
+        req.body?.provider === 'facebook',
       );
       if (isSocial && !value) {
         return true;

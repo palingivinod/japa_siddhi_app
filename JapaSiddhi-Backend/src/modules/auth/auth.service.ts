@@ -236,7 +236,7 @@ class AuthService {
   }
 
   /**
-   * Google / Apple social sign-in via a verified Firebase ID token (email-based).
+   * Google / Facebook social sign-in via a verified Firebase ID token (email-based).
    */
   async socialLogin(
     data: {
@@ -248,9 +248,16 @@ class AuthService {
       appVersion?: string;
     },
   ): Promise<LoginResponse & {isNewUser: boolean}> {
+    const providerRaw = String(data.provider || 'google')
+      .trim()
+      .toLowerCase();
+    const authProvider: 'google' | 'facebook' =
+      providerRaw === 'facebook' ? 'facebook' : 'google';
+    const providerLabel = authProvider === 'facebook' ? 'Facebook' : 'Google';
+
     if (!isFirebaseReady()) {
       throw new AppError(
-        'Google sign-in is not configured on the server yet.',
+        `${providerLabel} sign-in is not configured on the server yet.`,
         503,
       );
     }
@@ -259,7 +266,7 @@ class AuthService {
     try {
       decoded = await admin.auth().verifyIdToken(String(data.firebaseToken || ''));
     } catch {
-      throw new AppError('Invalid Google sign-in token.', 401);
+      throw new AppError(`Invalid ${providerLabel} sign-in token.`, 401);
     }
 
     const firebaseUid = String(decoded.uid || '').trim();
@@ -271,7 +278,10 @@ class AuthService {
       (email.includes('@') ? email.split('@')[0] : 'Devotee');
 
     if (!firebaseUid || !email || !email.includes('@')) {
-      throw new AppError('Google account must include a valid email.', 400);
+      throw new AppError(
+        `${providerLabel} account must include a valid email.`,
+        400,
+      );
     }
 
     let user =
@@ -281,7 +291,7 @@ class AuthService {
     let isNewUser = false;
 
     if (!user) {
-      // Create user with Google name, email, photo.
+      // Create user with social name, email, photo.
       // NO random phone numbers (mobileCountryCode & mobileNumber are null).
       // NO fake gender or fake DOB — devotee can fill them from Profile -> Personal Details anytime.
       const userId = await authRepository.createUser({
@@ -299,15 +309,15 @@ class AuthService {
         profilePhoto: decoded.picture || null,
       });
 
-      await authRepository.setAuthProvider(userId, 'google');
+      await authRepository.setAuthProvider(userId, authProvider);
       user = await authRepository.findUserById(userId);
       if (!user) {
-        throw new AppError('Unable to create Google account.', 500);
+        throw new AppError(`Unable to create ${providerLabel} account.`, 500);
       }
       try {
         await this.setupNewUser(user);
       } catch (error) {
-        console.warn('Google signup setup skipped:', error);
+        console.warn(`${providerLabel} signup setup skipped:`, error);
       }
       isNewUser = true;
     } else {
@@ -329,7 +339,7 @@ class AuthService {
         data.deviceOs,
         data.appVersion,
       );
-      await authRepository.setAuthProvider(user.id, 'google');
+      await authRepository.setAuthProvider(user.id, authProvider);
       user = (await authRepository.findUserById(user.id)) as AuthUser;
     }
 
@@ -394,7 +404,9 @@ class AuthService {
       data.firebaseToken ||
       data.firebaseUid ||
       data.authProvider === 'google' ||
-      data.provider === 'google',
+      data.authProvider === 'facebook' ||
+      data.provider === 'google' ||
+      data.provider === 'facebook',
     );
 
     let passwordHash: string | null = null;
@@ -563,6 +575,16 @@ class AuthService {
       fullName,
       email,
     }));
+
+    if (isSocial) {
+      const socialProvider =
+        String(data.authProvider || data.provider || '')
+          .trim()
+          .toLowerCase() === 'facebook'
+          ? 'facebook'
+          : 'google';
+      await authRepository.setAuthProvider(userId, socialProvider);
+    }
 
     const user = await authRepository.findUserById(userId);
     if (!user) {

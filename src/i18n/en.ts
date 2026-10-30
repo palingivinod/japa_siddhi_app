@@ -154,12 +154,16 @@ const en = {
   forQuickLogin: 'For quick login',
   socialFacebook: 'Facebook',
   continueWithGoogle: 'Continue with Google',
+  continueWithFacebook: 'Continue with Facebook',
   continueWithProvider: 'Continue with {{provider}}',
   googleAuthHelper:
     'Sign in with your Google account. New devotees finish personal details next; returning devotees go straight to Home.',
+  facebookAuthHelper:
+    'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
   providerAuthLaterHelper:
     '{{provider}} login will complete in a later release. Use Google, or create an account with email and password.',
   continueWithGoogleBtn: 'CONTINUE WITH GOOGLE',
+  continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
   signInWithEmailPassword: 'SIGN IN WITH EMAIL + PASSWORD',
   tryGoogleInstead: 'TRY GOOGLE INSTEAD',
   createAccountBtn: 'CREATE ACCOUNT',
@@ -167,6 +171,10 @@ const en = {
   googleSetupMessage:
     'Add your Firebase Web Client ID to src/env.ts as GOOGLE_WEB_CLIENT_ID, enable Google sign-in in Firebase, add your Android SHA-1, then download a fresh google-services.json.',
   googleSignInTitle: 'Google sign-in',
+  facebookSetupNeeded: 'Facebook setup needed',
+  facebookSetupMessage:
+    'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and matching values in Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, add Android key hashes in Meta Developer Console, then rebuild.',
+  facebookSignInTitle: 'Facebook sign-in',
   stepOf: 'Step {{current}} of {{total}}',
   yourName: 'Your name',
   selectDate: 'Select date',

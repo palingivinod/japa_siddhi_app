@@ -281,10 +281,10 @@ class AuthController {
       const provider = String(req.body?.provider || 'google')
         .trim()
         .toLowerCase();
-      if (provider !== 'google') {
+      if (provider !== 'google' && provider !== 'facebook') {
         return apiResponse.error(
           res,
-          `${provider} login is not available yet. Use Google, or email and password.`,
+          `${provider} login is not available yet. Use Google, Facebook, or email and password.`,
           400,
         );
       }
@@ -293,7 +293,11 @@ class AuthController {
         req.body?.firebaseToken || req.body?.idToken || '',
       ).trim();
       if (!firebaseToken) {
-        return apiResponse.error(res, 'Google sign-in token is required.', 400);
+        return apiResponse.error(
+          res,
+          `${provider === 'facebook' ? 'Facebook' : 'Google'} sign-in token is required.`,
+          400,
+        );
       }
 
       const result = await authService.socialLogin({
@@ -308,7 +312,11 @@ class AuthController {
         appVersion: req.body?.appVersion,
       });
 
-      return apiResponse.success(res, 'Signed in with Google', result);
+      return apiResponse.success(
+        res,
+        `Signed in with ${provider === 'facebook' ? 'Facebook' : 'Google'}`,
+        result,
+      );
     } catch (error) {
       next(error);
     }

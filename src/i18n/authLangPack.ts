@@ -95,6 +95,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts में GOOGLE_WEB_CLIENT_ID जोड़ें, Firebase में Google साइन-इन चालू करें, Android SHA-1 जोड़ें, फिर नया google-services.json डाउनलोड करें।',
     googleSignInTitle: 'Google साइन-इन',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'चरण {{current}} / {{total}}',
     yourName: 'आपका नाम',
     selectDate: 'तारीख चुनें',
@@ -254,6 +262,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts లో GOOGLE_WEB_CLIENT_ID జోడించండి, Firebase లో Google సైన్-ఇన్ ఆన్ చేయండి, Android SHA-1 జోడించి కొత్త google-services.json డౌన్‌లోడ్ చేయండి.',
     googleSignInTitle: 'Google సైన్-ఇన్',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'దశ {{current}} / {{total}}',
     yourName: 'మీ పేరు',
     selectDate: 'తేదీ ఎంచుకోండి',
@@ -416,6 +432,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts ನಲ್ಲಿ GOOGLE_WEB_CLIENT_ID ಆಗಿ Firebase Web Client ID ಸೇರಿಸಿ, Firebase ನಲ್ಲಿ Google ಸೈನ್-ಇನ್ ಸಕ್ರಿಯಗೊಳಿಸಿ, Android SHA-1 ಸೇರಿಸಿ, ನಂತರ ಹೊಸ google-services.json ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ.',
     googleSignInTitle: 'Google ಸೈನ್-ಇನ್',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'ಹಂತ {{current}} / {{total}}',
     yourName: 'ನಿಮ್ಮ ಹೆಸರು',
     selectDate: 'ದಿನಾಂಕ ಆಯ್ಕೆಮಾಡಿ',
@@ -579,6 +603,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts இல் GOOGLE_WEB_CLIENT_ID ஆக Firebase Web Client ID ஐச் சேர்க்கவும், Firebase இல் Google உள்நுழைவை இயக்கவும், Android SHA-1 ஐச் சேர்த்து, புதிய google-services.json ஐப் பதிவிறக்கவும்.',
     googleSignInTitle: 'Google உள்நுழைவு',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'படி {{current}} / {{total}}',
     yourName: 'உங்கள் பெயர்',
     selectDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
@@ -743,6 +775,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts ൽ GOOGLE_WEB_CLIENT_ID ആയി Firebase Web Client ID ചേർക്കുക, Firebase ൽ Google സൈൻ-ഇൻ പ്രവർത്തനക്ഷമമാക്കുക, Android SHA-1 ചേർക്കുക, തുടർന്ന് പുതിയ google-services.json ഡൗൺലോഡ് ചെയ്യുക.',
     googleSignInTitle: 'Google സൈൻ-ഇൻ',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'ഘട്ടം {{current}} / {{total}}',
     yourName: 'നിങ്ങളുടെ പേര്',
     selectDate: 'തീയതി തിരഞ്ഞെടുക്കുക',
@@ -904,6 +944,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts मध्ये GOOGLE_WEB_CLIENT_ID म्हणून Firebase Web Client ID जोडा, Firebase मध्ये Google साइन-इन सुरू करा, Android SHA-1 जोडा, नंतर नवीन google-services.json डाउनलोड करा.',
     googleSignInTitle: 'Google साइन-इन',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'टप्पा {{current}} / {{total}}',
     yourName: 'तुमचे नाव',
     selectDate: 'तारीख निवडा',
@@ -1064,6 +1112,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts-এ GOOGLE_WEB_CLIENT_ID হিসেবে Firebase Web Client ID যোগ করুন, Firebase-এ Google সাইন-ইন চালু করুন, Android SHA-1 যোগ করুন, তারপর নতুন google-services.json ডাউনলোড করুন।',
     googleSignInTitle: 'Google সাইন-ইন',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'ধাপ {{current}} / {{total}}',
     yourName: 'আপনার নাম',
     selectDate: 'তারিখ নির্বাচন করুন',
@@ -1224,6 +1280,14 @@ export const authLangPack: Record<string, AuthPack> = {
     googleSetupMessage:
       'src/env.ts ରେ GOOGLE_WEB_CLIENT_ID ଭାବେ Firebase Web Client ID ଯୋଡ଼ନ୍ତୁ, Firebase ରେ Google ସାଇନ୍-ଇନ୍ ଚାଲୁ କରନ୍ତୁ, Android SHA-1 ଯୋଡ଼ନ୍ତୁ, ତା’ପରେ ନୂଆ google-services.json ଡାଉନଲୋଡ୍ କରନ୍ତୁ।',
     googleSignInTitle: 'Google ସାଇନ୍-ଇନ୍',
+    continueWithFacebook: 'Continue with Facebook',
+    facebookAuthHelper:
+      'Sign in with your Facebook account. New devotees finish personal details next; returning devotees go straight to Home.',
+    continueWithFacebookBtn: 'CONTINUE WITH FACEBOOK',
+    facebookSetupNeeded: 'Facebook setup needed',
+    facebookSetupMessage:
+      'Add FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN in src/env.ts (and Android strings.xml / iOS Info.plist), enable Facebook in Firebase Auth, then rebuild.',
+    facebookSignInTitle: 'Facebook sign-in',
     stepOf: 'ପର୍ଯ୍ୟାୟ {{current}} / {{total}}',
     yourName: 'ଆପଣଙ୍କ ନାମ',
     selectDate: 'ତାରିଖ ବାଛନ୍ତୁ',

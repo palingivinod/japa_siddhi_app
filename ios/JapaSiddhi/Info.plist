@@ -59,6 +59,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<!-- Meta Developer Console → Settings → Basic. Keep in sync with src/env.ts. -->
+	<key>FacebookAppID</key>
+	<string>3042346889453119</string>
+	<key>FacebookClientToken</key>
+	<string>be339eb4f3fc489ac6a0e1be11c686f2</string>
+	<key>FacebookDisplayName</key>
+	<string>Japa Siddhi</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -69,6 +76,19 @@
 				<string>japasiddhi</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>fb3042346889453119</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-share-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
 	</array>
 </dict>
 </plist>

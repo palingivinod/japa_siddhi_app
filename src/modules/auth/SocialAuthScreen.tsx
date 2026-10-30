@@ -12,14 +12,23 @@ import {
   explainGoogleSignInError,
   signInWithGoogle,
 } from './services/googleAuthService';
+import {
+  explainFacebookSignInError,
+  signInWithFacebook,
+} from './services/facebookAuthService';
 import ENV from '../../env';
 import {resetAfterSocialAuth} from '../../navigation/goHomeAfterAuth';
 
 const showAlertLater = (title: string, message: string) => {
-  // Android Activity can be null right as Google Sign-In returns; Alert then
+  // Android Activity can be null right as native sign-in returns; Alert then
   // no-ops or destabilizes the resume. Wait a beat before presenting UI.
   setTimeout(() => Alert.alert(title, message), 350);
 };
+
+const isCancelledSignIn = (error: any, message: string) =>
+  /cancel|cancelled|12501|SIGN_IN_CANCELLED|USER_CANCELLED/i.test(message) ||
+  error?.code === '12501' ||
+  error?.code === 'SIGN_IN_CANCELLED';
 
 const SocialAuthScreen = () => {
   const navigation = useNavigation<any>();
@@ -36,10 +45,7 @@ const SocialAuthScreen = () => {
 
   const continueWithGoogle = async () => {
     if (!String(ENV.GOOGLE_WEB_CLIENT_ID || '').trim()) {
-      showAlertLater(
-        t('googleSetupNeeded'),
-        t('googleSetupMessage'),
-      );
+      showAlertLater(t('googleSetupNeeded'), t('googleSetupMessage'));
       return;
     }
 
@@ -47,8 +53,6 @@ const SocialAuthScreen = () => {
       return;
     }
 
-    // Do not flip busy until after the account picker closes — a loading
-    // overlay during the native Google UI can leave Activity null on return.
     try {
       setBusy(true);
       const signedIn = await signInWithGoogle();
@@ -62,14 +66,45 @@ const SocialAuthScreen = () => {
       }, 150);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);
-      if (
-        /cancel|cancelled|12501|SIGN_IN_CANCELLED/i.test(message) ||
-        error?.code === '12501' ||
-        error?.code === 'SIGN_IN_CANCELLED'
-      ) {
+      if (isCancelledSignIn(error, message)) {
         return;
       }
       showAlertLater(t('googleSignInTitle'), message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const continueWithFacebook = async () => {
+    if (
+      !String(ENV.FACEBOOK_APP_ID || '').trim() ||
+      !String(ENV.FACEBOOK_CLIENT_TOKEN || '').trim()
+    ) {
+      showAlertLater(t('facebookSetupNeeded'), t('facebookSetupMessage'));
+      return;
+    }
+
+    if (busy) {
+      return;
+    }
+
+    try {
+      setBusy(true);
+      const signedIn = await signInWithFacebook();
+      resetAuthGate();
+      setTimeout(() => {
+        resetAfterSocialAuth(navigation, signedIn.user, {
+          title: t('socialDetailsTitle'),
+          message: t('socialDetailsMessage'),
+          ok: t('ok'),
+        });
+      }, 150);
+    } catch (error: any) {
+      const message = explainFacebookSignInError(error);
+      if (isCancelledSignIn(error, message)) {
+        return;
+      }
+      showAlertLater(t('facebookSignInTitle'), message);
     } finally {
       setBusy(false);
     }
@@ -93,6 +128,43 @@ const SocialAuthScreen = () => {
             <PrimaryButton
               title={t('continueWithGoogleBtn')}
               onPress={continueWithGoogle}
+            />
+            <View style={styles.gap} />
+            <OutlineButton
+              title={t('signInWithEmailPassword')}
+              onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
+            />
+          </>
+        )}
+      </ScreenLayout>
+    );
+  }
+
+  if (provider === 'Facebook') {
+    return (
+      <ScreenLayout title={t('continueWithFacebook')} showBack>
+        <Text style={styles.title}>{t('continueWithFacebook')}</Text>
+        <Text style={styles.copy}>{t('facebookAuthHelper')}</Text>
+        {busy ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color={Colors.templeGold} />
+            <Text style={styles.loadingTitle}>Signing in with Facebook...</Text>
+            <Text style={styles.loadingSubtitle}>
+              Please wait while we connect your account
+            </Text>
+          </View>
+        ) : (
+          <>
+            <PrimaryButton
+              title={t('continueWithFacebookBtn')}
+              onPress={continueWithFacebook}
+            />
+            <View style={styles.gap} />
+            <OutlineButton
+              title={t('tryGoogleInstead')}
+              onPress={() =>
+                navigation.replace('SocialAuth', {provider: 'Google'})
+              }
             />
             <View style={styles.gap} />
             <OutlineButton
