@@ -3023,16 +3023,18 @@ const paymentAddDaysYmd = (ymd: string, days: number) => {
   return dt.toISOString().slice(0, 10);
 };
 
-/** IST calendar date of a UTC/server timestamp column (matches japa totals). */
+/**
+ * Calendar date/month of donation stamps.
+ * donated_at is already IST wall-clock (YYYY-MM-DD HH:mm:ss via istStamp) —
+ * do NOT add +5:30 again or evening payments spill into the next IST day.
+ */
 const paymentStampIstDateSql = (engine: string, stampExpr: string) =>
-  engine === 'mysql'
-    ? `DATE(DATE_ADD(${stampExpr}, INTERVAL 330 MINUTE))`
-    : `date(${stampExpr}, '+5 hours', '30 minutes')`;
+  engine === 'mysql' ? `DATE(${stampExpr})` : `date(${stampExpr})`;
 
 const paymentStampIstMonthSql = (engine: string, stampExpr: string) =>
   engine === 'mysql'
-    ? `DATE_FORMAT(DATE_ADD(${stampExpr}, INTERVAL 330 MINUTE), '%Y-%m')`
-    : `strftime('%Y-%m', ${stampExpr}, '+5 hours', '30 minutes')`;
+    ? `DATE_FORMAT(${stampExpr}, '%Y-%m')`
+    : `strftime('%Y-%m', ${stampExpr})`;
 
 const buildPaymentReportRows = async () => {
   await mysql.query('SELECT 1');
