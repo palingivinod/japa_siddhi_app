@@ -104,10 +104,26 @@ export const buildPaymentReceiptPdf = async (
 
   const amountLabel =
     Number.isFinite(amount) && amount > 0 ? `₹${Math.round(amount)}` : '—';
-  const when =
-    paidAt && !Number.isNaN(Date.parse(paidAt))
-      ? new Date(paidAt).toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'})
-      : new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});
+  // donated_at is stored as IST wall-clock (YYYY-MM-DD HH:mm:ss) via istStamp —
+  // no offset. Parsing that as UTC then converting to Asia/Kolkata adds +5:30 again
+  // (e.g. 2:47 pm → 8:17 pm). Treat naive stamps as IST.
+  const formatReceiptWhen = (raw?: string) => {
+    const s = String(raw || '').trim();
+    if (!s) {
+      return new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});
+    }
+    const naive = s.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/);
+    const hasOffset = /[zZ]|[+-]\d{2}:?\d{2}$/.test(s);
+    const date =
+      naive && !hasOffset
+        ? new Date(`${naive[1]}T${naive[2]}+05:30`)
+        : new Date(s);
+    if (Number.isNaN(date.getTime())) {
+      return new Date().toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});
+    }
+    return date.toLocaleString('en-IN', {timeZone: 'Asia/Kolkata'});
+  };
+  const when = formatReceiptWhen(paidAt);
 
   const doc = new PDFDocument({
     size: 'A4',

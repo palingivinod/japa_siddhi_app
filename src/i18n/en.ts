@@ -648,9 +648,11 @@ const en = {
   updateNow: 'Update',
   socialDetailsTitle: 'Your details',
   socialDetailsMessage: 'Please enter your mobile, date of birth, and PIN code.',
-  enterPinCode: 'Enter a 6-digit PIN code.',
+  enterPinCode: 'Please enter PIN code.',
+  enterState: 'Please enter State.',
+  enterCity: 'Please enter City.',
   regionPlace: 'Region / Place',
-  enterRegionPlace: 'Enter your region or place.',
+  enterRegionPlace: 'Please enter Region / Place.',
   regionRequiredTitle: 'Add your place',
   regionRequiredMessage:
     'Please add your region or place. This is required.',

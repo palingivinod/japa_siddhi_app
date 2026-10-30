@@ -248,12 +248,14 @@ const CompleteProfileScreen = ({
       message = t('selectGender');
     } else if (!country) {
       message = t('selectCountry');
-    } else if (
-      pinCode.length !== 6 ||
-      !stateModel?.id ||
-      !cityModel?.id
-    ) {
-      message = t('pinNotFound');
+    } else if (!pinCode.trim()) {
+      message = t('enterPinCode');
+    } else if (pinCode.length !== 6) {
+      message = t('enterPinCode');
+    } else if (!stateModel?.id) {
+      message = t('enterState');
+    } else if (!cityModel?.id) {
+      message = t('enterCity');
     } else if (region.trim().length < 2) {
       message = t('enterRegionPlace');
     } else if (!acceptedTerms) {
