@@ -241,7 +241,13 @@ const AdminPaymentDetailScreen = () => {
       ) : null}
 
       {!loading && !items.length ? (
-        <Text style={styles.empty}>No payments found for this filter.</Text>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyTitle}>No payments</Text>
+          <Text style={styles.empty}>
+            Nothing in this category for {title.toLowerCase()}. Try All or
+            another filter.
+          </Text>
+        </View>
       ) : null}
 
       {items.map(item => {
@@ -390,11 +396,29 @@ const styles = StyleSheet.create({
   },
   centerBox: {paddingVertical: 20, alignItems: 'center'},
   errorText: {color: Colors.error, marginBottom: 12, fontWeight: '600'},
+  emptyCard: {
+    marginTop: 8,
+    marginBottom: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+  },
   empty: {
-    marginTop: 20,
     textAlign: 'center',
     color: Colors.textSecondary,
     fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 20,
   },
   card: {
     backgroundColor: Colors.white,
