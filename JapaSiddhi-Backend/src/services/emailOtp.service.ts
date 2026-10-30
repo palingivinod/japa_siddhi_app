@@ -32,20 +32,37 @@ class EmailOtpService {
     return `${visible}***@${domain}`;
   }
 
+  /** Trust inbox for order / request / feedback admin alerts. */
   adminInbox(): string {
+    return (
+      environment.NOTIFY_EMAIL ||
+      environment.SMTP_USER ||
+      'bilvapatratrust@gmail.com'
+    );
+  }
+
+  /** Always Bilva Patra Trust — never send as kailaasavaasi. */
+  mailFromAddress(): string {
+    const configured = String(environment.SMTP_USER || '')
+      .trim()
+      .toLowerCase();
+    if (configured && !configured.includes('kailaasavaasi')) {
+      return configured;
+    }
     return 'bilvapatratrust@gmail.com';
   }
 
   async sendMail(to: string, subject: string, text: string): Promise<void> {
     if (!this.isConfigured()) {
       throw new AppError(
-        'Email OTP is not configured. Add a Gmail address and App Password to SMTP_USER and SMTP_PASS in JapaSiddhi-Backend/.env. This stays free for production.',
+        'Email OTP is not configured. Add bilvapatratrust@gmail.com and its Gmail App Password to SMTP_USER and SMTP_PASS in JapaSiddhi-Backend/.env (and Render).',
         503,
       );
     }
 
+    const fromAddress = this.mailFromAddress();
     const mail = {
-      from: `"Japa Siddhi" <${environment.SMTP_USER}>`,
+      from: `"Japa Siddhi" <${fromAddress}>`,
       to,
       subject,
       text,
@@ -69,7 +86,8 @@ class EmailOtpService {
         greetingTimeout: 12000,
         socketTimeout: 15000,
         auth: {
-          user: environment.SMTP_USER,
+          // Auth as Bilva Patra Trust mailbox (same as From).
+          user: fromAddress,
           pass: environment.SMTP_PASS,
         },
         tls: {

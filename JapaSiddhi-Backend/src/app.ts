@@ -31,6 +31,11 @@ import publicWebsiteRoutes from './modules/public/publicWebsite.routes';
 import razorpayRoutes from './modules/payments/razorpay.routes';
 import database from './database/mysql';
 import {getSqlitePath} from './database/sqliteEngine';
+import {
+  renderDeepLinkLanding,
+  resolveBookingLanding,
+  resolveMonthlySupportLanding,
+} from './utils/deepLinkLanding';
 const app = express();
 
 app.set('trust proxy', 1);
@@ -153,6 +158,32 @@ app.get(['/annasantharpana', '/annadanam'], (_req, res) => {
 </body>
 </html>
   `.trim());
+});
+
+// Monthly Support flyer links (same open-app pattern as Anna Santharpana)
+app.get(['/ms', '/ms/:slug'], (req, res) => {
+  const page = resolveMonthlySupportLanding(String(req.params.slug || ''));
+  res.status(200).send(
+    renderDeepLinkLanding({
+      title: page.title,
+      subtitle: page.subtitle,
+      appDeepLink: page.deepLink,
+      icon: '🙏',
+    }),
+  );
+});
+
+// Booking / seva flyer links
+app.get(['/book', '/book/:slug', '/booking', '/booking/:slug'], (req, res) => {
+  const page = resolveBookingLanding(String(req.params.slug || ''));
+  res.status(200).send(
+    renderDeepLinkLanding({
+      title: page.title,
+      subtitle: page.subtitle,
+      appDeepLink: page.deepLink,
+      icon: page.icon || '🪔',
+    }),
+  );
 });
 
 app.get('/.well-known/assetlinks.json', (_req, res) => {

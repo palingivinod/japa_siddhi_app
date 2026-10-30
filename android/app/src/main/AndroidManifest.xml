@@ -229,6 +229,7 @@
             <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/book" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annasantharpana" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annadanam" />
+            <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/ms" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/book" />
         </intent-filter>
       </activity>

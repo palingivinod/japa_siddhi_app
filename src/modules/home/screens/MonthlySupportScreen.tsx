@@ -26,28 +26,37 @@ import {digitsOnly} from '../../../utils/validators';
 
 const PRESET_AMOUNTS = [58, 116, 200, 216];
 const PLAYSTORE_URL = 'https://play.google.com/store/apps/details?id=com.japasiddhi';
-const MS_BASE = 'https://japasiddhi.com/ms';
+const MS_BASE = 'https://japasiddhi.onrender.com/ms';
 
 const buildMonthlySupportShareText = (_t?: (k: any) => string) => {
   return [
-    '🙏 Japa Siddhi - Monthly Spiritual Support 🙏',
+    '🙏 Japa Siddhi – Bilva Patra Trust — Monthly Spiritual Support 🙏',
     '',
-    'Join us in supporting noble spiritual activities and trust seva every month.',
-    'Tap a link to open the app and contribute:',
+    'Support temple seva every month with auto-pay.',
+    'Choose your monthly offering:',
     '',
-    `✨ ₹58 / month — ${MS_BASE}/58`,
-    `✨ ₹116 / month — ${MS_BASE}/116`,
-    `✨ ₹200 / month — ${MS_BASE}/200`,
-    `✨ ₹216 / month — ${MS_BASE}/216`,
-    `✨ Custom amount — ${MS_BASE}/custom`,
-    `🔁 Set Autopay — ${MS_BASE}/autopay`,
+    '₹58 / month',
+    `${MS_BASE}/58`,
     '',
-    'Duly participate in sacred Kainkaryam & receive divine blessings of Mantra Devata!',
+    '₹116 / month',
+    `${MS_BASE}/116`,
     '',
-    '📲 Download Japa Siddhi App:',
+    '₹200 / month',
+    `${MS_BASE}/200`,
+    '',
+    '₹216 / month',
+    `${MS_BASE}/216`,
+    '',
+    'Custom amount',
+    `${MS_BASE}/custom`,
+    '',
+    'Set Autopay',
+    `${MS_BASE}/autopay`,
+    '',
+    'Tap your amount → opens Japa Siddhi app with that plan ready for Razorpay / Auto-pay.',
+    '',
+    '📲 If the app is not installed:',
     PLAYSTORE_URL,
-    '',
-    'Team Japasiddhi - Bilva Patra Trust',
   ].join('\n');
 };
 
