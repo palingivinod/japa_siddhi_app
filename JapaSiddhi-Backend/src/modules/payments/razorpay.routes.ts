@@ -47,6 +47,8 @@ router.post('/order', async (req: Request, res: Response) => {
     const occasion = String(req.body?.occasion || '').trim().slice(0, 40);
     const forWhom = String(req.body?.forWhom || '').trim().slice(0, 20);
     const personName = String(req.body?.personName || '').trim().slice(0, 80);
+    const gothram = String(req.body?.gothram || '').trim().slice(0, 80);
+    const nakshatram = String(req.body?.nakshatram || '').trim().slice(0, 80);
     const comments = String(req.body?.comments || '').trim().slice(0, 1000);
     const order = await createRazorpayOrder({
       amountPaise: paise,
@@ -60,6 +62,8 @@ router.post('/order', async (req: Request, res: Response) => {
         occasion,
         forWhom,
         personName,
+        gothram,
+        nakshatram,
         comments,
       },
     });

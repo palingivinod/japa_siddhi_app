@@ -447,6 +447,7 @@ const en = {
   paymentSuccessful: 'Payment successful',
   downloadReceipt: 'Download Receipt',
   downloadingReceipt: 'Downloading receipt...',
+  viewReceipt: 'View Receipt',
   orderUnderReview: 'Order Under Review',
   orderPlaced: 'Order Placed',
   thankYouForSeva: 'Thank you for {{name}}.',

@@ -257,6 +257,7 @@ export const bn: TranslationDict = {
   paymentSuccessful: 'পেমেন্ট সফল',
   downloadReceipt: 'রসিদ ডাউনলোড করুন',
   downloadingReceipt: 'রসিদ ডাউনলোড হচ্ছে...',
+  viewReceipt: 'রসিদ দেখুন',
   orderUnderReview: 'অর্ডার পর্যালোচনায় আছে',
   orderPlaced: 'অর্ডার দেওয়া হয়েছে',
   thankYouForSeva: '{{name}} এর জন্য ধন্যবাদ।',

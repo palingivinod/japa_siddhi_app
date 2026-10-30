@@ -36,6 +36,8 @@ const GeneralAnnadanamScreen = () => {
   const [spouseName, setSpouseName] = useState('');
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
+  const [gothram, setGothram] = useState('');
+  const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
   const [persons, setPersons] = useState(0);
   const [enabled, setEnabled] = useState(true);
@@ -77,6 +79,11 @@ const GeneralAnnadanamScreen = () => {
           setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
           setGender(String(profile?.gender || stored?.gender || ''));
           setSpouseName(String(profile?.spouseName || stored?.spouseName || stored?.spouse_name || ''));
+          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
+          setNakshatram(
+            current =>
+              current || String(profile?.nakshatram || stored?.nakshatram || ''),
+          );
         } catch {
           // ignore profile load error
         }
@@ -158,6 +165,8 @@ const GeneralAnnadanamScreen = () => {
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
+      gothram: gothram.trim(),
+      nakshatram: nakshatram.trim(),
       comments: comments.trim(),
     });
   };
@@ -338,6 +347,18 @@ const GeneralAnnadanamScreen = () => {
             persons={persons}
             onChangePersons={setPersons}
             title={t('selectNoOfPersons')}
+          />
+          <FormField
+            label={t('gothramOptional') || 'Gothram (Optional)'}
+            placeholder={t('gothram') || 'Enter Gothram'}
+            value={gothram}
+            onChangeText={setGothram}
+          />
+          <FormField
+            label={t('nakshatramOptional') || 'Nakshatram / Star (Optional)'}
+            placeholder={t('nakshatram') || 'Enter Nakshatram / Star'}
+            value={nakshatram}
+            onChangeText={setNakshatram}
           />
           <FormField
             label={t('comments')}

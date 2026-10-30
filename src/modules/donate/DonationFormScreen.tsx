@@ -27,6 +27,10 @@ const DonationFormScreen = () => {
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
   const [preferDate, setPreferDate] = useState(params.preferDate || '');
   const [showDate, setShowDate] = useState(false);
+  const [gothram, setGothram] = useState(String(params.gothram || '').trim());
+  const [nakshatram, setNakshatram] = useState(
+    String(params.nakshatram || '').trim(),
+  );
   const [comments, setComments] = useState(
     String(params.comments || '').trim(),
   );
@@ -53,6 +57,11 @@ const DonationFormScreen = () => {
           if (!mobile && phone) {
             setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
           }
+          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
+          setNakshatram(
+            current =>
+              current || String(profile?.nakshatram || stored?.nakshatram || ''),
+          );
         } catch {
           // ignore profile load error
         }
@@ -104,6 +113,8 @@ const DonationFormScreen = () => {
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
+      gothram: gothram.trim(),
+      nakshatram: nakshatram.trim(),
       comments: comments.trim(),
     });
   };
@@ -165,6 +176,18 @@ const DonationFormScreen = () => {
         persons={persons}
         onChangePersons={setPersons}
         title={t('selectNoOfPersons')}
+      />
+      <FormField
+        label={t('gothramOptional') || 'Gothram (Optional)'}
+        placeholder={t('gothram') || 'Enter Gothram'}
+        value={gothram}
+        onChangeText={setGothram}
+      />
+      <FormField
+        label={t('nakshatramOptional') || 'Nakshatram / Star (Optional)'}
+        placeholder={t('nakshatram') || 'Enter Nakshatram / Star'}
+        value={nakshatram}
+        onChangeText={setNakshatram}
       />
       <FormField
         label={t('comments')}

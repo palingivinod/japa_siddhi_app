@@ -78,6 +78,7 @@ import HomamEnrollScreen from '../modules/homam/HomamEnrollScreen';
 import HomamConfirmationScreen from '../modules/homam/HomamConfirmationScreen';
 import CheckoutScreen from '../modules/payments/CheckoutScreen';
 import PaymentConfirmationScreen from '../modules/payments/PaymentConfirmationScreen';
+import PaymentReceiptViewScreen from '../modules/payments/PaymentReceiptViewScreen';
 import OrdersScreen from '../modules/orders/OrdersScreen';
 import OrderDetailsScreen from '../modules/orders/OrderDetailsScreen';
 import OrderTrackingScreen from '../modules/orders/OrderTrackingScreen';
@@ -123,6 +124,7 @@ import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
 import AdminProductsScreen from '../modules/admin/AdminProductsScreen';
 import AdminBannersScreen from '../modules/admin/AdminBannersScreen';
 import AdminPaymentsScreen from '../modules/admin/AdminPaymentsScreen';
+import AdminPaymentDetailScreen from '../modules/admin/AdminPaymentDetailScreen';
 import AdminAnnadanamScreen from '../modules/admin/AdminAnnadanamScreen';
 import AdminBaanalingamScreen from '../modules/admin/AdminBaanalingamScreen';
 import AdminNithyaHomamScreen from '../modules/admin/AdminNithyaHomamScreen';
@@ -317,6 +319,7 @@ export type RootStackParamList = {
   BanaLingam: undefined;
   BanaLingamPayment: any;
   PaymentConfirmation: any;
+  PaymentReceiptView: any;
   NithyaHomam: undefined;
   HomamEnroll: undefined;
   HomamPayment: any;
@@ -408,6 +411,11 @@ export type RootStackParamList = {
   AdminProducts: undefined;
   AdminBanners: undefined;
   AdminPayments: undefined;
+  AdminPaymentDetail:
+    | {
+        period?: 'today' | 'week' | 'month';
+      }
+    | undefined;
   AdminAnnadanam: undefined;
   AdminBaanalingam: undefined;
   AdminNithyaHomam: undefined;
@@ -484,6 +492,7 @@ const ProtectedDonationForm = withAuth(DonationFormScreen);
 const ProtectedMonthlySupport = withAuth(MonthlySupportScreen);
 const ProtectedCheckout = withAuth(CheckoutScreen);
 const ProtectedPaymentConfirmation = withAuth(PaymentConfirmationScreen);
+const ProtectedPaymentReceiptView = withAuth(PaymentReceiptViewScreen);
 const ProtectedFestivals = withAuth(FestivalsScreen);
 const ProtectedProgress = withAuth(ProgressScreen);
 const ProtectedAnalyticsHub = withAuth(AnalyticsHubScreen);
@@ -553,6 +562,7 @@ const ProtectedAdminOrderDetails = withAdminAuth(AdminOrderDetailsScreen);
 const ProtectedAdminProducts = withAdminAuth(AdminProductsScreen);
 const ProtectedAdminBanners = withAdminAuth(AdminBannersScreen);
 const ProtectedAdminPayments = withAdminAuth(AdminPaymentsScreen);
+const ProtectedAdminPaymentDetail = withAdminAuth(AdminPaymentDetailScreen);
 const ProtectedAdminAnnadanam = withAdminAuth(AdminAnnadanamScreen);
 const ProtectedAdminBaanalingam = withAdminAuth(AdminBaanalingamScreen);
 const ProtectedAdminNithyaHomam = withAdminAuth(AdminNithyaHomamScreen);
@@ -772,6 +782,10 @@ const AppNavigator = () => {
           name="PaymentConfirmation"
           component={ProtectedPaymentConfirmation}
         />
+        <Stack.Screen
+          name="PaymentReceiptView"
+          component={ProtectedPaymentReceiptView}
+        />
         <Stack.Screen name="NithyaHomam" component={ProtectedHomam} />
         <Stack.Screen name="HomamEnroll" component={ProtectedHomamEnroll} />
         <Stack.Screen name="HomamPayment" component={ProtectedCheckout} />
@@ -867,6 +881,10 @@ const AppNavigator = () => {
         <Stack.Screen name="AdminProducts" component={ProtectedAdminProducts} />
         <Stack.Screen name="AdminBanners" component={ProtectedAdminBanners} />
         <Stack.Screen name="AdminPayments" component={ProtectedAdminPayments} />
+        <Stack.Screen
+          name="AdminPaymentDetail"
+          component={ProtectedAdminPaymentDetail}
+        />
         <Stack.Screen
           name="AdminAnnadanam"
           component={ProtectedAdminAnnadanam}

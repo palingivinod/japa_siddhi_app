@@ -298,6 +298,8 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   const occasion = String(notes.occasion || '').trim().slice(0, 40);
   const forWhom = String(notes.forWhom || '').trim().slice(0, 20);
   const personName = String(notes.personName || '').trim().slice(0, 80);
+  const gothram = String(notes.gothram || '').trim().slice(0, 80);
+  const nakshatram = String(notes.nakshatram || '').trim().slice(0, 80);
   const comments = String(notes.comments || '').trim().slice(0, 500);
   const userId = await userIdForPhone(phone);
   const remarks = [
@@ -308,6 +310,8 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
     occasion ? `Occasion: ${occasion}` : '',
     forWhom ? `For whom: ${forWhom}` : '',
     personName ? `Person name: ${personName}` : '',
+    gothram ? `Gothram: ${gothram}` : '',
+    nakshatram ? `Nakshatram: ${nakshatram}` : '',
     comments ? `Comments: ${comments}` : '',
     source ? `Source: ${source}` : '',
   ]

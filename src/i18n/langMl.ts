@@ -257,6 +257,7 @@ export const ml: TranslationDict = {
   paymentSuccessful: 'പേയ്‌മെന്റ് വിജയിച്ചു',
   downloadReceipt: 'രസീത് ഡൗൺലോഡ് ചെയ്യുക',
   downloadingReceipt: 'രസീത് ഡൗൺലോഡ് ചെയ്യുന്നു...',
+  viewReceipt: 'രസീത് കാണുക',
   orderUnderReview: 'ഓർഡർ പരിശോധനയിലാണ്',
   orderPlaced: 'ഓർഡർ നൽകി',
   thankYouForSeva: '{{name}} ന് നന്ദി.',

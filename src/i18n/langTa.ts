@@ -257,6 +257,7 @@ export const ta: TranslationDict = {
   paymentSuccessful: 'பணம் செலுத்துதல் வெற்றி',
   downloadReceipt: 'ரசீதைப் பதிவிறக்கவும்',
   downloadingReceipt: 'ரசீது பதிவிறக்கப்படுகிறது...',
+  viewReceipt: 'ரசீதைப் பார்க்கவும்',
   orderUnderReview: 'ஆர்டர் மதிப்பாய்வில் உள்ளது',
   orderPlaced: 'ஆர்டர் பதிவானது',
   thankYouForSeva: '{{name}} க்கு நன்றி.',

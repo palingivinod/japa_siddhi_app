@@ -3080,6 +3080,245 @@ router.get('/payment-reports', async (_req: Request, res: Response) => {
   }
 });
 
+const paymentCategoryOf = (row: {
+  donationType?: string;
+  remarks?: string;
+  occasion?: string;
+}) => {
+  const type = String(row.donationType || '').toUpperCase();
+  const blob = `${row.remarks || ''} ${row.occasion || ''} ${type}`.toLowerCase();
+  if (
+    type.includes('MONTHLY') ||
+    blob.includes('monthly support') ||
+    blob.includes('monthly temple') ||
+    blob.includes('autopay')
+  ) {
+    return 'MONTHLY_SUPPORT';
+  }
+  if (
+    type === 'NITHYA_HOMAM' ||
+    blob.includes('homam') ||
+    blob.includes('nithya')
+  ) {
+    return 'NITHYA_HOMAM';
+  }
+  if (
+    type === 'ANNADANAM' ||
+    blob.includes('santharpana') ||
+    blob.includes('annadanam') ||
+    (blob.includes('anna') && !blob.includes('monthly'))
+  ) {
+    return 'ANNADANAM';
+  }
+  return 'OTHER';
+};
+
+const paymentCategoryLabel = (key: string) => {
+  switch (String(key || '').toUpperCase()) {
+    case 'MONTHLY_SUPPORT':
+      return 'Monthly Support';
+    case 'ANNADANAM':
+      return 'Annadanam';
+    case 'NITHYA_HOMAM':
+      return 'Nithya Homam';
+    default:
+      return 'Other';
+  }
+};
+
+router.get('/payment-reports/details', async (req: Request, res: Response) => {
+  try {
+    await ensureDonationColumns();
+    const period = String(req.query.period || 'today').trim().toLowerCase();
+    const category = String(req.query.category || 'ALL').trim().toUpperCase();
+    const fromDate = String(req.query.fromDate || '').trim();
+    const toDate = String(req.query.toDate || '').trim();
+    const engine = mysql.getEngineName() || 'sqlite';
+    const demoDonationFilter = demoDonationSql('d');
+    const stamp = 'IFNULL(d.donated_at, d.created_at)';
+
+    const whereClauses: string[] = [];
+    const params: any[] = [];
+
+    if (period === 'refunds') {
+      whereClauses.push(`(
+        UPPER(IFNULL(d.payment_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
+        OR UPPER(IFNULL(d.donation_status, '')) IN ('REFUNDED', 'REFUND', 'PENDING_REFUND')
+      )`);
+    } else {
+      whereClauses.push(`(
+        UPPER(IFNULL(d.payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+        OR UPPER(IFNULL(d.donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+      )`);
+    }
+
+    const validFrom = /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : '';
+    const validTo = /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : '';
+
+    if (validFrom || validTo) {
+      if (validFrom) {
+        if (engine === 'mysql') {
+          whereClauses.push(`DATE(${stamp}) >= ?`);
+        } else {
+          whereClauses.push(`date(${stamp}) >= date(?)`);
+        }
+        params.push(validFrom);
+      }
+      if (validTo) {
+        if (engine === 'mysql') {
+          whereClauses.push(`DATE(${stamp}) <= ?`);
+        } else {
+          whereClauses.push(`date(${stamp}) <= date(?)`);
+        }
+        params.push(validTo);
+      }
+    } else if (period === 'today') {
+      if (engine === 'mysql') {
+        whereClauses.push(`DATE(${stamp}) = CURDATE()`);
+      } else {
+        whereClauses.push(`date(${stamp}) = date('now')`);
+      }
+    } else if (period === 'week') {
+      if (engine === 'mysql') {
+        whereClauses.push(`DATE(${stamp}) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)`);
+      } else {
+        whereClauses.push(`date(${stamp}) >= date('now', '-6 days')`);
+      }
+    } else if (period === 'month') {
+      if (engine === 'mysql') {
+        whereClauses.push(
+          `YEAR(${stamp}) = YEAR(CURDATE()) AND MONTH(${stamp}) = MONTH(CURDATE())`,
+        );
+      } else if (engine === 'postgres') {
+        whereClauses.push(
+          `to_char((COALESCE(d.donated_at, d.created_at))::timestamp, 'YYYY-MM') = to_char((CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), 'YYYY-MM')`,
+        );
+      } else {
+        whereClauses.push(
+          `strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now')`,
+        );
+      }
+    }
+
+    const whereSql = `WHERE ${whereClauses.join(' AND ')} ${demoDonationFilter}`;
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        d.id,
+        d.remarks,
+        IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS donorName,
+        IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
+        IFNULL(d.prefer_date, '') AS preferDate,
+        IFNULL(d.occasion, '') AS occasion,
+        IFNULL(d.for_whom, '') AS forWhom,
+        IFNULL(d.person_name, '') AS personName,
+        d.donation_type AS donationType,
+        d.amount,
+        d.payment_status AS paymentStatus,
+        d.transaction_id AS transactionId,
+        IFNULL(d.donated_at, d.created_at) AS donatedAt
+      FROM donations d
+      LEFT JOIN users u ON u.id = d.user_id
+      ${whereSql}
+      ORDER BY ${stamp} DESC, d.id DESC
+      LIMIT 2000
+      `,
+      params,
+    );
+
+    const mapped = (rows || []).map((row: any) => {
+      const remarks = String(row.remarks || '');
+      const cat = paymentCategoryOf({
+        donationType: row.donationType,
+        remarks,
+        occasion: row.occasion,
+      });
+      const purpose =
+        String(row.occasion || '').trim() ||
+        remarkField(remarks, 'Occasion') ||
+        remarkField(remarks, 'Seva') ||
+        paymentCategoryLabel(cat);
+      return {
+        id: String(row.id),
+        name:
+          String(row.donorName || '').trim() ||
+          remarkField(remarks, 'Name') ||
+          'Devotee',
+        phone:
+          String(row.donorPhone || '').trim() ||
+          remarkField(remarks, 'Phone') ||
+          '',
+        amount: Number(row.amount || 0),
+        amountLabel: formatInr(Number(row.amount || 0)),
+        purpose,
+        category: cat,
+        categoryLabel: paymentCategoryLabel(cat),
+        preferDate:
+          String(row.preferDate || '').trim() ||
+          remarkField(remarks, 'Prefer date') ||
+          '',
+        donatedAt: String(row.donatedAt || ''),
+        transactionId: String(row.transactionId || ''),
+        paymentStatus: String(row.paymentStatus || ''),
+      };
+    });
+
+    const filtered =
+      category && category !== 'ALL'
+        ? mapped.filter(item => item.category === category)
+        : mapped;
+
+    const totalsByCategory: Record<string, {count: number; amount: number}> = {};
+    filtered.forEach(item => {
+      const key = item.category;
+      const cur = totalsByCategory[key] || {count: 0, amount: 0};
+      cur.count += 1;
+      cur.amount += Number(item.amount || 0);
+      totalsByCategory[key] = cur;
+    });
+
+    const totalAmount = filtered.reduce(
+      (sum, item) => sum + Number(item.amount || 0),
+      0,
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        period,
+        category,
+        fromDate: validFrom || null,
+        toDate: validTo || null,
+        totalCount: filtered.length,
+        totalAmount,
+        totalAmountLabel: formatInr(totalAmount),
+        categories: [
+          {id: 'ALL', label: 'All'},
+          {id: 'MONTHLY_SUPPORT', label: 'Monthly Support'},
+          {id: 'ANNADANAM', label: 'Annadanam'},
+          {id: 'NITHYA_HOMAM', label: 'Nithya Homam'},
+          {id: 'OTHER', label: 'Other'},
+        ],
+        totalsByCategory: Object.entries(totalsByCategory).map(
+          ([id, value]) => ({
+            id,
+            label: paymentCategoryLabel(id),
+            count: value.count,
+            amount: value.amount,
+            amountLabel: formatInr(value.amount),
+          }),
+        ),
+        items: filtered,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load payment details.',
+    });
+  }
+});
+
 const remarkField = (remarks: string, label: string) => {
   const match = String(remarks || '').match(new RegExp(`${label}:\\s*([^|]+)`, 'i'));
   return match ? match[1].trim() : '';
@@ -4201,16 +4440,35 @@ router.get('/reports/export', async (req: Request, res: Response) => {
 
       if (sevaType === 'ANNADANAM') {
         whereClauses.push(
-          "(UPPER(IFNULL(d.donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(d.remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(d.remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(d.remarks, '')) LIKE '%annadanam%')",
+          `(
+            UPPER(IFNULL(d.donation_type, '')) = 'ANNADANAM'
+            OR LOWER(IFNULL(d.remarks, '')) LIKE '%santharpana%'
+            OR LOWER(IFNULL(d.remarks, '')) LIKE '%annadanam%'
+            OR (
+              LOWER(IFNULL(d.remarks, '')) LIKE '%anna%'
+              AND LOWER(IFNULL(d.remarks, '')) NOT LIKE '%monthly%'
+            )
+          )`,
         );
         whereClauses.push("LOWER(IFNULL(d.remarks, '')) NOT LIKE '%homam%'");
+        whereClauses.push("UPPER(IFNULL(d.donation_type, '')) NOT LIKE '%MONTHLY%'");
+        whereClauses.push(
+          "LOWER(CONCAT(IFNULL(d.remarks, ''), ' ', IFNULL(d.occasion, ''))) NOT LIKE '%monthly support%'",
+        );
+        whereClauses.push(
+          "LOWER(CONCAT(IFNULL(d.remarks, ''), ' ', IFNULL(d.occasion, ''))) NOT LIKE '%monthly temple%'",
+        );
       } else if (sevaType === 'NITHYA_HOMAM') {
         whereClauses.push(
           "(UPPER(IFNULL(d.donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(d.remarks, '')) LIKE '%homam%')",
         );
       }
 
-      if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
+      if (preferDate === '__none__' || preferDate.toLowerCase() === 'none') {
+        whereClauses.push(
+          "(d.prefer_date IS NULL OR TRIM(IFNULL(d.prefer_date, '')) = '')",
+        );
+      } else if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
         whereClauses.push('d.prefer_date = ?');
         params.push(preferDate);
       }
@@ -5323,17 +5581,37 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const params: any[] = [];
 
     if (type === 'ANNADANAM') {
+      // Strict Anna Santharpana only — exclude Monthly Support / other GENERAL donations.
       whereClauses.push(
-        "(UPPER(IFNULL(donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%')",
+        `(
+          UPPER(IFNULL(donation_type, '')) = 'ANNADANAM'
+          OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%'
+          OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%'
+          OR (
+            LOWER(IFNULL(remarks, '')) LIKE '%anna%'
+            AND LOWER(IFNULL(remarks, '')) NOT LIKE '%monthly%'
+          )
+        )`,
       );
       whereClauses.push("LOWER(IFNULL(remarks, '')) NOT LIKE '%homam%'");
+      whereClauses.push("UPPER(IFNULL(donation_type, '')) NOT LIKE '%MONTHLY%'");
+      whereClauses.push(
+        "LOWER(CONCAT(IFNULL(remarks, ''), ' ', IFNULL(occasion, ''))) NOT LIKE '%monthly support%'",
+      );
+      whereClauses.push(
+        "LOWER(CONCAT(IFNULL(remarks, ''), ' ', IFNULL(occasion, ''))) NOT LIKE '%monthly temple%'",
+      );
     } else if (type === 'NITHYA_HOMAM') {
       whereClauses.push(
         "(UPPER(IFNULL(donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(remarks, '')) LIKE '%homam%')",
       );
     }
 
-    if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
+    if (preferDate === '__none__' || preferDate.toLowerCase() === 'none') {
+      whereClauses.push(
+        "(prefer_date IS NULL OR TRIM(IFNULL(prefer_date, '')) = '')",
+      );
+    } else if (preferDate && /^\d{4}-\d{2}-\d{2}$/.test(preferDate)) {
       whereClauses.push('prefer_date = ?');
       params.push(preferDate);
     }
@@ -5390,9 +5668,24 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const countWhereClauses: string[] = ["UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'"];
     if (type === 'ANNADANAM') {
       countWhereClauses.push(
-        "(UPPER(IFNULL(donation_type, '')) IN ('ANNADANAM', 'GENERAL') OR LOWER(IFNULL(remarks, '')) LIKE '%anna%' OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%' OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%')",
+        `(
+          UPPER(IFNULL(donation_type, '')) = 'ANNADANAM'
+          OR LOWER(IFNULL(remarks, '')) LIKE '%santharpana%'
+          OR LOWER(IFNULL(remarks, '')) LIKE '%annadanam%'
+          OR (
+            LOWER(IFNULL(remarks, '')) LIKE '%anna%'
+            AND LOWER(IFNULL(remarks, '')) NOT LIKE '%monthly%'
+          )
+        )`,
       );
       countWhereClauses.push("LOWER(IFNULL(remarks, '')) NOT LIKE '%homam%'");
+      countWhereClauses.push("UPPER(IFNULL(donation_type, '')) NOT LIKE '%MONTHLY%'");
+      countWhereClauses.push(
+        "LOWER(CONCAT(IFNULL(remarks, ''), ' ', IFNULL(occasion, ''))) NOT LIKE '%monthly support%'",
+      );
+      countWhereClauses.push(
+        "LOWER(CONCAT(IFNULL(remarks, ''), ' ', IFNULL(occasion, ''))) NOT LIKE '%monthly temple%'",
+      );
     } else if (type === 'NITHYA_HOMAM') {
       countWhereClauses.push(
         "(UPPER(IFNULL(donation_type, '')) = 'NITHYA_HOMAM' OR LOWER(IFNULL(remarks, '')) LIKE '%homam%')",

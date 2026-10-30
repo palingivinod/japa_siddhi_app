@@ -257,6 +257,7 @@ export const or: TranslationDict = {
   paymentSuccessful: 'ପେମେଣ୍ଟ ସଫଳ',
   downloadReceipt: 'ରସିଦ ଡାଉନଲୋଡ୍ କରନ୍ତୁ',
   downloadingReceipt: 'ରସିଦ ଡାଉନଲୋଡ୍ ହେଉଛି...',
+  viewReceipt: 'ରସିଦ ଦେଖନ୍ତୁ',
   orderUnderReview: 'ଅର୍ଡର ସମୀକ୍ଷାରେ ଅଛି',
   orderPlaced: 'ଅର୍ଡର ଦିଆଗଲା',
   thankYouForSeva: '{{name}} ପାଇଁ ଧନ୍ୟବାଦ।',

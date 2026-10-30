@@ -82,6 +82,18 @@ const formatDate = (raw?: string) => {
   }
 };
 
+const remarkField = (remarks: string | undefined, label: string) => {
+  const raw = String(remarks || '');
+  if (!raw) {
+    return '';
+  }
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = raw.match(
+    new RegExp(`${escaped}\\s*:\\s*([^|]+)`, 'i'),
+  );
+  return String(match?.[1] || '').trim();
+};
+
 const AdminSevaDetailListScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -173,7 +185,7 @@ const AdminSevaDetailListScreen = () => {
   };
 
   const openDatePicker = () => {
-    if (preferDateFilter) {
+    if (preferDateFilter && preferDateFilter !== '__none__') {
       try {
         const parsed = new Date(preferDateFilter);
         if (!isNaN(parsed.getTime())) {
@@ -338,10 +350,36 @@ const AdminSevaDetailListScreen = () => {
             ) : null}
           </View>
 
+          <View style={styles.filterChipRow}>
+            <TouchableOpacity
+              style={[
+                styles.filterChip,
+                preferDateFilter === '__none__' ? styles.filterChipActive : null,
+              ]}
+              onPress={() =>
+                setPreferDateFilter(prev =>
+                  prev === '__none__' ? '' : '__none__',
+                )
+              }
+              activeOpacity={0.8}>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  preferDateFilter === '__none__'
+                    ? styles.filterChipTextActive
+                    : null,
+                ]}>
+                No prefer date
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <TouchableOpacity
             style={[
               styles.datePickerBtn,
-              preferDateFilter ? styles.datePickerBtnActive : null,
+              preferDateFilter && preferDateFilter !== '__none__'
+                ? styles.datePickerBtnActive
+                : null,
             ]}
             onPress={openDatePicker}
             activeOpacity={0.8}>
@@ -349,11 +387,15 @@ const AdminSevaDetailListScreen = () => {
             <Text
               style={[
                 styles.datePickerText,
-                preferDateFilter ? styles.datePickerTextActive : null,
+                preferDateFilter && preferDateFilter !== '__none__'
+                  ? styles.datePickerTextActive
+                  : null,
               ]}>
-              {preferDateFilter
-                ? `Prefer Date: ${preferDateFilter}`
-                : 'Tap to select a prefer date...'}
+              {preferDateFilter === '__none__'
+                ? 'Showing: No prefer date'
+                : preferDateFilter
+                  ? `Prefer Date: ${preferDateFilter}`
+                  : 'Tap to select a prefer date...'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -395,9 +437,11 @@ const AdminSevaDetailListScreen = () => {
             <Text style={styles.emptyEmoji}>🪔</Text>
             <Text style={styles.emptyTitle}>No offerings found</Text>
             <Text style={styles.emptySubtitle}>
-              {preferDateFilter
-                ? `No devotees have selected ${preferDateFilter} in the ${activeTab} view.`
-                : `There are currently no records in the ${activeTab} tab.`}
+              {preferDateFilter === '__none__'
+                ? `No devotees without a prefer date in the ${activeTab} view.`
+                : preferDateFilter
+                  ? `No devotees have selected ${preferDateFilter} in the ${activeTab} view.`
+                  : `There are currently no records in the ${activeTab} tab.`}
             </Text>
             {preferDateFilter ? (
               <TouchableOpacity
@@ -414,6 +458,9 @@ const AdminSevaDetailListScreen = () => {
           const isUpcoming =
             item.preferDate &&
             new Date(item.preferDate) > new Date(new Date().toDateString());
+          const gothram = remarkField(item.remarks, 'Gothram');
+          const nakshatram = remarkField(item.remarks, 'Nakshatram');
+          const comments = remarkField(item.remarks, 'Comments');
 
           return (
             <View key={item.id} style={styles.card}>
@@ -474,10 +521,29 @@ const AdminSevaDetailListScreen = () => {
                 </View>
               ) : null}
 
-              {/* Comments / Remarks */}
-              {item.remarks ? (
+              {gothram ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Gothram:</Text>
+                  <Text style={styles.detailValue}>{gothram}</Text>
+                </View>
+              ) : null}
+              {nakshatram ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>Nakshatram / Star:</Text>
+                  <Text style={styles.detailValue}>{nakshatram}</Text>
+                </View>
+              ) : null}
+              {comments ? (
                 <View style={styles.remarksBox}>
-                  <Text style={styles.remarksLabel}>Devotee Details / Comments:</Text>
+                  <Text style={styles.remarksLabel}>Comments:</Text>
+                  <Text style={styles.remarksText}>{comments}</Text>
+                </View>
+              ) : null}
+
+              {/* Full remarks fallback when structured fields missing */}
+              {item.remarks && !gothram && !nakshatram && !comments ? (
+                <View style={styles.remarksBox}>
+                  <Text style={styles.remarksLabel}>Devotee Details:</Text>
                   <Text style={styles.remarksText}>{item.remarks}</Text>
                 </View>
               ) : null}
@@ -753,6 +819,32 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#DC2626',
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  filterChip: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+  },
+  filterChipActive: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#EEF7E8',
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  filterChipTextActive: {
+    color: Colors.leafGreen,
   },
   datePickerBtn: {
     flexDirection: 'row',

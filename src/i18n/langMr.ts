@@ -257,6 +257,7 @@ export const mr: TranslationDict = {
   paymentSuccessful: 'पेमेंट यशस्वी',
   downloadReceipt: 'पावती डाउनलोड करा',
   downloadingReceipt: 'पावती डाउनलोड होत आहे...',
+  viewReceipt: 'पावती पहा',
   orderUnderReview: 'ऑर्डर तपासणीत आहे',
   orderPlaced: 'ऑर्डर नोंदली',
   thankYouForSeva: '{{name}} साठी धन्यवाद.',

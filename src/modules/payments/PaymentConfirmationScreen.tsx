@@ -1,17 +1,12 @@
-import React, {useState} from 'react';
-import {ActivityIndicator, StyleSheet, View} from 'react-native';
+import React from 'react';
+import {StyleSheet, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
-import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SuccessHero from '../common/SuccessHero';
-import {
-  alertReceiptError,
-  downloadPaymentReceipt,
-} from './downloadPaymentReceipt';
 
 const PaymentConfirmationScreen = () => {
   const navigation = useNavigation<any>();
@@ -35,29 +30,6 @@ const PaymentConfirmationScreen = () => {
   const paymentId = String(
     data.confirmationId || data.orderNumber || data.paymentId || '',
   ).trim();
-  const [downloading, setDownloading] = useState(false);
-
-  const handleDownloadReceipt = async () => {
-    if (!paymentId || downloading) {
-      return;
-    }
-    setDownloading(true);
-    try {
-      await downloadPaymentReceipt({
-        paymentId,
-        orderId: data.razorpayOrderId || data.orderId,
-        amount: data.amount,
-        seva: data.seva || data.itemName,
-        purpose: data.purpose,
-        name: data.name,
-        phone: data.phone,
-      });
-    } catch (err) {
-      alertReceiptError(err);
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   return (
     <ScreenLayout
@@ -76,34 +48,34 @@ const PaymentConfirmationScreen = () => {
           isRazorpay ? t('thankYouForSeva', {name: sevaName}) : orderNumber
         }
       />
-      <MenuCard
-        emoji="✅"
-        title={
-          isRazorpay
-            ? t('requestSubmittedSuccessfully')
-            : data.itemName || 'Baanalingam'
-        }
-        subtitle={
-          isBana
-            ? t('applicationUnderReview')
-            : isRazorpay
-              ? t('weWillContactSoon')
+      {!isRazorpay ? (
+        <MenuCard
+          emoji="✅"
+          title={data.itemName || 'Baanalingam'}
+          subtitle={
+            isBana
+              ? t('applicationUnderReview')
               : t('orderCreatedSuccessfully')
-        }
-      />
+          }
+        />
+      ) : null}
       {isRazorpay && paymentId ? (
         <View style={styles.receiptWrap}>
-          {downloading ? (
-            <ActivityIndicator color={Colors.templeGold} style={styles.spinner} />
-          ) : null}
           <PrimaryButton
-            title={
-              downloading
-                ? t('downloadingReceipt')
-                : t('downloadReceipt')
+            title={t('viewReceipt') || 'View Receipt'}
+            onPress={() =>
+              navigation.navigate('PaymentReceiptView', {
+                paymentId,
+                confirmationId: paymentId,
+                orderNumber: paymentId,
+                razorpayOrderId: data.razorpayOrderId || data.orderId,
+                amount: data.amount,
+                seva: data.seva || data.itemName,
+                purpose: data.purpose,
+                name: data.name,
+                phone: data.phone,
+              })
             }
-            onPress={handleDownloadReceipt}
-            disabled={downloading}
           />
         </View>
       ) : null}
@@ -127,8 +99,5 @@ export default PaymentConfirmationScreen;
 const styles = StyleSheet.create({
   receiptWrap: {
     marginBottom: 10,
-  },
-  spinner: {
-    marginBottom: 8,
   },
 });

@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import ENV from '../../env';
@@ -29,10 +29,18 @@ const EMPTY_ROWS: AdminPaymentRow[] = [
 const {FileDownload} = NativeModules;
 
 const AdminPaymentsScreen = () => {
+  const navigation = useNavigation<any>();
   const [rows, setRows] = useState<AdminPaymentRow[]>(EMPTY_ROWS);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+
+  const openDetail = (periodId: string) => {
+    if (periodId !== 'today' && periodId !== 'week' && periodId !== 'month') {
+      return;
+    }
+    navigation.navigate('AdminPaymentDetail', {period: periodId});
+  };
 
   const loadReports = useCallback(async () => {
     setLoading(true);
@@ -141,11 +149,22 @@ const AdminPaymentsScreen = () => {
 
       {rows.map(item => {
         const pending = item.status === 'Pending';
+        const tappable =
+          item.id === 'today' || item.id === 'week' || item.id === 'month';
+        const Card = tappable ? TouchableOpacity : View;
         return (
-          <View key={item.id} style={styles.card}>
+          <Card
+            key={item.id}
+            style={styles.card}
+            {...(tappable
+              ? {onPress: () => openDetail(item.id), activeOpacity: 0.75}
+              : {})}>
             <View style={styles.copy}>
               <Text style={styles.name}>{item.label}</Text>
               <Text style={styles.amount}>{item.amount}</Text>
+              {tappable ? (
+                <Text style={styles.tapHint}>Tap to view details</Text>
+              ) : null}
             </View>
             <View
               style={[
@@ -160,7 +179,7 @@ const AdminPaymentsScreen = () => {
                 {item.status}
               </Text>
             </View>
-          </View>
+          </Card>
         );
       })}
 
@@ -212,6 +231,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  tapHint: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '600',
+    color: Colors.textSecondary,
   },
   pill: {
     borderRadius: 20,

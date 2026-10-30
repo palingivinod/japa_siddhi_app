@@ -256,6 +256,7 @@ export const kn: TranslationDict = {
   paymentSuccessful: 'ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ',
   downloadReceipt: 'ರಸೀದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
   downloadingReceipt: 'ರಸೀದಿ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
+  viewReceipt: 'ರಸೀದಿ ನೋಡಿ',
   orderUnderReview: 'ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
   orderPlaced: 'ಆರ್ಡರ್ ಇಡಲಾಗಿದೆ',
   thankYouForSeva: '{{name}} ಗಾಗಿ ಧನ್ಯವಾದಗಳು.',

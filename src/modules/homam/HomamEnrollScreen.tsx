@@ -104,6 +104,8 @@ const HomamEnrollScreen = () => {
       seva: 'Nithya Homam',
       name: cleanName,
       phone: cleanMobile,
+      gothram: cleanGothram,
+      nakshatram: cleanNakshatram,
       comments: comments.trim(),
     });
   };
