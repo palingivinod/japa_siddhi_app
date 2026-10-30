@@ -3,6 +3,7 @@ import {Request, Response, NextFunction} from 'express';
 import feedbackService from './feedback.service';
 import apiResponse from '../../utils/apiResponse';
 import {publicFeedbackPath} from '../../middleware/upload.middleware';
+import {absoluteMediaUrl} from '../../utils/mediaUrl';
 
 class FeedbackController {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -23,7 +24,9 @@ class FeedbackController {
         return apiResponse.error(res, 'Add a comment or a video.', 400);
       }
       const videoUrl = file?.filename ? publicFeedbackPath(file.filename) : null;
-      const mediaBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const mediaBaseUrl =
+        absoluteMediaUrl(req, '/')?.replace(/\/$/, '') ||
+        `https://${req.get('host') || 'japasiddhi.onrender.com'}`;
 
       const result = await feedbackService.create(
         {

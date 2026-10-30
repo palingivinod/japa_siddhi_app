@@ -43,7 +43,14 @@ app.set('trust proxy', 1);
 
 app.use(cors());
 
-app.use(helmet());
+app.use(
+  helmet({
+    // Uploaded screenshots / feedback media are opened from the admin app and
+    // external browsers; same-origin CORP blocks those loads.
+    crossOriginResourcePolicy: {policy: 'cross-origin'},
+    crossOriginOpenerPolicy: {policy: 'same-origin-allow-popups'},
+  }),
+);
 
 app.use(compression());
 

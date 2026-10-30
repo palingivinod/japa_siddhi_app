@@ -2,7 +2,6 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +13,7 @@ import {useFocusEffect} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminMediaLink from './AdminMediaLink';
 
 type TicketRow = {
   id: string;
@@ -210,14 +210,11 @@ const AdminSupportScreen = () => {
             {item.message ? (
               <Text style={styles.message}>{item.message}</Text>
             ) : null}
-            {item.screenshotUrl ? (
-              <TouchableOpacity
-                onPress={() => Linking.openURL(String(item.screenshotUrl))}>
-                <Text style={styles.link}>Open screenshot</Text>
-              </TouchableOpacity>
-            ) : (
-              <Text style={styles.noMedia}>No screenshot attached</Text>
-            )}
+            <AdminMediaLink
+              url={item.screenshotUrl}
+              label="View screenshot"
+              emptyLabel="No screenshot attached"
+            />
 
             <Text style={styles.replyLabel}>Admin reply</Text>
             <TextInput

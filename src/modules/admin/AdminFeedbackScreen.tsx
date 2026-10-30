@@ -2,7 +2,6 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,6 +12,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminMediaLink from './AdminMediaLink';
 import {AdminFeedback} from './adminData';
 
 const AdminFeedbackScreen = () => {
@@ -75,40 +75,37 @@ const AdminFeedbackScreen = () => {
       ) : null}
 
       {items.map(item => (
-        <TouchableOpacity
-          key={item.id}
-          style={styles.card}
-          activeOpacity={0.85}
-          onPress={() =>
-            navigation.navigate('AdminFeedbackDetails', {
-              feedbackId: item.id,
-              userId: item.userId,
-              name: item.name,
-              userCode: item.userCode,
-              mobileNumber: item.mobileNumber,
-              japaCount: item.japaCount,
-              rating: item.rating,
-              comment: item.comment,
-              videoUrl: item.videoUrl,
-            })
-          }>
-          <Text style={styles.name}>{item.name}</Text>
-          {item.mobileNumber ? (
-            <Text style={styles.contact}>{item.mobileNumber}</Text>
-          ) : null}
-          <Text style={styles.meta}>
-            {item.rating ? `${item.rating} • ` : ''}
-            {item.comment}
-          </Text>
-          {item.videoUrl ? (
-            <TouchableOpacity
-              onPress={() => Linking.openURL(String(item.videoUrl))}>
-              <Text style={styles.link}>Open feedback video</Text>
-            </TouchableOpacity>
-          ) : (
-            <Text style={styles.noMedia}>No video attached</Text>
-          )}
-        </TouchableOpacity>
+        <View key={item.id} style={styles.card}>
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() =>
+              navigation.navigate('AdminFeedbackDetails', {
+                feedbackId: item.id,
+                userId: item.userId,
+                name: item.name,
+                userCode: item.userCode,
+                mobileNumber: item.mobileNumber,
+                japaCount: item.japaCount,
+                rating: item.rating,
+                comment: item.comment,
+                videoUrl: item.videoUrl,
+              })
+            }>
+            <Text style={styles.name}>{item.name}</Text>
+            {item.mobileNumber ? (
+              <Text style={styles.contact}>{item.mobileNumber}</Text>
+            ) : null}
+            <Text style={styles.meta}>
+              {item.rating ? `${item.rating} • ` : ''}
+              {item.comment}
+            </Text>
+          </TouchableOpacity>
+          <AdminMediaLink
+            url={item.videoUrl}
+            label="View attachment"
+            emptyLabel="No video / image attached"
+          />
+        </View>
       ))}
     </AdminScreenLayout>
   );

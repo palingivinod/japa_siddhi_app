@@ -13,6 +13,7 @@ import {useFocusEffect, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import apiService from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminMediaLink from './AdminMediaLink';
 
 type FeedbackDetail = {
   name: string;
@@ -148,13 +149,11 @@ const AdminFeedbackDetailsScreen = () => {
         <Text style={styles.cardTitle}>Feedback</Text>
         {detail.rating ? <Text style={styles.row}>{detail.rating}</Text> : null}
         <Text style={styles.comment}>{detail.comment || '—'}</Text>
-        {detail.videoUrl ? (
-          <TouchableOpacity onPress={() => Linking.openURL(detail.videoUrl)}>
-            <Text style={styles.link}>Open feedback video</Text>
-          </TouchableOpacity>
-        ) : (
-          <Text style={styles.noMedia}>No video attached</Text>
-        )}
+        <AdminMediaLink
+          url={detail.videoUrl}
+          label="View attachment"
+          emptyLabel="No video / image attached"
+        />
       </View>
     </AdminScreenLayout>
   );

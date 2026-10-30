@@ -3,6 +3,7 @@ import {Request, Response, NextFunction} from 'express';
 import customerCareService from './customerCare.service';
 import apiResponse from '../../utils/apiResponse';
 import {publicSupportPath} from '../../middleware/upload.middleware';
+import {absoluteMediaUrl} from '../../utils/mediaUrl';
 
 class CustomerCareController {
   async create(req: Request, res: Response, next: NextFunction) {
@@ -27,7 +28,9 @@ class CustomerCareController {
       const screenshotUrl = file?.filename
         ? publicSupportPath(file.filename)
         : null;
-      const mediaBaseUrl = `${req.protocol}://${req.get('host')}`;
+      const mediaBaseUrl =
+        absoluteMediaUrl(req, '/')?.replace(/\/$/, '') ||
+        `https://${req.get('host') || 'japasiddhi.onrender.com'}`;
 
       const result = await customerCareService.create(
         {

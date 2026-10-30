@@ -5449,8 +5449,8 @@ router.get('/feedback', async (req: Request, res: Response) => {
   try {
     const feedbackService = (await import('../feedback/feedback.service'))
       .default;
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await feedbackService.getAll();
-    const host = `${req.protocol}://${req.get('host')}`;
     return res.json({
       success: true,
       data: (rows || []).map((row: any) => {
@@ -5473,7 +5473,7 @@ router.get('/feedback', async (req: Request, res: Response) => {
           rating:
             Number(row.rating) > 0 ? `${Number(row.rating)}★` : '',
           comment: row.message || row.title || '',
-          videoUrl: row.videoUrl ? `${host}${row.videoUrl}` : null,
+          videoUrl: absoluteMediaUrl(req, row.videoUrl),
           status: 'Pending',
           createdAt: row.createdAt,
         };
@@ -5492,8 +5492,8 @@ router.get('/support-tickets', async (req: Request, res: Response) => {
     const customerCareService = (
       await import('../customerCare/customerCare.service')
     ).default;
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await customerCareService.getAll();
-    const host = `${req.protocol}://${req.get('host')}`;
     return res.json({
       success: true,
       data: (rows || []).map((row: any) => ({
@@ -5505,9 +5505,7 @@ router.get('/support-tickets', async (req: Request, res: Response) => {
           (row.userId ? `User #${row.userId}` : 'Unknown'),
         subject: row.subject || '',
         message: row.message || '',
-        screenshotUrl: row.screenshotUrl
-          ? `${host}${row.screenshotUrl}`
-          : null,
+        screenshotUrl: absoluteMediaUrl(req, row.screenshotUrl),
         adminReply: row.adminReply || null,
         status: String(row.status || 'OPEN').toUpperCase(),
         createdAt: row.createdAt,
