@@ -271,6 +271,8 @@ export const hi: TranslationDict = {
   trackOrder: 'ऑर्डर ट्रैक करें',
   thankYou: 'धन्यवाद',
   paymentSuccessful: 'भुगतान सफल',
+  downloadReceipt: 'रसीद डाउनलोड करें',
+  downloadingReceipt: 'रसीद डाउनलोड हो रही है...',
   orderUnderReview: 'ऑर्डर समीक्षा में है',
   orderPlaced: 'ऑर्डर दर्ज हो गया',
   thankYouForSeva: '{{name}} के लिए धन्यवाद।',
@@ -539,12 +541,24 @@ export const hi: TranslationDict = {
   homamCommentsPlaceholder: 'अपना नाम और गोत्र यहाँ लिखें',
   generalCommentsPlaceholder:
     'कोई विशेष अनुरोध या टिप्पणी दर्ज करें (वैकल्पिक)',
-  tileMonthlySupport: 'मासिक सहयोग',
+  tileMonthlySupport: 'मासिक सहायता (अभी दान करें)',
   tileMonthlySupportSub: 'आध्यात्मिक सहयोग',
   perMonth: '/ माह',
   monthlySupportNote:
     'नोट: कई भक्तों ने हर महीने ऑटो-डेबिट / ऑटोपे सुविधा का सुझाव दिया ताकि वे अपना मासिक सहयोग कभी भूलें या छोड़ें नहीं।',
   setAutopay: 'ऑटोपे / ऑटो-डेबिट सेट करें',
+  chooseMonthlyContribution: 'अपना मासिक योगदान चुनें:',
+  enterAmountLabel: 'राशि दर्ज करें (₹):',
+  amountExamplePlaceholder: 'उदा. 500',
+  payNow: 'अभी भुगतान करें',
+  shareMonthlySupportTitle: 'मासिक सहायता विवरण साझा करें',
+  shareMonthlySupportSub:
+    'कॉपी करें और परिवार व मित्रों के साथ व्हाट्सऐप, टेलीग्राम आदि पर साझा करें।',
+  submittingAutopayRequest: 'अनुरोध भेजा जा रहा है...',
+  validContributionAmount: 'कृपया एक मान्य योगदान राशि दर्ज करें।',
+  shareDetailsTitle: 'विवरण साझा करें',
+  shareDetailsClipboardHint:
+    'विवरण क्लिपबोर्ड पर कॉपी हो गए हैं। अब आप इन्हें परिवार और मित्रों के साथ पेस्ट करके साझा कर सकते हैं।',
   autopaySuccessTitle: 'ऑटोपे अनुरोध प्राप्त हुआ',
   autopaySuccessMessage:
     'सहयोग करने में आपकी रुचि के लिए धन्यवाद! श्री रवि शंकर గారు / हमारी टीम जल्द ही आपसे संपर्क करेगी।',
@@ -970,11 +984,11 @@ export const te: TranslationDict = {
   homaBhasma: 'హోమ భస్మ',
   homaBhasmaDesc:
     'పవిత్ర హవన భస్మ ఉచితంగా అందుతుంది. ఇది ప్రతికూల శక్తిని తొలగించి, శరీరంలోకి ప్రవేశించే దుష్ట శక్తులను అడ్డుకునే శక్తివంతమైన ఆధ్యాత్మిక కవచంగా పనిచేస్తుంది.',
-  tileBirava: 'భిరవ పెండెంట్',
+  tileBirava: 'భైరవ పెండెంట్',
   tileBiravaSub: 'పెండెంట్ అభ్యర్థన',
-  biravaPendant: 'భిరవ పెండెంట్',
+  biravaPendant: 'భైరవ పెండెంట్',
   biravaPendantSub:
-    'ఒక వైపు కాల భిరవ, మరో వైపు శ్రీ చక్రం ఉన్న లాకెట్ ధరించడం దుష్ట శక్తుల ప్రవేశాన్ని అడ్డుకుంటుంది. ఈ భిరవ పెండెంట్ మీకు ఉచితంగా లభిస్తుంది.',
+    'ఒక వైపు కాల భైరవ, మరో వైపు శ్రీ చక్రం ఉన్న లాకెట్ ధరించడం దుష్ట శక్తుల ప్రవేశాన్ని అడ్డుకుంటుంది. ఈ భైరవ పెండెంట్ మీకు ఉచితంగా లభిస్తుంది.',
   addAddressInProfile:
     'వ్యక్తిగత వివరాలలో చిరునామా జోడించండి. ఈ ఫారమ్ దాన్ని నింపుతుంది, మీరు మార్చవచ్చు.',
   continue: 'కొనసాగించండి',
@@ -1373,12 +1387,24 @@ export const te: TranslationDict = {
   homamCommentsPlaceholder: 'మీ పేరు మరియు గోత్రం ఇక్కడ టైప్ చేయండి',
   generalCommentsPlaceholder:
     'ఏవైనా ప్రత్యేక అభ్యర్థనలు లేదా వ్యాఖ్యలను నమోదు చేయండి (ఐచ్ఛికం)',
-  tileMonthlySupport: 'నెలవారీ మద్దతు',
-  tileMonthlySupportSub: 'ఆధ్యాత్మిక సేవలకు మద్దతు',
+  tileMonthlySupport: 'నెలవారీ సహాయం (ఇప్పుడే సహాయం చేయండి)',
+  tileMonthlySupportSub: 'ఆధ్యాత్మిక సేవలకు సహాయం',
   perMonth: '/ నెలకు',
   monthlySupportNote:
     'గమనిక: తమ నెలవారీ సేవను మర్చిపోకుండా లేదా ఆలస్యం కాకుండా కొనసాగించడానికి ఆటో-డెబిట్ / ఆటోపే సదుపాయాన్ని ఏర్పాటు చేయాలని పలువురు భక్తులు సూచించారు.',
   setAutopay: 'ఆటోపే / ఆటో-డెబిట్ సెట్ చేయండి',
+  chooseMonthlyContribution: 'మీ నెలవారీ సహాయం ఎంచుకోండి:',
+  enterAmountLabel: 'మొత్తం నమోదు చేయండి (₹):',
+  amountExamplePlaceholder: 'ఉదా. 500',
+  payNow: 'ఇప్పుడే చెల్లించండి',
+  shareMonthlySupportTitle: 'నెలవారీ సహాయం వివరాలు షేర్ చేయండి',
+  shareMonthlySupportSub:
+    'కాపీ చేసి కుటుంబం & స్నేహితులతో వాట్సాప్, టెలిగ్రామ్ మొదలైన వాటి ద్వారా షేర్ చేయండి.',
+  submittingAutopayRequest: 'అభ్యర్థన పంపుతున్నాం...',
+  validContributionAmount: 'దయచేసి సరైన సహాయం మొత్తాన్ని నమోదు చేయండి.',
+  shareDetailsTitle: 'వివరాలు షేర్ చేయండి',
+  shareDetailsClipboardHint:
+    'వివరాలు క్లిప్‌బోర్డ్‌కు కాపీ అయ్యాయి. ఇప్పుడు కుటుంబం మరియు స్నేహితులతో పేస్ట్ చేసి షేర్ చేయవచ్చు.',
   autopaySuccessTitle: 'ఆటోపే అభ్యర్థన అందింది',
   autopaySuccessMessage:
     'మద్దతు ఇవ్వడానికి ఆసక్తి చూపినందుకు ధన్యవాదాలు! రవి శంకర్ గారు / మా బృందం మిమ్మల్ని త్వరలోనే సంప్రదిస్తారు.',
@@ -1505,6 +1531,8 @@ export const te: TranslationDict = {
   placedSuccessful: 'విజయవంతంగా నమోదైంది',
   thankYou: 'ధన్యవాదాలు',
   paymentSuccessful: 'చెల్లింపు విజయవంతమైంది',
+  downloadReceipt: 'రసీదు డౌన్‌లోడ్ చేయండి',
+  downloadingReceipt: 'రసీదు డౌన్‌లోడ్ అవుతోంది...',
   orderUnderReview: 'ఆర్డర్ సమీక్షలో ఉంది',
   orderPlaced: 'ఆర్డర్ నమోదైంది',
   thankYouForSeva: '{{name}} కోసం ధన్యవాదాలు.',

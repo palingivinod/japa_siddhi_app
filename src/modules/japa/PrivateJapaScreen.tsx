@@ -300,11 +300,11 @@ const PrivateJapaScreen = () => {
         keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
         overScrollMode="never">
-        <View style={styles.card}>
+      <View style={styles.card}>
           <View style={styles.dot}>
             <Text style={styles.emoji}>🕉️</Text>
           </View>
-          <View style={styles.copy}>
+        <View style={styles.copy}>
             <Text style={styles.title}>{t('privateMantra')}</Text>
             <Text style={styles.meta}>{t('mantraHiddenSecure')}</Text>
           </View>
@@ -322,14 +322,14 @@ const PrivateJapaScreen = () => {
           <View style={styles.rule} />
           <Text style={styles.orText}>{(t('or') || 'OR').toUpperCase()}</Text>
           <View style={styles.rule} />
-        </View>
+      </View>
 
         {/* 1. Mantra Name Input */}
         <Text style={styles.label}>{t('enterYourMantra')}</Text>
         <View style={styles.inputContainer} collapsable={false}>
-          <TextInput
-            style={styles.input}
-            value={mantra}
+      <TextInput
+        style={styles.input}
+        value={mantra}
             onFocus={() => {
               // On Android, skip suggestion popup while keyboard animates (all brands).
               if (Platform.OS !== 'android') {
@@ -342,7 +342,7 @@ const PrivateJapaScreen = () => {
               setMessage('');
             }}
             placeholder={t('keptPrivateReports')}
-            placeholderTextColor={Colors.placeholder}
+        placeholderTextColor={Colors.placeholder}
             underlineColorAndroid="transparent"
             autoCorrect={false}
             blurOnSubmit
@@ -405,9 +405,9 @@ const PrivateJapaScreen = () => {
 
         {/* 2. Total Count Goal */}
         <Text style={styles.label}>{t('setGoal')}</Text>
-        <TextInput
-          style={styles.input}
-          value={goal}
+      <TextInput
+        style={styles.input}
+        value={goal}
           onChangeText={val => {
             setGoal(val);
             setMessage('');
@@ -547,7 +547,7 @@ const PrivateJapaScreen = () => {
                     setIsTodayCustom(true);
                     setTodayTargetInput(val);
                   }}
-                  keyboardType="numeric"
+        keyboardType="numeric"
                   placeholder={String(defaultDailyTarget)}
                   placeholderTextColor={Colors.placeholder}
                   underlineColorAndroid="transparent"
@@ -586,7 +586,7 @@ const PrivateJapaScreen = () => {
         {message ? <Text style={styles.error}>{message}</Text> : null}
 
         <View style={styles.buttonSpacing}>
-          <PrimaryButton
+      <PrimaryButton
             title={saving ? t('loading') : t('startPrivateJapa')}
             onPress={start}
             disabled={saving}

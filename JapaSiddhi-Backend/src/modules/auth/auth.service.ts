@@ -463,7 +463,7 @@ class AuthService {
           409,
         );
       }
-      if (existingMobile) {
+    if (existingMobile) {
         throw new AppError(
           'This mobile number is already registered. Please try another mobile number or sign in with your account.',
           409,
@@ -520,11 +520,11 @@ class AuthService {
       if (/firebase_uid|UNIQUE|email/i.test(message)) {
         const raced = await authRepository.findUserByEmail(email);
         if (raced) {
-          throw new AppError(
+      throw new AppError(
             'An account with this email already exists. Please sign in with email and password.',
-            409,
-          );
-        }
+        409,
+      );
+    }
         // Soft-deleted row may still hold email:/phone unique keys — restore it.
         const deleted = await authRepository.findDeletedUserByEmail(email);
         if (deleted) {
@@ -556,15 +556,15 @@ class AuthService {
           };
         }
         userId = await authRepository.createUser({
-          mobileCountryCode,
-          mobileNumber,
-          email,
-          fullName,
+      mobileCountryCode,
+      mobileNumber,
+      email,
+      fullName,
           passwordHash: passwordHash || undefined,
           firebaseUid: `usr:${randomUUID()}`,
-          deviceType: data.deviceType ?? 'ANDROID',
+      deviceType: data.deviceType ?? 'ANDROID',
           firebaseToken: data.firebaseToken,
-        });
+    });
       } else {
         throw error;
       }
@@ -1131,8 +1131,8 @@ class AuthService {
         provider: 'firebase' as const,
         sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
         expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
-        mobileCountryCode,
-        mobileNumber,
+      mobileCountryCode,
+      mobileNumber,
         email: destinationEmail,
         channel: 'phone' as const,
         mode: 'register' as const,
@@ -1190,9 +1190,9 @@ class AuthService {
       }
 
       const user = await authRepository.findUserByMobile(
-        mobileCountryCode,
-        mobileNumber,
-      );
+      mobileCountryCode,
+      mobileNumber,
+    );
       if (!user) {
         throw new AppError('No account found for this mobile number.', 404);
       }
@@ -1443,11 +1443,11 @@ class AuthService {
       );
     }
 
-    return {
-      verified: true,
-      isNewUser: true,
-      token: null,
-      user: null,
+      return {
+        verified: true,
+        isNewUser: true,
+        token: null,
+        user: null,
       email,
       mobileCountryCode,
       mobileNumber,

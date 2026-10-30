@@ -293,8 +293,8 @@ const PersonalDetailsScreen = () => {
     (profile?.id ? `BPJS${String(profile.id).padStart(2, '0')}` : '');
 
   if (!editing) {
-    return (
-      <ScreenLayout title="Personal Details" showBack tab="Profile">
+  return (
+    <ScreenLayout title="Personal Details" showBack tab="Profile">
         {userCode ? <Row label={t('userId')} value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
         <Row label="Mobile" value={mobileNumber} />
@@ -302,7 +302,7 @@ const PersonalDetailsScreen = () => {
         <Row label={t('pinCode')} value={pinCode} />
         <Row label="Email" value={email} />
         <Row label="Gender" value={gender} />
-        <Row label="Location" value={location} />
+      <Row label="Location" value={location} />
         <Row label={t('regionPlace')} value={region} />
         <Row label="Address" value={address} />
         <Row
@@ -316,8 +316,8 @@ const PersonalDetailsScreen = () => {
 
         <PrimaryButton title="EDIT DETAILS" onPress={() => setEditing(true)} />
         <View style={styles.gap} />
-        <PrimaryButton
-          title="SPIRITUAL DETAILS"
+      <PrimaryButton
+        title="SPIRITUAL DETAILS"
           onPress={() =>
             navigation.navigate('SpiritualDetails', {profile})
           }

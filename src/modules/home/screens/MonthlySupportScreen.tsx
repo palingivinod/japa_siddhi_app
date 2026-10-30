@@ -1,6 +1,7 @@
 import React, {useCallback, useRef, useState} from 'react';
 import {
   Alert,
+  NativeModules,
   Platform,
   Share,
   StyleSheet,
@@ -95,7 +96,7 @@ const MonthlySupportScreen = () => {
   const handlePayAmount = useCallback(
     async (amount: number) => {
       if (!Number.isFinite(amount) || amount < 1) {
-        Alert.alert(t('validationTitle'), 'Please enter a valid contribution amount.');
+        Alert.alert(t('validationTitle'), t('validContributionAmount'));
         return;
       }
       await startAppPayment({
@@ -244,17 +245,32 @@ const MonthlySupportScreen = () => {
     }
 
     try {
+      // Android: share logo image + flyer text (same as Home "Share app").
+      if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
+        await NativeModules.AppShare.shareLogo(message);
+        return;
+      }
       await Share.share(
         Platform.OS === 'ios'
           ? {url: PLAYSTORE_URL, message}
           : {title: 'Japa Siddhi - Monthly Spiritual Support', message},
       );
     } catch (err: any) {
-      if (err?.message && !/dismiss|cancel/i.test(err.message)) {
-        Alert.alert(
-          'Share Details',
-          'Details have been copied to your clipboard. You can now paste and share them with your family and friends.',
-        );
+      try {
+        await Share.share({
+          title: 'Japa Siddhi - Monthly Spiritual Support',
+          message,
+        });
+      } catch (fallbackErr: any) {
+        if (
+          fallbackErr?.message &&
+          !/dismiss|cancel/i.test(String(fallbackErr.message))
+        ) {
+          Alert.alert(
+            t('shareDetailsTitle'),
+            t('shareDetailsClipboardHint'),
+          );
+        }
       }
     }
   };
@@ -278,7 +294,7 @@ const MonthlySupportScreen = () => {
       />
 
       <Text style={styles.sectionTitle}>
-        Choose your monthly contribution:
+        {t('chooseMonthlyContribution')}
       </Text>
 
       <View style={styles.grid}>
@@ -335,12 +351,12 @@ const MonthlySupportScreen = () => {
 
       {isCustom ? (
         <View style={styles.customBox}>
-          <Text style={styles.customLabel}>Enter Amount (₹):</Text>
+          <Text style={styles.customLabel}>{t('enterAmountLabel')}</Text>
           <View style={styles.customInputRow}>
             <TextInput
               style={styles.customInput}
               keyboardType="numeric"
-              placeholder="e.g. 500"
+              placeholder={t('amountExamplePlaceholder')}
               placeholderTextColor={Colors.placeholder}
               value={customAmountText}
               onChangeText={text => setCustomAmountText(text.replace(/\D/g, ''))}
@@ -352,7 +368,7 @@ const MonthlySupportScreen = () => {
               ]}
               disabled={!Number(customAmountText)}
               onPress={() => handlePayAmount(Number(customAmountText))}>
-              <Text style={styles.customPayBtnText}>PAY NOW</Text>
+              <Text style={styles.customPayBtnText}>{t('payNow')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -363,6 +379,16 @@ const MonthlySupportScreen = () => {
         <Text style={styles.noteText}>{t('monthlySupportNote')}</Text>
       </View>
 
+      <PrimaryButton
+        title={
+          submittingAutopay
+            ? t('submittingAutopayRequest')
+            : t('setAutopay')
+        }
+        onPress={handleSetAutoPay}
+        disabled={submittingAutopay}
+      />
+
       <TouchableOpacity
         style={styles.shareCard}
         onPress={handleShareDetails}
@@ -372,23 +398,13 @@ const MonthlySupportScreen = () => {
         </View>
         <View style={styles.shareTextCol}>
           <Text style={styles.shareCardTitle}>
-            Share Monthly Support Details
+            {t('shareMonthlySupportTitle')}
           </Text>
           <Text style={styles.shareCardSubtitle}>
-            Tap to copy and share with family & friends via WhatsApp, Telegram, etc.
+            {t('shareMonthlySupportSub')}
           </Text>
         </View>
       </TouchableOpacity>
-
-      <PrimaryButton
-        title={
-          submittingAutopay
-            ? 'SUBMITTING REQUEST...'
-            : t('setAutopay')
-        }
-        onPress={handleSetAutoPay}
-        disabled={submittingAutopay}
-      />
     </ScreenLayout>
   );
 };
@@ -564,6 +580,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     borderRadius: 16,
     padding: 16,
+    marginTop: 14,
     marginBottom: 18,
     shadowColor: '#000',
     shadowOpacity: 0.04,

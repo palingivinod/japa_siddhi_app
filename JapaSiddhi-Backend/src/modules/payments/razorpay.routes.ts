@@ -12,6 +12,7 @@ import {
   verifyPaymentSignature,
   verifyWebhookSignature,
 } from './razorpay.service';
+import {buildPaymentReceiptPdf} from './paymentReceiptPdf';
 
 const router = Router();
 
@@ -153,6 +154,33 @@ router.post('/verify', async (req: Request, res: Response) => {
     orderId,
     paymentId,
   });
+});
+
+/** Payment receipt PDF (base64) for app download after successful payment. */
+router.get('/receipt/:paymentId', async (req: Request, res: Response) => {
+  try {
+    const paymentId = String(req.params.paymentId || '').trim();
+    if (!paymentId) {
+      return apiResponse.error(res, 'Payment id is required.', 400);
+    }
+    const amountRaw = Number(req.query.amount);
+    const file = await buildPaymentReceiptPdf({
+      paymentId,
+      orderId: String(req.query.orderId || '').trim(),
+      amount: Number.isFinite(amountRaw) && amountRaw > 0 ? amountRaw : null,
+      seva: String(req.query.seva || '').trim(),
+      purpose: String(req.query.purpose || '').trim(),
+      name: String(req.query.name || '').trim(),
+      phone: String(req.query.phone || '').trim(),
+    });
+    return apiResponse.success(res, 'Receipt ready', file);
+  } catch (error: any) {
+    return apiResponse.error(
+      res,
+      error?.message || 'Could not generate payment receipt.',
+      500,
+    );
+  }
 });
 
 router.post('/webhook', async (req: Request, res: Response) => {

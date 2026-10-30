@@ -156,14 +156,52 @@ export async function startAppPayment(input: AppPaymentInput) {
       );
       return;
     }
-    navigateTo('PaymentConfirmation', {
-      kind: 'RAZORPAY',
+    const confirmationParams = {
+      kind: 'RAZORPAY' as const,
       seva: input.seva,
       itemName: input.seva || input.purpose || 'Seva offering',
       purpose: input.purpose,
       orderNumber: paymentId,
       confirmationId: paymentId,
-    });
+      razorpayOrderId: paidOrderId,
+      amount,
+      name: input.name,
+      phone: input.phone,
+    };
+    const openConfirmation = () => navigateTo('PaymentConfirmation', confirmationParams);
+    Alert.alert('Payment successful', 'Your seva payment was completed successfully.', [
+      {
+        text: 'Download Receipt',
+        onPress: () => {
+          void (async () => {
+            try {
+              const {downloadPaymentReceipt} = await import(
+                './downloadPaymentReceipt'
+              );
+              await downloadPaymentReceipt({
+                paymentId,
+                orderId: paidOrderId,
+                amount,
+                seva: input.seva,
+                purpose: input.purpose,
+                name: input.name,
+                phone: input.phone,
+              });
+            } catch (err) {
+              const {alertReceiptError} = await import('./downloadPaymentReceipt');
+              alertReceiptError(err);
+            } finally {
+              openConfirmation();
+            }
+          })();
+        },
+      },
+      {
+        text: 'Continue',
+        style: 'default',
+        onPress: openConfirmation,
+      },
+    ]);
   } catch {
     await websiteFallback(input);
   } finally {

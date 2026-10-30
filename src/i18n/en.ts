@@ -445,6 +445,8 @@ const en = {
   trackOrder: 'Track Order',
   thankYou: 'Thank You',
   paymentSuccessful: 'Payment successful',
+  downloadReceipt: 'Download Receipt',
+  downloadingReceipt: 'Downloading receipt...',
   orderUnderReview: 'Order Under Review',
   orderPlaced: 'Order Placed',
   thankYouForSeva: 'Thank you for {{name}}.',
@@ -773,12 +775,24 @@ const en = {
   homamCommentsPlaceholder: 'Type your name and gothram here',
   generalCommentsPlaceholder:
     'Enter any special requests or comments (optional)',
-  tileMonthlySupport: 'Monthly Support',
+  tileMonthlySupport: 'Monthly Support (Donate here now)',
   tileMonthlySupportSub: 'Support spiritual',
   perMonth: '/ month',
   monthlySupportNote:
     'Note: Many devotees requested an auto-debit / autopay facility each month so that their monthly seva support continues seamlessly without forgetting or skipping.',
   setAutopay: 'SET AUTOPAY / AUTO-DEBIT',
+  chooseMonthlyContribution: 'Choose your monthly contribution:',
+  enterAmountLabel: 'Enter Amount (₹):',
+  amountExamplePlaceholder: 'e.g. 500',
+  payNow: 'PAY NOW',
+  shareMonthlySupportTitle: 'Share Monthly Support Details',
+  shareMonthlySupportSub:
+    'Tap to copy and share with family & friends via WhatsApp, Telegram, etc.',
+  submittingAutopayRequest: 'SUBMITTING REQUEST...',
+  validContributionAmount: 'Please enter a valid contribution amount.',
+  shareDetailsTitle: 'Share Details',
+  shareDetailsClipboardHint:
+    'Details have been copied to your clipboard. You can now paste and share them with your family and friends.',
   autopaySuccessTitle: 'AutoPay Request Received',
   autopaySuccessMessage:
     'Thank you for your noble interest to support! Sri Ravi Shankar Garu / our team will contact you soon.',

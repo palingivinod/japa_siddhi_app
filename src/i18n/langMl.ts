@@ -253,6 +253,8 @@ export const ml: TranslationDict = {
   trackOrder: 'ഓർഡർ ട്രാക്ക് ചെയ്യുക',
   thankYou: 'നന്ദി',
   paymentSuccessful: 'പേയ്‌മെന്റ് വിജയിച്ചു',
+  downloadReceipt: 'രസീത് ഡൗൺലോഡ് ചെയ്യുക',
+  downloadingReceipt: 'രസീത് ഡൗൺലോഡ് ചെയ്യുന്നു...',
   orderUnderReview: 'ഓർഡർ പരിശോധനയിലാണ്',
   orderPlaced: 'ഓർഡർ നൽകി',
   thankYouForSeva: '{{name}} ന് നന്ദി.',
@@ -526,12 +528,24 @@ export const ml: TranslationDict = {
   homamCommentsPlaceholder: 'നിങ്ങളുടെ പേരും ഗോത്രവും ഇവിടെ നൽകുക',
   generalCommentsPlaceholder:
     'പ്രത്യേക അഭ്യർത്ഥനകളോ കുറിപ്പുകളോ നൽകുക (ഓപ്ഷണൽ)',
-  tileMonthlySupport: 'പ്രതിമാസ പിന്തുണ',
+  tileMonthlySupport: 'പ്രതിമാസ സഹായം (ഇപ്പോൾ തന്നെ സംഭാവന ചെയ്യുക)',
   tileMonthlySupportSub: 'ആത്മീയ പിന്തുണ',
   perMonth: '/ മാസം',
   monthlySupportNote:
     'ശ്രദ്ധിക്കുക: തങ്ങളുടെ പ്രതിമാസ സേവനം മറക്കാതെയോ ഒഴിവാക്കാതെയോ തുടരുന്നതിന് ഓട്ടോ-ഡെബിറ്റ് / ഓട്ടോപേ സൗകര്യം നൽകണമെന്ന് നിരവധി ഭക്തർ അഭ്യർത്ഥിച്ചിട്ടുണ്ട്.',
   setAutopay: 'ഓട്ടോപേ / ഓട്ടോ-ഡെബിറ്റ് സജ്ജമാക്കുക',
+  chooseMonthlyContribution: 'നിങ്ങളുടെ പ്രതിമാസ സഹായം തിരഞ്ഞെടുക്കുക:',
+  enterAmountLabel: 'തുക നൽകുക (₹):',
+  amountExamplePlaceholder: 'ഉദാ. 500',
+  payNow: 'ഇപ്പോൾ അടയ്ക്കുക',
+  shareMonthlySupportTitle: 'പ്രതിമാസ സഹായ വിശദാംശങ്ങൾ പങ്കിടുക',
+  shareMonthlySupportSub:
+    'പകർത്തി കുടുംബം & സുഹൃത്തുക്കളുമായി WhatsApp, Telegram മുതലായവയിൽ പങ്കിടുക.',
+  submittingAutopayRequest: 'അഭ്യർത്ഥന അയയ്ക്കുന്നു...',
+  validContributionAmount: 'ദയവായി സാധുവായ സഹായ തുക നൽകുക.',
+  shareDetailsTitle: 'വിശദാംശങ്ങൾ പങ്കിടുക',
+  shareDetailsClipboardHint:
+    'വിശദാംശങ്ങൾ ക്ലിപ്പ്ബോർഡിലേക്ക് പകർത്തി. ഇപ്പോൾ ഒട്ടിച്ച് കുടുംബത്തോടും സുഹൃത്തുക്കളോടും പങ്കിടാം.',
   autopaySuccessTitle: 'ഓട്ടോപേ അഭ്യർത്ഥന ലഭിച്ചു',
   autopaySuccessMessage:
     'പിന്തുണയ്ക്കാൻ താൽപ്പര്യം പ്രകടിപ്പിച്ചതിന് നന്ദി! ശ്രീ രവി ശങ്കർ ഗാരു / ഞങ്ങളുടെ ടീം ഉടൻ നിങ്ങളെ ബന്ധപ്പെടും.',

@@ -253,6 +253,8 @@ export const ta: TranslationDict = {
   trackOrder: 'ஆர்டரைக் கண்காணி',
   thankYou: 'நன்றி',
   paymentSuccessful: 'பணம் செலுத்துதல் வெற்றி',
+  downloadReceipt: 'ரசீதைப் பதிவிறக்கவும்',
+  downloadingReceipt: 'ரசீது பதிவிறக்கப்படுகிறது...',
   orderUnderReview: 'ஆர்டர் மதிப்பாய்வில் உள்ளது',
   orderPlaced: 'ஆர்டர் பதிவானது',
   thankYouForSeva: '{{name}} க்கு நன்றி.',
@@ -524,12 +526,24 @@ export const ta: TranslationDict = {
   homamCommentsPlaceholder: 'உங்கள் பெயர் மற்றும் கோத்திரத்தை இங்கே உள்ளிடவும்',
   generalCommentsPlaceholder:
     'ஏதேனும் சிறப்பு கோரிக்கைகள் அல்லது குறிப்புகளை உள்ளிடவும் (விருப்பத்திற்குரியது)',
-  tileMonthlySupport: 'மாதாந்திர ஆதரவு',
+  tileMonthlySupport: 'மாதாந்திர உதவி (இப்போதே தானம் செய்யுங்கள்)',
   tileMonthlySupportSub: 'ஆன்மீக ஆதரவு',
   perMonth: '/ மாதம்',
   monthlySupportNote:
     'குறிப்பு: தங்களின் மாதாந்திர சேவையை மறக்காமல் அல்லது தவறவிடாமல் தொடர ஆட்டோ-டெபிட் / ஆட்டோபே வசதியை ஏற்பாடு செய்யுமாறு பல பக்தர்கள் கோரியுள்ளனர்.',
   setAutopay: 'ஆட்டோபே / ஆட்டோ-டெபிட் அமைக்கவும்',
+  chooseMonthlyContribution: 'உங்கள் மாதாந்திர உதவியைத் தேர்ந்தெடுக்கவும்:',
+  enterAmountLabel: 'தொகையை உள்ளிடவும் (₹):',
+  amountExamplePlaceholder: 'எ.கா. 500',
+  payNow: 'இப்போது செலுத்துங்கள்',
+  shareMonthlySupportTitle: 'மாதாந்திர உதவி விவரங்களைப் பகிரவும்',
+  shareMonthlySupportSub:
+    'நகலெடுத்து குடும்பம் & நண்பர்களுடன் WhatsApp, Telegram போன்றவற்றில் பகிரவும்.',
+  submittingAutopayRequest: 'கோரிக்கை அனுப்பப்படுகிறது...',
+  validContributionAmount: 'தயவுசெய்து சரியான உதவித் தொகையை உள்ளிடவும்.',
+  shareDetailsTitle: 'விவரங்களைப் பகிரவும்',
+  shareDetailsClipboardHint:
+    'விவரங்கள் கிளிப்போர்டுக்கு நகலெடுக்கப்பட்டன. இப்போது ஒட்டி குடும்பம் மற்றும் நண்பர்களுடன் பகிரலாம்.',
   autopaySuccessTitle: 'ஆட்டோபே கோரிக்கை பெறப்பட்டது',
   autopaySuccessMessage:
     'ஆதரவளிக்க விருப்பம் தெரிவித்ததற்கு நன்றி! ஸ்ரீ ரவி சங்கர் காரு / எங்கள் குழுவினர் விரைவில் உங்களைத் தொடர்புகொள்வார்கள்.',

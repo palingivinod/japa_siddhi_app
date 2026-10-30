@@ -253,6 +253,8 @@ export const or: TranslationDict = {
   trackOrder: 'ଅର୍ଡର ଟ୍ରାକ୍ କରନ୍ତୁ',
   thankYou: 'ଧନ୍ୟବାଦ',
   paymentSuccessful: 'ପେମେଣ୍ଟ ସଫଳ',
+  downloadReceipt: 'ରସିଦ ଡାଉନଲୋଡ୍ କରନ୍ତୁ',
+  downloadingReceipt: 'ରସିଦ ଡାଉନଲୋଡ୍ ହେଉଛି...',
   orderUnderReview: 'ଅର୍ଡର ସମୀକ୍ଷାରେ ଅଛି',
   orderPlaced: 'ଅର୍ଡର ଦିଆଗଲା',
   thankYouForSeva: '{{name}} ପାଇଁ ଧନ୍ୟବାଦ।',
@@ -531,12 +533,24 @@ export const or: TranslationDict = {
   homamCommentsPlaceholder: 'ଆପଣଙ୍କ ନାମ ଏବଂ ଗୋତ୍ର ଏଠାରେ ଲେଖନ୍ତୁ',
   generalCommentsPlaceholder:
     'କୌଣସି ବିଶେଷ ଅନୁରୋଧ କିମ୍ବା ମନ୍ତବ୍ୟ ଲେଖନ୍ତୁ (ଇଚ୍ଛାଧୀନ)',
-  tileMonthlySupport: 'ମାସିକ ସମର୍ଥନ',
+  tileMonthlySupport: 'ମାସିକ ସହାୟତା (ବର୍ତ୍ତମାନ ଦାନ କରନ୍ତୁ)',
   tileMonthlySupportSub: 'ଆଧ୍ୟାତ୍ମିକ ସମର୍ଥନ',
   perMonth: '/ ମାସ',
   monthlySupportNote:
     'ଟିପ୍ପଣୀ: ଅନେକ ଭକ୍ତ ପ୍ରତି ମାସରେ ଅଟୋ-ଡେବିଟ୍ / ଅଟୋପେ ସୁବିଧା ଅନୁରୋଧ କରିଛନ୍ତି ଯାହାଦ୍ୱାରା ସେମାନଙ୍କର ମାସିକ ସେବା ଭୁଲି ନଯାଇ ନିରନ୍ତର ଚାଲିପାରିବ।',
   setAutopay: 'ଅଟୋପେ / ଅଟୋ-ଡେବିଟ୍ ସେଟ୍ କରନ୍ତୁ',
+  chooseMonthlyContribution: 'ଆପଣଙ୍କ ମାସିକ ସହାୟତା ବାଛନ୍ତୁ:',
+  enterAmountLabel: 'ରାଶି ଲେଖନ୍ତୁ (₹):',
+  amountExamplePlaceholder: 'ଯଥା 500',
+  payNow: 'ବର୍ତ୍ତମାନ ପେମେଣ୍ଟ କରନ୍ତୁ',
+  shareMonthlySupportTitle: 'ମାସିକ ସହାୟତା ବିବରଣୀ ସେୟାର୍ କରନ୍ତୁ',
+  shareMonthlySupportSub:
+    'କପି କରି ପରିବାର ଓ ବନ୍ଧୁମାନଙ୍କ ସହିତ WhatsApp, Telegram ଆଦିରେ ସେୟାର୍ କରନ୍ତୁ।',
+  submittingAutopayRequest: 'ଅନୁରୋଧ ପଠାଯାଉଛି...',
+  validContributionAmount: 'ଦୟାକରି ଏକ ବୈଧ ସହାୟତା ରାଶି ଲେଖନ୍ତୁ।',
+  shareDetailsTitle: 'ବିବରଣୀ ସେୟାର୍ କରନ୍ତୁ',
+  shareDetailsClipboardHint:
+    'ବିବରଣୀ କ୍ଲିପବୋର୍ଡକୁ କପି ହୋଇଛି। ବର୍ତ୍ତମାନ ପେଷ୍ଟ କରି ପରିବାର ଓ ବନ୍ଧୁମାନଙ୍କ ସହିତ ସେୟାର୍ କରିପାରିବେ।',
   autopaySuccessTitle: 'ଅଟୋପେ ଅନୁରୋଧ ପ୍ରାପ୍ତ ହୋଇଛି',
   autopaySuccessMessage:
     'ସହଯୋଗ କରିବାକୁ ଆଗ୍ରହ ପ୍ରକାଶ କରିଥିବାରୁ ଧନ୍ୟବାଦ! ଶ୍ରୀ ରବି ଶଙ୍କର ଗାରୁ / ଆମ ଦଳ ଖୁବ୍ ଶୀଘ୍ର ଆପଣଙ୍କ ସହିତ ଯୋଗାଯୋଗ କରିବେ।',

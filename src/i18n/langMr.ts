@@ -253,6 +253,8 @@ export const mr: TranslationDict = {
   trackOrder: 'ऑर्डर ट्रॅक करा',
   thankYou: 'धन्यवाद',
   paymentSuccessful: 'पेमेंट यशस्वी',
+  downloadReceipt: 'पावती डाउनलोड करा',
+  downloadingReceipt: 'पावती डाउनलोड होत आहे...',
   orderUnderReview: 'ऑर्डर तपासणीत आहे',
   orderPlaced: 'ऑर्डर नोंदली',
   thankYouForSeva: '{{name}} साठी धन्यवाद.',
@@ -529,12 +531,24 @@ export const mr: TranslationDict = {
   homamCommentsPlaceholder: 'तुमचे नाव आणि गोत्र येथे टाईप करा',
   generalCommentsPlaceholder:
     'कोणत्याही विशेष विनंत्या किंवा टिप्पण्या प्रविष्ट करा (पर्यायी)',
-  tileMonthlySupport: 'मासिक सहकार्य',
+  tileMonthlySupport: 'मासिक मदत (आताच दान करा)',
   tileMonthlySupportSub: 'आध्यात्मिक सहकार्य',
   perMonth: '/ महिना',
   monthlySupportNote:
     'टीप: अनेक भक्तांनी दरमहा ऑटो-डेबिट / ऑटोपे सुविधेची विनंती केली आहे जेणेकरून त्यांचे मासिक सेवा सहकार्य विसरल्याशिवाय किंवा खंड न पडता चालू राहील.',
   setAutopay: 'ऑटोपे / ऑटो-डेबिट सेट करा',
+  chooseMonthlyContribution: 'तुमची मासिक मदत निवडा:',
+  enterAmountLabel: 'रक्कम प्रविष्ट करा (₹):',
+  amountExamplePlaceholder: 'उदा. 500',
+  payNow: 'आता पेमेंट करा',
+  shareMonthlySupportTitle: 'मासिक मदत तपशील शेअर करा',
+  shareMonthlySupportSub:
+    'कॉपी करा आणि कुटुंब व मित्रांसोबत WhatsApp, Telegram इत्यादींवर शेअर करा.',
+  submittingAutopayRequest: 'विनंती पाठवत आहे...',
+  validContributionAmount: 'कृपया वैध मदत रक्कम प्रविष्ट करा.',
+  shareDetailsTitle: 'तपशील शेअर करा',
+  shareDetailsClipboardHint:
+    'तपशील क्लिपबोर्डवर कॉपी झाले आहेत. आता पेस्ट करून कुटुंब आणि मित्रांसोबत शेअर करू शकता.',
   autopaySuccessTitle: 'ऑटोपे विनंती प्राप्त झाली',
   autopaySuccessMessage:
     'सहकार्य दाखवल्याबद्दल धन्यवाद! श्री रवी शंकर गారు / आमची टीम लवकरच आपल्याशी संपर्क साधेल.',

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc && node -e \"require('fs').mkdirSync('dist/database',{recursive:true}); require('fs').copyFileSync('src/database/schema.sqlite.sql','dist/database/schema.sqlite.sql')\"",
+    "build": "tsc && node -e \"const fs=require('fs');const path=require('path');fs.mkdirSync('dist/database',{recursive:true});fs.copyFileSync('src/database/schema.sqlite.sql','dist/database/schema.sqlite.sql');fs.mkdirSync('dist/assets',{recursive:true});const logo='assets/logo.png';if(fs.existsSync(logo))fs.copyFileSync(logo,'dist/assets/logo.png');\"",
     "start": "node dist/server.js",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts",

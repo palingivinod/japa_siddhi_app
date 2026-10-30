@@ -5287,6 +5287,23 @@ router.patch('/autopay-requests/:id/status', async (req: Request, res: Response)
   }
 });
 
+router.delete('/autopay-requests/:id', async (req: Request, res: Response) => {
+  try {
+    const {deleteAutopayRequest} = await import('../donation/autopay.service');
+    const data = await deleteAutopayRequest(String(req.params.id));
+    return res.json({
+      success: true,
+      message: 'Autopay request deleted',
+      data,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to delete autopay request.',
+    });
+  }
+});
+
 router.get('/seva-donations', async (req: Request, res: Response) => {
   try {
     await ensureDonationColumns();

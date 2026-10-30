@@ -850,7 +850,7 @@ const HomeScreen = () => {
                   borderWidth: meetingBorderWidth,
                 },
               ]}>
-              <TouchableOpacity
+          <TouchableOpacity
                 style={styles.lalithaClassCard}
                 onPress={onMeetingCardPress}
                 activeOpacity={0.85}>
@@ -931,8 +931,8 @@ const HomeScreen = () => {
               <View style={styles.panchangModalCard}>
                 <View style={styles.modalHeaderRow}>
                   <Text style={styles.modalKicker}>
-                    {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
-                  </Text>
+              {panchang.festival ? t('todayFestival') : t('todayPanchangam')}
+            </Text>
                   <View style={styles.modalActionRow}>
                     <TouchableOpacity
                       onPress={onSharePanchang}
@@ -956,29 +956,29 @@ const HomeScreen = () => {
                 <ScrollView
                   showsVerticalScrollIndicator={false}
                   contentContainerStyle={styles.panchangModalScrollContent}>
-                  <Text style={styles.dateLine}>
+            <Text style={styles.dateLine}>
                     {formatPanchangDisplayDate(panchang, t) ||
                       panchang.displayDate ||
                       t('loadingToday')}
-                  </Text>
+            </Text>
                   {panchang.festival ? (
                     <View style={styles.modalFestivalBlock}>
-                      <Text style={styles.cardTitle}>
+            <Text style={styles.cardTitle}>
                         {tt(festivalName(panchang.festival))}
-                      </Text>
+            </Text>
                       {panchang.festival.description ? (
-                        <Text style={styles.cardMeta}>
+            <Text style={styles.cardMeta}>
                           {tt(panchang.festival.description)}
-                        </Text>
+            </Text>
                       ) : null}
                     </View>
                   ) : null}
-                  {panchang.nextFestival && !panchang.festival ? (
-                    <Text style={styles.nextFestival}>
+            {panchang.nextFestival && !panchang.festival ? (
+              <Text style={styles.nextFestival}>
                       {t('next')}: {tt(festivalName(panchang.nextFestival))} ·{' '}
                       {festivalDateLabel(panchang.nextFestival.festivalDate, t)}
-                    </Text>
-                  ) : null}
+              </Text>
+            ) : null}
                   <PanchangDetails panchang={panchang} />
                 </ScrollView>
 
@@ -989,7 +989,7 @@ const HomeScreen = () => {
                   <Text style={styles.modalCloseFullBtnText}>
                     {t('cancel') || 'Close'}
                   </Text>
-                </TouchableOpacity>
+          </TouchableOpacity>
               </View>
             </View>
           </Modal>
@@ -997,7 +997,7 @@ const HomeScreen = () => {
           <View style={styles.progressCard}>
             {hasActiveGoal ? (
               /* Single Clean Daily Goal Card for the active / recently chanted mantra */
-              <TouchableOpacity
+          <TouchableOpacity
                 style={styles.cardSection}
                 activeOpacity={0.85}
                 onPress={handleContinueJapaPress}>
@@ -1028,18 +1028,18 @@ const HomeScreen = () => {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.progressMeta}>
+            <Text style={styles.progressMeta}>
                   {t('chantsToday', {
                     count: activeMantraTodayCount.toLocaleString('en-IN'),
                   })}
-                </Text>
-                <Text style={styles.progressMeta}>
+            </Text>
+            <Text style={styles.progressMeta}>
                   {t('goalChants', {
                     count: userDailyGoal.toLocaleString('en-IN'),
                   })}
-                </Text>
-                <View style={styles.barRow}>
-                  <View style={styles.barTrack}>
+            </Text>
+            <View style={styles.barRow}>
+              <View style={styles.barTrack}>
                     <View
                       style={[
                         styles.barFill,
@@ -1049,38 +1049,38 @@ const HomeScreen = () => {
                           styles.barFillCompleted,
                       ]}
                     />
-                  </View>
+              </View>
                   <Text style={styles.percent}>
                     {activeMantraTodayCount.toLocaleString('en-IN')} /{' '}
                     {formatCountShort(userDailyGoal)} · {dailyProgress}%
                   </Text>
-                </View>
-              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
             ) : (
               /* Clean state for fresh user with NO active goals */
               <View style={styles.cardSection}>
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.progressTitle}>
                     {t('dailyGoal')}
-                  </Text>
+              </Text>
                   <View style={styles.sectionBadge}>
                     <Text style={styles.sectionBadgeText}>
                       {t('goalNotCompleted') || 'Not Started'}
-                    </Text>
-                  </View>
+              </Text>
+          </View>
                 </View>
                 <Text style={styles.progressMeta}>
                   {t('noActiveJapasDesc') ||
                     'Start an Antharanga Japa with your own mantra or join a Samuhika Japa to begin!'}
                 </Text>
-                <TouchableOpacity
+            <TouchableOpacity
                   style={styles.startGoalBtn}
                   activeOpacity={0.85}
                   onPress={() => navigation.navigate('YourJapas')}>
                   <Text style={styles.startGoalBtnText}>
                     ✨ {t('startJapa') || 'Start Japa'}
-                  </Text>
-                </TouchableOpacity>
+              </Text>
+            </TouchableOpacity>
               </View>
             )}
           </View>

@@ -399,6 +399,10 @@ export const bindNotifyDeepLinks = () => {
         purpose: payment.purpose,
         orderNumber: payment.paymentId,
         confirmationId: payment.paymentId,
+        razorpayOrderId: payment.orderId,
+        amount: Number.isFinite(payment.amount) ? payment.amount : undefined,
+        name: payment.name,
+        phone: payment.phone,
       });
       return;
     }

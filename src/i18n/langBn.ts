@@ -253,6 +253,8 @@ export const bn: TranslationDict = {
   trackOrder: 'অর্ডার ট্র্যাক করুন',
   thankYou: 'ধন্যবাদ',
   paymentSuccessful: 'পেমেন্ট সফল',
+  downloadReceipt: 'রসিদ ডাউনলোড করুন',
+  downloadingReceipt: 'রসিদ ডাউনলোড হচ্ছে...',
   orderUnderReview: 'অর্ডার পর্যালোচনায় আছে',
   orderPlaced: 'অর্ডার দেওয়া হয়েছে',
   thankYouForSeva: '{{name}} এর জন্য ধন্যবাদ।',
@@ -529,12 +531,24 @@ export const bn: TranslationDict = {
   homamCommentsPlaceholder: 'আপনার নাম এবং গোত্র এখানে লিখুন',
   generalCommentsPlaceholder:
     'কোনো বিশেষ অনুরোধ বা মন্তব্য লিখুন (ঐচ্ছিক)',
-  tileMonthlySupport: 'মাসিক সহায়তা',
+  tileMonthlySupport: 'মাসিক সহায়তা (এখনই দান করুন)',
   tileMonthlySupportSub: 'আধ্যাত্মিক সহায়তা',
   perMonth: '/ মাস',
   monthlySupportNote:
     'নোট: অনেক ভক্ত প্রতি মাসে অটো-ডেবিট / অটো-পে সুবিধার অনুরোধ করেছেন যাতে তাদের মাসিক সেবা ভুলে না গিয়ে বা বাদ না পড়ে নির্বিঘ্নে চলতে পারে।',
   setAutopay: 'অটো-পে / অটো-ডেবিট সেট করুন',
+  chooseMonthlyContribution: 'আপনার মাসিক সহায়তা বেছে নিন:',
+  enterAmountLabel: 'পরিমাণ লিখুন (₹):',
+  amountExamplePlaceholder: 'যেমন ৫০০',
+  payNow: 'এখনই পেমেন্ট করুন',
+  shareMonthlySupportTitle: 'মাসিক সহায়তার বিবরণ শেয়ার করুন',
+  shareMonthlySupportSub:
+    'কপি করে পরিবার ও বন্ধুদের সাথে WhatsApp, Telegram ইত্যাদিতে শেয়ার করুন।',
+  submittingAutopayRequest: 'অনুরোধ পাঠানো হচ্ছে...',
+  validContributionAmount: 'অনুগ্রহ করে একটি বৈধ সহায়তার পরিমাণ লিখুন।',
+  shareDetailsTitle: 'বিবরণ শেয়ার করুন',
+  shareDetailsClipboardHint:
+    'বিবরণ ক্লিপবোর্ডে কপি হয়েছে। এখন পেস্ট করে পরিবার ও বন্ধুদের সাথে শেয়ার করতে পারেন।',
   autopaySuccessTitle: 'অটো-পে অনুরোধ গৃহীত হয়েছে',
   autopaySuccessMessage:
     'সহায়তা করতে আগ্রহ প্রকাশ করার জন্য ধন্যবাদ! শ্রী রবি শঙ্কর গারু / আমাদের দল শীঘ্রই আপনার সাথে যোগাযোগ করবে।',

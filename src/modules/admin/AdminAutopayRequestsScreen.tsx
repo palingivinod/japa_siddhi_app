@@ -128,6 +128,34 @@ const AdminAutopayRequestsScreen = () => {
     }
   };
 
+  const handleDeleteRequest = (item: AutopayRequestItem) => {
+    Alert.alert(
+      'Delete Autopay Request',
+      `Delete request from ${item.fullName || 'this devotee'}? This cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setUpdatingId(item.id);
+            try {
+              await apiService.delete(`/admin/autopay-requests/${item.id}`);
+              setRequests(prev => prev.filter(r => r.id !== item.id));
+            } catch (err) {
+              Alert.alert(
+                'Delete Failed',
+                getApiError(err, 'Could not delete this autopay request.'),
+              );
+            } finally {
+              setUpdatingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const filteredRequests = useMemo(() => {
     return requests.filter(item => {
       if (selectedTab !== 'All' && item.status.toLowerCase() !== selectedTab.toLowerCase()) {
@@ -268,14 +296,26 @@ const AdminAutopayRequestsScreen = () => {
                 <Text style={styles.devoteeName}>{item.fullName}</Text>
                 <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
               </View>
-              <View
-                style={[
-                  styles.statusPill,
-                  {backgroundColor: tone.bg, borderColor: tone.border},
-                ]}>
-                <Text style={[styles.statusPillText, {color: tone.text}]}>
-                  {item.status}
-                </Text>
+              <View style={styles.headerRightCol}>
+                <View
+                  style={[
+                    styles.statusPill,
+                    {backgroundColor: tone.bg, borderColor: tone.border},
+                  ]}>
+                  <Text style={[styles.statusPillText, {color: tone.text}]}>
+                    {item.status}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.deleteBtn}
+                  disabled={isUpdating}
+                  onPress={() => handleDeleteRequest(item)}
+                  activeOpacity={0.75}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Text style={styles.deleteBtnText}>
+                    {isUpdating ? '…' : '🗑 Delete'}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 
@@ -546,6 +586,10 @@ const styles = StyleSheet.create({
     flex: 1,
     marginRight: 8,
   },
+  headerRightCol: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
   devoteeName: {
     fontSize: 17,
     fontWeight: '800',
@@ -565,6 +609,19 @@ const styles = StyleSheet.create({
   statusPillText: {
     fontSize: 12,
     fontWeight: '800',
+  },
+  deleteBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  deleteBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B91C1C',
   },
   planRow: {
     flexDirection: 'row',

@@ -119,7 +119,7 @@ export const resolveBookingSlug = (
  * Extract booking slug from:
  * - japasiddhi://book/nithya-homam
  * - japasiddhi://nithya-homam
- * - https://japasiddhi.onrender.com/book/nithya-homam
+ * - https://japasiddhi.com/book/nithya-homam
  * - japasiddhi://seva/nithya-homam (legacy-style)
  */
 export const parseBookingDeepLink = (

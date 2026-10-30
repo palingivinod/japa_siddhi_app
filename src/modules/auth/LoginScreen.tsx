@@ -690,9 +690,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   social: {
-    backgroundColor: Colors.white,
+    backgroundColor: Colors.templeGold,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderColor: Colors.templeGold,
     borderRadius: 16,
     minHeight: 56,
     paddingVertical: 14,
@@ -702,8 +702,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   socialText: {
-    color: Colors.sacredBrown,
-    fontWeight: '700',
+    color: Colors.white,
+    fontWeight: '800',
     fontSize: 16,
     lineHeight: 24,
     paddingVertical: 2,

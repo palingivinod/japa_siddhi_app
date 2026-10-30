@@ -261,8 +261,8 @@ class JapaService {
 
     const [globalCount, userTotal, milestoneTotal, challengeUpdates] =
       await Promise.all([
-        japaRepository.updateGlobalJapaCount(data.sessionCount),
-        japaRepository.getUserTotalJapa(userId),
+      japaRepository.updateGlobalJapaCount(data.sessionCount),
+      japaRepository.getUserTotalJapa(userId),
         japaRepository.getUserMilestoneJapa(userId),
         challengeId
           ? this.applySessionToChallenge(userId, challengeId, data.sessionCount)
@@ -675,11 +675,11 @@ class JapaService {
   async getAnalytics(userId: number, targetYear?: number) {
     const [summary, weekly, goals, sessionRows, streak, byMantra] =
       await Promise.all([
-        this.getSummary(userId),
-        japaRepository.getWeeklyBreakdown(userId),
-        japaGoalRepository.getUserGoals(userId),
+      this.getSummary(userId),
+      japaRepository.getWeeklyBreakdown(userId),
+      japaGoalRepository.getUserGoals(userId),
         japaRepository.getSessionRows(userId),
-        this.getStreakStats(userId),
+      this.getStreakStats(userId),
         Promise.all([
           japaRepository.getMantraTotals(userId, 'all'),
           japaRepository.getMantraTotals(userId, 'today'),

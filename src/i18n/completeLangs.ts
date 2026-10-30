@@ -252,6 +252,8 @@ export const kn: TranslationDict = {
   trackOrder: 'ಆರ್ಡರ್ ಟ್ರ್ಯಾಕ್ ಮಾಡಿ',
   thankYou: 'ಧನ್ಯವಾದಗಳು',
   paymentSuccessful: 'ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ',
+  downloadReceipt: 'ರಸೀದಿ ಡೌನ್‌ಲೋಡ್ ಮಾಡಿ',
+  downloadingReceipt: 'ರಸೀದಿ ಡೌನ್‌ಲೋಡ್ ಆಗುತ್ತಿದೆ...',
   orderUnderReview: 'ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
   orderPlaced: 'ಆರ್ಡರ್ ಇಡಲಾಗಿದೆ',
   thankYouForSeva: '{{name}} ಗಾಗಿ ಧನ್ಯವಾದಗಳು.',
@@ -523,12 +525,24 @@ export const kn: TranslationDict = {
   homamCommentsPlaceholder: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು ಗೋತ್ರವನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ',
   generalCommentsPlaceholder:
     'ಯಾವುದೇ ವಿಶೇಷ ವಿನಂತಿಗಳು ಅಥವಾ ಟಿಪ್ಪಣಿಗಳನ್ನು ನಮೂದಿಸಿ (ಐಚ್ಛಿಕ)',
-  tileMonthlySupport: 'ಮಾಸಿಕ ಬೆಂಬಲ',
+  tileMonthlySupport: 'ಮಾಸಿಕ ಸಹಾಯ (ಈಗಲೇ ದಾನ ಮಾಡಿ)',
   tileMonthlySupportSub: 'ಆಧ್ಯಾತ್ಮಿಕ ಬೆಂಬಲ',
   perMonth: '/ ತಿಂಗಳಿಗೆ',
   monthlySupportNote:
     'ಗಮನಿಸಿ: ತಮ್ಮ ಮಾಸಿಕ ಸೇವೆಯನ್ನು ಮರೆಯದೆ ಅಥವಾ ಬಿಟ್ಟುಹೋಗದೆ ಮುಂದುವರಿಸಲು ಆಟೋ-ಡೆಬಿಟ್ / ಆಟೋಪೇ ಸೌಲಭ್ಯವನ್ನು ಒದಗಿಸುವಂತೆ ಹಲವು ಭಕ್ತರು ವಿನಂತಿಸಿದ್ದಾರೆ.',
   setAutopay: 'ಆಟೋಪೇ / ಆಟೋ-ಡೆಬಿಟ್ ಹೊಂದಿಸಿ',
+  chooseMonthlyContribution: 'ನಿಮ್ಮ ಮಾಸಿಕ ಸಹಾಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ:',
+  enterAmountLabel: 'ಮೊತ್ತ ನಮೂದಿಸಿ (₹):',
+  amountExamplePlaceholder: 'ಉದಾ. 500',
+  payNow: 'ಈಗ ಪಾವತಿಸಿ',
+  shareMonthlySupportTitle: 'ಮಾಸಿಕ ಸಹಾಯದ ವಿವರಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ',
+  shareMonthlySupportSub:
+    'ನಕಲಿಸಿ ಕುಟುಂಬ ಮತ್ತು ಸ್ನೇಹಿತರೊಂದಿಗೆ WhatsApp, Telegram ಮುಂತಾದವುಗಳಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಿ.',
+  submittingAutopayRequest: 'ವಿನಂತಿ ಕಳುಹಿಸಲಾಗುತ್ತಿದೆ...',
+  validContributionAmount: 'ದಯವಿಟ್ಟು ಮಾನ್ಯವಾದ ಸಹಾಯ ಮೊತ್ತವನ್ನು ನಮೂದಿಸಿ.',
+  shareDetailsTitle: 'ವಿವರಗಳನ್ನು ಹಂಚಿಕೊಳ್ಳಿ',
+  shareDetailsClipboardHint:
+    'ವಿವರಗಳನ್ನು ಕ್ಲಿಪ್‌ಬೋರ್ಡ್‌ಗೆ ನಕಲಿಸಲಾಗಿದೆ. ಈಗ ನೀವು ಅಂಟಿಸಿ ಕುಟುಂಬ ಮತ್ತು ಸ್ನೇಹಿತರೊಂದಿಗೆ ಹಂಚಿಕೊಳ್ಳಬಹುದು.',
   autopaySuccessTitle: 'ಆಟೋಪೇ ವಿನಂತಿ ಸ್ವೀಕರಿಸಲಾಗಿದೆ',
   autopaySuccessMessage:
     'ಬೆಂಬಲ ನೀಡಲು ಆಸಕ್ತಿ ತೋರಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಶ್ರೀ ರವಿ ಶಂಕರ್ ಗಾರು / ನಮ್ಮ ತಂಡ ಶೀಘ್ರದಲ್ಲೇ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲಿದೆ.',

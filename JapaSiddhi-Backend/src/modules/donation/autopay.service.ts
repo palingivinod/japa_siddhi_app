@@ -115,3 +115,13 @@ export const updateAutopayStatus = async (id: string | number, status: string) =
   );
   return {success: true, id, status: cleanStatus};
 };
+
+export const deleteAutopayRequest = async (id: string | number) => {
+  await ensureAutopayTable();
+  const requestId = Number(id);
+  if (!Number.isFinite(requestId) || requestId < 1) {
+    throw new Error('Invalid autopay request id.');
+  }
+  await mysql.query(`DELETE FROM autopay_requests WHERE id = ?`, [requestId]);
+  return {success: true, id: String(requestId)};
+};

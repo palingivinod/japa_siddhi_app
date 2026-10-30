@@ -35,13 +35,13 @@ const normalizeTranslations = (raw?: string | Record<string, any>) => {
 };
 
 const MANTRA_COLUMNS = `
-  id,
-  mantra_name AS mantraName,
-  deity_name AS deityName,
-  sanskrit_text AS sanskritText,
-  transliteration,
-  default_japa_count AS defaultJapaCount,
-  image_url AS imageUrl,
+        id,
+        mantra_name AS mantraName,
+        deity_name AS deityName,
+        sanskrit_text AS sanskritText,
+        transliteration,
+        default_japa_count AS defaultJapaCount,
+        image_url AS imageUrl,
   translations,
   is_featured AS isFeatured,
   is_active AS isActive,
