@@ -32,6 +32,9 @@
         tools:node="remove" />
 
     <queries>
+      <provider android:authorities="com.facebook.katana.provider.PlatformProvider" />
+      <provider android:authorities="com.facebook.orca.provider.PlatformProvider" />
+      <package android:name="com.facebook.katana" />
       <package android:name="com.google.android.apps.nbu.paisa.user" />
       <package android:name="com.phonepe.app" />
       <package android:name="net.one97.paytm" />
@@ -91,6 +94,28 @@
           android:name="com.google.firebase.messaging.default_notification_color"
           android:resource="@color/notification_color"
           tools:replace="android:resource" />
+
+      <!-- Facebook Login (react-native-fbsdk-next) -->
+      <meta-data
+          android:name="com.facebook.sdk.ApplicationId"
+          android:value="@string/facebook_app_id" />
+      <meta-data
+          android:name="com.facebook.sdk.ClientToken"
+          android:value="@string/facebook_client_token" />
+      <activity
+          android:name="com.facebook.FacebookActivity"
+          android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+          android:label="@string/app_name" />
+      <activity
+          android:name="com.facebook.CustomTabActivity"
+          android:exported="true">
+        <intent-filter>
+          <action android:name="android.intent.action.VIEW" />
+          <category android:name="android.intent.category.DEFAULT" />
+          <category android:name="android.intent.category.BROWSABLE" />
+          <data android:scheme="@string/fb_login_protocol_scheme" />
+        </intent-filter>
+      </activity>
 
       <!-- Custom FCM service: posts tray with full-color largeIcon (WhatsApp-style). -->
       <service

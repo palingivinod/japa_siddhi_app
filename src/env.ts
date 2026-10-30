@@ -26,8 +26,16 @@ const ENV = {
 
   // Firebase Console → Project settings → Your apps → Web client ID
   // (client_type 3 / "Web client"). Required for Continue with Google.
-  GOOGLE_WEB_CLIENT_ID: '89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com',
+  GOOGLE_WEB_CLIENT_ID:
+    '89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com',
 
+  // Meta Developer Console → Your App → Settings → Basic
+  // Also paste the same App ID / Client Token into:
+  //   android/app/src/main/res/values/strings.xml
+  //   ios/JapaSiddhi/Info.plist (FacebookAppID / FacebookClientToken)
+  // Enable Facebook as a sign-in provider in Firebase Authentication.
+  FACEBOOK_APP_ID: '3042346889453119',
+  FACEBOOK_CLIENT_TOKEN: 'be339eb4f3fc489ac6a0e1be11c686f2',
 
   RAZORPAY_KEY: '',
 
@@ -49,8 +57,6 @@ const ENV = {
   DEFAULT_LANGUAGE: 'en',
 
   DEFAULT_COUNTRY: 'IN',
-
-  
 };
 
 export default ENV;

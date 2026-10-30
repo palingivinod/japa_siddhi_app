@@ -347,9 +347,15 @@ const CompleteProfileScreen = ({
         });
       } else {
         const password = String(route?.params?.password || '');
+        const socialProvider = String(
+          route?.params?.authProvider || '',
+        )
+          .trim()
+          .toLowerCase();
         const isSocial = Boolean(
           route?.params?.isGoogleSignup ||
-          route?.params?.authProvider === 'google' ||
+          socialProvider === 'google' ||
+          socialProvider === 'facebook' ||
           route?.params?.firebaseToken ||
           route?.params?.firebaseUid,
         );
@@ -368,7 +374,11 @@ const CompleteProfileScreen = ({
           password: password || undefined,
           firebaseToken: route?.params?.firebaseToken,
           firebaseUid: route?.params?.firebaseUid,
-          authProvider: isSocial ? 'google' : undefined,
+          authProvider: isSocial
+            ? socialProvider === 'facebook'
+              ? 'facebook'
+              : 'google'
+            : undefined,
         });
         const token = result?.data?.token;
         const user = result?.data?.user;

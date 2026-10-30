@@ -60,12 +60,18 @@ const SignupPhotoScreen = () => {
     );
     const mobileNumber = String(params.mobileNumber || '').replace(/\D/g, '');
     const password = String(params.password || '');
+    const socialProvider = String(params.authProvider || '')
+      .trim()
+      .toLowerCase();
     const isGoogleSignup = Boolean(
       params.isGoogleSignup ||
-      params.authProvider === 'google' ||
+      socialProvider === 'google' ||
+      socialProvider === 'facebook' ||
       params.firebaseToken ||
       params.firebaseUid,
     );
+    const authProviderValue =
+      socialProvider === 'facebook' ? 'facebook' : 'google';
     if (!isMobile(mobileNumber) || /^0+$/.test(mobileNumber)) {
       Alert.alert(
         t('mobileRequiredTitle'),
@@ -116,7 +122,7 @@ const SignupPhotoScreen = () => {
         password: password || undefined,
         firebaseToken: params.firebaseToken,
         firebaseUid: params.firebaseUid,
-        authProvider: isGoogleSignup ? 'google' : undefined,
+        authProvider: isGoogleSignup ? authProviderValue : undefined,
       });
       if (result?.data?.token) {
         await saveSession(result.data.token, result.data.user);
