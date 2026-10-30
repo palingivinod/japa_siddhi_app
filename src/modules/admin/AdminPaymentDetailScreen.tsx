@@ -188,6 +188,7 @@ const AdminPaymentDetailScreen = () => {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={styles.chipScroll}
         contentContainerStyle={styles.chipRow}>
         {categories.map(opt => {
           const active = category === opt.id;
@@ -335,8 +336,13 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '600',
   },
+  chipScroll: {
+    flexGrow: 0,
+    marginBottom: 10,
+  },
   chipRow: {
-    paddingBottom: 10,
+    alignItems: 'center',
+    paddingBottom: 2,
     gap: 8,
   },
   chip: {
@@ -347,6 +353,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: Colors.white,
     marginRight: 8,
+    alignSelf: 'center',
+    flexShrink: 0,
   },
   chipActive: {
     borderColor: Colors.sacredBrown,

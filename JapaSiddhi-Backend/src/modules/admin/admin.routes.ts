@@ -3012,6 +3012,28 @@ router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
 const formatInr = (amount: number) =>
   `₹${Math.round(amount).toLocaleString('en-IN')}`;
 
+/** Calendar YYYY-MM-DD in Asia/Kolkata (Render/DB clocks are UTC). */
+const paymentIstYmd = (date = new Date()) =>
+  date.toLocaleDateString('en-CA', {timeZone: 'Asia/Kolkata'});
+
+const paymentAddDaysYmd = (ymd: string, days: number) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+};
+
+/** IST calendar date of a UTC/server timestamp column (matches japa totals). */
+const paymentStampIstDateSql = (engine: string, stampExpr: string) =>
+  engine === 'mysql'
+    ? `DATE(DATE_ADD(${stampExpr}, INTERVAL 330 MINUTE))`
+    : `date(${stampExpr}, '+5 hours', '30 minutes')`;
+
+const paymentStampIstMonthSql = (engine: string, stampExpr: string) =>
+  engine === 'mysql'
+    ? `DATE_FORMAT(DATE_ADD(${stampExpr}, INTERVAL 330 MINUTE), '%Y-%m')`
+    : `strftime('%Y-%m', ${stampExpr}, '+5 hours', '30 minutes')`;
+
 const buildPaymentReportRows = async () => {
   await mysql.query('SELECT 1');
   const engine = mysql.getEngineName() || 'sqlite';
@@ -3023,38 +3045,22 @@ const buildPaymentReportRows = async () => {
     )
   `;
   const stamp = 'IFNULL(donated_at, created_at)';
+  const stampIstDate = paymentStampIstDateSql(engine, stamp);
+  const stampIstMonth = paymentStampIstMonthSql(engine, stamp);
+  const istToday = paymentIstYmd();
+  const istWeekStart = paymentAddDaysYmd(istToday, -6);
+  const istMonth = istToday.slice(0, 7);
 
-  const todaySql =
-    engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
-         WHERE ${successFilter} AND DATE(${stamp}) = CURDATE() ${demoDonationFilter}`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
-         WHERE ${successFilter} AND date(${stamp}) = date('now') ${demoDonationFilter}`;
+  const todaySql = `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+         WHERE ${successFilter} AND ${stampIstDate} = ? ${demoDonationFilter}`;
 
-  const weekSql =
-    engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+  const weekSql = `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
-           AND DATE(${stamp}) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) ${demoDonationFilter}`
-      : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
-         WHERE ${successFilter}
-           AND date(${stamp}) >= date('now', '-6 days') ${demoDonationFilter}`;
+           AND ${stampIstDate} >= ? ${demoDonationFilter}`;
 
-  const monthSql =
-    engine === 'mysql'
-      ? `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
+  const monthSql = `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
          WHERE ${successFilter}
-           AND YEAR(${stamp}) = YEAR(CURDATE())
-           AND MONTH(${stamp}) = MONTH(CURDATE()) ${demoDonationFilter}`
-      : engine === 'postgres'
-        ? `SELECT COALESCE(SUM(amount), 0) AS total FROM donations d
-           WHERE ${successFilter}
-             AND to_char((COALESCE(donated_at, created_at))::timestamp, 'YYYY-MM')
-               = to_char((CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), 'YYYY-MM')
-             ${demoDonationFilter}`
-        : `SELECT IFNULL(SUM(amount), 0) AS total FROM donations d
-           WHERE ${successFilter}
-             AND strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now') ${demoDonationFilter}`;
+           AND ${stampIstMonth} = ? ${demoDonationFilter}`;
 
   const refundSql = `
     SELECT IFNULL(SUM(amount), 0) AS total
@@ -3067,9 +3073,9 @@ const buildPaymentReportRows = async () => {
   `;
 
   const [todayRows, weekRows, monthRows, refundRows] = await Promise.all([
-    mysql.query<any[]>(todaySql),
-    mysql.query<any[]>(weekSql),
-    mysql.query<any[]>(monthSql),
+    mysql.query<any[]>(todaySql, [istToday]),
+    mysql.query<any[]>(weekSql, [istWeekStart]),
+    mysql.query<any[]>(monthSql, [istMonth]),
     mysql.query<any[]>(refundSql),
   ]);
 
@@ -3199,50 +3205,27 @@ router.get('/payment-reports/details', async (req: Request, res: Response) => {
 
     const validFrom = /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : '';
     const validTo = /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : '';
+    const stampIstDate = paymentStampIstDateSql(engine, stamp);
+    const stampIstMonth = paymentStampIstMonthSql(engine, stamp);
 
     if (validFrom || validTo) {
       if (validFrom) {
-        if (engine === 'mysql') {
-          whereClauses.push(`DATE(${stamp}) >= ?`);
-        } else {
-          whereClauses.push(`date(${stamp}) >= date(?)`);
-        }
+        whereClauses.push(`${stampIstDate} >= ?`);
         params.push(validFrom);
       }
       if (validTo) {
-        if (engine === 'mysql') {
-          whereClauses.push(`DATE(${stamp}) <= ?`);
-        } else {
-          whereClauses.push(`date(${stamp}) <= date(?)`);
-        }
+        whereClauses.push(`${stampIstDate} <= ?`);
         params.push(validTo);
       }
     } else if (period === 'today') {
-      if (engine === 'mysql') {
-        whereClauses.push(`DATE(${stamp}) = CURDATE()`);
-      } else {
-        whereClauses.push(`date(${stamp}) = date('now')`);
-      }
+      whereClauses.push(`${stampIstDate} = ?`);
+      params.push(paymentIstYmd());
     } else if (period === 'week') {
-      if (engine === 'mysql') {
-        whereClauses.push(`DATE(${stamp}) >= DATE_SUB(CURDATE(), INTERVAL 6 DAY)`);
-      } else {
-        whereClauses.push(`date(${stamp}) >= date('now', '-6 days')`);
-      }
+      whereClauses.push(`${stampIstDate} >= ?`);
+      params.push(paymentAddDaysYmd(paymentIstYmd(), -6));
     } else if (period === 'month') {
-      if (engine === 'mysql') {
-        whereClauses.push(
-          `YEAR(${stamp}) = YEAR(CURDATE()) AND MONTH(${stamp}) = MONTH(CURDATE())`,
-        );
-      } else if (engine === 'postgres') {
-        whereClauses.push(
-          `to_char((COALESCE(d.donated_at, d.created_at))::timestamp, 'YYYY-MM') = to_char((CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), 'YYYY-MM')`,
-        );
-      } else {
-        whereClauses.push(
-          `strftime('%Y-%m', ${stamp}) = strftime('%Y-%m', 'now')`,
-        );
-      }
+      whereClauses.push(`${stampIstMonth} = ?`);
+      params.push(paymentIstYmd().slice(0, 7));
     }
 
     const whereSql = `WHERE ${whereClauses.join(' AND ')} ${demoDonationFilter}`;
