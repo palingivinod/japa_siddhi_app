@@ -693,6 +693,26 @@ export const flushDueAdminNotifications = async () => {
       continue;
     }
     try {
+      // Claim the row first so a second poller/instance cannot send the same job.
+      const claimed = await mysql.query<ResultSetHeader>(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENDING',
+            processed_at = ?
+        WHERE id = ?
+          AND status = 'PENDING'
+        `,
+        [now, job.id],
+      );
+      const affected = Number(
+        (claimed as any)?.affectedRows ??
+          (claimed as any)?.changes ??
+          0,
+      );
+      if (affected < 1) {
+        continue;
+      }
+
       const userIds = parseRecipientIds(job.recipientIds);
       const result = await deliverAdminNotification({
         title: job.title,
@@ -711,7 +731,6 @@ export const flushDueAdminNotifications = async () => {
             recipient_count = ?,
             processed_at = ?
         WHERE id = ?
-          AND status = 'PENDING'
         `,
         [result.recipientCount, now, job.id],
       );
@@ -723,7 +742,7 @@ export const flushDueAdminNotifications = async () => {
         SET status = 'FAILED',
             processed_at = ?
         WHERE id = ?
-          AND status = 'PENDING'
+          AND status IN ('PENDING', 'SENDING')
         `,
         [now, job.id],
       );

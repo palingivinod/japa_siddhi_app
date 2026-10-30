@@ -306,8 +306,13 @@ export const stopPushNotifications = () => {
 export const registerBackgroundHandler = () => {
   try {
     messaging().setBackgroundMessageHandler(async remoteMessage => {
-      // Native JapaFirebaseMessagingService usually posts the tray with largeIcon.
-      // Fallback: Notifee with logo.png if native did not run.
+      // Android: JapaFirebaseMessagingService already draws the tray for
+      // data-only pushes. Displaying again via Notifee caused duplicate popups
+      // (same title twice in the shade) for scheduled / meeting-live alerts.
+      if (Platform.OS === 'android') {
+        return;
+      }
+      // iOS (and any non-Android): no native MessagingStyle path — use Notifee.
       if (remoteMessage?.notification) {
         return;
       }

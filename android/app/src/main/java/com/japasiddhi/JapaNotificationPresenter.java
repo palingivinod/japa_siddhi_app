@@ -123,7 +123,15 @@ public final class JapaNotificationPresenter {
     NotificationManager manager =
         (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
     if (manager != null) {
-      manager.notify((int) (System.currentTimeMillis() % Integer.MAX_VALUE), builder.build());
+      // Stable id so a duplicate FCM for the same alert replaces instead of stacking.
+      String actionType =
+          data != null ? firstNonEmpty(data.get("actionType"), data.get("type")) : "";
+      int notifyId =
+          Math.abs((actionType + "|" + title + "|" + body).hashCode());
+      if (notifyId == 0) {
+        notifyId = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+      }
+      manager.notify(notifyId, builder.build());
     }
   }
 

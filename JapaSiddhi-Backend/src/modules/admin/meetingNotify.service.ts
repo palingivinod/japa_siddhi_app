@@ -112,6 +112,8 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
       // New schedule → allow a fresh live-start push later.
       await appSettingsService.setSetting(LIVE_FP_KEY, '');
     } else {
+      const liveFp = liveFingerprint(meeting);
+      await appSettingsService.setSetting(LIVE_FP_KEY, liveFp);
       await deliverAdminNotification({
         title: `${title} is LIVE`,
         message: `Join now from the Home screen.`,
@@ -120,10 +122,6 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
         extraData: {screen: 'Home', meetingTitle: title},
         bypassHours: true,
       });
-      await appSettingsService.setSetting(
-        LIVE_FP_KEY,
-        liveFingerprint(meeting),
-      );
     }
     await appSettingsService.setSetting(SCHEDULE_FP_KEY, fp);
     return {sent: true, kind: isFuture ? 'scheduled' : 'live'};
@@ -162,16 +160,25 @@ export const checkAndNotifyMeetingLive = async () => {
       return {sent: false, reason: 'already_notified'};
     }
 
-    const title = String(meeting.title || '').trim() || 'Online Class';
-    await deliverAdminNotification({
-      title: `${title} is LIVE`,
-      message: `Join now from the Home screen.`,
-      target: 'all',
-      actionType: 'MEETING_LIVE',
-      extraData: {screen: 'Home', meetingTitle: title},
-      bypassHours: true,
-    });
+    // Claim before send so overlapping 60s pollers / multi-instance hosts
+    // cannot fire the same LIVE push twice.
     await appSettingsService.setSetting(LIVE_FP_KEY, fp);
+
+    const title = String(meeting.title || '').trim() || 'Online Class';
+    try {
+      await deliverAdminNotification({
+        title: `${title} is LIVE`,
+        message: `Join now from the Home screen.`,
+        target: 'all',
+        actionType: 'MEETING_LIVE',
+        extraData: {screen: 'Home', meetingTitle: title},
+        bypassHours: true,
+      });
+    } catch (error) {
+      // Allow a retry on the next poll if delivery failed.
+      await appSettingsService.setSetting(LIVE_FP_KEY, '');
+      throw error;
+    }
     return {sent: true};
   } catch (error) {
     console.warn('Meeting live notify failed:', error);
