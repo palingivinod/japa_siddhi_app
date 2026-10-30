@@ -51,7 +51,7 @@ const AppHeader: React.FC<Props> = ({
         <View style={styles.back} />
       )}
       <View style={styles.titleBlock}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={styles.title} numberOfLines={2}>
           {tt(title)}
         </Text>
         {subtitle ? (
@@ -113,12 +113,13 @@ const styles = StyleSheet.create({
   },
   title: {
     textAlign: 'center',
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 20,
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
     paddingVertical: 2,
+    flexWrap: 'wrap',
   },
   subtitle: {
     textAlign: 'center',

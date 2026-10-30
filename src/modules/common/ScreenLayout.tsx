@@ -46,7 +46,7 @@ const ScreenLayout: React.FC<Props> = ({
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
-            !tab ? {paddingBottom: 140 + bottomPad} : null,
+            {paddingBottom: (tab ? 160 : 140) + bottomPad},
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

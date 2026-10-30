@@ -276,15 +276,19 @@ const MonthlySupportScreen = () => {
   };
 
   return (
-    <ScreenLayout title={t('tileMonthlySupport')} showBack tab="Home">
+    <ScreenLayout title={t('monthlyTempleSupport')} showBack tab="Home">
       <View style={styles.headerRow}>
-        <Text style={styles.heading}>{t('tileMonthlySupport')}</Text>
+        <Text style={styles.heading} numberOfLines={3}>
+          {t('tileMonthlySupport')}
+        </Text>
         <TouchableOpacity
           style={styles.headerShareBtn}
           onPress={handleShareDetails}
           activeOpacity={0.8}>
           <Text style={styles.headerShareIcon}>📤</Text>
-          <Text style={styles.headerShareText}>{t('share') || 'Share'}</Text>
+          <Text style={styles.headerShareText} numberOfLines={1}>
+            {t('share') || 'Share'}
+          </Text>
         </TouchableOpacity>
       </View>
       <MenuCard
@@ -414,31 +418,37 @@ export default MonthlySupportScreen;
 const styles = StyleSheet.create({
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     marginBottom: 12,
+    gap: 8,
   },
   heading: {
-    fontSize: 24,
+    flex: 1,
+    flexShrink: 1,
+    fontSize: 18,
+    lineHeight: 24,
     fontWeight: '800',
     color: Colors.sacredBrown,
+    paddingRight: 4,
   },
   headerShareBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 0,
     backgroundColor: '#FFF0D4',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     borderRadius: 20,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
-    gap: 6,
+    gap: 4,
   },
   headerShareIcon: {
     fontSize: 14,
   },
   headerShareText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
     color: Colors.sacredBrown,
   },

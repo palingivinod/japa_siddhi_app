@@ -102,6 +102,21 @@ for (const entry of BOOKING_DEEP_LINKS) {
 
 export const BOOKING_PUBLIC_SLUGS = BOOKING_DEEP_LINKS.map(e => e.aliases[0]);
 
+const BOOKING_WEB_BASE = 'https://japasiddhi.onrender.com/book';
+
+/** Public HTTPS open-app link for a booking screen (preferred alias). */
+export const publicBookingUrlForScreen = (
+  screen: BookingScreen | string,
+): string => {
+  const entry = BOOKING_DEEP_LINKS.find(e => e.screen === screen);
+  const slug = entry?.aliases[0] || 'seva';
+  // Anna Santharpana still has the dedicated landing used in flyers.
+  if (screen === 'GeneralAnnadanam') {
+    return 'https://japasiddhi.onrender.com/annasantharpana';
+  }
+  return `${BOOKING_WEB_BASE}/${slug}`;
+};
+
 export const resolveBookingSlug = (
   slug: string | null | undefined,
 ): BookingEntry | null => {
