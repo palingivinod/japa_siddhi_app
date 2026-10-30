@@ -67,6 +67,8 @@ export const uploadsRoot = resolveUploadsRoot();
 const profileDir = path.join(uploadsRoot, 'profiles');
 const feedbackDir = path.join(uploadsRoot, 'feedback');
 const supportDir = path.join(uploadsRoot, 'support');
+const rewardsDir = path.join(uploadsRoot, 'rewards');
+const notifyDir = path.join(uploadsRoot, 'notifications');
 
 const ensureDir = (dir: string) => {
   fs.mkdirSync(dir, {recursive: true});
@@ -77,6 +79,8 @@ try {
   ensureDir(profileDir);
   ensureDir(feedbackDir);
   ensureDir(supportDir);
+  ensureDir(rewardsDir);
+  ensureDir(notifyDir);
 } catch (error) {
   console.warn('Could not pre-create upload subfolders:', error);
 }
@@ -124,6 +128,16 @@ const feedbackStorage = multer.diskStorage({
 
 const supportStorage = multer.diskStorage({
   destination: diskDestination(supportDir),
+  filename: (_req, file, cb) => cb(null, makeFilename(file, '.jpg')),
+});
+
+const rewardStorage = multer.diskStorage({
+  destination: diskDestination(rewardsDir),
+  filename: (_req, file, cb) => cb(null, makeFilename(file, '.jpg')),
+});
+
+const notifyStorage = multer.diskStorage({
+  destination: diskDestination(notifyDir),
   filename: (_req, file, cb) => cb(null, makeFilename(file, '.jpg')),
 });
 
@@ -197,6 +211,40 @@ export const handleSupportScreenshotUpload = wrapUpload(
   'Screenshot must be 8 MB or smaller',
 );
 
+const rewardUploader = multer({
+  storage: rewardStorage,
+  limits: {fileSize: 8 * 1024 * 1024},
+  fileFilter: (_req, file, cb) => {
+    if (IMAGE_TYPES.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only JPEG, PNG, or WebP reward images are allowed'));
+  },
+});
+
+const notifyUploader = multer({
+  storage: notifyStorage,
+  limits: {fileSize: 8 * 1024 * 1024},
+  fileFilter: (_req, file, cb) => {
+    if (IMAGE_TYPES.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only JPEG, PNG, or WebP notification images are allowed'));
+  },
+});
+
+export const handleRewardImageUpload = wrapUpload(
+  rewardUploader.single('image'),
+  'Reward image must be 8 MB or smaller',
+);
+
+export const handleNotifyImageUpload = wrapUpload(
+  notifyUploader.single('image'),
+  'Notification image must be 8 MB or smaller',
+);
+
 export const publicPhotoPath = (filename: string) =>
   `/uploads/profiles/${filename}`;
 
@@ -205,3 +253,9 @@ export const publicFeedbackPath = (filename: string) =>
 
 export const publicSupportPath = (filename: string) =>
   `/uploads/support/${filename}`;
+
+export const publicRewardPath = (filename: string) =>
+  `/uploads/rewards/${filename}`;
+
+export const publicNotifyPath = (filename: string) =>
+  `/uploads/notifications/${filename}`;

@@ -71,6 +71,13 @@ const ensureQueueTable = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN image_url TEXT NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
   queueReady = true;
 };
 
@@ -484,6 +491,8 @@ export const deliverAdminNotification = async (input: {
   extraData?: Record<string, any>;
   actionType?: string;
   actionId?: number | null;
+  /** Public https URL shown as Big Picture in the Android tray. */
+  imageUrl?: string | null;
   /** When true, push even outside 7 AM–10 PM IST (e.g. class going live). */
   bypassHours?: boolean;
 }) => {
@@ -503,6 +512,7 @@ export const deliverAdminNotification = async (input: {
     input.actionId != null && Number(input.actionId) > 0
       ? Number(input.actionId)
       : null;
+  const imageUrl = String(input.imageUrl || '').trim();
 
   const tokensByLang: Record<string, string[]> = {};
   let inboxCreated = 0;
@@ -529,6 +539,7 @@ export const deliverAdminNotification = async (input: {
         detail,
         pushTitle,
         pushBody,
+        ...(imageUrl ? {imageUrl} : {}),
         ...(input.extraData || {}),
       };
       await notificationService.create({
@@ -573,6 +584,7 @@ export const deliverAdminNotification = async (input: {
       {
         ...buildRoutingPushExtra(actionType, actionId, input.extraData),
         mantraName: subject,
+        ...(imageUrl ? {imageUrl} : {}),
       },
       Boolean(input.bypassHours),
     );
@@ -664,7 +676,8 @@ export const flushDueAdminNotifications = async () => {
         translations,
         target_group AS targetGroup,
         recipient_ids AS recipientIds,
-        IFNULL(bypass_hours, 0) AS bypassHours
+        IFNULL(bypass_hours, 0) AS bypassHours,
+        image_url AS imageUrl
       FROM admin_notification_queue
       WHERE status = 'PENDING'
         AND send_at <= ?
@@ -688,6 +701,7 @@ export const flushDueAdminNotifications = async () => {
         target: mapTarget(job.targetGroup),
         userIds: userIds.length ? userIds : undefined,
         bypassHours: bypass,
+        imageUrl: job.imageUrl || null,
         extraData: {queuedId: job.id},
       });
       await mysql.query(
@@ -725,6 +739,7 @@ export const sendAdminNotification = async (input: {
   scheduleRaw: string;
   scheduledAt?: string;
   userIds?: number[];
+  imageUrl?: string | null;
   /** Skip 7 AM–10 PM IST quiet hours (DOB wishes, live class, etc.). */
   bypassHours?: boolean;
   actionType?: string;
@@ -751,6 +766,7 @@ export const sendAdminNotification = async (input: {
   const schedule = String(input.scheduleRaw || 'now').trim().toLowerCase();
   const sendNow = schedule !== 'later';
   const bypassHours = Boolean(input.bypassHours);
+  const imageUrl = String(input.imageUrl || '').trim() || null;
   const translations =
     typeof input.translations === 'object'
       ? JSON.stringify(input.translations)
@@ -781,8 +797,8 @@ export const sendAdminNotification = async (input: {
       `
       INSERT INTO admin_notification_queue (
         title, message, translations, target_group, send_at, status,
-        recipient_ids, bypass_hours
-      ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?)
+        recipient_ids, bypass_hours, image_url
+      ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
       `,
       [
         title,
@@ -792,6 +808,7 @@ export const sendAdminNotification = async (input: {
         sendAt,
         userIds.length ? JSON.stringify(userIds) : null,
         bypassHours ? 1 : 0,
+        imageUrl,
       ],
     );
 
@@ -800,6 +817,7 @@ export const sendAdminNotification = async (input: {
       queueId: insert.insertId,
       target: userIds.length ? 'selected_users' : target,
       userIds,
+      imageUrl,
       sendAt,
       recipientCount: userIds.length,
       pushSent: 0,
@@ -817,6 +835,7 @@ export const sendAdminNotification = async (input: {
     userIds: userIds.length ? userIds : undefined,
     bypassHours,
     actionType,
+    imageUrl,
   });
   const pushNote = delivered.pushSent
     ? ` and ${delivered.pushSent} push popup(s)`

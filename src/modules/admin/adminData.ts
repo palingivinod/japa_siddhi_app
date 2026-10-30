@@ -56,6 +56,7 @@ export type AdminReward = {
   id: string;
   name: string;
   stock: number;
+  imageUrl?: string | null;
 };
 
 export type AdminDashboardStats = {

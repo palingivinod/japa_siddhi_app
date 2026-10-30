@@ -2039,6 +2039,11 @@ router.delete('/challenges/:id', async (req: Request, res: Response) => {
 router.post('/notifications/send', async (req: Request, res: Response) => {
   try {
     const {sendAdminNotification} = await import('./adminNotification.service');
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+    const rawImage = String(req.body?.imageUrl || '').trim();
+    const imageUrl = rawImage
+      ? absoluteMediaUrl(req, rawImage) || rawImage
+      : undefined;
     const result = await sendAdminNotification({
       title: String(req.body?.title || ''),
       message: String(req.body?.message || ''),
@@ -2048,6 +2053,7 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
       scheduledAt: req.body?.scheduledAt
         ? String(req.body.scheduledAt)
         : undefined,
+      imageUrl: imageUrl || undefined,
     });
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
       success: true,
@@ -2061,6 +2067,45 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     });
   }
 });
+
+router.post(
+  '/notifications/upload-image',
+  async (req: Request, res: Response, next) => {
+    const {handleNotifyImageUpload, publicNotifyPath} = await import(
+      '../../middleware/upload.middleware'
+    );
+    handleNotifyImageUpload(req, res, async err => {
+      if (err) {
+        next(err);
+        return;
+      }
+      try {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file?.filename) {
+          return res.status(400).json({
+            success: false,
+            message: 'Choose a JPEG, PNG, or WebP image to upload.',
+          });
+        }
+        const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+        const path = publicNotifyPath(file.filename);
+        return res.json({
+          success: true,
+          message: 'Notification image uploaded.',
+          data: {
+            path,
+            imageUrl: absoluteMediaUrl(req, path),
+          },
+        });
+      } catch (error: any) {
+        return res.status(500).json({
+          success: false,
+          message: error?.message || 'Unable to upload notification image.',
+        });
+      }
+    });
+  },
+);
 
 router.get('/annadanam-features', async (_req: Request, res: Response) => {
   try {
@@ -4974,12 +5019,27 @@ router.get('/reports/export', async (req: Request, res: Response) => {
   }
 });
 
-const mapRewardRow = (row: any) => ({
-  id: String(row.id),
-  name: String(row.name || ''),
-  stock: Number(row.stock || 0),
-  active: Number(row.isActive ?? row.is_active ?? 1) === 1,
-});
+const ensureRewardImageColumn = async () => {
+  try {
+    await mysql.query(
+      `ALTER TABLE challenge_rewards ADD COLUMN image_url TEXT NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
+};
+
+const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
+  const path = String(row.imageUrl || row.image_url || '').trim();
+  return {
+    id: String(row.id),
+    name: String(row.name || ''),
+    stock: Number(row.stock || 0),
+    active: Number(row.isActive ?? row.is_active ?? 1) === 1,
+    imageUrl: absoluteUrl || path || null,
+    imagePath: path || null,
+  };
+};
 
 const CANONICAL_REWARDS = [
   {name: 'Rudrakshi Mala', stock: 50, order: 1, aliases: ['rudraksh']},
@@ -5041,21 +5101,29 @@ const ensureRewardSeed = async () => {
   }
 };
 
-router.get('/rewards', async (_req: Request, res: Response) => {
+router.get('/rewards', async (req: Request, res: Response) => {
   try {
     await ensureRewardSeed();
+    await ensureRewardImageColumn();
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(`
       SELECT
         id,
         name,
         stock,
-        is_active AS isActive
+        is_active AS isActive,
+        IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       ORDER BY display_order ASC, id ASC
     `);
     return res.json({
       success: true,
-      data: (rows || []).map(mapRewardRow),
+      data: (rows || []).map((row: any) =>
+        mapRewardRow(
+          row,
+          row.imageUrl ? absoluteMediaUrl(req, row.imageUrl) : null,
+        ),
+      ),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -5083,9 +5151,10 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
           req.body.active === 1 ||
           req.body.active === '1';
 
+    await ensureRewardImageColumn();
     const current = await mysql.query<any[]>(
       `
-      SELECT id, name, stock, is_active AS isActive
+      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -5118,9 +5187,10 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       ],
     );
 
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(
       `
-      SELECT id, name, stock, is_active AS isActive
+      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -5130,7 +5200,12 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       message: 'Reward updated successfully.',
-      data: mapRewardRow(rows[0]),
+      data: mapRewardRow(
+        rows[0],
+        rows[0]?.imageUrl
+          ? absoluteMediaUrl(req, rows[0].imageUrl)
+          : null,
+      ),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -5140,8 +5215,76 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
   }
 });
 
+router.post(
+  '/rewards/:id/image',
+  async (req: Request, res: Response, next) => {
+    const {handleRewardImageUpload, publicRewardPath} = await import(
+      '../../middleware/upload.middleware'
+    );
+    handleRewardImageUpload(req, res, async err => {
+      if (err) {
+        next(err);
+        return;
+      }
+      try {
+        await ensureRewardImageColumn();
+        const id = Number(req.params.id);
+        if (!id) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid reward id.',
+          });
+        }
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file?.filename) {
+          return res.status(400).json({
+            success: false,
+            message: 'Choose a JPEG, PNG, or WebP image to upload.',
+          });
+        }
+        const current = await mysql.query<any[]>(
+          `SELECT id FROM challenge_rewards WHERE id = ? LIMIT 1`,
+          [id],
+        );
+        if (!current?.length) {
+          return res.status(404).json({
+            success: false,
+            message: 'Reward not found.',
+          });
+        }
+        const path = publicRewardPath(file.filename);
+        await mysql.query(
+          `UPDATE challenge_rewards SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+          [path, id],
+        );
+        const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
+          FROM challenge_rewards
+          WHERE id = ?
+          LIMIT 1
+          `,
+          [id],
+        );
+        return res.json({
+          success: true,
+          message: 'Reward image uploaded.',
+          data: mapRewardRow(rows[0], absoluteMediaUrl(req, path)),
+        });
+      } catch (error: any) {
+        return res.status(500).json({
+          success: false,
+          message: error?.message || 'Unable to upload reward image.',
+        });
+      }
+    });
+  },
+);
+
 router.post('/rewards', async (req: Request, res: Response) => {
   try {
+    await ensureRewardImageColumn();
     const name = String(req.body?.name || '').trim();
     if (!name) {
       return res.status(400).json({
@@ -5157,13 +5300,19 @@ router.post('/rewards', async (req: Request, res: Response) => {
       `,
       [name, stock, Number(req.body?.displayOrder || 99)],
     );
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(`
-      SELECT id, name, stock, is_active AS isActive
+      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       ORDER BY id DESC
       LIMIT 1
     `);
-    const mapped = mapRewardRow(rows[0]);
+    const mapped = mapRewardRow(
+      rows[0],
+      rows[0]?.imageUrl
+        ? absoluteMediaUrl(req, rows[0].imageUrl)
+        : null,
+    );
     try {
       const {notifyAdminContentCreated} = await import(
         './adminNotification.service'

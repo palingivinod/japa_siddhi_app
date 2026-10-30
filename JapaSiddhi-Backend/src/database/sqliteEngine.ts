@@ -493,6 +493,7 @@ class SqliteEngine {
         stock INTEGER NOT NULL DEFAULT 0,
         is_active INTEGER NOT NULL DEFAULT 1,
         display_order INTEGER NOT NULL DEFAULT 0,
+        image_url TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
@@ -589,6 +590,7 @@ class SqliteEngine {
     addColumn('challenges', 'translations', 'TEXT');
     addColumn('notifications', 'translations', 'TEXT');
     addColumn('admin_notification_queue', 'translations', 'TEXT');
+    addColumn('challenge_rewards', 'image_url', 'TEXT');
   }
 
   private seedAdminAccounts(): void {

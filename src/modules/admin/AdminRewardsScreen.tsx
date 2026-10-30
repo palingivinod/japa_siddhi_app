@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -13,6 +14,10 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {
+  pickProfilePhoto,
+  resolveMediaUrl,
+} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminReward} from './adminData';
 import {sortRewardsCanonical} from '../../utils/rewardContent';
@@ -36,6 +41,7 @@ const AdminRewardsScreen = () => {
         id: String(row.id),
         name: String(row.name || ''),
         stock: Number(row.stock || 0),
+        imageUrl: row.imageUrl || row.imagePath || null,
       }));
       setRewards(sortRewardsCanonical<AdminReward>(mapped));
     } catch (err) {
@@ -75,6 +81,58 @@ const AdminRewardsScreen = () => {
     }
   };
 
+  const uploadImage = async (item: AdminReward) => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Reward image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setBusyId(item.id);
+      const formData = new FormData();
+      formData.append('image', {
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        name: picked.fileName || 'reward.jpg',
+      } as any);
+      const response = await apiService.post(
+        `/admin/rewards/${item.id}/image`,
+        formData,
+      );
+      const imageUrl =
+        response.data?.data?.imageUrl ||
+        response.data?.data?.imagePath ||
+        null;
+      setRewards(current =>
+        current.map(row =>
+          row.id === item.id ? {...row, imageUrl} : row,
+        ),
+      );
+      Alert.alert(
+        'Image saved',
+        'This photo will show in reward notifications when you send one with it.',
+      );
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload reward image.'),
+      );
+    } finally {
+      setBusyId('');
+    }
+  };
+
   const deleteReward = (item: AdminReward) => {
     Alert.alert('Delete reward', `Remove ${item.name}?`, [
       {text: 'Cancel', style: 'cancel'},
@@ -103,6 +161,10 @@ const AdminRewardsScreen = () => {
     <AdminScreenLayout title="Configure Rewards" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Configure Rewards</Text>
       <Text style={styles.section}>Reward choices.</Text>
+      <Text style={styles.hint}>
+        Upload a photo on each reward. You can also attach an image when sending
+        a notification.
+      </Text>
 
       <PrimaryButton
         title={showAdd ? 'CANCEL' : 'ADD REWARD'}
@@ -139,30 +201,53 @@ const AdminRewardsScreen = () => {
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
 
-      {rewards.map(item => (
-        <View key={item.id} style={styles.card}>
-          <Text style={styles.name}>{item.name}</Text>
-          <TouchableOpacity
-            onPress={() =>
-              navigation.navigate('AdminRewardStock', {
-                id: item.id,
-                name: item.name,
-                stock: item.stock,
-              })
-            }
-            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-            <Text style={styles.edit}>EDIT</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => deleteReward(item)}
-            disabled={busyId === item.id}
-            hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-            <Text style={styles.delete}>
-              {busyId === item.id ? '...' : 'DELETE'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ))}
+      {rewards.map(item => {
+        const photo = resolveMediaUrl(item.imageUrl);
+        return (
+          <View key={item.id} style={styles.card}>
+            {photo ? (
+              <Image source={{uri: photo}} style={styles.thumb} />
+            ) : (
+              <View style={[styles.thumb, styles.thumbEmpty]}>
+                <Text style={styles.thumbEmptyText}>No photo</Text>
+              </View>
+            )}
+            <View style={styles.copy}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.stock}>Stock: {item.stock}</Text>
+              <View style={styles.rowActions}>
+                <TouchableOpacity
+                  onPress={() => uploadImage(item)}
+                  disabled={busyId === item.id}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Text style={styles.photoBtn}>
+                    {busyId === item.id ? '...' : photo ? 'CHANGE PHOTO' : 'ADD PHOTO'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    navigation.navigate('AdminRewardStock', {
+                      id: item.id,
+                      name: item.name,
+                      stock: item.stock,
+                    })
+                  }
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Text style={styles.edit}>EDIT</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => deleteReward(item)}
+                  disabled={busyId === item.id}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Text style={styles.delete}>
+                    {busyId === item.id ? '...' : 'DELETE'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        );
+      })}
 
       {!loading && rewards.length === 0 ? (
         <Text style={styles.empty}>No rewards configured yet.</Text>
@@ -188,12 +273,18 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 18,
+    marginBottom: 8,
   },
   section: {
     color: Colors.leafGreen,
     fontWeight: '800',
+    marginBottom: 6,
+  },
+  hint: {
+    color: Colors.textSecondary,
     marginBottom: 12,
+    fontSize: 13,
+    lineHeight: 18,
   },
   gap: {height: 12},
   addCard: {
@@ -225,31 +316,65 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    padding: 12,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
   },
+  thumb: {
+    width: 64,
+    height: 64,
+    borderRadius: 12,
+    backgroundColor: Colors.background,
+    marginRight: 12,
+  },
+  thumbEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  thumbEmptyText: {
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '700',
+  },
+  copy: {flex: 1},
   name: {
-    flex: 1,
     fontSize: 17,
     fontWeight: '700',
     color: Colors.sacredBrown,
-    paddingRight: 8,
+  },
+  stock: {
+    marginTop: 2,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  rowActions: {
+    marginTop: 8,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 12,
+  },
+  photoBtn: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   edit: {
     color: Colors.templeGold,
     fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.4,
-    marginRight: 14,
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   delete: {
     color: Colors.error,
     fontWeight: '800',
-    fontSize: 14,
-    letterSpacing: 0.4,
+    fontSize: 13,
+    letterSpacing: 0.3,
   },
   empty: {
     color: Colors.textSecondary,

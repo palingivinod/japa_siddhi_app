@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +15,10 @@ import {dismissKeyboardThen} from '../../utils/keyboard';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
+import {
+  pickProfilePhoto,
+  resolveMediaUrl,
+} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import AdminLanguageTabs, {
   ADMIN_LANGUAGES,
@@ -146,6 +151,12 @@ const AdminNotificationsScreen = () => {
   const [sending, setSending] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [rewards, setRewards] = useState<
+    Array<{id: string; name: string; imageUrl?: string | null}>
+  >([]);
 
   const latestEnRef = useRef({title: '', message: ''});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,6 +166,90 @@ const AdminNotificationsScreen = () => {
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await apiService.get('/admin/rewards');
+        const rows = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+        if (cancelled) {
+          return;
+        }
+        setRewards(
+          rows
+            .map((row: any) => ({
+              id: String(row.id),
+              name: String(row.name || ''),
+              imageUrl: row.imageUrl || null,
+            }))
+            .filter((row: {imageUrl?: string | null}) => Boolean(row.imageUrl)),
+        );
+      } catch {
+        if (!cancelled) {
+          setRewards([]);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const pickAndUploadImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Notification image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setLocalPreview(picked.uri);
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('image', {
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        name: picked.fileName || 'notification.jpg',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-image',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.imageUrl || response.data?.data?.path || null;
+      if (!uploaded) {
+        throw new Error('No image URL returned');
+      }
+      setImageUrl(String(uploaded));
+    } catch (err: any) {
+      setLocalPreview(null);
+      setImageUrl(null);
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload notification image.'),
+      );
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const clearImage = () => {
+    setImageUrl(null);
+    setLocalPreview(null);
+  };
 
   const currentFields = translations[activeLang] || emptyFields();
 
@@ -284,6 +379,7 @@ const AdminNotificationsScreen = () => {
         schedule,
         scheduledAt:
           schedule === 'Later' ? toScheduleStamp(scheduledAt) : undefined,
+        imageUrl: imageUrl || undefined,
       });
       const data = response.data?.data || {};
       const detail =
@@ -302,13 +398,14 @@ const AdminNotificationsScreen = () => {
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
-        }\n\nDevotees will receive this in their preferred language.`,
+        }${imageUrl ? '\nImage: included in popup' : ''}\n\nDevotees will receive this in their preferred language.`,
       );
       setTranslations(defaultTranslations());
       latestEnRef.current = {title: '', message: ''};
       setLastAutoTranslatedAt(null);
       setSchedule('Now');
       setScheduledAt(defaultLater());
+      clearImage();
     } catch (err) {
       Alert.alert(
         'Send failed',
@@ -386,6 +483,68 @@ const AdminNotificationsScreen = () => {
         }
         multiline
       />
+
+      <View style={styles.divider} />
+
+      <Text style={styles.sectionHeading}>Popup image (optional)</Text>
+      <Text style={styles.imageHint}>
+        Upload a photo or pick a reward photo. Devotees see the image in the
+        notification popup — not a link.
+      </Text>
+      {(localPreview || imageUrl) ? (
+        <Image
+          source={{uri: localPreview || resolveMediaUrl(imageUrl) || undefined}}
+          style={styles.imagePreview}
+          resizeMode="cover"
+        />
+      ) : null}
+      <View style={styles.imageActions}>
+        <TouchableOpacity
+          style={styles.imageBtn}
+          onPress={pickAndUploadImage}
+          disabled={uploadingImage || sending}>
+          <Text style={styles.imageBtnText}>
+            {uploadingImage
+              ? 'UPLOADING...'
+              : imageUrl
+                ? 'CHANGE IMAGE'
+                : 'UPLOAD IMAGE'}
+          </Text>
+        </TouchableOpacity>
+        {imageUrl || localPreview ? (
+          <TouchableOpacity
+            style={styles.imageBtnClear}
+            onPress={clearImage}
+            disabled={uploadingImage || sending}>
+            <Text style={styles.imageBtnClearText}>REMOVE</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
+      {rewards.length ? (
+        <View style={styles.rewardPickBox}>
+          <Text style={styles.rewardPickLabel}>Or use a reward photo</Text>
+          {rewards.map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.rewardPickRow}
+              onPress={() => {
+                setImageUrl(item.imageUrl || null);
+                setLocalPreview(null);
+              }}>
+              {item.imageUrl ? (
+                <Image
+                  source={{uri: resolveMediaUrl(item.imageUrl) || undefined}}
+                  style={styles.rewardThumb}
+                />
+              ) : null}
+              <Text style={styles.rewardPickName}>{item.name}</Text>
+              {imageUrl && item.imageUrl && imageUrl === item.imageUrl ? (
+                <Text style={styles.rewardPickActive}>Selected</Text>
+              ) : null}
+            </TouchableOpacity>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.divider} />
 
@@ -552,6 +711,89 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.textSecondary,
     marginTop: 2,
+  },
+  imageHint: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    backgroundColor: Colors.background,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  imageActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 10,
+  },
+  imageBtn: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  imageBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  imageBtnClear: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imageBtnClearText: {
+    color: Colors.error,
+    fontWeight: '800',
+  },
+  rewardPickBox: {
+    marginBottom: 8,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 10,
+  },
+  rewardPickLabel: {
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    marginBottom: 8,
+  },
+  rewardPickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.cardBorder,
+  },
+  rewardThumb: {
+    width: 40,
+    height: 40,
+    borderRadius: 8,
+    marginRight: 10,
+    backgroundColor: Colors.background,
+  },
+  rewardPickName: {
+    flex: 1,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  rewardPickActive: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 12,
   },
   divider: {
     height: 1,
