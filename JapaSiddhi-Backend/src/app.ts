@@ -187,13 +187,24 @@ app.get(['/book', '/book/:slug', '/booking', '/booking/:slug'], (req, res) => {
 });
 
 app.get('/.well-known/assetlinks.json', (_req, res) => {
+  // Must match applicationId + signing certs (upload/release + debug).
+  // If Play App Signing is on, also add the Play Console "App signing key" SHA-256.
+  res.setHeader('Content-Type', 'application/json');
   res.json([
     {
       relation: ['delegate_permission/common.handle_all_urls'],
       target: {
         namespace: 'android_app',
-        package_name: 'com.japasiddhi.app',
-        sha256_cert_fingerprints: [],
+        package_name: 'com.japasiddhi',
+        sha256_cert_fingerprints: [
+          // Firebase / Play Console SHA-256 fingerprints
+          '7C:D4:F7:DE:45:34:8F:1C:1A:A0:7F:A7:FE:48:96:20:91:FC:E7:6B:0F:C3:0C:DE:A1:CA:BC:17:B3:02:2B:15',
+          '4D:43:09:24:08:7A:B1:56:6D:AE:C0:61:7E:75:21:0F:70:DD:0E:A4:1C:EB:FD:D8:94:F9:BD:12:F4:47:16:BE',
+          // Release / upload keystore
+          '81:02:F4:49:E2:F5:54:B0:1B:46:9A:20:56:D0:B6:58:D3:48:B6:22:FA:BA:C3:F1:83:7C:CD:DE:F4:BE:30:BE',
+          // Debug keystore
+          'FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C',
+        ],
       },
     },
   ]);

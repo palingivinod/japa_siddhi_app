@@ -4,12 +4,16 @@ import PDFDocument from 'pdfkit';
 
 import mysql from '../../database/mysql';
 
-const resolveLogoPath = (): string | null => {
+const FONT_REGULAR = 'ReceiptSans';
+const FONT_BOLD = 'ReceiptSans-Bold';
+
+const resolveAssetPath = (...parts: string[]): string | null => {
+  const file = path.join(...parts);
   const candidates = [
-    path.join(process.cwd(), 'assets', 'logo.png'),
-    path.join(process.cwd(), 'dist', 'assets', 'logo.png'),
-    path.join(__dirname, '..', '..', '..', 'assets', 'logo.png'),
-    path.join(__dirname, '..', '..', '..', '..', 'assets', 'logo.png'),
+    path.join(process.cwd(), 'assets', file),
+    path.join(process.cwd(), 'dist', 'assets', file),
+    path.join(__dirname, '..', '..', '..', 'assets', file),
+    path.join(__dirname, '..', '..', '..', '..', 'assets', file),
   ];
   for (const candidate of candidates) {
     try {
@@ -23,6 +27,19 @@ const resolveLogoPath = (): string | null => {
   return null;
 };
 
+const resolveLogoPath = (): string | null => resolveAssetPath('logo.png');
+
+const registerReceiptFonts = (doc: InstanceType<typeof PDFDocument>) => {
+  const regular = resolveAssetPath('fonts', 'NotoSans-Regular.ttf');
+  const bold = resolveAssetPath('fonts', 'NotoSans-Bold.ttf');
+  if (regular && bold) {
+    doc.registerFont(FONT_REGULAR, regular);
+    doc.registerFont(FONT_BOLD, bold);
+    return {regular: FONT_REGULAR, bold: FONT_BOLD};
+  }
+  return {regular: 'Helvetica', bold: 'Helvetica-Bold'};
+};
+
 export type ReceiptInput = {
   paymentId: string;
   orderId?: string;
@@ -34,14 +51,20 @@ export type ReceiptInput = {
   paidAt?: string;
 };
 
-const line = (doc: InstanceType<typeof PDFDocument>, label: string, value: string) => {
+const line = (
+  doc: InstanceType<typeof PDFDocument>,
+  fonts: {regular: string; bold: string},
+  label: string,
+  value: string,
+  options?: {valueBold?: boolean},
+) => {
   doc
-    .font('Helvetica-Bold')
+    .font(fonts.bold)
     .fontSize(11)
     .fillColor('#56350F')
     .text(label, {continued: true});
   doc
-    .font('Helvetica')
+    .font(options?.valueBold ? fonts.bold : fonts.regular)
     .fillColor('#3A2010')
     .text(` ${value}`);
   doc.moveDown(0.35);
@@ -103,7 +126,9 @@ export const buildPaymentReceiptPdf = async (
   }
 
   const amountLabel =
-    Number.isFinite(amount) && amount > 0 ? `₹${Math.round(amount)}` : '—';
+    Number.isFinite(amount) && amount > 0
+      ? `₹${Math.round(amount).toLocaleString('en-IN')}`
+      : '—';
   // donated_at is stored as IST wall-clock (YYYY-MM-DD HH:mm:ss) via istStamp —
   // no offset. Parsing that as UTC then converting to Asia/Kolkata adds +5:30 again
   // (e.g. 2:47 pm → 8:17 pm). Treat naive stamps as IST.
@@ -129,6 +154,7 @@ export const buildPaymentReceiptPdf = async (
     size: 'A4',
     margin: 48,
   });
+  const fonts = registerReceiptFonts(doc);
   const chunks: Buffer[] = [];
   doc.on('data', (chunk: Buffer) => chunks.push(chunk));
 
@@ -151,21 +177,21 @@ export const buildPaymentReceiptPdf = async (
   }
 
   doc
-    .font('Helvetica-Bold')
+    .font(fonts.bold)
     .fontSize(20)
     .fillColor('#2D5016')
     .text('Japa Siddhi', {align: 'center'});
   doc
-    .font('Helvetica')
+    .font(fonts.regular)
     .fontSize(12)
     .fillColor('#665242')
     .text('Bilva Patra Trust', {align: 'center'});
   doc.moveDown(0.4);
   doc
-    .font('Helvetica-Bold')
+    .font(fonts.bold)
     .fontSize(16)
     .fillColor('#B87316')
-    .text('Payment Receipt', {align: 'center'});
+    .text('Payment Success', {align: 'center'});
   doc.moveDown(1);
 
   doc
@@ -175,24 +201,24 @@ export const buildPaymentReceiptPdf = async (
     .stroke();
   doc.moveDown(1);
 
-  line(doc, 'Status:', 'SUCCESS');
-  line(doc, 'Date:', when);
-  line(doc, 'Payment ID:', paymentId);
+  line(doc, fonts, 'Status:', 'SUCCESS', {valueBold: true});
+  line(doc, fonts, 'Date:', when);
+  line(doc, fonts, 'Payment ID:', paymentId);
   if (orderId) {
-    line(doc, 'Order ID:', orderId);
+    line(doc, fonts, 'Order ID:', orderId);
   }
-  line(doc, 'Amount:', amountLabel);
+  line(doc, fonts, 'Amount:', amountLabel, {valueBold: true});
   if (seva) {
-    line(doc, 'Seva:', seva);
+    line(doc, fonts, 'Seva:', seva);
   }
   if (purpose && purpose !== seva) {
-    line(doc, 'Purpose:', purpose);
+    line(doc, fonts, 'Purpose:', purpose);
   }
   if (name) {
-    line(doc, 'Devotee:', name);
+    line(doc, fonts, 'Devotee:', name);
   }
   if (phone) {
-    line(doc, 'Mobile:', phone);
+    line(doc, fonts, 'Mobile:', phone);
   }
 
   doc.moveDown(1.2);
@@ -204,11 +230,11 @@ export const buildPaymentReceiptPdf = async (
   doc.moveDown(1);
 
   doc
-    .font('Helvetica')
+    .font(fonts.regular)
     .fontSize(10)
     .fillColor('#665242')
     .text(
-      'Thank you for your contribution. This receipt confirms your payment through Razorpay for Japa Siddhi seva offerings.',
+      'Thank you for your contribution. This receipt confirms your offerings.',
       {align: 'left'},
     );
   doc.moveDown(0.8);

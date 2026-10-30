@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "nodemon",
-    "build": "tsc && node -e \"const fs=require('fs');const path=require('path');fs.mkdirSync('dist/database',{recursive:true});fs.copyFileSync('src/database/schema.sqlite.sql','dist/database/schema.sqlite.sql');fs.mkdirSync('dist/assets',{recursive:true});const logo='assets/logo.png';if(fs.existsSync(logo))fs.copyFileSync(logo,'dist/assets/logo.png');\"",
+    "build": "tsc && node -e \"const fs=require('fs');const path=require('path');fs.mkdirSync('dist/database',{recursive:true});fs.copyFileSync('src/database/schema.sqlite.sql','dist/database/schema.sqlite.sql');fs.mkdirSync('dist/assets/fonts',{recursive:true});const logo='assets/logo.png';if(fs.existsSync(logo))fs.copyFileSync(logo,'dist/assets/logo.png');for (const f of ['NotoSans-Regular.ttf','NotoSans-Bold.ttf']){const src=path.join('assets/fonts',f);if(fs.existsSync(src))fs.copyFileSync(src,path.join('dist/assets/fonts',f));}\"",
     "start": "node dist/server.js",
     "clean": "rimraf dist",
     "lint": "eslint . --ext .ts",

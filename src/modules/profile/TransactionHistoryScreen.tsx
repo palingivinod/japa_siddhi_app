@@ -17,6 +17,10 @@ import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
 import ScreenLayout from '../common/ScreenLayout';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {
+  alertReceiptError,
+  downloadPaymentReceipt,
+} from '../payments/downloadPaymentReceipt';
 
 export type UserTransactionItem = {
   id: string;
@@ -111,6 +115,7 @@ const TransactionHistoryScreen = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<FilterCategory>('ALL');
   const [search, setSearch] = useState('');
+  const [downloadingId, setDownloadingId] = useState('');
 
   const loadHistory = useCallback(async () => {
     setError('');
@@ -141,6 +146,30 @@ const TransactionHistoryScreen = () => {
     if (!txnId) return;
     Clipboard.setString(txnId);
     Alert.alert(t('savedTitle') || 'Copied', t('copyTxnId'));
+  };
+
+  const onDownloadReceipt = async (item: UserTransactionItem) => {
+    const paymentId = String(item.transactionId || '').trim();
+    if (!paymentId || downloadingId) {
+      return;
+    }
+    setDownloadingId(paymentId);
+    try {
+      const purpose = resolvePurpose(item, t);
+      await downloadPaymentReceipt({
+        paymentId,
+        orderId: item.paymentReference,
+        amount: item.amount,
+        seva: purpose.title,
+        purpose: item.occasion || item.remarks || purpose.title,
+        name: item.donorName,
+        phone: item.donorPhone,
+      });
+    } catch (err) {
+      alertReceiptError(err);
+    } finally {
+      setDownloadingId('');
+    }
   };
 
   const filteredItems = useMemo(() => {
@@ -404,13 +433,38 @@ const TransactionHistoryScreen = () => {
                   </Text>
                 </View>
                 {item.transactionId ? (
-                  <TouchableOpacity
-                    style={styles.copyBtn}
-                    onPress={() => copyTxnId(item.transactionId)}
-                    activeOpacity={0.7}
-                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
-                    <Text style={styles.copyBtnText}>Copy ID</Text>
-                  </TouchableOpacity>
+                  <View style={styles.actionBtns}>
+                    <TouchableOpacity
+                      style={styles.copyBtn}
+                      onPress={() => copyTxnId(item.transactionId)}
+                      activeOpacity={0.7}
+                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                      <Text style={styles.copyBtnText}>Copy ID</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[
+                        styles.copyBtn,
+                        styles.receiptBtn,
+                        downloadingId === item.transactionId
+                          ? styles.receiptBtnDisabled
+                          : null,
+                      ]}
+                      onPress={() => onDownloadReceipt(item)}
+                      disabled={!!downloadingId}
+                      activeOpacity={0.7}
+                      hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                      {downloadingId === item.transactionId ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={Colors.sacredBrown}
+                        />
+                      ) : (
+                        <Text style={styles.copyBtnText}>
+                          {t('downloadReceipt')}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 ) : null}
               </View>
             </View>
@@ -713,17 +767,13 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   footerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     backgroundColor: '#FAF8F5',
     borderRadius: 8,
     padding: 8,
     marginTop: 4,
   },
   txnCol: {
-    flex: 1,
-    marginRight: 8,
+    marginBottom: 8,
   },
   txnLabel: {
     fontSize: 10,
@@ -736,6 +786,12 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginTop: 1,
   },
+  actionBtns: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
   copyBtn: {
     backgroundColor: Colors.white,
     paddingHorizontal: 10,
@@ -743,6 +799,16 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    minHeight: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  receiptBtn: {
+    borderColor: Colors.templeGold,
+    backgroundColor: '#FFF8EE',
+  },
+  receiptBtnDisabled: {
+    opacity: 0.6,
   },
   copyBtnText: {
     fontSize: 11,

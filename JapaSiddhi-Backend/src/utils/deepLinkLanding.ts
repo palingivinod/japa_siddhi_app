@@ -1,6 +1,8 @@
 /**
  * Same pattern as /annasantharpana: HTTPS page on Render that opens the app
  * via japasiddhi://… with Play Store fallback.
+ * Android also uses intent:// so Chrome can open the app (or Play Store) without
+ * requiring an extra tap when App Links are not yet verified.
  */
 
 const PLAYSTORE =
@@ -13,6 +15,16 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
+const toAndroidIntentUrl = (deepLink: string) => {
+  const raw = String(deepLink || '').trim();
+  const withoutScheme = raw.replace(/^japasiddhi:\/\//i, '');
+  if (!withoutScheme || withoutScheme === raw) {
+    return raw;
+  }
+  const fallback = encodeURIComponent(PLAYSTORE);
+  return `intent://${withoutScheme}#Intent;scheme=japasiddhi;package=com.japasiddhi;S.browser_fallback_url=${fallback};end`;
+};
+
 export const renderDeepLinkLanding = (input: {
   title: string;
   subtitle: string;
@@ -22,6 +34,7 @@ export const renderDeepLinkLanding = (input: {
   const title = escapeHtml(input.title);
   const subtitle = escapeHtml(input.subtitle);
   const deepLink = escapeHtml(input.appDeepLink);
+  const intentUrl = toAndroidIntentUrl(input.appDeepLink);
   const icon = escapeHtml(input.icon || '🪔');
 
   return `
@@ -47,6 +60,8 @@ export const renderDeepLinkLanding = (input: {
     .icon { font-size: 52px; margin-bottom: 14px; }
     h1 { font-size: 22px; color: #2D5016; margin: 0 0 10px; font-weight: 800; }
     p { font-size: 14px; color: #665242; line-height: 1.6; margin: 0 0 24px; }
+    .hint { font-size: 13px; color: #8A6A4A; margin: 0 0 18px; display: none; }
+    .hint.show { display: block; }
     .btn-app {
       display: block; background: #DDA15E; color: #2C1810; font-weight: 800;
       padding: 15px 20px; border-radius: 12px; text-decoration: none; font-size: 16px;
@@ -58,9 +73,19 @@ export const renderDeepLinkLanding = (input: {
     }
   </style>
   <script>
-    setTimeout(function() {
-      window.location.href = ${JSON.stringify(input.appDeepLink)};
-    }, 200);
+    (function () {
+      var deepLink = ${JSON.stringify(input.appDeepLink)};
+      var intentUrl = ${JSON.stringify(intentUrl)};
+      var isAndroid = /Android/i.test(navigator.userAgent || '');
+      var target = isAndroid ? intentUrl : deepLink;
+      setTimeout(function () {
+        window.location.href = target;
+      }, 150);
+      setTimeout(function () {
+        var hint = document.getElementById('dl-hint');
+        if (hint) { hint.className = 'hint show'; }
+      }, 1600);
+    })();
   </script>
 </head>
 <body>
@@ -68,8 +93,9 @@ export const renderDeepLinkLanding = (input: {
     <div class="icon">${icon}</div>
     <h1>${title}</h1>
     <p>${subtitle}</p>
-    <a href="${deepLink}" class="btn-app">🪔 Open in Japa Siddhi App</a>
-    <a href="${PLAYSTORE}" class="btn-play">📲 Download on Google Play Store</a>
+    <p id="dl-hint" class="hint">App not opening? Please download Japa Siddhi, then open this link again.</p>
+    <a href="${deepLink}" class="btn-app">Open in Japa Siddhi App</a>
+    <a href="${PLAYSTORE}" class="btn-play">Please download the app (Play Store)</a>
   </div>
 </body>
 </html>
@@ -98,27 +124,27 @@ const MS_PAGES: Record<string, {title: string; subtitle: string; deepLink: strin
     deepLink: 'japasiddhi://ms/216',
   },
   custom: {
-    title: 'Monthly Support — Custom',
-    subtitle: 'Open Japa Siddhi to enter your own monthly contribution amount.',
+    title: 'Monthly Support — Custom amount',
+    subtitle: 'Open Japa Siddhi to enter your own Monthly Support amount.',
     deepLink: 'japasiddhi://ms/custom',
   },
   autopay: {
     title: 'Monthly Support — Autopay',
-    subtitle: 'Open Japa Siddhi to register monthly autopay for temple seva.',
+    subtitle: 'Open Japa Siddhi to set up Monthly Support Autopay.',
     deepLink: 'japasiddhi://ms/autopay',
   },
 };
 
-export const resolveMonthlySupportLanding = (slugRaw: string) => {
-  const slug = String(slugRaw || '')
+export const resolveMonthlySupportLanding = (slug: string) => {
+  const key = String(slug || '')
     .trim()
     .toLowerCase();
-  if (MS_PAGES[slug]) {
-    return MS_PAGES[slug];
+  if (key && MS_PAGES[key]) {
+    return MS_PAGES[key];
   }
   return {
-    title: 'Monthly Spiritual Support',
-    subtitle: 'Open Japa Siddhi to choose your monthly contribution plan.',
+    title: 'Monthly Support',
+    subtitle: 'Open Japa Siddhi to contribute Monthly Support.',
     deepLink: 'japasiddhi://monthly-support',
   };
 };
@@ -129,46 +155,46 @@ const BOOK_PAGES: Record<
 > = {
   'nithya-homam': {
     title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam seva.',
+    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
   'nitya-homam': {
     title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam seva.',
+    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
   homam: {
     title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam seva.',
+    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
   'bana-lingam': {
-    title: 'Baanalingam Seva',
-    subtitle: 'Open Japa Siddhi to book Baanalingam seva.',
+    title: 'Bana Lingam',
+    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
     deepLink: 'japasiddhi://book/bana-lingam',
   },
   banalingam: {
-    title: 'Baanalingam Seva',
-    subtitle: 'Open Japa Siddhi to book Baanalingam seva.',
+    title: 'Bana Lingam',
+    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
     deepLink: 'japasiddhi://book/bana-lingam',
   },
   baanalingam: {
-    title: 'Baanalingam Seva',
-    subtitle: 'Open Japa Siddhi to book Baanalingam seva.',
+    title: 'Bana Lingam',
+    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
     deepLink: 'japasiddhi://book/bana-lingam',
   },
   annadanam: {
-    title: 'Annadanam',
-    subtitle: 'Open Japa Siddhi to offer Annadanam.',
+    title: 'Anna Santharpana',
+    subtitle: 'Open Japa Siddhi for Anna Santharpana.',
     deepLink: 'japasiddhi://book/annadanam',
     icon: '🍲',
   },
   annasantharpana: {
     title: 'Anna Santharpana',
-    subtitle: 'Open Japa Siddhi for the Anna Santharpana form.',
+    subtitle: 'Open Japa Siddhi for Anna Santharpana.',
     deepLink: 'japasiddhi://annasantharpana',
     icon: '🍲',
   },
@@ -178,58 +204,59 @@ const BOOK_PAGES: Record<
     deepLink: 'japasiddhi://book/japa-annadanam',
     icon: '🍲',
   },
-  'monthly-support': {
+  donate: {
     title: 'Monthly Support',
-    subtitle: 'Open Japa Siddhi for Monthly Spiritual Support.',
+    subtitle: 'Open Japa Siddhi to contribute Monthly Support.',
     deepLink: 'japasiddhi://monthly-support',
   },
   ramakoti: {
-    title: 'Ramakoti Books',
-    subtitle: 'Open Japa Siddhi to request Ramakoti books.',
+    title: 'Ramakoti',
+    subtitle: 'Open Japa Siddhi for Ramakoti.',
     deepLink: 'japasiddhi://book/ramakoti',
   },
   'homa-bhasma': {
     title: 'Homa Bhasma',
-    subtitle: 'Open Japa Siddhi to request Homa Bhasma.',
+    subtitle: 'Open Japa Siddhi for Homa Bhasma.',
     deepLink: 'japasiddhi://book/homa-bhasma',
   },
   bhasma: {
     title: 'Homa Bhasma',
-    subtitle: 'Open Japa Siddhi to request Homa Bhasma.',
+    subtitle: 'Open Japa Siddhi for Homa Bhasma.',
     deepLink: 'japasiddhi://book/homa-bhasma',
   },
   birava: {
-    title: 'Birava Pendant',
-    subtitle: 'Open Japa Siddhi to request Birava Pendant.',
+    title: 'Bhairava Pendant',
+    subtitle: 'Open Japa Siddhi for Bhairava Pendant.',
     deepLink: 'japasiddhi://book/birava',
   },
   'birava-pendant': {
-    title: 'Birava Pendant',
-    subtitle: 'Open Japa Siddhi to request Birava Pendant.',
+    title: 'Bhairava Pendant',
+    subtitle: 'Open Japa Siddhi for Bhairava Pendant.',
     deepLink: 'japasiddhi://book/birava',
   },
   seva: {
-    title: 'Seva & Bookings',
-    subtitle: 'Open Japa Siddhi to browse seva bookings.',
+    title: 'Book Seva',
+    subtitle: 'Open Japa Siddhi to book seva.',
     deepLink: 'japasiddhi://book/seva',
   },
   festivals: {
     title: 'Festivals',
-    subtitle: 'Open Japa Siddhi to view festivals.',
+    subtitle: 'Open Japa Siddhi for festival offerings.',
     deepLink: 'japasiddhi://book/festivals',
   },
 };
 
-export const resolveBookingLanding = (slugRaw: string) => {
-  const slug = String(slugRaw || '')
+export const resolveBookingLanding = (slug: string) => {
+  const key = String(slug || '')
     .trim()
     .toLowerCase();
-  if (BOOK_PAGES[slug]) {
-    return BOOK_PAGES[slug];
+  if (key && BOOK_PAGES[key]) {
+    return BOOK_PAGES[key];
   }
   return {
-    title: 'Book a Seva',
-    subtitle: 'Open Japa Siddhi to browse seva and bookings.',
+    title: 'Book Seva',
+    subtitle: 'Open Japa Siddhi to book seva.',
     deepLink: 'japasiddhi://book/seva',
+    icon: '🪔',
   };
 };
