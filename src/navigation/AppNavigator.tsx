@@ -264,7 +264,13 @@ export type RootStackParamList = {
     | undefined;
   FamilyJapa: undefined;
   Donate: undefined;
-  MonthlySupport: undefined;
+  MonthlySupport:
+    | {
+        amount?: number;
+        openCustom?: boolean;
+        openAutopay?: boolean;
+      }
+    | undefined;
   JapaAnnadanam: undefined;
   MilestoneNotifications: undefined;
   MilestoneRewardSelect: {target?: number} | undefined;

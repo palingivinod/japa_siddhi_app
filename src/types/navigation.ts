@@ -42,6 +42,13 @@ export type RootStackParamList = {
   Challenges: undefined;
   FamilyJapa: undefined;
   Donate: undefined;
+  MonthlySupport:
+    | {
+        amount?: number;
+        openCustom?: boolean;
+        openAutopay?: boolean;
+      }
+    | undefined;
   Festivals: undefined;
   Progress: undefined;
   Profile: undefined;

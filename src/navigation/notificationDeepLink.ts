@@ -2,6 +2,10 @@ import {Alert, Linking} from 'react-native';
 
 import {startAppPayment} from '../modules/payments/startAppPayment';
 import apiService from '../services/apiService';
+import {
+  isBookingDeepLink,
+  parseBookingDeepLink,
+} from './bookingDeepLinks';
 import {navigateTo} from './navigationRef';
 
 type PushLike = Record<string, any> | null | undefined;
@@ -267,6 +271,91 @@ const acceptPaymentResult = (result: string) => {
   return true;
 };
 
+const MS_PRESET_AMOUNTS = new Set([58, 116, 200, 216]);
+
+type MonthlySupportParams = {
+  amount?: number;
+  openCustom?: boolean;
+  openAutopay?: boolean;
+};
+
+/** Parse japasiddhi://ms/58|custom|autopay or monthly-support?… or https://…/ms/58 */
+export const parseMonthlySupportDeepLink = (
+  url: string | null | undefined,
+): MonthlySupportParams => {
+  const raw = String(url || '').trim();
+  if (!raw) {
+    return {};
+  }
+
+  let pathSlug = '';
+  let search = '';
+  try {
+    // japasiddhi://ms/58 → host=ms path=/58
+    // japasiddhi://monthly-support?amount=58 → host=monthly-support
+    const asHttp = raw.replace(/^japasiddhi:\/\//i, 'https://');
+    const parsed = new URL(asHttp);
+    search = parsed.search || '';
+    const host = parsed.hostname.toLowerCase();
+    const parts = parsed.pathname
+      .replace(/^\/+|\/+$/g, '')
+      .split('/')
+      .filter(Boolean)
+      .map(p => p.toLowerCase());
+
+    if (host === 'ms') {
+      pathSlug = parts[0] || '';
+    } else if (host === 'monthly-support') {
+      pathSlug = parts[0] || '';
+    } else if (parts[0] === 'ms') {
+      pathSlug = parts[1] || '';
+    } else if (parts[0] === 'monthly-support') {
+      pathSlug = parts[1] || '';
+    }
+  } catch {
+    const lower = raw.toLowerCase();
+    const msIdx = lower.indexOf('/ms/');
+    if (msIdx >= 0) {
+      pathSlug = lower
+        .slice(msIdx + 4)
+        .split(/[/?#]/)[0]
+        .trim();
+    }
+    const q = raw.indexOf('?');
+    if (q >= 0) {
+      search = raw.slice(q);
+    }
+  }
+
+  const params = new URLSearchParams(
+    search.startsWith('?') ? search.slice(1) : search,
+  );
+  if (params.get('autopay') === '1' || params.get('openAutopay') === '1') {
+    return {openAutopay: true};
+  }
+  if (params.get('custom') === '1' || params.get('openCustom') === '1') {
+    return {openCustom: true};
+  }
+  const amountParam = Number(params.get('amount'));
+  if (Number.isFinite(amountParam) && amountParam > 0) {
+    return {amount: amountParam};
+  }
+
+  if (pathSlug === 'autopay' || pathSlug === 'auto') {
+    return {openAutopay: true};
+  }
+  if (pathSlug === 'custom' || pathSlug === 'others') {
+    return {openCustom: true};
+  }
+  const pathAmount = Number(pathSlug);
+  if (Number.isFinite(pathAmount) && pathAmount > 0) {
+    return {
+      amount: MS_PRESET_AMOUNTS.has(pathAmount) ? pathAmount : pathAmount,
+    };
+  }
+  return {};
+};
+
 /** Subscribe to cold-start + warm deep links from the tray. */
 export const bindNotifyDeepLinks = () => {
   const handle = (url: string | null) => {
@@ -324,6 +413,32 @@ export const bindNotifyDeepLinks = () => {
     ) {
       navigateTo('GeneralAnnadanam');
       return;
+    }
+
+    // Monthly Support flyer: japasiddhi://ms/58|custom|autopay or
+    // japasiddhi://monthly-support?amount=58|custom=1|autopay=1
+    // Also https://japasiddhi.com/ms/58 (App Links)
+    if (
+      lower.includes('japasiddhi://ms') ||
+      lower.includes('japasiddhi://monthly-support') ||
+      /https?:\/\/[^/]+\/ms(\/|$|\?)/i.test(lower)
+    ) {
+      navigateTo('MonthlySupport', parseMonthlySupportDeepLink(raw));
+      return;
+    }
+
+    // Booking / seva services: japasiddhi://book/nithya-homam,
+    // https://japasiddhi.com/book/bana-lingam, japasiddhi://homam, etc.
+    if (isBookingDeepLink(raw)) {
+      const booking = parseBookingDeepLink(raw);
+      if (booking) {
+        if (booking.screen === 'MonthlySupport') {
+          navigateTo('MonthlySupport', parseMonthlySupportDeepLink(raw));
+        } else {
+          navigateTo(booking.screen);
+        }
+        return;
+      }
     }
 
     openFromNotifyUrl(url).catch(() => undefined);

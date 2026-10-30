@@ -59,5 +59,16 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.japasiddhi</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>japasiddhi</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

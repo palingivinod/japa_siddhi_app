@@ -1,6 +1,5 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Platform,
   Share,
@@ -11,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 
 import {useLanguage} from '../../../i18n/LanguageContext';
@@ -27,30 +26,40 @@ import {digitsOnly} from '../../../utils/validators';
 
 const PRESET_AMOUNTS = [58, 116, 200, 216];
 const PLAYSTORE_URL = 'https://play.google.com/store/apps/details?id=com.japasiddhi';
+const MS_BASE = 'https://japasiddhi.com/ms';
 
 const buildMonthlySupportShareText = (_t?: (k: any) => string) => {
   return [
     '🙏 Japa Siddhi - Monthly Spiritual Support 🙏',
     '',
-    'Join us in supporting noble spiritual activities and trust seva every month:',
-    '✨ Monthly Contribution Plans:',
-    '   • ₹58 / month',
-    '   • ₹116 / month',
-    '   • ₹200 / month',
-    '   • ₹216 / month',
-    '   • Or any custom contribution of your choice',
+    'Join us in supporting noble spiritual activities and trust seva every month.',
+    'Tap a link to open the app and contribute:',
+    '',
+    `✨ ₹58 / month — ${MS_BASE}/58`,
+    `✨ ₹116 / month — ${MS_BASE}/116`,
+    `✨ ₹200 / month — ${MS_BASE}/200`,
+    `✨ ₹216 / month — ${MS_BASE}/216`,
+    `✨ Custom amount — ${MS_BASE}/custom`,
+    `🔁 Set Autopay — ${MS_BASE}/autopay`,
     '',
     'Duly participate in sacred Kainkaryam & receive divine blessings of Mantra Devata!',
     '',
-    '📲 Download Japa Siddhi App & Join:',
+    '📲 Download Japa Siddhi App:',
     PLAYSTORE_URL,
     '',
     'Team Japasiddhi - Bilva Patra Trust',
   ].join('\n');
 };
 
+type RouteParams = {
+  amount?: number;
+  openCustom?: boolean;
+  openAutopay?: boolean;
+};
+
 const MonthlySupportScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
 
   const [devoteeName, setDevoteeName] = useState('');
@@ -59,52 +68,39 @@ const MonthlySupportScreen = () => {
   const [isCustom, setIsCustom] = useState(false);
   const [customAmountText, setCustomAmountText] = useState('');
   const [submittingAutopay, setSubmittingAutopay] = useState(false);
+  const profileReadyRef = useRef(false);
+  const pendingDeepLinkRef = useRef<RouteParams | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      let active = true;
-      const loadProfile = async () => {
-        try {
-          const [stored, profile] = await Promise.all([
-            getStoredUser(),
-            ProfileApi.getProfile().catch(() => null),
-          ]);
-          if (!active) return;
-          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
-          const phone =
-            profile?.mobileNumber ||
-            stored?.mobileNumber ||
-            stored?.mobile_number ||
-            stored?.phone ||
-            '';
-          if (name) setDevoteeName(String(name).trim());
-          if (phone) setDevoteeMobile(digitsOnly(String(phone)).slice(-10));
-        } catch {
-          // ignore profile load error
-        }
-      };
-      loadProfile();
-      return () => {
-        active = false;
-      };
-    }, []),
+  const clearDeepLinkParams = useCallback(() => {
+    try {
+      navigation.setParams({
+        amount: undefined,
+        openCustom: undefined,
+        openAutopay: undefined,
+      });
+    } catch {
+      // ignore
+    }
+  }, [navigation]);
+
+  const handlePayAmount = useCallback(
+    async (amount: number) => {
+      if (!Number.isFinite(amount) || amount < 1) {
+        Alert.alert(t('validationTitle'), 'Please enter a valid contribution amount.');
+        return;
+      }
+      await startAppPayment({
+        amount,
+        purpose: `Monthly Support: ₹${amount}`,
+        seva: 'Monthly Support',
+        name: devoteeName,
+        phone: devoteeMobile,
+      });
+    },
+    [devoteeMobile, devoteeName, t],
   );
 
-  const handlePayAmount = async (amount: number) => {
-    if (!Number.isFinite(amount) || amount < 1) {
-      Alert.alert(t('validationTitle'), 'Please enter a valid contribution amount.');
-      return;
-    }
-    await startAppPayment({
-      amount,
-      purpose: `Monthly Support: ₹${amount}`,
-      seva: 'Monthly Support',
-      name: devoteeName,
-      phone: devoteeMobile,
-    });
-  };
-
-  const handleSetAutoPay = async () => {
+  const handleSetAutoPay = useCallback(async () => {
     setSubmittingAutopay(true);
     try {
       const amountToRegister =
@@ -126,7 +122,6 @@ const MonthlySupportScreen = () => {
         {cancelable: false},
       );
     } catch {
-      // Still show the gracious alert so devotees are always acknowledged gracefully
       Alert.alert(
         t('autopaySuccessTitle'),
         t('autopaySuccessMessage'),
@@ -135,7 +130,95 @@ const MonthlySupportScreen = () => {
     } finally {
       setSubmittingAutopay(false);
     }
-  };
+  }, [
+    customAmountText,
+    devoteeMobile,
+    devoteeName,
+    isCustom,
+    selectedAmount,
+    t,
+  ]);
+
+  const applyDeepLink = useCallback(
+    (params: RouteParams) => {
+      if (params.openAutopay) {
+        void handleSetAutoPay();
+        return;
+      }
+      if (params.openCustom) {
+        setIsCustom(true);
+        setSelectedAmount(null);
+        return;
+      }
+      if (params.amount && Number.isFinite(params.amount) && params.amount > 0) {
+        const amt = Math.round(params.amount);
+        if (PRESET_AMOUNTS.includes(amt)) {
+          setSelectedAmount(amt);
+          setIsCustom(false);
+        } else {
+          setIsCustom(true);
+          setSelectedAmount(null);
+          setCustomAmountText(String(amt));
+        }
+        void handlePayAmount(amt);
+      }
+    },
+    [handlePayAmount, handleSetAutoPay],
+  );
+
+  const consumeDeepLinkIfReady = useCallback(() => {
+    const pending = pendingDeepLinkRef.current;
+    if (!pending || !profileReadyRef.current) {
+      return;
+    }
+    pendingDeepLinkRef.current = null;
+    applyDeepLink(pending);
+  }, [applyDeepLink]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      const params = (route.params || {}) as RouteParams;
+      if (params.amount || params.openCustom || params.openAutopay) {
+        pendingDeepLinkRef.current = {
+          amount: params.amount,
+          openCustom: params.openCustom,
+          openAutopay: params.openAutopay,
+        };
+        clearDeepLinkParams();
+      }
+
+      const loadProfile = async () => {
+        try {
+          const [stored, profile] = await Promise.all([
+            getStoredUser(),
+            ProfileApi.getProfile().catch(() => null),
+          ]);
+          if (!active) return;
+          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
+          const phone =
+            profile?.mobileNumber ||
+            stored?.mobileNumber ||
+            stored?.mobile_number ||
+            stored?.phone ||
+            '';
+          if (name) setDevoteeName(String(name).trim());
+          if (phone) setDevoteeMobile(digitsOnly(String(phone)).slice(-10));
+        } catch {
+          // ignore profile load error
+        } finally {
+          if (active) {
+            profileReadyRef.current = true;
+            consumeDeepLinkIfReady();
+          }
+        }
+      };
+      loadProfile();
+      return () => {
+        active = false;
+      };
+    }, [clearDeepLinkParams, consumeDeepLinkIfReady, route.params]),
+  );
 
   const handleShareDetails = async () => {
     const message = buildMonthlySupportShareText(t);
@@ -189,7 +272,6 @@ const MonthlySupportScreen = () => {
         Choose your monthly contribution:
       </Text>
 
-      {/* Preset Amount Grid */}
       <View style={styles.grid}>
         {PRESET_AMOUNTS.map(amt => (
           <TouchableOpacity
@@ -221,7 +303,6 @@ const MonthlySupportScreen = () => {
           </TouchableOpacity>
         ))}
 
-        {/* Custom / Others Button */}
         <TouchableOpacity
           style={[
             styles.amountBtn,
@@ -243,7 +324,6 @@ const MonthlySupportScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Custom Amount Input Box */}
       {isCustom ? (
         <View style={styles.customBox}>
           <Text style={styles.customLabel}>Enter Amount (₹):</Text>
@@ -269,13 +349,11 @@ const MonthlySupportScreen = () => {
         </View>
       ) : null}
 
-      {/* Refined Note Card */}
       <View style={styles.noteCard}>
         <Text style={styles.noteIcon}>ℹ️</Text>
         <Text style={styles.noteText}>{t('monthlySupportNote')}</Text>
       </View>
 
-      {/* Dedicated Share Card */}
       <TouchableOpacity
         style={styles.shareCard}
         onPress={handleShareDetails}
@@ -293,7 +371,6 @@ const MonthlySupportScreen = () => {
         </View>
       </TouchableOpacity>
 
-      {/* SET AUTOPAY / AUTO-DEBIT Button */}
       <PrimaryButton
         title={
           submittingAutopay

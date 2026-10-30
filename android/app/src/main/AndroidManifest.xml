@@ -160,14 +160,51 @@
             <data android:scheme="japasiddhi" android:host="annadanam" />
             <data android:scheme="japasiddhi" android:host="seva" />
         </intent-filter>
+        <!-- Monthly Support flyer short links: japasiddhi://ms/58|custom|autopay -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="japasiddhi" android:host="monthly-support" />
+            <data android:scheme="japasiddhi" android:host="ms" />
+        </intent-filter>
+        <!-- Booking services: japasiddhi://book/{slug} and japasiddhi://{slug} -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="japasiddhi" android:host="book" />
+            <data android:scheme="japasiddhi" android:host="booking" />
+            <data android:scheme="japasiddhi" android:host="nithya-homam" />
+            <data android:scheme="japasiddhi" android:host="nitya-homam" />
+            <data android:scheme="japasiddhi" android:host="homam" />
+            <data android:scheme="japasiddhi" android:host="bana-lingam" />
+            <data android:scheme="japasiddhi" android:host="banalingam" />
+            <data android:scheme="japasiddhi" android:host="baanalingam" />
+            <data android:scheme="japasiddhi" android:host="ramakoti" />
+            <data android:scheme="japasiddhi" android:host="homa-bhasma" />
+            <data android:scheme="japasiddhi" android:host="bhasma" />
+            <data android:scheme="japasiddhi" android:host="birava" />
+            <data android:scheme="japasiddhi" android:host="birava-pendant" />
+            <data android:scheme="japasiddhi" android:host="japa-annadanam" />
+            <data android:scheme="japasiddhi" android:host="donate" />
+            <data android:scheme="japasiddhi" android:host="festivals" />
+        </intent-filter>
         <intent-filter android:autoVerify="true">
             <action android:name="android.intent.action.VIEW" />
             <category android:name="android.intent.category.DEFAULT" />
             <category android:name="android.intent.category.BROWSABLE" />
             <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/annasantharpana" />
             <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/annadanam" />
+            <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/ms" />
+            <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="japasiddhi.com" android:pathPrefix="/ms" />
+            <data android:scheme="https" android:host="japasiddhi.com" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/ms" />
+            <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/book" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annasantharpana" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annadanam" />
+            <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/book" />
         </intent-filter>
       </activity>
     </application>
