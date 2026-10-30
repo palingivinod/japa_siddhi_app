@@ -3814,8 +3814,22 @@ router.get('/dob-details', async (req: Request, res: Response) => {
       .trim()
       .toLowerCase();
     const span = String(req.query.month || '').trim().toLowerCase();
-    const allYear = span === 'year' || span === 'all' || span === 'total';
-    const month = allYear ? '' : exportMonth(req.query.month);
+    const dayRaw = String(req.query.day || req.query.date || '').trim();
+    let dayFilter = '';
+    let monthFromDay = '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dayRaw)) {
+      monthFromDay = dayRaw.slice(5, 7);
+      dayFilter = dayRaw.slice(8, 10);
+    } else if (/^\d{1,2}$/.test(dayRaw)) {
+      dayFilter = dayRaw.padStart(2, '0');
+    }
+    const allYear =
+      !dayFilter && (span === 'year' || span === 'all' || span === 'total');
+    const month = dayFilter
+      ? monthFromDay || exportMonth(req.query.month) || ''
+      : allYear
+        ? ''
+        : exportMonth(req.query.month);
     if (
       type !== 'birthdays' &&
       type !== 'jayanthi' &&
@@ -3830,7 +3844,7 @@ router.get('/dob-details', async (req: Request, res: Response) => {
     if (!allYear && !month) {
       return res.status(400).json({
         success: false,
-        message: 'Select a month or Total year.',
+        message: 'Select a month, Total year, or a specific date.',
       });
     }
 
@@ -3838,6 +3852,15 @@ router.get('/dob-details', async (req: Request, res: Response) => {
       `${String(code || '').trim()}${String(number || '').trim()}`.trim();
 
     if (type === 'birthdays') {
+      const params: any[] = [];
+      let dateSql = `AND substr(IFNULL(u.date_of_birth, ''), 6, 2) <> ''`;
+      if (dayFilter && month) {
+        dateSql += ` AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ? AND substr(IFNULL(u.date_of_birth, ''), 9, 2) = ?`;
+        params.push(month, dayFilter);
+      } else if (!allYear && month) {
+        dateSql += ` AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?`;
+        params.push(month);
+      }
       const rows = await mysql.query<any[]>(
         `
         SELECT
@@ -3848,20 +3871,21 @@ router.get('/dob-details', async (req: Request, res: Response) => {
           u.date_of_birth AS dateOfBirth
         FROM users u
         WHERE u.deleted_at IS NULL
-          AND substr(IFNULL(u.date_of_birth, ''), 6, 2) <> ''
-          ${allYear ? '' : "AND substr(IFNULL(u.date_of_birth, ''), 6, 2) = ?"}
+          ${dateSql}
           ${demoUserSql('u')}
         ORDER BY substr(u.date_of_birth, 6, 2), substr(u.date_of_birth, 9, 2), u.full_name
         `,
-        allYear ? [] : [month],
+        params,
       );
       return res.json({
         success: true,
         data: {
           type,
           month: allYear ? 'year' : month,
+          day: dayFilter || null,
           people: (rows || []).map((row: any) => ({
             id: String(row.id),
+            userId: Number(row.id) || null,
             fullName: row.fullName || 'Devotee',
             phone: phoneOf(row.mobileCountryCode, row.mobileNumber),
             date: row.dateOfBirth || '',
@@ -3877,10 +3901,20 @@ router.get('/dob-details', async (req: Request, res: Response) => {
         : type === 'vardhanti'
           ? 'Vardhanti'
           : 'Anniversary';
+    const params: any[] = [occasionTitle];
+    let dateSql = `AND substr(IFNULL(d.prefer_date, ''), 6, 2) <> ''`;
+    if (dayFilter && month) {
+      dateSql += ` AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ? AND substr(IFNULL(d.prefer_date, ''), 9, 2) = ?`;
+      params.push(month, dayFilter);
+    } else if (!allYear && month) {
+      dateSql += ` AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?`;
+      params.push(month);
+    }
     const rows = await mysql.query<any[]>(
       `
       SELECT
         d.id,
+        d.user_id AS userId,
         IFNULL(NULLIF(d.donor_name, ''), IFNULL(u.full_name, 'Devotee')) AS fullName,
         IFNULL(NULLIF(d.donor_phone, ''), IFNULL(u.mobile_number, '')) AS donorPhone,
         IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
@@ -3892,26 +3926,28 @@ router.get('/dob-details', async (req: Request, res: Response) => {
       FROM donations d
       LEFT JOIN users u ON u.id = d.user_id
       WHERE lower(IFNULL(d.occasion, '')) = lower(?)
-        AND substr(IFNULL(d.prefer_date, ''), 6, 2) <> ''
-        ${allYear ? '' : "AND substr(IFNULL(d.prefer_date, ''), 6, 2) = ?"}
+        ${dateSql}
         ${demoDonationSql('d')}
       ORDER BY substr(IFNULL(d.prefer_date, ''), 6, 2), d.prefer_date, d.id
       `,
-      allYear ? [occasionTitle] : [occasionTitle, month],
+      params,
     );
     return res.json({
       success: true,
       data: {
         type,
         month: allYear ? 'year' : month,
+        day: dayFilter || null,
         people: (rows || []).map((row: any) => {
           const remarkPhone = remarkField(row.remarks, 'Phone');
           const phone =
             String(row.donorPhone || '').trim() ||
             phoneOf(row.mobileCountryCode, row.mobileNumber) ||
             remarkPhone;
+          const userId = Number(row.userId || 0) || null;
           return {
             id: String(row.id),
+            userId,
             fullName:
               row.fullName || remarkField(row.remarks, 'Name') || 'Devotee',
             phone,
@@ -3927,6 +3963,81 @@ router.get('/dob-details', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to load DOB details.',
+    });
+  }
+});
+
+router.post('/dob-details/notify', async (req: Request, res: Response) => {
+  try {
+    const type = String(req.body?.type || '')
+      .trim()
+      .toLowerCase();
+    const message = String(req.body?.message || '').trim();
+    const scheduleRaw = String(req.body?.schedule || 'Now');
+    const scheduledAt = req.body?.scheduledAt
+      ? String(req.body.scheduledAt)
+      : undefined;
+    const userIds = Array.isArray(req.body?.userIds)
+      ? req.body.userIds
+          .map((id: any) => Number(id))
+          .filter((id: number) => Number.isFinite(id) && id > 0)
+      : [];
+
+    if (
+      type !== 'birthdays' &&
+      type !== 'jayanthi' &&
+      type !== 'vardhanti' &&
+      type !== 'anniversary'
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select birthdays, jayanthi, vardhanti, or anniversary.',
+      });
+    }
+    if (!userIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select at least one devotee with an app account.',
+      });
+    }
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a message to send.',
+      });
+    }
+
+    const defaultTitle =
+      type === 'birthdays'
+        ? 'Happy Birthday'
+        : type === 'jayanthi'
+          ? 'Happy Jayanthi'
+          : type === 'vardhanti'
+            ? 'Happy Vardhanti'
+            : 'Happy Anniversary';
+    const title = String(req.body?.title || '').trim() || defaultTitle;
+
+    const {sendAdminNotification} = await import('./adminNotification.service');
+    const result = await sendAdminNotification({
+      title,
+      message,
+      targetRaw: 'All users',
+      scheduleRaw,
+      scheduledAt,
+      userIds,
+      bypassHours: true,
+      actionType: 'DOB_WISH',
+    });
+
+    return res.status(result.mode === 'scheduled' ? 202 : 200).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Unable to send DOB notification.',
     });
   }
 });

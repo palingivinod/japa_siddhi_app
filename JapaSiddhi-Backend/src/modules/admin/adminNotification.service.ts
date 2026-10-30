@@ -57,6 +57,20 @@ const ensureQueueTable = async () => {
       )
     `);
   }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN recipient_ids TEXT NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN bypass_hours INT NOT NULL DEFAULT 0`,
+    );
+  } catch {
+    // Column already exists.
+  }
   queueReady = true;
 };
 
@@ -232,6 +246,77 @@ const loadRecipients = async (target: AdminNotifyTarget) => {
   }
 };
 
+const loadRecipientsByIds = async (userIds: number[]) => {
+  await ensureFcmColumn();
+  const ids = [
+    ...new Set(
+      (userIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  if (!ids.length) {
+    return [];
+  }
+  const placeholders = ids.map(() => '?').join(',');
+  const selectCols = `
+    u.id,
+    u.fcm_token AS fcmToken,
+    COALESCE(us.language_code, l.code, 'en') AS langCode
+  `;
+  const joins = `
+    LEFT JOIN user_settings us ON us.user_id = u.id
+    LEFT JOIN languages l ON l.id = u.preferred_language_id
+  `;
+  try {
+    return await mysql.query<any[]>(
+      `
+      SELECT ${selectCols}
+      FROM users u
+      ${joins}
+      WHERE u.deleted_at IS NULL
+        AND u.id IN (${placeholders})
+      `,
+      ids,
+    );
+  } catch (err) {
+    console.warn('loadRecipientsByIds primary query failed, using fallback:', err);
+    return mysql.query<any[]>(
+      `
+      SELECT
+        u.id,
+        u.fcm_token AS fcmToken,
+        'en' AS langCode
+      FROM users u
+      WHERE u.deleted_at IS NULL
+        AND u.id IN (${placeholders})
+      `,
+      ids,
+    );
+  }
+};
+
+const parseRecipientIds = (raw: unknown): number[] => {
+  const text = String(raw || '').trim();
+  if (!text) {
+    return [];
+  }
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0);
+    }
+  } catch {
+    // Comma-separated fallback.
+  }
+  return text
+    .split(/[,|\s]+/)
+    .map(id => Number(id))
+    .filter(id => Number.isFinite(id) && id > 0);
+};
+
 /**
  * Check if the current time is within allowed notification hours (7:00 AM to 10:00 PM IST).
  * Outside 7 AM - 10 PM Indian Standard Time, notifications are suppressed.
@@ -394,6 +479,7 @@ export const deliverAdminNotification = async (input: {
   title: string;
   message: string;
   target: AdminNotifyTarget;
+  userIds?: number[];
   translations?: Record<string, any> | string | null;
   extraData?: Record<string, any>;
   actionType?: string;
@@ -401,7 +487,14 @@ export const deliverAdminNotification = async (input: {
   /** When true, push even outside 7 AM–10 PM IST (e.g. class going live). */
   bypassHours?: boolean;
 }) => {
-  const recipients = await loadRecipients(input.target);
+  const targetedIds = Array.isArray(input.userIds)
+    ? input.userIds
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0)
+    : [];
+  const recipients = targetedIds.length
+    ? await loadRecipientsByIds(targetedIds)
+    : await loadRecipients(input.target);
   const parsedTrans = parseJsonSafely(input.translations);
   const BRAND_HEADING = 'Japasiddhi - Bilva Patra Trust';
   const actionType =
@@ -431,7 +524,7 @@ export const deliverAdminNotification = async (input: {
     try {
       // Keep extra_data small — large translation packs can break inserts.
       const slimExtra = {
-        target: input.target,
+        target: targetedIds.length ? 'selected_users' : input.target,
         mantraName: subject,
         detail,
         pushTitle,
@@ -559,14 +652,19 @@ export const notifyAdminContentCreated = async (input: {
 };
 
 export const flushDueAdminNotifications = async () => {
-  if (!isWithinNotificationHoursIST()) {
-    return;
-  }
   await ensureQueueTable();
+  const withinHours = isWithinNotificationHoursIST();
   const now = nowIstStamp();
   const due = await mysql.query<any[]>(
     `
-      SELECT id, title, message, translations, target_group AS targetGroup
+      SELECT
+        id,
+        title,
+        message,
+        translations,
+        target_group AS targetGroup,
+        recipient_ids AS recipientIds,
+        IFNULL(bypass_hours, 0) AS bypassHours
       FROM admin_notification_queue
       WHERE status = 'PENDING'
         AND send_at <= ?
@@ -577,12 +675,19 @@ export const flushDueAdminNotifications = async () => {
   );
 
   for (const job of due || []) {
+    const bypass = Number(job.bypassHours || 0) === 1;
+    if (!withinHours && !bypass) {
+      continue;
+    }
     try {
+      const userIds = parseRecipientIds(job.recipientIds);
       const result = await deliverAdminNotification({
         title: job.title,
         message: job.message,
         translations: job.translations,
         target: mapTarget(job.targetGroup),
+        userIds: userIds.length ? userIds : undefined,
+        bypassHours: bypass,
         extraData: {queuedId: job.id},
       });
       await mysql.query(
@@ -619,6 +724,10 @@ export const sendAdminNotification = async (input: {
   targetRaw: string;
   scheduleRaw: string;
   scheduledAt?: string;
+  userIds?: number[];
+  /** Skip 7 AM–10 PM IST quiet hours (DOB wishes, live class, etc.). */
+  bypassHours?: boolean;
+  actionType?: string;
 }) => {
   await ensureQueueTable();
   await flushDueAdminNotifications();
@@ -631,13 +740,23 @@ export const sendAdminNotification = async (input: {
     throw error;
   }
 
-  const target = mapTarget(input.targetRaw);
+  const userIds = [
+    ...new Set(
+      (input.userIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  const target = userIds.length ? 'all' : mapTarget(input.targetRaw);
   const schedule = String(input.scheduleRaw || 'now').trim().toLowerCase();
   const sendNow = schedule !== 'later';
+  const bypassHours = Boolean(input.bypassHours);
   const translations =
     typeof input.translations === 'object'
       ? JSON.stringify(input.translations)
       : input.translations || null;
+  const actionType =
+    String(input.actionType || 'ADMIN_BROADCAST').trim() || 'ADMIN_BROADCAST';
 
   if (!sendNow) {
     const sendAt = normalizeScheduleStamp(String(input.scheduledAt || ''));
@@ -661,20 +780,32 @@ export const sendAdminNotification = async (input: {
     const insert = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO admin_notification_queue (
-        title, message, translations, target_group, send_at, status
-      ) VALUES (?, ?, ?, ?, ?, 'PENDING')
+        title, message, translations, target_group, send_at, status,
+        recipient_ids, bypass_hours
+      ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?)
       `,
-      [title, message, translations, target, sendAt],
+      [
+        title,
+        message,
+        translations,
+        userIds.length ? 'selected_users' : target,
+        sendAt,
+        userIds.length ? JSON.stringify(userIds) : null,
+        bypassHours ? 1 : 0,
+      ],
     );
 
     return {
       mode: 'scheduled' as const,
       queueId: insert.insertId,
-      target,
+      target: userIds.length ? 'selected_users' : target,
+      userIds,
       sendAt,
-      recipientCount: 0,
+      recipientCount: userIds.length,
       pushSent: 0,
-      message: `Scheduled for ${sendAt} IST in all languages. It will send automatically around that time.`,
+      message: userIds.length
+        ? `Scheduled for ${sendAt} IST to ${userIds.length} selected user(s).`
+        : `Scheduled for ${sendAt} IST in all languages. It will send automatically around that time.`,
     };
   }
 
@@ -683,6 +814,9 @@ export const sendAdminNotification = async (input: {
     message,
     translations,
     target,
+    userIds: userIds.length ? userIds : undefined,
+    bypassHours,
+    actionType,
   });
   const pushNote = delivered.pushSent
     ? ` and ${delivered.pushSent} push popup(s)`
@@ -691,13 +825,16 @@ export const sendAdminNotification = async (input: {
       : '';
   return {
     mode: 'sent' as const,
-    target,
+    target: userIds.length ? 'selected_users' : target,
+    userIds,
     sendAt: localDateTime(),
     ...delivered,
     message:
       delivered.recipientCount > 0
         ? `Sent to ${delivered.recipientCount} user(s) in-app in their language${pushNote}.`
-        : 'No matching users found for this target group.',
+        : userIds.length
+          ? 'No matching app users found for the selected people.'
+          : 'No matching users found for this target group.',
   };
 };
 
