@@ -66,20 +66,12 @@ const environment = {
 
   SMTP_PORT: Number(process.env.SMTP_PORT || 587),
 
-  // Sending mailbox (From). Must be bilvapatratrust Gmail + App Password.
   SMTP_USER:
-    process.env.SMTP_USER || 'bilvapatratrust@gmail.com',
+    process.env.SMTP_USER || '',
   // Gmail App Password is read from SMTP_PASS in .env
 
   SMTP_PASS:
     process.env.SMTP_PASS || '',
-
-  /** Admin alerts inbox (To) for orders / requests / feedback. */
-  NOTIFY_EMAIL: String(
-    process.env.NOTIFY_EMAIL || 'bilvapatratrust@gmail.com',
-  )
-    .trim()
-    .toLowerCase(),
 
   OTP_EXPIRES_SECONDS: Number(process.env.OTP_EXPIRES_SECONDS || 300),
 
