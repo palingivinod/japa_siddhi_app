@@ -148,7 +148,6 @@ const AdminPaymentsScreen = () => {
       ) : null}
 
       {rows.map(item => {
-        const pending = item.status === 'Pending';
         const tappable =
           item.id === 'today' || item.id === 'week' || item.id === 'month';
         const Card = tappable ? TouchableOpacity : View;
@@ -166,19 +165,7 @@ const AdminPaymentsScreen = () => {
                 <Text style={styles.tapHint}>Tap to view details</Text>
               ) : null}
             </View>
-            <View
-              style={[
-                styles.pill,
-                pending ? styles.pillPending : styles.pillSent,
-              ]}>
-              <Text
-                style={[
-                  styles.pillText,
-                  pending ? styles.pillTextPending : styles.pillTextSent,
-                ]}>
-                {item.status}
-              </Text>
-            </View>
+            <Text style={styles.arrow}>→</Text>
           </Card>
         );
       })}
@@ -238,17 +225,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.textSecondary,
   },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+  arrow: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    paddingLeft: 8,
   },
-  pillSent: {borderColor: Colors.leafGreen},
-  pillPending: {borderColor: Colors.templeGold},
-  pillText: {fontWeight: '800', fontSize: 13},
-  pillTextSent: {color: Colors.leafGreen},
-  pillTextPending: {color: Colors.templeGold},
   exportBtn: {
     marginTop: 8,
     minHeight: 54,
