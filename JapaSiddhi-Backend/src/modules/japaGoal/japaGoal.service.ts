@@ -60,10 +60,15 @@ class JapaGoalService {
         userId,
 
         mantraType:
-          data.mantraType,
+          data.mantraType === 'PERSONAL' || data.personalMantraId
+            ? 'PERSONAL'
+            : data.mantraType,
 
+        // Personal goals must not keep a catalog mantra_id (shows Om Namah Shivaya).
         mantraId:
-          data.mantraId ?? null,
+          data.mantraType === 'PERSONAL' || data.personalMantraId
+            ? null
+            : data.mantraId ?? null,
 
         personalMantraId:
           data.personalMantraId ?? null,

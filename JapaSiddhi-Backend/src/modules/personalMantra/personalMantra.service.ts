@@ -92,6 +92,24 @@ class PersonalMantraService {
       data,
     );
 
+    const nextName = String(data.mantraName || '').trim();
+    if (nextName) {
+      try {
+        const mysql = (await import('../../database/mysql')).default;
+        await mysql.query(
+          `
+          UPDATE japa_goals
+          SET goal_name = ?, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = ?
+            AND personal_mantra_id = ?
+            AND status = 'ACTIVE'
+          `,
+          [nextName.slice(0, 80), userId, id],
+        );
+      } catch (err) {
+        console.warn('Could not sync personal mantra name to japa goals:', err);
+      }
+    }
 
     return {
       success: true,

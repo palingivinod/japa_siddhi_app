@@ -78,9 +78,52 @@ const MantraSelectScreen = () => {
     chosen?.transliteration ||
     String(route.params?.mantraName || '');
 
-  const doNavigate = () => {
+  const doNavigate = async () => {
+    const mode = route.params?.mode || 'default';
+    const isPersonal = mode === 'private';
+
+    // Antharanga "listed mantra": store as a personal mantra name, not catalog id,
+    // so Home never shows Om Namah Shivaya over the devotee's choice.
+    if (isPersonal) {
+      const name = String(chosenName || '').trim();
+      if (!name) {
+        return;
+      }
+      let personalMantraId: number | undefined;
+      try {
+        const existing = await apiService.get('/personal-mantras');
+        const rows = existing.data?.data ?? [];
+        const match = rows.find(
+          (item: any) =>
+            String(item.mantraName || '').trim().toLowerCase() ===
+            name.toLowerCase(),
+        );
+        if (match?.id) {
+          personalMantraId = Number(match.id);
+        } else {
+          const created = await apiService.post('/personal-mantras', {
+            mantraName: name,
+            mantraText: name,
+            preferredJapaCount: Number(route.params?.goal || 108) || 108,
+          });
+          personalMantraId =
+            Number(created.data?.data?.id || 0) || undefined;
+        }
+      } catch {
+        personalMantraId = undefined;
+      }
+      navigation.navigate('GoalSelect', {
+        mode: 'private',
+        personalMantraId,
+        privateMantra: name,
+        mantraName: name,
+        ...(route.params?.goal ? {goal: route.params.goal} : {}),
+      });
+      return;
+    }
+
     navigation.navigate('GoalSelect', {
-      mode: route.params?.mode || 'default',
+      mode,
       mantraId: selected,
       mantraName: chosenName,
       ...(route.params?.goal ? {goal: route.params.goal} : {}),

@@ -489,9 +489,16 @@ const HomeScreen = () => {
           }
         }
 
-        // If recently chanted mantra is completed or not found, fall back to the first ongoing active goal
+        // If recently chanted mantra is completed or not found, prefer a personal
+        // (typed) goal so catalog Om Namah Shivaya does not replace Bala after updates.
         if (!active && activeGoals.length > 0) {
-          active = activeGoals[0];
+          active =
+            activeGoals.find(
+              (g: any) =>
+                String(g.mantraType || g.mantra_type || '').toUpperCase() ===
+                  'PERSONAL' ||
+                Boolean(g.personalMantraId ?? g.personal_mantra_id),
+            ) || activeGoals[0];
         }
 
         // No invented 108 daily goal — only show what the devotee configured
@@ -711,11 +718,17 @@ const HomeScreen = () => {
       const isPersonal =
         activeJapaGoal.mantraType === 'PERSONAL' ||
         Boolean(activeJapaGoal.personalMantraId);
+      const personalLabel =
+        String(
+          activeJapaGoal.mantraName ||
+            activeJapaGoal.goalName ||
+            '',
+        ).trim() || undefined;
       navigation.navigate('Chant', {
         mode: isPersonal ? 'private' : 'community',
         mantraId: isPersonal ? undefined : (activeJapaGoal.mantraId || undefined),
         personalMantraId: activeJapaGoal.personalMantraId || undefined,
-        privateMantra: isPersonal ? activeJapaGoal.mantraName : undefined,
+        privateMantra: isPersonal ? personalLabel : undefined,
         goal: activeJapaGoal.targetCount,
         initialCount: activeJapaGoal.completedCount,
         dailyTarget: userDailyGoal || activeJapaGoal.dailyTarget,

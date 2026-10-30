@@ -271,14 +271,20 @@ class JapaRepository {
       SELECT
         j.mantra_id AS mantraId,
         j.personal_mantra_id AS personalMantraId,
-        COALESCE(
-          MAX(m.mantra_name),
-          MAX(upm.mantra_name),
-          CASE
-            WHEN j.mantra_type = 'PERSONAL' THEN 'My Mantra'
-            ELSE 'Japa'
-          END
-        ) AS mantraName,
+        CASE
+          WHEN UPPER(IFNULL(j.mantra_type, '')) = 'PERSONAL'
+            OR j.personal_mantra_id IS NOT NULL
+          THEN COALESCE(
+            MAX(upm.mantra_name),
+            MAX(m.mantra_name),
+            'My Mantra'
+          )
+          ELSE COALESCE(
+            MAX(m.mantra_name),
+            MAX(upm.mantra_name),
+            'Japa'
+          )
+        END AS mantraName,
         COALESCE(SUM(j.session_count), 0) AS total
       FROM japa_sessions j
       LEFT JOIN mantras m

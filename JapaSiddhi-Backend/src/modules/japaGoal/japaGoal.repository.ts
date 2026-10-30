@@ -265,6 +265,44 @@ class JapaGoalRepository {
   }
 
 
+  /**
+   * Personal goals must not keep a catalog mantra_id. That id made Home show
+   * Om Namah Shivaya / Panchakshari over the devotee's typed mantra name.
+   */
+  async repairPersonalGoalCatalogIds(userId?: number): Promise<void> {
+    try {
+      if (userId) {
+        await mysql.query(
+          `
+          UPDATE japa_goals
+          SET mantra_id = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = ?
+            AND (
+              UPPER(IFNULL(mantra_type, '')) = 'PERSONAL'
+              OR personal_mantra_id IS NOT NULL
+            )
+            AND mantra_id IS NOT NULL
+          `,
+          [userId],
+        );
+        return;
+      }
+      await mysql.query(
+        `
+        UPDATE japa_goals
+        SET mantra_id = NULL, updated_at = CURRENT_TIMESTAMP
+        WHERE (
+          UPPER(IFNULL(mantra_type, '')) = 'PERSONAL'
+          OR personal_mantra_id IS NOT NULL
+        )
+          AND mantra_id IS NOT NULL
+        `,
+      );
+    } catch {
+      // Older schemas without columns — ignore.
+    }
+  }
+
   async createGoal(
     data: {
       userId: number;
@@ -283,6 +321,9 @@ class JapaGoalRepository {
 
 
     await this.ensurePlanDateColumn();
+    const isPersonal =
+      data.mantraType === 'PERSONAL' || Boolean(data.personalMantraId);
+    const catalogMantraId = isPersonal ? null : data.mantraId ?? null;
     const sameMantra = await mysql.query<any[]>(
       `
       SELECT id, created_at AS createdAt
@@ -351,8 +392,8 @@ class JapaGoalRepository {
         AND user_id = ?
         `,
         [
-          data.mantraType,
-          data.mantraId ?? null,
+          isPersonal ? 'PERSONAL' : data.mantraType,
+          catalogMantraId,
           data.personalMantraId ?? null,
           data.goalName,
           data.targetCount,
@@ -408,8 +449,8 @@ class JapaGoalRepository {
         `,
         [
           data.userId,
-          data.mantraType,
-          data.mantraId ?? null,
+          isPersonal ? 'PERSONAL' : data.mantraType,
+          catalogMantraId,
           data.personalMantraId ?? null,
           data.goalName,
           data.targetCount,
@@ -537,6 +578,7 @@ class JapaGoalRepository {
     try {
       await this.ensurePlanDateColumn();
       await this.repairUtcGoalDates();
+      await this.repairPersonalGoalCatalogIds(userId);
       const isMysql = mysql.getEngineName() === 'mysql';
       const expiredBeforeToday = isMysql
         ? `end_date < DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
@@ -615,10 +657,20 @@ class JapaGoalRepository {
 
         j.personal_mantra_id AS personalMantraId,
 
-        COALESCE(
-          m.mantra_name,
-          upm.mantra_name
-        ) AS mantraName,
+        CASE
+          WHEN UPPER(IFNULL(j.mantra_type, '')) = 'PERSONAL'
+            OR j.personal_mantra_id IS NOT NULL
+          THEN COALESCE(
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(j.goal_name, ''),
+            m.mantra_name
+          )
+          ELSE COALESCE(
+            NULLIF(m.mantra_name, ''),
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(j.goal_name, '')
+          )
+        END AS mantraName,
 
         j.target_count AS targetCount,
 

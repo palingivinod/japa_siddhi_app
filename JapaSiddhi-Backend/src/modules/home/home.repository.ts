@@ -134,10 +134,20 @@ class HomeRepository {
 
         j.personal_mantra_id AS personalMantraId,
 
-        COALESCE(
-          m.mantra_name,
-          upm.mantra_name
-        ) AS mantraName,
+        CASE
+          WHEN UPPER(IFNULL(j.mantra_type, '')) = 'PERSONAL'
+            OR j.personal_mantra_id IS NOT NULL
+          THEN COALESCE(
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(j.goal_name, ''),
+            m.mantra_name
+          )
+          ELSE COALESCE(
+            NULLIF(m.mantra_name, ''),
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(j.goal_name, '')
+          )
+        END AS mantraName,
 
         j.target_count AS targetCount,
 

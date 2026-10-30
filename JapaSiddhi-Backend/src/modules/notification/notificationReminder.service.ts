@@ -553,7 +553,20 @@ export const flushDeadlineReminders = async () => {
         jg.end_date AS endDate,
         jg.mantra_id AS mantraId,
         jg.personal_mantra_id AS personalMantraId,
-        COALESCE(m.mantra_name, upm.mantra_name, jg.goal_name) AS mantraName,
+        CASE
+          WHEN UPPER(IFNULL(jg.mantra_type, '')) = 'PERSONAL'
+            OR jg.personal_mantra_id IS NOT NULL
+          THEN COALESCE(
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(jg.goal_name, ''),
+            m.mantra_name
+          )
+          ELSE COALESCE(
+            NULLIF(m.mantra_name, ''),
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(jg.goal_name, '')
+          )
+        END AS mantraName,
         IFNULL(jg.target_count, 0) AS targetCount,
         IFNULL(jg.completed_count, 0) AS completedCount
       FROM japa_goals jg
@@ -730,7 +743,20 @@ export const flushDeadlineReminders = async () => {
         jg.goal_name AS goalName,
         jg.mantra_id AS mantraId,
         jg.personal_mantra_id AS personalMantraId,
-        COALESCE(m.mantra_name, upm.mantra_name, jg.goal_name) AS mantraName,
+        CASE
+          WHEN UPPER(IFNULL(jg.mantra_type, '')) = 'PERSONAL'
+            OR jg.personal_mantra_id IS NOT NULL
+          THEN COALESCE(
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(jg.goal_name, ''),
+            m.mantra_name
+          )
+          ELSE COALESCE(
+            NULLIF(m.mantra_name, ''),
+            NULLIF(upm.mantra_name, ''),
+            NULLIF(jg.goal_name, '')
+          )
+        END AS mantraName,
         jg.end_date AS endDate,
         IFNULL(jg.target_count, 0) AS targetCount,
         IFNULL(jg.completed_count, 0) AS completedCount,

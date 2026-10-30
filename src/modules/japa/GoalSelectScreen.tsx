@@ -198,7 +198,9 @@ const GoalSelectScreen = () => {
         try {
           const goalRes = await apiService.post('/japa-goals', {
             mantraType: isPersonal ? 'PERSONAL' : 'DEFAULT',
-            mantraId: route.params?.mantraId,
+            // Personal / typed mantras must not keep a catalog mantraId
+            // (that overwrote names like Bala with Om Namah Shivaya).
+            mantraId: isPersonal ? undefined : route.params?.mantraId,
             personalMantraId: route.params?.personalMantraId,
             goalName: calculatedGoalName,
             targetCount: goal,
