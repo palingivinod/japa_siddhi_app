@@ -36,20 +36,21 @@ type SevaItem = {
   route: BookingScreen;
 };
 
-const buildSevaShareText = (item: SevaItem) => {
-  const link = publicBookingUrlForScreen(item.route);
-  return [
-    `🙏 Japa Siddhi – Bilva Patra Trust 🙏`,
+const buildAllSevaShareText = (items: SevaItem[]) => {
+  const lines = [
+    '🙏 Japa Siddhi – Bilva Patra Trust — Spiritual Services 🙏',
     '',
-    item.title,
-    item.sub,
+    'Book / request seva in the Japa Siddhi app:',
     '',
-    'Open in the Japa Siddhi app:',
-    link,
-    '',
-    'Download app:',
-    PLAYSTORE_URL,
-  ].join('\n');
+  ];
+  items.forEach(item => {
+    lines.push(item.title);
+    lines.push(publicBookingUrlForScreen(item.route));
+    lines.push('');
+  });
+  lines.push('Download app:');
+  lines.push(PLAYSTORE_URL);
+  return lines.join('\n');
 };
 
 const SevaHubScreen = () => {
@@ -121,8 +122,8 @@ const SevaHubScreen = () => {
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
   }, [t, annadanamEnabled]);
 
-  const handleShareSeva = async (item: SevaItem) => {
-    const message = buildSevaShareText(item);
+  const handleShareAllSevas = async () => {
+    const message = buildAllSevaShareText(items);
     try {
       (Clipboard as {setString?: (value: string) => void}).setString?.(message);
       if (Platform.OS === 'android') {
@@ -143,12 +144,12 @@ const SevaHubScreen = () => {
       await Share.share(
         Platform.OS === 'ios'
           ? {url: PLAYSTORE_URL, message}
-          : {title: `Japa Siddhi - ${item.title}`, message},
+          : {title: 'Japa Siddhi - Spiritual Services', message},
       );
     } catch (err: any) {
       try {
         await Share.share({
-          title: `Japa Siddhi - ${item.title}`,
+          title: 'Japa Siddhi - Spiritual Services',
           message,
         });
       } catch (fallbackErr: any) {
@@ -179,40 +180,39 @@ const SevaHubScreen = () => {
           removeClippedSubviews={false}
           overScrollMode="never"
           keyboardShouldPersistTaps="handled">
-          <Text style={styles.heading}>{t('spiritualServices')}</Text>
+          <View style={styles.headingRow}>
+            <Text style={styles.heading}>{t('spiritualServices')}</Text>
+            <TouchableOpacity
+              onPress={handleShareAllSevas}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+              accessibilityRole="button"
+              accessibilityLabel={t('share') || 'Share'}>
+              <Text style={styles.shareLink}>{t('share') || 'Share'}</Text>
+            </TouchableOpacity>
+          </View>
           {items.map(item => (
-            <View key={item.route} style={styles.card}>
-              <TouchableOpacity
-                style={styles.cardMain}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate(item.route)}>
-                <View style={styles.dot}>
-                  {item.emoji ? (
-                    <Text style={styles.emoji}>{item.emoji}</Text>
-                  ) : (
-                    <AppIcon
-                      name={item.icon || 'bowl'}
-                      size={44}
-                      color={Colors.sacredBrown}
-                    />
-                  )}
-                </View>
-                <View style={styles.copy}>
-                  <Text style={styles.title}>{item.title}</Text>
-                  <Text style={styles.sub}>{item.sub}</Text>
-                </View>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.shareBtn}
-                activeOpacity={0.8}
-                onPress={() => handleShareSeva(item)}
-                hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                accessibilityRole="button"
-                accessibilityLabel={t('share') || 'Share'}>
-                <Text style={styles.shareIcon}>📤</Text>
-                <Text style={styles.shareText}>{t('share') || 'Share'}</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              key={item.route}
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate(item.route)}>
+              <View style={styles.dot}>
+                {item.emoji ? (
+                  <Text style={styles.emoji}>{item.emoji}</Text>
+                ) : (
+                  <AppIcon
+                    name={item.icon || 'bowl'}
+                    size={44}
+                    color={Colors.sacredBrown}
+                  />
+                )}
+              </View>
+              <View style={styles.copy}>
+                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.sub}>{item.sub}</Text>
+              </View>
+            </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
@@ -227,30 +227,38 @@ const styles = StyleSheet.create({
   container: {flex: 1, backgroundColor: Colors.background},
   body: {flex: 1, paddingHorizontal: 12},
   scrollContent: {paddingBottom: 36},
+  headingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    gap: 12,
+  },
   heading: {
+    flex: 1,
     fontSize: 18,
     lineHeight: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
-    marginBottom: 10,
     includeFontPadding: true,
+  },
+  shareLink: {
+    flexShrink: 0,
+    fontSize: 15,
+    lineHeight: 22,
+    fontWeight: '800',
+    color: Colors.leafGreen,
   },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-  },
-  cardMain: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    minWidth: 0,
   },
   dot: {
     width: 44,
@@ -279,25 +287,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     includeFontPadding: true,
-  },
-  shareBtn: {
-    flexShrink: 0,
-    marginLeft: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FFF0D4',
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    borderRadius: 16,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    minWidth: 58,
-  },
-  shareIcon: {fontSize: 14},
-  shareText: {
-    marginTop: 2,
-    fontSize: 11,
-    fontWeight: '700',
-    color: Colors.sacredBrown,
   },
 });

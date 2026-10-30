@@ -16,7 +16,6 @@ import Clipboard from 'react-native/Libraries/Components/Clipboard/Clipboard';
 
 import {useLanguage} from '../../../i18n/LanguageContext';
 import Colors from '../../../theme/colors';
-import MenuCard from '../../common/MenuCard';
 import PrimaryButton from '../../common/PrimaryButton';
 import ScreenLayout from '../../common/ScreenLayout';
 import ProfileApi from '../../auth/services/profileApi';
@@ -291,12 +290,6 @@ const MonthlySupportScreen = () => {
           </Text>
         </TouchableOpacity>
       </View>
-      <MenuCard
-        icon="generalAnnadanam"
-        title={t('tileMonthlySupport')}
-        subtitle={t('tileMonthlySupportSub')}
-      />
-
       <Text style={styles.sectionTitle}>
         {t('chooseMonthlyContribution')}
       </Text>

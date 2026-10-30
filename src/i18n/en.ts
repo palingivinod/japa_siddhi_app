@@ -13,7 +13,7 @@ const en = {
   devotee: 'Devotee',
   required: 'Required',
   or: 'OR',
-  share: 'Share app',
+  share: 'Share',
   requestSubmittedTitle: 'Request submitted',
   requestSubmittedMessage:
     'Your request is submitted. We will contact you soon.',

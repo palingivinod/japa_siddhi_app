@@ -1,9 +1,16 @@
 /**
- * Same pattern as /annasantharpana: HTTPS page on Render that opens the app
- * via japasiddhi://… with Play Store fallback.
- * Android also uses intent:// so Chrome can open the app (or Play Store) without
- * requiring an extra tap when App Links are not yet verified.
+ * HTTPS open-app pages on Render: japasiddhi://… with Play Store fallback.
+ * Copy is localized (en/hi/te/kn/ta/ml/mr/bn/or). Pass ?lang=te to force.
  */
+
+import {
+  getLandingPack,
+  LANDING_LANG_LABELS,
+  LANDING_LANGS,
+  LandingLang,
+  landingLangFromAccept,
+  resolveLandingLang,
+} from './deepLinkLandingI18n';
 
 const PLAYSTORE =
   'https://play.google.com/store/apps/details?id=com.japasiddhi';
@@ -25,21 +32,46 @@ const toAndroidIntentUrl = (deepLink: string) => {
   return `intent://${withoutScheme}#Intent;scheme=japasiddhi;package=com.japasiddhi;S.browser_fallback_url=${fallback};end`;
 };
 
+export const pickLandingLang = (input: {
+  queryLang?: string | null;
+  acceptLanguage?: string | null;
+}): LandingLang => {
+  const fromQuery = String(input.queryLang || '').trim();
+  if (fromQuery) {
+    return resolveLandingLang(fromQuery);
+  }
+  return landingLangFromAccept(input.acceptLanguage);
+};
+
 export const renderDeepLinkLanding = (input: {
   title: string;
   subtitle: string;
   appDeepLink: string;
   icon?: string;
+  lang?: LandingLang | string | null;
 }): string => {
+  const lang = resolveLandingLang(input.lang);
+  const pack = getLandingPack(lang);
   const title = escapeHtml(input.title);
   const subtitle = escapeHtml(input.subtitle);
   const deepLink = escapeHtml(input.appDeepLink);
   const intentUrl = toAndroidIntentUrl(input.appDeepLink);
   const icon = escapeHtml(input.icon || '🪔');
+  const openInApp = escapeHtml(pack.ui.openInApp);
+  const downloadPlay = escapeHtml(pack.ui.downloadPlay);
+  const notOpening = escapeHtml(pack.ui.notOpening);
+  const langLabel = escapeHtml(pack.ui.langLabel);
+
+  const langOptions = LANDING_LANGS.map(
+    code =>
+      `<option value="${code}"${code === lang ? ' selected' : ''}>${escapeHtml(
+        LANDING_LANG_LABELS[code],
+      )}</option>`,
+  ).join('');
 
   return `
 <!DOCTYPE html>
-<html lang="en">
+<html lang="${lang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -48,7 +80,7 @@ export const renderDeepLinkLanding = (input: {
     * { box-sizing: border-box; }
     body {
       margin: 0; padding: 24px 16px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", sans-serif;
       background: #FFFDF9; color: #3A2010;
       display: flex; justify-content: center; align-items: center; min-height: 90vh;
     }
@@ -56,6 +88,15 @@ export const renderDeepLinkLanding = (input: {
       background: #FFFFFF; border-radius: 20px; padding: 32px 24px;
       max-width: 440px; width: 100%; text-align: center;
       border: 1.5px solid #F3E6D0; box-shadow: 0 10px 30px rgba(86,53,15,0.09);
+      position: relative;
+    }
+    .lang-row {
+      display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+      margin: -8px 0 16px; font-size: 12px; color: #8A6A4A;
+    }
+    .lang-row select {
+      border: 1px solid #E8D9B8; border-radius: 8px; padding: 6px 8px;
+      background: #FFFDF9; color: #3A2010; font-size: 13px;
     }
     .icon { font-size: 52px; margin-bottom: 14px; }
     h1 { font-size: 22px; color: #2D5016; margin: 0 0 10px; font-weight: 800; }
@@ -85,177 +126,148 @@ export const renderDeepLinkLanding = (input: {
         var hint = document.getElementById('dl-hint');
         if (hint) { hint.className = 'hint show'; }
       }, 1600);
+      window.__setLandingLang = function (code) {
+        try {
+          var url = new URL(window.location.href);
+          url.searchParams.set('lang', code);
+          window.location.href = url.toString();
+        } catch (e) {}
+      };
     })();
   </script>
 </head>
 <body>
   <div class="card">
+    <div class="lang-row">
+      <label for="dl-lang">${langLabel}</label>
+      <select id="dl-lang" onchange="window.__setLandingLang(this.value)">
+        ${langOptions}
+      </select>
+    </div>
     <div class="icon">${icon}</div>
     <h1>${title}</h1>
     <p>${subtitle}</p>
-    <p id="dl-hint" class="hint">App not opening? Please download Japa Siddhi, then open this link again.</p>
-    <a href="${deepLink}" class="btn-app">Open in Japa Siddhi App</a>
-    <a href="${PLAYSTORE}" class="btn-play">Please download the app (Play Store)</a>
+    <p id="dl-hint" class="hint">${notOpening}</p>
+    <a href="${deepLink}" class="btn-app">${openInApp}</a>
+    <a href="${PLAYSTORE}" class="btn-play">${downloadPlay}</a>
   </div>
 </body>
 </html>
   `.trim();
 };
 
-const MS_PAGES: Record<string, {title: string; subtitle: string; deepLink: string}> = {
-  '58': {
-    title: 'Monthly Support — ₹58',
-    subtitle: 'Open Japa Siddhi to contribute ₹58 / month via Razorpay.',
-    deepLink: 'japasiddhi://ms/58',
-  },
-  '116': {
-    title: 'Monthly Support — ₹116',
-    subtitle: 'Open Japa Siddhi to contribute ₹116 / month via Razorpay.',
-    deepLink: 'japasiddhi://ms/116',
-  },
-  '200': {
-    title: 'Monthly Support — ₹200',
-    subtitle: 'Open Japa Siddhi to contribute ₹200 / month via Razorpay.',
-    deepLink: 'japasiddhi://ms/200',
-  },
-  '216': {
-    title: 'Monthly Support — ₹216',
-    subtitle: 'Open Japa Siddhi to contribute ₹216 / month via Razorpay.',
-    deepLink: 'japasiddhi://ms/216',
-  },
-  custom: {
-    title: 'Monthly Support — Custom amount',
-    subtitle: 'Open Japa Siddhi to enter your own Monthly Support amount.',
-    deepLink: 'japasiddhi://ms/custom',
-  },
-  autopay: {
-    title: 'Monthly Support — Autopay',
-    subtitle: 'Open Japa Siddhi to set up Monthly Support Autopay.',
-    deepLink: 'japasiddhi://ms/autopay',
-  },
+type MsBase = {deepLink: string; amount?: number; kind: 'amount' | 'custom' | 'autopay' | 'default'};
+
+const MS_META: Record<string, MsBase> = {
+  '58': {kind: 'amount', amount: 58, deepLink: 'japasiddhi://ms/58'},
+  '116': {kind: 'amount', amount: 116, deepLink: 'japasiddhi://ms/116'},
+  '200': {kind: 'amount', amount: 200, deepLink: 'japasiddhi://ms/200'},
+  '216': {kind: 'amount', amount: 216, deepLink: 'japasiddhi://ms/216'},
+  custom: {kind: 'custom', deepLink: 'japasiddhi://ms/custom'},
+  custo: {kind: 'custom', deepLink: 'japasiddhi://ms/custom'},
+  autopay: {kind: 'autopay', deepLink: 'japasiddhi://ms/autopay'},
 };
 
-export const resolveMonthlySupportLanding = (slug: string) => {
+export const resolveMonthlySupportLanding = (
+  slug: string,
+  lang?: string | null,
+) => {
+  const pack = getLandingPack(lang);
   const key = String(slug || '')
     .trim()
     .toLowerCase();
-  if (key && MS_PAGES[key]) {
-    return MS_PAGES[key];
+  const meta = key ? MS_META[key] : undefined;
+  if (meta?.kind === 'amount' && meta.amount) {
+    const copy = pack.ms.amount(meta.amount);
+    return {...copy, deepLink: meta.deepLink};
   }
-  return {
-    title: 'Monthly Support',
-    subtitle: 'Open Japa Siddhi to contribute Monthly Support.',
-    deepLink: 'japasiddhi://monthly-support',
-  };
+  if (meta?.kind === 'custom') {
+    return {...pack.ms.custom, deepLink: meta.deepLink};
+  }
+  if (meta?.kind === 'autopay') {
+    return {...pack.ms.autopay, deepLink: meta.deepLink};
+  }
+  return {...pack.ms.default, deepLink: 'japasiddhi://monthly-support'};
 };
 
-const BOOK_PAGES: Record<
-  string,
-  {title: string; subtitle: string; deepLink: string; icon?: string}
-> = {
+type BookMeta = {
+  key:
+    | 'nithyaHomam'
+    | 'banaLingam'
+    | 'annaSantharpana'
+    | 'japaAnnadanam'
+    | 'monthlySupport'
+    | 'ramakoti'
+    | 'homaBhasma'
+    | 'birava'
+    | 'seva'
+    | 'festivals';
+  deepLink: string;
+  icon?: string;
+};
+
+const BOOK_META: Record<string, BookMeta> = {
   'nithya-homam': {
-    title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
+    key: 'nithyaHomam',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
   'nitya-homam': {
-    title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
+    key: 'nithyaHomam',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
   homam: {
-    title: 'Nithya Homam',
-    subtitle: 'Open Japa Siddhi to book Nithya Homam.',
+    key: 'nithyaHomam',
     deepLink: 'japasiddhi://book/nithya-homam',
     icon: '🔥',
   },
-  'bana-lingam': {
-    title: 'Bana Lingam',
-    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
-    deepLink: 'japasiddhi://book/bana-lingam',
-  },
-  banalingam: {
-    title: 'Bana Lingam',
-    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
-    deepLink: 'japasiddhi://book/bana-lingam',
-  },
-  baanalingam: {
-    title: 'Bana Lingam',
-    subtitle: 'Open Japa Siddhi to book Bana Lingam seva.',
-    deepLink: 'japasiddhi://book/bana-lingam',
-  },
+  'bana-lingam': {key: 'banaLingam', deepLink: 'japasiddhi://book/bana-lingam'},
+  banalingam: {key: 'banaLingam', deepLink: 'japasiddhi://book/bana-lingam'},
+  baanalingam: {key: 'banaLingam', deepLink: 'japasiddhi://book/bana-lingam'},
   annadanam: {
-    title: 'Anna Santharpana',
-    subtitle: 'Open Japa Siddhi for Anna Santharpana.',
+    key: 'annaSantharpana',
     deepLink: 'japasiddhi://book/annadanam',
     icon: '🍲',
   },
   annasantharpana: {
-    title: 'Anna Santharpana',
-    subtitle: 'Open Japa Siddhi for Anna Santharpana.',
+    key: 'annaSantharpana',
     deepLink: 'japasiddhi://annasantharpana',
     icon: '🍲',
   },
   'japa-annadanam': {
-    title: 'Japa Annadanam',
-    subtitle: 'Open Japa Siddhi for Japa Annadanam.',
+    key: 'japaAnnadanam',
     deepLink: 'japasiddhi://book/japa-annadanam',
     icon: '🍲',
   },
   donate: {
-    title: 'Monthly Support',
-    subtitle: 'Open Japa Siddhi to contribute Monthly Support.',
+    key: 'monthlySupport',
     deepLink: 'japasiddhi://monthly-support',
   },
-  ramakoti: {
-    title: 'Ramakoti',
-    subtitle: 'Open Japa Siddhi for Ramakoti.',
-    deepLink: 'japasiddhi://book/ramakoti',
-  },
-  'homa-bhasma': {
-    title: 'Homa Bhasma',
-    subtitle: 'Open Japa Siddhi for Homa Bhasma.',
-    deepLink: 'japasiddhi://book/homa-bhasma',
-  },
-  bhasma: {
-    title: 'Homa Bhasma',
-    subtitle: 'Open Japa Siddhi for Homa Bhasma.',
-    deepLink: 'japasiddhi://book/homa-bhasma',
-  },
-  birava: {
-    title: 'Bhairava Pendant',
-    subtitle: 'Open Japa Siddhi for Bhairava Pendant.',
-    deepLink: 'japasiddhi://book/birava',
-  },
-  'birava-pendant': {
-    title: 'Bhairava Pendant',
-    subtitle: 'Open Japa Siddhi for Bhairava Pendant.',
-    deepLink: 'japasiddhi://book/birava',
-  },
-  seva: {
-    title: 'Book Seva',
-    subtitle: 'Open Japa Siddhi to book seva.',
-    deepLink: 'japasiddhi://book/seva',
-  },
-  festivals: {
-    title: 'Festivals',
-    subtitle: 'Open Japa Siddhi for festival offerings.',
-    deepLink: 'japasiddhi://book/festivals',
-  },
+  ramakoti: {key: 'ramakoti', deepLink: 'japasiddhi://book/ramakoti'},
+  'homa-bhasma': {key: 'homaBhasma', deepLink: 'japasiddhi://book/homa-bhasma'},
+  bhasma: {key: 'homaBhasma', deepLink: 'japasiddhi://book/homa-bhasma'},
+  birava: {key: 'birava', deepLink: 'japasiddhi://book/birava'},
+  'birava-pendant': {key: 'birava', deepLink: 'japasiddhi://book/birava'},
+  seva: {key: 'seva', deepLink: 'japasiddhi://book/seva'},
+  festivals: {key: 'festivals', deepLink: 'japasiddhi://book/festivals'},
 };
 
-export const resolveBookingLanding = (slug: string) => {
+export const resolveBookingLanding = (
+  slug: string,
+  lang?: string | null,
+) => {
+  const pack = getLandingPack(lang);
   const key = String(slug || '')
     .trim()
     .toLowerCase();
-  if (key && BOOK_PAGES[key]) {
-    return BOOK_PAGES[key];
+  const meta = key ? BOOK_META[key] : undefined;
+  if (meta) {
+    const copy = pack.book[meta.key];
+    return {...copy, deepLink: meta.deepLink, icon: meta.icon};
   }
   return {
-    title: 'Book Seva',
-    subtitle: 'Open Japa Siddhi to book seva.',
+    ...pack.book.seva,
     deepLink: 'japasiddhi://book/seva',
     icon: '🪔',
   };
