@@ -779,6 +779,18 @@ const en = {
     'Enter any special requests or comments (optional)',
   tileMonthlySupport: 'Monthly Support (Donate here now)',
   tileMonthlySupportSub: 'Support spiritual',
+  monthlySupportThankYouTitle: 'Thank You! Your Monthly Support is Confirmed',
+  monthlySupportThankYouSub:
+    'Your devotion helps our temple Seva continue every month.',
+  yourContribution: 'Your Contribution',
+  togetherDivine: 'Together for a cause divine',
+  shareYourSeva: 'Share Your Seva',
+  shareYourSevaSub:
+    'Inspire your family & friends to be a part of this divine journey',
+  mayLordsBlessings: "May Lord's Blessings be with you always!",
+  devoteeLabel: 'Devotee',
+  instagramShareHint:
+    'Share your seva message, then paste it in Instagram if needed.',
   perMonth: '/ month',
   monthlySupportNote:
     'Note: Many devotees requested an auto-debit / autopay facility each month so that their monthly seva support continues seamlessly without forgetting or skipping.',

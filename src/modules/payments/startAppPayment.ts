@@ -172,7 +172,13 @@ export async function startAppPayment(input: AppPaymentInput) {
       name: input.name,
       phone: input.phone,
     };
-    navigateTo('PaymentConfirmation', confirmationParams);
+    const isMonthlySupport = /monthly\s*support/i.test(
+      String(input.seva || input.purpose || ''),
+    );
+    navigateTo(
+      isMonthlySupport ? 'MonthlySupportThankYou' : 'PaymentConfirmation',
+      confirmationParams,
+    );
   } catch {
     await websiteFallback(input);
   } finally {

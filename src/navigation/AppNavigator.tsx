@@ -55,6 +55,7 @@ import MilestoneRewardOverviewScreen from '../modules/donate/MilestoneRewardOver
 import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
 import DonationFormScreen from '../modules/donate/DonationFormScreen';
 import MonthlySupportScreen from '../modules/home/screens/MonthlySupportScreen';
+import MonthlySupportThankYouScreen from '../modules/home/screens/MonthlySupportThankYouScreen';
 import FestivalsScreen from '../modules/festivals/FestivalsScreen';
 import ProgressScreen from '../modules/progress/ProgressScreen';
 import AnalyticsHubScreen from '../modules/analytics/AnalyticsHubScreen';
@@ -319,6 +320,7 @@ export type RootStackParamList = {
   BanaLingam: undefined;
   BanaLingamPayment: any;
   PaymentConfirmation: any;
+  MonthlySupportThankYou: any;
   PaymentReceiptView: any;
   NithyaHomam: undefined;
   HomamEnroll: undefined;
@@ -490,6 +492,7 @@ const ProtectedMilestoneRewardOverview = withAuth(MilestoneRewardOverviewScreen)
 const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
 const ProtectedDonationForm = withAuth(DonationFormScreen);
 const ProtectedMonthlySupport = withAuth(MonthlySupportScreen);
+const ProtectedMonthlySupportThankYou = withAuth(MonthlySupportThankYouScreen);
 const ProtectedCheckout = withAuth(CheckoutScreen);
 const ProtectedPaymentConfirmation = withAuth(PaymentConfirmationScreen);
 const ProtectedPaymentReceiptView = withAuth(PaymentReceiptViewScreen);
@@ -707,6 +710,10 @@ const AppNavigator = () => {
         <Stack.Screen name="FamilyJapa" component={ProtectedFamily} />
         <Stack.Screen name="Donate" component={ProtectedDonate} />
         <Stack.Screen name="MonthlySupport" component={ProtectedMonthlySupport} />
+        <Stack.Screen
+          name="MonthlySupportThankYou"
+          component={ProtectedMonthlySupportThankYou}
+        />
         <Stack.Screen name="JapaAnnadanam" component={ProtectedJapaAnnadanam} />
         <Stack.Screen
           name="MilestoneNotifications"

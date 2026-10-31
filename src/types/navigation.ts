@@ -76,6 +76,7 @@ export type RootStackParamList = {
     | undefined;
   GeneralAnnadanam: undefined;
   PaymentConfirmation: any;
+  MonthlySupportThankYou: any;
   MilestoneNotifications: undefined;
   ChallengeDetails: {id?: number} | undefined;
   ChallengeRewardSelect: {id?: number} | undefined;
