@@ -423,17 +423,19 @@ const AdminOrdersScreen = () => {
   }, [orders, orderType, search, searchActive]);
 
   const rewardOptions = useMemo(() => {
+    const isPlaceholderReward = (name: string) =>
+      normalizeRewardKey(name) === 'test';
     const names = new Map<string, string>();
     catalogRewardNames.forEach(name => {
       const key = normalizeRewardKey(name);
-      if (key && !names.has(key)) {
+      if (key && !isPlaceholderReward(name) && !names.has(key)) {
         names.set(key, name);
       }
     });
     typedOrders.forEach(order => {
       const raw = String(order.rewardName || order.product || '').trim();
       const key = normalizeRewardKey(raw);
-      if (key && !names.has(key)) {
+      if (key && !isPlaceholderReward(raw) && !names.has(key)) {
         names.set(key, raw);
       }
     });
