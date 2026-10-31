@@ -36,7 +36,6 @@ const PaymentReceiptViewScreen = () => {
   const paymentId = String(
     data.paymentId || data.confirmationId || data.orderNumber || '',
   ).trim();
-  const orderId = String(data.razorpayOrderId || data.orderId || '').trim();
   const amount = Number(data.amount);
   const amountLabel =
     Number.isFinite(amount) && amount > 0
@@ -59,7 +58,6 @@ const PaymentReceiptViewScreen = () => {
     try {
       await downloadPaymentReceipt({
         paymentId,
-        orderId,
         amount,
         seva,
         purpose,
@@ -88,7 +86,6 @@ const PaymentReceiptViewScreen = () => {
           <Row label="Status" value="SUCCESS" emphasize />
           <Row label="Date" value={when} />
           <Row label="Payment ID" value={paymentId || '—'} />
-          {orderId ? <Row label="Order ID" value={orderId} /> : null}
           <Row label="Amount" value={amountLabel} emphasize />
           {seva ? <Row label="Seva" value={seva} /> : null}
           {purpose && purpose !== seva ? (

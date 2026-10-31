@@ -1,20 +1,17 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
-  ImageBackground,
-  Linking,
   NativeModules,
   Platform,
   Share,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
-import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useLanguage} from '../../../i18n/LanguageContext';
 import ProfileApi from '../../auth/services/profileApi';
@@ -22,29 +19,49 @@ import {getStoredUser} from '../../../services/session';
 import {resolveMediaUrl} from '../../../services/profilePhoto';
 import Colors from '../../../theme/colors';
 import PrimaryButton from '../../common/PrimaryButton';
-import AppHeader from '../../common/AppHeader';
-import BottomTabs from '../../common/BottomTabs';
-import {useBottomNavPad} from '../../../utils/safeArea';
+import ScreenLayout from '../../common/ScreenLayout';
+import {
+  alertReceiptError,
+  downloadPaymentReceipt,
+} from '../../payments/downloadPaymentReceipt';
 
 const APP_LOGO = require('../../../assets/images/logo.png');
-const THANKYOU_BG = require('../../../assets/images/monthly_support_thankyou.png');
-
-/** Design asset aspect (349×693). */
-const POSTER_RATIO = 349 / 693;
 
 const MonthlySupportThankYouScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
-  const {width: windowWidth} = useWindowDimensions();
-  const bottomPad = useBottomNavPad();
 
-  const amount = Math.round(Number(route.params?.amount) || 0);
+  // Always from this payment's route params — never a hardcoded amount.
+  const paidAmount = useMemo(() => {
+    const raw = Number(
+      route.params?.amount ??
+        route.params?.amountRupees ??
+        route.params?.paidAmount ??
+        0,
+    );
+    return Number.isFinite(raw) && raw > 0 ? Math.round(raw) : 0;
+  }, [
+    route.params?.amount,
+    route.params?.amountRupees,
+    route.params?.paidAmount,
+  ]);
   const amountLabel =
-    amount > 0 ? `₹${amount.toLocaleString('en-IN')}` : '₹—';
+    paidAmount > 0 ? `₹${paidAmount.toLocaleString('en-IN')}` : '₹—';
+
+  const paymentId = String(
+    route.params?.confirmationId ||
+      route.params?.paymentId ||
+      route.params?.orderNumber ||
+      '',
+  ).trim();
+  const seva = String(route.params?.seva || 'Monthly Support').trim();
+  const purpose = String(route.params?.purpose || '').trim();
+  const phone = String(route.params?.phone || '').trim();
 
   const [name, setName] = useState(String(route.params?.name || '').trim());
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,10 +111,8 @@ const MonthlySupportThankYouScreen = () => {
     'Support Monthly Seva in the Japa Siddhi app.',
   ].join('\n');
 
-  const posterWidth = Math.min(windowWidth - 24, 420);
-  const posterHeight = posterWidth / POSTER_RATIO;
-
-  const shareGeneric = async () => {
+  /** Logo image + seva text only — never a screen capture (Close stays off the share). */
+  const shareWithLogo = async () => {
     try {
       if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
         await NativeModules.AppShare.shareLogo(shareMessage);
@@ -113,306 +128,379 @@ const MonthlySupportThankYouScreen = () => {
     }
   };
 
-  const shareWhatsApp = async () => {
-    if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
-      await shareGeneric();
-      return;
-    }
-    const url = `whatsapp://send?text=${encodeURIComponent(shareMessage)}`;
-    try {
-      const can = await Linking.canOpenURL(url);
-      if (can) {
-        await Linking.openURL(url);
-        return;
-      }
-    } catch {
-      // fall through
-    }
-    await shareGeneric();
+  const shareWhatsApp = () => {
+    void shareWithLogo();
   };
 
-  const shareFacebook = async () => {
-    await shareGeneric();
+  const shareFacebook = () => {
+    void shareWithLogo();
   };
 
-  const shareInstagram = async () => {
+  const shareInstagram = () => {
     Alert.alert(
       t('shareYourSeva') || 'Share Your Seva',
       t('instagramShareHint') ||
-        'Copy your seva message, then paste it in Instagram.',
+        'Share the logo and your seva message, then paste in Instagram if needed.',
       [
         {text: t('cancel') || 'Cancel', style: 'cancel'},
         {
           text: t('share') || 'Share',
           onPress: () => {
-            void shareGeneric();
+            void shareWithLogo();
           },
         },
       ],
     );
   };
 
+  const onDownloadReceipt = async () => {
+    if (!paymentId) {
+      Alert.alert(
+        t('validationTitle') || 'Receipt',
+        'Payment id is missing. Receipt can be downloaded from payment history.',
+      );
+      return;
+    }
+    if (downloading) {
+      return;
+    }
+    setDownloading(true);
+    try {
+      await downloadPaymentReceipt({
+        paymentId,
+        amount: paidAmount > 0 ? paidAmount : undefined,
+        seva,
+        purpose: purpose || seva,
+        name: displayName,
+        phone: phone || undefined,
+      });
+    } catch (err) {
+      alertReceiptError(err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <AppHeader title={t('paymentSuccessful')} showBack />
-      <View
-        style={[
-          styles.body,
-          {paddingBottom: 120 + bottomPad},
-        ]}>
-        <View style={styles.brandRow}>
-          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
-          <View style={styles.brandCopy}>
-            <Text style={styles.brandTitle}>Japa Siddhi</Text>
-            <Text style={styles.brandSub}>Bilva Patra Trust</Text>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.posterWrap,
-            {width: posterWidth, height: posterHeight},
-          ]}>
-          <ImageBackground
-            source={THANKYOU_BG}
-            style={styles.poster}
-            imageStyle={styles.posterImage}
-            resizeMode="cover">
-            {/* Dynamic amount — covers baked-in ₹116 on the art */}
-            <View
-              style={[
-                styles.amountOverlay,
-                {
-                  top: posterHeight * 0.455,
-                  height: posterHeight * 0.07,
-                },
-              ]}>
-              <Text style={styles.amountOverlayText} numberOfLines={1}>
-                {amountLabel}
-                <Text style={styles.amountOverlaySuffix}> / Month</Text>
-              </Text>
-            </View>
-
-            {/* Dynamic profile photo — covers sample face on the art */}
-            <View
-              style={[
-                styles.photoOverlay,
-                {
-                  top: posterHeight * 0.635,
-                  left: posterWidth * 0.07,
-                  width: posterWidth * 0.22,
-                  height: posterWidth * 0.22,
-                  borderRadius: posterWidth * 0.11,
-                },
-              ]}>
-              {photoUri ? (
-                <Image
-                  source={{uri: photoUri}}
-                  style={styles.photoFill}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={[styles.photoFill, styles.photoFallback]}>
-                  <Text style={styles.photoInitial}>
-                    {displayName.charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            {/* Dynamic share line under photo (covers sample caption) */}
-            <View
-              style={[
-                styles.captionOverlay,
-                {
-                  top: posterHeight * 0.64,
-                  left: posterWidth * 0.32,
-                  width: posterWidth * 0.6,
-                  height: posterHeight * 0.11,
-                },
-              ]}>
-              <Text style={styles.captionName} numberOfLines={1}>
-                {displayName}
-              </Text>
-              <Text style={styles.captionText} numberOfLines={3}>
-                {`I have contributed ${amountLabel} per month towards our temple Seva 🙏 Let’s all join together!`}
-              </Text>
-            </View>
-
-            {/* Tappable share hit areas over art buttons */}
-            <TouchableOpacity
-              style={[
-                styles.hitBtn,
-                {
-                  top: posterHeight * 0.78,
-                  left: posterWidth * 0.06,
-                  width: posterWidth * 0.28,
-                  height: posterHeight * 0.055,
-                },
-              ]}
-              onPress={shareWhatsApp}
-              activeOpacity={0.7}
-            />
-            <TouchableOpacity
-              style={[
-                styles.hitBtn,
-                {
-                  top: posterHeight * 0.78,
-                  left: posterWidth * 0.36,
-                  width: posterWidth * 0.28,
-                  height: posterHeight * 0.055,
-                },
-              ]}
-              onPress={shareFacebook}
-              activeOpacity={0.7}
-            />
-            <TouchableOpacity
-              style={[
-                styles.hitBtn,
-                {
-                  top: posterHeight * 0.78,
-                  left: posterWidth * 0.66,
-                  width: posterWidth * 0.28,
-                  height: posterHeight * 0.055,
-                },
-              ]}
-              onPress={shareInstagram}
-              activeOpacity={0.7}
-            />
-          </ImageBackground>
-        </View>
-
-        <View style={styles.actions}>
-          <PrimaryButton
-            title={t('close') || 'CLOSE'}
-            onPress={() => navigation.navigate('Home')}
-          />
+    <ScreenLayout title={t('paymentSuccessful')} showBack tab="Home">
+      <View style={styles.brandRow}>
+        <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+        <View style={styles.brandCopy}>
+          <Text style={styles.brandTitle}>Japa Siddhi</Text>
+          <Text style={styles.brandSub}>Bilva Patra Trust</Text>
         </View>
       </View>
-      <BottomTabs active="Home" />
-    </SafeAreaView>
+
+      <View style={styles.hero}>
+        <View style={styles.checkCircle}>
+          <Text style={styles.checkMark}>✓</Text>
+        </View>
+        <Text style={styles.heroTitle}>
+          {t('monthlySupportThankYouTitle') ||
+            'Thank You! Your Monthly Support is Confirmed'}
+        </Text>
+        <Text style={styles.heroSub}>
+          {t('monthlySupportThankYouSub') ||
+            'Your devotion helps our temple Seva continue every month.'}
+        </Text>
+      </View>
+
+      <View style={styles.amountCard}>
+        <Text style={styles.amountLabel}>
+          {t('yourContribution') || 'Your Contribution'}
+        </Text>
+        <Text style={styles.amountValue}>
+          {amountLabel}
+          <Text style={styles.amountSuffix}> / Month</Text>
+        </Text>
+        <Text style={styles.amountFoot}>
+          {t('togetherDivine') || 'Together for a cause divine'} 🙏
+        </Text>
+        <Text style={styles.devoteeLine}>
+          {t('devoteeLabel') || 'Devotee'}: {displayName}
+        </Text>
+      </View>
+
+      <View style={styles.shareBanner}>
+        <Text style={styles.shareBannerTitle}>
+          {t('shareYourSeva') || 'Share Your Seva'}
+        </Text>
+        <Text style={styles.shareBannerSub}>
+          {t('shareYourSevaSub') ||
+            'Inspire your family & friends to be a part of this divine journey'}
+        </Text>
+      </View>
+
+      <View style={styles.previewCard}>
+        {photoUri ? (
+          <Image source={{uri: photoUri}} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarFallback]}>
+            <Text style={styles.avatarInitial}>
+              {displayName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+        <View style={styles.previewCopy}>
+          <Text style={styles.previewName}>{displayName}</Text>
+          <Text style={styles.previewText}>
+            {`I have contributed ${amountLabel} per month towards our temple Seva 🙏 Let’s all join together!`}
+          </Text>
+          <Text style={styles.previewBrand}>
+            Japa Siddhi · Bilva Patra Trust
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.shareRow}>
+        <TouchableOpacity
+          style={[styles.shareBtn, styles.waBtn]}
+          onPress={shareWhatsApp}
+          activeOpacity={0.85}>
+          <Text style={styles.shareBtnText}>WhatsApp</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.shareBtn, styles.fbBtn]}
+          onPress={shareFacebook}
+          activeOpacity={0.85}>
+          <Text style={styles.shareBtnText}>Facebook</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.shareBtn, styles.igBtn]}
+          onPress={shareInstagram}
+          activeOpacity={0.85}>
+          <Text style={styles.shareBtnText}>Instagram</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={styles.blessing}>
+        {t('mayLordsBlessings') ||
+          "May Lord's Blessings be with you always!"}
+      </Text>
+
+      {paymentId ? (
+        <View style={styles.receiptWrap}>
+          {downloading ? (
+            <ActivityIndicator
+              color={Colors.templeGold}
+              style={styles.receiptSpinner}
+            />
+          ) : null}
+          <PrimaryButton
+            title={
+              downloading
+                ? t('downloadingReceipt') || 'Downloading receipt...'
+                : t('downloadReceipt') || 'Download Receipt'
+            }
+            onPress={onDownloadReceipt}
+            disabled={downloading}
+          />
+        </View>
+      ) : null}
+
+      <PrimaryButton
+        title={t('close') || 'CLOSE'}
+        onPress={() => navigation.navigate('Home')}
+      />
+    </ScreenLayout>
   );
 };
 
 export default MonthlySupportThankYouScreen;
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  body: {
-    flex: 1,
-    alignItems: 'center',
-    paddingHorizontal: 12,
-  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'stretch',
-    marginBottom: 10,
-    marginTop: 4,
+    marginBottom: 14,
   },
   logo: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
   },
   brandCopy: {
-    marginLeft: 10,
+    marginLeft: 12,
     flex: 1,
   },
   brandTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
   brandSub: {
     marginTop: 2,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
     color: Colors.leafGreen,
   },
-  posterWrap: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: Colors.templeGold,
+  hero: {
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 8,
   },
-  poster: {
-    width: '100%',
-    height: '100%',
-  },
-  posterImage: {
-    width: '100%',
-    height: '100%',
-  },
-  amountOverlay: {
-    position: 'absolute',
-    left: '12%',
-    right: '12%',
+  checkCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#22C55E',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F8ECD4',
+    marginBottom: 12,
   },
-  amountOverlayText: {
-    fontSize: 26,
+  checkMark: {
+    color: Colors.white,
+    fontSize: 28,
     fontWeight: '800',
-    color: '#1A1A1A',
+  },
+  heroTitle: {
+    textAlign: 'center',
+    fontSize: 22,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  heroSub: {
+    marginTop: 8,
+    textAlign: 'center',
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  amountCard: {
+    backgroundColor: '#FFF8EA',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  amountLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  amountValue: {
+    marginTop: 6,
+    fontSize: 28,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  amountSuffix: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  amountFoot: {
+    marginTop: 8,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  devoteeLine: {
+    marginTop: 10,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+  },
+  shareBanner: {
+    backgroundColor: '#B91C1C',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+  },
+  shareBannerTitle: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 16,
     textAlign: 'center',
   },
-  amountOverlaySuffix: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#333',
+  shareBannerSub: {
+    marginTop: 4,
+    color: '#FEE2E2',
+    fontWeight: '600',
+    fontSize: 12,
+    textAlign: 'center',
   },
-  photoOverlay: {
-    position: 'absolute',
-    overflow: 'hidden',
+  previewCard: {
+    flexDirection: 'row',
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 12,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     borderWidth: 2,
     borderColor: Colors.templeGold,
+  },
+  avatarFallback: {
     backgroundColor: Colors.lightGold,
-  },
-  photoFill: {
-    width: '100%',
-    height: '100%',
-  },
-  photoFallback: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.lightGold,
   },
-  photoInitial: {
-    fontSize: 26,
+  avatarInitial: {
+    fontSize: 28,
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
-  captionOverlay: {
-    position: 'absolute',
-    justifyContent: 'center',
-    paddingRight: 4,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
+  previewCopy: {
+    flex: 1,
+    marginLeft: 12,
   },
-  captionName: {
+  previewName: {
     fontWeight: '800',
     color: Colors.sacredBrown,
-    fontSize: 13,
-    marginBottom: 2,
+    fontSize: 15,
+    marginBottom: 4,
   },
-  captionText: {
+  previewText: {
     color: Colors.textPrimary,
     fontWeight: '600',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  previewBrand: {
+    marginTop: 6,
+    color: Colors.leafGreen,
+    fontWeight: '700',
     fontSize: 11,
-    lineHeight: 15,
   },
-  hitBtn: {
-    position: 'absolute',
+  shareRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
   },
-  actions: {
-    alignSelf: 'stretch',
-    marginTop: 14,
+  shareBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  waBtn: {backgroundColor: '#16A34A'},
+  fbBtn: {backgroundColor: '#2563EB'},
+  igBtn: {backgroundColor: '#DB2777'},
+  shareBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  blessing: {
+    textAlign: 'center',
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    marginBottom: 16,
+    fontSize: 14,
+  },
+  receiptWrap: {
+    marginBottom: 12,
+  },
+  receiptSpinner: {
+    marginBottom: 8,
   },
 });

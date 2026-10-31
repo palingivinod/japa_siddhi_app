@@ -83,13 +83,12 @@ export const buildPaymentReceiptPdf = async (
   let phone = String(input.phone || '').trim();
   let seva = String(input.seva || input.purpose || '').trim();
   let purpose = String(input.purpose || '').trim();
-  let orderId = String(input.orderId || '').trim();
   let paidAt = String(input.paidAt || '').trim();
 
   try {
     const rows = await mysql.query<any[]>(
       `SELECT amount, donor_name AS donorName, donor_phone AS donorPhone,
-              donation_type AS donationType, remarks, payment_reference AS orderRef,
+              donation_type AS donationType, remarks,
               donated_at AS donatedAt, transaction_id AS transactionId
        FROM donations
        WHERE transaction_id = ?
@@ -113,9 +112,6 @@ export const buildPaymentReceiptPdf = async (
       }
       if (!purpose) {
         purpose = String(row.remarks || '').trim().slice(0, 120);
-      }
-      if (!orderId) {
-        orderId = String(row.orderRef || row.payment_reference || '').trim();
       }
       if (!paidAt) {
         paidAt = String(row.donatedAt || row.donated_at || '').trim();
@@ -204,9 +200,6 @@ export const buildPaymentReceiptPdf = async (
   line(doc, fonts, 'Status:', 'SUCCESS', {valueBold: true});
   line(doc, fonts, 'Date:', when);
   line(doc, fonts, 'Payment ID:', paymentId);
-  if (orderId) {
-    line(doc, fonts, 'Order ID:', orderId);
-  }
   line(doc, fonts, 'Amount:', amountLabel, {valueBold: true});
   if (seva) {
     line(doc, fonts, 'Seva:', seva);
