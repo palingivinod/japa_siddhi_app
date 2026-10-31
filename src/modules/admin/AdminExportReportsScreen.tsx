@@ -55,6 +55,24 @@ const AdminExportReportsScreen = () => {
 
       {ADMIN_EXPORT_REPORTS.map(item => {
         const type = TYPE_BY_ID[item.id] || item.id;
+        // Challenge Reports opens a details screen (like DOB), not instant XL.
+        if (type === 'challenges' || item.id === '3') {
+          return (
+            <TouchableOpacity
+              key={item.id}
+              style={styles.card}
+              activeOpacity={0.8}
+              onPress={() => navigation.navigate('AdminChallenges')}>
+              <View style={styles.copy}>
+                <Text style={styles.name}>{item.title}</Text>
+                <Text style={styles.meta}>{item.subtitle}</Text>
+              </View>
+              <View style={styles.pill}>
+                <Text style={styles.pillText}>Open</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }
         const busy = exporting === type;
         return (
           <View key={item.id} style={styles.card}>
