@@ -33,16 +33,6 @@ const MORE_LINKS: MoreLink[] = [
     sub: 'Create login credentials for another admin',
   },
   {
-    title: 'Notification Management',
-    route: 'AdminNotifications',
-    sub: 'Create and send notifications',
-  },
-  {
-    title: 'Choose Language',
-    route: 'AdminLanguages',
-    sub: 'Select admin panel and app language',
-  },
-  {
     title: 'User Reports',
     route: 'AdminUsers',
     sub: 'Users and demographics',
