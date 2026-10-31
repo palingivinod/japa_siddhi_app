@@ -144,6 +144,7 @@ const AdminNotificationsScreen = () => {
   >(defaultTranslations);
 
   const [target, setTarget] = useState('All users');
+  const [testQuery, setTestQuery] = useState('');
   const [schedule, setSchedule] = useState('Now');
   const [scheduledAt, setScheduledAt] = useState(defaultLater);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -369,6 +370,13 @@ const AdminNotificationsScreen = () => {
       Alert.alert('Schedule', 'Pick a date and time at least one minute from now.');
       return;
     }
+    if (target === 'Test' && !testQuery.trim()) {
+      Alert.alert(
+        'Test person required',
+        'Enter a name, user id, phone, or email. The notification will only go to that person.',
+      );
+      return;
+    }
     setSending(true);
     try {
       const response = await apiService.post('/admin/notifications/send', {
@@ -376,6 +384,7 @@ const AdminNotificationsScreen = () => {
         message: primaryMessage,
         translations,
         target,
+        testQuery: target === 'Test' ? testQuery.trim() : undefined,
         schedule,
         scheduledAt:
           schedule === 'Later' ? toScheduleStamp(scheduledAt) : undefined,
@@ -392,9 +401,13 @@ const AdminNotificationsScreen = () => {
           ? ''
           : `\nPush popups: ${Number(data.pushSent || 0)}` +
             (data.pushSkipped ? `\nPush note: ${data.pushSkipped}` : '');
+      const toLine =
+        target === 'Test'
+          ? `Test → ${data.testUser || testQuery.trim()}`
+          : target;
       Alert.alert(
         data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
-        `${detail}${pushLine}\n\nTo: ${target}\nWhen: ${
+        `${detail}${pushLine}\n\nTo: ${toLine}\nWhen: ${
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
@@ -403,6 +416,7 @@ const AdminNotificationsScreen = () => {
       setTranslations(defaultTranslations());
       latestEnRef.current = {title: '', message: ''};
       setLastAutoTranslatedAt(null);
+      setTestQuery('');
       setSchedule('Now');
       setScheduledAt(defaultLater());
       clearImage();
@@ -553,9 +567,23 @@ const AdminNotificationsScreen = () => {
       <SelectField
         label="Target Group"
         value={target}
-        options={['All users', 'Active japa', 'Blocked']}
+        options={['All users', 'Active japa', 'Blocked', 'Test']}
         onChange={setTarget}
       />
+      {target === 'Test' ? (
+        <Field
+          label="Test person"
+          value={testQuery}
+          onChangeText={setTestQuery}
+          placeholder="Name, user id, phone, or email"
+        />
+      ) : null}
+      {target === 'Test' ? (
+        <Text style={styles.hint}>
+          Sends only to this one person — use this to verify the notification
+          before broadcasting.
+        </Text>
+      ) : null}
       <SelectField
         label="Schedule"
         value={schedule}

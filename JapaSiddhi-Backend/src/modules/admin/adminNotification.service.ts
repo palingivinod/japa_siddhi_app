@@ -150,6 +150,137 @@ const mapTarget = (raw: string): AdminNotifyTarget => {
   return 'all';
 };
 
+const isTestTarget = (raw: string) => {
+  const value = String(raw || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '_');
+  return value === 'test';
+};
+
+/**
+ * Resolve a single devotee for Notification Management → Test.
+ * Accepts user id, user code, phone, email, or full name.
+ */
+export const resolveTestUser = async (rawQuery: string) => {
+  const query = String(rawQuery || '').trim();
+  if (!query) {
+    const error: any = new Error(
+      'Enter a name, user id, phone, or email for the Test person.',
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const digits = query.replace(/\D/g, '');
+  const like = `%${query.replace(/[%_]/g, '')}%`;
+
+  let rows: any[] = [];
+  try {
+    if (/^\d+$/.test(query)) {
+      rows = await mysql.query<any[]>(
+        `
+        SELECT u.id, u.full_name AS fullName, u.email, u.mobile_number AS mobileNumber
+        FROM users u
+        WHERE u.deleted_at IS NULL AND u.id = ?
+        LIMIT 1
+        `,
+        [Number(query)],
+      );
+    }
+
+    if (!rows?.length && query.includes('@')) {
+      rows = await mysql.query<any[]>(
+        `
+        SELECT u.id, u.full_name AS fullName, u.email, u.mobile_number AS mobileNumber
+        FROM users u
+        WHERE u.deleted_at IS NULL AND LOWER(TRIM(u.email)) = LOWER(?)
+        LIMIT 5
+        `,
+        [query],
+      );
+    }
+
+    if (!rows?.length && digits.length >= 8) {
+      rows = await mysql.query<any[]>(
+        `
+        SELECT u.id, u.full_name AS fullName, u.email, u.mobile_number AS mobileNumber
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND (
+            REPLACE(REPLACE(REPLACE(IFNULL(u.mobile_number, ''), ' ', ''), '-', ''), '+', '') LIKE ?
+            OR CONCAT(
+              IFNULL(u.mobile_country_code, ''),
+              IFNULL(u.mobile_number, '')
+            ) LIKE ?
+          )
+        LIMIT 5
+        `,
+        [`%${digits}%`, `%${digits}%`],
+      );
+    }
+
+    if (!rows?.length) {
+      rows = await mysql.query<any[]>(
+        `
+        SELECT u.id, u.full_name AS fullName, u.email, u.mobile_number AS mobileNumber
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND (
+            LOWER(IFNULL(u.user_code, '')) = LOWER(?)
+            OR LOWER(IFNULL(u.full_name, '')) = LOWER(?)
+            OR LOWER(IFNULL(u.full_name, '')) LIKE LOWER(?)
+          )
+        ORDER BY
+          CASE
+            WHEN LOWER(IFNULL(u.user_code, '')) = LOWER(?) THEN 0
+            WHEN LOWER(IFNULL(u.full_name, '')) = LOWER(?) THEN 1
+            ELSE 2
+          END,
+          u.id DESC
+        LIMIT 5
+        `,
+        [query, query, like, query, query],
+      );
+    }
+  } catch (err) {
+    console.warn('resolveTestUser query failed:', err);
+    const error: any = new Error('Unable to look up the Test person.');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  if (!rows?.length) {
+    const error: any = new Error(
+      `No user found for "${query}". Check the name, id, phone, or email.`,
+    );
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (rows.length > 1) {
+    const names = rows
+      .slice(0, 3)
+      .map(
+        (r: any) =>
+          `#${r.id} ${r.fullName || r.email || r.mobileNumber || ''}`.trim(),
+      )
+      .join('; ');
+    const error: any = new Error(
+      `Multiple users match "${query}" (${names}). Use a user id, phone, or email instead.`,
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return {
+    id: Number(rows[0].id),
+    fullName: String(rows[0].fullName || ''),
+    email: String(rows[0].email || ''),
+    mobileNumber: String(rows[0].mobileNumber || ''),
+  };
+};
+
 const parseJsonSafely = (val: any) => {
   if (!val) return {};
   if (typeof val === 'object') return val;
@@ -758,6 +889,8 @@ export const sendAdminNotification = async (input: {
   scheduleRaw: string;
   scheduledAt?: string;
   userIds?: number[];
+  /** When Target Group is Test: name / id / phone / email of one person. */
+  testQuery?: string;
   imageUrl?: string | null;
   /** Skip 7 AM–10 PM IST quiet hours (DOB wishes, live class, etc.). */
   bypassHours?: boolean;
@@ -774,13 +907,23 @@ export const sendAdminNotification = async (input: {
     throw error;
   }
 
-  const userIds = [
+  let userIds = [
     ...new Set(
       (input.userIds || [])
         .map(id => Number(id))
         .filter(id => Number.isFinite(id) && id > 0),
     ),
   ];
+  let testUserLabel = '';
+  if (isTestTarget(String(input.targetRaw || '')) && !userIds.length) {
+    const resolved = await resolveTestUser(String(input.testQuery || ''));
+    userIds = [resolved.id];
+    testUserLabel =
+      resolved.fullName ||
+      resolved.email ||
+      resolved.mobileNumber ||
+      `user #${resolved.id}`;
+  }
   const target = userIds.length ? 'all' : mapTarget(input.targetRaw);
   const schedule = String(input.scheduleRaw || 'now').trim().toLowerCase();
   const sendNow = schedule !== 'later';
@@ -836,12 +979,15 @@ export const sendAdminNotification = async (input: {
       queueId: insert.insertId,
       target: userIds.length ? 'selected_users' : target,
       userIds,
+      testUser: testUserLabel || undefined,
       imageUrl,
       sendAt,
       recipientCount: userIds.length,
       pushSent: 0,
       message: userIds.length
-        ? `Scheduled for ${sendAt} IST to ${userIds.length} selected user(s).`
+        ? `Scheduled for ${sendAt} IST to ${
+            testUserLabel || `${userIds.length} selected user(s)`
+          }.`
         : `Scheduled for ${sendAt} IST in all languages. It will send automatically around that time.`,
     };
   }
@@ -865,11 +1011,14 @@ export const sendAdminNotification = async (input: {
     mode: 'sent' as const,
     target: userIds.length ? 'selected_users' : target,
     userIds,
+    testUser: testUserLabel || undefined,
     sendAt: localDateTime(),
     ...delivered,
     message:
       delivered.recipientCount > 0
-        ? `Sent to ${delivered.recipientCount} user(s) in-app in their language${pushNote}.`
+        ? testUserLabel
+          ? `Sent only to ${testUserLabel} in-app${pushNote}.`
+          : `Sent to ${delivered.recipientCount} user(s) in-app in their language${pushNote}.`
         : userIds.length
           ? 'No matching app users found for the selected people.'
           : 'No matching users found for this target group.',

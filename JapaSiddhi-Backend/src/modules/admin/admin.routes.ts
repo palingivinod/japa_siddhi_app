@@ -2147,6 +2147,9 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     const imageUrl = rawImage
       ? absoluteMediaUrl(req, rawImage) || rawImage
       : undefined;
+    const rawUserIds = Array.isArray(req.body?.userIds)
+      ? req.body.userIds
+      : [];
     const result = await sendAdminNotification({
       title: String(req.body?.title || ''),
       message: String(req.body?.message || ''),
@@ -2156,6 +2159,15 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
       scheduledAt: req.body?.scheduledAt
         ? String(req.body.scheduledAt)
         : undefined,
+      testQuery: String(
+        req.body?.testQuery ||
+          req.body?.targetUser ||
+          req.body?.lookup ||
+          '',
+      ),
+      userIds: rawUserIds
+        .map((id: any) => Number(id))
+        .filter((id: number) => Number.isFinite(id) && id > 0),
       imageUrl: imageUrl || undefined,
     });
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
