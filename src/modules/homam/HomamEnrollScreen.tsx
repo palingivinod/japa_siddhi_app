@@ -141,19 +141,19 @@ const HomamEnrollScreen = () => {
         }
       />
       <FormField
-        label="Gothram"
-        placeholder="Enter Gothram"
+        label={`${t('gothram') || 'Gothram'} *`}
+        placeholder={t('enterGothram') || 'Enter Gothram'}
         value={gothram}
         onChangeText={setGothram}
       />
       <FormField
-        label="Nakshatram"
-        placeholder="Enter Nakshatram"
+        label={`${t('nakshatram') || 'Nakshatram'} *`}
+        placeholder={t('enterNakshatram') || 'Enter Nakshatram'}
         value={nakshatram}
         onChangeText={setNakshatram}
       />
       <FormField
-        label="Purpose"
+        label={`${t('purpose') || 'Purpose'} *`}
         placeholder="Health, peace, thanksgiving"
         value={purpose}
         onChangeText={setPurpose}
