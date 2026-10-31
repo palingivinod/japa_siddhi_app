@@ -228,24 +228,7 @@ const MonthlySupportThankYouScreen = () => {
       </Text>
 
       <PrimaryButton
-        title={t('viewReceipt') || 'View Receipt'}
-        onPress={() =>
-          navigation.navigate('PaymentReceiptView', {
-            paymentId: route.params?.confirmationId || route.params?.orderNumber,
-            confirmationId: route.params?.confirmationId,
-            orderNumber: route.params?.orderNumber,
-            razorpayOrderId: route.params?.razorpayOrderId,
-            amount,
-            seva: 'Monthly Support',
-            purpose: route.params?.purpose || `Monthly Support: ${amountLabel}`,
-            name: displayName,
-            phone: route.params?.phone,
-          })
-        }
-      />
-      <View style={styles.gap} />
-      <PrimaryButton
-        title={t('continue') || 'CONTINUE'}
+        title={t('close') || 'CLOSE'}
         onPress={() => navigation.navigate('Home')}
       />
     </ScreenLayout>
@@ -443,5 +426,4 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 14,
   },
-  gap: {height: 10},
 });
