@@ -7,11 +7,25 @@ import AdminScreenLayout from './AdminScreenLayout';
 import {clearAdminSession} from './adminSession';
 import {resetAdminAuthGate} from './AdminAuthGate';
 
-const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
+type MoreLink = {
+  title: string;
+  route: string;
+  sub: string;
+  params?: Record<string, string>;
+};
+
+const MORE_LINKS: MoreLink[] = [
   {
-    title: 'Seva Management',
-    route: 'AdminSeva',
-    sub: 'Anna Santharpana & Nithya Homam devotee requests',
+    title: 'Anna Santharpana',
+    route: 'AdminSevaDetailList',
+    params: {type: 'ANNADANAM', title: 'Anna Santharpana'},
+    sub: 'Food offering bookings & prefer dates',
+  },
+  {
+    title: 'Nithya Homam',
+    route: 'AdminSevaDetailList',
+    params: {type: 'NITHYA_HOMAM', title: 'Nithya Homam'},
+    sub: 'Homam offerings, gotram & prefer dates',
   },
   {
     title: 'Add Admin',
@@ -29,9 +43,29 @@ const MORE_LINKS: Array<{title: string; route: string; sub: string}> = [
     sub: 'Select admin panel and app language',
   },
   {
-    title: 'Export Reports',
-    route: 'AdminExportReports',
-    sub: 'Download Excel and report files',
+    title: 'User Reports',
+    route: 'AdminUsers',
+    sub: 'Users and demographics',
+  },
+  {
+    title: 'Japa Reports',
+    route: 'AdminJapaAnalytics',
+    sub: 'Japa counts by mantra and period',
+  },
+  {
+    title: 'Challenge Reports',
+    route: 'AdminChallenges',
+    sub: 'Joined, completed, progress & Excel',
+  },
+  {
+    title: 'DOB / other details',
+    route: 'AdminDobDetails',
+    sub: 'Birthdays and occasions',
+  },
+  {
+    title: 'Rewards Reports',
+    route: 'AdminRewards',
+    sub: 'Rewards catalog and Excel',
   },
   {
     title: 'Region analytics',
@@ -75,10 +109,14 @@ const AdminMoreScreen = () => {
 
       {MORE_LINKS.map(item => (
         <TouchableOpacity
-          key={item.route}
+          key={`${item.route}-${item.title}`}
           style={styles.row}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate(item.route)}>
+          onPress={() =>
+            item.params
+              ? navigation.navigate(item.route, item.params)
+              : navigation.navigate(item.route)
+          }>
           <View style={styles.copy}>
             <Text style={styles.rowText}>{item.title}</Text>
             <Text style={styles.rowSub}>{item.sub}</Text>
@@ -126,11 +164,18 @@ const styles = StyleSheet.create({
   rowSub: {
     marginTop: 4,
     color: Colors.textSecondary,
+    fontWeight: '600',
     fontSize: 13,
   },
   open: {
-    color: Colors.leafGreen,
     fontWeight: '800',
+    color: Colors.sacredBrown,
+    borderWidth: 1,
+    borderColor: Colors.sacredBrown,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    overflow: 'hidden',
   },
   logout: {
     color: Colors.error,
