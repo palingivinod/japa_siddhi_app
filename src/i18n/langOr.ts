@@ -531,9 +531,9 @@ export const or: TranslationDict = {
   deliveryAddress: 'ଡିଲିଭାରି ଠିକଣା',
   addressDetailedHint:
     'ଦୟାକରି ଘର ନମ୍ବର, ଫ୍ଲାଟ୍ ନମ୍ବର, ରାସ୍ତା ଏବଂ ଅଞ୍ଚଳର ନାମ ଦର୍ଜ କରିବାକୁ ନିଶ୍ଚିତ କରନ୍ତୁ।',
-  annadanamCommentsPlaceholder:
-    'ଦାତାଙ୍କ ନାମ, ଉତ୍ସବ ଏବଂ ଅନ୍ୟାନ୍ୟ ବିବରଣୀ ଉଲ୍ଲେଖ କରନ୍ତୁ',
-  homamCommentsPlaceholder: 'ଆପଣଙ୍କ ନାମ ଏବଂ ଗୋତ୍ର ଏଠାରେ ଲେଖନ୍ତୁ',
+  annadanamCommentsPlaceholder: 'ଦାତାଙ୍କ ନାମ, ଉତ୍ସବ ଇତ୍ୟାଦି',
+  homamCommentsPlaceholder: 'ଗୋତ୍ର ଏବଂ ପରିବାର ନାମ ଲେଖନ୍ତୁ',
+  commentsRequired: 'ଦୟାକରି ମନ୍ତବ୍ୟ ଲେଖନ୍ତୁ।',
   generalCommentsPlaceholder:
     'କୌଣସି ବିଶେଷ ଅନୁରୋଧ କିମ୍ବା ମନ୍ତବ୍ୟ ଲେଖନ୍ତୁ (ଇଚ୍ଛାଧୀନ)',
   tileMonthlySupport: 'ମାସିକ ସହାୟତା (ବର୍ତ୍ତମାନ ଦାନ କରନ୍ତୁ)',

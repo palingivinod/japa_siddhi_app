@@ -773,9 +773,8 @@ const en = {
   deliveryAddress: 'Delivery address',
   addressDetailedHint:
     'Please ensure to enter Door No., Flat No., Street and Area name.',
-  annadanamCommentsPlaceholder:
-    "Indicate donor's name, occasion and other details",
-  homamCommentsPlaceholder: 'Type your name and gothram here',
+  annadanamCommentsPlaceholder: 'Donars names,occasion,etc',
+  homamCommentsPlaceholder: 'Enter gotrams and family names',
   generalCommentsPlaceholder:
     'Enter any special requests or comments (optional)',
   tileMonthlySupport: 'Monthly Support (Donate here now)',
@@ -867,6 +866,7 @@ const en = {
   gothramRequired: 'Please enter Gothram.',
   nakshatramRequired: 'Please enter Nakshatram.',
   purposeRequired: 'Please enter purpose for homam.',
+  commentsRequired: 'Please enter comments.',
   nameMobileAddressRequired: 'Name, mobile and address are required.',
   placeholderMobile: 'Mobile number',
   placeholderFullName: 'Full name',

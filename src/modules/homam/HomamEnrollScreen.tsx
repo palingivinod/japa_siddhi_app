@@ -97,6 +97,10 @@ const HomamEnrollScreen = () => {
       Alert.alert(t('required'), t('purposeRequired'));
       return;
     }
+    if (!comments.trim()) {
+      Alert.alert(t('required'), t('commentsRequired'));
+      return;
+    }
 
     await startAppPayment({
       amount: HOMAM_AMOUNT,
@@ -115,7 +119,8 @@ const HomamEnrollScreen = () => {
     isMobile(digitsOnly(mobile)) &&
     gothram.trim().length > 0 &&
     nakshatram.trim().length > 0 &&
-    purpose.trim().length > 0;
+    purpose.trim().length > 0 &&
+    comments.trim().length > 0;
 
   return (
     <ScreenLayout title="Homam Enrollment" showBack tab="SevaHub">
@@ -154,7 +159,7 @@ const HomamEnrollScreen = () => {
         onChangeText={setPurpose}
       />
       <FormField
-        label={t('comments')}
+        label={`${t('comments')} *`}
         placeholder={t('homamCommentsPlaceholder')}
         value={comments}
         onChangeText={setComments}

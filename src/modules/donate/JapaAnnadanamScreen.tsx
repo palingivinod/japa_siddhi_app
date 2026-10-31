@@ -87,7 +87,7 @@ const JapaAnnadanamScreen = () => {
             }}
           />
           <FormField
-            label={t('comments')}
+            label={`${t('comments')} *`}
             placeholder={t('annadanamCommentsPlaceholder')}
             value={comments}
             onChangeText={setComments}
@@ -98,7 +98,7 @@ const JapaAnnadanamScreen = () => {
           />
           <PrimaryButton
             title={
-              persons > 0 && dateReady
+              persons > 0 && dateReady && comments.trim().length > 0
                 ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${
                     persons === 1 ? 'PERSON' : 'PERSONS'
                   })`
@@ -106,10 +106,14 @@ const JapaAnnadanamScreen = () => {
                   ? 'ENTER REQUIRED DETAILS'
                   : 'SELECT OR ENTER NO OF PERSONS'
             }
-            disabled={persons <= 0 || !dateReady}
+            disabled={persons <= 0 || !dateReady || !comments.trim()}
             onPress={() => {
               if (!dateReady) {
                 Alert.alert(t('validationTitle'), t('selectPreferDate'));
+                return;
+              }
+              if (!comments.trim()) {
+                Alert.alert(t('validationTitle'), t('commentsRequired'));
                 return;
               }
               navigation.navigate('DonationForm', {

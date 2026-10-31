@@ -529,9 +529,9 @@ export const bn: TranslationDict = {
   deliveryAddress: 'ডেলিভারি ঠিকানা',
   addressDetailedHint:
     'অনুগ্রহ করে বাড়ির নম্বর, ফ্ল্যাট নম্বর, রাস্তা এবং এলাকার নাম উল্লেখ করুন।',
-  annadanamCommentsPlaceholder:
-    'দাতার নাম, উপলক্ষ এবং অন্যান্য বিবরণ উল্লেখ করুন',
-  homamCommentsPlaceholder: 'আপনার নাম এবং গোত্র এখানে লিখুন',
+  annadanamCommentsPlaceholder: 'দাতাদের নাম, উপলক্ষ ইত্যাদি',
+  homamCommentsPlaceholder: 'গোত্র ও পরিবারের নাম লিখুন',
+  commentsRequired: 'অনুগ্রহ করে মন্তব্য লিখুন।',
   generalCommentsPlaceholder:
     'কোনো বিশেষ অনুরোধ বা মন্তব্য লিখুন (ঐচ্ছিক)',
   tileMonthlySupport: 'মাসিক সহায়তা (এখনই দান করুন)',

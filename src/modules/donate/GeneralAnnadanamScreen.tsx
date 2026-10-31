@@ -60,7 +60,8 @@ const GeneralAnnadanamScreen = () => {
     forWhom.length > 0 &&
     personReady &&
     /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
-    persons > 0;
+    persons > 0 &&
+    comments.trim().length > 0;
 
   useFocusEffect(
     useCallback(() => {
@@ -146,6 +147,10 @@ const GeneralAnnadanamScreen = () => {
     }
     if (persons <= 0) {
       Alert.alert(t('validationTitle'), t('enterPersonsCount'));
+      return;
+    }
+    if (!comments.trim()) {
+      Alert.alert(t('validationTitle'), t('commentsRequired'));
       return;
     }
 
@@ -361,7 +366,7 @@ const GeneralAnnadanamScreen = () => {
             onChangeText={setNakshatram}
           />
           <FormField
-            label={t('comments')}
+            label={`${t('comments')} *`}
             placeholder={t('annadanamCommentsPlaceholder')}
             value={comments}
             onChangeText={setComments}

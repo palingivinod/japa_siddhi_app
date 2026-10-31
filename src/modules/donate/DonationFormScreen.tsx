@@ -81,7 +81,8 @@ const DonationFormScreen = () => {
     isMobile(cleanMobile) &&
     !/^0+$/.test(cleanMobile) &&
     /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
-    persons > 0;
+    persons > 0 &&
+    comments.trim().length > 0;
 
   const pay = async () => {
     if (fullName.trim().length < 2) {
@@ -102,6 +103,10 @@ const DonationFormScreen = () => {
     }
     if (persons <= 0) {
       Alert.alert(t('validationTitle'), t('enterPersonsCount'));
+      return;
+    }
+    if (!comments.trim()) {
+      Alert.alert(t('validationTitle'), t('commentsRequired'));
       return;
     }
 
@@ -190,7 +195,7 @@ const DonationFormScreen = () => {
         onChangeText={setNakshatram}
       />
       <FormField
-        label={t('comments')}
+        label={`${t('comments')} *`}
         placeholder={t('annadanamCommentsPlaceholder')}
         value={comments}
         onChangeText={setComments}

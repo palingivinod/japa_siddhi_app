@@ -539,9 +539,8 @@ export const hi: TranslationDict = {
   deliveryAddress: 'डिलीवरी पता',
   addressDetailedHint:
     'कृपया मकान नंबर, फ्लैट नंबर, सड़क और इलाके का नाम अवश्य दर्ज करें।',
-  annadanamCommentsPlaceholder:
-    'दानकर्ता का नाम, अवसर और अन्य विवरण लिखें',
-  homamCommentsPlaceholder: 'अपना नाम और गोत्र यहाँ लिखें',
+  annadanamCommentsPlaceholder: 'दानकर्ताओं के नाम, अवसर आदि',
+  homamCommentsPlaceholder: 'गोत्र और परिवार के नाम दर्ज करें',
   generalCommentsPlaceholder:
     'कोई विशेष अनुरोध या टिप्पणी दर्ज करें (वैकल्पिक)',
   tileMonthlySupport: 'मासिक सहायता (अभी दान करें)',
@@ -633,6 +632,7 @@ export const hi: TranslationDict = {
   gothramRequired: 'कृपया गोत्र दर्ज करें।',
   nakshatramRequired: 'कृपया नक्षत्र दर्ज करें।',
   purposeRequired: 'कृपया होम के लिए उद्देश्य दर्ज करें।',
+  commentsRequired: 'कृपया टिप्पणी दर्ज करें।',
   nameMobileAddressRequired: 'नाम, मोबाइल और पता आवश्यक हैं।',
   placeholderMobile: 'मोबाइल नंबर',
   placeholderFullName: 'पूरा नाम',
@@ -1387,9 +1387,8 @@ export const te: TranslationDict = {
   deliveryAddress: 'డెలివరీ చిరునామా',
   addressDetailedHint:
     'దయచేసి డోర్ నంబర్, ఫ్లాట్ నంబర్, వీధి మరియు ప్రాంతం పేరు తప్పకుండా నమోదు చేయండి.',
-  annadanamCommentsPlaceholder:
-    'దాత పేరు, సందర్భం మరియు ఇతర వివరాలను సూచించండి',
-  homamCommentsPlaceholder: 'మీ పేరు మరియు గోత్రం ఇక్కడ టైప్ చేయండి',
+  annadanamCommentsPlaceholder: 'దాతల పేర్లు, సందర్భం మొదలైనవి',
+  homamCommentsPlaceholder: 'గోత్రాలు మరియు కుటుంబ పేర్లు నమోదు చేయండి',
   generalCommentsPlaceholder:
     'ఏవైనా ప్రత్యేక అభ్యర్థనలు లేదా వ్యాఖ్యలను నమోదు చేయండి (ఐచ్ఛికం)',
   tileMonthlySupport: 'నెలవారీ సహాయం (ఇప్పుడే సహాయం చేయండి)',
@@ -1481,6 +1480,7 @@ export const te: TranslationDict = {
   gothramRequired: 'దయచేసి గోత్రం నమోదు చేయండి.',
   nakshatramRequired: 'దయచేసి నక్షత్రం నమోదు చేయండి.',
   purposeRequired: 'దయచేసి హోమం కోసం ఉద్దేశం నమోదు చేయండి.',
+  commentsRequired: 'దయచేసి వ్యాఖ్యలు నమోదు చేయండి.',
   nameMobileAddressRequired: 'పేరు, మొబైల్ మరియు చిరునామా అవసరం.',
   placeholderMobile: 'మొబైల్ నంబర్',
   placeholderFullName: 'పూర్తి పేరు',

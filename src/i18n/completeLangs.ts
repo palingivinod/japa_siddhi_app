@@ -523,9 +523,8 @@ export const kn: TranslationDict = {
   deliveryAddress: 'ವಿತರಣೆ ವಿಳಾಸ',
   addressDetailedHint:
     'ದಯವಿಟ್ಟು ಡೋರ್ ನಂಬರ್, ಫ್ಲಾಟ್ ನಂಬರ್, ರಸ್ತೆ ಮತ್ತು ಪ್ರದೇಶದ ಹೆಸರನ್ನು ನಮೂದಿಸುವುದನ್ನು ಖಚಿತಪಡಿಸಿಕೊಳ್ಳಿ.',
-  annadanamCommentsPlaceholder:
-    'ದಾನಿಗಳ ಹೆಸರು, ಸಂದರ್ಭ ಮತ್ತು ಇತರ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ',
-  homamCommentsPlaceholder: 'ನಿಮ್ಮ ಹೆಸರು ಮತ್ತು ಗೋತ್ರವನ್ನು ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ',
+  annadanamCommentsPlaceholder: 'ದಾನಿಗಳ ಹೆಸರುಗಳು, ಸಂದರ್ಭ ಇತ್ಯಾದಿ',
+  homamCommentsPlaceholder: 'ಗೋತ್ರಗಳು ಮತ್ತು ಕುಟುಂಬದ ಹೆಸರುಗಳನ್ನು ನಮೂದಿಸಿ',
   generalCommentsPlaceholder:
     'ಯಾವುದೇ ವಿಶೇಷ ವಿನಂತಿಗಳು ಅಥವಾ ಟಿಪ್ಪಣಿಗಳನ್ನು ನಮೂದಿಸಿ (ಐಚ್ಛಿಕ)',
   tileMonthlySupport: 'ಮಾಸಿಕ ಸಹಾಯ (ಈಗಲೇ ದಾನ ಮಾಡಿ)',
@@ -617,6 +616,7 @@ export const kn: TranslationDict = {
   gothramRequired: 'ದಯವಿಟ್ಟು ಗೋತ್ರ ನಮೂದಿಸಿ.',
   nakshatramRequired: 'ದಯವಿಟ್ಟು ನಕ್ಷತ್ರ ನಮೂದಿಸಿ.',
   purposeRequired: 'ದಯವಿಟ್ಟು ಹೋಮದ ಉದ್ದೇಶವನ್ನು ನಮೂದಿಸಿ.',
+  commentsRequired: 'ದಯವಿಟ್ಟು ಟಿಪ್ಪಣಿಗಳನ್ನು ನಮೂದಿಸಿ.',
   nameMobileAddressRequired: 'ಹೆಸರು, ಮೊಬೈಲ್ ಮತ್ತು ವಿಳಾಸ ಅಗತ್ಯ.',
   placeholderMobile: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆ',
   placeholderFullName: 'ಪೂರ್ಣ ಹೆಸರು',
