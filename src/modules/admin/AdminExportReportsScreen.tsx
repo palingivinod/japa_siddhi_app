@@ -20,11 +20,9 @@ const TYPE_BY_ID: Record<string, string> = {
   '1': 'users',
   '2': 'japa',
   '3': 'challenges',
-  '4': 'donations',
   users: 'users',
   japa: 'japa',
   challenges: 'challenges',
-  donations: 'donations',
 };
 
 const AdminExportReportsScreen = () => {
@@ -128,12 +126,6 @@ const AdminExportReportsScreen = () => {
         <Text style={styles.outlineText}>
           {exporting === 'all' ? 'PREPARING EXCEL...' : 'EXPORT EXCEL (ALL)'}
         </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.outlineBtn}
-        disabled={Boolean(exporting)}
-        onPress={() => downloadExcel('donations', 'Donation Reports')}>
-        <Text style={styles.outlineText}>EXPORT DONATIONS XL</Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={[styles.outlineBtn, exporting === 'rewards' && styles.pillBusy]}

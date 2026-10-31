@@ -360,7 +360,6 @@ export const ADMIN_EXPORT_REPORTS: AdminExportReport[] = [
     title: 'Challenge Reports',
     subtitle: 'Joined, completed, progress & Excel per challenge',
   },
-  {id: '4', title: 'Donation Reports', subtitle: 'Annadanam'},
 ];
 
 export const findAdminUser = (id?: string) =>
