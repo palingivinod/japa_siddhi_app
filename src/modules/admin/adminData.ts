@@ -121,7 +121,14 @@ export type AdminBanner = {
   translations?: Record<string, {title?: string; subtitle?: string}>;
 };
 
-export type AdminOrderStatus = 'Under Review' | 'Confirmed' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+export type AdminOrderStatus =
+  | 'Under Review'
+  | 'Confirmed'
+  | 'Processing'
+  | 'Packing'
+  | 'Shipped'
+  | 'Delivered'
+  | 'Cancelled';
 
 export type AdminOrderGroup = 'normal' | 'reward' | 'other';
 

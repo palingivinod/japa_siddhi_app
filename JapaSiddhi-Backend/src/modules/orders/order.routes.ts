@@ -24,6 +24,12 @@ router.put(
   orderController.cancel,
 );
 
+router.put(
+  '/:id/received',
+  authenticate,
+  orderController.markReceived,
+);
+
 router.get(
   '/:id/tracking',
   authenticate,

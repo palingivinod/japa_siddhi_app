@@ -250,6 +250,45 @@ class OrderRepository {
 
   }
 
+  async markReceivedByUser(
+    id: number,
+    userId: number,
+  ): Promise<'ok' | 'missing' | 'not_shipped' | 'delivered' | 'cancelled'> {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT order_status AS orderStatus
+      FROM orders
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    if (!rows?.length) {
+      return 'missing';
+    }
+    const status = String(rows[0].orderStatus || '').toUpperCase();
+    if (status === 'DELIVERED') {
+      return 'delivered';
+    }
+    if (status === 'CANCELLED') {
+      return 'cancelled';
+    }
+    if (status !== 'SHIPPED') {
+      return 'not_shipped';
+    }
+    await mysql.query(
+      `
+      UPDATE orders
+      SET
+        order_status = 'DELIVERED',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ? AND user_id = ?
+      `,
+      [id, userId],
+    );
+    return 'ok';
+  }
+
   async cancelForUser(
     id: number,
     userId: number,

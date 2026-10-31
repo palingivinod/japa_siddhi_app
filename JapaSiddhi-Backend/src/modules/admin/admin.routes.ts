@@ -2489,6 +2489,9 @@ const toAdminOrderStatus = (raw: string) => {
   if (value === 'SHIPPED') {
     return 'Shipped';
   }
+  if (value === 'PACKING') {
+    return 'Packing';
+  }
   if (value === 'CONFIRMED' || value === 'PROCESSING' || value === 'READY') {
     return 'Confirmed';
   }
@@ -2508,6 +2511,9 @@ const fromAdminOrderStatus = (raw: string) => {
   }
   if (value === 'shipped') {
     return 'SHIPPED';
+  }
+  if (value === 'packing') {
+    return 'PACKING';
   }
   if (value === 'confirmed' || value === 'confirm' || value === 'processing' || value === 'ready') {
     return 'CONFIRMED';
@@ -4804,7 +4810,7 @@ router.get('/reports/export', async (req: Request, res: Response) => {
       };
       let rows: any[] = [];
       try {
-        const confirmedSql = `UPPER(IFNULL(o.order_status, '')) IN ('CONFIRMED', 'PROCESSING', 'READY', 'SHIPPED', 'DELIVERED')`;
+        const confirmedSql = `UPPER(IFNULL(o.order_status, '')) IN ('CONFIRMED', 'PROCESSING', 'READY', 'PACKING', 'SHIPPED', 'DELIVERED')`;
         rows = await mysql.query<any[]>(`
           SELECT fullName, claimPhone, mobileCountryCode, mobileNumber, rewardName
           FROM (

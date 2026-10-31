@@ -36,6 +36,9 @@ const formatStatus = (raw: string, t: any) => {
   if (value.includes('ship')) {
     return t('orderTabShipped');
   }
+  if (value.includes('pack')) {
+    return t('orderTabPacking');
+  }
   if (value.includes('confirm')) {
     return 'Order Confirmed';
   }

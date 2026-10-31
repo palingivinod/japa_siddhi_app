@@ -19,6 +19,7 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'All', label: 'All'},
   {id: 'Under Review', label: 'Under Review'},
   {id: 'Confirmed', label: 'Confirmed'},
+  {id: 'Packing', label: 'Packing'},
   {id: 'Shipped', label: 'Shipped'},
   {id: 'Delivered', label: 'Delivered'},
   {id: 'Cancelled', label: 'Cancelled'},
@@ -160,6 +161,9 @@ const statusTone = (status: AdminOrder['status']) => {
   if (status === 'Confirmed') {
     return {bg: '#E0F2FE', border: '#0284C7', text: '#0369A1'};
   }
+  if (status === 'Packing') {
+    return {bg: '#FFEDD5', border: '#EA580C', text: '#C2410C'};
+  }
   if (status === 'Shipped') {
     return {bg: '#F3E8FF', border: '#9333EA', text: '#7E22CE'};
   }
@@ -202,13 +206,15 @@ const AdminOrdersScreen = () => {
               ? 'Delivered'
               : row.status === 'Shipped'
                 ? 'Shipped'
-                : row.status === 'Confirmed'
-                  ? 'Confirmed'
-                  : row.status === 'Cancelled'
-                    ? 'Cancelled'
-                    : row.status === 'Under Review'
-                      ? 'Under Review'
-                      : 'Processing',
+                : row.status === 'Packing'
+                  ? 'Packing'
+                  : row.status === 'Confirmed'
+                    ? 'Confirmed'
+                    : row.status === 'Cancelled'
+                      ? 'Cancelled'
+                      : row.status === 'Under Review'
+                        ? 'Under Review'
+                        : 'Processing',
           orderGroup: orderGroupOf(row),
           orderType: row.orderType || '',
           orderSource: row.orderSource || '',
@@ -320,10 +326,11 @@ const AdminOrdersScreen = () => {
     const total = itemFilteredOrders.length;
     const underReview = itemFilteredOrders.filter(o => o.status === 'Under Review').length;
     const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
+    const packing = itemFilteredOrders.filter(o => o.status === 'Packing').length;
     const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
     const delivered = itemFilteredOrders.filter(o => o.status === 'Delivered').length;
     const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
-    return {total, underReview, confirmed, shipped, delivered, cancelled};
+    return {total, underReview, confirmed, packing, shipped, delivered, cancelled};
   }, [itemFilteredOrders]);
 
   const visibleOrders = useMemo(() => {
@@ -337,6 +344,7 @@ const AdminOrdersScreen = () => {
     if (tabId === 'All') return orderCounts.total;
     if (tabId === 'Under Review') return orderCounts.underReview;
     if (tabId === 'Confirmed') return orderCounts.confirmed;
+    if (tabId === 'Packing') return orderCounts.packing;
     if (tabId === 'Shipped') return orderCounts.shipped;
     if (tabId === 'Delivered') return orderCounts.delivered;
     if (tabId === 'Cancelled') return orderCounts.cancelled;
@@ -386,6 +394,13 @@ const AdminOrdersScreen = () => {
               {orderCounts.confirmed}
             </Text>
             <Text style={styles.miniStatLabel}>Confirmed</Text>
+          </View>
+          <View style={styles.miniStatDivider} />
+          <View style={styles.miniStatItem}>
+            <Text style={[styles.miniStatCount, {color: '#C2410C'}]}>
+              {orderCounts.packing}
+            </Text>
+            <Text style={styles.miniStatLabel}>Packing</Text>
           </View>
           <View style={styles.miniStatDivider} />
           <View style={styles.miniStatItem}>

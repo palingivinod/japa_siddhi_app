@@ -256,6 +256,43 @@ class OrderController {
     }
   }
 
+  async markReceived(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await orderService.markReceivedByUser(
+        Number(req.params.id),
+        userId,
+      );
+      if (result === 'missing') {
+        return apiResponse.error(res, 'Order not found', 404);
+      }
+      if (result === 'delivered') {
+        return apiResponse.error(res, 'This order is already marked delivered.', 400);
+      }
+      if (result === 'cancelled') {
+        return apiResponse.error(res, 'Cancelled orders cannot be marked received.', 400);
+      }
+      if (result === 'not_shipped') {
+        return apiResponse.error(
+          res,
+          'You can confirm receipt only after the order is shipped.',
+          400,
+        );
+      }
+      const tracking = await orderService.getTracking(Number(req.params.id));
+      return apiResponse.success(res, 'Order marked as delivered', tracking);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 }
 
 export default new OrderController();

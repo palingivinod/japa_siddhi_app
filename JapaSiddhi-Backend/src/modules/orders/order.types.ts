@@ -25,6 +25,7 @@ export type OrderStatus =
   | 'CONFIRMED'
   | 'PROCESSING'
   | 'READY'
+  | 'PACKING'
   | 'SHIPPED'
   | 'DELIVERED'
   | 'CANCELLED'

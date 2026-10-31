@@ -16,11 +16,10 @@ import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrderStatus} from './adminData';
 
-const CYCLE: AdminOrderStatus[] = ['Under Review', 'Confirmed', 'Shipped', 'Delivered'];
-
 const adminStatus = (raw: string): AdminOrderStatus => {
   if (raw === 'Delivered') return 'Delivered';
   if (raw === 'Shipped') return 'Shipped';
+  if (raw === 'Packing') return 'Packing';
   if (raw === 'Confirmed') return 'Confirmed';
   if (raw === 'Cancelled') return 'Cancelled';
   if (raw === 'Under Review') return 'Under Review';
@@ -334,9 +333,11 @@ const AdminOrderDetailsScreen = () => {
                     ? styles.pillReview
                     : order.status === 'Confirmed'
                       ? styles.pillConfirmed
-                      : order.status === 'Delivered'
-                        ? styles.pillDelivered
-                        : styles.pillShipped,
+                      : order.status === 'Packing'
+                        ? styles.pillPacking
+                        : order.status === 'Delivered'
+                          ? styles.pillDelivered
+                          : styles.pillShipped,
                 ]}>
                 <Text
                   style={[
@@ -345,9 +346,11 @@ const AdminOrderDetailsScreen = () => {
                       ? styles.pillTextReview
                       : order.status === 'Confirmed'
                         ? styles.pillTextConfirmed
-                        : order.status === 'Delivered'
-                          ? styles.pillTextDelivered
-                          : styles.pillTextShipped,
+                        : order.status === 'Packing'
+                          ? styles.pillTextPacking
+                          : order.status === 'Delivered'
+                            ? styles.pillTextDelivered
+                            : styles.pillTextShipped,
                   ]}>
                   {order.status.toUpperCase()}
                 </Text>
@@ -396,20 +399,37 @@ const AdminOrderDetailsScreen = () => {
             />
           ) : order.status === 'Confirmed' ? (
             <PrimaryButton
+              title={saving ? 'UPDATING...' : '📦 MARK AS PACKING'}
+              onPress={() => advanceStatus('Packing')}
+              disabled={saving}
+            />
+          ) : order.status === 'Packing' ? (
+            <PrimaryButton
               title={saving ? 'UPDATING...' : '🚚 MARK AS SHIPPED'}
               onPress={() => advanceStatus('Shipped')}
               disabled={saving}
             />
           ) : order.status === 'Shipped' ? (
             <PrimaryButton
-              title={saving ? 'UPDATING...' : '📦 MARK AS DELIVERED'}
+              title={saving ? 'UPDATING...' : '✓ MARK AS DELIVERED'}
               onPress={() => advanceStatus('Delivered')}
+              disabled={saving}
+            />
+          ) : order.status === 'Delivered' ? (
+            <PrimaryButton
+              title={saving ? 'UPDATING...' : '✓ ORDER DELIVERED (COMPLETED)'}
+              onPress={() =>
+                Alert.alert(
+                  'Order Completed',
+                  'This order has already been delivered.',
+                )
+              }
               disabled={saving}
             />
           ) : (
             <PrimaryButton
-              title={saving ? 'UPDATING...' : '✓ ORDER DELIVERED (COMPLETED)'}
-              onPress={() => Alert.alert('Order Completed', 'This order has already been delivered.')}
+              title={saving ? 'UPDATING...' : '📦 MARK AS PACKING'}
+              onPress={() => advanceStatus('Packing')}
               disabled={saving}
             />
           )}
@@ -474,6 +494,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0F2FE',
     borderColor: '#0284C7',
   },
+  pillPacking: {
+    backgroundColor: '#FFEDD5',
+    borderColor: '#EA580C',
+  },
   pillShipped: {
     backgroundColor: '#F3E8FF',
     borderColor: '#9333EA',
@@ -492,6 +516,9 @@ const styles = StyleSheet.create({
   },
   pillTextConfirmed: {
     color: '#0369A1',
+  },
+  pillTextPacking: {
+    color: '#C2410C',
   },
   pillTextShipped: {
     color: '#7E22CE',

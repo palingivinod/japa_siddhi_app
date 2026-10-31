@@ -92,12 +92,14 @@ class OrderService {
     const status = String(order.orderStatus || 'UNDER_REVIEW').toUpperCase();
     const rank =
       status === 'DELIVERED'
-        ? 4
+        ? 5
         : status === 'SHIPPED'
-          ? 3
-          : status === 'CONFIRMED' || status === 'PROCESSING' || status === 'READY'
-            ? 2
-            : 1;
+          ? 4
+          : status === 'PACKING'
+            ? 3
+            : status === 'CONFIRMED' || status === 'PROCESSING' || status === 'READY'
+              ? 2
+              : 1;
     const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
     const steps = [
       {
@@ -113,31 +115,44 @@ class OrderService {
         done: rank >= 2,
       },
       {
-        key: 'shipped',
-        label: 'Shipped',
+        key: 'packing',
+        label: 'Packing',
         date: rank >= 3 ? addDays(2) : `Expected ${addDays(2)}`,
         done: rank >= 3,
       },
       {
+        key: 'shipped',
+        label: 'Shipped',
+        date: rank >= 4 ? addDays(3) : `Expected ${addDays(3)}`,
+        done: rank >= 4,
+      },
+      {
         key: 'delivered',
         label: 'Delivered',
-        date: rank >= 4 ? addDays(4) : `Expected ${addDays(4)}`,
-        done: rank >= 4,
+        date: rank >= 5 ? addDays(5) : `Expected ${addDays(5)}`,
+        done: rank >= 5,
       },
     ];
     return {
       ...order,
       currentStatus:
-        rank >= 4
+        rank >= 5
           ? 'Delivered'
-          : rank >= 3
+          : rank >= 4
             ? 'Out for delivery'
-            : rank >= 2
-              ? 'Order Confirmed'
-              : 'Under Review',
-      eta: addDays(4),
+            : rank >= 3
+              ? 'Packing'
+              : rank >= 2
+                ? 'Order Confirmed'
+                : 'Under Review',
+      eta: addDays(5),
       steps,
+      canMarkReceived: status === 'SHIPPED',
     };
+  }
+
+  async markReceivedByUser(id: number, userId: number) {
+    return orderRepository.markReceivedByUser(id, userId);
   }
 
   async cancelForUser(id: number, userId: number, reason: string) {
