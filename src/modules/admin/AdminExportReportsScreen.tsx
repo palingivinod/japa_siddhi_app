@@ -21,12 +21,10 @@ const TYPE_BY_ID: Record<string, string> = {
   '2': 'japa',
   '3': 'challenges',
   '4': 'donations',
-  '5': 'orders',
   users: 'users',
   japa: 'japa',
   challenges: 'challenges',
   donations: 'donations',
-  orders: 'orders',
 };
 
 const AdminExportReportsScreen = () => {

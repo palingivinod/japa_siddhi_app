@@ -361,7 +361,6 @@ export const ADMIN_EXPORT_REPORTS: AdminExportReport[] = [
     subtitle: 'Joined, completed, progress & Excel per challenge',
   },
   {id: '4', title: 'Donation Reports', subtitle: 'Annadanam'},
-  {id: '5', title: 'Order Reports', subtitle: 'Products and orders'},
 ];
 
 export const findAdminUser = (id?: string) =>
