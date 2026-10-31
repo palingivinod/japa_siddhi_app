@@ -3,6 +3,7 @@ import {
   Alert,
   Image,
   Linking,
+  NativeModules,
   Platform,
   Share,
   StyleSheet,
@@ -84,6 +85,11 @@ const MonthlySupportThankYouScreen = () => {
 
   const shareGeneric = async () => {
     try {
+      // Android: share logo image + text (same as Monthly Support / Home share).
+      if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
+        await NativeModules.AppShare.shareLogo(shareMessage);
+        return;
+      }
       await Share.share(
         Platform.OS === 'ios'
           ? {message: shareMessage}
@@ -95,6 +101,12 @@ const MonthlySupportThankYouScreen = () => {
   };
 
   const shareWhatsApp = async () => {
+    // Prefer logo+text share so WhatsApp receives the image; text-only deep
+    // link cannot attach the app logo.
+    if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
+      await shareGeneric();
+      return;
+    }
     const url = `whatsapp://send?text=${encodeURIComponent(shareMessage)}`;
     try {
       const can = await Linking.canOpenURL(url);
