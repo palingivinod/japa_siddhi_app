@@ -2682,6 +2682,9 @@ const cleanTimestamp = (raw: any): string | null => {
 
 const mapOrderRow = (row: any) => {
   const orderNo = String(row.orderNumber || `#${row.id}`);
+  const rewardName = String(
+    row.rewardName || row.claimRewardName || row.itemName || '',
+  ).trim();
   return {
     id: String(row.id),
     orderNo: orderNo.startsWith('#') ? orderNo : `#${orderNo}`,
@@ -2697,6 +2700,7 @@ const mapOrderRow = (row: any) => {
     createdAt: cleanTimestamp(row.createdAt),
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
+    rewardName,
     orderGroup: isRewardOrder(row)
       ? 'reward'
       : isNormalBaanalingamOrder(row)
@@ -2858,6 +2862,7 @@ const ensureOrderCancelColumns = async () => {
 router.get('/orders', async (_req: Request, res: Response) => {
   try {
     await ensureOrderCancelColumns();
+    await ensureOrderDetailJoins();
     const rows = await mysql.query<any[]>(`
       SELECT
         o.id,
@@ -2872,9 +2877,21 @@ router.get('/orders', async (_req: Request, res: Response) => {
         o.cancel_reason AS cancelReason,
         o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
-        IFNULL(u.full_name, 'Devotee') AS customerName
+        IFNULL(u.full_name, 'Devotee') AS customerName,
+        COALESCE(
+          NULLIF(TRIM(crc.reward_name), ''),
+          NULLIF(TRIM(mrc.reward_name), ''),
+          CASE
+            WHEN UPPER(IFNULL(o.order_source, '')) IN ('CHALLENGE', 'MILESTONE')
+              THEN NULLIF(TRIM(o.item_name), '')
+            ELSE NULL
+          END,
+          ''
+        ) AS rewardName
       FROM orders o
       LEFT JOIN users u ON u.id = o.user_id
+      LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
+      LEFT JOIN milestone_reward_claims mrc ON mrc.order_id = o.id
       ORDER BY o.id DESC
     `);
     return res.json({
@@ -3047,15 +3064,10 @@ router.delete('/orders/:id', async (req: Request, res: Response) => {
     if (!existing?.length) {
       return res.status(404).json({success: false, message: 'Order not found.'});
     }
-    if (String(existing[0].orderStatus || '').toUpperCase() !== 'DELIVERED') {
-      return res.status(400).json({
-        success: false,
-        message: 'Only delivered orders can be deleted.',
-      });
-    }
     for (const sql of [
       'DELETE FROM bana_lingam WHERE order_id = ?',
       'DELETE FROM challenge_reward_claims WHERE order_id = ?',
+      'DELETE FROM milestone_reward_claims WHERE order_id = ?',
     ]) {
       try {
         await mysql.query(sql, [id]);
@@ -3064,7 +3076,7 @@ router.delete('/orders/:id', async (req: Request, res: Response) => {
       }
     }
     await mysql.query('DELETE FROM orders WHERE id = ?', [id]);
-    return res.json({success: true, message: 'Delivered order deleted.'});
+    return res.json({success: true, message: 'Order deleted.'});
   } catch (error: any) {
     return res.status(500).json({
       success: false,

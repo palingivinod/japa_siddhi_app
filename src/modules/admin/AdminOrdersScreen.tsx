@@ -12,6 +12,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
+import SelectField from '../common/SelectField';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrder} from './adminData';
 
@@ -176,12 +177,20 @@ const statusTone = (status: AdminOrder['status']) => {
   return {bg: '#F5F5F4', border: Colors.sacredBrown, text: Colors.sacredBrown};
 };
 
+const normalizeRewardKey = (value?: string) =>
+  String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+
 const AdminOrdersScreen = () => {
   const navigation = useNavigation<any>();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
+  const [catalogRewardNames, setCatalogRewardNames] = useState<string[]>([]);
   const [tab, setTab] = useState('All');
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [itemFilter, setItemFilter] = useState<ProductFilterType>('ALL');
+  const [rewardFilter, setRewardFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -191,10 +200,19 @@ const AdminOrdersScreen = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiService.get('/admin/orders');
-      const rows = Array.isArray(response.data?.data)
-        ? response.data.data
+      const [ordersRes, rewardsRes] = await Promise.all([
+        apiService.get('/admin/orders'),
+        apiService.get('/admin/rewards').catch(() => ({data: {data: []}})),
+      ]);
+      const rows = Array.isArray(ordersRes.data?.data)
+        ? ordersRes.data.data
         : [];
+      const catalog = Array.isArray(rewardsRes.data?.data)
+        ? rewardsRes.data.data
+            .map((r: any) => String(r.name || '').trim())
+            .filter(Boolean)
+        : [];
+      setCatalogRewardNames(catalog);
       setOrders(
         rows.map((row: any) => ({
           id: String(row.id),
@@ -218,6 +236,7 @@ const AdminOrdersScreen = () => {
           orderGroup: orderGroupOf(row),
           orderType: row.orderType || '',
           orderSource: row.orderSource || '',
+          rewardName: String(row.rewardName || row.product || '').trim(),
           remarks: row.remarks || '',
           cancelReason: row.cancelReason || '',
           cancelledBy: row.cancelledBy || '',
@@ -280,7 +299,7 @@ const AdminOrdersScreen = () => {
   const deleteOrder = (orderId: string, orderNo: string) => {
     Alert.alert(
       'Delete order',
-      `Delete delivered order ${orderNo}? This removes it from the database.`,
+      `Delete ${orderNo}? This permanently removes it from the database.`,
       [
         {text: 'Keep order', style: 'cancel'},
         {
@@ -307,6 +326,30 @@ const AdminOrdersScreen = () => {
     [orders, orderType],
   );
 
+  const rewardOptions = useMemo(() => {
+    const names = new Map<string, string>();
+    catalogRewardNames.forEach(name => {
+      const key = normalizeRewardKey(name);
+      if (key && !names.has(key)) {
+        names.set(key, name);
+      }
+    });
+    typedOrders.forEach(order => {
+      const raw = String(order.rewardName || order.product || '').trim();
+      const key = normalizeRewardKey(raw);
+      if (key && !names.has(key)) {
+        names.set(key, raw);
+      }
+    });
+    const list = Array.from(names.values()).sort((a, b) =>
+      a.localeCompare(b, undefined, {sensitivity: 'base'}),
+    );
+    return [
+      {label: 'All rewards', value: 'ALL'},
+      ...list.map(name => ({label: name, value: normalizeRewardKey(name)})),
+    ];
+  }, [catalogRewardNames, typedOrders]);
+
   const itemCounts = useMemo(() => {
     return {
       ALL: typedOrders.length,
@@ -317,10 +360,18 @@ const AdminOrdersScreen = () => {
     };
   }, [typedOrders]);
 
-  const itemFilteredOrders = useMemo(
-    () => typedOrders.filter(order => matchesItemFilter(order, itemFilter)),
-    [typedOrders, itemFilter],
-  );
+  const itemFilteredOrders = useMemo(() => {
+    if (orderType === 'reward') {
+      if (rewardFilter === 'ALL') {
+        return typedOrders;
+      }
+      return typedOrders.filter(
+        order =>
+          normalizeRewardKey(order.rewardName || order.product) === rewardFilter,
+      );
+    }
+    return typedOrders.filter(order => matchesItemFilter(order, itemFilter));
+  }, [typedOrders, itemFilter, orderType, rewardFilter]);
 
   const orderCounts = useMemo(() => {
     const total = itemFilteredOrders.length;
@@ -361,23 +412,34 @@ const AdminOrdersScreen = () => {
         <View style={styles.totalOrdersHeader}>
           <View>
             <Text style={styles.totalOrdersLabel}>
-              {itemFilter === 'ALL'
-                ? 'TOTAL ORDERS'
-                : `${itemFilter} ORDERS`}
+              {orderType === 'reward'
+                ? rewardFilter === 'ALL'
+                  ? 'REWARD ORDERS'
+                  : 'REWARD ORDERS'
+                : itemFilter === 'ALL'
+                  ? 'TOTAL ORDERS'
+                  : `${itemFilter} ORDERS`}
             </Text>
             <Text style={styles.totalOrdersCount}>{orderCounts.total}</Text>
           </View>
           <View style={styles.totalOrdersBadge}>
             <Text style={styles.totalOrdersBadgeText}>
-              {itemFilter === 'ALL'
-                ? '📦 Live Orders'
-                : itemFilter === 'RK'
-                  ? '📖 Ramakoti'
-                  : itemFilter === 'BP'
-                    ? '🛡️ Bhirava Pendant'
-                    : itemFilter === 'HB'
-                      ? '🔥 Homa Bhasma'
-                      : '🪨 Baanalingam'}
+              {orderType === 'reward'
+                ? rewardFilter === 'ALL'
+                  ? '🎁 All Rewards'
+                  : `🎁 ${
+                      rewardOptions.find(o => o.value === rewardFilter)
+                        ?.label || 'Reward'
+                    }`
+                : itemFilter === 'ALL'
+                  ? '📦 Live Orders'
+                  : itemFilter === 'RK'
+                    ? '📖 Ramakoti'
+                    : itemFilter === 'BP'
+                      ? '🛡️ Bhirava Pendant'
+                      : itemFilter === 'HB'
+                        ? '🔥 Homa Bhasma'
+                        : '🪨 Baanalingam'}
             </Text>
           </View>
         </View>
@@ -424,7 +486,11 @@ const AdminOrdersScreen = () => {
           <TouchableOpacity
             key={item.id}
             style={[styles.tabButton, orderType === item.id && styles.tabButtonActive]}
-            onPress={() => setOrderType(item.id)}>
+            onPress={() => {
+              setOrderType(item.id);
+              setRewardFilter('ALL');
+              setTab('All');
+            }}>
             <Text
               style={[
                 styles.tabButtonText,
@@ -436,63 +502,78 @@ const AdminOrdersScreen = () => {
         ))}
       </View>
 
-      {/* Product / Item Filter Section */}
-      <View style={styles.itemFilterContainer}>
-        <Text style={styles.itemFilterHeader}>FILTER BY ITEM</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.itemFilterScroll}>
-          {ITEM_FILTERS.map(item => {
-            const active = itemFilter === item.id;
-            const count = itemCounts[item.id] || 0;
-            return (
-              <TouchableOpacity
-                key={item.id}
-                activeOpacity={0.8}
-                style={[
-                  styles.itemFilterChip,
-                  active && styles.itemFilterChipActive,
-                ]}
-                onPress={() => setItemFilter(item.id)}>
-                <View
+      {orderType === 'reward' ? (
+        <View style={styles.rewardFilterBox}>
+          <Text style={styles.itemFilterHeader}>FILTER BY REWARD TYPE</Text>
+          <SelectField
+            title="Select reward"
+            placeholder="All rewards"
+            value={rewardFilter}
+            options={rewardOptions}
+            onChange={value => {
+              setRewardFilter(value);
+              setTab('All');
+            }}
+          />
+        </View>
+      ) : (
+        <View style={styles.itemFilterContainer}>
+          <Text style={styles.itemFilterHeader}>FILTER BY ITEM</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.itemFilterScroll}>
+            {ITEM_FILTERS.map(item => {
+              const active = itemFilter === item.id;
+              const count = itemCounts[item.id] || 0;
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.8}
                   style={[
-                    styles.codeBadge,
-                    active && styles.codeBadgeActive,
-                  ]}>
+                    styles.itemFilterChip,
+                    active && styles.itemFilterChipActive,
+                  ]}
+                  onPress={() => setItemFilter(item.id)}>
+                  <View
+                    style={[
+                      styles.codeBadge,
+                      active && styles.codeBadgeActive,
+                    ]}>
+                    <Text
+                      style={[
+                        styles.codeBadgeText,
+                        active && styles.codeBadgeTextActive,
+                      ]}>
+                      {item.code}
+                    </Text>
+                  </View>
                   <Text
                     style={[
-                      styles.codeBadgeText,
-                      active && styles.codeBadgeTextActive,
+                      styles.itemFilterLabel,
+                      active && styles.itemFilterLabelActive,
                     ]}>
-                    {item.code}
+                    {item.label}
                   </Text>
-                </View>
-                <Text
-                  style={[
-                    styles.itemFilterLabel,
-                    active && styles.itemFilterLabelActive,
-                  ]}>
-                  {item.label}
-                </Text>
-                <View
-                  style={[
-                    styles.itemCountBadge,
-                    active && styles.itemCountBadgeActive,
-                  ]}>
-                  <Text
+                  <View
                     style={[
-                      styles.itemCountText,
-                      active && styles.itemCountTextActive,
+                      styles.itemCountBadge,
+                      active && styles.itemCountBadgeActive,
                     ]}>
-                    {count}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
+                    <Text
+                      style={[
+                        styles.itemCountText,
+                        active && styles.itemCountTextActive,
+                      ]}>
+                      {count}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <View style={styles.tabBar}>
         {TABS.map(item => {
@@ -560,7 +641,7 @@ const AdminOrdersScreen = () => {
               <View style={styles.copy}>
                 <Text style={styles.name}>{order.orderNo}</Text>
                 <Text style={styles.meta}>
-                  {order.product} • {order.customer}
+                  {order.rewardName || order.product} • {order.customer}
                 </Text>
                 {order.cancelReason ? (
                   <Text style={styles.reason}>Reason: {order.cancelReason}</Text>
@@ -577,37 +658,47 @@ const AdminOrdersScreen = () => {
               </View>
             </TouchableOpacity>
 
-            {order.status === 'Delivered' ? (
-              <View style={styles.actionRow}>
-                <TouchableOpacity
-                  style={[styles.deleteBtn, busyId === order.id && styles.btnDisabled]}
-                  disabled={busyId === order.id}
-                  onPress={() => deleteOrder(order.id, order.orderNo)}>
-                  <Text style={styles.deleteBtnText}>DELETE ORDER</Text>
-                </TouchableOpacity>
-              </View>
-            ) : order.status !== 'Cancelled' ? (
-              <View style={styles.actionRow}>
-                {isUnderReview ? (
+            <View style={styles.actionRow}>
+              {order.status !== 'Cancelled' && order.status !== 'Delivered' ? (
+                <>
+                  {isUnderReview ? (
+                    <TouchableOpacity
+                      style={[
+                        styles.confirmBtn,
+                        isConfirming && styles.btnDisabled,
+                      ]}
+                      disabled={isConfirming}
+                      onPress={() => confirmOrder(order.id, order.orderNo)}>
+                      {isConfirming ? (
+                        <ActivityIndicator size="small" color={Colors.white} />
+                      ) : (
+                        <Text style={styles.confirmBtnText}>
+                          ✓ CONFIRM ORDER
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  ) : null}
                   <TouchableOpacity
-                    style={[styles.confirmBtn, isConfirming && styles.btnDisabled]}
-                    disabled={isConfirming}
-                    onPress={() => confirmOrder(order.id, order.orderNo)}>
-                    {isConfirming ? (
-                      <ActivityIndicator size="small" color={Colors.white} />
-                    ) : (
-                      <Text style={styles.confirmBtnText}>✓ CONFIRM ORDER</Text>
-                    )}
+                    style={[
+                      styles.cancelBtn,
+                      busyId === order.id && styles.btnDisabled,
+                    ]}
+                    disabled={busyId === order.id}
+                    onPress={() => cancelOrder(order.id, order.orderNo)}>
+                    <Text style={styles.cancelBtnText}>CANCEL ORDER</Text>
                   </TouchableOpacity>
-                ) : null}
-                <TouchableOpacity
-                  style={[styles.cancelBtn, busyId === order.id && styles.btnDisabled]}
-                  disabled={busyId === order.id}
-                  onPress={() => cancelOrder(order.id, order.orderNo)}>
-                  <Text style={styles.cancelBtnText}>CANCEL ORDER</Text>
-                </TouchableOpacity>
-              </View>
-            ) : null}
+                </>
+              ) : null}
+              <TouchableOpacity
+                style={[
+                  styles.deleteBtn,
+                  busyId === order.id && styles.btnDisabled,
+                ]}
+                disabled={busyId === order.id}
+                onPress={() => deleteOrder(order.id, order.orderNo)}>
+                <Text style={styles.deleteBtnText}>DELETE ORDER</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       })}
@@ -704,6 +795,9 @@ const styles = StyleSheet.create({
   typeBar: {
     flexDirection: 'row',
     gap: 8,
+    marginBottom: 12,
+  },
+  rewardFilterBox: {
     marginBottom: 12,
   },
   itemFilterContainer: {

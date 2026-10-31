@@ -141,6 +141,7 @@ export type AdminOrder = {
   orderGroup?: AdminOrderGroup;
   orderType?: string;
   orderSource?: string;
+  rewardName?: string;
   remarks?: string;
   cancelReason?: string;
   cancelledBy?: string;
