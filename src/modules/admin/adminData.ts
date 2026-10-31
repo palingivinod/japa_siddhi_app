@@ -81,8 +81,6 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Autopay Requests', route: 'AdminAutopayRequests'},
   {title: 'Meeting Management', route: 'AdminMeeting'},
   {title: 'Payments', route: 'AdminPayments'},
-  {title: 'Annadanam', route: 'AdminAnnadanam'},
-  {title: 'Baanalingam', route: 'AdminBaanalingam'},
   {title: 'Support Tickets', route: 'AdminSupport'},
   {title: 'Feedback', route: 'AdminFeedback'},
   {title: 'Analytics Dashboard', route: 'AdminAnalyticsDashboard'},
