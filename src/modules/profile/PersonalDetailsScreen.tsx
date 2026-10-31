@@ -471,7 +471,8 @@ const PersonalDetailsScreen = () => {
         style={styles.input}
         value={region}
         onChangeText={setRegion}
-        placeholder={t('enterRegionPlace')}
+        placeholder={t('regionPlaceholder') || 'Your nearest city'}
+        placeholderTextColor={Colors.placeholder}
         maxLength={80}
       />
 

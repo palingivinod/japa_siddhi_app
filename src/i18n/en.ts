@@ -112,6 +112,8 @@ const en = {
   enterMobileDigits: 'Enter your {{digits}}-digit mobile number.',
   enterDateOfBirth: 'Enter your date of birth as DD-MM-YYYY.',
   dobFormatPlaceholder: 'DD-MM-YYYY',
+  dobSelectPlaceholder: 'Select date (DD-MM-YYYY)',
+  adminDobPlaceholder: 'YYYY-MM-DD',
   passwordMinLength: 'Password must be at least 6 characters.',
   passwordsDoNotMatch: 'Passwords do not match.',
   signInLink: 'Sign in',
@@ -654,6 +656,7 @@ const en = {
   enterCity: 'Please enter City.',
   regionPlace: 'Region / Place',
   enterRegionPlace: 'Please enter Region / Place.',
+  regionPlaceholder: 'Your nearest city',
   regionRequiredTitle: 'Add your place',
   regionRequiredMessage:
     'Please add your region or place. This is required.',

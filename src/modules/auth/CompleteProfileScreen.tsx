@@ -596,7 +596,9 @@ const CompleteProfileScreen = ({
           }>
 
           <Text style={dobSelected ? styles.dateText : styles.datePlaceholder}>
-            {dobSelected ? dob.toDateString() : t('selectDate')}
+            {dobSelected
+              ? dob.toDateString()
+              : t('dobSelectPlaceholder') || 'Select date (DD-MM-YYYY)'}
           </Text>
 
         </TouchableOpacity>
@@ -693,7 +695,7 @@ const CompleteProfileScreen = ({
         </Text>
         <TextInput
           style={styles.input}
-          placeholder={t('enterRegionPlace')}
+          placeholder={t('regionPlaceholder') || 'Your nearest city'}
           placeholderTextColor={Colors.textSecondary}
           value={region}
           onChangeText={setRegion}

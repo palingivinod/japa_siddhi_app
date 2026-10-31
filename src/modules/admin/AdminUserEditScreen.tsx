@@ -22,12 +22,14 @@ const Field = ({
   onChangeText,
   keyboardType = 'default',
   multiline = false,
+  placeholder = 'Enter here',
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
   multiline?: boolean;
+  placeholder?: string;
 }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
@@ -35,7 +37,7 @@ const Field = ({
       style={[styles.input, multiline && styles.inputMultiline]}
       value={value}
       onChangeText={onChangeText}
-      placeholder="Enter here"
+      placeholder={placeholder}
       placeholderTextColor={Colors.placeholder}
       keyboardType={keyboardType}
       autoCapitalize={keyboardType === 'email-address' ? 'none' : 'words'}
@@ -208,9 +210,10 @@ const AdminUserEditScreen = () => {
           <Text style={styles.section}>Personal</Text>
           <Field label="Gender" value={gender} onChangeText={setGender} />
           <Field
-            label="Date of birth (YYYY-MM-DD)"
+            label="Date of birth"
             value={dateOfBirth}
             onChangeText={setDateOfBirth}
+            placeholder="YYYY-MM-DD"
           />
           <Field
             label="Marital status"
@@ -223,14 +226,16 @@ const AdminUserEditScreen = () => {
             onChangeText={setSpouseName}
           />
           <Field
-            label="Spouse DOB (YYYY-MM-DD)"
+            label="Spouse DOB"
             value={spouseDob}
             onChangeText={setSpouseDob}
+            placeholder="YYYY-MM-DD"
           />
           <Field
-            label="Anniversary (YYYY-MM-DD)"
+            label="Anniversary"
             value={anniversaryDate}
             onChangeText={setAnniversaryDate}
+            placeholder="YYYY-MM-DD"
           />
           <Field label="Gothram" value={gothram} onChangeText={setGothram} />
           <Field
@@ -254,7 +259,12 @@ const AdminUserEditScreen = () => {
             }
             keyboardType="phone-pad"
           />
-          <Field label="Region / area" value={region} onChangeText={setRegion} />
+          <Field
+            label="Region / area"
+            value={region}
+            onChangeText={setRegion}
+            placeholder="Your nearest city"
+          />
           {stateName || cityName ? (
             <View style={styles.readOnlyBox}>
               <Text style={styles.readOnlyLabel}>

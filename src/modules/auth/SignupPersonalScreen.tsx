@@ -19,6 +19,7 @@ const defaultIndia: CountryItem =
     flag: '🇮🇳',
   };
 
+/** Matches typed DOB mask (slashes). Always show format in the field. */
 const DATE_PLACEHOLDER = 'DD/MM/YYYY';
 
 /** The next steps expect DD/MM/YYYY, so the picker writes that shape back. */
