@@ -524,8 +524,10 @@ export const ta: TranslationDict = {
   deliveryAddress: 'டெலிவரி முகவரி',
   addressDetailedHint:
     'கதவு எண், பிளாட் எண், தெரு மற்றும் பகுதியின் பெயரை உள்ளிடுவதை உறுதிப்படுத்தவும்.',
-  annadanamCommentsPlaceholder: 'நன்கொடையாளர் பெயர்கள், சந்தர்ப்பம் போன்றவை',
-  homamCommentsPlaceholder: 'கோத்திரங்கள் மற்றும் குடும்பப் பெயர்களை உள்ளிடவும்',
+  annadanamCommentsPlaceholder:
+    'தயவுசெய்து நன்கொடையாளர் பெயர், சந்தர்ப்பம் அல்லது பிற விவரங்களை உள்ளிடவும்',
+  homamCommentsPlaceholder:
+    'தயவுசெய்து உங்கள் குடும்பப் பெயர்கள் மற்றும் கோத்திரத்தை உள்ளிடவும்',
   generalCommentsPlaceholder:
     'ஏதேனும் சிறப்பு கோரிக்கைகள் அல்லது குறிப்புகளை உள்ளிடவும் (விருப்பத்திற்குரியது)',
   tileMonthlySupport: 'மாதாந்திர உதவி (இப்போதே தானம் செய்யுங்கள்)',

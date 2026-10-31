@@ -773,8 +773,9 @@ const en = {
   deliveryAddress: 'Delivery address',
   addressDetailedHint:
     'Please ensure to enter Door No., Flat No., Street and Area name.',
-  annadanamCommentsPlaceholder: 'Donars names,occasion,etc',
-  homamCommentsPlaceholder: 'Enter gotrams and family names',
+  annadanamCommentsPlaceholder:
+    'Please enter donors name, occasion or any other details',
+  homamCommentsPlaceholder: 'Please enter your family names and gotram',
   generalCommentsPlaceholder:
     'Enter any special requests or comments (optional)',
   tileMonthlySupport: 'Monthly Support (Donate here now)',

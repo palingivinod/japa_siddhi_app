@@ -529,8 +529,9 @@ export const mr: TranslationDict = {
   deliveryAddress: 'वितरण पत्ता',
   addressDetailedHint:
     'कृपया घर क्रमांक, फ्लॅट क्रमांक, रस्ता आणि परिसराचे नाव नक्की टाका.',
-  annadanamCommentsPlaceholder: 'दानदात्यांची नावे, प्रसंग इ.',
-  homamCommentsPlaceholder: 'गोत्र आणि कुटुंबाची नावे टाका',
+  annadanamCommentsPlaceholder:
+    'कृपया दात्याचे नाव, प्रसंग किंवा इतर तपशील टाका',
+  homamCommentsPlaceholder: 'कृपया तुमची कुटुंबाची नावे आणि गोत्र टाका',
   commentsRequired: 'कृपया टिप्पण्या प्रविष्ट करा.',
   generalCommentsPlaceholder:
     'कोणत्याही विशेष विनंत्या किंवा टिप्पण्या प्रविष्ट करा (पर्यायी)',

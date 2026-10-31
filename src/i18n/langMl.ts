@@ -526,8 +526,10 @@ export const ml: TranslationDict = {
   deliveryAddress: 'ഡെലിവറി വിലാസം',
   addressDetailedHint:
     'ഡോർ നമ്പർ, ഫ്ലാറ്റ് നമ്പർ, തെരുവ്, പ്രദേശത്തിന്റെ പേര് എന്നിവ രേഖപ്പെടുത്താൻ ശ്രദ്ധിക്കുക.',
-  annadanamCommentsPlaceholder: 'ദാതാക്കളുടെ പേരുകൾ, അവസരം മുതലായവ',
-  homamCommentsPlaceholder: 'ഗോത്രങ്ങളും കുടുംബപ്പേരുകളും നൽകുക',
+  annadanamCommentsPlaceholder:
+    'ദയവായി ദാതാവിന്റെ പേര്, അവസരം അല്ലെങ്കിൽ മറ്റ് വിവരങ്ങൾ നൽകുക',
+  homamCommentsPlaceholder:
+    'ദയവായി നിങ്ങളുടെ കുടുംബപ്പേരുകളും ഗോത്രവും നൽകുക',
   commentsRequired: 'ദയവായി അഭിപ്രായങ്ങൾ നൽകുക.',
   generalCommentsPlaceholder:
     'പ്രത്യേക അഭ്യർത്ഥനകളോ കുറിപ്പുകളോ നൽകുക (ഓപ്ഷണൽ)',

@@ -539,8 +539,9 @@ export const hi: TranslationDict = {
   deliveryAddress: 'डिलीवरी पता',
   addressDetailedHint:
     'कृपया मकान नंबर, फ्लैट नंबर, सड़क और इलाके का नाम अवश्य दर्ज करें।',
-  annadanamCommentsPlaceholder: 'दानकर्ताओं के नाम, अवसर आदि',
-  homamCommentsPlaceholder: 'गोत्र और परिवार के नाम दर्ज करें',
+  annadanamCommentsPlaceholder:
+    'कृपया दाता का नाम, अवसर या कोई अन्य विवरण दर्ज करें',
+  homamCommentsPlaceholder: 'कृपया अपने परिवार के नाम और गोत्र दर्ज करें',
   generalCommentsPlaceholder:
     'कोई विशेष अनुरोध या टिप्पणी दर्ज करें (वैकल्पिक)',
   tileMonthlySupport: 'मासिक सहायता (अभी दान करें)',
@@ -1394,8 +1395,9 @@ export const te: TranslationDict = {
   deliveryAddress: 'డెలివరీ చిరునామా',
   addressDetailedHint:
     'దయచేసి డోర్ నంబర్, ఫ్లాట్ నంబర్, వీధి మరియు ప్రాంతం పేరు తప్పకుండా నమోదు చేయండి.',
-  annadanamCommentsPlaceholder: 'దాతల పేర్లు, సందర్భం మొదలైనవి',
-  homamCommentsPlaceholder: 'గోత్రాలు మరియు కుటుంబ పేర్లు నమోదు చేయండి',
+  annadanamCommentsPlaceholder:
+    'దయచేసి దాత పేరు, సందర్భం లేదా ఇతర వివరాలు నమోదు చేయండి',
+  homamCommentsPlaceholder: 'దయచేసి మీ కుటుంబ పేర్లు మరియు గోత్రం నమోదు చేయండి',
   generalCommentsPlaceholder:
     'ఏవైనా ప్రత్యేక అభ్యర్థనలు లేదా వ్యాఖ్యలను నమోదు చేయండి (ఐచ్ఛికం)',
   tileMonthlySupport: 'నెలవారీ సహాయం (ఇప్పుడే సహాయం చేయండి)',
