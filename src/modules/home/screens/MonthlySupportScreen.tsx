@@ -60,6 +60,17 @@ const buildMonthlySupportShareText = (_t?: (k: any) => string) => {
   ].join('\n');
 };
 
+/** Short caption for Android logo share — long multi-link text makes WhatsApp drop the image. */
+const buildMonthlySupportShareCaption = () =>
+  [
+    '🙏 Japa Siddhi – Bilva Patra Trust — Monthly Spiritual Support 🙏',
+    '',
+    'Support temple seva every month with auto-pay.',
+    'Full amount links are copied — paste them in the chat.',
+    '',
+    `📲 ${PLAYSTORE_URL}`,
+  ].join('\n');
+
 type RouteParams = {
   amount?: number;
   openCustom?: boolean;
@@ -231,6 +242,7 @@ const MonthlySupportScreen = () => {
 
   const handleShareDetails = async () => {
     const message = buildMonthlySupportShareText(t);
+    const caption = buildMonthlySupportShareCaption();
     try {
       (Clipboard as {setString?: (value: string) => void}).setString?.(message);
       if (Platform.OS === 'android') {
@@ -244,10 +256,18 @@ const MonthlySupportScreen = () => {
     }
 
     try {
-      // Android: share logo image + flyer text (same as Home "Share app").
+      // Android: share logo + short caption. Full amount links stay on clipboard
+      // (WhatsApp drops the logo when EXTRA_TEXT is a long multi-link flyer).
       if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
-        await NativeModules.AppShare.shareLogo(message);
-        return;
+        try {
+          await NativeModules.AppShare.shareLogo(caption);
+          return;
+        } catch {
+          await NativeModules.AppShare.shareLogo(
+            '🙏 Japa Siddhi – Monthly Spiritual Support 🙏',
+          );
+          return;
+        }
       }
       await Share.share(
         Platform.OS === 'ios'

@@ -34,13 +34,21 @@ class AppShareModule(
           "${reactContext.packageName}.fileprovider",
           logo,
         )
+      // ClipData must include both the image URI and the text item, or apps
+      // like WhatsApp often keep the links and drop the logo (or the reverse).
+      val shareClip =
+        ClipData.newUri(reactContext.contentResolver, "Japa Siddhi", uri).also {
+          if (message.isNotBlank()) {
+            it.addItem(ClipData.Item(message))
+          }
+        }
       val send =
         Intent(Intent.ACTION_SEND).apply {
           type = "image/png"
           putExtra(Intent.EXTRA_STREAM, uri)
           putExtra(Intent.EXTRA_TEXT, message)
           putExtra(Intent.EXTRA_SUBJECT, "Japa Siddhi")
-          clipData = ClipData.newUri(reactContext.contentResolver, "Japa Siddhi", uri)
+          clipData = shareClip
           addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
       val targets =
@@ -59,7 +67,7 @@ class AppShareModule(
       // The chooser is the activity that opens WhatsApp or Messages. The
       // read grant has to sit on this intent, or the logo is dropped and
       // only the link is delivered.
-      chooser.clipData = ClipData.newUri(reactContext.contentResolver, "Japa Siddhi", uri)
+      chooser.clipData = shareClip
       chooser.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       val activity = reactContext.currentActivity
       if (activity != null) {
