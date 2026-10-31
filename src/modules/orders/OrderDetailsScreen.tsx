@@ -63,7 +63,6 @@ const OrderDetailsScreen = () => {
             icon={isBaanalingam ? 'banalingam' : undefined}
             emoji={isBaanalingam ? undefined : '📦'}
             title={item?.itemName || item?.productName || 'Baanalingam'}
-            subtitle={`Quantity: ${item?.quantity || 1}`}
           />
         );
       })()}
