@@ -22,6 +22,8 @@ export type PaymentStatus =
 export type OrderStatus =
   | 'PENDING'
   | 'UNDER_REVIEW'
+  | 'CALLED_TALKED'
+  | 'SANKALP_TAKEN'
   | 'CONFIRMED'
   | 'PROCESSING'
   | 'READY'

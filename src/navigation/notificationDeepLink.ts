@@ -84,6 +84,16 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
+  if (action === 'ORDER_STATUS' || action === 'ORDER_UPDATE') {
+    const orderId = num(data.orderId || data.actionId);
+    if (orderId) {
+      navigateTo('OrderDetails', {id: orderId});
+      return;
+    }
+    navigateTo('Orders');
+    return;
+  }
+
   if (
     action === 'GOAL_COMPLETED' ||
     action === 'DAILY_GOAL_COMPLETED' ||

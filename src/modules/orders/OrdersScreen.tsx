@@ -42,6 +42,12 @@ const formatStatus = (raw: string, t: any) => {
   if (value.includes('confirm')) {
     return 'Order Confirmed';
   }
+  if (value.includes('sankalp')) {
+    return 'Sankalp taken by devotee';
+  }
+  if (value.includes('called')) {
+    return 'Called and talked with devotee';
+  }
   if (value.includes('cancel')) {
     return t('orderTabCancelled');
   }

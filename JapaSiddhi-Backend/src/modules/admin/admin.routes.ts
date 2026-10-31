@@ -2598,6 +2598,12 @@ const toAdminOrderStatus = (raw: string) => {
   if (value === 'CONFIRMED' || value === 'PROCESSING' || value === 'READY') {
     return 'Confirmed';
   }
+  if (value === 'SANKALP_TAKEN') {
+    return 'Sankalp Taken';
+  }
+  if (value === 'CALLED_TALKED' || value === 'CALLED_DEVOTEE') {
+    return 'Called Devotee';
+  }
   if (value === 'CANCELLED' || value === 'CANCELED') {
     return 'Cancelled';
   }
@@ -2618,13 +2624,94 @@ const fromAdminOrderStatus = (raw: string) => {
   if (value === 'packing') {
     return 'PACKING';
   }
-  if (value === 'confirmed' || value === 'confirm' || value === 'processing' || value === 'ready') {
+  if (
+    value === 'confirmed' ||
+    value === 'confirm' ||
+    value === 'order confirmation' ||
+    value === 'processing' ||
+    value === 'ready'
+  ) {
     return 'CONFIRMED';
+  }
+  if (
+    value === 'sankalp taken' ||
+    value === 'sankalp_taken' ||
+    value === 'sankalp taken by devotee' ||
+    value === 'sankalp'
+  ) {
+    return 'SANKALP_TAKEN';
+  }
+  if (
+    value === 'called devotee' ||
+    value === 'called_talked' ||
+    value === 'called_devotee' ||
+    value === 'called and talked with devotee' ||
+    value === 'called'
+  ) {
+    return 'CALLED_TALKED';
   }
   if (value === 'under review' || value === 'under_review' || value === 'pending') {
     return 'UNDER_REVIEW';
   }
+  if (value === 'cancelled' || value === 'canceled') {
+    return 'CANCELLED';
+  }
   return 'CONFIRMED';
+};
+
+const userFacingOrderStatusLabel = (dbStatus: string) => {
+  const value = String(dbStatus || '').toUpperCase();
+  if (value === 'DELIVERED') return 'Delivered';
+  if (value === 'SHIPPED') return 'Shipped';
+  if (value === 'PACKING') return 'Packing';
+  if (value === 'CONFIRMED' || value === 'PROCESSING' || value === 'READY') {
+    return 'Order Confirmed';
+  }
+  if (value === 'SANKALP_TAKEN') return 'Sankalp taken by devotee';
+  if (value === 'CALLED_TALKED' || value === 'CALLED_DEVOTEE') {
+    return 'Called and talked with devotee';
+  }
+  if (value === 'CANCELLED' || value === 'CANCELED') return 'Cancelled';
+  if (value === 'UNDER_REVIEW' || value === 'PENDING') return 'Under Review';
+  return toAdminOrderStatus(dbStatus);
+};
+
+const notifyUserOrderStatus = async (input: {
+  orderId: number | string;
+  userId?: number | string | null;
+  orderNo?: string | null;
+  product?: string | null;
+  dbStatus: string;
+}) => {
+  const userId = Number(input.userId || 0);
+  if (!userId) {
+    return;
+  }
+  const orderId = Number(input.orderId || 0);
+  const orderNo = String(input.orderNo || `#${orderId}`).trim() || `#${orderId}`;
+  const product = String(input.product || 'your order').trim() || 'your order';
+  const label = userFacingOrderStatusLabel(input.dbStatus);
+  try {
+    const {deliverAdminNotification} = await import(
+      './adminNotification.service'
+    );
+    await deliverAdminNotification({
+      title: `Order ${orderNo} update`,
+      message: `Your order ${orderNo} (${product}) is now: ${label}.`,
+      target: 'all',
+      userIds: [userId],
+      actionType: 'ORDER_STATUS',
+      actionId: orderId > 0 ? orderId : null,
+      extraData: {
+        screen: 'OrderDetails',
+        orderId: orderId > 0 ? orderId : undefined,
+        orderStatus: String(input.dbStatus || '').toUpperCase(),
+      },
+      bypassHours: true,
+    });
+  } catch (err) {
+    console.warn('Order status notify failed', err);
+  }
 };
 
 /** Reward orders are earned from a challenge or a japa milestone, not purchased. */
@@ -3010,11 +3097,19 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    const detail = mapOrderDetail(rows[0]);
+    await notifyUserOrderStatus({
+      orderId: detail.id,
+      userId: detail.userId,
+      orderNo: detail.orderNo,
+      product: detail.product,
+      dbStatus: nextStatus,
+    });
 
     return res.json({
       success: true,
       message: 'Order status updated.',
-      data: mapOrderDetail(rows[0]),
+      data: detail,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -3061,6 +3156,29 @@ router.put('/orders/:id/cancel', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    try {
+      await ensureOrderDetailJoins();
+      const rows = await mysql.query<any[]>(
+        `
+        ${orderDetailSelect}
+        WHERE o.id = ?
+        LIMIT 1
+        `,
+        [id],
+      );
+      if (rows?.length) {
+        const detail = mapOrderDetail(rows[0]);
+        await notifyUserOrderStatus({
+          orderId: detail.id,
+          userId: detail.userId,
+          orderNo: detail.orderNo,
+          product: detail.product,
+          dbStatus: 'CANCELLED',
+        });
+      }
+    } catch (notifyErr) {
+      console.warn('Cancel order notify failed', notifyErr);
+    }
     return res.json({success: true, message: 'Order cancelled.'});
   } catch (error: any) {
     return res.status(500).json({
@@ -3135,11 +3253,19 @@ router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    const detail = mapOrderDetail(rows[0]);
+    await notifyUserOrderStatus({
+      orderId: detail.id,
+      userId: detail.userId,
+      orderNo: detail.orderNo,
+      product: detail.product,
+      dbStatus: 'CONFIRMED',
+    });
 
     return res.json({
       success: true,
       message: 'Order confirmed successfully.',
-      data: mapOrderDetail(rows[0]),
+      data: detail,
     });
   } catch (error: any) {
     return res.status(500).json({

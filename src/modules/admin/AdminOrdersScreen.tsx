@@ -61,12 +61,44 @@ const matchesOrderSearch = (order: AdminOrder, query: string) => {
 const TABS: Array<{id: string; label: string}> = [
   {id: 'All', label: 'All'},
   {id: 'Under Review', label: 'Under Review'},
+  {id: 'Called Devotee', label: 'Called'},
+  {id: 'Sankalp Taken', label: 'Sankalp'},
   {id: 'Confirmed', label: 'Confirmed'},
   {id: 'Packing', label: 'Packing'},
   {id: 'Shipped', label: 'Shipped'},
   {id: 'Delivered', label: 'Delivered'},
   {id: 'Cancelled', label: 'Cancelled'},
 ];
+
+const isBaanalingamOrder = (order: {
+  product?: string;
+  orderType?: string;
+  orderNo?: string;
+  remarks?: string;
+}) => {
+  const type = String(order.orderType || '').toUpperCase();
+  const number = String(order.orderNo || '').toUpperCase();
+  const text =
+    `${order.product || ''} ${order.remarks || ''}`.toLowerCase();
+  return (
+    type === 'BANA_LINGAM' ||
+    number.includes('BL-') ||
+    text.includes('baanalingam') ||
+    text.includes('banalingam')
+  );
+};
+
+const mapAdminOrderStatus = (raw: string): AdminOrder['status'] => {
+  if (raw === 'Delivered') return 'Delivered';
+  if (raw === 'Shipped') return 'Shipped';
+  if (raw === 'Packing') return 'Packing';
+  if (raw === 'Confirmed') return 'Confirmed';
+  if (raw === 'Sankalp Taken') return 'Sankalp Taken';
+  if (raw === 'Called Devotee') return 'Called Devotee';
+  if (raw === 'Cancelled') return 'Cancelled';
+  if (raw === 'Under Review') return 'Under Review';
+  return 'Processing';
+};
 
 const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
   {id: 'normal', label: 'Normal'},
@@ -201,6 +233,12 @@ const statusTone = (status: AdminOrder['status']) => {
   if (status === 'Under Review') {
     return {bg: '#FEF3C7', border: '#D97706', text: '#B45309'};
   }
+  if (status === 'Called Devotee') {
+    return {bg: '#FEF3C7', border: '#D97706', text: '#B45309'};
+  }
+  if (status === 'Sankalp Taken') {
+    return {bg: '#FFEDD5', border: '#EA580C', text: '#C2410C'};
+  }
   if (status === 'Confirmed') {
     return {bg: '#E0F2FE', border: '#0284C7', text: '#0369A1'};
   }
@@ -262,20 +300,7 @@ const AdminOrdersScreen = () => {
           orderNo: row.orderNo || `#${row.id}`,
           product: row.product || 'Item',
           customer: row.customer || 'Devotee',
-          status:
-            row.status === 'Delivered'
-              ? 'Delivered'
-              : row.status === 'Shipped'
-                ? 'Shipped'
-                : row.status === 'Packing'
-                  ? 'Packing'
-                  : row.status === 'Confirmed'
-                    ? 'Confirmed'
-                    : row.status === 'Cancelled'
-                      ? 'Cancelled'
-                      : row.status === 'Under Review'
-                        ? 'Under Review'
-                        : 'Processing',
+          status: mapAdminOrderStatus(String(row.status || '')),
           orderGroup: orderGroupOf(row),
           orderType: row.orderType || '',
           orderSource: row.orderSource || '',
@@ -302,14 +327,34 @@ const AdminOrdersScreen = () => {
     }, [loadOrders]),
   );
 
-  const confirmOrder = async (orderId: string, orderNo: string) => {
-    setConfirmingId(orderId);
+  const confirmOrder = async (order: AdminOrder) => {
+    setConfirmingId(order.id);
     try {
-      await apiService.put(`/admin/orders/${orderId}/confirm`);
-      setOrders(prev =>
-        prev.map(o => (o.id === orderId ? {...o, status: 'Confirmed'} : o)),
-      );
-      Alert.alert('Order Confirmed', `Order ${orderNo} has been confirmed successfully.`);
+      if (isBaanalingamOrder(order)) {
+        await apiService.put(`/admin/orders/${order.id}/status`, {
+          status: 'Called Devotee',
+        });
+        setOrders(prev =>
+          prev.map(o =>
+            o.id === order.id ? {...o, status: 'Called Devotee'} : o,
+          ),
+        );
+        Alert.alert(
+          'Status updated',
+          `Order ${order.orderNo} marked as Called and talked with devotee.`,
+        );
+      } else {
+        await apiService.put(`/admin/orders/${order.id}/confirm`);
+        setOrders(prev =>
+          prev.map(o =>
+            o.id === order.id ? {...o, status: 'Confirmed'} : o,
+          ),
+        );
+        Alert.alert(
+          'Order Confirmed',
+          `Order ${order.orderNo} has been confirmed successfully.`,
+        );
+      }
     } catch (err) {
       Alert.alert('Confirmation failed', getApiError(err, 'Could not confirm order.'));
     } finally {
@@ -430,12 +475,28 @@ const AdminOrdersScreen = () => {
   const orderCounts = useMemo(() => {
     const total = itemFilteredOrders.length;
     const underReview = itemFilteredOrders.filter(o => o.status === 'Under Review').length;
+    const calledDevotee = itemFilteredOrders.filter(
+      o => o.status === 'Called Devotee',
+    ).length;
+    const sankalpTaken = itemFilteredOrders.filter(
+      o => o.status === 'Sankalp Taken',
+    ).length;
     const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
     const packing = itemFilteredOrders.filter(o => o.status === 'Packing').length;
     const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
     const delivered = itemFilteredOrders.filter(o => o.status === 'Delivered').length;
     const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
-    return {total, underReview, confirmed, packing, shipped, delivered, cancelled};
+    return {
+      total,
+      underReview,
+      calledDevotee,
+      sankalpTaken,
+      confirmed,
+      packing,
+      shipped,
+      delivered,
+      cancelled,
+    };
   }, [itemFilteredOrders]);
 
   const visibleOrders = useMemo(() => {
@@ -448,6 +509,8 @@ const AdminOrdersScreen = () => {
   const tabCount = (tabId: string) => {
     if (tabId === 'All') return orderCounts.total;
     if (tabId === 'Under Review') return orderCounts.underReview;
+    if (tabId === 'Called Devotee') return orderCounts.calledDevotee;
+    if (tabId === 'Sankalp Taken') return orderCounts.sankalpTaken;
     if (tabId === 'Confirmed') return orderCounts.confirmed;
     if (tabId === 'Packing') return orderCounts.packing;
     if (tabId === 'Shipped') return orderCounts.shipped;
@@ -746,12 +809,14 @@ const AdminOrdersScreen = () => {
                         isConfirming && styles.btnDisabled,
                       ]}
                       disabled={isConfirming}
-                      onPress={() => confirmOrder(order.id, order.orderNo)}>
+                      onPress={() => confirmOrder(order)}>
                       {isConfirming ? (
                         <ActivityIndicator size="small" color={Colors.white} />
                       ) : (
                         <Text style={styles.confirmBtnText}>
-                          ✓ CONFIRM ORDER
+                          {isBaanalingamOrder(order)
+                            ? '📞 MARK CALLED'
+                            : '✓ CONFIRM ORDER'}
                         </Text>
                       )}
                     </TouchableOpacity>

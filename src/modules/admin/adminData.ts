@@ -123,6 +123,8 @@ export type AdminBanner = {
 
 export type AdminOrderStatus =
   | 'Under Review'
+  | 'Called Devotee'
+  | 'Sankalp Taken'
   | 'Confirmed'
   | 'Processing'
   | 'Packing'

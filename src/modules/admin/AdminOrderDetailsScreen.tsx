@@ -21,6 +21,8 @@ const adminStatus = (raw: string): AdminOrderStatus => {
   if (raw === 'Shipped') return 'Shipped';
   if (raw === 'Packing') return 'Packing';
   if (raw === 'Confirmed') return 'Confirmed';
+  if (raw === 'Sankalp Taken') return 'Sankalp Taken';
+  if (raw === 'Called Devotee') return 'Called Devotee';
   if (raw === 'Cancelled') return 'Cancelled';
   if (raw === 'Under Review') return 'Under Review';
   return 'Processing';
@@ -254,9 +256,15 @@ const AdminOrderDetailsScreen = () => {
   };
 
   const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''}`.toLowerCase();
-  const isRequestOrder =
+  const orderNoUpper = String(order?.orderNo || '').toUpperCase();
+  const orderTypeUpper = String(order?.orderType || '').toUpperCase();
+  const isBaanalingam =
+    orderTypeUpper === 'BANA_LINGAM' ||
+    orderNoUpper.includes('BL-') ||
     orderText.includes('banalingam') ||
-    orderText.includes('baanalingam') ||
+    orderText.includes('baanalingam');
+  const isRequestOrder =
+    isBaanalingam ||
     orderText.includes('ramakoti') ||
     orderText.includes('rk') ||
     orderText.includes('homa bhasma') ||
@@ -264,6 +272,74 @@ const AdminOrderDetailsScreen = () => {
     orderText.includes('birava') ||
     orderText.includes('hb0') ||
     orderText.includes('bp0');
+
+  const nextAction = (() => {
+    if (!order) {
+      return null;
+    }
+    if (order.status === 'Delivered') {
+      return {
+        title: '✓ ORDER DELIVERED (COMPLETED)',
+        onPress: () =>
+          Alert.alert(
+            'Order Completed',
+            'This order has already been delivered.',
+          ),
+      };
+    }
+    if (order.status === 'Cancelled') {
+      return null;
+    }
+    if (isBaanalingam) {
+      if (order.status === 'Under Review') {
+        return {
+          title: saving
+            ? 'UPDATING...'
+            : '📞 CALLED AND TALKED WITH DEVOTEE',
+          onPress: () => advanceStatus('Called Devotee'),
+        };
+      }
+      if (order.status === 'Called Devotee') {
+        return {
+          title: saving ? 'UPDATING...' : '🙏 SANKALP TAKEN BY DEVOTEE',
+          onPress: () => advanceStatus('Sankalp Taken'),
+        };
+      }
+      if (order.status === 'Sankalp Taken') {
+        return {
+          title: saving ? 'UPDATING...' : '✓ ORDER CONFIRMATION',
+          onPress: () => advanceStatus('Confirmed'),
+        };
+      }
+    } else if (order.status === 'Under Review') {
+      return {
+        title: saving ? 'CONFIRMING...' : '✓ CONFIRM / APPROVE ORDER',
+        onPress: confirmOrder,
+      };
+    }
+    if (order.status === 'Confirmed') {
+      return {
+        title: saving ? 'UPDATING...' : '📦 MARK AS PACKING',
+        onPress: () => advanceStatus('Packing'),
+      };
+    }
+    if (order.status === 'Packing') {
+      return {
+        title: saving ? 'UPDATING...' : '🚚 MARK AS SHIPPED',
+        onPress: () => advanceStatus('Shipped'),
+      };
+    }
+    if (order.status === 'Shipped') {
+      return {
+        title: saving ? 'UPDATING...' : '✓ MARK AS DELIVERED',
+        onPress: () => advanceStatus('Delivered'),
+      };
+    }
+    return {
+      title: saving ? 'UPDATING...' : '📦 MARK AS PACKING',
+      onPress: () => advanceStatus('Packing'),
+    };
+  })();
 
   const delivery = order?.delivery || {};
   const fullAddress = [
@@ -329,7 +405,9 @@ const AdminOrderDetailsScreen = () => {
               <View
                 style={[
                   styles.pill,
-                  order.status === 'Under Review'
+                  order.status === 'Under Review' ||
+                  order.status === 'Called Devotee' ||
+                  order.status === 'Sankalp Taken'
                     ? styles.pillReview
                     : order.status === 'Confirmed'
                       ? styles.pillConfirmed
@@ -342,7 +420,9 @@ const AdminOrderDetailsScreen = () => {
                 <Text
                   style={[
                     styles.pillText,
-                    order.status === 'Under Review'
+                    order.status === 'Under Review' ||
+                    order.status === 'Called Devotee' ||
+                    order.status === 'Sankalp Taken'
                       ? styles.pillTextReview
                       : order.status === 'Confirmed'
                         ? styles.pillTextConfirmed
@@ -391,48 +471,13 @@ const AdminOrderDetailsScreen = () => {
             ) : null}
           </View>
 
-          {order.status === 'Under Review' ? (
+          {nextAction ? (
             <PrimaryButton
-              title={saving ? 'CONFIRMING...' : '✓ CONFIRM / APPROVE ORDER'}
-              onPress={confirmOrder}
+              title={nextAction.title}
+              onPress={nextAction.onPress}
               disabled={saving}
             />
-          ) : order.status === 'Confirmed' ? (
-            <PrimaryButton
-              title={saving ? 'UPDATING...' : '📦 MARK AS PACKING'}
-              onPress={() => advanceStatus('Packing')}
-              disabled={saving}
-            />
-          ) : order.status === 'Packing' ? (
-            <PrimaryButton
-              title={saving ? 'UPDATING...' : '🚚 MARK AS SHIPPED'}
-              onPress={() => advanceStatus('Shipped')}
-              disabled={saving}
-            />
-          ) : order.status === 'Shipped' ? (
-            <PrimaryButton
-              title={saving ? 'UPDATING...' : '✓ MARK AS DELIVERED'}
-              onPress={() => advanceStatus('Delivered')}
-              disabled={saving}
-            />
-          ) : order.status === 'Delivered' ? (
-            <PrimaryButton
-              title={saving ? 'UPDATING...' : '✓ ORDER DELIVERED (COMPLETED)'}
-              onPress={() =>
-                Alert.alert(
-                  'Order Completed',
-                  'This order has already been delivered.',
-                )
-              }
-              disabled={saving}
-            />
-          ) : (
-            <PrimaryButton
-              title={saving ? 'UPDATING...' : '📦 MARK AS PACKING'}
-              onPress={() => advanceStatus('Packing')}
-              disabled={saving}
-            />
-          )}
+          ) : null}
         </>
       ) : null}
     </AdminScreenLayout>
