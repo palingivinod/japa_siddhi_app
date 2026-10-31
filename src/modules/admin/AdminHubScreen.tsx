@@ -43,8 +43,7 @@ const AdminHubScreen = () => {
     <ScreenLayout title="Admin" showBack>
       <Text style={styles.heading}>Admin panel</Text>
       <Text style={styles.sub}>
-        Batches 1–6 are ready (Login through Export Reports). Open admin login
-        to explore the new screens.
+        Open admin login to explore the admin panel screens.
       </Text>
 
       <PrimaryButton

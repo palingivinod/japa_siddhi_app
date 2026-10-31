@@ -1,140 +1,26 @@
-import React, {useState} from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import React, {useCallback} from 'react';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import AdminScreenLayout from './AdminScreenLayout';
-import {ADMIN_EXPORT_REPORTS} from './adminData';
-import {
-  alertExcelError,
-  downloadAdminExcel,
-} from './adminExcelDownload';
 
-const TYPE_BY_ID: Record<string, string> = {
-  '1': 'users',
-  '2': 'japa',
-  '3': 'challenges',
-  users: 'users',
-  japa: 'japa',
-  challenges: 'challenges',
-};
-
+/** Legacy route — reports now live as Open rows on More. */
 const AdminExportReportsScreen = () => {
   const navigation = useNavigation<any>();
-  const [exporting, setExporting] = useState('');
 
-  const downloadExcel = async (
-    type: string,
-    label: string,
-    extra?: Record<string, string>,
-  ) => {
-    setExporting(type);
-    try {
-      await downloadAdminExcel(type, label, extra);
-    } catch (err) {
-      alertExcelError(err);
-    } finally {
-      setExporting('');
-    }
-  };
+  useFocusEffect(
+    useCallback(() => {
+      navigation.replace('AdminMore');
+    }, [navigation]),
+  );
 
   return (
-    <AdminScreenLayout title="Export Reports" tab="AdminDashboard" showBack>
-      <Text style={styles.heading}>Export Reports</Text>
-      <Text style={styles.sub}>Export live data to Excel (.xlsx).</Text>
-
-      {ADMIN_EXPORT_REPORTS.map(item => {
-        const type = TYPE_BY_ID[item.id] || item.id;
-        // Challenge Reports opens a details screen (like DOB), not instant XL.
-        if (type === 'challenges' || item.id === '3') {
-          return (
-            <TouchableOpacity
-              key={item.id}
-              style={styles.card}
-              activeOpacity={0.8}
-              onPress={() => navigation.navigate('AdminChallenges')}>
-              <View style={styles.copy}>
-                <Text style={styles.name}>{item.title}</Text>
-                <Text style={styles.meta}>{item.subtitle}</Text>
-              </View>
-              <View style={styles.pill}>
-                <Text style={styles.pillText}>Open</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        }
-        const busy = exporting === type;
-        return (
-          <View key={item.id} style={styles.card}>
-            <View style={styles.copy}>
-              <Text style={styles.name}>{item.title}</Text>
-              <Text style={styles.meta}>{item.subtitle}</Text>
-            </View>
-            <TouchableOpacity
-              style={[styles.pill, busy && styles.pillBusy]}
-              disabled={Boolean(exporting)}
-              onPress={() => downloadExcel(type, item.title)}>
-              {busy ? (
-                <ActivityIndicator size="small" color={Colors.sacredBrown} />
-              ) : (
-                <Text style={styles.pillText}>Export XL</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-        );
-      })}
-
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate('AdminDobDetails')}>
-        <View style={styles.copy}>
-          <Text style={styles.name}>DOB / other details</Text>
-          <Text style={styles.meta}>Birthdays and occasions</Text>
-        </View>
-        <View style={styles.pill}>
-          <Text style={styles.pillText}>Open</Text>
-        </View>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.outlineBtn, exporting === 'japa' && styles.pillBusy]}
-        disabled={Boolean(exporting)}
-        onPress={() =>
-          downloadExcel(
-            'japa',
-            'Users japa sheet (date, mantra, counts & totals)',
-          )
-        }>
-        <Text style={styles.outlineText}>
-          {exporting === 'japa'
-            ? 'PREPARING EXCEL...'
-            : 'DOWNLOAD USERS JAPA XL'}
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        style={[styles.outlineBtn, exporting === 'all' && styles.pillBusy]}
-        disabled={Boolean(exporting)}
-        onPress={() => downloadExcel('all', 'All reports')}>
-        <Text style={styles.outlineText}>
-          {exporting === 'all' ? 'PREPARING EXCEL...' : 'EXPORT EXCEL (ALL)'}
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={[styles.outlineBtn, exporting === 'rewards' && styles.pillBusy]}
-        disabled={Boolean(exporting)}
-        onPress={() => downloadExcel('rewards', 'Rewards')}>
-        <Text style={styles.outlineText}>
-          {exporting === 'rewards' ? 'PREPARING EXCEL...' : 'REWARDS XL'}
-        </Text>
-      </TouchableOpacity>
+    <AdminScreenLayout title="More" tab="AdminMore" showBack={false}>
+      <View style={styles.center}>
+        <ActivityIndicator color={Colors.templeGold} />
+        <Text style={styles.hint}>Opening More…</Text>
+      </View>
     </AdminScreenLayout>
   );
 };
@@ -142,62 +28,10 @@ const AdminExportReportsScreen = () => {
 export default AdminExportReportsScreen;
 
 const styles = StyleSheet.create({
-  heading: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
-  sub: {
-    marginTop: 6,
-    marginBottom: 16,
+  center: {paddingVertical: 40, alignItems: 'center'},
+  hint: {
+    marginTop: 12,
     color: Colors.textSecondary,
-  },
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  copy: {flex: 1, paddingRight: 10},
-  name: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
-  meta: {
-    marginTop: 4,
-    color: Colors.textSecondary,
-  },
-  pill: {
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: Colors.sacredBrown,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    minWidth: 88,
-    alignItems: 'center',
-  },
-  pillBusy: {opacity: 0.6},
-  pillText: {
-    fontWeight: '800',
-    fontSize: 13,
-    color: Colors.sacredBrown,
-  },
-  outlineBtn: {
-    marginTop: 10,
-    borderRadius: 28,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  outlineText: {
-    color: Colors.sacredBrown,
-    fontWeight: '800',
-    letterSpacing: 0.4,
+    fontWeight: '600',
   },
 });
