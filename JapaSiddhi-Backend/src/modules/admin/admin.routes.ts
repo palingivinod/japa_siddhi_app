@@ -2685,11 +2685,24 @@ const mapOrderRow = (row: any) => {
   const rewardName = String(
     row.rewardName || row.claimRewardName || row.itemName || '',
   ).trim();
+  const country = String(
+    row.customerMobileCode || row.mobileCountryCode || '',
+  ).replace(/\D/g, '');
+  const mobileDigits = String(
+    row.customerMobile || row.mobileNumber || row.claimMobile || '',
+  ).replace(/\D/g, '');
+  const customerMobile =
+    country && mobileDigits
+      ? `+${country} ${mobileDigits}`
+      : mobileDigits || '';
   return {
     id: String(row.id),
     orderNo: orderNo.startsWith('#') ? orderNo : `#${orderNo}`,
     product: row.itemName || 'Item',
     customer: row.customerName || 'Devotee',
+    customerMobile,
+    mobileNumber: mobileDigits,
+    mobileCountryCode: country,
     status: toAdminOrderStatus(row.orderStatus),
     orderStatus: row.orderStatus,
     paymentStatus: row.paymentStatus,
@@ -2878,6 +2891,8 @@ router.get('/orders', async (_req: Request, res: Response) => {
         o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
         IFNULL(u.full_name, 'Devotee') AS customerName,
+        u.mobile_country_code AS customerMobileCode,
+        u.mobile_number AS customerMobile,
         COALESCE(
           NULLIF(TRIM(crc.reward_name), ''),
           NULLIF(TRIM(mrc.reward_name), ''),
@@ -2887,7 +2902,12 @@ router.get('/orders', async (_req: Request, res: Response) => {
             ELSE NULL
           END,
           ''
-        ) AS rewardName
+        ) AS rewardName,
+        COALESCE(
+          NULLIF(TRIM(crc.mobile), ''),
+          NULLIF(TRIM(mrc.mobile), ''),
+          ''
+        ) AS claimMobile
       FROM orders o
       LEFT JOIN users u ON u.id = o.user_id
       LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id

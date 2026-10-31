@@ -137,6 +137,9 @@ export type AdminOrder = {
   orderNo: string;
   product: string;
   customer: string;
+  customerMobile?: string;
+  mobileNumber?: string;
+  mobileCountryCode?: string;
   status: AdminOrderStatus;
   orderGroup?: AdminOrderGroup;
   orderType?: string;

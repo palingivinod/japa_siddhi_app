@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,6 +16,47 @@ import apiService, {getApiError} from '../../services/apiService';
 import SelectField from '../common/SelectField';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrder} from './adminData';
+
+const digitsOnly = (value?: string) => String(value || '').replace(/\D/g, '');
+
+const matchesOrderSearch = (order: AdminOrder, query: string) => {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    return true;
+  }
+  const haystack = [
+    order.id,
+    order.orderNo,
+    order.customer,
+    order.product,
+    order.rewardName,
+    order.customerMobile,
+    order.mobileNumber,
+    order.mobileCountryCode,
+    order.status,
+    order.orderType,
+    order.orderSource,
+    order.orderGroup,
+    order.remarks,
+  ]
+    .join(' ')
+    .toLowerCase();
+  if (haystack.includes(q)) {
+    return true;
+  }
+  const queryDigits = digitsOnly(q);
+  if (queryDigits.length < 2) {
+    return false;
+  }
+  const phoneDigits = digitsOnly(
+    `${order.mobileCountryCode || ''}${order.mobileNumber || order.customerMobile || ''}`,
+  );
+  return (
+    phoneDigits.includes(queryDigits) ||
+    String(order.id).includes(queryDigits) ||
+    String(order.orderNo || '').replace(/\D/g, '').includes(queryDigits)
+  );
+};
 
 const TABS: Array<{id: string; label: string}> = [
   {id: 'All', label: 'All'},
@@ -191,6 +233,7 @@ const AdminOrdersScreen = () => {
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [itemFilter, setItemFilter] = useState<ProductFilterType>('ALL');
   const [rewardFilter, setRewardFilter] = useState('ALL');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -237,6 +280,9 @@ const AdminOrdersScreen = () => {
           orderType: row.orderType || '',
           orderSource: row.orderSource || '',
           rewardName: String(row.rewardName || row.product || '').trim(),
+          customerMobile: String(row.customerMobile || '').trim(),
+          mobileNumber: String(row.mobileNumber || '').trim(),
+          mobileCountryCode: String(row.mobileCountryCode || '').trim(),
           remarks: row.remarks || '',
           cancelReason: row.cancelReason || '',
           cancelledBy: row.cancelledBy || '',
@@ -321,10 +367,15 @@ const AdminOrdersScreen = () => {
     );
   };
 
-  const typedOrders = useMemo(
-    () => orders.filter(order => orderGroupOf(order) === orderType),
-    [orders, orderType],
-  );
+  const searchActive = search.trim().length > 0;
+
+  const typedOrders = useMemo(() => {
+    // Search spans both Normal and Rewards so admin finds every order for that user.
+    if (searchActive) {
+      return orders.filter(order => matchesOrderSearch(order, search));
+    }
+    return orders.filter(order => orderGroupOf(order) === orderType);
+  }, [orders, orderType, search, searchActive]);
 
   const rewardOptions = useMemo(() => {
     const names = new Map<string, string>();
@@ -361,6 +412,9 @@ const AdminOrdersScreen = () => {
   }, [typedOrders]);
 
   const itemFilteredOrders = useMemo(() => {
+    if (searchActive) {
+      return typedOrders;
+    }
     if (orderType === 'reward') {
       if (rewardFilter === 'ALL') {
         return typedOrders;
@@ -371,7 +425,7 @@ const AdminOrdersScreen = () => {
       );
     }
     return typedOrders.filter(order => matchesItemFilter(order, itemFilter));
-  }, [typedOrders, itemFilter, orderType, rewardFilter]);
+  }, [typedOrders, itemFilter, orderType, rewardFilter, searchActive]);
 
   const orderCounts = useMemo(() => {
     const total = itemFilteredOrders.length;
@@ -406,6 +460,22 @@ const AdminOrdersScreen = () => {
     <AdminScreenLayout title="Order Management" tab="AdminOrders" showBack={false}>
       <Text style={styles.heading}>Order Management</Text>
       <Text style={styles.sub}>Review and approve devotee orders.</Text>
+
+      <TextInput
+        value={search}
+        onChangeText={setSearch}
+        placeholder="Search name, order ID, phone, or item"
+        placeholderTextColor={Colors.placeholder}
+        style={styles.search}
+        autoCapitalize="none"
+        autoCorrect={false}
+        clearButtonMode="while-editing"
+      />
+      {searchActive ? (
+        <Text style={styles.searchHint}>
+          Showing Normal + Rewards matches for “{search.trim()}”
+        </Text>
+      ) : null}
 
       {/* Top Total Orders Summary Card */}
       <View style={styles.statsSummaryCard}>
@@ -642,7 +712,13 @@ const AdminOrdersScreen = () => {
                 <Text style={styles.name}>{order.orderNo}</Text>
                 <Text style={styles.meta}>
                   {order.rewardName || order.product} • {order.customer}
+                  {searchActive && order.orderGroup
+                    ? ` • ${order.orderGroup === 'reward' ? 'Reward' : 'Normal'}`
+                    : ''}
                 </Text>
+                {order.customerMobile ? (
+                  <Text style={styles.phoneMeta}>{order.customerMobile}</Text>
+                ) : null}
                 {order.cancelReason ? (
                   <Text style={styles.reason}>Reason: {order.cancelReason}</Text>
                 ) : null}
@@ -718,6 +794,29 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 14,
     color: Colors.textSecondary,
+  },
+  search: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    minHeight: 50,
+    color: Colors.sacredBrown,
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  searchHint: {
+    marginBottom: 12,
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  phoneMeta: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 12,
   },
   statsSummaryCard: {
     backgroundColor: Colors.white,
