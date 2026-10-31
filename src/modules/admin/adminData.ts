@@ -137,14 +137,14 @@ export type AdminOrder = {
   orderNo: string;
   product: string;
   customer: string;
-  customerMobile?: string;
-  mobileNumber?: string;
-  mobileCountryCode?: string;
   status: AdminOrderStatus;
   orderGroup?: AdminOrderGroup;
   orderType?: string;
   orderSource?: string;
   rewardName?: string;
+  customerMobile?: string;
+  mobileCountryCode?: string;
+  mobileNumber?: string;
   remarks?: string;
   cancelReason?: string;
   cancelledBy?: string;

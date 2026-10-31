@@ -33,11 +33,11 @@ const matchesOrderSearch = (order: AdminOrder, query: string) => {
     order.customerMobile,
     order.mobileNumber,
     order.mobileCountryCode,
-    order.status,
     order.orderType,
     order.orderSource,
-    order.orderGroup,
+    order.status,
     order.remarks,
+    order.orderGroup,
   ]
     .join(' ')
     .toLowerCase();
@@ -54,7 +54,7 @@ const matchesOrderSearch = (order: AdminOrder, query: string) => {
   return (
     phoneDigits.includes(queryDigits) ||
     String(order.id).includes(queryDigits) ||
-    String(order.orderNo || '').replace(/\D/g, '').includes(queryDigits)
+    digitsOnly(order.orderNo).includes(queryDigits)
   );
 };
 
@@ -281,8 +281,8 @@ const AdminOrdersScreen = () => {
           orderSource: row.orderSource || '',
           rewardName: String(row.rewardName || row.product || '').trim(),
           customerMobile: String(row.customerMobile || '').trim(),
-          mobileNumber: String(row.mobileNumber || '').trim(),
           mobileCountryCode: String(row.mobileCountryCode || '').trim(),
+          mobileNumber: String(row.mobileNumber || '').trim(),
           remarks: row.remarks || '',
           cancelReason: row.cancelReason || '',
           cancelledBy: row.cancelledBy || '',
@@ -370,7 +370,7 @@ const AdminOrdersScreen = () => {
   const searchActive = search.trim().length > 0;
 
   const typedOrders = useMemo(() => {
-    // Search spans both Normal and Rewards so admin finds every order for that user.
+    // Search spans Normal + Rewards so admin finds every order for that devotee.
     if (searchActive) {
       return orders.filter(order => matchesOrderSearch(order, search));
     }
@@ -464,7 +464,7 @@ const AdminOrdersScreen = () => {
       <TextInput
         value={search}
         onChangeText={setSearch}
-        placeholder="Search name, order ID, phone, or item"
+        placeholder="Search name, phone, order ID, or item"
         placeholderTextColor={Colors.placeholder}
         style={styles.search}
         autoCapitalize="none"
@@ -473,7 +473,7 @@ const AdminOrdersScreen = () => {
       />
       {searchActive ? (
         <Text style={styles.searchHint}>
-          Showing Normal + Rewards matches for “{search.trim()}”
+          Showing Normal + Reward matches for “{search.trim()}”
         </Text>
       ) : null}
 
@@ -716,8 +716,10 @@ const AdminOrdersScreen = () => {
                     ? ` • ${order.orderGroup === 'reward' ? 'Reward' : 'Normal'}`
                     : ''}
                 </Text>
-                {order.customerMobile ? (
-                  <Text style={styles.phoneMeta}>{order.customerMobile}</Text>
+                {order.customerMobile || order.mobileNumber ? (
+                  <Text style={styles.phoneMeta}>
+                    {order.customerMobile || order.mobileNumber}
+                  </Text>
                 ) : null}
                 {order.cancelReason ? (
                   <Text style={styles.reason}>Reason: {order.cancelReason}</Text>

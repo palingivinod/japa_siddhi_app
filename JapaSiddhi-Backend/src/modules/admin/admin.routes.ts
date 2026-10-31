@@ -2688,21 +2688,14 @@ const mapOrderRow = (row: any) => {
   const country = String(
     row.customerMobileCode || row.mobileCountryCode || '',
   ).replace(/\D/g, '');
-  const mobileDigits = String(
+  const mobile = String(
     row.customerMobile || row.mobileNumber || row.claimMobile || '',
   ).replace(/\D/g, '');
-  const customerMobile =
-    country && mobileDigits
-      ? `+${country} ${mobileDigits}`
-      : mobileDigits || '';
   return {
     id: String(row.id),
     orderNo: orderNo.startsWith('#') ? orderNo : `#${orderNo}`,
     product: row.itemName || 'Item',
     customer: row.customerName || 'Devotee',
-    customerMobile,
-    mobileNumber: mobileDigits,
-    mobileCountryCode: country,
     status: toAdminOrderStatus(row.orderStatus),
     orderStatus: row.orderStatus,
     paymentStatus: row.paymentStatus,
@@ -2714,6 +2707,12 @@ const mapOrderRow = (row: any) => {
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
     rewardName,
+    customerMobile:
+      country && mobile
+        ? `+${country} ${mobile}`
+        : mobile || String(row.claimMobile || '').trim() || '',
+    mobileCountryCode: country,
+    mobileNumber: mobile,
     orderGroup: isRewardOrder(row)
       ? 'reward'
       : isNormalBaanalingamOrder(row)
@@ -2894,6 +2893,11 @@ router.get('/orders', async (_req: Request, res: Response) => {
         u.mobile_country_code AS customerMobileCode,
         u.mobile_number AS customerMobile,
         COALESCE(
+          NULLIF(TRIM(crc.mobile), ''),
+          NULLIF(TRIM(mrc.mobile), ''),
+          ''
+        ) AS claimMobile,
+        COALESCE(
           NULLIF(TRIM(crc.reward_name), ''),
           NULLIF(TRIM(mrc.reward_name), ''),
           CASE
@@ -2902,12 +2906,7 @@ router.get('/orders', async (_req: Request, res: Response) => {
             ELSE NULL
           END,
           ''
-        ) AS rewardName,
-        COALESCE(
-          NULLIF(TRIM(crc.mobile), ''),
-          NULLIF(TRIM(mrc.mobile), ''),
-          ''
-        ) AS claimMobile
+        ) AS rewardName
       FROM orders o
       LEFT JOIN users u ON u.id = o.user_id
       LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
