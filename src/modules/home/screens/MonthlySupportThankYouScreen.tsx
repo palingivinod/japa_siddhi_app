@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
+import ViewShot from 'react-native-view-shot';
 
 import {useLanguage} from '../../../i18n/LanguageContext';
 import ProfileApi from '../../auth/services/profileApi';
@@ -31,6 +32,8 @@ const MonthlySupportThankYouScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
+  const shotRef = useRef<any>(null);
+  const [sharing, setSharing] = useState(false);
 
   // Always from this payment's route params — never a hardcoded amount.
   const paidAmount = useMemo(() => {
@@ -102,51 +105,70 @@ const MonthlySupportThankYouScreen = () => {
   );
 
   const displayName = name || 'Devotee';
-  const shareMessage = [
+  const shareCaption = [
     '🙏 Japa Siddhi – Bilva Patra Trust 🙏',
-    '',
     `I, ${displayName}, have contributed ${amountLabel} per month towards our temple Seva 🙏`,
-    'Let’s all join together!',
-    '',
-    'Support Monthly Seva in the Japa Siddhi app.',
   ].join('\n');
 
-  /** Logo image + seva text only — never a screen capture (Close stays off the share). */
-  const shareWithLogo = async () => {
+  /** Capture thank-you card image (no Close / receipt buttons) and share it. */
+  const shareCardImage = async () => {
+    if (sharing) {
+      return;
+    }
+    setSharing(true);
     try {
-      if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
-        await NativeModules.AppShare.shareLogo(shareMessage);
+      const capture = shotRef.current?.capture;
+      if (!capture) {
+        throw new Error('Capture unavailable');
+      }
+      const uri = await capture();
+      if (Platform.OS === 'android' && NativeModules.AppShare?.shareImage) {
+        await NativeModules.AppShare.shareImage(String(uri), shareCaption);
         return;
       }
       await Share.share(
         Platform.OS === 'ios'
-          ? {message: shareMessage}
-          : {title: 'Japa Siddhi – Bilva Patra Trust', message: shareMessage},
+          ? {url: String(uri), message: shareCaption}
+          : {title: 'Japa Siddhi – Bilva Patra Trust', message: shareCaption, url: String(uri)},
       );
     } catch {
-      // User dismissed share sheet.
+      // Fallback: logo + caption if capture/share image fails.
+      try {
+        if (Platform.OS === 'android' && NativeModules.AppShare?.shareLogo) {
+          await NativeModules.AppShare.shareLogo(shareCaption);
+        } else {
+          await Share.share({
+            title: 'Japa Siddhi – Bilva Patra Trust',
+            message: shareCaption,
+          });
+        }
+      } catch {
+        // User dismissed share sheet.
+      }
+    } finally {
+      setSharing(false);
     }
   };
 
   const shareWhatsApp = () => {
-    void shareWithLogo();
+    void shareCardImage();
   };
 
   const shareFacebook = () => {
-    void shareWithLogo();
+    void shareCardImage();
   };
 
   const shareInstagram = () => {
     Alert.alert(
       t('shareYourSeva') || 'Share Your Seva',
       t('instagramShareHint') ||
-        'Share the logo and your seva message, then paste in Instagram if needed.',
+        'Share the thank-you image, then post it on Instagram.',
       [
         {text: t('cancel') || 'Cancel', style: 'cancel'},
         {
           text: t('share') || 'Share',
           onPress: () => {
-            void shareWithLogo();
+            void shareCardImage();
           },
         },
       ],
@@ -183,100 +205,114 @@ const MonthlySupportThankYouScreen = () => {
 
   return (
     <ScreenLayout title={t('paymentSuccessful')} showBack tab="Home">
-      <View style={styles.brandRow}>
-        <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
-        <View style={styles.brandCopy}>
-          <Text style={styles.brandTitle}>Japa Siddhi</Text>
-          <Text style={styles.brandSub}>Bilva Patra Trust</Text>
+      <ViewShot
+        ref={shotRef}
+        options={{format: 'png', quality: 1, result: 'tmpfile'}}
+        style={styles.shotWrap}>
+        <View style={styles.brandRow}>
+          <Image source={APP_LOGO} style={styles.logo} resizeMode="contain" />
+          <View style={styles.brandCopy}>
+            <Text style={styles.brandTitle}>Japa Siddhi</Text>
+            <Text style={styles.brandSub}>Bilva Patra Trust</Text>
+          </View>
         </View>
-      </View>
 
-      <View style={styles.hero}>
-        <View style={styles.checkCircle}>
-          <Text style={styles.checkMark}>✓</Text>
+        <View style={styles.hero}>
+          <View style={styles.checkCircle}>
+            <Text style={styles.checkMark}>✓</Text>
+          </View>
+          <Text style={styles.heroTitle}>
+            {t('monthlySupportThankYouTitle') ||
+              'Thank You! Your Monthly Support is Confirmed'}
+          </Text>
+          <Text style={styles.heroSub}>
+            {t('monthlySupportThankYouSub') ||
+              'Your devotion helps our temple Seva continue every month.'}
+          </Text>
         </View>
-        <Text style={styles.heroTitle}>
-          {t('monthlySupportThankYouTitle') ||
-            'Thank You! Your Monthly Support is Confirmed'}
-        </Text>
-        <Text style={styles.heroSub}>
-          {t('monthlySupportThankYouSub') ||
-            'Your devotion helps our temple Seva continue every month.'}
-        </Text>
-      </View>
 
-      <View style={styles.amountCard}>
-        <Text style={styles.amountLabel}>
-          {t('yourContribution') || 'Your Contribution'}
-        </Text>
-        <Text style={styles.amountValue}>
-          {amountLabel}
-          <Text style={styles.amountSuffix}> / Month</Text>
-        </Text>
-        <Text style={styles.amountFoot}>
-          {t('togetherDivine') || 'Together for a cause divine'} 🙏
-        </Text>
-        <Text style={styles.devoteeLine}>
-          {t('devoteeLabel') || 'Devotee'}: {displayName}
-        </Text>
-      </View>
+        <View style={styles.amountCard}>
+          <Text style={styles.amountLabel}>
+            {t('yourContribution') || 'Your Contribution'}
+          </Text>
+          <Text style={styles.amountValue}>
+            {amountLabel}
+            <Text style={styles.amountSuffix}> / Month</Text>
+          </Text>
+          <Text style={styles.amountFoot}>
+            {t('togetherDivine') || 'Together for a cause divine'} 🙏
+          </Text>
+          <Text style={styles.devoteeLine}>
+            {t('devoteeLabel') || 'Devotee'}: {displayName}
+          </Text>
+        </View>
 
-      <View style={styles.shareBanner}>
-        <Text style={styles.shareBannerTitle}>
-          {t('shareYourSeva') || 'Share Your Seva'}
-        </Text>
-        <Text style={styles.shareBannerSub}>
-          {t('shareYourSevaSub') ||
-            'Inspire your family & friends to be a part of this divine journey'}
-        </Text>
-      </View>
+        <View style={styles.shareBanner}>
+          <Text style={styles.shareBannerTitle}>
+            {t('shareYourSeva') || 'Share Your Seva'}
+          </Text>
+          <Text style={styles.shareBannerSub}>
+            {t('shareYourSevaSub') ||
+              'Inspire your family & friends to be a part of this divine journey'}
+          </Text>
+        </View>
 
-      <View style={styles.previewCard}>
-        {photoUri ? (
-          <Image source={{uri: photoUri}} style={styles.avatar} />
-        ) : (
-          <View style={[styles.avatar, styles.avatarFallback]}>
-            <Text style={styles.avatarInitial}>
-              {displayName.charAt(0).toUpperCase()}
+        <View style={styles.previewCard}>
+          {photoUri ? (
+            <Image source={{uri: photoUri}} style={styles.avatar} />
+          ) : (
+            <View style={[styles.avatar, styles.avatarFallback]}>
+              <Text style={styles.avatarInitial}>
+                {displayName.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.previewCopy}>
+            <Text style={styles.previewName}>{displayName}</Text>
+            <Text style={styles.previewText}>
+              {`I have contributed ${amountLabel} per month towards our temple Seva 🙏 Let’s all join together!`}
+            </Text>
+            <Text style={styles.previewBrand}>
+              Japa Siddhi · Bilva Patra Trust
             </Text>
           </View>
-        )}
-        <View style={styles.previewCopy}>
-          <Text style={styles.previewName}>{displayName}</Text>
-          <Text style={styles.previewText}>
-            {`I have contributed ${amountLabel} per month towards our temple Seva 🙏 Let’s all join together!`}
-          </Text>
-          <Text style={styles.previewBrand}>
-            Japa Siddhi · Bilva Patra Trust
-          </Text>
         </View>
-      </View>
+
+        <Text style={styles.blessingInShot}>
+          {t('mayLordsBlessings') ||
+            "May Lord's Blessings be with you always!"}
+        </Text>
+      </ViewShot>
 
       <View style={styles.shareRow}>
         <TouchableOpacity
-          style={[styles.shareBtn, styles.waBtn]}
+          style={[styles.shareBtn, styles.waBtn, sharing && styles.btnBusy]}
           onPress={shareWhatsApp}
-          activeOpacity={0.85}>
-          <Text style={styles.shareBtnText}>WhatsApp</Text>
+          activeOpacity={0.85}
+          disabled={sharing}>
+          <Text style={styles.shareBtnText}>
+            {sharing ? '...' : 'WhatsApp'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.shareBtn, styles.fbBtn]}
+          style={[styles.shareBtn, styles.fbBtn, sharing && styles.btnBusy]}
           onPress={shareFacebook}
-          activeOpacity={0.85}>
-          <Text style={styles.shareBtnText}>Facebook</Text>
+          activeOpacity={0.85}
+          disabled={sharing}>
+          <Text style={styles.shareBtnText}>
+            {sharing ? '...' : 'Facebook'}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.shareBtn, styles.igBtn]}
+          style={[styles.shareBtn, styles.igBtn, sharing && styles.btnBusy]}
           onPress={shareInstagram}
-          activeOpacity={0.85}>
-          <Text style={styles.shareBtnText}>Instagram</Text>
+          activeOpacity={0.85}
+          disabled={sharing}>
+          <Text style={styles.shareBtnText}>
+            {sharing ? '...' : 'Instagram'}
+          </Text>
         </TouchableOpacity>
       </View>
-
-      <Text style={styles.blessing}>
-        {t('mayLordsBlessings') ||
-          "May Lord's Blessings be with you always!"}
-      </Text>
 
       {paymentId ? (
         <View style={styles.receiptWrap}>
@@ -293,7 +329,7 @@ const MonthlySupportThankYouScreen = () => {
                 : t('downloadReceipt') || 'Download Receipt'
             }
             onPress={onDownloadReceipt}
-            disabled={downloading}
+            disabled={downloading || sharing}
           />
         </View>
       ) : null}
@@ -301,6 +337,7 @@ const MonthlySupportThankYouScreen = () => {
       <PrimaryButton
         title={t('close') || 'CLOSE'}
         onPress={() => navigation.navigate('Home')}
+        disabled={sharing}
       />
     </ScreenLayout>
   );
@@ -309,6 +346,11 @@ const MonthlySupportThankYouScreen = () => {
 export default MonthlySupportThankYouScreen;
 
 const styles = StyleSheet.create({
+  shotWrap: {
+    backgroundColor: Colors.background,
+    paddingBottom: 8,
+    marginBottom: 6,
+  },
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -471,10 +513,18 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 11,
   },
+  blessingInShot: {
+    textAlign: 'center',
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    marginBottom: 8,
+    fontSize: 14,
+  },
   shareRow: {
     flexDirection: 'row',
     gap: 8,
     marginBottom: 14,
+    marginTop: 8,
   },
   shareBtn: {
     flex: 1,
@@ -482,6 +532,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
+  btnBusy: {opacity: 0.6},
   waBtn: {backgroundColor: '#16A34A'},
   fbBtn: {backgroundColor: '#2563EB'},
   igBtn: {backgroundColor: '#DB2777'},
@@ -489,13 +540,6 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: '800',
     fontSize: 12,
-  },
-  blessing: {
-    textAlign: 'center',
-    color: Colors.sacredBrown,
-    fontWeight: '700',
-    marginBottom: 16,
-    fontSize: 14,
   },
   receiptWrap: {
     marginBottom: 12,
