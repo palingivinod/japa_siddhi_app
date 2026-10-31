@@ -882,7 +882,81 @@ const mapUserRow = (row: any) => {
     status,
     accountStatus: statusRaw,
     enrolledOn: enrolledOnValue(row.enrolledOn || row.enrolled_on),
+    gender: row.gender != null ? String(row.gender) : '',
+    dateOfBirth: row.dateOfBirth != null ? String(row.dateOfBirth) : '',
+    address: row.address != null ? String(row.address) : '',
+    postalCode: row.postalCode != null ? String(row.postalCode) : '',
+    region: row.region != null ? String(row.region) : '',
+    stateName: row.stateName != null ? String(row.stateName) : '',
+    cityName: row.cityName != null ? String(row.cityName) : '',
+    maritalStatus: row.maritalStatus != null ? String(row.maritalStatus) : '',
+    spouseName: row.spouseName != null ? String(row.spouseName) : '',
+    spouseDob: row.spouseDob != null ? String(row.spouseDob) : '',
+    anniversaryDate:
+      row.anniversaryDate != null ? String(row.anniversaryDate) : '',
+    gothram: row.gothram != null ? String(row.gothram) : '',
+    nakshatram: row.nakshatram != null ? String(row.nakshatram) : '',
   };
+};
+
+const userDetailSelect = `
+  SELECT
+    u.id,
+    u.user_code AS userCode,
+    u.full_name AS fullName,
+    u.email,
+    u.mobile_country_code AS mobileCountryCode,
+    u.mobile_number AS mobileNumber,
+    u.account_status AS accountStatus,
+    u.app_version AS appVersion,
+    u.gender,
+    u.date_of_birth AS dateOfBirth,
+    u.address,
+    u.postal_code AS postalCode,
+    u.region,
+    u.marital_status AS maritalStatus,
+    u.spouse_name AS spouseName,
+    u.spouse_dob AS spouseDob,
+    u.anniversary_date AS anniversaryDate,
+    u.gothram,
+    u.nakshatram,
+    s.name AS stateName,
+    ci.name AS cityName,
+    IFNULL((
+      SELECT SUM(js.session_count)
+      FROM japa_sessions js
+      WHERE js.user_id = u.id
+        AND (
+          js.remarks IS NULL
+          OR TRIM(js.remarks) = ''
+          OR (
+            lower(js.remarks) NOT LIKE 'challenge%'
+            AND lower(js.remarks) NOT LIKE '%challenge japa%'
+          )
+        )
+    ), 0) AS japaCount
+  FROM users u
+  LEFT JOIN states s ON u.state_id = s.id
+  LEFT JOIN cities ci ON u.city_id = ci.id
+`;
+
+const ensureAdminUserProfileColumns = async () => {
+  const alters = [
+    `ALTER TABLE users ADD COLUMN postal_code TEXT`,
+    `ALTER TABLE users ADD COLUMN region TEXT`,
+    `ALTER TABLE users ADD COLUMN gothram TEXT`,
+    `ALTER TABLE users ADD COLUMN nakshatram TEXT`,
+    `ALTER TABLE users ADD COLUMN spouse_name TEXT`,
+    `ALTER TABLE users ADD COLUMN spouse_dob TEXT`,
+    `ALTER TABLE users ADD COLUMN anniversary_date TEXT`,
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // Column already exists.
+    }
+  }
 };
 
 const enrolledOnValue = (value: unknown) => {
@@ -1077,34 +1151,16 @@ router.get('/users/:id', async (req: Request, res: Response) => {
       return res.status(400).json({success: false, message: 'Invalid user id.'});
     }
 
-    const rows = await mysql.query<any[]>(`
-      SELECT
-        u.id,
-        u.user_code AS userCode,
-        u.full_name AS fullName,
-        u.email,
-        u.mobile_country_code AS mobileCountryCode,
-        u.mobile_number AS mobileNumber,
-        u.account_status AS accountStatus,
-        u.app_version AS appVersion,
-        IFNULL((
-          SELECT SUM(js.session_count)
-          FROM japa_sessions js
-          WHERE js.user_id = u.id
-            AND (
-              js.remarks IS NULL
-              OR TRIM(js.remarks) = ''
-              OR (
-                lower(js.remarks) NOT LIKE 'challenge%'
-                AND lower(js.remarks) NOT LIKE '%challenge japa%'
-              )
-            )
-        ), 0) AS japaCount
-      FROM users u
+    await ensureAdminUserProfileColumns();
+    const rows = await mysql.query<any[]>(
+      `
+      ${userDetailSelect}
       WHERE u.id = ?
         AND u.deleted_at IS NULL
       LIMIT 1
-    `, [userId]);
+      `,
+      [userId],
+    );
 
     if (!rows?.length) {
       return res.status(404).json({success: false, message: 'User not found.'});
@@ -1129,6 +1185,8 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       return res.status(400).json({success: false, message: 'Invalid user id.'});
     }
 
+    await ensureAdminUserProfileColumns();
+
     const fullName = String(req.body?.fullName || req.body?.name || '').trim();
     const email = String(req.body?.email || '').trim().toLowerCase();
     const mobileCountryCode = String(
@@ -1138,6 +1196,21 @@ router.put('/users/:id', async (req: Request, res: Response) => {
     const statusInput = String(req.body?.status || req.body?.accountStatus || '')
       .trim()
       .toUpperCase();
+    const gender = String(req.body?.gender || '').trim();
+    const dateOfBirth = String(req.body?.dateOfBirth || '').trim();
+    const address = String(req.body?.address || '').trim();
+    const postalCode = String(
+      req.body?.postalCode || req.body?.pinCode || '',
+    )
+      .replace(/\D/g, '')
+      .slice(0, 12);
+    const region = String(req.body?.region || '').trim();
+    const maritalStatus = String(req.body?.maritalStatus || '').trim();
+    const spouseName = String(req.body?.spouseName || '').trim();
+    const spouseDob = String(req.body?.spouseDob || '').trim();
+    const anniversaryDate = String(req.body?.anniversaryDate || '').trim();
+    const gothram = String(req.body?.gothram || '').trim();
+    const nakshatram = String(req.body?.nakshatram || '').trim();
 
     let accountStatus: string | null = null;
     if (statusInput === 'BLOCKED' || statusInput === 'ACTIVE') {
@@ -1146,7 +1219,30 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       accountStatus = 'BLOCKED';
     }
 
-    if (!fullName && !email && !mobileNumber && !accountStatus) {
+    const hasAnyField =
+      fullName ||
+      email ||
+      mobileNumber ||
+      accountStatus ||
+      gender ||
+      dateOfBirth ||
+      address ||
+      postalCode ||
+      region ||
+      maritalStatus ||
+      spouseName ||
+      spouseDob ||
+      anniversaryDate ||
+      gothram ||
+      nakshatram ||
+      req.body?.address === '' ||
+      req.body?.postalCode === '' ||
+      req.body?.pinCode === '' ||
+      req.body?.region === '' ||
+      req.body?.gothram === '' ||
+      req.body?.nakshatram === '';
+
+    if (!hasAnyField) {
       return res.status(400).json({
         success: false,
         message: 'Provide at least one field to update.',
@@ -1160,6 +1256,7 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       return res.status(404).json({success: false, message: 'User not found.'});
     }
 
+    // Profile text fields are written as provided so admin can clear/replace values.
     await mysql.query(
       `
       UPDATE users
@@ -1169,6 +1266,17 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         mobile_country_code = CASE WHEN ? <> '' THEN ? ELSE mobile_country_code END,
         mobile_number = CASE WHEN ? <> '' THEN ? ELSE mobile_number END,
         account_status = CASE WHEN ? IS NOT NULL THEN ? ELSE account_status END,
+        gender = ?,
+        date_of_birth = ?,
+        address = ?,
+        postal_code = ?,
+        region = ?,
+        marital_status = CASE WHEN ? <> '' THEN ? ELSE marital_status END,
+        spouse_name = ?,
+        spouse_dob = ?,
+        anniversary_date = ?,
+        gothram = ?,
+        nakshatram = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
@@ -1183,35 +1291,30 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         mobileNumber,
         accountStatus,
         accountStatus,
+        gender || null,
+        dateOfBirth || null,
+        address,
+        postalCode,
+        region,
+        maritalStatus,
+        maritalStatus,
+        spouseName || null,
+        spouseDob || null,
+        anniversaryDate || null,
+        gothram || null,
+        nakshatram || null,
         userId,
       ],
     );
 
-    const rows = await mysql.query<any[]>(`
-      SELECT
-        u.id,
-        u.full_name AS fullName,
-        u.email,
-        u.mobile_country_code AS mobileCountryCode,
-        u.mobile_number AS mobileNumber,
-        u.account_status AS accountStatus,
-        IFNULL((
-          SELECT SUM(js.session_count)
-          FROM japa_sessions js
-          WHERE js.user_id = u.id
-            AND (
-              js.remarks IS NULL
-              OR TRIM(js.remarks) = ''
-              OR (
-                lower(js.remarks) NOT LIKE 'challenge%'
-                AND lower(js.remarks) NOT LIKE '%challenge japa%'
-              )
-            )
-        ), 0) AS japaCount
-      FROM users u
+    const rows = await mysql.query<any[]>(
+      `
+      ${userDetailSelect}
       WHERE u.id = ?
       LIMIT 1
-    `, [userId]);
+      `,
+      [userId],
+    );
 
     return res.json({
       success: true,

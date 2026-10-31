@@ -21,16 +21,18 @@ const Field = ({
   value,
   onChangeText,
   keyboardType = 'default',
+  multiline = false,
 }: {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
   keyboardType?: 'default' | 'email-address' | 'phone-pad';
+  multiline?: boolean;
 }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
     <TextInput
-      style={styles.input}
+      style={[styles.input, multiline && styles.inputMultiline]}
       value={value}
       onChangeText={onChangeText}
       placeholder="Enter here"
@@ -38,6 +40,8 @@ const Field = ({
       keyboardType={keyboardType}
       autoCapitalize={keyboardType === 'email-address' ? 'none' : 'words'}
       autoCorrect={false}
+      multiline={multiline}
+      textAlignVertical={multiline ? 'top' : 'center'}
     />
   </View>
 );
@@ -54,6 +58,19 @@ const AdminUserEditScreen = () => {
   const [mobileCountryCode, setMobileCountryCode] = useState('91');
   const [mobileNumber, setMobileNumber] = useState('');
   const [status, setStatus] = useState<AdminUserStatus>('Active');
+  const [gender, setGender] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [address, setAddress] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [region, setRegion] = useState('');
+  const [stateName, setStateName] = useState('');
+  const [cityName, setCityName] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
+  const [spouseName, setSpouseName] = useState('');
+  const [spouseDob, setSpouseDob] = useState('');
+  const [anniversaryDate, setAnniversaryDate] = useState('');
+  const [gothram, setGothram] = useState('');
+  const [nakshatram, setNakshatram] = useState('');
 
   const loadUser = useCallback(async () => {
     if (!userId) {
@@ -69,6 +86,19 @@ const AdminUserEditScreen = () => {
       setMobileCountryCode(String(data.mobileCountryCode || '91'));
       setMobileNumber(String(data.mobileNumber || ''));
       setStatus(data.status === 'Blocked' ? 'Blocked' : 'Active');
+      setGender(String(data.gender || ''));
+      setDateOfBirth(String(data.dateOfBirth || ''));
+      setAddress(String(data.address || ''));
+      setPostalCode(String(data.postalCode || ''));
+      setRegion(String(data.region || ''));
+      setStateName(String(data.stateName || ''));
+      setCityName(String(data.cityName || ''));
+      setMaritalStatus(String(data.maritalStatus || ''));
+      setSpouseName(String(data.spouseName || ''));
+      setSpouseDob(String(data.spouseDob || ''));
+      setAnniversaryDate(String(data.anniversaryDate || ''));
+      setGothram(String(data.gothram || ''));
+      setNakshatram(String(data.nakshatram || ''));
     } catch (err) {
       Alert.alert('Error', getApiError(err, 'Could not load user.'));
     } finally {
@@ -100,6 +130,17 @@ const AdminUserEditScreen = () => {
         mobileCountryCode: mobileCountryCode.replace(/\D/g, ''),
         mobileNumber: mobileNumber.replace(/\D/g, ''),
         status: status === 'Blocked' ? 'BLOCKED' : 'ACTIVE',
+        gender: gender.trim(),
+        dateOfBirth: dateOfBirth.trim(),
+        address: address.trim(),
+        postalCode: postalCode.replace(/\D/g, ''),
+        region: region.trim(),
+        maritalStatus: maritalStatus.trim(),
+        spouseName: spouseName.trim(),
+        spouseDob: spouseDob.trim(),
+        anniversaryDate: anniversaryDate.trim(),
+        gothram: gothram.trim(),
+        nakshatram: nakshatram.trim(),
       });
       Alert.alert('Saved', 'User updated successfully.', [
         {
@@ -125,6 +166,7 @@ const AdminUserEditScreen = () => {
         </View>
       ) : (
         <>
+          <Text style={styles.section}>Account</Text>
           <Field label="Full name" value={name} onChangeText={setName} />
           <Field
             label="Email"
@@ -163,6 +205,67 @@ const AdminUserEditScreen = () => {
             })}
           </View>
 
+          <Text style={styles.section}>Personal</Text>
+          <Field label="Gender" value={gender} onChangeText={setGender} />
+          <Field
+            label="Date of birth (YYYY-MM-DD)"
+            value={dateOfBirth}
+            onChangeText={setDateOfBirth}
+          />
+          <Field
+            label="Marital status"
+            value={maritalStatus}
+            onChangeText={setMaritalStatus}
+          />
+          <Field
+            label="Spouse name"
+            value={spouseName}
+            onChangeText={setSpouseName}
+          />
+          <Field
+            label="Spouse DOB (YYYY-MM-DD)"
+            value={spouseDob}
+            onChangeText={setSpouseDob}
+          />
+          <Field
+            label="Anniversary (YYYY-MM-DD)"
+            value={anniversaryDate}
+            onChangeText={setAnniversaryDate}
+          />
+          <Field label="Gothram" value={gothram} onChangeText={setGothram} />
+          <Field
+            label="Nakshatram"
+            value={nakshatram}
+            onChangeText={setNakshatram}
+          />
+
+          <Text style={styles.section}>Address</Text>
+          <Field
+            label="Address"
+            value={address}
+            onChangeText={setAddress}
+            multiline
+          />
+          <Field
+            label="Pincode"
+            value={postalCode}
+            onChangeText={text =>
+              setPostalCode(text.replace(/\D/g, '').slice(0, 6))
+            }
+            keyboardType="phone-pad"
+          />
+          <Field label="Region / area" value={region} onChangeText={setRegion} />
+          {stateName || cityName ? (
+            <View style={styles.readOnlyBox}>
+              <Text style={styles.readOnlyLabel}>
+                State / City (from profile pickers)
+              </Text>
+              <Text style={styles.readOnlyValue}>
+                {[cityName, stateName].filter(Boolean).join(', ') || '—'}
+              </Text>
+            </View>
+          ) : null}
+
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE USER'}
             onPress={save}
@@ -184,52 +287,77 @@ const styles = StyleSheet.create({
   },
   sub: {
     marginTop: 6,
-    marginBottom: 16,
+    marginBottom: 14,
     color: Colors.textSecondary,
+    fontWeight: '600',
   },
-  centerBox: {
-    paddingVertical: 24,
-    alignItems: 'center',
-  },
-  field: {marginBottom: 14},
-  label: {
-    color: Colors.leafGreen,
-    fontWeight: '700',
+  section: {
+    marginTop: 8,
     marginBottom: 8,
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  centerBox: {paddingVertical: 24, alignItems: 'center'},
+  field: {marginBottom: 12},
+  label: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    marginBottom: 6,
   },
   input: {
-    height: 54,
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
-    borderRadius: 14,
     backgroundColor: Colors.white,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
     color: Colors.textPrimary,
+    fontSize: 15,
+  },
+  inputMultiline: {
+    minHeight: 88,
   },
   statusRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   statusChip: {
-    flex: 1,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
-    borderRadius: 22,
-    minHeight: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   statusChipOn: {
-    backgroundColor: Colors.templeGold,
-    borderColor: Colors.templeGold,
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
   },
   statusText: {
     color: Colors.sacredBrown,
-    fontWeight: '800',
+    fontWeight: '700',
   },
   statusTextOn: {
     color: Colors.white,
+  },
+  readOnlyBox: {
+    backgroundColor: '#F8F1E7',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 12,
+    marginBottom: 14,
+  },
+  readOnlyLabel: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 12,
+  },
+  readOnlyValue: {
+    marginTop: 4,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
   },
 });

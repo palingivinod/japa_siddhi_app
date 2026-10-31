@@ -12,13 +12,48 @@ import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
-import {AdminUser} from './adminData';
+
+type UserDetail = {
+  id: string;
+  userCode?: string;
+  name: string;
+  japaCount: number;
+  status: 'Active' | 'Blocked';
+  mobile: string;
+  email?: string;
+  appVersion?: string;
+  gender?: string;
+  dateOfBirth?: string;
+  address?: string;
+  postalCode?: string;
+  region?: string;
+  stateName?: string;
+  cityName?: string;
+  maritalStatus?: string;
+  spouseName?: string;
+  spouseDob?: string;
+  anniversaryDate?: string;
+  gothram?: string;
+  nakshatram?: string;
+};
+
+const Row = ({label, value}: {label: string; value?: string | number | null}) => {
+  const text =
+    value === undefined || value === null || String(value).trim() === ''
+      ? '—'
+      : String(value);
+  return (
+    <Text style={styles.row}>
+      {label}: {text}
+    </Text>
+  );
+};
 
 const AdminUserDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const userId = String(route.params?.userId || '');
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<UserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -32,7 +67,7 @@ const AdminUserDetailsScreen = () => {
     setError('');
     try {
       const response = await apiService.get(`/admin/users/${userId}`);
-      const data = response.data?.data;
+      const data = response.data?.data || {};
       const id = String(data.id);
       setUser({
         id,
@@ -44,9 +79,20 @@ const AdminUserDetailsScreen = () => {
         status: data.status === 'Blocked' ? 'Blocked' : 'Active',
         mobile: data.mobile || '—',
         email: data.email || '',
-        mobileCountryCode: data.mobileCountryCode || '',
-        mobileNumber: data.mobileNumber || '',
         appVersion: String(data.appVersion || '').trim(),
+        gender: data.gender || '',
+        dateOfBirth: data.dateOfBirth || '',
+        address: data.address || '',
+        postalCode: data.postalCode || '',
+        region: data.region || '',
+        stateName: data.stateName || '',
+        cityName: data.cityName || '',
+        maritalStatus: data.maritalStatus || '',
+        spouseName: data.spouseName || '',
+        spouseDob: data.spouseDob || '',
+        anniversaryDate: data.anniversaryDate || '',
+        gothram: data.gothram || '',
+        nakshatram: data.nakshatram || '',
       });
     } catch (err) {
       setUser(null);
@@ -85,18 +131,39 @@ const AdminUserDetailsScreen = () => {
           </Text>
 
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Profile</Text>
-            <Text style={styles.row}>User ID: {user.userCode || user.id}</Text>
-            <Text style={styles.row}>Mobile: {user.mobile}</Text>
-            {user.email ? (
-              <Text style={styles.row}>Email: {user.email}</Text>
-            ) : null}
-            <Text style={styles.row}>
-              Japa completed: {user.japaCount.toLocaleString('en-IN')}
-            </Text>
-            <Text style={styles.row}>
-              App version: {user.appVersion || 'Not opened yet'}
-            </Text>
+            <Text style={styles.cardTitle}>Account</Text>
+            <Row label="User ID" value={user.userCode || user.id} />
+            <Row label="Mobile" value={user.mobile} />
+            <Row label="Email" value={user.email} />
+            <Row
+              label="Japa completed"
+              value={user.japaCount.toLocaleString('en-IN')}
+            />
+            <Row
+              label="App version"
+              value={user.appVersion || 'Not opened yet'}
+            />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Personal</Text>
+            <Row label="Gender" value={user.gender} />
+            <Row label="Date of birth" value={user.dateOfBirth} />
+            <Row label="Marital status" value={user.maritalStatus} />
+            <Row label="Spouse name" value={user.spouseName} />
+            <Row label="Spouse DOB" value={user.spouseDob} />
+            <Row label="Anniversary" value={user.anniversaryDate} />
+            <Row label="Gothram" value={user.gothram} />
+            <Row label="Nakshatram" value={user.nakshatram} />
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Address</Text>
+            <Row label="Address" value={user.address} />
+            <Row label="Pincode" value={user.postalCode} />
+            <Row label="Region" value={user.region} />
+            <Row label="City" value={user.cityName} />
+            <Row label="State" value={user.stateName} />
           </View>
 
           <PrimaryButton
@@ -140,7 +207,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     padding: 16,
-    marginBottom: 18,
+    marginBottom: 14,
   },
   cardTitle: {
     color: Colors.leafGreen,

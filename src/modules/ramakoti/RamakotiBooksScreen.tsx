@@ -59,18 +59,37 @@ const RamakotiBooksScreen = () => {
           stored?.mobile_number ||
           stored?.phone ||
           '';
-        const profileAddress = String(profile?.address || stored?.address || '').trim();
+        const line = String(profile?.address || stored?.address || '').trim();
+        const pin = String(
+          profile?.postalCode ||
+            profile?.pinCode ||
+            stored?.postalCode ||
+            stored?.pinCode ||
+            '',
+        )
+          .replace(/\D/g, '')
+          .slice(0, 6);
+        const region = String(profile?.region || stored?.region || '').trim();
+        const city = String(profile?.cityName || stored?.cityName || '').trim();
+        const state = String(
+          profile?.stateName || stored?.stateName || '',
+        ).trim();
+        const profileAddress = [line, region, city, state, pin]
+          .filter(Boolean)
+          .join(', ');
         if (name) {
-          setFullName(current => current || String(name));
+          setFullName(String(name));
         }
         if (phone) {
-          setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
         }
+        // Always refresh from latest profile so address/pincode edits apply.
         if (profileAddress) {
-          setAddress(current => current || profileAddress);
+          setAddress(profileAddress);
           askedForAddress.current = false;
           return;
         }
+        setAddress('');
         if (!askedForAddress.current) {
           askedForAddress.current = true;
           askForProfileAddress();
