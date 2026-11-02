@@ -95,20 +95,84 @@ const handleWhatsApp = (mobile?: string) => {
   });
 };
 
-const formatDate = (raw?: string) => {
-  if (!raw) return '—';
-  try {
-    const d = new Date(raw);
-    if (isNaN(d.getTime())) return raw;
-    return d.toLocaleDateString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  } catch {
-    return raw;
+/**
+ * Formats a date string to DD.MM.YYYY (e.g., 07.11.2026)
+ */
+const formatPreferDate = (raw?: string | null): string => {
+  if (!raw) return '';
+  const str = String(raw).trim();
+  if (!str) return '';
+
+  // Already DD.MM.YYYY
+  if (/^\d{2}\.\d{2}\.\d{4}$/.test(str)) {
+    return str;
   }
+
+  // YYYY-MM-DD or YYYY/MM/DD
+  const match = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if (match) {
+    const [, y, m, d] = match;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+  }
+
+  try {
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      const dd = String(parsed.getDate()).padStart(2, '0');
+      const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+      const yyyy = parsed.getFullYear();
+      return `${dd}.${mm}.${yyyy}`;
+    }
+  } catch {
+    // fallback
+  }
+
+  return str;
 };
+
+/**
+ * Formats datetime strings (e.g. donatedAt) to DD.MM.YYYY HH:mm:ss
+ */
+const formatDisplayDate = (raw?: string | null): string => {
+  if (!raw) return '—';
+  const str = String(raw).trim();
+  if (!str || str === '—') return '—';
+
+  // YYYY-MM-DD HH:mm:ss
+  const matchWithTime = str.match(
+    /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\s+(\d{1,2}:\d{2}(?::\d{2})?)/,
+  );
+  if (matchWithTime) {
+    const [, y, m, d, time] = matchWithTime;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y} ${time}`;
+  }
+
+  // YYYY-MM-DD
+  const matchDate = str.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+  if (matchDate) {
+    const [, y, m, d] = matchDate;
+    return `${d.padStart(2, '0')}.${m.padStart(2, '0')}.${y}`;
+  }
+
+  try {
+    const parsed = new Date(str);
+    if (!isNaN(parsed.getTime())) {
+      const dd = String(parsed.getDate()).padStart(2, '0');
+      const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+      const yyyy = parsed.getFullYear();
+      const hh = String(parsed.getHours()).padStart(2, '0');
+      const min = String(parsed.getMinutes()).padStart(2, '0');
+      const sec = String(parsed.getSeconds()).padStart(2, '0');
+      return `${dd}.${mm}.${yyyy} ${hh}:${min}:${sec}`;
+    }
+  } catch {
+    // fallback
+  }
+
+  return str;
+};
+
+const formatDate = (raw?: string) => formatPreferDate(raw) || '—';
 
 const remarkField = (remarks: string | undefined, label: string) => {
   const raw = String(remarks || '');
@@ -673,7 +737,7 @@ const AdminSevaDetailListScreen = () => {
               {preferDateFilter === '__none__'
                 ? 'Showing: No prefer date'
                 : preferDateFilter
-                  ? `Prefer Date: ${preferDateFilter}`
+                  ? `Prefer Date: ${formatPreferDate(preferDateFilter)}`
                   : 'Tap to select a prefer date...'}
             </Text>
           </TouchableOpacity>
@@ -719,7 +783,7 @@ const AdminSevaDetailListScreen = () => {
               {preferDateFilter === '__none__'
                 ? `No devotees without a prefer date in the ${activeTab} view.`
                 : preferDateFilter
-                  ? `No devotees have selected ${preferDateFilter} in the ${activeTab} view.`
+                  ? `No devotees have selected ${formatPreferDate(preferDateFilter)} in the ${activeTab} view.`
                   : `There are currently no records in the ${activeTab} tab.`}
             </Text>
             {preferDateFilter ? (
@@ -793,7 +857,7 @@ const AdminSevaDetailListScreen = () => {
                     {item.donorName || 'Devotee'}
                   </Text>
                   <Text style={styles.donatedAtText}>
-                    Donated: {item.donatedAt || '—'}
+                    Donated: {formatDisplayDate(item.donatedAt)}
                     {!canNotify ? ' · no app account' : ''}
                   </Text>
                 </View>
@@ -819,7 +883,7 @@ const AdminSevaDetailListScreen = () => {
                         ? styles.preferDateTextUpcoming
                         : styles.preferDateTextPast,
                     ]}>
-                    📅 {item.preferDate || 'Not specified'}
+                    📅 {formatPreferDate(item.preferDate) || 'Not specified'}
                   </Text>
                 </View>
               </View>
@@ -880,7 +944,7 @@ const AdminSevaDetailListScreen = () => {
                     </Text>
                     {item.adminRepliedAt ? (
                       <Text style={styles.replyTimeText}>
-                        {item.adminRepliedAt}
+                        {formatDisplayDate(item.adminRepliedAt)}
                       </Text>
                     ) : null}
                   </View>
@@ -1128,7 +1192,8 @@ const AdminSevaDetailListScreen = () => {
                   Reply to {selectedDonation?.donorName || 'Devotee'}
                 </Text>
                 <Text style={styles.modalSub}>
-                  {screenTitle} • Prefer Date: {selectedDonation?.preferDate || 'N/A'}
+                  {screenTitle} • Prefer Date:{' '}
+                  {formatPreferDate(selectedDonation?.preferDate) || 'N/A'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -1256,7 +1321,7 @@ const AdminSevaDetailListScreen = () => {
                         ? styles.editDateValue
                         : styles.editDatePlaceholder
                     }>
-                    {editPreferDate || 'Tap to select date'}
+                    {formatPreferDate(editPreferDate) || 'Tap to select date'}
                   </Text>
                 </TouchableOpacity>
                 {editPreferDate ? (

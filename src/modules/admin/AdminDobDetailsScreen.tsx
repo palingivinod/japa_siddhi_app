@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   StyleSheet,
   Text,
@@ -70,6 +71,26 @@ const handleCall = (mobile?: string) => {
   }
   Linking.openURL(`tel:${clean}`).catch(() => {
     Alert.alert('Call Error', 'Unable to open phone dialer.');
+  });
+};
+
+const handleWhatsApp = (
+  mobile?: string,
+  devoteeName?: string,
+  customMsg?: string,
+) => {
+  const clean = digitsPhone(mobile);
+  if (!clean) {
+    Alert.alert('WhatsApp Error', 'No phone number available.');
+    return;
+  }
+  const intlNumber = clean.length === 10 ? `91${clean}` : clean;
+  const wishText = customMsg?.trim()
+    ? `Namaste ${devoteeName || 'Devotee'} 🙏\n\n${customMsg.trim()}\n\n— Japa Siddhi - Bilva Patra Trust`
+    : `Namaste ${devoteeName || 'Devotee'} 🙏\n\nHappy Birthday! Wishing you a blessed and joyful day.\n\n— Japa Siddhi - Bilva Patra Trust`;
+  const url = `https://wa.me/${intlNumber}?text=${encodeURIComponent(wishText)}`;
+  Linking.openURL(url).catch(() => {
+    Alert.alert('WhatsApp Error', 'Unable to open WhatsApp.');
   });
 };
 
@@ -419,12 +440,34 @@ const AdminDobDetailsScreen = () => {
                             ) : null}
                           </View>
                           {hasPhone ? (
-                            <TouchableOpacity
-                              style={[styles.contactBtn, styles.phoneBtn]}
-                              onPress={() => handleCall(person.phone)}
-                              activeOpacity={0.7}>
-                              <Text style={styles.contactIcon}>📞</Text>
-                            </TouchableOpacity>
+                            <View style={styles.actionsRow}>
+                              <TouchableOpacity
+                                style={[styles.contactBtn, styles.phoneBtn]}
+                                onPress={() => handleCall(person.phone)}
+                                activeOpacity={0.7}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Call ${person.fullName}`}>
+                                <Text style={styles.contactIcon}>📞</Text>
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.contactBtn, styles.whatsappBtn]}
+                                onPress={() =>
+                                  handleWhatsApp(
+                                    person.phone,
+                                    person.fullName,
+                                    message,
+                                  )
+                                }
+                                activeOpacity={0.7}
+                                accessibilityRole="button"
+                                accessibilityLabel={`WhatsApp ${person.fullName}`}>
+                                <Image
+                                  source={require('../../assets/images/whatsapp_logo.png')}
+                                  style={styles.waIcon}
+                                  resizeMode="contain"
+                                />
+                              </TouchableOpacity>
+                            </View>
                           ) : null}
                         </View>
                       );
@@ -714,19 +757,30 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 13,
   },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   contactBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 8,
+    marginLeft: 6,
   },
   phoneBtn: {
     backgroundColor: '#E8F1FF',
   },
+  whatsappBtn: {
+    backgroundColor: '#E7FCE8',
+  },
+  waIcon: {
+    width: 22,
+    height: 22,
+  },
   contactIcon: {
-    fontSize: 18,
+    fontSize: 17,
   },
   messageBox: {
     marginTop: 8,

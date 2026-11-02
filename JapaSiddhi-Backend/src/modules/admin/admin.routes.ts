@@ -2814,6 +2814,10 @@ const mapOrderRow = (row: any) => {
         : mobile || String(row.claimMobile || '').trim() || '',
     mobileCountryCode: country,
     mobileNumber: mobile,
+    userId: Number(row.userId || row.user_id || 0) || null,
+    userCode: String(
+      row.userCode || (row.userId ? `BPJS${String(row.userId).padStart(2, '0')}` : ''),
+    ).trim(),
     orderGroup: isRewardOrder(row)
       ? 'reward'
       : isNormalBaanalingamOrder(row)
@@ -2981,6 +2985,8 @@ router.get('/orders', async (_req: Request, res: Response) => {
     const rows = await mysql.query<any[]>(`
       SELECT
         o.id,
+        o.user_id AS userId,
+        u.user_code AS userCode,
         o.order_number AS orderNumber,
         o.order_type AS orderType,
         o.order_source AS orderSource,
@@ -3016,7 +3022,7 @@ router.get('/orders', async (_req: Request, res: Response) => {
       LEFT JOIN users u ON u.id = o.user_id
       LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
       LEFT JOIN milestone_reward_claims mrc ON mrc.order_id = o.id
-      ORDER BY o.id DESC
+      ORDER BY o.user_id ASC, o.id DESC
     `);
     return res.json({
       success: true,

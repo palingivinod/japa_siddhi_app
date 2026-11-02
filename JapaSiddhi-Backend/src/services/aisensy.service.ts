@@ -147,7 +147,7 @@ export const sendAiSensyCampaign = async (
  * Namaste {{1}} 🙏
  * *{{2}}*
  * {{3}}
- * — Sri Bilvapatra Trust
+ * — Japa Siddhi - Bilva Patra Trust
  */
 export const sendBirthdayWhatsAppWishes = async ({
   userIds,

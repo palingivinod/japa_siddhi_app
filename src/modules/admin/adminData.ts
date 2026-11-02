@@ -151,6 +151,8 @@ export type AdminOrder = {
   adminNoteAt?: string;
   cancelReason?: string;
   cancelledBy?: string;
+  userId?: number | null;
+  userCode?: string;
 };
 
 export type AdminPaymentRow = {

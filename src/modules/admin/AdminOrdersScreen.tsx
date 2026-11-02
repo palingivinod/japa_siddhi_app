@@ -314,6 +314,8 @@ const AdminOrdersScreen = () => {
         adminNoteAt: String(row.adminNoteAt || ''),
         cancelReason: row.cancelReason || '',
         cancelledBy: row.cancelledBy || '',
+        userId: Number(row.userId || 0) || null,
+        userCode: String(row.userCode || '').trim(),
       }));
       setOrders(mapped);
       setNoteDrafts(prev => {
@@ -558,10 +560,19 @@ const AdminOrdersScreen = () => {
   }, [itemFilteredOrders]);
 
   const visibleOrders = useMemo(() => {
-    if (tab === 'All') {
-      return itemFilteredOrders.filter(o => o.status !== 'Delivered');
-    }
-    return itemFilteredOrders.filter(o => o.status === tab);
+    const list =
+      tab === 'All'
+        ? itemFilteredOrders.filter(o => o.status !== 'Delivered')
+        : itemFilteredOrders.filter(o => o.status === tab);
+
+    return [...list].sort((a, b) => {
+      const uA = a.userId != null ? a.userId : 999999999;
+      const uB = b.userId != null ? b.userId : 999999999;
+      if (uA !== uB) {
+        return uA - uB; // ASC order by User ID
+      }
+      return Number(b.id) - Number(a.id);
+    });
   }, [itemFilteredOrders, tab]);
 
   const tabCount = (tabId: string) => {
@@ -578,7 +589,12 @@ const AdminOrdersScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="Order Management" tab="AdminOrders" showBack={false}>
+    <AdminScreenLayout
+      title="Order Management"
+      tab="AdminOrders"
+      showBack={false}
+      enableScrollToTop
+      enableFastScroll>
       <Text style={styles.heading}>Order Management</Text>
       <Text style={styles.sub}>Review and approve devotee orders.</Text>
 
@@ -830,7 +846,14 @@ const AdminOrdersScreen = () => {
                 navigation.navigate('AdminOrderDetails', {orderId: order.id})
               }>
               <View style={styles.copy}>
-                <Text style={styles.name}>{order.orderNo}</Text>
+                <Text style={styles.name}>
+                  {order.orderNo}
+                  {order.userCode
+                    ? ` • ${order.userCode}`
+                    : order.userId
+                      ? ` • User #${order.userId}`
+                      : ''}
+                </Text>
                 <Text style={styles.meta}>
                   {order.rewardName || order.product} • {order.customer}
                   {searchActive && order.orderGroup
