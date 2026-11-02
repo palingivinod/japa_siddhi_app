@@ -84,11 +84,66 @@ class OrderService {
   async getTracking(id: number) {
     const order = await this.getById(id);
     const created = new Date(order.createdAt || Date.now());
-    const addDays = (days: number) => {
-      const date = new Date(created);
-      date.setDate(date.getDate() + days);
-      return date.toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+    const updated = new Date(order.updatedAt || order.createdAt || Date.now());
+    const formatDay = (raw: Date | string | number) => {
+      const date = raw instanceof Date ? raw : new Date(raw);
+      if (Number.isNaN(date.getTime())) {
+        return '';
+      }
+      return date.toLocaleDateString('en-US', {
+        timeZone: 'Asia/Kolkata',
+        month: 'short',
+        day: 'numeric',
+      });
     };
+    const addDaysFrom = (base: Date, days: number) => {
+      const date = new Date(base);
+      date.setDate(date.getDate() + days);
+      return formatDay(date);
+    };
+
+    let eventMap: Record<string, Date> = {};
+    try {
+      eventMap = await orderRepository.getStatusEventMap(id);
+    } catch {
+      eventMap = {};
+    }
+
+    const firstOf = (...codes: string[]) => {
+      for (const code of codes) {
+        if (eventMap[code]) {
+          return eventMap[code];
+        }
+      }
+      return null;
+    };
+
+    /**
+     * Done steps use the real status-change day.
+     * Legacy orders (no events yet): Order Placed = created; current status = updated.
+     */
+    const doneDate = (
+      done: boolean,
+      statuses: string[],
+      opts?: {isPlaced?: boolean; isCurrent?: boolean},
+    ) => {
+      if (!done) {
+        return null;
+      }
+      const fromEvent = firstOf(...statuses);
+      if (fromEvent) {
+        return formatDay(fromEvent);
+      }
+      if (opts?.isPlaced) {
+        return formatDay(created);
+      }
+      if (opts?.isCurrent) {
+        return formatDay(updated);
+      }
+      // Older completed steps with no history: use last update day (best effort).
+      return formatDay(updated);
+    };
+
     const status = String(order.orderStatus || 'UNDER_REVIEW').toUpperCase();
     const type = String(order.orderType || '').toUpperCase();
     const item = String(order.itemName || '').toLowerCase();
@@ -117,47 +172,81 @@ class OrderService {
                     ? 2
                     : 1;
       const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
+      const lastKnown =
+        firstOf(
+          'DELIVERED',
+          'SHIPPED',
+          'PACKING',
+          'READY',
+          'PROCESSING',
+          'CONFIRMED',
+          'SANKALP_TAKEN',
+          'CALLED_TALKED',
+          'CALLED_DEVOTEE',
+          'UNDER_REVIEW',
+          'PENDING',
+        ) || created;
       const steps = [
         {
           key: 'under_review',
           label: isUnderReview ? 'Under Review' : 'Order Placed',
-          date: addDays(0),
+          date:
+            doneDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
+              isPlaced: true,
+              isCurrent: rank === 1,
+            }) || formatDay(created),
           done: rank >= 1,
         },
         {
           key: 'called',
           label: 'Called and talked with devotee',
-          date: rank >= 2 ? addDays(1) : 'Awaiting call',
+          date:
+            doneDate(rank >= 2, ['CALLED_TALKED', 'CALLED_DEVOTEE'], {
+              isCurrent: rank === 2,
+            }) || 'Awaiting call',
           done: rank >= 2,
         },
         {
           key: 'sankalp',
           label: 'Sankalp taken by devotee',
-          date: rank >= 3 ? addDays(2) : 'Awaiting sankalp',
+          date:
+            doneDate(rank >= 3, ['SANKALP_TAKEN'], {isCurrent: rank === 3}) ||
+            'Awaiting sankalp',
           done: rank >= 3,
         },
         {
           key: 'confirmed',
           label: 'Order confirmation',
-          date: rank >= 4 ? addDays(3) : 'Awaiting confirmation',
+          date:
+            doneDate(
+              rank >= 4,
+              ['CONFIRMED', 'PROCESSING', 'READY'],
+              {isCurrent: rank === 4},
+            ) || 'Awaiting confirmation',
           done: rank >= 4,
         },
         {
           key: 'packing',
           label: 'Packing',
-          date: rank >= 5 ? addDays(4) : `Expected ${addDays(4)}`,
+          date:
+            doneDate(rank >= 5, ['PACKING'], {isCurrent: rank === 5}) ||
+            `Expected ${addDaysFrom(lastKnown, 1)}`,
           done: rank >= 5,
         },
         {
           key: 'shipped',
           label: 'Shipped',
-          date: rank >= 6 ? addDays(5) : `Expected ${addDays(5)}`,
+          date:
+            doneDate(rank >= 6, ['SHIPPED'], {isCurrent: rank === 6}) ||
+            `Expected ${addDaysFrom(lastKnown, 2)}`,
           done: rank >= 6,
         },
         {
           key: 'delivered',
           label: 'Delivered',
-          date: rank >= 7 ? addDays(7) : `Expected ${addDays(7)}`,
+          date:
+            doneDate(rank >= 7, ['DELIVERED'], {isCurrent: rank === 7}) ||
+            `Expected ${addDaysFrom(lastKnown, 4)}`,
           done: rank >= 7,
         },
       ];
@@ -178,7 +267,7 @@ class OrderService {
       return {
         ...order,
         currentStatus,
-        eta: addDays(7),
+        eta: addDaysFrom(lastKnown, 4),
         steps,
         canMarkReceived: status === 'SHIPPED',
       };
@@ -195,35 +284,61 @@ class OrderService {
               ? 2
               : 1;
     const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
+    const lastKnown =
+      firstOf(
+        'DELIVERED',
+        'SHIPPED',
+        'PACKING',
+        'READY',
+        'PROCESSING',
+        'CONFIRMED',
+        'UNDER_REVIEW',
+        'PENDING',
+      ) || created;
     const steps = [
       {
         key: 'under_review',
         label: isUnderReview ? 'Under Review' : 'Order Placed',
-        date: addDays(0),
+        date:
+          doneDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
+            isPlaced: true,
+            isCurrent: rank === 1,
+          }) || formatDay(created),
         done: rank >= 1,
       },
       {
         key: 'confirmed',
         label: 'Order Confirmed',
-        date: rank >= 2 ? addDays(1) : 'Awaiting confirmation',
+        date:
+          doneDate(
+            rank >= 2,
+            ['CONFIRMED', 'PROCESSING', 'READY'],
+            {isCurrent: rank === 2},
+          ) || 'Awaiting confirmation',
         done: rank >= 2,
       },
       {
         key: 'packing',
         label: 'Packing',
-        date: rank >= 3 ? addDays(2) : `Expected ${addDays(2)}`,
+        date:
+          doneDate(rank >= 3, ['PACKING'], {isCurrent: rank === 3}) ||
+          `Expected ${addDaysFrom(lastKnown, 1)}`,
         done: rank >= 3,
       },
       {
         key: 'shipped',
         label: 'Shipped',
-        date: rank >= 4 ? addDays(3) : `Expected ${addDays(3)}`,
+        date:
+          doneDate(rank >= 4, ['SHIPPED'], {isCurrent: rank === 4}) ||
+          `Expected ${addDaysFrom(lastKnown, 2)}`,
         done: rank >= 4,
       },
       {
         key: 'delivered',
         label: 'Delivered',
-        date: rank >= 5 ? addDays(5) : `Expected ${addDays(5)}`,
+        date:
+          doneDate(rank >= 5, ['DELIVERED'], {isCurrent: rank === 5}) ||
+          `Expected ${addDaysFrom(lastKnown, 4)}`,
         done: rank >= 5,
       },
     ];
@@ -239,7 +354,7 @@ class OrderService {
               : rank >= 2
                 ? 'Order Confirmed'
                 : 'Under Review',
-      eta: addDays(5),
+      eta: addDaysFrom(lastKnown, 4),
       steps,
       canMarkReceived: status === 'SHIPPED',
     };

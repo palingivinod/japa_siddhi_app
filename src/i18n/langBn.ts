@@ -390,6 +390,11 @@ export const bn: TranslationDict = {
   close: 'বন্ধ করুন',
   continueToPayment: 'পেমেন্টে চালিয়ে যান',
   proceedToPay: 'পেমেন্ট করুন',
+  overviewBtn: 'পূর্বরূপ',
+  enterRequiredDetails: 'প্রয়োজনীয় বিবরণ লিখুন',
+  selectOrEnterNoOfPersons: 'ব্যক্তির সংখ্যা নির্বাচন করুন বা লিখুন',
+  donateAmountWithCount: '₹{{amount}} দান করুন ({{count}} {{unit}})',
+  donateBtn: 'দান করুন',
   donationDetails: 'সেবা বিবরণ',
   nameMobileAmountRequired: 'নাম, মোবাইল ও পরিমাণ প্রয়োজন।',
   japaMilestones: 'জপ মাইলফলক',
@@ -544,6 +549,7 @@ export const bn: TranslationDict = {
   monthlySupportNote:
     'নোট: অনেক ভক্ত প্রতি মাসে অটো-ডেবিট / অটো-পে সুবিধার অনুরোধ করেছেন যাতে তাদের মাসিক সেবা ভুলে না গিয়ে বা বাদ না পড়ে নির্বিঘ্নে চলতে পারে।',
   setAutopay: 'অটো-পে / অটো-ডেবিট সেট করুন',
+  autopayAlreadySubmittedBtn: 'অটো-পে অনুরোধ ইতিমধ্যে পাঠানো হয়েছে',
   chooseMonthlyContribution: 'আপনার মাসিক সহায়তা বেছে নিন:',
   enterAmountLabel: 'পরিমাণ লিখুন (₹):',
   amountExamplePlaceholder: 'যেমন ৫০০',
@@ -559,6 +565,9 @@ export const bn: TranslationDict = {
   autopaySuccessTitle: 'অটো-পে অনুরোধ গৃহীত হয়েছে',
   autopaySuccessMessage:
     'সহায়তা করতে আগ্রহ প্রকাশ করার জন্য ধন্যবাদ! শ্রী রবি শঙ্কর গারু / আমাদের দল শীঘ্রই আপনার সাথে যোগাযোগ করবে।',
+  autopayAlreadySubmittedTitle: 'অনুরোধ ইতিমধ্যে চলছে',
+  autopayAlreadySubmittedMessage:
+    'আপনার একটি অটো-পে অনুরোধ ইতিমধ্যে চলছে। আমাদের দল শীঘ্রই যোগাযোগ করবে। এখন আর একটি অনুরোধ পাঠানো যাবে না।',
   autopayCustomAmount: 'অন্যান্য / নিজের পছন্দের পরিমাণ',
   editSpiritualDetails: 'আধ্যাত্মিক বিবরণ সম্পাদনা',
   editPersonalDetails: 'ব্যক্তিগত বিবরণ সম্পাদনা',
@@ -789,6 +798,8 @@ export const bn: TranslationDict = {
   chooseInStockReward: 'এগিয়ে যেতে স্টকে থাকা পুরস্কার বেছে নিন।',
   couldNotLoadRewards: 'পুরস্কার লোড করা যায়নি।',
   rewardAlreadySubmitted: 'এই মাইলফলকের পুরস্কার আগেই পাঠানো হয়েছে।',
+  retryRewardNotice:
+    'পূর্ববর্তী অর্ডার বাতিল করা হয়েছে। এই পুরস্কারটি দাবি করার জন্য আপনার কাছে ১টি শেষ সুযোগ রয়েছে।',
   selectRewardTitle: 'পুরস্কার বেছে নিন',
   chooseRewardToContinue: 'এগিয়ে যেতে একটি পুরস্কার বেছে নিন।',
   chooseSacredRewardContinue: 'এগিয়ে যেতে একটি পবিত্র পুরস্কার বেছে নিন।',

@@ -255,6 +255,47 @@ const AdminOrderDetailsScreen = () => {
     }
   };
 
+  const revertStatus = async (prev: AdminOrderStatus) => {
+    if (!order) {
+      return;
+    }
+    Alert.alert(
+      'Undo Order Status',
+      `Revert order ${order.orderNo} status back to "${prev}"? This will immediately update the devotee's order tracking.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Undo Status',
+          style: 'destructive',
+          onPress: async () => {
+            setSaving(true);
+            try {
+              const response = await apiService.put(
+                `/admin/orders/${order.id}/status`,
+                {
+                  status: prev,
+                  isUndo: true,
+                },
+              );
+              setOrder(applyOrder(response.data?.data || {}));
+              Alert.alert(
+                'Status Reverted',
+                `Order status is now "${prev}". Devotee's order tracking has been updated.`,
+              );
+            } catch (err) {
+              Alert.alert(
+                'Undo failed',
+                getApiError(err, 'Could not undo order status.'),
+              );
+            } finally {
+              setSaving(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''}`.toLowerCase();
   const orderNoUpper = String(order?.orderNo || '').toUpperCase();
   const orderTypeUpper = String(order?.orderType || '').toUpperCase();
@@ -283,7 +324,7 @@ const AdminOrderDetailsScreen = () => {
         onPress: () =>
           Alert.alert(
             'Order Completed',
-            'This order has already been delivered.',
+            'This order has already been delivered. Use the Undo button below if this was marked by mistake.',
           ),
       };
     }
@@ -338,6 +379,34 @@ const AdminOrderDetailsScreen = () => {
     return {
       title: saving ? 'UPDATING...' : '📦 MARK AS PACKING',
       onPress: () => advanceStatus('Packing'),
+    };
+  })();
+
+  const previousAction = (() => {
+    if (!order || order.status === 'Cancelled' || order.status === 'Under Review') {
+      return null;
+    }
+    let prevStatus: AdminOrderStatus | null = null;
+    if (order.status === 'Delivered') {
+      prevStatus = 'Shipped';
+    } else if (order.status === 'Shipped') {
+      prevStatus = 'Packing';
+    } else if (order.status === 'Packing') {
+      prevStatus = 'Confirmed';
+    } else if (order.status === 'Confirmed') {
+      prevStatus = isBaanalingam ? 'Sankalp Taken' : 'Under Review';
+    } else if (order.status === 'Sankalp Taken') {
+      prevStatus = 'Called Devotee';
+    } else if (order.status === 'Called Devotee') {
+      prevStatus = 'Under Review';
+    }
+
+    if (!prevStatus) return null;
+
+    return {
+      title: `↩ UNDO STATUS TO ${prevStatus.toUpperCase()}`,
+      prevStatus,
+      onPress: () => revertStatus(prevStatus!),
     };
   })();
 
@@ -477,6 +546,16 @@ const AdminOrderDetailsScreen = () => {
               onPress={nextAction.onPress}
               disabled={saving}
             />
+          ) : null}
+
+          {previousAction ? (
+            <TouchableOpacity
+              style={[styles.undoBtn, saving && styles.btnDisabled]}
+              disabled={saving}
+              activeOpacity={0.8}
+              onPress={previousAction.onPress}>
+              <Text style={styles.undoBtnText}>{previousAction.title}</Text>
+            </TouchableOpacity>
           ) : null}
         </>
       ) : null}
@@ -623,5 +702,25 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: Colors.sacredBrown,
+  },
+  undoBtn: {
+    marginTop: 12,
+    marginBottom: 28,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#DC2626',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  undoBtnText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  btnDisabled: {
+    opacity: 0.6,
   },
 });

@@ -385,6 +385,11 @@ export const ta: TranslationDict = {
   donationAmount: 'அர்ப்பணிப்பு தொகை',
   continueToPayment: 'பணம் செலுத்த தொடரவும்',
   proceedToPay: 'பணம் செலுத்து',
+  overviewBtn: 'கண்ணோட்டம்',
+  enterRequiredDetails: 'தேவையான விவரங்களை உள்ளிடவும்',
+  selectOrEnterNoOfPersons: 'நபர்களின் எண்ணிக்கையைத் தேர்ந்தெடுக்கவும் அல்லது உள்ளிடவும்',
+  donateAmountWithCount: '₹{{amount}} நன்கொடை அளிக்கவும் ({{count}} {{unit}})',
+  donateBtn: 'நன்கொடை அளிக்கவும்',
   donationDetails: 'சேவை விவரங்கள்',
   nameMobileAmountRequired: 'பெயர், மொபைல் மற்றும் தொகை தேவை.',
   japaMilestones: 'ஜப மைல்கற்கள்',
@@ -539,6 +544,7 @@ export const ta: TranslationDict = {
   monthlySupportNote:
     'குறிப்பு: தங்களின் மாதாந்திர சேவையை மறக்காமல் அல்லது தவறவிடாமல் தொடர ஆட்டோ-டெபிட் / ஆட்டோபே வசதியை ஏற்பாடு செய்யுமாறு பல பக்தர்கள் கோரியுள்ளனர்.',
   setAutopay: 'ஆட்டோபே / ஆட்டோ-டெபிட் அமைக்கவும்',
+  autopayAlreadySubmittedBtn: 'ஆட்டோபே கோரிக்கை ஏற்கனவே அனுப்பப்பட்டது',
   chooseMonthlyContribution: 'உங்கள் மாதாந்திர உதவியைத் தேர்ந்தெடுக்கவும்:',
   enterAmountLabel: 'தொகையை உள்ளிடவும் (₹):',
   amountExamplePlaceholder: 'எ.கா. 500',
@@ -554,6 +560,9 @@ export const ta: TranslationDict = {
   autopaySuccessTitle: 'ஆட்டோபே கோரிக்கை பெறப்பட்டது',
   autopaySuccessMessage:
     'ஆதரவளிக்க விருப்பம் தெரிவித்ததற்கு நன்றி! ஸ்ரீ ரவி சங்கர் காரு / எங்கள் குழுவினர் விரைவில் உங்களைத் தொடர்புகொள்வார்கள்.',
+  autopayAlreadySubmittedTitle: 'கோரிக்கை ஏற்கனவே நடைபெறுகிறது',
+  autopayAlreadySubmittedMessage:
+    'உங்களுக்கு ஏற்கனவே ஒரு ஆட்டோபே கோரிக்கை நடைபெறுகிறது. எங்கள் குழு விரைவில் தொடர்புகொள்ளும். இப்போது வேறொரு கோரிக்கை அனுப்ப முடியாது.',
   autopayCustomAmount: 'மற்றவை / விருப்பமான தொகை',
   editSpiritualDetails: 'ஆன்மீக விவரங்களைத் திருத்து',
   editPersonalDetails: 'தனிப்பட்ட விவரங்களைத் திருத்து',
@@ -828,6 +837,8 @@ export const ta: TranslationDict = {
   chooseInStockReward: 'தொடர இருப்புள்ள வெகுமதியைத் தேர்ந்தெடுக்கவும்.',
   couldNotLoadRewards: 'வெகுமதிகளை ஏற்ற முடியவில்லை.',
   rewardAlreadySubmitted: 'இந்த மைல்கல் வெகுமதி ஏற்கனவே அனுப்பப்பட்டது.',
+  retryRewardNotice:
+    'முந்தைய ஆர்டர் ரத்துசெய்யப்பட்டது. இந்த வெகுமதியைப் பெற உங்களுக்கு 1 இறுதி வாய்ப்பு உள்ளது.',
   selectRewardTitle: 'வெகுமதியைத் தேர்ந்தெடு',
   chooseRewardToContinue: 'தொடர ஒரு வெகுமதியைத் தேர்ந்தெடுக்கவும்.',
   chooseSacredRewardContinue: 'தொடர ஒரு புனித வெகுமதியைத் தேர்ந்தெடுக்கவும்.',

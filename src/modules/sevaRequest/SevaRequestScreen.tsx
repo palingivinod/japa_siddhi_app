@@ -208,7 +208,11 @@ const SevaRequestScreen = () => {
         style={styles.commentsInput}
       />
       <PrimaryButton
-        title={ready ? 'OVERVIEW' : 'ENTER REQUIRED DETAILS'}
+        title={
+          ready
+            ? t('overviewBtn') || 'OVERVIEW'
+            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+        }
         onPress={submit}
         disabled={!ready}
       />

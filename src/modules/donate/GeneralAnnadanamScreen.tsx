@@ -378,8 +378,8 @@ const GeneralAnnadanamScreen = () => {
           <PrimaryButton
             title={
               detailsReady
-                ? `CONTINUE TO PAYMENT (₹${totalAmount.toLocaleString('en-IN')})`
-                : 'ENTER REQUIRED DETAILS'
+                ? `${t('continueToPayment')} (₹${totalAmount.toLocaleString('en-IN')})`
+                : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
             }
             disabled={!detailsReady}
             onPress={continuePay}

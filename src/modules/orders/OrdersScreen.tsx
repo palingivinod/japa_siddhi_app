@@ -26,14 +26,45 @@ const TABS: Array<{id: string; key: TranslationKey}> = [
 ];
 
 const statusOf = (item: any) =>
-  String(item.orderStatus || item.status || '').toLowerCase();
+  String(item.orderStatus || item.status || item.currentStatus || '').toLowerCase().trim();
+
+const isDeliveredStatus = (raw: string) => {
+  const s = String(raw || '').toLowerCase().trim();
+  return s.includes('deliver') && !s.includes('out for delivery');
+};
+
+const isShippedStatus = (raw: string) => {
+  const s = String(raw || '').toLowerCase().trim();
+  if (isDeliveredStatus(s)) return false;
+  return (
+    s.includes('ship') ||
+    s.includes('out for delivery') ||
+    s.includes('transit')
+  );
+};
+
+const isCancelledStatus = (raw: string) => {
+  const s = String(raw || '').toLowerCase().trim();
+  return s.includes('cancel');
+};
+
+const isPendingStatus = (raw: string) => {
+  const s = String(raw || '').toLowerCase().trim();
+  // Delivered, Shipped, or Cancelled orders are not pending
+  if (isDeliveredStatus(s) || isShippedStatus(s) || isCancelledStatus(s)) {
+    return false;
+  }
+  // Matches Under Review, Called, Sankalp, Confirmed, Packing, Processing, Ready,
+  // or any other "not shipped yet" status
+  return true;
+};
 
 const formatStatus = (raw: string, t: any) => {
-  const value = String(raw || '').toLowerCase();
-  if (value.includes('deliver')) {
+  const value = String(raw || '').toLowerCase().trim();
+  if (value.includes('deliver') && !value.includes('out for delivery')) {
     return t('orderTabDelivered');
   }
-  if (value.includes('ship')) {
+  if (value.includes('ship') || value.includes('out for delivery')) {
     return t('orderTabShipped');
   }
   if (value.includes('pack')) {
@@ -45,7 +76,7 @@ const formatStatus = (raw: string, t: any) => {
   if (value.includes('sankalp')) {
     return 'Sankalp taken by devotee';
   }
-  if (value.includes('called')) {
+  if (value.includes('call')) {
     return 'Called and talked with devotee';
   }
   if (value.includes('cancel')) {
@@ -119,12 +150,15 @@ const OrdersScreen = () => {
       return orders;
     }
     if (tab === 'Pending') {
-      return orders.filter(item => {
-        const s = statusOf(item);
-        return s.includes('pend') || s.includes('review');
-      });
+      return orders.filter(item => isPendingStatus(statusOf(item)));
     }
-    return orders.filter(item => statusOf(item).includes(tab.toLowerCase()));
+    if (tab === 'Shipped') {
+      return orders.filter(item => isShippedStatus(statusOf(item)));
+    }
+    if (tab === 'Delivered') {
+      return orders.filter(item => isDeliveredStatus(statusOf(item)));
+    }
+    return orders;
   }, [orders, tab]);
 
   return (

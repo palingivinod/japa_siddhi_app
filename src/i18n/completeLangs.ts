@@ -384,6 +384,11 @@ export const kn: TranslationDict = {
   donationAmount: 'ಸೇವಾ ಮೊತ್ತ',
   continueToPayment: 'ಪಾವತಿಗೆ ಮುಂದುವರಿಸಿ',
   proceedToPay: 'ಪಾವತಿಸಿ',
+  overviewBtn: 'ಪೂರ್ವವೀಕ್ಷಣೆ',
+  enterRequiredDetails: 'ಅಗತ್ಯವಿರುವ ವಿವರಗಳನ್ನು ನಮೂದಿಸಿ',
+  selectOrEnterNoOfPersons: 'ವ್ಯಕ್ತಿಗಳ ಸಂಖ್ಯೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ ಅಥವಾ ನಮೂದಿಸಿ',
+  donateAmountWithCount: '₹{{amount}} ದಾನ ಮಾಡಿ ({{count}} {{unit}})',
+  donateBtn: 'ದಾನ ಮಾಡಿ',
   donationDetails: 'ಸೇವಾ ವಿವರಗಳು',
   nameMobileAmountRequired: 'ಹೆಸರು, ಮೊಬೈಲ್ ಮತ್ತು ಮೊತ್ತ ಅಗತ್ಯ.',
   japaMilestones: 'ಜಪ ಮೈಲಿಗಲ್ಲುಗಳು',
@@ -538,6 +543,7 @@ export const kn: TranslationDict = {
   monthlySupportNote:
     'ಗಮನಿಸಿ: ತಮ್ಮ ಮಾಸಿಕ ಸೇವೆಯನ್ನು ಮರೆಯದೆ ಅಥವಾ ಬಿಟ್ಟುಹೋಗದೆ ಮುಂದುವರಿಸಲು ಆಟೋ-ಡೆಬಿಟ್ / ಆಟೋಪೇ ಸೌಲಭ್ಯವನ್ನು ಒದಗಿಸುವಂತೆ ಹಲವು ಭಕ್ತರು ವಿನಂತಿಸಿದ್ದಾರೆ.',
   setAutopay: 'ಆಟೋಪೇ / ಆಟೋ-ಡೆಬಿಟ್ ಹೊಂದಿಸಿ',
+  autopayAlreadySubmittedBtn: 'ಆಟೋಪೇ ವಿನಂತಿ ಈಗಾಗಲೇ ಕಳುಹಿಸಲಾಗಿದೆ',
   chooseMonthlyContribution: 'ನಿಮ್ಮ ಮಾಸಿಕ ಸಹಾಯವನ್ನು ಆಯ್ಕೆಮಾಡಿ:',
   enterAmountLabel: 'ಮೊತ್ತ ನಮೂದಿಸಿ (₹):',
   amountExamplePlaceholder: 'ಉದಾ. 500',
@@ -553,6 +559,9 @@ export const kn: TranslationDict = {
   autopaySuccessTitle: 'ಆಟೋಪೇ ವಿನಂತಿ ಸ್ವೀಕರಿಸಲಾಗಿದೆ',
   autopaySuccessMessage:
     'ಬೆಂಬಲ ನೀಡಲು ಆಸಕ್ತಿ ತೋರಿದ್ದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು! ಶ್ರೀ ರವಿ ಶಂಕರ್ ಗಾರು / ನಮ್ಮ ತಂಡ ಶೀಘ್ರದಲ್ಲೇ ನಿಮ್ಮನ್ನು ಸಂಪರ್ಕಿಸಲಿದೆ.',
+  autopayAlreadySubmittedTitle: 'ವಿನಂತಿ ಈಗಾಗಲೇ ನಡೆಯುತ್ತಿದೆ',
+  autopayAlreadySubmittedMessage:
+    'ನಿಮಗೆ ಈಗಾಗಲೇ ಒಂದು ಆಟೋಪೇ ವಿನಂತಿ ನಡೆಯುತ್ತಿದೆ. ನಮ್ಮ ತಂಡ ಶೀಘ್ರದಲ್ಲೇ ಸಂಪರ್ಕಿಸುತ್ತದೆ. ಈಗ ಇನ್ನೊಂದು ವಿನಂತಿ ಕಳುಹಿಸಲು ಸಾಧ್ಯವಿಲ್ಲ.',
   autopayCustomAmount: 'ಇತರ / ನಿಮ್ಮ ಆಯ್ಕೆಯ ಮೊತ್ತ',
   editSpiritualDetails: 'ಆಧ್ಯಾತ್ಮಿಕ ವಿವರ ಸಂಪಾದಿಸಿ',
   editPersonalDetails: 'ವೈಯಕ್ತಿಕ ವಿವರ ಸಂಪಾದಿಸಿ',
@@ -825,6 +834,8 @@ export const kn: TranslationDict = {
   chooseInStockReward: 'ಮುಂದುವರಿಸಲು ಸ್ಟಾಕ್‌ನಲ್ಲಿರುವ ಬಹುಮಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
   couldNotLoadRewards: 'ಬಹುಮಾನಗಳನ್ನು ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ.',
   rewardAlreadySubmitted: 'ಈ ಮೈಲಿಗಲ್ಲಿನ ಬಹುಮಾನವನ್ನು ಈಗಾಗಲೇ ಕಳುಹಿಸಲಾಗಿದೆ.',
+  retryRewardNotice:
+    'ಹಿಂದಿನ ಆರ್ಡರ್ ರದ್ದುಗೊಳಿಸಲಾಗಿದೆ. ಈ ಬಹುಮಾನವನ್ನು ಪಡೆಯಲು ನಿಮಗೆ 1 ಕೊನೆಯ ಅವಕಾಶವಿದೆ.',
   selectRewardTitle: 'ಬಹುಮಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ',
   chooseRewardToContinue: 'ಮುಂದುವರಿಸಲು ಒಂದು ಬಹುಮಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',
   chooseSacredRewardContinue: 'ಮುಂದುವರಿಸಲು ಒಂದು ಪವಿತ್ರ ಬಹುಮಾನವನ್ನು ಆಯ್ಕೆಮಾಡಿ.',

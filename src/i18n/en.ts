@@ -598,6 +598,11 @@ const en = {
   donationAmount: 'Offering Amount',
   continueToPayment: 'CONTINUE TO PAYMENT',
   proceedToPay: 'PROCEED TO PAY',
+  overviewBtn: 'OVERVIEW',
+  enterRequiredDetails: 'ENTER REQUIRED DETAILS',
+  selectOrEnterNoOfPersons: 'SELECT OR ENTER NO OF PERSONS',
+  donateAmountWithCount: 'DONATE ₹{{amount}} ({{count}} {{unit}})',
+  donateBtn: 'DONATE',
   donationDetails: 'Offering details',
   nameMobileAmountRequired: 'Name, mobile and amount are required.',
   japaMilestones: 'Japa Milestones',
@@ -799,6 +804,7 @@ const en = {
   monthlySupportNote:
     'Note: Many devotees requested an auto-debit / autopay facility each month so that their monthly seva support continues seamlessly without forgetting or skipping.',
   setAutopay: 'SET AUTOPAY / AUTO-DEBIT',
+  autopayAlreadySubmittedBtn: 'AUTOPAY REQUEST ALREADY SENT',
   chooseMonthlyContribution: 'Choose your monthly contribution:',
   enterAmountLabel: 'Enter Amount (₹):',
   amountExamplePlaceholder: 'e.g. 500',
@@ -814,6 +820,9 @@ const en = {
   autopaySuccessTitle: 'AutoPay Request Received',
   autopaySuccessMessage:
     'Thank you for your noble interest to support! Sri Ravi Shankar Garu / our team will contact you soon.',
+  autopayAlreadySubmittedTitle: 'Request Already Ongoing',
+  autopayAlreadySubmittedMessage:
+    'You already have one ongoing Autopay request. Our team will contact you soon. You cannot submit another request now.',
   autopayCustomAmount: 'Other / Custom Amount',
   editSpiritualDetails: 'Edit Spiritual Details',
   editPersonalDetails: 'Edit Personal Details',
@@ -1042,6 +1051,8 @@ const en = {
   chooseInStockReward: 'Choose an in-stock reward to continue.',
   couldNotLoadRewards: 'Could not load rewards.',
   rewardAlreadySubmitted: 'This milestone reward is already submitted.',
+  retryRewardNotice:
+    'Previous order was cancelled. You have 1 final chance to grab this reward.',
   selectRewardTitle: 'Select reward',
   chooseRewardToContinue: 'Choose a reward to continue.',
   chooseSacredRewardContinue: 'Choose a sacred reward to continue.',

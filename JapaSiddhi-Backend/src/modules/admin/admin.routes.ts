@@ -2800,6 +2800,8 @@ const mapOrderRow = (row: any) => {
     paymentStatus: row.paymentStatus,
     quantity: Number(row.quantity) || 1,
     remarks: row.remarks || '',
+    adminNote: row.adminNote != null ? String(row.adminNote) : '',
+    adminNoteAt: cleanTimestamp(row.adminNoteAt) || '',
     cancelReason: row.cancelReason || '',
     cancelledBy: row.cancelledBy || '',
     createdAt: cleanTimestamp(row.createdAt),
@@ -2960,6 +2962,8 @@ const ensureOrderCancelColumns = async () => {
   const alters = [
     'ALTER TABLE orders ADD COLUMN cancel_reason TEXT NULL',
     'ALTER TABLE orders ADD COLUMN cancelled_by TEXT NULL',
+    'ALTER TABLE orders ADD COLUMN admin_note TEXT NULL',
+    'ALTER TABLE orders ADD COLUMN admin_note_at TEXT NULL',
   ];
   for (const sql of alters) {
     try {
@@ -2985,6 +2989,8 @@ router.get('/orders', async (_req: Request, res: Response) => {
         o.payment_status AS paymentStatus,
         o.order_status AS orderStatus,
         o.remarks,
+        o.admin_note AS adminNote,
+        o.admin_note_at AS adminNoteAt,
         o.cancel_reason AS cancelReason,
         o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
@@ -3075,6 +3081,107 @@ router.get('/orders/:id', async (req: Request, res: Response) => {
   }
 });
 
+/** Admin order note under phone: Save only, or Save + notify devotee in-app. */
+router.put('/orders/:id/admin-note', async (req: Request, res: Response) => {
+  try {
+    await ensureOrderCancelColumns();
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid order id.'});
+    }
+    const note = String(req.body?.note ?? req.body?.adminNote ?? '').trim();
+    const sendNotify = Boolean(
+      req.body?.sendNotify ?? req.body?.sendNotification ?? false,
+    );
+
+    const existing = await mysql.query<any[]>(
+      `
+      SELECT
+        o.id,
+        o.user_id AS userId,
+        o.order_number AS orderNumber,
+        o.item_name AS itemName
+      FROM orders o
+      WHERE o.id = ?
+      LIMIT 1
+      `,
+      [id],
+    );
+    if (!existing?.length) {
+      return res.status(404).json({success: false, message: 'Order not found.'});
+    }
+
+    const istNow = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    }).format(new Date());
+
+    await mysql.query(
+      `
+      UPDATE orders
+      SET admin_note = ?, admin_note_at = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [note || null, note ? istNow : null, id],
+    );
+
+    let notified = false;
+    const userId = Number(existing[0].userId || 0);
+    if (sendNotify && note && userId > 0) {
+      try {
+        const {deliverAdminNotification} = await import(
+          './adminNotification.service'
+        );
+        const orderNo = String(existing[0].orderNumber || `#${id}`);
+        const product = String(existing[0].itemName || 'your order');
+        await deliverAdminNotification({
+          title: `Update on order ${orderNo}`,
+          message: note,
+          target: 'all',
+          userIds: [userId],
+          actionType: 'ORDER_ADMIN_NOTE',
+          actionId: id,
+          extraData: {
+            screen: 'OrderDetails',
+            orderId: id,
+            product,
+          },
+          bypassHours: true,
+        });
+        notified = true;
+      } catch (err) {
+        console.warn('Order admin-note notify failed', err);
+      }
+    }
+
+    // WhatsApp send can be wired later — leave hook in response.
+    return res.json({
+      success: true,
+      message: notified
+        ? 'Note saved and notification sent to devotee.'
+        : 'Note saved.',
+      data: {
+        id: String(id),
+        adminNote: note,
+        adminNoteAt: note ? istNow : '',
+        notified,
+        whatsappPending: false,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to save order note.',
+    });
+  }
+});
+
 router.put('/orders/:id/status', async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
@@ -3084,8 +3191,9 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
     const nextStatus = fromAdminOrderStatus(
       String(req.body?.status || req.body?.orderStatus || ''),
     );
+    const isUndo = Boolean(req.body?.isUndo);
     const existing = await mysql.query<any[]>(`
-      SELECT id FROM orders WHERE id = ? LIMIT 1
+      SELECT id, order_status AS orderStatus FROM orders WHERE id = ? LIMIT 1
     `, [id]);
     if (!existing?.length) {
       return res.status(404).json({success: false, message: 'Order not found.'});
@@ -3099,6 +3207,17 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       `,
       [nextStatus, id],
     );
+    try {
+      const orderRepository = (await import('../orders/order.repository'))
+        .default;
+      if (isUndo) {
+        await orderRepository.revertStatusEvents(id, nextStatus);
+      } else {
+        await orderRepository.recordStatusEvent(id, nextStatus);
+      }
+    } catch {
+      // Timeline recording is best-effort.
+    }
 
     await ensureOrderDetailJoins();
     const rows = await mysql.query<any[]>(
@@ -3168,6 +3287,27 @@ router.put('/orders/:id/cancel', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    try {
+      const orderRepository = (await import('../orders/order.repository'))
+        .default;
+      await orderRepository.recordStatusEvent(id, 'CANCELLED');
+    } catch {
+      // Timeline recording is best-effort.
+    }
+    try {
+      const claimRows = await mysql.query<any[]>(
+        'SELECT reward_id AS rewardId FROM milestone_reward_claims WHERE order_id = ?',
+        [id],
+      );
+      if (claimRows?.length && claimRows[0].rewardId) {
+        await mysql.query(
+          'UPDATE challenge_rewards SET stock = stock + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [claimRows[0].rewardId],
+        );
+      }
+    } catch {
+      // Non-fatal
+    }
     try {
       await ensureOrderDetailJoins();
       const rows = await mysql.query<any[]>(
@@ -3255,6 +3395,13 @@ router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    try {
+      const orderRepository = (await import('../orders/order.repository'))
+        .default;
+      await orderRepository.recordStatusEvent(id, 'CONFIRMED');
+    } catch {
+      // Timeline recording is best-effort.
+    }
 
     await ensureOrderDetailJoins();
     const rows = await mysql.query<any[]>(
@@ -6164,7 +6311,18 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const sql = `
       SELECT
         id,
-        user_id AS userId,
+        COALESCE(
+          user_id,
+          (
+            SELECT u.id
+            FROM users u
+            WHERE donations.donor_phone IS NOT NULL
+              AND LENGTH(TRIM(donations.donor_phone)) >= 10
+              AND RIGHT(REPLACE(REPLACE(REPLACE(donations.donor_phone, ' ', ''), '-', ''), '+', ''), 10) = RIGHT(REPLACE(REPLACE(u.mobile_number, ' ', ''), '-', ''), 10)
+            ORDER BY u.id DESC
+            LIMIT 1
+          )
+        ) AS userId,
         donation_type AS donationType,
         amount,
         donor_name AS donorName,
@@ -6241,6 +6399,178 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to load seva donations.',
+    });
+  }
+});
+
+const setRemarkLabeledField = (
+  remarks: string,
+  label: string,
+  value: string,
+) => {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const clean = String(value || '').trim();
+  const pattern = new RegExp(`(?:^|\\s*\\|\\s*)${escaped}\\s*:\\s*[^|]*`, 'i');
+  let next = String(remarks || '');
+  if (!clean) {
+    next = next.replace(pattern, '').replace(/^\s*\|\s*/, '').replace(/\s*\|\s*$/, '');
+    next = next.replace(/\s*\|\s*\|\s*/g, ' | ').trim();
+    return next;
+  }
+  if (new RegExp(`${escaped}\\s*:`, 'i').test(next)) {
+    return next.replace(
+      new RegExp(`${escaped}\\s*:\\s*[^|]*`, 'i'),
+      `${label}: ${clean}`,
+    );
+  }
+  return next ? `${next} | ${label}: ${clean}` : `${label}: ${clean}`;
+};
+
+/** Admin can correct devotee-submitted Homam / Anna Santharpana details. */
+router.put('/seva-donations/:id', async (req: Request, res: Response) => {
+  try {
+    await ensureDonationColumns();
+    const donationId = Number(req.params.id);
+    if (!donationId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid donation id.',
+      });
+    }
+
+    const rows = await mysql.query<any[]>(
+      `SELECT * FROM donations WHERE id = ? LIMIT 1`,
+      [donationId],
+    );
+    if (!rows?.length) {
+      return res.status(404).json({
+        success: false,
+        message: 'Donation record not found.',
+      });
+    }
+
+    const existing = rows[0];
+    const donorName = String(
+      req.body?.donorName ?? req.body?.fullName ?? existing.donor_name ?? '',
+    ).trim();
+    const donorPhone = String(
+      req.body?.donorPhone ?? req.body?.mobile ?? existing.donor_phone ?? '',
+    )
+      .replace(/\D/g, '')
+      .slice(-10);
+    const preferDateRaw = String(
+      req.body?.preferDate ?? existing.prefer_date ?? '',
+    ).trim();
+    const preferDate =
+      preferDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(preferDateRaw)
+        ? preferDateRaw
+        : preferDateRaw
+          ? preferDateRaw
+          : null;
+    const occasion = String(
+      req.body?.occasion ?? existing.occasion ?? '',
+    ).trim();
+    const forWhom = String(
+      req.body?.forWhom ?? existing.for_whom ?? '',
+    ).trim();
+    const personName = String(
+      req.body?.personName ?? existing.person_name ?? '',
+    ).trim();
+
+    let remarks = String(existing.remarks || '');
+    if (req.body?.gothram !== undefined) {
+      remarks = setRemarkLabeledField(remarks, 'Gothram', req.body.gothram);
+    }
+    if (req.body?.nakshatram !== undefined) {
+      remarks = setRemarkLabeledField(
+        remarks,
+        'Nakshatram',
+        req.body.nakshatram,
+      );
+    }
+    if (req.body?.comments !== undefined) {
+      remarks = setRemarkLabeledField(remarks, 'Comments', req.body.comments);
+    }
+    if (req.body?.donorName !== undefined || req.body?.fullName !== undefined) {
+      remarks = setRemarkLabeledField(remarks, 'Name', donorName);
+    }
+    if (req.body?.donorPhone !== undefined || req.body?.mobile !== undefined) {
+      remarks = setRemarkLabeledField(remarks, 'Mobile', donorPhone);
+    }
+    if (req.body?.occasion !== undefined) {
+      remarks = setRemarkLabeledField(remarks, 'Occasion', occasion);
+    }
+    if (req.body?.purpose !== undefined) {
+      remarks = setRemarkLabeledField(
+        remarks,
+        'Purpose',
+        String(req.body.purpose || ''),
+      );
+    }
+    if (req.body?.remarks !== undefined && typeof req.body.remarks === 'string') {
+      // Full remarks override only when explicitly sent as complete text.
+      remarks = String(req.body.remarks);
+    }
+
+    await mysql.query(
+      `
+      UPDATE donations
+      SET
+        donor_name = ?,
+        donor_phone = ?,
+        prefer_date = ?,
+        occasion = ?,
+        for_whom = ?,
+        person_name = ?,
+        remarks = ?
+      WHERE id = ?
+      `,
+      [
+        donorName || null,
+        donorPhone || null,
+        preferDate,
+        occasion || null,
+        forWhom || null,
+        personName || null,
+        remarks || null,
+        donationId,
+      ],
+    );
+
+    const updated = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        user_id AS userId,
+        donation_type AS donationType,
+        amount,
+        donor_name AS donorName,
+        donor_phone AS donorPhone,
+        prefer_date AS preferDate,
+        occasion,
+        for_whom AS forWhom,
+        person_name AS personName,
+        remarks,
+        transaction_id AS transactionId,
+        donated_at AS donatedAt,
+        admin_reply AS adminReply,
+        admin_replied_at AS adminRepliedAt
+      FROM donations
+      WHERE id = ?
+      LIMIT 1
+      `,
+      [donationId],
+    );
+
+    return res.json({
+      success: true,
+      message: 'Seva details updated.',
+      data: updated?.[0] || null,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update seva details.',
     });
   }
 });
@@ -6358,6 +6688,63 @@ router.post('/seva-donations/:id/reply', async (req: Request, res: Response) => 
     return res.status(500).json({
       success: false,
       message: error?.message || 'Unable to send reply.',
+    });
+  }
+});
+
+router.post('/seva-donations/notify', async (req: Request, res: Response) => {
+  try {
+    const sevaType = String(req.body?.sevaType || 'NITHYA_HOMAM').trim().toUpperCase();
+    const defaultTitle =
+      sevaType === 'NITHYA_HOMAM' ? 'Nithya Homam Blessing 🙏' : 'Seva Blessing 🙏';
+    const title = String(req.body?.title || '').trim() || defaultTitle;
+    const message = String(req.body?.message || '').trim();
+    const scheduleRaw = String(req.body?.schedule || 'Now');
+    const scheduledAt = req.body?.scheduledAt ? String(req.body.scheduledAt) : undefined;
+    const userIds: number[] = Array.isArray(req.body?.userIds)
+      ? Array.from<number>(
+          new Set(
+            req.body.userIds
+              .map((id: any) => Number(id))
+              .filter((id: number) => Number.isFinite(id) && id > 0),
+          ),
+        )
+      : [];
+
+    if (!userIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Select at least one devotee with an app account.',
+      });
+    }
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a message to send.',
+      });
+    }
+
+    const {sendAdminNotification} = await import('./adminNotification.service');
+    const result = await sendAdminNotification({
+      title,
+      message,
+      targetRaw: 'All users',
+      scheduleRaw,
+      scheduledAt,
+      userIds,
+      bypassHours: true,
+      actionType: sevaType === 'NITHYA_HOMAM' ? 'NITHYA_HOMAM_ANNOUNCEMENT' : 'SEVA_ANNOUNCEMENT',
+    });
+
+    return res.status(result.mode === 'scheduled' ? 202 : 200).json({
+      success: true,
+      message: result.message,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(error?.statusCode || 500).json({
+      success: false,
+      message: error?.message || 'Could not send notification.',
     });
   }
 });

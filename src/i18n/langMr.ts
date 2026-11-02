@@ -390,6 +390,11 @@ export const mr: TranslationDict = {
   close: 'बंद करा',
   continueToPayment: 'पेमेंटकडे पुढे जा',
   proceedToPay: 'पेमेंट करा',
+  overviewBtn: 'पूर्वावलोकन',
+  enterRequiredDetails: 'आवश्यक तपशील भरा',
+  selectOrEnterNoOfPersons: 'व्यक्तींची संख्या निवडा किंवा प्रविष्ट करा',
+  donateAmountWithCount: '₹{{amount}} दान करा ({{count}} {{unit}})',
+  donateBtn: 'दान करा',
   donationDetails: 'सेवा तपशील',
   nameMobileAmountRequired: 'नाव, मोबाइल आणि रक्कम आवश्यक आहेत.',
   japaMilestones: 'जप टप्पे',
@@ -544,6 +549,7 @@ export const mr: TranslationDict = {
   monthlySupportNote:
     'टीप: अनेक भक्तांनी दरमहा ऑटो-डेबिट / ऑटोपे सुविधेची विनंती केली आहे जेणेकरून त्यांचे मासिक सेवा सहकार्य विसरल्याशिवाय किंवा खंड न पडता चालू राहील.',
   setAutopay: 'ऑटोपे / ऑटो-डेबिट सेट करा',
+  autopayAlreadySubmittedBtn: 'ऑटोपे विनंती आधीच पाठवली आहे',
   chooseMonthlyContribution: 'तुमची मासिक मदत निवडा:',
   enterAmountLabel: 'रक्कम प्रविष्ट करा (₹):',
   amountExamplePlaceholder: 'उदा. 500',
@@ -559,6 +565,9 @@ export const mr: TranslationDict = {
   autopaySuccessTitle: 'ऑटोपे विनंती प्राप्त झाली',
   autopaySuccessMessage:
     'सहकार्य दाखवल्याबद्दल धन्यवाद! श्री रवी शंकर गారు / आमची टीम लवकरच आपल्याशी संपर्क साधेल.',
+  autopayAlreadySubmittedTitle: 'विनंती आधीच सुरू आहे',
+  autopayAlreadySubmittedMessage:
+    'तुमची एक ऑटोपे विनंती आधीच सुरू आहे. आमची टीम लवकरच संपर्क करेल. आता दुसरी विनंती पाठवता येणार नाही.',
   autopayCustomAmount: 'इतर / स्वतःची रक्कम',
   editSpiritualDetails: 'आध्यात्मिक तपशील संपादित करा',
   editPersonalDetails: 'वैयक्तिक तपशील संपादित करा',
@@ -788,6 +797,8 @@ export const mr: TranslationDict = {
   chooseInStockReward: 'पुढे जाण्यासाठी स्टॉकमधील रिवॉर्ड निवडा.',
   couldNotLoadRewards: 'रिवॉर्ड लोड होऊ शकले नाहीत.',
   rewardAlreadySubmitted: 'या टप्प्याचा रिवॉर्ड आधीच पाठवला आहे.',
+  retryRewardNotice:
+    'मागील ऑर्डर रद्द केली गेली होती. हे बक्षीस मिळवण्यासाठी तुमच्याकडे 1 शेवटची संधी आहे.',
   selectRewardTitle: 'रिवॉर्ड निवडा',
   chooseRewardToContinue: 'पुढे जाण्यासाठी एक रिवॉर्ड निवडा.',
   chooseSacredRewardContinue: 'पुढे जाण्यासाठी एक पवित्र रिवॉर्ड निवडा.',

@@ -392,6 +392,11 @@ export const or: TranslationDict = {
   close: 'ବନ୍ଦ କରନ୍ତୁ',
   continueToPayment: 'ପେମେଣ୍ଟକୁ ଜାରି ରଖନ୍ତୁ',
   proceedToPay: 'ପେମେଣ୍ଟ କରନ୍ତୁ',
+  overviewBtn: 'ସମୀକ୍ଷା',
+  enterRequiredDetails: 'ଆବଶ୍ୟକୀୟ ବିବରଣୀ ପ୍ରବେଶ କରନ୍ତୁ',
+  selectOrEnterNoOfPersons: 'ବ୍ୟକ୍ତିଙ୍କ ସଂଖ୍ୟା ଚୟନ କରନ୍ତୁ କିମ୍ବା ପ୍ରବେଶ କରନ୍ତୁ',
+  donateAmountWithCount: '₹{{amount}} ଦାନ କରନ୍ତୁ ({{count}} {{unit}})',
+  donateBtn: 'ଦାନ କରନ୍ତୁ',
   donationDetails: 'ସେବା ବିବରଣୀ',
   nameMobileAmountRequired: 'ନାମ, ମୋବାଇଲ୍ ଓ ପରିମାଣ ଆବଶ୍ୟକ।',
   japaMilestones: 'ଜପ ମାଇଲଷ୍ଟୋନ୍',
@@ -546,6 +551,7 @@ export const or: TranslationDict = {
   monthlySupportNote:
     'ଟିପ୍ପଣୀ: ଅନେକ ଭକ୍ତ ପ୍ରତି ମାସରେ ଅଟୋ-ଡେବିଟ୍ / ଅଟୋପେ ସୁବିଧା ଅନୁରୋଧ କରିଛନ୍ତି ଯାହାଦ୍ୱାରା ସେମାନଙ୍କର ମାସିକ ସେବା ଭୁଲି ନଯାଇ ନିରନ୍ତର ଚାଲିପାରିବ।',
   setAutopay: 'ଅଟୋପେ / ଅଟୋ-ଡେବିଟ୍ ସେଟ୍ କରନ୍ତୁ',
+  autopayAlreadySubmittedBtn: 'ଅଟୋପେ ଅନୁରୋଧ ପୂର୍ବରୁ ପଠାଯାଇଛି',
   chooseMonthlyContribution: 'ଆପଣଙ୍କ ମାସିକ ସହାୟତା ବାଛନ୍ତୁ:',
   enterAmountLabel: 'ରାଶି ଲେଖନ୍ତୁ (₹):',
   amountExamplePlaceholder: 'ଯଥା 500',
@@ -561,6 +567,9 @@ export const or: TranslationDict = {
   autopaySuccessTitle: 'ଅଟୋପେ ଅନୁରୋଧ ପ୍ରାପ୍ତ ହୋଇଛି',
   autopaySuccessMessage:
     'ସହଯୋଗ କରିବାକୁ ଆଗ୍ରହ ପ୍ରକାଶ କରିଥିବାରୁ ଧନ୍ୟବାଦ! ଶ୍ରୀ ରବି ଶଙ୍କର ଗାରୁ / ଆମ ଦଳ ଖୁବ୍ ଶୀଘ୍ର ଆପଣଙ୍କ ସହିତ ଯୋଗାଯୋଗ କରିବେ।',
+  autopayAlreadySubmittedTitle: 'ଅନୁରୋଧ ପୂର୍ବରୁ ଚାଲୁ ଅଛି',
+  autopayAlreadySubmittedMessage:
+    'ଆପଣଙ୍କର ଗୋଟିଏ ଅଟୋପେ ଅନୁରୋଧ ପୂର୍ବରୁ ଚାଲୁ ଅଛି। ଆମ ଦଳ ଶୀଘ୍ର ଯୋଗାଯୋଗ କରିବ। ବର୍ତ୍ତମାନ ଆଉ ଏକ ଅନୁରୋଧ ପଠାଇ ପାରିବେ ନାହିଁ।',
   autopayCustomAmount: 'ଅନ୍ୟ / ନିଜ ପସନ୍ଦର ରାଶି',
   editSpiritualDetails: 'ଆଧ୍ୟାତ୍ମିକ ବିବରଣୀ ସମ୍ପାଦନ',
   editPersonalDetails: 'ବ୍ୟକ୍ତିଗତ ବିବରଣୀ ସମ୍ପାଦନ',
@@ -791,6 +800,8 @@ export const or: TranslationDict = {
   chooseInStockReward: 'ଆଗକୁ ବଢ଼ିବାକୁ ଷ୍ଟକ୍‌ରେ ଥିବା ପୁରସ୍କାର ବାଛନ୍ତୁ।',
   couldNotLoadRewards: 'ପୁରସ୍କାର ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।',
   rewardAlreadySubmitted: 'ଏହି ମାଇଲଷ୍ଟୋନ୍ ପୁରସ୍କାର ପୂର୍ବରୁ ପଠାଯାଇଛି।',
+  retryRewardNotice:
+    'ପୂର୍ବ ଅର୍ଡର ବାତିଲ କରାଯାଇଥିଲା। ଏହି ପୁରସ୍କାର ପାଇବା ପାଇଁ ଆପଣଙ୍କ ପାଖରେ ୧ଟି ଶେଷ ସୁଯୋଗ ଅଛି।',
   selectRewardTitle: 'ପୁରସ୍କାର ବାଛନ୍ତୁ',
   chooseRewardToContinue: 'ଆଗକୁ ବଢ଼ିବାକୁ ଗୋଟିଏ ପୁରସ୍କାର ବାଛନ୍ତୁ।',
   chooseSacredRewardContinue: 'ଆଗକୁ ବଢ଼ିବାକୁ ଗୋଟିଏ ପବିତ୍ର ପୁରସ୍କାର ବାଛନ୍ତୁ।',

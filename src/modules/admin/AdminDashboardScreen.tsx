@@ -146,6 +146,8 @@ const AdminDashboardScreen = () => {
                 ? 'Manage devotee auto-debit requests'
                 : item.title === 'Meeting Management'
                 ? 'Schedule Google Meet & live classes'
+                : item.title === 'Order History'
+                ? 'All delivered orders archive & search'
                 : 'Central management'}
             </Text>
           </View>

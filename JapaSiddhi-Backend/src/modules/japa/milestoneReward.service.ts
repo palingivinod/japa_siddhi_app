@@ -98,10 +98,23 @@ class MilestoneRewardService {
           pin_code VARCHAR(16) NULL,
           order_id INT NULL,
           order_number VARCHAR(64) NULL,
+          retry_count INT NOT NULL DEFAULT 0,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE KEY uniq_milestone_reward (user_id, milestone_target)
         )
       `);
+      try {
+        const cols = await mysql.query<any[]>(
+          "SHOW COLUMNS FROM milestone_reward_claims LIKE 'retry_count'",
+        );
+        if (!cols?.length) {
+          await mysql.query(
+            'ALTER TABLE milestone_reward_claims ADD COLUMN retry_count INT NOT NULL DEFAULT 0',
+          );
+        }
+      } catch {
+        // Ignored if column exists
+      }
     } else {
       await mysql.query(`
         CREATE TABLE IF NOT EXISTS milestone_reward_claims (
@@ -118,10 +131,24 @@ class MilestoneRewardService {
           pin_code TEXT,
           order_id INTEGER,
           order_number TEXT,
+          retry_count INTEGER NOT NULL DEFAULT 0,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           UNIQUE(user_id, milestone_target)
         )
       `);
+      try {
+        const tableInfo = await mysql.query<any[]>(
+          'PRAGMA table_info(milestone_reward_claims)',
+        ).catch(() => []);
+        const hasCol = (tableInfo || []).some((col: any) => col.name === 'retry_count');
+        if (!hasCol) {
+          await mysql.query(
+            'ALTER TABLE milestone_reward_claims ADD COLUMN retry_count INTEGER NOT NULL DEFAULT 0',
+          ).catch(() => undefined);
+        }
+      } catch {
+        // Ignored
+      }
     }
     this.tableReady = true;
   }
@@ -131,16 +158,36 @@ class MilestoneRewardService {
       await this.ensureTable();
       const rows = await mysql.query<any[]>(
         `
-        SELECT milestone_target AS milestoneTarget
-        FROM milestone_reward_claims
-        WHERE user_id = ?
-        AND order_id IS NOT NULL
+        SELECT
+          c.milestone_target AS milestoneTarget,
+          COALESCE(c.retry_count, 0) AS retryCount,
+          o.order_status AS orderStatus
+        FROM milestone_reward_claims c
+        LEFT JOIN orders o ON o.id = c.order_id
+        WHERE c.user_id = ?
+        AND c.order_id IS NOT NULL
         `,
         [userId],
       );
       return (rows || [])
-        .map(row => Number(row.milestoneTarget))
-        .filter(target => target > 0);
+        .filter(row => {
+          const target = Number(row.milestoneTarget);
+          if (!target || target <= 0) {
+            return false;
+          }
+          const status = String(row.orderStatus || '').toUpperCase();
+          const retryCount = Number(row.retryCount || 0);
+
+          // If the order was cancelled AND user has not used their 1 retry yet (retryCount == 0),
+          // allow them to grab the reward again! (do not mark as claimed)
+          if (status === 'CANCELLED' && retryCount === 0) {
+            return false;
+          }
+
+          // Otherwise (order active, delivered, or retry already used and cancelled), it is claimed.
+          return true;
+        })
+        .map(row => Number(row.milestoneTarget));
     } catch {
       return [];
     }
@@ -152,17 +199,35 @@ class MilestoneRewardService {
     if (!milestone) {
       throw new Error('Milestone not found');
     }
-    const [rewards, total, claimed] = await Promise.all([
+    const [rewards, total, claimed, claimRows] = await Promise.all([
       challengeRepository.listRewards(),
       japaRepository.getUserMilestoneJapa(userId),
       this.claimedTargets(userId),
+      mysql.query<any[]>(
+        `
+        SELECT
+          COALESCE(c.retry_count, 0) AS retryCount,
+          o.order_status AS orderStatus
+        FROM milestone_reward_claims c
+        LEFT JOIN orders o ON o.id = c.order_id
+        WHERE c.user_id = ? AND c.milestone_target = ?
+        LIMIT 1
+        `,
+        [userId, target],
+      ),
     ]);
+    const isRetry = Boolean(
+      claimRows?.length &&
+      String(claimRows[0].orderStatus || '').toUpperCase() === 'CANCELLED' &&
+      Number(claimRows[0].retryCount || 0) === 0
+    );
     return {
       target: milestone.target,
       title: milestone.title,
       total,
       reached: total >= milestone.target,
       claimed: claimed.includes(milestone.target),
+      isRetry,
       rewards: (rewards || []).map((row: any) => ({
         id: Number(row.id),
         name: String(row.name || ''),
@@ -191,26 +256,54 @@ class MilestoneRewardService {
     const existing = await mysql.query<any[]>(
       `
       SELECT
-        id,
-        reward_name AS rewardName,
-        order_id AS orderId,
-        order_number AS orderNumber
-      FROM milestone_reward_claims
-      WHERE user_id = ?
-      AND milestone_target = ?
+        c.id,
+        c.reward_name AS rewardName,
+        c.order_id AS orderId,
+        c.order_number AS orderNumber,
+        COALESCE(c.retry_count, 0) AS retryCount,
+        o.order_status AS orderStatus
+      FROM milestone_reward_claims c
+      LEFT JOIN orders o ON o.id = c.order_id
+      WHERE c.user_id = ?
+      AND c.milestone_target = ?
       LIMIT 1
       `,
       [userId, milestone.target],
     );
-    if (existing[0]?.orderId) {
-      return {
-        alreadySubmitted: true,
-        target: milestone.target,
-        title: milestone.title,
-        rewardName: String(existing[0].rewardName || ''),
-        orderId: Number(existing[0].orderId),
-        orderNumber: String(existing[0].orderNumber || ''),
-      };
+
+    const existingClaim = existing?.[0];
+    let isRetry = false;
+
+    if (existingClaim?.orderId) {
+      const orderStatus = String(existingClaim.orderStatus || '').toUpperCase();
+      const retryCount = Number(existingClaim.retryCount || 0);
+
+      // If active / delivered / not cancelled, cannot grab again
+      if (orderStatus !== 'CANCELLED') {
+        return {
+          alreadySubmitted: true,
+          target: milestone.target,
+          title: milestone.title,
+          rewardName: String(existingClaim.rewardName || ''),
+          orderId: Number(existingClaim.orderId),
+          orderNumber: String(existingClaim.orderNumber || ''),
+        };
+      }
+
+      // Order was CANCELLED. If retryCount >= 1, user already used their 1 retry chance!
+      if (retryCount >= 1) {
+        return {
+          alreadySubmitted: true,
+          target: milestone.target,
+          title: milestone.title,
+          rewardName: String(existingClaim.rewardName || ''),
+          orderId: Number(existingClaim.orderId),
+          orderNumber: String(existingClaim.orderNumber || ''),
+        };
+      }
+
+      // retryCount == 0 and order is CANCELLED: user is granted their one-time retry!
+      isRetry = true;
     }
 
     const reward = await challengeRepository.getRewardById(rewardId);
@@ -266,27 +359,26 @@ class MilestoneRewardService {
     });
     const orderNumber = `RW${String(10000 + Number(created.id)).padStart(5, '0')}`;
 
-    try {
+    if (existingClaim?.id) {
       await mysql.query(
         `
-        INSERT INTO milestone_reward_claims (
-          user_id,
-          milestone_target,
-          reward_id,
-          reward_name,
-          full_name,
-          mobile,
-          address,
-          city,
-          state,
-          pin_code,
-          order_id,
-          order_number
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        UPDATE milestone_reward_claims
+        SET
+          reward_id = ?,
+          reward_name = ?,
+          full_name = ?,
+          mobile = ?,
+          address = ?,
+          city = ?,
+          state = ?,
+          pin_code = ?,
+          order_id = ?,
+          order_number = ?,
+          retry_count = ${isRetry ? 'COALESCE(retry_count, 0) + 1' : '0'},
+          created_at = CURRENT_TIMESTAMP
+        WHERE id = ?
         `,
         [
-          userId,
-          milestone.target,
           rewardId,
           rewardName,
           fullName,
@@ -297,30 +389,67 @@ class MilestoneRewardService {
           pinCode,
           created.id,
           orderNumber,
+          existingClaim.id,
         ],
       );
-    } catch (error) {
-      await mysql.query('DELETE FROM orders WHERE id = ?', [created.id]);
-      const again = await mysql.query<any[]>(
-        `
-        SELECT order_id AS orderId, order_number AS orderNumber, reward_name AS rewardName
-        FROM milestone_reward_claims
-        WHERE user_id = ? AND milestone_target = ?
-        LIMIT 1
-        `,
-        [userId, milestone.target],
-      );
-      if (again[0]?.orderId) {
-        return {
-          alreadySubmitted: true,
-          target: milestone.target,
-          title: milestone.title,
-          rewardName: String(again[0].rewardName || rewardName),
-          orderId: Number(again[0].orderId),
-          orderNumber: String(again[0].orderNumber || ''),
-        };
+    } else {
+      try {
+        await mysql.query(
+          `
+          INSERT INTO milestone_reward_claims (
+            user_id,
+            milestone_target,
+            reward_id,
+            reward_name,
+            full_name,
+            mobile,
+            address,
+            city,
+            state,
+            pin_code,
+            order_id,
+            order_number,
+            retry_count
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          `,
+          [
+            userId,
+            milestone.target,
+            rewardId,
+            rewardName,
+            fullName,
+            mobile,
+            address,
+            city,
+            state,
+            pinCode,
+            created.id,
+            orderNumber,
+          ],
+        );
+      } catch (error) {
+        await mysql.query('DELETE FROM orders WHERE id = ?', [created.id]);
+        const again = await mysql.query<any[]>(
+          `
+          SELECT order_id AS orderId, order_number AS orderNumber, reward_name AS rewardName
+          FROM milestone_reward_claims
+          WHERE user_id = ? AND milestone_target = ?
+          LIMIT 1
+          `,
+          [userId, milestone.target],
+        );
+        if (again[0]?.orderId) {
+          return {
+            alreadySubmitted: true,
+            target: milestone.target,
+            title: milestone.title,
+            rewardName: String(again[0].rewardName || rewardName),
+            orderId: Number(again[0].orderId),
+            orderNumber: String(again[0].orderNumber || ''),
+          };
+        }
+        throw error;
       }
-      throw error;
     }
 
     await mysql.query(

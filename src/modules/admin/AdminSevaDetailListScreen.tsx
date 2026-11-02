@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -47,6 +47,34 @@ const QUICK_TEMPLATES = [
   'We will contact you shortly regarding the seva arrangements 🪔',
   'Seva successfully performed. May Lord Shiva bless you and your family! 🕉️',
 ];
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const toScheduleStamp = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:00`;
+
+const defaultLater = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(9, 0, 0, 0);
+  return d;
+};
+
+const formatDateLabel = (date: Date) =>
+  date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const formatTimeLabel = (date: Date) =>
+  date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 
 const handleCall = (mobile?: string) => {
   if (!mobile) return;
@@ -115,9 +143,10 @@ const AdminSevaDetailListScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  // Date picker state
+  // Date picker state (filter vs edit prefer-date)
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [datePickerValue, setDatePickerValue] = useState<Date>(new Date());
+  const [datePickerMode, setDatePickerMode] = useState<'filter' | 'edit'>('filter');
 
   // Reply modal state
   const [replyModalVisible, setReplyModalVisible] = useState(false);
@@ -125,6 +154,29 @@ const AdminSevaDetailListScreen = () => {
   const [replyText, setReplyText] = useState('');
   const [submittingReply, setSubmittingReply] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // Edit modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editDonorName, setEditDonorName] = useState('');
+  const [editDonorPhone, setEditDonorPhone] = useState('');
+  const [editPreferDate, setEditPreferDate] = useState('');
+  const [editOccasion, setEditOccasion] = useState('');
+  const [editForWhom, setEditForWhom] = useState('');
+  const [editPersonName, setEditPersonName] = useState('');
+  const [editGothram, setEditGothram] = useState('');
+  const [editNakshatram, setEditNakshatram] = useState('');
+  const [editComments, setEditComments] = useState('');
+
+  // Checklist & Broadcast State
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
+  const [broadcastSchedule, setBroadcastSchedule] = useState<'Now' | 'Later'>('Now');
+  const [broadcastScheduledAt, setBroadcastScheduledAt] = useState<Date>(defaultLater);
+  const [showBroadcastDate, setShowBroadcastDate] = useState(false);
+  const [showBroadcastTime, setShowBroadcastTime] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -185,6 +237,7 @@ const AdminSevaDetailListScreen = () => {
   };
 
   const openDatePicker = () => {
+    setDatePickerMode('filter');
     if (preferDateFilter && preferDateFilter !== '__none__') {
       try {
         const parsed = new Date(preferDateFilter);
@@ -205,17 +258,109 @@ const AdminSevaDetailListScreen = () => {
     const yyyy = selected.getFullYear();
     const mm = String(selected.getMonth() + 1).padStart(2, '0');
     const dd = String(selected.getDate()).padStart(2, '0');
-    setPreferDateFilter(`${yyyy}-${mm}-${dd}`);
+    const stamp = `${yyyy}-${mm}-${dd}`;
+    if (datePickerMode === 'edit') {
+      setEditPreferDate(stamp);
+      return;
+    }
+    setPreferDateFilter(stamp);
   };
 
   const clearDateFilter = () => {
     setPreferDateFilter('');
   };
 
+  const openEditPreferDatePicker = () => {
+    setDatePickerMode('edit');
+    if (editPreferDate) {
+      const parsed = new Date(editPreferDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        setDatePickerValue(parsed);
+      }
+    } else {
+      setDatePickerValue(new Date());
+    }
+    setShowDatePicker(true);
+  };
+
   const openReplyModal = (item: SevaDonationItem) => {
     setSelectedDonation(item);
     setReplyText(item.adminReply || '');
     setReplyModalVisible(true);
+  };
+
+  const openEditModal = (item: SevaDonationItem) => {
+    setSelectedDonation(item);
+    setEditDonorName(String(item.donorName || ''));
+    setEditDonorPhone(String(item.donorPhone || '').replace(/\D/g, '').slice(-10));
+    setEditPreferDate(String(item.preferDate || ''));
+    setEditOccasion(String(item.occasion || ''));
+    setEditForWhom(String(item.forWhom || ''));
+    setEditPersonName(String(item.personName || ''));
+    setEditGothram(remarkField(item.remarks, 'Gothram'));
+    setEditNakshatram(remarkField(item.remarks, 'Nakshatram'));
+    setEditComments(remarkField(item.remarks, 'Comments'));
+    setEditModalVisible(true);
+  };
+
+  const closeEditModal = () => {
+    setEditModalVisible(false);
+    setSelectedDonation(null);
+    setSavingEdit(false);
+  };
+
+  const submitEdit = async () => {
+    if (!selectedDonation) {
+      return;
+    }
+    const name = editDonorName.trim();
+    if (!name) {
+      Alert.alert('Required', 'Devotee name is required.');
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const res = await apiService.put(
+        `/admin/seva-donations/${selectedDonation.id}`,
+        {
+          donorName: name,
+          donorPhone: editDonorPhone.trim(),
+          preferDate: editPreferDate.trim() || null,
+          occasion: editOccasion.trim(),
+          forWhom: editForWhom.trim(),
+          personName: editPersonName.trim(),
+          gothram: editGothram.trim(),
+          nakshatram: editNakshatram.trim(),
+          comments: editComments.trim(),
+        },
+      );
+      const updated = res.data?.data || {};
+      setItems(prev =>
+        prev.map(i =>
+          String(i.id) === String(selectedDonation.id)
+            ? {
+                ...i,
+                donorName: updated.donorName ?? name,
+                donorPhone: updated.donorPhone ?? editDonorPhone.trim(),
+                preferDate: updated.preferDate ?? editPreferDate.trim(),
+                occasion: updated.occasion ?? editOccasion.trim(),
+                forWhom: updated.forWhom ?? editForWhom.trim(),
+                personName: updated.personName ?? editPersonName.trim(),
+                remarks: updated.remarks ?? i.remarks,
+              }
+            : i,
+        ),
+      );
+      closeEditModal();
+      Alert.alert('Saved', 'Devotee seva details updated.');
+    } catch (err) {
+      Alert.alert(
+        'Update failed',
+        getApiError(err, 'Could not update seva details.'),
+      );
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const closeReplyModal = () => {
@@ -263,6 +408,140 @@ const AdminSevaDetailListScreen = () => {
       Alert.alert('Send Error', getApiError(err, 'Failed to send reply to devotee.'));
     } finally {
       setSubmittingReply(false);
+    }
+  };
+
+  useEffect(() => {
+    setSelectedIds({});
+  }, [activeTab, preferDateFilter, search]);
+
+  const broadcastTemplates = useMemo(
+    () =>
+      sevaType === 'NITHYA_HOMAM'
+        ? [
+            'Sankalpam performed with your Gotram & Nakshatram 🔥',
+            'Homam Prasadam dispatched to your address 🙏',
+            'Nithya Homam completed today. May Lord Shiva bless you and your family! 🕉️',
+            'We will perform special prayers on your requested prefer date 🪔',
+          ]
+        : [
+            'Anna Santharpana Seva successfully performed in your name 🙏',
+            'Prasad dispatched to your address 📦',
+            'Devotees served today with your generous anna offering 🍚',
+            'May Lord Shiva bless you and your family! 🕉️',
+          ],
+    [sevaType],
+  );
+
+  const notifyableItems = useMemo(
+    () => items.filter(item => Boolean(item.userId && Number(item.userId) > 0)),
+    [items],
+  );
+
+  const selectedItems = useMemo(
+    () => notifyableItems.filter(item => selectedIds[item.id]),
+    [notifyableItems, selectedIds],
+  );
+
+  const allSelected =
+    notifyableItems.length > 0 &&
+    notifyableItems.every(item => selectedIds[item.id]);
+
+  const toggleSelectAll = () => {
+    if (!notifyableItems.length) return;
+    const next: Record<string, boolean> = {...selectedIds};
+    const val = !allSelected;
+    notifyableItems.forEach(item => {
+      next[item.id] = val;
+    });
+    setSelectedIds(next);
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => ({...prev, [id]: !prev[id]}));
+  };
+
+  const sendBroadcastMessage = async () => {
+    const userIds = Array.from(
+      new Set(
+        selectedItems
+          .map(item => Number(item.userId))
+          .filter(id => Boolean(id && id > 0)),
+      ),
+    );
+
+    if (!userIds.length) {
+      Alert.alert(
+        'Select Devotees',
+        'Please select at least one devotee with an app account.',
+      );
+      return;
+    }
+
+    const cleanMsg = broadcastMessage.trim();
+    if (!cleanMsg) {
+      Alert.alert(
+        'Message Required',
+        'Please enter a message to send to the selected devotees.',
+      );
+      return;
+    }
+
+    if (
+      broadcastSchedule === 'Later' &&
+      broadcastScheduledAt.getTime() <= Date.now() + 60_000
+    ) {
+      Alert.alert(
+        'Schedule Error',
+        'Pick a date and time at least one minute in the future.',
+      );
+      return;
+    }
+
+    const defTitle =
+      sevaType === 'NITHYA_HOMAM'
+        ? 'Nithya Homam Blessing 🙏'
+        : `${screenTitle} Blessing 🙏`;
+    const finalTitle = broadcastTitle.trim() || defTitle;
+
+    setBroadcasting(true);
+    try {
+      const response = await apiService.post('/admin/seva-donations/notify', {
+        sevaType,
+        userIds,
+        title: finalTitle,
+        message: cleanMsg,
+        schedule: broadcastSchedule,
+        scheduledAt:
+          broadcastSchedule === 'Later'
+            ? toScheduleStamp(broadcastScheduledAt)
+            : undefined,
+      });
+
+      const resData = response.data?.data || {};
+      const detail =
+        response.data?.message ||
+        (resData.mode === 'scheduled'
+          ? `Scheduled for ${resData.sendAt}`
+          : `Sent to ${resData.recipientCount || userIds.length} devotees`);
+
+      Alert.alert(
+        resData.mode === 'scheduled' ? 'Message Scheduled ⏰' : 'Message Sent 🙏',
+        `${detail}\n\nSelected: ${userIds.length} devotees\nDelivery: ${
+          broadcastSchedule === 'Later'
+            ? `${formatDateLabel(broadcastScheduledAt)} ${formatTimeLabel(broadcastScheduledAt)} (IST)`
+            : 'Immediate Push'
+        }`,
+      );
+
+      setBroadcastMessage('');
+      setBroadcastSchedule('Now');
+      setBroadcastScheduledAt(defaultLater());
+      setSelectedIds({});
+    } catch (err) {
+      Alert.alert('Send Failed', getApiError(err, 'Could not broadcast message.'));
+    } finally {
+      setBroadcasting(false);
     }
   };
 
@@ -453,6 +732,32 @@ const AdminSevaDetailListScreen = () => {
           </View>
         ) : null}
 
+        {/* Bulk Select Bar */}
+        {!loading && items.length > 0 ? (
+          <View style={styles.selectBar}>
+            <TouchableOpacity
+              style={styles.selectAllBtn}
+              onPress={toggleSelectAll}
+              disabled={!notifyableItems.length}
+              activeOpacity={0.7}>
+              <View
+                style={[
+                  styles.checkbox,
+                  allSelected && styles.checkboxOn,
+                ]}>
+                {allSelected ? <Text style={styles.checkMark}>✓</Text> : null}
+              </View>
+              <Text style={styles.selectAllText}>Select all</Text>
+            </TouchableOpacity>
+            <Text style={styles.countText}>
+              {selectedItems.length} selected of {notifyableItems.length}
+              {items.length !== notifyableItems.length
+                ? ` (${items.length - notifyableItems.length} no app account)`
+                : ''}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Devotee Offerings List */}
         {items.map(item => {
           const isUpcoming =
@@ -461,17 +766,35 @@ const AdminSevaDetailListScreen = () => {
           const gothram = remarkField(item.remarks, 'Gothram');
           const nakshatram = remarkField(item.remarks, 'Nakshatram');
           const comments = remarkField(item.remarks, 'Comments');
+          const canNotify = Boolean(item.userId && Number(item.userId) > 0);
+          const checked = Boolean(selectedIds[item.id]);
 
           return (
             <View key={item.id} style={styles.card}>
-              {/* Card Top: Name & Amount */}
+              {/* Card Top: Checkbox, Name & Amount */}
               <View style={styles.cardHeaderRow}>
+                <TouchableOpacity
+                  style={styles.cardCheckHit}
+                  onPress={() => (canNotify ? toggleOne(item.id) : undefined)}
+                  disabled={!canNotify}
+                  activeOpacity={0.7}>
+                  <View
+                    style={[
+                      styles.checkbox,
+                      checked && styles.checkboxOn,
+                      !canNotify && styles.checkboxDisabled,
+                    ]}>
+                    {checked ? <Text style={styles.checkMark}>✓</Text> : null}
+                  </View>
+                </TouchableOpacity>
+
                 <View style={styles.nameCol}>
                   <Text style={styles.devoteeName}>
                     {item.donorName || 'Devotee'}
                   </Text>
                   <Text style={styles.donatedAtText}>
                     Donated: {item.donatedAt || '—'}
+                    {!canNotify ? ' · no app account' : ''}
                   </Text>
                 </View>
                 <View style={styles.amountBadge}>
@@ -607,12 +930,181 @@ const AdminSevaDetailListScreen = () => {
                       {item.adminReply ? 'Update' : 'Reply'}
                     </Text>
                   </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.actionBtn, styles.editBtn]}
+                    onPress={() => openEditModal(item)}
+                    activeOpacity={0.75}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    <Text style={styles.actionBtnIcon}>✏️</Text>
+                    <Text style={styles.actionBtnText}>Edit</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
             </View>
           );
         })}
+        {/* Broadcast Message Card */}
+        {!loading && items.length > 0 ? (
+          <View style={styles.broadcastCard}>
+            <View style={styles.broadcastHeader}>
+              <Text style={styles.broadcastTitle}>Send Message to Devotees</Text>
+              <Text style={styles.broadcastSubtitle}>
+                Compose a message and broadcast directly to all selected devotees simultaneously via push notification.
+              </Text>
+            </View>
+
+            <Text style={styles.broadcastInputLabel}>Notification Title</Text>
+            <TextInput
+              style={styles.broadcastInput}
+              value={broadcastTitle}
+              onChangeText={setBroadcastTitle}
+              placeholder={
+                sevaType === 'NITHYA_HOMAM'
+                  ? 'Nithya Homam Blessing 🙏'
+                  : `${screenTitle} Blessing 🙏`
+              }
+              placeholderTextColor={Colors.placeholder}
+            />
+
+            <Text style={[styles.broadcastInputLabel, styles.broadcastInputLabelSpaced]}>
+              Message
+            </Text>
+            <TextInput
+              style={[styles.broadcastInput, styles.broadcastInputMultiline]}
+              value={broadcastMessage}
+              onChangeText={setBroadcastMessage}
+              placeholder="Write homam update, sankalpam blessings, or prasad dispatch notes…"
+              placeholderTextColor={Colors.placeholder}
+              multiline
+              textAlignVertical="top"
+            />
+
+            {/* Quick Templates */}
+            <Text style={[styles.broadcastInputLabel, styles.broadcastInputLabelSpaced]}>
+              Quick Templates
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.templateScroll}>
+              {broadcastTemplates.map((template, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  style={styles.broadcastTemplateChip}
+                  onPress={() => setBroadcastMessage(template)}
+                  activeOpacity={0.7}>
+                  <Text style={styles.broadcastTemplateChipText} numberOfLines={1}>
+                    {template}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={[styles.broadcastInputLabel, styles.broadcastInputLabelSpaced]}>
+              When to Send
+            </Text>
+            <View style={styles.broadcastChipRow}>
+              {(['Now', 'Later'] as const).map(option => {
+                const active = broadcastSchedule === option;
+                return (
+                  <TouchableOpacity
+                    key={option}
+                    style={[styles.broadcastChip, active && styles.broadcastChipActive]}
+                    onPress={() => setBroadcastSchedule(option)}>
+                    <Text
+                      style={[
+                        styles.broadcastChipText,
+                        active && styles.broadcastChipTextActive,
+                      ]}>
+                      {option === 'Now' ? '⚡ Now (Instant)' : '⏰ Later (Schedule)'}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {broadcastSchedule === 'Later' ? (
+              <View style={styles.scheduleRow}>
+                <TouchableOpacity
+                  style={styles.scheduleBtn}
+                  onPress={() => setShowBroadcastDate(true)}>
+                  <Text style={styles.scheduleBtnIcon}>📅</Text>
+                  <Text style={styles.scheduleText}>
+                    {formatDateLabel(broadcastScheduledAt)}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.scheduleBtn}
+                  onPress={() => setShowBroadcastTime(true)}>
+                  <Text style={styles.scheduleBtnIcon}>⏰</Text>
+                  <Text style={styles.scheduleText}>
+                    {formatTimeLabel(broadcastScheduledAt)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
+            <Text style={styles.broadcastCountHint}>
+              Ready to send to {selectedItems.length} of {notifyableItems.length} selected devotees
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.broadcastSendBtn,
+                (broadcasting || !selectedItems.length) &&
+                  styles.broadcastSendBtnDisabled,
+              ]}
+              disabled={broadcasting || !selectedItems.length}
+              onPress={sendBroadcastMessage}
+              activeOpacity={0.85}>
+              {broadcasting ? (
+                <ActivityIndicator color={Colors.white} size="small" />
+              ) : (
+                <Text style={styles.broadcastSendText}>
+                  {broadcastSchedule === 'Later'
+                    ? `SCHEDULE MESSAGE (${selectedItems.length})`
+                    : `SEND TO ALL SELECTED (${selectedItems.length})`}
+                </Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </ScrollView>
+
+      {/* Broadcast Date Pickers */}
+      <DatePickerModal
+        visible={showBroadcastDate}
+        value={broadcastScheduledAt}
+        mode="date"
+        onCancel={() => setShowBroadcastDate(false)}
+        onConfirm={selected => {
+          setShowBroadcastDate(false);
+          setBroadcastScheduledAt(prev => {
+            const next = new Date(prev);
+            next.setFullYear(
+              selected.getFullYear(),
+              selected.getMonth(),
+              selected.getDate(),
+            );
+            return next;
+          });
+        }}
+      />
+      <DatePickerModal
+        visible={showBroadcastTime}
+        value={broadcastScheduledAt}
+        mode="time"
+        onCancel={() => setShowBroadcastTime(false)}
+        onConfirm={selected => {
+          setShowBroadcastTime(false);
+          setBroadcastScheduledAt(prev => {
+            const next = new Date(prev);
+            next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
+            return next;
+          });
+        }}
+      />
 
       {/* Date Picker Modal */}
       <DatePickerModal
@@ -698,6 +1190,163 @@ const AdminSevaDetailListScreen = () => {
                   <ActivityIndicator color={Colors.white} size="small" />
                 ) : (
                   <Text style={styles.modalSendText}>Send Reply</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit devotee-submitted details */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={closeEditModal}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, styles.editModalCard]}>
+            <View style={styles.modalHeader}>
+              <View style={{flex: 1, marginRight: 8}}>
+                <Text style={styles.modalTitle}>Edit Seva Details</Text>
+                <Text style={styles.modalSub}>
+                  {screenTitle} • ₹{selectedDonation?.amount ?? '—'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={closeEditModal}
+                style={styles.modalCloseBtn}>
+                <Text style={styles.modalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.editFormScroll}>
+              <Text style={styles.inputLabel}>Devotee name</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editDonorName}
+                onChangeText={setEditDonorName}
+                placeholder="Full name"
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              <Text style={styles.inputLabel}>Phone</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editDonorPhone}
+                onChangeText={text =>
+                  setEditDonorPhone(text.replace(/\D/g, '').slice(0, 10))
+                }
+                keyboardType="phone-pad"
+                placeholder="10-digit mobile"
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              <Text style={styles.inputLabel}>Prefer date</Text>
+              <View style={styles.editDateRow}>
+                <TouchableOpacity
+                  style={[styles.editInput, styles.editDateBtn]}
+                  onPress={openEditPreferDatePicker}
+                  activeOpacity={0.8}>
+                  <Text
+                    style={
+                      editPreferDate
+                        ? styles.editDateValue
+                        : styles.editDatePlaceholder
+                    }>
+                    {editPreferDate || 'Tap to select date'}
+                  </Text>
+                </TouchableOpacity>
+                {editPreferDate ? (
+                  <TouchableOpacity
+                    style={styles.editClearDateBtn}
+                    onPress={() => setEditPreferDate('')}>
+                    <Text style={styles.editClearDateText}>Clear</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+
+              <Text style={styles.inputLabel}>Occasion / Purpose</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editOccasion}
+                onChangeText={setEditOccasion}
+                placeholder="Occasion or purpose"
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              <Text style={styles.inputLabel}>For whom</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editForWhom}
+                onChangeText={setEditForWhom}
+                placeholder="Self / family / other"
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              <Text style={styles.inputLabel}>Person name</Text>
+              <TextInput
+                style={styles.editInput}
+                value={editPersonName}
+                onChangeText={setEditPersonName}
+                placeholder="Person name (if any)"
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              {sevaType === 'NITHYA_HOMAM' ? (
+                <>
+                  <Text style={styles.inputLabel}>Gothram</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editGothram}
+                    onChangeText={setEditGothram}
+                    placeholder="Gothram"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+
+                  <Text style={styles.inputLabel}>Nakshatram / Star</Text>
+                  <TextInput
+                    style={styles.editInput}
+                    value={editNakshatram}
+                    onChangeText={setEditNakshatram}
+                    placeholder="Nakshatram"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+                </>
+              ) : null}
+
+              <Text style={styles.inputLabel}>Comments / names</Text>
+              <TextInput
+                style={[styles.editInput, styles.editInputMultiline]}
+                value={editComments}
+                onChangeText={setEditComments}
+                multiline
+                textAlignVertical="top"
+                placeholder="Comments or family names"
+                placeholderTextColor={Colors.placeholder}
+              />
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={closeEditModal}
+                disabled={savingEdit}>
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalSendBtn,
+                  savingEdit && styles.modalSendBtnDisabled,
+                ]}
+                onPress={submitEdit}
+                disabled={savingEdit}>
+                {savingEdit ? (
+                  <ActivityIndicator color={Colors.white} size="small" />
+                ) : (
+                  <Text style={styles.modalSendText}>Save Changes</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -1114,6 +1763,8 @@ const styles = StyleSheet.create({
   },
   actionButtonsRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
     gap: 6,
   },
   actionBtn: {
@@ -1137,6 +1788,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF3C7',
     borderColor: '#FDE68A',
   },
+  editBtn: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#D8B4FE',
+  },
   actionBtnIcon: {
     fontSize: 13,
   },
@@ -1144,6 +1799,55 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  editModalCard: {
+    maxHeight: '92%',
+  },
+  editFormScroll: {
+    paddingBottom: 8,
+  },
+  editInput: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder || Colors.cardBorder,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.sacredBrown,
+    backgroundColor: Colors.white,
+    marginBottom: 10,
+  },
+  editInputMultiline: {
+    minHeight: 88,
+  },
+  editDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  editDateBtn: {
+    flex: 1,
+    marginBottom: 0,
+    justifyContent: 'center',
+  },
+  editDateValue: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  editDatePlaceholder: {
+    color: Colors.placeholder,
+    fontSize: 14,
+  },
+  editClearDateBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  editClearDateText: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
   },
   // Modal styles
   modalOverlay: {
@@ -1276,5 +1980,203 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: Colors.white,
+  },
+  selectBar: {
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  selectAllText: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    fontSize: 15,
+  },
+  countText: {
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
+  },
+  checkboxOn: {
+    backgroundColor: Colors.sacredBrown,
+  },
+  checkboxDisabled: {
+    opacity: 0.35,
+  },
+  checkMark: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  cardCheckHit: {
+    paddingRight: 10,
+    paddingTop: 2,
+    justifyContent: 'center',
+  },
+  broadcastCard: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 24,
+    elevation: 2,
+    shadowColor: Colors.sacredBrown,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  broadcastHeader: {
+    marginBottom: 14,
+  },
+  broadcastTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  broadcastSubtitle: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 4,
+    lineHeight: 16,
+  },
+  broadcastInputLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+  },
+  broadcastInputLabelSpaced: {
+    marginTop: 12,
+  },
+  broadcastInput: {
+    backgroundColor: Colors.background,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+  },
+  broadcastInputMultiline: {
+    minHeight: 85,
+    textAlignVertical: 'top',
+  },
+  templateScroll: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  broadcastTemplateChip: {
+    backgroundColor: '#F8F4EE',
+    borderWidth: 1,
+    borderColor: '#E7DEC8',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    maxWidth: 280,
+  },
+  broadcastTemplateChipText: {
+    fontSize: 12,
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+  },
+  broadcastChipRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  broadcastChip: {
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: Colors.background,
+  },
+  broadcastChipActive: {
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
+  },
+  broadcastChipText: {
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    fontSize: 13,
+  },
+  broadcastChipTextActive: {
+    color: Colors.white,
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
+  scheduleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    backgroundColor: Colors.background,
+  },
+  scheduleBtnIcon: {
+    fontSize: 15,
+  },
+  scheduleText: {
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    fontSize: 13,
+  },
+  broadcastCountHint: {
+    marginTop: 14,
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    textAlign: 'center',
+  },
+  broadcastSendBtn: {
+    marginTop: 10,
+    borderRadius: 28,
+    backgroundColor: Colors.sacredBrown,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  broadcastSendBtnDisabled: {
+    opacity: 0.5,
+  },
+  broadcastSendText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 14,
+    letterSpacing: 0.4,
   },
 });

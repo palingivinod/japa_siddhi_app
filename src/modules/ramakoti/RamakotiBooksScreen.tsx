@@ -175,8 +175,8 @@ const RamakotiBooksScreen = () => {
       <PrimaryButton
         title={
           fullName.trim() && isMobile(mobile) && address.trim()
-            ? 'OVERVIEW'
-            : 'ENTER REQUIRED DETAILS'
+            ? t('overviewBtn') || 'OVERVIEW'
+            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         onPress={submit}
         disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}

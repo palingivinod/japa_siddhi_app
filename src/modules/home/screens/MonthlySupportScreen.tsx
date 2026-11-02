@@ -20,7 +20,7 @@ import PrimaryButton from '../../common/PrimaryButton';
 import ScreenLayout from '../../common/ScreenLayout';
 import ProfileApi from '../../auth/services/profileApi';
 import {getStoredUser} from '../../../services/session';
-import apiService from '../../../services/apiService';
+import apiService, {getApiError} from '../../../services/apiService';
 import {startAppPayment} from '../../payments/startAppPayment';
 import {digitsOnly} from '../../../utils/validators';
 
@@ -88,8 +88,11 @@ const MonthlySupportScreen = () => {
   const [isCustom, setIsCustom] = useState(false);
   const [customAmountText, setCustomAmountText] = useState('');
   const [submittingAutopay, setSubmittingAutopay] = useState(false);
+  const [autopayLocked, setAutopayLocked] = useState(false);
   const profileReadyRef = useRef(false);
   const pendingDeepLinkRef = useRef<RouteParams | null>(null);
+  const autopayInFlightRef = useRef(false);
+  const autopayLockedRef = useRef(false);
 
   const clearDeepLinkParams = useCallback(() => {
     try {
@@ -120,7 +123,29 @@ const MonthlySupportScreen = () => {
     [devoteeMobile, devoteeName, t],
   );
 
+  const showAutopayAlreadySent = useCallback(() => {
+    Alert.alert(
+      t('autopayAlreadySubmittedTitle'),
+      t('autopayAlreadySubmittedMessage'),
+      [{text: t('ok') || 'OK', style: 'default'}],
+      {cancelable: false},
+    );
+  }, [t]);
+
+  const lockAutopay = useCallback(() => {
+    autopayLockedRef.current = true;
+    setAutopayLocked(true);
+  }, []);
+
   const handleSetAutoPay = useCallback(async () => {
+    if (autopayLockedRef.current || autopayLocked) {
+      showAutopayAlreadySent();
+      return;
+    }
+    if (autopayInFlightRef.current || submittingAutopay) {
+      return;
+    }
+    autopayInFlightRef.current = true;
     setSubmittingAutopay(true);
     try {
       const amountToRegister =
@@ -128,40 +153,60 @@ const MonthlySupportScreen = () => {
           ? Number(customAmountText)
           : selectedAmount || 58;
 
-      await apiService.post('/donations/autopay/request', {
+      const response = await apiService.post('/donations/autopay/request', {
         fullName: devoteeName || 'Devotee',
         mobile: devoteeMobile || '',
         amount: amountToRegister,
         notes: `Selected plan: ₹${amountToRegister} / month`,
       });
-
-      Alert.alert(
-        t('autopaySuccessTitle'),
-        t('autopaySuccessMessage'),
-        [{text: t('ok') || 'OK', style: 'default'}],
-        {cancelable: false},
-      );
-    } catch {
-      Alert.alert(
-        t('autopaySuccessTitle'),
-        t('autopaySuccessMessage'),
-        [{text: t('ok') || 'OK', style: 'default'}],
-      );
+      const already = Boolean(response.data?.data?.alreadySubmitted);
+      lockAutopay();
+      if (already) {
+        showAutopayAlreadySent();
+      } else {
+        Alert.alert(
+          t('autopaySuccessTitle'),
+          t('autopaySuccessMessage'),
+          [{text: t('ok') || 'OK', style: 'default'}],
+          {cancelable: false},
+        );
+      }
+    } catch (err: any) {
+      const msg = String(err?.response?.data?.message || '');
+      if (/already/i.test(msg)) {
+        lockAutopay();
+        showAutopayAlreadySent();
+      } else {
+        Alert.alert(
+          t('validationTitle') || 'Unable to submit',
+          getApiError(err, 'Could not submit Autopay request. Please try again.'),
+          [{text: t('ok') || 'OK', style: 'default'}],
+        );
+      }
     } finally {
+      autopayInFlightRef.current = false;
       setSubmittingAutopay(false);
     }
   }, [
+    autopayLocked,
     customAmountText,
     devoteeMobile,
     devoteeName,
     isCustom,
+    lockAutopay,
     selectedAmount,
+    showAutopayAlreadySent,
+    submittingAutopay,
     t,
   ]);
 
   const applyDeepLink = useCallback(
     (params: RouteParams) => {
       if (params.openAutopay) {
+        if (autopayLockedRef.current) {
+          showAutopayAlreadySent();
+          return;
+        }
         void handleSetAutoPay();
         return;
       }
@@ -183,7 +228,7 @@ const MonthlySupportScreen = () => {
         void handlePayAmount(amt);
       }
     },
-    [handlePayAmount, handleSetAutoPay],
+    [handlePayAmount, handleSetAutoPay, showAutopayAlreadySent],
   );
 
   const consumeDeepLinkIfReady = useCallback(() => {
@@ -209,6 +254,7 @@ const MonthlySupportScreen = () => {
       }
 
       const loadProfile = async () => {
+        let phoneDigits = '';
         try {
           const [stored, profile] = await Promise.all([
             getStoredUser(),
@@ -223,21 +269,38 @@ const MonthlySupportScreen = () => {
             stored?.phone ||
             '';
           if (name) setDevoteeName(String(name).trim());
-          if (phone) setDevoteeMobile(digitsOnly(String(phone)).slice(-10));
+          phoneDigits = digitsOnly(String(phone)).slice(-10);
+          if (phoneDigits) setDevoteeMobile(phoneDigits);
         } catch {
           // ignore profile load error
-        } finally {
-          if (active) {
-            profileReadyRef.current = true;
-            consumeDeepLinkIfReady();
+        }
+
+        try {
+          const statusRes = await apiService.get('/donations/autopay/status', {
+            params: phoneDigits ? {mobile: phoneDigits} : undefined,
+          });
+          if (active && statusRes.data?.data?.submitted) {
+            lockAutopay();
           }
+        } catch {
+          // Status check is best-effort; submit path still guards duplicates.
+        }
+
+        if (active) {
+          profileReadyRef.current = true;
+          consumeDeepLinkIfReady();
         }
       };
       loadProfile();
       return () => {
         active = false;
       };
-    }, [clearDeepLinkParams, consumeDeepLinkIfReady, route.params]),
+    }, [
+      clearDeepLinkParams,
+      consumeDeepLinkIfReady,
+      lockAutopay,
+      route.params,
+    ]),
   );
 
   const handleShareDetails = async () => {
@@ -400,7 +463,9 @@ const MonthlySupportScreen = () => {
         title={
           submittingAutopay
             ? t('submittingAutopayRequest')
-            : t('setAutopay')
+            : autopayLocked
+              ? t('autopayAlreadySubmittedBtn')
+              : t('setAutopay')
         }
         onPress={handleSetAutoPay}
         disabled={submittingAutopay}

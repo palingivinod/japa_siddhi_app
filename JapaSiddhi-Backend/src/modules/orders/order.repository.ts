@@ -11,6 +11,7 @@ import {
 } from './order.types';
 
 class OrderRepository {
+  private statusEventsReady = false;
 
   async ensureCancelColumns(): Promise<void> {
     for (const sql of [
@@ -23,6 +24,178 @@ class OrderRepository {
         // Column already exists.
       }
     }
+  }
+
+  /** Timeline dates for Track Order — one row per status change. */
+  async ensureStatusEventsTable(): Promise<void> {
+    if (this.statusEventsReady) {
+      return;
+    }
+    const engine = mysql.getEngineName() || 'sqlite';
+    if (engine === 'mysql') {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS order_status_events (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          order_id INT NOT NULL,
+          status VARCHAR(40) NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          INDEX idx_order_status_events_order (order_id)
+        )
+      `);
+    } else if (engine === 'postgres') {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS order_status_events (
+          id SERIAL PRIMARY KEY,
+          order_id INT NOT NULL,
+          status VARCHAR(40) NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      try {
+        await mysql.query(
+          `CREATE INDEX IF NOT EXISTS idx_order_status_events_order ON order_status_events (order_id)`,
+        );
+      } catch {
+        // Index may already exist.
+      }
+    } else {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS order_status_events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          order_id INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+    }
+    this.statusEventsReady = true;
+  }
+
+  async recordStatusEvent(orderId: number, status: string): Promise<void> {
+    const id = Number(orderId);
+    const next = String(status || '')
+      .trim()
+      .toUpperCase();
+    if (!id || !next) {
+      return;
+    }
+    await this.ensureStatusEventsTable();
+
+    // First status change on an older order: keep Order Placed on the real create day.
+    try {
+      const prior = await mysql.query<any[]>(
+        `
+        SELECT COUNT(*) AS total
+        FROM order_status_events
+        WHERE order_id = ?
+        `,
+        [id],
+      );
+      const total = Number(prior?.[0]?.total || 0);
+      if (total === 0) {
+        const orderRows = await mysql.query<any[]>(
+          `
+          SELECT created_at AS createdAt, order_status AS orderStatus
+          FROM orders
+          WHERE id = ?
+          LIMIT 1
+          `,
+          [id],
+        );
+        const createdAt = orderRows?.[0]?.createdAt;
+        const current = String(orderRows?.[0]?.orderStatus || '')
+          .trim()
+          .toUpperCase();
+        if (
+          createdAt &&
+          next !== 'UNDER_REVIEW' &&
+          next !== 'PENDING' &&
+          current !== 'UNDER_REVIEW' &&
+          current !== 'PENDING'
+        ) {
+          await mysql.query(
+            `
+            INSERT INTO order_status_events (order_id, status, created_at)
+            VALUES (?, 'UNDER_REVIEW', ?)
+            `,
+            [id, createdAt],
+          );
+        }
+      }
+    } catch {
+      // Continue with the new status event.
+    }
+
+    await mysql.query(
+      `
+      INSERT INTO order_status_events (order_id, status)
+      VALUES (?, ?)
+      `,
+      [id, next],
+    );
+  }
+
+  /**
+   * Remove recorded timeline events that occurred after the undone status.
+   * Ensures user order tracking steps are rolled back accurately.
+   */
+  async revertStatusEvents(orderId: number, targetStatus: string): Promise<void> {
+    await this.ensureStatusEventsTable();
+    const statusRanks: Record<string, number> = {
+      UNDER_REVIEW: 1,
+      PENDING: 1,
+      CALLED_TALKED: 2,
+      CALLED_DEVOTEE: 2,
+      SANKALP_TAKEN: 3,
+      CONFIRMED: 4,
+      PROCESSING: 4,
+      READY: 4,
+      PACKING: 5,
+      SHIPPED: 6,
+      DELIVERED: 7,
+    };
+    const targetRank = statusRanks[String(targetStatus || '').toUpperCase()] || 1;
+    const higherStatuses = Object.keys(statusRanks).filter(
+      k => statusRanks[k] > targetRank,
+    );
+    if (higherStatuses.length > 0) {
+      const placeholders = higherStatuses.map(() => '?').join(',');
+      await mysql.query(
+        `DELETE FROM order_status_events WHERE order_id = ? AND status IN (${placeholders})`,
+        [orderId, ...higherStatuses],
+      );
+    }
+  }
+
+  /**
+   * First time each status was reached (IST timestamps from DB).
+   * Keys are uppercase status codes.
+   */
+  async getStatusEventMap(orderId: number): Promise<Record<string, Date>> {
+    await this.ensureStatusEventsTable();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT status, created_at AS createdAt
+      FROM order_status_events
+      WHERE order_id = ?
+      ORDER BY id ASC
+      `,
+      [orderId],
+    );
+    const map: Record<string, Date> = {};
+    for (const row of rows || []) {
+      const key = String(row.status || '')
+        .trim()
+        .toUpperCase();
+      if (!key || map[key]) {
+        continue;
+      }
+      const at = new Date(row.createdAt);
+      if (!Number.isNaN(at.getTime())) {
+        map[key] = at;
+      }
+    }
+    return map;
   }
 
   async getNextOrderNumber(prefix?: string): Promise<string> {
@@ -127,7 +300,13 @@ class OrderRepository {
         ],
       );
 
-    return result.insertId;
+    const insertId = result.insertId;
+    try {
+      await this.recordStatusEvent(insertId, initialStatus);
+    } catch {
+      // Timeline table may be unavailable on first boot; tracking still works.
+    }
+    return insertId;
 
   }
 
@@ -238,7 +417,8 @@ class OrderRepository {
 
       SET
 
-        order_status = ?
+        order_status = ?,
+        updated_at = CURRENT_TIMESTAMP
 
       WHERE id = ?
       `,
@@ -247,6 +427,11 @@ class OrderRepository {
         id,
       ],
     );
+    try {
+      await this.recordStatusEvent(id, status);
+    } catch {
+      // Non-fatal for status update.
+    }
 
   }
 
@@ -286,6 +471,11 @@ class OrderRepository {
       `,
       [id, userId],
     );
+    try {
+      await this.recordStatusEvent(id, 'DELIVERED');
+    } catch {
+      // Non-fatal.
+    }
     return 'ok';
   }
 
@@ -326,6 +516,25 @@ class OrderRepository {
       `,
       [reason, id, userId],
     );
+    try {
+      await this.recordStatusEvent(id, 'CANCELLED');
+    } catch {
+      // Non-fatal.
+    }
+    try {
+      const claimRows = await mysql.query<any[]>(
+        'SELECT reward_id AS rewardId FROM milestone_reward_claims WHERE order_id = ?',
+        [id],
+      );
+      if (claimRows?.length && claimRows[0].rewardId) {
+        await mysql.query(
+          'UPDATE challenge_rewards SET stock = stock + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [claimRows[0].rewardId],
+        );
+      }
+    } catch {
+      // Non-fatal.
+    }
     return 'ok';
   }
 

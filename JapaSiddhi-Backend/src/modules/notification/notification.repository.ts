@@ -203,14 +203,33 @@ class NotificationRepository {
       [userId],
     );
 
-    return (rows || []).map(notification => ({
-      ...notification,
-      extraData: notification.extraData
-        ? typeof notification.extraData === 'string'
-          ? JSON.parse(notification.extraData)
-          : notification.extraData
-        : null,
-    }));
+    return (rows || []).map(notification => {
+      const toIso = (value: any) => {
+        if (value == null || value === '') {
+          return null;
+        }
+        if (value instanceof Date) {
+          return Number.isNaN(value.getTime()) ? null : value.toISOString();
+        }
+        const asDate = new Date(value);
+        if (!Number.isNaN(asDate.getTime())) {
+          return asDate.toISOString();
+        }
+        return String(value);
+      };
+      const createdAt = toIso(notification.createdAt);
+      const sentAt = toIso(notification.sentAt) || createdAt;
+      return {
+        ...notification,
+        createdAt,
+        sentAt,
+        extraData: notification.extraData
+          ? typeof notification.extraData === 'string'
+            ? JSON.parse(notification.extraData)
+            : notification.extraData
+          : null,
+      };
+    });
   }
 
   async markAsRead(id: number, userId: number): Promise<void> {

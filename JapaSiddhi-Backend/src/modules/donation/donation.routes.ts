@@ -53,7 +53,23 @@ router.post(
   donationController.checkout,
 );
 
-router.post('/autopay/request', async (req: any, res: any) => {
+router.get('/autopay/status', authenticate, async (req: any, res: any) => {
+  try {
+    const {getAutopayStatusForUser} = await import('./autopay.service');
+    const data = await getAutopayStatusForUser({
+      userId: req.user?.id || null,
+      mobile: req.query?.mobile || req.query?.phone || '',
+    });
+    return res.json({success: true, data});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Could not load autopay status',
+    });
+  }
+});
+
+router.post('/autopay/request', authenticate, async (req: any, res: any) => {
   try {
     const {createAutopayRequest} = await import('./autopay.service');
     const data = await createAutopayRequest({
@@ -63,7 +79,13 @@ router.post('/autopay/request', async (req: any, res: any) => {
       amount: req.body?.amount,
       notes: req.body?.notes,
     });
-    return res.json({success: true, message: 'Autopay request submitted', data});
+    return res.json({
+      success: true,
+      message: data.alreadySubmitted
+        ? 'Autopay request already submitted'
+        : 'Autopay request submitted',
+      data,
+    });
   } catch (error: any) {
     return res.status(500).json({
       success: false,

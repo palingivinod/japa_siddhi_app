@@ -121,6 +121,7 @@ import AdminRewardsScreen from '../modules/admin/AdminRewardsScreen';
 import AdminRewardStockScreen from '../modules/admin/AdminRewardStockScreen';
 import AdminNotificationsScreen from '../modules/admin/AdminNotificationsScreen';
 import AdminOrdersScreen from '../modules/admin/AdminOrdersScreen';
+import AdminOrderHistoryScreen from '../modules/admin/AdminOrderHistoryScreen';
 import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
 import AdminProductsScreen from '../modules/admin/AdminProductsScreen';
 import AdminBannersScreen from '../modules/admin/AdminBannersScreen';
@@ -400,6 +401,7 @@ export type RootStackParamList = {
     | undefined;
   AdminNotifications: undefined;
   AdminOrders: undefined;
+  AdminOrderHistory: undefined;
   AdminAutopayRequests: undefined;
   AdminSeva: undefined;
   AdminSevaDetailList:
@@ -557,6 +559,7 @@ const ProtectedAdminRewards = withAdminAuth(AdminRewardsScreen);
 const ProtectedAdminRewardStock = withAdminAuth(AdminRewardStockScreen);
 const ProtectedAdminNotifications = withAdminAuth(AdminNotificationsScreen);
 const ProtectedAdminOrders = withAdminAuth(AdminOrdersScreen);
+const ProtectedAdminOrderHistory = withAdminAuth(AdminOrderHistoryScreen);
 const ProtectedAdminAutopayRequests = withAdminAuth(AdminAutopayRequestsScreen);
 const ProtectedAdminSeva = withAdminAuth(AdminSevaScreen);
 const ProtectedAdminSevaDetailList = withAdminAuth(AdminSevaDetailListScreen);
@@ -871,6 +874,10 @@ const AppNavigator = () => {
           component={ProtectedAdminNotifications}
         />
         <Stack.Screen name="AdminOrders" component={ProtectedAdminOrders} />
+        <Stack.Screen
+          name="AdminOrderHistory"
+          component={ProtectedAdminOrderHistory}
+        />
         <Stack.Screen
           name="AdminAutopayRequests"
           component={ProtectedAdminAutopayRequests}

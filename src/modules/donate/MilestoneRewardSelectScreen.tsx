@@ -39,6 +39,7 @@ const MilestoneRewardSelectScreen = () => {
   const [userTotalJapas, setUserTotalJapas] = useState(0);
   const [claimed, setClaimed] = useState(false);
   const [reached, setReached] = useState(false);
+  const [isRetry, setIsRetry] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -57,6 +58,7 @@ const MilestoneRewardSelectScreen = () => {
         );
         setClaimed(Boolean(data.claimed));
         setReached(Boolean(data.reached));
+        setIsRetry(Boolean(data.isRetry));
       })
       .catch(err => {
         Alert.alert(t('rewards'), getApiError(err, t('couldNotLoadRewards')));
@@ -117,6 +119,14 @@ const MilestoneRewardSelectScreen = () => {
       </Text>
       {claimed ? (
         <Text style={styles.claimed}>{t('rewardClaimed')}</Text>
+      ) : null}
+      {isRetry && !claimed ? (
+        <View style={styles.retryBanner}>
+          <Text style={styles.retryBannerText}>
+            {t('retryRewardNotice') ||
+              'Previous order was cancelled. You have 1 final chance to grab this reward.'}
+          </Text>
+        </View>
       ) : null}
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       <View style={styles.grid}>
@@ -264,5 +274,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: Colors.textSecondary,
     marginBottom: 16,
+  },
+  retryBanner: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 14,
+  },
+  retryBannerText: {
+    color: '#92400E',
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

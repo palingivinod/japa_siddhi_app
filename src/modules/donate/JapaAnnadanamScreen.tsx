@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation} from '@react-navigation/native';
 
@@ -99,12 +99,14 @@ const JapaAnnadanamScreen = () => {
           <PrimaryButton
             title={
               persons > 0 && dateReady && comments.trim().length > 0
-                ? `DONATE ₹${totalAmount.toLocaleString('en-IN')} (${persons} ${
-                    persons === 1 ? 'PERSON' : 'PERSONS'
-                  })`
+                ? t('donateAmountWithCount', {
+                    amount: totalAmount.toLocaleString('en-IN'),
+                    count: persons,
+                    unit: persons === 1 ? t('personOne') : t('personMany'),
+                  })
                 : persons > 0
-                  ? 'ENTER REQUIRED DETAILS'
-                  : 'SELECT OR ENTER NO OF PERSONS'
+                  ? t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+                  : t('selectOrEnterNoOfPersons') || 'SELECT OR ENTER NO OF PERSONS'
             }
             disabled={persons <= 0 || !dateReady || !comments.trim()}
             onPress={() => {

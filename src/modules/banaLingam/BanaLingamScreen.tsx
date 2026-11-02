@@ -272,8 +272,8 @@ const BanaLingamScreen = () => {
           hasActiveOrder
             ? t('banaLingamPendingOrderTitle')
             : fullName.trim() && isMobile(mobile) && address.trim() && purpose
-            ? 'OVERVIEW'
-            : 'ENTER REQUIRED DETAILS'
+            ? t('overviewBtn') || 'OVERVIEW'
+            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         onPress={submit}
         disabled={

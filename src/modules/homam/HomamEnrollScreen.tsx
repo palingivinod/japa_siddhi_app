@@ -169,14 +169,14 @@ const HomamEnrollScreen = () => {
         style={styles.commentsInput}
       />
       <View style={styles.amountCard}>
-        <Text style={styles.amountLabel}>Nithya Homam</Text>
+        <Text style={styles.amountLabel}>{t('nithyaHomam') || 'Nithya Homam'}</Text>
         <Text style={styles.amountValue}>₹{HOMAM_AMOUNT.toLocaleString('en-IN')}</Text>
       </View>
       <PrimaryButton
         title={
           detailsReady
-            ? `CONTINUE TO PAYMENT (₹${HOMAM_AMOUNT.toLocaleString('en-IN')})`
-            : 'ENTER REQUIRED DETAILS'
+            ? `${t('continueToPayment')} (₹${HOMAM_AMOUNT.toLocaleString('en-IN')})`
+            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         onPress={continuePay}
         disabled={!detailsReady}

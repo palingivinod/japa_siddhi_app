@@ -63,6 +63,78 @@ export interface CreateAutopayInput {
   notes?: string | null;
 }
 
+const normalizeMobile = (raw: string) =>
+  String(raw || '')
+    .replace(/[^\d]/g, '')
+    .slice(-10);
+
+/** Active = still open with the team (not Completed / deleted). */
+export const findActiveAutopayRequest = async (opts: {
+  userId?: number | null;
+  mobile?: string | null;
+}) => {
+  await ensureAutopayTable();
+  const userId = opts.userId ? Number(opts.userId) : null;
+  const mobile = normalizeMobile(String(opts.mobile || ''));
+
+  if (userId && Number.isFinite(userId) && userId > 0) {
+    const byUser = await mysql.query<any[]>(
+      `
+      SELECT id, user_id AS userId, full_name AS fullName, mobile, amount, status, notes,
+             created_at AS createdAt
+      FROM autopay_requests
+      WHERE user_id = ?
+        AND LOWER(TRIM(status)) IN ('pending', 'contacted')
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [userId],
+    );
+    if (byUser?.[0]) {
+      return byUser[0];
+    }
+  }
+
+  if (mobile.length >= 10) {
+    const byMobile = await mysql.query<any[]>(
+      `
+      SELECT id, user_id AS userId, full_name AS fullName, mobile, amount, status, notes,
+             created_at AS createdAt
+      FROM autopay_requests
+      WHERE LOWER(TRIM(status)) IN ('pending', 'contacted')
+      ORDER BY id DESC
+      LIMIT 40
+      `,
+    );
+    const match = (byMobile || []).find(row => {
+      const rowMobile = normalizeMobile(String(row.mobile || ''));
+      return rowMobile.length >= 10 && rowMobile === mobile;
+    });
+    if (match) {
+      return match;
+    }
+  }
+
+  return null;
+};
+
+export const getAutopayStatusForUser = async (opts: {
+  userId?: number | null;
+  mobile?: string | null;
+}) => {
+  const existing = await findActiveAutopayRequest(opts);
+  if (!existing) {
+    return {submitted: false as const};
+  }
+  return {
+    submitted: true as const,
+    id: String(existing.id),
+    status: String(existing.status || 'Pending'),
+    amount: existing.amount != null ? Number(existing.amount) : null,
+    createdAt: String(existing.createdAt || ''),
+  };
+};
+
 export const createAutopayRequest = async (input: CreateAutopayInput) => {
   await ensureAutopayTable();
   const name = String(input.fullName || 'Devotee').trim().slice(0, 150);
@@ -70,6 +142,19 @@ export const createAutopayRequest = async (input: CreateAutopayInput) => {
   const amount = Number(input.amount) > 0 ? Number(input.amount) : null;
   const notes = input.notes ? String(input.notes).slice(0, 500) : null;
   const userId = input.userId ? Number(input.userId) : null;
+
+  const existing = await findActiveAutopayRequest({userId, mobile});
+  if (existing) {
+    return {
+      id: existing.id,
+      fullName: String(existing.fullName || name),
+      mobile: String(existing.mobile || mobile),
+      amount:
+        existing.amount != null ? Number(existing.amount) : amount,
+      status: String(existing.status || 'Pending'),
+      alreadySubmitted: true as const,
+    };
+  }
 
   const result: any = await mysql.query(
     `INSERT INTO autopay_requests (user_id, full_name, mobile, amount, status, notes)
@@ -83,6 +168,7 @@ export const createAutopayRequest = async (input: CreateAutopayInput) => {
     mobile,
     amount,
     status: 'Pending',
+    alreadySubmitted: false as const,
   };
 };
 

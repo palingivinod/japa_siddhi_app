@@ -78,8 +78,18 @@ const notificationEmoji = (item: any) => {
 };
 
 /** Parse API timestamps as UTC when timezone is missing (Render/MySQL NOW()). */
-const parseNotificationDate = (dateStr?: string) => {
-  const raw = String(dateStr || '').trim();
+const parseNotificationDate = (rawInput?: string | number | Date | null) => {
+  if (rawInput == null || rawInput === '') {
+    return null;
+  }
+  if (rawInput instanceof Date) {
+    return Number.isNaN(rawInput.getTime()) ? null : rawInput;
+  }
+  if (typeof rawInput === 'number' && Number.isFinite(rawInput)) {
+    const d = new Date(rawInput < 1e12 ? rawInput * 1000 : rawInput);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const raw = String(rawInput).trim();
   if (!raw) {
     return null;
   }
@@ -105,12 +115,19 @@ const formatInIst = (
     ...options,
   });
 
-const formatNotificationDate = (dateStr?: string) => {
-  if (!dateStr) {
-    return '';
-  }
+const pickNotificationArrival = (item: any) =>
+  item?.createdAt ??
+  item?.sentAt ??
+  item?.created_at ??
+  item?.sent_at ??
+  item?.updatedAt ??
+  item?.updated_at ??
+  null;
+
+/** Always show date + time in IST for when the notification arrived. */
+const formatNotificationDate = (rawInput?: string | number | Date | null) => {
   try {
-    const d = parseNotificationDate(dateStr);
+    const d = parseNotificationDate(rawInput);
     if (!d) {
       return '';
     }
@@ -143,6 +160,7 @@ const formatNotificationDate = (dateStr?: string) => {
     const datePart = formatInIst(d, {
       day: 'numeric',
       month: 'short',
+      year: 'numeric',
     });
     return `${datePart}, ${timeStr}`;
   } catch {
@@ -464,18 +482,18 @@ const NotificationsScreen = () => {
                 );
               })()}
               <View style={styles.footerRow}>
-                {item.createdAt || item.sentAt || item.created_at || item.sent_at ? (
-                  <Text style={styles.time}>
-                    {formatNotificationDate(
-                      item.createdAt ||
-                        item.sentAt ||
-                        item.created_at ||
-                        item.sent_at,
-                    )}
-                  </Text>
-                ) : (
-                  <View />
-                )}
+                {(() => {
+                  const arrivalLabel = formatNotificationDate(
+                    pickNotificationArrival(item),
+                  );
+                  return arrivalLabel ? (
+                    <Text style={styles.time} numberOfLines={1}>
+                      {arrivalLabel}
+                    </Text>
+                  ) : (
+                    <View style={styles.timeSpacer} />
+                  );
+                })()}
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
@@ -648,12 +666,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 6,
+    marginTop: 8,
   },
   time: {
-    fontSize: 11.5,
-    color: '#8E7355',
-    fontWeight: '600',
+    flex: 1,
+    marginRight: 10,
+    fontSize: 12,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    opacity: 0.72,
+  },
+  timeSpacer: {
+    flex: 1,
   },
   deleteBtn: {
     paddingHorizontal: 6,

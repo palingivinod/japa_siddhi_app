@@ -387,6 +387,11 @@ export const ml: TranslationDict = {
   close: 'അടയ്ക്കുക',
   continueToPayment: 'പേയ്‌മെന്റിലേക്ക് തുടരുക',
   proceedToPay: 'പണം നൽകുക',
+  overviewBtn: 'അവലോകനം',
+  enterRequiredDetails: 'ആവശ്യമായ വിവരങ്ങൾ നൽകുക',
+  selectOrEnterNoOfPersons: 'വ്യക്തികളുടെ എണ്ണം തിരഞ്ഞെടുക്കുക അല്ലെങ്കിൽ നൽകുക',
+  donateAmountWithCount: '₹{{amount}} സംഭാവന ചെയ്യുക ({{count}} {{unit}})',
+  donateBtn: 'സംഭാവന ചെയ്യുക',
   donationDetails: 'സേവാ വിവരങ്ങൾ',
   nameMobileAmountRequired: 'പേര്, മൊബൈൽ, തുക ആവശ്യമാണ്.',
   japaMilestones: 'ജപ മൈൽസ്റ്റോണുകൾ',
@@ -542,6 +547,7 @@ export const ml: TranslationDict = {
   monthlySupportNote:
     'ശ്രദ്ധിക്കുക: തങ്ങളുടെ പ്രതിമാസ സേവനം മറക്കാതെയോ ഒഴിവാക്കാതെയോ തുടരുന്നതിന് ഓട്ടോ-ഡെബിറ്റ് / ഓട്ടോപേ സൗകര്യം നൽകണമെന്ന് നിരവധി ഭക്തർ അഭ്യർത്ഥിച്ചിട്ടുണ്ട്.',
   setAutopay: 'ഓട്ടോപേ / ഓട്ടോ-ഡെബിറ്റ് സജ്ജമാക്കുക',
+  autopayAlreadySubmittedBtn: 'ഓട്ടോപേ അഭ്യർത്ഥന ഇതിനകം അയച്ചു',
   chooseMonthlyContribution: 'നിങ്ങളുടെ പ്രതിമാസ സഹായം തിരഞ്ഞെടുക്കുക:',
   enterAmountLabel: 'തുക നൽകുക (₹):',
   amountExamplePlaceholder: 'ഉദാ. 500',
@@ -557,6 +563,9 @@ export const ml: TranslationDict = {
   autopaySuccessTitle: 'ഓട്ടോപേ അഭ്യർത്ഥന ലഭിച്ചു',
   autopaySuccessMessage:
     'പിന്തുണയ്ക്കാൻ താൽപ്പര്യം പ്രകടിപ്പിച്ചതിന് നന്ദി! ശ്രീ രവി ശങ്കർ ഗാരു / ഞങ്ങളുടെ ടീം ഉടൻ നിങ്ങളെ ബന്ധപ്പെടും.',
+  autopayAlreadySubmittedTitle: 'അഭ്യർത്ഥന ഇതിനകം നടക്കുന്നു',
+  autopayAlreadySubmittedMessage:
+    'നിങ്ങൾക്ക് ഇതിനകം ഒരു ഓട്ടോപേ അഭ്യർത്ഥന നടക്കുന്നുണ്ട്. ഞങ്ങളുടെ ടീം ഉടൻ ബന്ധപ്പെടും. ഇപ്പോൾ മറ്റൊരു അഭ്യർത്ഥന അയയ്ക്കാനാവില്ല.',
   autopayCustomAmount: 'മറ്റുള്ളവ / സ്വന്തം തുക',
   editSpiritualDetails: 'ആത്മീയ വിവരങ്ങൾ തിരുത്തുക',
   editPersonalDetails: 'വ്യക്തിഗത വിവരങ്ങൾ തിരുത്തുക',
@@ -808,6 +817,8 @@ export const ml: TranslationDict = {
   chooseInStockReward: 'തുടരാൻ സ്റ്റോക്കുള്ള റിവാർഡ് തിരഞ്ഞെടുക്കുക.',
   couldNotLoadRewards: 'റിവാർഡുകൾ ലോഡ് ചെയ്യാനായില്ല.',
   rewardAlreadySubmitted: 'ഈ നാഴികക്കല്ല് റിവാർഡ് ഇതിനകം അയച്ചു.',
+  retryRewardNotice:
+    'മുമ്പത്തെ ഓർഡർ റദ്ദാക്കി. ഈ റിവാർഡ് ക്ലെയിം ചെയ്യാൻ നിങ്ങൾക്ക് 1 അവസാന അവസരം കൂടി ഉണ്ട്.',
   selectRewardTitle: 'റിവാർഡ് തിരഞ്ഞെടുക്കുക',
   chooseRewardToContinue: 'തുടരാൻ ഒരു റിവാർഡ് തിരഞ്ഞെടുക്കുക.',
   chooseSacredRewardContinue: 'തുടരാൻ ഒരു പുണ്യ റിവാർഡ് തിരഞ്ഞെടുക്കുക.',

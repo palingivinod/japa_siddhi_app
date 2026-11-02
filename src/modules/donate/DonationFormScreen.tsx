@@ -207,8 +207,8 @@ const DonationFormScreen = () => {
       <PrimaryButton
         title={
           detailsReady
-            ? `PROCEED TO PAY (₹${totalAmount.toLocaleString('en-IN')})`
-            : 'ENTER REQUIRED DETAILS'
+            ? `${t('proceedToPay')} (₹${totalAmount.toLocaleString('en-IN')})`
+            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         disabled={!detailsReady}
         onPress={pay}

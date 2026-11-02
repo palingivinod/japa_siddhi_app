@@ -275,6 +275,8 @@ const AdminOrdersScreen = () => {
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [noteBusyId, setNoteBusyId] = useState<string | null>(null);
+  const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [error, setError] = useState('');
 
   const loadOrders = useCallback(async () => {
@@ -294,25 +296,35 @@ const AdminOrdersScreen = () => {
             .filter(Boolean)
         : [];
       setCatalogRewardNames(catalog);
-      setOrders(
-        rows.map((row: any) => ({
-          id: String(row.id),
-          orderNo: row.orderNo || `#${row.id}`,
-          product: row.product || 'Item',
-          customer: row.customer || 'Devotee',
-          status: mapAdminOrderStatus(String(row.status || '')),
-          orderGroup: orderGroupOf(row),
-          orderType: row.orderType || '',
-          orderSource: row.orderSource || '',
-          rewardName: String(row.rewardName || row.product || '').trim(),
-          customerMobile: String(row.customerMobile || '').trim(),
-          mobileCountryCode: String(row.mobileCountryCode || '').trim(),
-          mobileNumber: String(row.mobileNumber || '').trim(),
-          remarks: row.remarks || '',
-          cancelReason: row.cancelReason || '',
-          cancelledBy: row.cancelledBy || '',
-        })),
-      );
+      const mapped: AdminOrder[] = rows.map((row: any) => ({
+        id: String(row.id),
+        orderNo: row.orderNo || `#${row.id}`,
+        product: row.product || 'Item',
+        customer: row.customer || 'Devotee',
+        status: mapAdminOrderStatus(String(row.status || '')),
+        orderGroup: orderGroupOf(row),
+        orderType: row.orderType || '',
+        orderSource: row.orderSource || '',
+        rewardName: String(row.rewardName || row.product || '').trim(),
+        customerMobile: String(row.customerMobile || '').trim(),
+        mobileCountryCode: String(row.mobileCountryCode || '').trim(),
+        mobileNumber: String(row.mobileNumber || '').trim(),
+        remarks: row.remarks || '',
+        adminNote: String(row.adminNote || ''),
+        adminNoteAt: String(row.adminNoteAt || ''),
+        cancelReason: row.cancelReason || '',
+        cancelledBy: row.cancelledBy || '',
+      }));
+      setOrders(mapped);
+      setNoteDrafts(prev => {
+        const next = {...prev};
+        for (const order of mapped) {
+          if (next[order.id] === undefined) {
+            next[order.id] = order.adminNote || '';
+          }
+        }
+        return next;
+      });
     } catch (err) {
       setOrders([]);
       setError(getApiError(err, 'Could not load orders.'));
@@ -412,6 +424,47 @@ const AdminOrdersScreen = () => {
     );
   };
 
+  const saveOrderNote = async (order: AdminOrder, sendNotify: boolean) => {
+    const note = String(noteDrafts[order.id] ?? order.adminNote ?? '').trim();
+    if (sendNotify && !note) {
+      Alert.alert('Empty remark', 'Write a remark before sending a notification.');
+      return;
+    }
+    setNoteBusyId(order.id);
+    try {
+      const res = await apiService.put(`/admin/orders/${order.id}/admin-note`, {
+        note,
+        sendNotify,
+      });
+      const data = res.data?.data || {};
+      const savedNote = String(data.adminNote ?? note);
+      const savedAt = String(data.adminNoteAt || '');
+      setOrders(prev =>
+        prev.map(o =>
+          o.id === order.id
+            ? {...o, adminNote: savedNote, adminNoteAt: savedAt}
+            : o,
+        ),
+      );
+      setNoteDrafts(prev => ({...prev, [order.id]: savedNote}));
+      Alert.alert(
+        sendNotify ? 'Saved & sent' : 'Saved',
+        sendNotify
+          ? data.notified
+            ? 'Remark saved and in-app notification sent to the devotee.'
+            : 'Remark saved. Notification could not be delivered (devotee may have no device token).'
+          : 'Remark saved on this order.',
+      );
+    } catch (err) {
+      Alert.alert(
+        'Save failed',
+        getApiError(err, 'Could not save order remark.'),
+      );
+    } finally {
+      setNoteBusyId(null);
+    }
+  };
+
   const searchActive = search.trim().length > 0;
 
   const typedOrders = useMemo(() => {
@@ -488,8 +541,11 @@ const AdminOrdersScreen = () => {
     const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
     const delivered = itemFilteredOrders.filter(o => o.status === 'Delivered').length;
     const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
+    // 'All' tab only shows active orders; delivered orders are excluded and only shown in 'Delivered' filter
+    const all = itemFilteredOrders.filter(o => o.status !== 'Delivered').length;
     return {
       total,
+      all,
       underReview,
       calledDevotee,
       sankalpTaken,
@@ -503,13 +559,13 @@ const AdminOrdersScreen = () => {
 
   const visibleOrders = useMemo(() => {
     if (tab === 'All') {
-      return itemFilteredOrders;
+      return itemFilteredOrders.filter(o => o.status !== 'Delivered');
     }
     return itemFilteredOrders.filter(o => o.status === tab);
   }, [itemFilteredOrders, tab]);
 
   const tabCount = (tabId: string) => {
-    if (tabId === 'All') return orderCounts.total;
+    if (tabId === 'All') return orderCounts.all;
     if (tabId === 'Under Review') return orderCounts.underReview;
     if (tabId === 'Called Devotee') return orderCounts.calledDevotee;
     if (tabId === 'Sankalp Taken') return orderCounts.sankalpTaken;
@@ -801,6 +857,48 @@ const AdminOrdersScreen = () => {
               </View>
             </TouchableOpacity>
 
+            <View style={styles.noteBox}>
+              <Text style={styles.noteLabel}>Admin remark</Text>
+              <TextInput
+                style={styles.noteInput}
+                value={noteDrafts[order.id] ?? order.adminNote ?? ''}
+                onChangeText={text =>
+                  setNoteDrafts(prev => ({...prev, [order.id]: text}))
+                }
+                placeholder="e.g. Called but not answered"
+                placeholderTextColor={Colors.placeholder}
+                multiline
+                textAlignVertical="top"
+              />
+              {order.adminNoteAt ? (
+                <Text style={styles.noteSavedAt}>Saved: {order.adminNoteAt}</Text>
+              ) : null}
+              <View style={styles.noteActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.noteSaveBtn,
+                    noteBusyId === order.id && styles.btnDisabled,
+                  ]}
+                  disabled={noteBusyId === order.id}
+                  onPress={() => saveOrderNote(order, false)}>
+                  {noteBusyId === order.id ? (
+                    <ActivityIndicator size="small" color={Colors.sacredBrown} />
+                  ) : (
+                    <Text style={styles.noteSaveBtnText}>SAVE</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.noteSendBtn,
+                    noteBusyId === order.id && styles.btnDisabled,
+                  ]}
+                  disabled={noteBusyId === order.id}
+                  onPress={() => saveOrderNote(order, true)}>
+                  <Text style={styles.noteSendBtnText}>SAVE & SEND</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View style={styles.actionRow}>
               {order.status !== 'Cancelled' && order.status !== 'Delivered' ? (
                 <>
@@ -885,6 +983,73 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: Colors.textSecondary,
     fontWeight: '600',
+    fontSize: 12,
+  },
+  noteBox: {
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: '#FAF8F5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 10,
+  },
+  noteLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    marginBottom: 6,
+  },
+  noteInput: {
+    minHeight: 56,
+    maxHeight: 100,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: Colors.sacredBrown,
+    backgroundColor: Colors.white,
+  },
+  noteSavedAt: {
+    marginTop: 4,
+    fontSize: 10,
+    color: Colors.textSecondary,
+  },
+  noteActions: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  noteSaveBtn: {
+    flex: 1,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.sacredBrown,
+    backgroundColor: Colors.white,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 36,
+  },
+  noteSaveBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  noteSendBtn: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: Colors.templeGold,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 36,
+  },
+  noteSendBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
     fontSize: 12,
   },
   statsSummaryCard: {
