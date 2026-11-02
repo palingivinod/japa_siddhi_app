@@ -91,6 +91,10 @@ const environment = {
   // Phone OTP is sent by Firebase Auth on the app (not Twilio).
   // Backend only verifies the Firebase ID token after the user confirms SMS.
 
+  AISENSY_API_KEY: String(
+    process.env.AISENSY_API_KEY || 'a56fc3120c0ad30ea4dbf',
+  ).trim(),
+
   UPLOAD_PATH:
     process.env.UPLOAD_PATH || 'uploads',
 

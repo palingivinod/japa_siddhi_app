@@ -30,12 +30,9 @@ interface Props {
  * its own calendar / clock dialog. Light theme is forced because the
  * surrounding cards are always light.
  */
-/** Android calendar defaults to 1900 when no minimum is set. */
+/** Android calendar requires a realistic minimum year (1900+). */
 const earliestSelectableDate = (): Date => {
-  const date = new Date(0);
-  date.setFullYear(1, 0, 1);
-  date.setHours(0, 0, 0, 0);
-  return date;
+  return new Date(1920, 0, 1, 0, 0, 0, 0);
 };
 
 const DatePickerModal: React.FC<Props> = ({
@@ -54,13 +51,27 @@ const DatePickerModal: React.FC<Props> = ({
     [minimumDate, mode],
   );
 
+  const safeValue = useMemo(() => {
+    const d =
+      value instanceof Date && !Number.isNaN(value.getTime())
+        ? value
+        : new Date(1995, 0, 1);
+    if (maximumDate && d.getTime() > maximumDate.getTime()) {
+      return maximumDate;
+    }
+    if (resolvedMinimum && d.getTime() < resolvedMinimum.getTime()) {
+      return resolvedMinimum;
+    }
+    return d;
+  }, [value, maximumDate, resolvedMinimum]);
+
   useEffect(() => {
     if (visible) {
       // Keyboard + native date dialog together can crash on many Android devices.
       Keyboard.dismiss();
-      setDraft(value);
+      setDraft(safeValue);
     }
-  }, [visible, value]);
+  }, [visible, safeValue]);
 
   if (!visible) {
     return null;
@@ -69,7 +80,7 @@ const DatePickerModal: React.FC<Props> = ({
   if (Platform.OS !== 'ios') {
     return (
       <DateTimePicker
-        value={value}
+        value={safeValue}
         mode={mode}
         display={mode === 'date' ? 'calendar' : 'default'}
         minimumDate={resolvedMinimum}

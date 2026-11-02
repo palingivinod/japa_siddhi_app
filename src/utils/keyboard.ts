@@ -6,7 +6,10 @@ import {Keyboard, Platform} from 'react-native';
  * Avoids crashes on many Android devices when a native dialog/picker opens
  * while the soft keyboard is still visible (all brands, especially Android 12+).
  */
-export const dismissKeyboardThen = (action: () => void, delayMs = 80) => {
+export const dismissKeyboardThen = (
+  action: () => void,
+  delayMs = Platform.OS === 'android' ? 150 : 80,
+) => {
   Keyboard.dismiss();
   setTimeout(action, delayMs);
 };

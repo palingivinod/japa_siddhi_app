@@ -111,8 +111,6 @@ const ProfileViewScreen = () => {
       stored?.maritalStatus ||
       stored?.marital_status ||
       '',
-    gothram: data?.gothram || stored?.gothram || '',
-    nakshatram: data?.nakshatram || stored?.nakshatram || '',
     profilePhoto:
       data?.profilePhoto ||
       stored?.profilePhoto ||

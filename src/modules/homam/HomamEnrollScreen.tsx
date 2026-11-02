@@ -43,20 +43,11 @@ const HomamEnrollScreen = () => {
             stored?.mobile_number ||
             stored?.phone ||
             '';
-          const got = profile?.gothram || stored?.gothram || '';
-          const nak = profile?.nakshatram || stored?.nakshatram || '';
-
           if (name) {
             setFullName(prev => prev || String(name));
           }
           if (phone) {
             setMobile(prev => prev || digitsOnly(String(phone)).slice(0, MOBILE_DIGITS));
-          }
-          if (got) {
-            setGothram(prev => prev || String(got));
-          }
-          if (nak) {
-            setNakshatram(prev => prev || String(nak));
           }
         } catch {
           // ignore profile load error

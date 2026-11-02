@@ -23,7 +23,8 @@ class MainActivity : ReactActivity() {
     WindowCompat.setDecorFitsSystemWindows(window, true)
     // Prefer pan over resize — resize + ScrollView has crashed on many Android devices.
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)
-    super.onCreate(savedInstanceState)
+    // react-native-screens requires null to prevent fragment restoration crashes when switching apps (e.g. reading OTP)
+    super.onCreate(null)
     // Re-apply after RN Activity setup — some devices reset soft-input during super.onCreate.
     WindowCompat.setDecorFitsSystemWindows(window, true)
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_PAN)

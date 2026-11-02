@@ -1,5 +1,5 @@
 import React, {useState} from 'react';
-import {StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import {StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
@@ -27,8 +27,6 @@ const SignupSpiritualScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
-  const [gothram, setGothram] = useState('');
-  const [nakshatram, setNakshatram] = useState('');
   const [prefs, setPrefs] = useState<string[]>([]);
 
   const toggle = (item: string) => {
@@ -46,20 +44,6 @@ const SignupSpiritualScreen = () => {
         <View style={styles.fill} />
       </View>
       <Text style={styles.percent}>100%</Text>
-      <Text style={styles.label}>{t('gothram')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('optional')}
-        value={gothram}
-        onChangeText={setGothram}
-      />
-      <Text style={styles.label}>{t('nakshatram')}</Text>
-      <TextInput
-        style={styles.input}
-        placeholder={t('optional')}
-        value={nakshatram}
-        onChangeText={setNakshatram}
-      />
       <Text style={styles.label}>{t('spiritualPreferences')}</Text>
       {PREFS.map(item => (
         <TouchableOpacity key={item} style={styles.pref} onPress={() => toggle(item)}>
@@ -75,8 +59,6 @@ const SignupSpiritualScreen = () => {
           onPress={() =>
             navigation.navigate('SignupPhoto', {
               ...route.params,
-              gothram,
-              nakshatram,
               maritalStatus: route.params?.maritalStatus || 'Bachelor',
               prefs,
             })

@@ -162,10 +162,14 @@ const requestPermission = async () => {
   }
 
   if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
-    const result = await PermissionsAndroid.request(
-      PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-    );
-    return result === PermissionsAndroid.RESULTS.GRANTED;
+    try {
+      const result = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+      return result === PermissionsAndroid.RESULTS.GRANTED;
+    } catch {
+      return false;
+    }
   }
 
   return true;

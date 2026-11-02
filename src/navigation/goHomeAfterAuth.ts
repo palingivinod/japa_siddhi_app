@@ -103,9 +103,8 @@ export const resetAfterSocialAuth = (
   return resetToHomeAfterAuth(navigation);
 };
 
-/** Region or place is still empty. */
-export const regionMissing = (user: any) =>
-  String(user?.region || '').trim().length < 2;
+/** Region or place is optional. */
+export const regionMissing = (_user?: any) => false;
 
 /** Every devotee must save a region or place. OK opens Personal Details. */
 export const promptRegion = (

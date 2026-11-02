@@ -185,7 +185,6 @@ const CompleteProfileScreen = ({
       gender !== '' &&
       country !== null &&
       pinCode.length === 6 &&
-      region.trim().length >= 2 &&
       Boolean(stateModel?.id) &&
       Boolean(cityModel?.id) &&
       acceptedTerms
@@ -256,8 +255,6 @@ const CompleteProfileScreen = ({
       message = t('enterState');
     } else if (!cityModel?.id) {
       message = t('enterCity');
-    } else if (region.trim().length < 2) {
-      message = t('enterRegionPlace');
     } else if (!acceptedTerms) {
       message = t('agreeTermsPrefix');
     }
@@ -284,11 +281,6 @@ const CompleteProfileScreen = ({
         return;
       }
     }
-
-  if (region.trim().length < 2) {
-    Alert.alert(t('required'), t('enterRegionPlace'));
-    return;
-  }
 
   if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
     Alert.alert(t('validation'), t('spouseNameRequiredMarried'));
@@ -691,7 +683,7 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          {t('regionPlace')} *
+          {t('regionPlace')}
         </Text>
         <TextInput
           style={styles.input}

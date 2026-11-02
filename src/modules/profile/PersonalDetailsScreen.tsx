@@ -125,9 +125,6 @@ const PersonalDetailsScreen = () => {
     setGender(data.gender || '');
     setAddress(data.address || '');
     setRegion(String(data.region || '').trim());
-    if (String(data.region || '').trim().length < 2) {
-      setEditing(true);
-    }
     setPinCode(String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6));
     setMaritalStatus(
       data.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
@@ -205,10 +202,6 @@ const PersonalDetailsScreen = () => {
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
       Alert.alert(t('required'), t('enterPinCode'));
-      return;
-    }
-    if (region.trim().length < 2) {
-      Alert.alert(t('required'), t('enterRegionPlace'));
       return;
     }
     if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
@@ -466,7 +459,7 @@ const PersonalDetailsScreen = () => {
         onChange={(item: CityModel) => setCityModel(item)}
       />
 
-      <Text style={styles.label}>{t('regionPlace')} *</Text>
+      <Text style={styles.label}>{t('regionPlace')}</Text>
       <TextInput
         style={styles.input}
         value={region}

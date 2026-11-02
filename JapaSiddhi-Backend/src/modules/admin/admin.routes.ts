@@ -4484,10 +4484,37 @@ router.post('/dob-details/notify', async (req: Request, res: Response) => {
       actionType: 'DOB_WISH',
     });
 
+    let whatsappResult: any = null;
+    if (scheduleRaw === 'Now') {
+      try {
+        const {sendBirthdayWhatsAppWishes} = await import(
+          '../../services/aisensy.service'
+        );
+        whatsappResult = await sendBirthdayWhatsAppWishes({
+          userIds,
+          title,
+          message,
+        });
+      } catch (waErr: any) {
+        console.warn(
+          '[Admin DOB] WhatsApp broadcast error:',
+          waErr?.message || waErr,
+        );
+      }
+    }
+
+    const messageWithWa =
+      whatsappResult?.sentCount && Number(whatsappResult.sentCount) > 0
+        ? `${result.message} & WhatsApp sent to ${whatsappResult.sentCount} devotees.`
+        : result.message;
+
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
       success: true,
-      message: result.message,
-      data: result,
+      message: messageWithWa,
+      data: {
+        ...result,
+        whatsapp: whatsappResult,
+      },
     });
   } catch (error: any) {
     return res.status(error?.statusCode || 500).json({

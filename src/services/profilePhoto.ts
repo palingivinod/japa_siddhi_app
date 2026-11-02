@@ -1,4 +1,10 @@
-import {Alert, Keyboard, NativeModules} from 'react-native';
+import {
+  Alert,
+  Keyboard,
+  NativeModules,
+  PermissionsAndroid,
+  Platform,
+} from 'react-native';
 import {
   launchCamera,
   launchImageLibrary,
@@ -98,6 +104,21 @@ export const pickProfilePhoto = (labels: {
       started = true;
       try {
         assertPickerReady();
+        if (source === 'camera' && Platform.OS === 'android') {
+          try {
+            const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.CAMERA,
+            );
+            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+              fail(new Error('permission'));
+              return;
+            }
+          } catch {
+            // Permission request failed or cancelled
+            fail(new Error('permission'));
+            return;
+          }
+        }
         const result =
           source === 'camera'
             ? await launchCamera(SHARED_OPTIONS)

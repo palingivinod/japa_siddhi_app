@@ -4,7 +4,6 @@ import {
   Alert,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import {useFocusEffect, useRoute} from '@react-navigation/native';
@@ -34,14 +33,10 @@ const SpiritualDetailsScreen = () => {
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
 
-  const [gothram, setGothram] = useState('');
-  const [nakshatram, setNakshatram] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Bachelor' | 'Married'>(
     'Bachelor',
   );
   const [snapshot, setSnapshot] = useState({
-    gothram: '',
-    nakshatram: '',
     maritalStatus: 'Bachelor' as 'Bachelor' | 'Married',
   });
 
@@ -50,14 +45,10 @@ const SpiritualDetailsScreen = () => {
       return;
     }
     const next = {
-      gothram: data.gothram || '',
-      nakshatram: data.nakshatram || '',
       maritalStatus: (data.maritalStatus === 'Married'
         ? 'Married'
         : 'Bachelor') as 'Bachelor' | 'Married',
     };
-    setGothram(next.gothram);
-    setNakshatram(next.nakshatram);
     setMaritalStatus(next.maritalStatus);
     setSnapshot(next);
   };
@@ -87,8 +78,6 @@ const SpiritualDetailsScreen = () => {
   );
 
   const cancelEdit = () => {
-    setGothram(snapshot.gothram);
-    setNakshatram(snapshot.nakshatram);
     setMaritalStatus(snapshot.maritalStatus);
     setEditing(false);
   };
@@ -97,8 +86,6 @@ const SpiritualDetailsScreen = () => {
     setSaving(true);
     try {
       const updated = await ProfileApi.updateProfile({
-        gothram: gothram.trim(),
-        nakshatram: nakshatram.trim(),
         maritalStatus,
       });
 
@@ -136,8 +123,6 @@ const SpiritualDetailsScreen = () => {
   if (!editing) {
     return (
       <ScreenLayout title="Spiritual Details" showBack tab="Profile">
-        <Row label="Gothram" value={gothram} />
-        <Row label="Nakshatram" value={nakshatram} />
         <Row label="Marital status" value={maritalStatus} />
         <PrimaryButton title="EDIT DETAILS" onPress={() => setEditing(true)} />
       </ScreenLayout>
@@ -146,22 +131,6 @@ const SpiritualDetailsScreen = () => {
 
   return (
     <ScreenLayout title="Edit Spiritual Details" showBack tab="Profile">
-      <Text style={styles.label}>{t('gothram')}</Text>
-      <TextInput
-        style={styles.input}
-        value={gothram}
-        onChangeText={setGothram}
-        placeholder={t('enterGothram')}
-      />
-
-      <Text style={styles.label}>{t('nakshatram')}</Text>
-      <TextInput
-        style={styles.input}
-        value={nakshatram}
-        onChangeText={setNakshatram}
-        placeholder={t('enterNakshatram')}
-      />
-
       <Text style={styles.label}>{t('maritalStatus')}</Text>
       <SelectField
         value={maritalStatus}
