@@ -403,12 +403,12 @@ const AdminOrdersScreen = () => {
 
   const deleteOrder = (orderId: string, orderNo: string) => {
     Alert.alert(
-      'Delete order',
-      `Delete ${orderNo}? This permanently removes it from the database.`,
+      'Remove Order',
+      `Remove ${orderNo} from active orders? It will remain saved in database and can be viewed in Order History.`,
       [
         {text: 'Keep order', style: 'cancel'},
         {
-          text: 'Delete',
+          text: 'Remove',
           style: 'destructive',
           onPress: async () => {
             setBusyId(orderId);

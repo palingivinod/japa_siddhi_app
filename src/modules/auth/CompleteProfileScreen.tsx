@@ -683,18 +683,6 @@ const CompleteProfileScreen = ({
         />
 
         <Text style={styles.label}>
-          {t('regionPlace')}
-        </Text>
-        <TextInput
-          style={styles.input}
-          placeholder={t('regionPlaceholder') || 'Your nearest city'}
-          placeholderTextColor={Colors.textSecondary}
-          value={region}
-          onChangeText={setRegion}
-          maxLength={80}
-        />
-
-        <Text style={styles.label}>
           {t('address')}
         </Text>
         <TextInput

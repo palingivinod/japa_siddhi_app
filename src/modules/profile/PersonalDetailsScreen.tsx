@@ -101,7 +101,6 @@ const PersonalDetailsScreen = () => {
   const [gender, setGender] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [address, setAddress] = useState('');
-  const [region, setRegion] = useState('');
   const [maritalStatus, setMaritalStatus] = useState<'Bachelor' | 'Married'>(
     'Bachelor',
   );
@@ -124,7 +123,6 @@ const PersonalDetailsScreen = () => {
     setDobText(formatDobDisplay(isoDob));
     setGender(data.gender || '');
     setAddress(data.address || '');
-    setRegion(String(data.region || '').trim());
     setPinCode(String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6));
     setMaritalStatus(
       data.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
@@ -235,7 +233,6 @@ const PersonalDetailsScreen = () => {
           : undefined,
         address: address.trim(),
         postalCode: pinCode,
-        region: region.trim(),
         maritalStatus,
         spouseName:
           maritalStatus === 'Married' ? spouseName.trim() : '',
@@ -296,7 +293,6 @@ const PersonalDetailsScreen = () => {
         <Row label="Email" value={email} />
         <Row label="Gender" value={gender} />
       <Row label="Location" value={location} />
-        <Row label={t('regionPlace')} value={region} />
         <Row label="Address" value={address} />
         <Row
           label="Language"
@@ -457,16 +453,6 @@ const PersonalDetailsScreen = () => {
         state={stateModel}
         value={cityModel}
         onChange={(item: CityModel) => setCityModel(item)}
-      />
-
-      <Text style={styles.label}>{t('regionPlace')}</Text>
-      <TextInput
-        style={styles.input}
-        value={region}
-        onChangeText={setRegion}
-        placeholder={t('regionPlaceholder') || 'Your nearest city'}
-        placeholderTextColor={Colors.placeholder}
-        maxLength={80}
       />
 
       <Text style={styles.label}>{t('address')}</Text>

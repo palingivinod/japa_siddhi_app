@@ -209,12 +209,15 @@ const AdminOrderHistoryScreen = () => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<HistoryItemFilter>('ALL');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadDeliveredOrders = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiService.get('/admin/orders');
+      const response = await apiService.get('/admin/orders', {
+        params: {includeDeleted: 'true', scope: 'history'},
+      });
       const rows = response.data?.data || [];
       const mapped: AdminOrder[] = rows
         .map((row: any) => ({
@@ -244,6 +247,40 @@ const AdminOrderHistoryScreen = () => {
       setLoading(false);
     }
   }, []);
+
+  const permanentDeleteOrder = (orderId: string, orderNo: string) => {
+    Alert.alert(
+      'Permanent Delete',
+      `Permanently delete ${orderNo} from the database? This will completely remove it from the database and cannot be undone.`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete Forever',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingId(orderId);
+            try {
+              await apiService.delete(`/admin/orders/${orderId}`, {
+                params: {permanent: 'true'},
+              });
+              setOrders(prev => prev.filter(o => o.id !== orderId));
+              Alert.alert(
+                'Deleted',
+                `Order ${orderNo} has been completely removed from database.`,
+              );
+            } catch (err) {
+              Alert.alert(
+                'Delete failed',
+                getApiError(err, 'Could not delete order from database.'),
+              );
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -441,6 +478,23 @@ const AdminOrderHistoryScreen = () => {
                 </View>
               </View>
             ) : null}
+
+            {/* Permanent Delete Action */}
+            <View style={styles.historyActionRow}>
+              <TouchableOpacity
+                style={[
+                  styles.historyDeleteBtn,
+                  deletingId === order.id && styles.btnDisabled,
+                ]}
+                disabled={deletingId === order.id}
+                onPress={() => permanentDeleteOrder(order.id, order.orderNo)}>
+                <Text style={styles.historyDeleteBtnText}>
+                  {deletingId === order.id
+                    ? 'DELETING...'
+                    : 'DELETE FROM DATABASE'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -703,6 +757,30 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  historyActionRow: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#FEE2E2',
+    alignItems: 'flex-end',
+  },
+  historyDeleteBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  historyDeleteBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#DC2626',
+    letterSpacing: 0.3,
+  },
+  btnDisabled: {
+    opacity: 0.5,
   },
   bottomSpacer: {
     height: 30,

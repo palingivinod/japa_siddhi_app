@@ -2818,6 +2818,9 @@ const mapOrderRow = (row: any) => {
     userCode: String(
       row.userCode || (row.userId ? `BPJS${String(row.userId).padStart(2, '0')}` : ''),
     ).trim(),
+    deletedFromOrders: Boolean(
+      row.deletedFromOrders || row.deleted_from_orders,
+    ),
     orderGroup: isRewardOrder(row)
       ? 'reward'
       : isNormalBaanalingamOrder(row)
@@ -2978,10 +2981,34 @@ const ensureOrderCancelColumns = async () => {
   }
 };
 
-router.get('/orders', async (_req: Request, res: Response) => {
+const ensureOrderDeletedColumn = async () => {
+  const alters = [
+    'ALTER TABLE orders ADD COLUMN deleted_from_orders TINYINT(1) DEFAULT 0',
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // Column already exists.
+    }
+  }
+};
+
+router.get('/orders', async (req: Request, res: Response) => {
   try {
     await ensureOrderCancelColumns();
     await ensureOrderDetailJoins();
+    await ensureOrderDeletedColumn();
+
+    const includeDeleted =
+      req.query.includeDeleted === 'true' ||
+      req.query.scope === 'history' ||
+      req.query.includeAll === 'true';
+
+    const whereClause = includeDeleted
+      ? ''
+      : 'WHERE IFNULL(o.deleted_from_orders, 0) = 0';
+
     const rows = await mysql.query<any[]>(`
       SELECT
         o.id,
@@ -3000,6 +3027,7 @@ router.get('/orders', async (_req: Request, res: Response) => {
         o.cancel_reason AS cancelReason,
         o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
+        IFNULL(o.deleted_from_orders, 0) AS deletedFromOrders,
         IFNULL(u.full_name, 'Devotee') AS customerName,
         u.mobile_country_code AS customerMobileCode,
         u.mobile_number AS customerMobile,
@@ -3022,6 +3050,7 @@ router.get('/orders', async (_req: Request, res: Response) => {
       LEFT JOIN users u ON u.id = o.user_id
       LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
       LEFT JOIN milestone_reward_claims mrc ON mrc.order_id = o.id
+      ${whereClause}
       ORDER BY o.user_id ASC, o.id DESC
     `);
     return res.json({
@@ -3352,6 +3381,11 @@ router.delete('/orders/:id', async (req: Request, res: Response) => {
     if (!id) {
       return res.status(400).json({success: false, message: 'Invalid order id.'});
     }
+    const permanent =
+      req.query.permanent === 'true' ||
+      req.query.hard === 'true' ||
+      req.query.scope === 'history';
+
     const existing = await mysql.query<any[]>(
       `SELECT id, order_status AS orderStatus FROM orders WHERE id = ? LIMIT 1`,
       [id],
@@ -3359,19 +3393,38 @@ router.delete('/orders/:id', async (req: Request, res: Response) => {
     if (!existing?.length) {
       return res.status(404).json({success: false, message: 'Order not found.'});
     }
-    for (const sql of [
-      'DELETE FROM bana_lingam WHERE order_id = ?',
-      'DELETE FROM challenge_reward_claims WHERE order_id = ?',
-      'DELETE FROM milestone_reward_claims WHERE order_id = ?',
-    ]) {
-      try {
-        await mysql.query(sql, [id]);
-      } catch {
-        // Related table may not exist on older databases.
+
+    if (permanent) {
+      // Permanent hard delete from database completely (used in Order History)
+      for (const sql of [
+        'DELETE FROM bana_lingam WHERE order_id = ?',
+        'DELETE FROM challenge_reward_claims WHERE order_id = ?',
+        'DELETE FROM milestone_reward_claims WHERE order_id = ?',
+      ]) {
+        try {
+          await mysql.query(sql, [id]);
+        } catch {
+          // Related table may not exist on older databases.
+        }
       }
+      await mysql.query('DELETE FROM orders WHERE id = ?', [id]);
+      return res.json({
+        success: true,
+        message: 'Order permanently deleted from database.',
+      });
     }
-    await mysql.query('DELETE FROM orders WHERE id = ?', [id]);
-    return res.json({success: true, message: 'Order deleted.'});
+
+    // Soft delete: remove from active Order Management, but KEEP in database for Order History
+    await ensureOrderDeletedColumn();
+    await mysql.query(
+      'UPDATE orders SET deleted_from_orders = 1, updated_at = NOW() WHERE id = ?',
+      [id],
+    );
+    return res.json({
+      success: true,
+      message:
+        'Order removed from active orders and retained in Order History.',
+    });
   } catch (error: any) {
     return res.status(500).json({
       success: false,
