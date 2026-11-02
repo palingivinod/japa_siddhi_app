@@ -2983,13 +2983,16 @@ const ensureOrderCancelColumns = async () => {
 
 const ensureOrderDeletedColumn = async () => {
   const alters = [
-    'ALTER TABLE orders ADD COLUMN deleted_from_orders TINYINT(1) DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_from_orders INTEGER DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN deleted_from_orders INTEGER DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN deleted_from_orders INT DEFAULT 0',
   ];
   for (const sql of alters) {
     try {
       await mysql.query(sql);
+      break;
     } catch {
-      // Column already exists.
+      // Column already exists or trying alternate syntax.
     }
   }
 };
@@ -3000,14 +3003,28 @@ router.get('/orders', async (req: Request, res: Response) => {
     await ensureOrderDetailJoins();
     await ensureOrderDeletedColumn();
 
+    // Check dynamically if deleted_from_orders column exists on table
+    let hasDeletedCol = false;
+    try {
+      await mysql.query('SELECT deleted_from_orders FROM orders LIMIT 1');
+      hasDeletedCol = true;
+    } catch {
+      hasDeletedCol = false;
+    }
+
     const includeDeleted =
       req.query.includeDeleted === 'true' ||
       req.query.scope === 'history' ||
       req.query.includeAll === 'true';
 
-    const whereClause = includeDeleted
-      ? ''
-      : 'WHERE IFNULL(o.deleted_from_orders, 0) = 0';
+    const whereClause =
+      !includeDeleted && hasDeletedCol
+        ? 'WHERE COALESCE(o.deleted_from_orders, 0) = 0'
+        : '';
+
+    const deletedSelect = hasDeletedCol
+      ? 'COALESCE(o.deleted_from_orders, 0) AS deletedFromOrders'
+      : '0 AS deletedFromOrders';
 
     const rows = await mysql.query<any[]>(`
       SELECT
@@ -3027,7 +3044,7 @@ router.get('/orders', async (req: Request, res: Response) => {
         o.cancel_reason AS cancelReason,
         o.cancelled_by AS cancelledBy,
         o.created_at AS createdAt,
-        IFNULL(o.deleted_from_orders, 0) AS deletedFromOrders,
+        ${deletedSelect},
         IFNULL(u.full_name, 'Devotee') AS customerName,
         u.mobile_country_code AS customerMobileCode,
         u.mobile_number AS customerMobile,
@@ -3417,7 +3434,7 @@ router.delete('/orders/:id', async (req: Request, res: Response) => {
     // Soft delete: remove from active Order Management, but KEEP in database for Order History
     await ensureOrderDeletedColumn();
     await mysql.query(
-      'UPDATE orders SET deleted_from_orders = 1, updated_at = NOW() WHERE id = ?',
+      'UPDATE orders SET deleted_from_orders = 1 WHERE id = ?',
       [id],
     );
     return res.json({

@@ -984,6 +984,9 @@ class PostgresEngine {
     await this.pool.query(PG_SCHEMA_SQL);
     try {
       await this.pool.query(`
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_from_orders INTEGER DEFAULT 0;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note TEXT;
+        ALTER TABLE orders ADD COLUMN IF NOT EXISTS admin_note_at TEXT;
         ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_name TEXT;
         ALTER TABLE donations ADD COLUMN IF NOT EXISTS donor_phone TEXT;
         ALTER TABLE donations ADD COLUMN IF NOT EXISTS prefer_date TEXT;
