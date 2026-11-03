@@ -1067,8 +1067,8 @@ export const startNotificationReminderScheduler = () => {
         .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
         .catch(() => undefined);
       import('./advanceBirthdayReminder.service')
-        .then(({checkAndRunScheduledAdvanceBirthdaySweep}) =>
-          checkAndRunScheduledAdvanceBirthdaySweep(),
+        .then(({checkAndRunScheduledBirthdaySweeps}) =>
+          checkAndRunScheduledBirthdaySweeps(),
         )
         .catch(() => undefined);
     }, 60 * 1000);

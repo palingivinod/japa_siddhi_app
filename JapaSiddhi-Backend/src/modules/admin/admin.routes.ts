@@ -4665,6 +4665,32 @@ router.post('/birthdays/advance-trigger', async (req: Request, res: Response) =>
   }
 });
 
+/** Preview today's 7:00 AM birthdays (dry-run without sending) in IST */
+router.get('/birthdays/today-preview', async (req: Request, res: Response) => {
+  try {
+    const { runTodayBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');
+    const result = await runTodayBirthdaySweep({ dryRun: true });
+    return res.json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error?.message || 'Failed to preview today birthdays.' });
+  }
+});
+
+/** Manually trigger today's 7:00 AM birthday sweep with all_birthday_wishes in IST */
+router.post('/birthdays/today-trigger', async (req: Request, res: Response) => {
+  try {
+    const { runTodayBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');
+    const result = await runTodayBirthdaySweep({ dryRun: false });
+    return res.json({
+      success: true,
+      message: `Today birthday sweep completed: ${result.sentInApp} In-App, ${result.sentWhatsApp} WhatsApp.`,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error?.message || 'Failed to trigger today birthdays.' });
+  }
+});
+
 router.get('/reports/export', async (req: Request, res: Response) => {
   try {
     await mysql.query('SELECT 1');
