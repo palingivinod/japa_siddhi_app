@@ -41,7 +41,14 @@ export function normalizeTranslationOutput(text: string): string {
       break;
     }
   }
-  return out.replace(/\s+/g, ' ').trim();
+  // Normalize line breaks and preserve paragraph spacing (do NOT collapse \n to space)
+  return out
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[^\S\r\n]+/g, ' ')
+    .replace(/[^\S\r\n]*\n[^\S\r\n]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 const hasIndicScript = (text: string) =>

@@ -317,7 +317,18 @@ const sanitizeNotifyText = (val: any) => {
       break;
     }
   }
-  return out.replace(/\s+/g, ' ').trim();
+  // Normalize line breaks and preserve paragraph spacing (do NOT collapse \n to space)
+  return out
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .replace(/[^\S\r\n]+/g, ' ')
+    .replace(/[^\S\r\n]*\n[^\S\r\n]*/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
+
+const sanitizeNotifyTitle = (val: any) => {
+  return sanitizeNotifyText(val).replace(/\n+/g, ' ').trim();
 };
 
 /**
@@ -660,7 +671,7 @@ export const deliverAdminNotification = async (input: {
     // Admin: clean tray text — no "Announcement" labels.
     // Title = admin subject, body = admin message only.
     const subject =
-      sanitizeNotifyText(userTrans.title || input.title) || 'Update';
+      sanitizeNotifyTitle(userTrans.title || input.title) || 'Update';
     const detail = sanitizeNotifyText(userTrans.message || input.message);
     const pushTitle = subject;
     const pushBody = detail || subject;
@@ -707,7 +718,7 @@ export const deliverAdminNotification = async (input: {
   for (const [langCode, tokens] of Object.entries(tokensByLang)) {
     const langTrans = parsedTrans[langCode] || parsedTrans['en'] || {};
     const subject =
-      sanitizeNotifyText(langTrans.title || input.title) || 'Update';
+      sanitizeNotifyTitle(langTrans.title || input.title) || 'Update';
     const detail = sanitizeNotifyText(langTrans.message || input.message);
     const pushTitle = subject;
     const pushBody = detail || subject;

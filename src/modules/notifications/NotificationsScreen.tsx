@@ -210,6 +210,34 @@ const renderTextWithLinks = (text: string, baseStyle?: any) => {
   );
 };
 
+const renderParagraphsWithLinks = (text: string, baseStyle?: any) => {
+  if (!text) {
+    return null;
+  }
+  const paragraphs = text.split(/\r?\n\r?\n+/);
+  if (paragraphs.length <= 1) {
+    return renderTextWithLinks(text, baseStyle);
+  }
+
+  return (
+    <View style={styles.paragraphsBlock}>
+      {paragraphs.map((p, pIdx) => {
+        const trimmed = p.trim();
+        if (!trimmed) {
+          return null;
+        }
+        return (
+          <View
+            key={`p-${pIdx}`}
+            style={pIdx > 0 ? styles.paragraphSpacing : undefined}>
+            {renderTextWithLinks(trimmed, [baseStyle, {marginTop: 0}])}
+          </View>
+        );
+      })}
+    </View>
+  );
+};
+
 const NotificationsScreen = () => {
   const route = useRoute<any>();
   const {t, tt, language} = useLanguage();
@@ -541,7 +569,7 @@ const NotificationsScreen = () => {
                       )
                     ) : null}
                     {bodyLine ? (
-                      renderTextWithLinks(bodyLine, styles.subtitle)
+                      renderParagraphsWithLinks(bodyLine, styles.subtitle)
                     ) : null}
                     {noteImage ? (
                       <TouchableOpacity
@@ -875,5 +903,11 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     fontSize: 13,
     fontWeight: '700',
+  },
+  paragraphsBlock: {
+    marginTop: 4,
+  },
+  paragraphSpacing: {
+    marginTop: 10,
   },
 });
