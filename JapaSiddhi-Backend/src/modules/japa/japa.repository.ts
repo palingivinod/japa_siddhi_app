@@ -605,6 +605,23 @@ class JapaRepository {
           data.autoLockOn ?? current.autoLockOn ?? 1,
         ],
       );
+      if (data.languageCode) {
+        try {
+          const langRows = await mysql.query<any[]>(
+            `SELECT id FROM languages WHERE LOWER(code) = LOWER(?) LIMIT 1`,
+            [data.languageCode],
+          );
+          const langId = langRows[0]?.id ? Number(langRows[0].id) : null;
+          if (langId) {
+            await mysql.query(
+              `UPDATE users SET preferred_language_id = ? WHERE id = ?`,
+              [langId, userId],
+            );
+          }
+        } catch {
+          // Keep resilient
+        }
+      }
     } catch (error: any) {
       const message = String(error?.message || '');
       if (message.toLowerCase().includes('no such table: user_settings')) {

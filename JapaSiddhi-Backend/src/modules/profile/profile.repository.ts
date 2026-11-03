@@ -219,6 +219,23 @@ class ProfileRepository {
         userId,
       ],
     );
+    if (data.preferredLanguageId) {
+      try {
+        const langRows = await mysql.query<any[]>(
+          `SELECT code FROM languages WHERE id = ? LIMIT 1`,
+          [data.preferredLanguageId],
+        );
+        const code = String(langRows[0]?.code || '').trim().toLowerCase();
+        if (code) {
+          await mysql.query(
+            `UPDATE user_settings SET language_code = ? WHERE user_id = ?`,
+            [code, userId],
+          );
+        }
+      } catch {
+        // Keep resilient
+      }
+    }
   }
 
   async updatePhoto(userId: number, profilePhoto: string): Promise<void> {

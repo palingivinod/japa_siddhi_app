@@ -662,6 +662,23 @@ export const deliverAdminNotification = async (input: {
   const tokensByLang: Record<string, string[]> = {};
   let inboxCreated = 0;
 
+  // Build clean, sanitized translation map so mobile in-app list can dynamically switch language
+  const cleanTranslations: Record<string, {title: string; message: string}> = {};
+  Object.entries(parsedTrans).forEach(([code, trans]: [string, any]) => {
+    if (trans && (trans.title || trans.message)) {
+      cleanTranslations[code] = {
+        title: sanitizeNotifyTitle(trans.title || ''),
+        message: sanitizeNotifyText(trans.message || ''),
+      };
+    }
+  });
+  if (!cleanTranslations.en && (input.title || input.message)) {
+    cleanTranslations.en = {
+      title: sanitizeNotifyTitle(input.title || ''),
+      message: sanitizeNotifyText(input.message || ''),
+    };
+  }
+
   for (const user of recipients || []) {
     const userId = Number(user.id);
     if (!userId) continue;
@@ -686,6 +703,7 @@ export const deliverAdminNotification = async (input: {
         pushBody,
         ...(imageUrl ? {imageUrl} : {}),
         ...(extractedUrl ? {url: extractedUrl, link: extractedUrl} : {}),
+        ...(Object.keys(cleanTranslations).length ? {translations: cleanTranslations} : {}),
         ...(input.extraData || {}),
       };
       await notificationService.create({

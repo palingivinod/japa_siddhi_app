@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 
 import {getLanguage, saveLanguage} from '../services/language';
+import {setTokenListener} from '../services/session';
 import apiService from '../services/apiService';
 import {
   DEFAULT_LANG,
@@ -48,6 +49,21 @@ export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({
         setLanguage(resolveLanguage(code));
       })
       .finally(() => setReady(true));
+  }, []);
+
+  // Sync phone's active language to server whenever authenticated (on launch / login)
+  useEffect(() => {
+    const unsub = setTokenListener(token => {
+      if (token) {
+        getLanguage().then(code => {
+          const current = resolveLanguage(code);
+          apiService
+            .put('/profile/settings', {languageCode: current})
+            .catch(() => undefined);
+        });
+      }
+    });
+    return unsub;
   }, []);
 
   const setAppLanguage = useCallback(async (code: string) => {
