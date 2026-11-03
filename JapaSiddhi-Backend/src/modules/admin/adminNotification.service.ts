@@ -644,6 +644,9 @@ export const deliverAdminNotification = async (input: {
       ? Number(input.actionId)
       : null;
   const imageUrl = String(input.imageUrl || '').trim();
+  const extractedUrl =
+    String(input.message || '').match(/https?:\/\/[^\s]+/i)?.[0] ||
+    String(input.extraData?.url || input.extraData?.link || '');
 
   const tokensByLang: Record<string, string[]> = {};
   let inboxCreated = 0;
@@ -671,6 +674,7 @@ export const deliverAdminNotification = async (input: {
         pushTitle,
         pushBody,
         ...(imageUrl ? {imageUrl} : {}),
+        ...(extractedUrl ? {url: extractedUrl, link: extractedUrl} : {}),
         ...(input.extraData || {}),
       };
       await notificationService.create({
@@ -716,6 +720,7 @@ export const deliverAdminNotification = async (input: {
         ...buildRoutingPushExtra(actionType, actionId, input.extraData),
         mantraName: subject,
         ...(imageUrl ? {imageUrl} : {}),
+        ...(extractedUrl ? {url: extractedUrl, link: extractedUrl} : {}),
       },
       Boolean(input.bypassHours),
     );

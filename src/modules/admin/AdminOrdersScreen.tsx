@@ -316,6 +316,8 @@ const AdminOrdersScreen = () => {
         cancelledBy: row.cancelledBy || '',
         userId: Number(row.userId || 0) || null,
         userCode: String(row.userCode || '').trim(),
+        userReceived: Boolean(row.userReceived ?? row.user_received),
+        userReceivedAt: row.userReceivedAt || row.user_received_at || '',
       }));
       setOrders(mapped);
       setNoteDrafts(prev => {
@@ -869,14 +871,27 @@ const AdminOrdersScreen = () => {
                   <Text style={styles.reason}>Reason: {order.cancelReason}</Text>
                 ) : null}
               </View>
-              <View
-                style={[
-                  styles.pill,
-                  {borderColor: tone.border, backgroundColor: tone.bg},
-                ]}>
-                <Text style={[styles.pillText, {color: tone.text}]}>
-                  {order.status}
-                </Text>
+              <View style={styles.statusCol}>
+                <View
+                  style={[
+                    styles.pill,
+                    {borderColor: tone.border, backgroundColor: tone.bg},
+                  ]}>
+                  <Text style={[styles.pillText, {color: tone.text}]}>
+                    {order.status}
+                  </Text>
+                </View>
+                {order.status === 'Delivered' ? (
+                  order.userReceived ? (
+                    <View style={styles.userConfirmedBadge}>
+                      <Text style={styles.userConfirmedText}>From user: Delivered ✓</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.userPendingBadge}>
+                      <Text style={styles.userPendingText}>From user: Pending</Text>
+                    </View>
+                  )
+                ) : null}
               </View>
             </TouchableOpacity>
 
@@ -1323,6 +1338,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
   },
+  statusCol: {
+    alignItems: 'flex-end',
+  },
   pill: {
     borderRadius: 20,
     borderWidth: 1,
@@ -1330,6 +1348,34 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   pillText: {fontWeight: '800', fontSize: 12},
+  userConfirmedBadge: {
+    marginTop: 6,
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  userConfirmedText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  userPendingBadge: {
+    marginTop: 6,
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  userPendingText: {
+    color: '#B45309',
+    fontSize: 11,
+    fontWeight: '700',
+  },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',

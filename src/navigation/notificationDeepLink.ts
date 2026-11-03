@@ -42,6 +42,30 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     apiService.put(`/notifications/${notificationId}/read`).catch(() => undefined);
   }
 
+  const rawUrl = str(data.url || data.link || data.webUrl);
+  const textBlob = `${data.message || ''} ${data.body || ''}`;
+  const extractedUrl = rawUrl || textBlob.match(/https?:\/\/[^\s]+/i)?.[0];
+
+  if (
+    extractedUrl &&
+    /^https?:\/\//i.test(extractedUrl) &&
+    action !== 'ORDER_STATUS' &&
+    action !== 'CHALLENGE_DEADLINE' &&
+    action !== 'DAILY_JAPA_PENDING'
+  ) {
+    let cleanUrl = extractedUrl;
+    while (/[.,!?)]$/.test(cleanUrl)) {
+      cleanUrl = cleanUrl.slice(0, -1);
+    }
+    Linking.openURL(cleanUrl).catch(() => {
+      navigateTo(
+        'Notifications',
+        notificationId ? {highlightId: notificationId} : undefined,
+      );
+    });
+    return;
+  }
+
   if (action === 'JAPA_MILESTONE') {
     navigateTo('MilestoneNotifications');
     return;

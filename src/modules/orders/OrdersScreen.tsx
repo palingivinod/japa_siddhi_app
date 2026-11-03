@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   StyleSheet,
   Text,
@@ -100,6 +101,8 @@ const OrdersScreen = () => {
   const [reason, setReason] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [cancelError, setCancelError] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -145,6 +148,68 @@ const OrdersScreen = () => {
     }
   };
 
+  const confirmDelete = (item: any) => {
+    Alert.alert(
+      t('delete') || 'Delete',
+      'Are you sure you want to delete this order from your list?',
+      [
+        {text: t('cancel') || 'Cancel', style: 'cancel'},
+        {
+          text: t('delete') || 'Delete',
+          style: 'destructive',
+          onPress: () => void deleteOrder(item.id),
+        },
+      ],
+    );
+  };
+
+  const deleteOrder = async (id: number) => {
+    setDeletingId(id);
+    try {
+      await apiService.delete(`/orders/${id}`);
+      setOrders(prev => prev.filter(order => order.id !== id));
+    } catch (err) {
+      Alert.alert(
+        t('deleteFailed') || 'Delete Failed',
+        getApiError(err, 'Could not delete order.'),
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const confirmReceived = (orderItem: any) => {
+    Alert.alert(
+      'Confirm Delivery',
+      'Have you received your order package safely?',
+      [
+        {text: t('cancel') || 'Cancel', style: 'cancel'},
+        {
+          text: 'Yes, I Received It',
+          style: 'default',
+          onPress: async () => {
+            setConfirmingId(orderItem.id);
+            try {
+              await apiService.put(`/orders/${orderItem.id}/received`);
+              setOrders(prev =>
+                prev.map(o =>
+                  o.id === orderItem.id
+                    ? {...o, userReceived: true, user_received: 1}
+                    : o,
+                ),
+              );
+              Alert.alert('Delivery Confirmed', 'Thank you for confirming receipt of your order!');
+            } catch (err) {
+              Alert.alert('Error', getApiError(err, 'Could not confirm order receipt.'));
+            } finally {
+              setConfirmingId(null);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const visible = useMemo(() => {
     if (tab === 'All') {
       return orders;
@@ -186,7 +251,10 @@ const OrdersScreen = () => {
         const isHoma = itemText.includes('homa bhasma') || itemText.includes('hb0');
         const isBirava = itemText.includes('birava') || itemText.includes('bp0');
         const rawStatus = statusOf(item);
+        const isDelivered = isDeliveredStatus(rawStatus);
+        const userReceived = Boolean(item.userReceived || item.user_received);
         const canCancel = !rawStatus.includes('deliver') && !rawStatus.includes('cancel');
+        const canDelete = isDeliveredStatus(rawStatus) || isCancelledStatus(rawStatus);
 
         return (
           <View key={item.id} style={styles.card}>
@@ -213,6 +281,21 @@ const OrdersScreen = () => {
               </Text>
             </View>
             <View style={styles.actions}>
+              {isDelivered && !userReceived ? (
+                <TouchableOpacity
+                  style={styles.receivedBtn}
+                  disabled={confirmingId === item.id}
+                  onPress={() => confirmReceived(item)}>
+                  <Text style={styles.receivedBtnText}>
+                    {confirmingId === item.id ? t('loading') : 'I received my order'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+              {isDelivered && userReceived ? (
+                <View style={styles.receivedBadge}>
+                  <Text style={styles.receivedBadgeText}>✓ Received</Text>
+                </View>
+              ) : null}
               {canCancel ? (
                 <TouchableOpacity
                   style={styles.cancel}
@@ -222,6 +305,16 @@ const OrdersScreen = () => {
                     setCancelError('');
                   }}>
                   <Text style={styles.cancelText}>{t('cancelOrder')}</Text>
+                </TouchableOpacity>
+              ) : null}
+              {canDelete ? (
+                <TouchableOpacity
+                  style={styles.delete}
+                  disabled={deletingId === item.id}
+                  onPress={() => confirmDelete(item)}>
+                  <Text style={styles.deleteText}>
+                    {deletingId === item.id ? t('loading') : t('delete')}
+                  </Text>
                 </TouchableOpacity>
               ) : null}
               <TouchableOpacity
@@ -327,14 +420,53 @@ const styles = StyleSheet.create({
   copy: {flex: 1},
   name: {fontSize: 15, fontWeight: '800', color: Colors.sacredBrown},
   meta: {marginTop: 4, color: '#4A3B2C', fontSize: 13, lineHeight: 18},
-  actions: {alignItems: 'flex-end', gap: 8},
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  receivedBtn: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+  },
+  receivedBtnText: {
+    color: '#15803D',
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  receivedBadge: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  receivedBadgeText: {
+    color: '#15803D',
+    fontWeight: '700',
+    fontSize: 11,
+  },
   cancel: {
     backgroundColor: '#FEE2E2',
     borderRadius: 10,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
   },
   cancelText: {color: '#B91C1C', fontWeight: '800', fontSize: 12},
+  delete: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  deleteText: {color: '#B91C1C', fontWeight: '800'},
   view: {
     backgroundColor: Colors.lightGold,
     borderRadius: 10,

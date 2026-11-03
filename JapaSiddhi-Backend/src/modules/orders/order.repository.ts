@@ -13,6 +13,48 @@ import {
 class OrderRepository {
   private statusEventsReady = false;
 
+  async ensureUserDeletedColumn(): Promise<void> {
+    for (const sql of [
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS deleted_by_user INTEGER DEFAULT 0',
+      'ALTER TABLE orders ADD COLUMN deleted_by_user INTEGER DEFAULT 0',
+      'ALTER TABLE orders ADD COLUMN deleted_by_user INT DEFAULT 0',
+    ]) {
+      try {
+        await mysql.query(sql);
+        break;
+      } catch {
+        // Ignored if column already exists.
+      }
+    }
+  }
+
+  async ensureUserReceivedColumn(): Promise<void> {
+    for (const sql of [
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_received INTEGER DEFAULT 0',
+      'ALTER TABLE orders ADD COLUMN user_received INTEGER DEFAULT 0',
+      'ALTER TABLE orders ADD COLUMN user_received INT DEFAULT 0',
+    ]) {
+      try {
+        await mysql.query(sql);
+        break;
+      } catch {
+        // Ignored if column already exists.
+      }
+    }
+    for (const sql of [
+      'ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_received_at TEXT NULL',
+      'ALTER TABLE orders ADD COLUMN user_received_at TIMESTAMP NULL',
+      'ALTER TABLE orders ADD COLUMN user_received_at DATETIME NULL',
+    ]) {
+      try {
+        await mysql.query(sql);
+        break;
+      } catch {
+        // Ignored if column already exists.
+      }
+    }
+  }
+
   async ensureCancelColumns(): Promise<void> {
     for (const sql of [
       'ALTER TABLE orders ADD COLUMN cancel_reason TEXT NULL',
@@ -341,6 +383,10 @@ class OrderRepository {
 
           remarks,
 
+          COALESCE(user_received, 0) AS userReceived,
+
+          user_received_at AS userReceivedAt,
+
           created_at AS createdAt,
 
           updated_at AS updatedAt
@@ -365,6 +411,8 @@ class OrderRepository {
   ) {
 
     await this.ensureCancelColumns();
+    await this.ensureUserDeletedColumn();
+    await this.ensureUserReceivedColumn();
     return mysql.query<any[]>(
       `
       SELECT
@@ -391,12 +439,17 @@ class OrderRepository {
 
         cancelled_by AS cancelledBy,
 
+        COALESCE(user_received, 0) AS userReceived,
+
+        user_received_at AS userReceivedAt,
+
         created_at AS createdAt
 
       FROM orders
 
       WHERE user_id = ?
         AND order_type <> 'NITHYA_HOMAM'
+        AND COALESCE(deleted_by_user, 0) = 0
       ORDER BY created_at DESC
       `,
       [
@@ -438,10 +491,11 @@ class OrderRepository {
   async markReceivedByUser(
     id: number,
     userId: number,
-  ): Promise<'ok' | 'missing' | 'not_shipped' | 'delivered' | 'cancelled'> {
+  ): Promise<'ok' | 'missing' | 'already_received' | 'not_eligible' | 'cancelled'> {
+    await this.ensureUserReceivedColumn();
     const rows = await mysql.query<any[]>(
       `
-      SELECT order_status AS orderStatus
+      SELECT order_status AS orderStatus, COALESCE(user_received, 0) AS userReceived
       FROM orders
       WHERE id = ? AND user_id = ?
       LIMIT 1
@@ -452,20 +506,23 @@ class OrderRepository {
       return 'missing';
     }
     const status = String(rows[0].orderStatus || '').toUpperCase();
-    if (status === 'DELIVERED') {
-      return 'delivered';
+    if (rows[0].userReceived) {
+      return 'already_received';
     }
     if (status === 'CANCELLED') {
       return 'cancelled';
     }
-    if (status !== 'SHIPPED') {
-      return 'not_shipped';
+    // Allow delivery confirmation if order status is DELIVERED or SHIPPED
+    if (!status.includes('DELIVER') && !status.includes('SHIP')) {
+      return 'not_eligible';
     }
     await mysql.query(
       `
       UPDATE orders
       SET
         order_status = 'DELIVERED',
+        user_received = 1,
+        user_received_at = CURRENT_TIMESTAMP,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ? AND user_id = ?
       `,
@@ -485,6 +542,7 @@ class OrderRepository {
     reason: string,
   ): Promise<'ok' | 'missing' | 'delivered' | 'cancelled'> {
     await this.ensureCancelColumns();
+    await this.ensureUserDeletedColumn();
     const rows = await mysql.query<any[]>(
       `
       SELECT order_status AS orderStatus
@@ -535,6 +593,38 @@ class OrderRepository {
     } catch {
       // Non-fatal.
     }
+    return 'ok';
+  }
+
+  async deleteForUser(
+    id: number,
+    userId: number,
+  ): Promise<'ok' | 'missing' | 'not_allowed'> {
+    await this.ensureUserDeletedColumn();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT order_status AS orderStatus
+      FROM orders
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    if (!rows?.length) {
+      return 'missing';
+    }
+    const status = String(rows[0].orderStatus || '').toUpperCase();
+    if (!status.includes('DELIVER') && !status.includes('CANCEL')) {
+      return 'not_allowed';
+    }
+    await mysql.query(
+      `
+      UPDATE orders
+      SET deleted_by_user = 1
+      WHERE id = ? AND user_id = ?
+      `,
+      [id, userId],
+    );
     return 'ok';
   }
 

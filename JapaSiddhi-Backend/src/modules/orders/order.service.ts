@@ -269,7 +269,10 @@ class OrderService {
         currentStatus,
         eta: addDaysFrom(lastKnown, 4),
         steps,
-        canMarkReceived: status === 'SHIPPED',
+        canMarkReceived:
+          (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,
+        userReceived: Boolean(order.userReceived),
+        userReceivedAt: order.userReceivedAt || null,
       };
     }
 
@@ -356,12 +359,19 @@ class OrderService {
                 : 'Under Review',
       eta: addDaysFrom(lastKnown, 4),
       steps,
-      canMarkReceived: status === 'SHIPPED',
+      canMarkReceived:
+        (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,
+      userReceived: Boolean(order.userReceived),
+      userReceivedAt: order.userReceivedAt || null,
     };
   }
 
   async markReceivedByUser(id: number, userId: number) {
     return orderRepository.markReceivedByUser(id, userId);
+  }
+
+  async deleteForUser(id: number, userId: number) {
+    return orderRepository.deleteForUser(id, userId);
   }
 
   async cancelForUser(id: number, userId: number, reason: string) {

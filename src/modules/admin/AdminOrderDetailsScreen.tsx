@@ -59,6 +59,8 @@ type OrderDetail = {
     gothram?: string;
     nakshatram?: string;
   };
+  userReceived?: boolean;
+  userReceivedAt?: string;
 };
 
 const formatWhen = (raw?: string | null): string => {
@@ -187,6 +189,8 @@ const AdminOrderDetailsScreen = () => {
     userId: data.userId || null,
     challengeId: data.challengeId || null,
     rewardName: data.rewardName || null,
+    userReceived: Boolean(data.userReceived ?? data.user_received),
+    userReceivedAt: data.userReceivedAt || data.user_received_at || '',
     delivery: data.delivery || {},
   });
 
@@ -454,6 +458,16 @@ const AdminOrderDetailsScreen = () => {
               <DetailRow label="Payment status" value={order.paymentStatus} />
             ) : null}
             <DetailRow label="Order status" value={order.status} />
+            {order.status === 'Delivered' ? (
+              <DetailRow
+                label="Devotee receipt"
+                value={
+                  order.userReceived
+                    ? `Delivered ✓ (Confirmed by devotee${order.userReceivedAt ? ` at ${order.userReceivedAt}` : ''})`
+                    : 'Pending confirmation from devotee'
+                }
+              />
+            ) : null}
             {order.cancelReason ? (
               <DetailRow label="Cancel reason" value={order.cancelReason} />
             ) : null}

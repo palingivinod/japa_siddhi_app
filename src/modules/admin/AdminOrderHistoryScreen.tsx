@@ -235,6 +235,8 @@ const AdminOrderHistoryScreen = () => {
           mobileNumber: String(row.mobileNumber || '').trim(),
           remarks: row.remarks || '',
           createdAt: row.createdAt || '',
+          userReceived: Boolean(row.userReceived ?? row.user_received),
+          userReceivedAt: row.userReceivedAt || row.user_received_at || '',
         }))
         // Only delivered orders belong in Order History
         .filter((o: AdminOrder) => o.status === 'Delivered');
@@ -455,8 +457,19 @@ const AdminOrderHistoryScreen = () => {
                 ) : null}
               </View>
 
-              <View style={styles.statusPill}>
-                <Text style={styles.statusPillText}>✓ DELIVERED</Text>
+              <View style={styles.statusCol}>
+                <View style={styles.statusPill}>
+                  <Text style={styles.statusPillText}>✓ DELIVERED</Text>
+                </View>
+                {order.userReceived ? (
+                  <View style={styles.userConfirmedBadge}>
+                    <Text style={styles.userConfirmedText}>From user: Delivered ✓</Text>
+                  </View>
+                ) : (
+                  <View style={styles.userPendingBadge}>
+                    <Text style={styles.userPendingText}>From user: Pending</Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -708,6 +721,9 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
     marginTop: 4,
   },
+  statusCol: {
+    alignItems: 'flex-end',
+  },
   statusPill: {
     backgroundColor: '#DCFCE7',
     borderColor: '#16A34A',
@@ -720,6 +736,34 @@ const styles = StyleSheet.create({
     color: '#15803D',
     fontSize: 11,
     fontWeight: '800',
+  },
+  userConfirmedBadge: {
+    marginTop: 6,
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  userConfirmedText: {
+    color: '#15803D',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  userPendingBadge: {
+    marginTop: 6,
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+  },
+  userPendingText: {
+    color: '#B45309',
+    fontSize: 11,
+    fontWeight: '700',
   },
   contactRow: {
     marginTop: 12,

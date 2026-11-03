@@ -2821,6 +2821,8 @@ const mapOrderRow = (row: any) => {
     deletedFromOrders: Boolean(
       row.deletedFromOrders || row.deleted_from_orders,
     ),
+    userReceived: Boolean(row.userReceived || row.user_received),
+    userReceivedAt: cleanTimestamp(row.userReceivedAt || row.user_received_at) || '',
     orderGroup: isRewardOrder(row)
       ? 'reward'
       : isNormalBaanalingamOrder(row)
@@ -2932,6 +2934,8 @@ const orderDetailSelect = `
     o.remarks,
     o.cancel_reason AS cancelReason,
     o.cancelled_by AS cancelledBy,
+    COALESCE(o.user_received, 0) AS userReceived,
+    o.user_received_at AS userReceivedAt,
     o.created_at AS createdAt,
     o.updated_at AS updatedAt,
     IFNULL(u.full_name, 'Devotee') AS customerName,
@@ -2997,11 +3001,41 @@ const ensureOrderDeletedColumn = async () => {
   }
 };
 
+const ensureOrderUserReceivedColumn = async () => {
+  const alters = [
+    'ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_received INTEGER DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN user_received INTEGER DEFAULT 0',
+    'ALTER TABLE orders ADD COLUMN user_received INT DEFAULT 0',
+  ];
+  for (const sql of alters) {
+    try {
+      await mysql.query(sql);
+      break;
+    } catch {
+      // Column already exists or trying alternate syntax.
+    }
+  }
+  const dateAlters = [
+    'ALTER TABLE orders ADD COLUMN IF NOT EXISTS user_received_at TEXT NULL',
+    'ALTER TABLE orders ADD COLUMN user_received_at TIMESTAMP NULL',
+    'ALTER TABLE orders ADD COLUMN user_received_at DATETIME NULL',
+  ];
+  for (const sql of dateAlters) {
+    try {
+      await mysql.query(sql);
+      break;
+    } catch {
+      // Column already exists or trying alternate syntax.
+    }
+  }
+};
+
 router.get('/orders', async (req: Request, res: Response) => {
   try {
     await ensureOrderCancelColumns();
     await ensureOrderDetailJoins();
     await ensureOrderDeletedColumn();
+    await ensureOrderUserReceivedColumn();
 
     // Check dynamically if deleted_from_orders column exists on table
     let hasDeletedCol = false;
@@ -3043,6 +3077,8 @@ router.get('/orders', async (req: Request, res: Response) => {
         o.admin_note_at AS adminNoteAt,
         o.cancel_reason AS cancelReason,
         o.cancelled_by AS cancelledBy,
+        COALESCE(o.user_received, 0) AS userReceived,
+        o.user_received_at AS userReceivedAt,
         o.created_at AS createdAt,
         ${deletedSelect},
         IFNULL(u.full_name, 'Devotee') AS customerName,
@@ -3110,6 +3146,7 @@ router.get('/orders/:id', async (req: Request, res: Response) => {
     }
     await ensureOrderDetailJoins();
     await ensureOrderCancelColumns();
+    await ensureOrderUserReceivedColumn();
     const rows = await mysql.query<any[]>(
       `
       ${orderDetailSelect}
@@ -6841,10 +6878,41 @@ router.post('/seva-donations/notify', async (req: Request, res: Response) => {
       actionType: sevaType === 'NITHYA_HOMAM' ? 'NITHYA_HOMAM_ANNOUNCEMENT' : 'SEVA_ANNOUNCEMENT',
     });
 
+    let whatsappResult: any = null;
+    if (scheduleRaw === 'Now') {
+      try {
+        const {sendHomamWhatsAppMessage} = await import(
+          '../../services/aisensy.service'
+        );
+        whatsappResult = await sendHomamWhatsAppMessage({
+          userIds,
+          title,
+          message,
+          campaignName:
+            sevaType === 'NITHYA_HOMAM' ? 'nithya_homam' : 'seva_announcement',
+        });
+      } catch (waErr: any) {
+        console.warn(
+          '[Admin Seva/Homam] WhatsApp broadcast error:',
+          waErr?.message || waErr,
+        );
+      }
+    }
+
+    let messageWithWa = result.message;
+    if (whatsappResult?.sentCount && Number(whatsappResult.sentCount) > 0) {
+      messageWithWa = `${result.message} & WhatsApp sent to ${whatsappResult.sentCount} devotees.`;
+    } else if (whatsappResult && Number(whatsappResult.failedCount) > 0) {
+      messageWithWa = `${result.message}\n⚠️ WhatsApp delivery failed for ${whatsappResult.failedCount} devotee(s) (check AiSensy API key / campaign setup).`;
+    }
+
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
       success: true,
-      message: result.message,
-      data: result,
+      message: messageWithWa,
+      data: {
+        ...result,
+        whatsapp: whatsappResult,
+      },
     });
   } catch (error: any) {
     return res.status(error?.statusCode || 500).json({

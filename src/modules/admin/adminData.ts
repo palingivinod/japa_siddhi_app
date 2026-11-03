@@ -153,6 +153,8 @@ export type AdminOrder = {
   cancelledBy?: string;
   userId?: number | null;
   userCode?: string;
+  userReceived?: boolean;
+  userReceivedAt?: string;
 };
 
 export type AdminPaymentRow = {

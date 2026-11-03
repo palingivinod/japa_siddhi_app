@@ -175,6 +175,37 @@ class OrderController {
     }
   }
 
+  async deleteMyOrder(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const orderId = Number(req.params.id);
+      if (!orderId || !Number.isFinite(orderId)) {
+        return apiResponse.error(res, 'Invalid order ID', 400);
+      }
+      const result = await orderService.deleteForUser(orderId, userId);
+      if (result === 'missing') {
+        return apiResponse.error(res, 'Order not found', 404);
+      }
+      if (result === 'not_allowed') {
+        return apiResponse.error(
+          res,
+          'Only delivered or cancelled orders can be deleted.',
+          400,
+        );
+      }
+      return apiResponse.success(res, 'Order deleted successfully', {orderId});
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async updateOrderStatus(
     req: Request,
     res: Response,
@@ -273,21 +304,25 @@ class OrderController {
       if (result === 'missing') {
         return apiResponse.error(res, 'Order not found', 404);
       }
-      if (result === 'delivered') {
-        return apiResponse.error(res, 'This order is already marked delivered.', 400);
+      if (result === 'already_received') {
+        return apiResponse.error(
+          res,
+          'You have already confirmed receiving this order.',
+          400,
+        );
       }
       if (result === 'cancelled') {
         return apiResponse.error(res, 'Cancelled orders cannot be marked received.', 400);
       }
-      if (result === 'not_shipped') {
+      if (result === 'not_eligible') {
         return apiResponse.error(
           res,
-          'You can confirm receipt only after the order is shipped.',
+          'You can confirm receipt once your order is shipped or delivered.',
           400,
         );
       }
       const tracking = await orderService.getTracking(Number(req.params.id));
-      return apiResponse.success(res, 'Order marked as delivered', tracking);
+      return apiResponse.success(res, 'Order marked as received', tracking);
     } catch (error) {
       next(error);
     }

@@ -219,15 +219,23 @@ class NotificationRepository {
       };
       const createdAt = toIso(notification.createdAt);
       const sentAt = toIso(notification.sentAt) || createdAt;
+      let parsedExtra: any = null;
+      if (notification.extraData) {
+        try {
+          parsedExtra =
+            typeof notification.extraData === 'string'
+              ? JSON.parse(notification.extraData)
+              : notification.extraData;
+        } catch {
+          parsedExtra = null;
+        }
+      }
       return {
         ...notification,
         createdAt,
         sentAt,
-        extraData: notification.extraData
-          ? typeof notification.extraData === 'string'
-            ? JSON.parse(notification.extraData)
-            : notification.extraData
-          : null,
+        extraData: parsedExtra,
+        imageUrl: parsedExtra?.imageUrl || parsedExtra?.image || null,
       };
     });
   }

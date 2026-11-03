@@ -24,6 +24,12 @@ router.put(
   orderController.cancel,
 );
 
+router.delete(
+  '/:id',
+  authenticate,
+  orderController.deleteMyOrder,
+);
+
 router.put(
   '/:id/received',
   authenticate,

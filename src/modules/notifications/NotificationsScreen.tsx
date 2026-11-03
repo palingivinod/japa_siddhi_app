@@ -3,6 +3,9 @@ import {
   ActivityIndicator,
   Alert,
   Animated,
+  Image,
+  Linking,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,6 +21,7 @@ import ApiErrorPanel from '../common/ApiErrorPanel';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedNotification} from '../../utils/localizedContent';
+import {resolveMediaUrl} from '../../services/profilePhoto';
 
 const notificationEmoji = (item: any) => {
   const action = String(item.actionType || '');
@@ -168,6 +172,44 @@ const formatNotificationDate = (rawInput?: string | number | Date | null) => {
   }
 };
 
+const renderTextWithLinks = (text: string, baseStyle?: any) => {
+  if (!text) {
+    return null;
+  }
+  const urlRegex = /(https?:\/\/[^\s]+)/gi;
+  const parts = text.split(urlRegex);
+
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, index) => {
+        if (urlRegex.test(part)) {
+          let cleanUrl = part;
+          let suffix = '';
+          while (/[.,!?)]$/.test(cleanUrl)) {
+            suffix = cleanUrl.slice(-1) + suffix;
+            cleanUrl = cleanUrl.slice(0, -1);
+          }
+          return (
+            <React.Fragment key={index}>
+              <Text
+                style={styles.linkText}
+                onPress={() => {
+                  Linking.openURL(cleanUrl).catch(() => {
+                    Alert.alert('Link Error', 'Unable to open link in browser.');
+                  });
+                }}>
+                {cleanUrl}
+              </Text>
+              {suffix ? <Text>{suffix}</Text> : null}
+            </React.Fragment>
+          );
+        }
+        return <Text key={index}>{part}</Text>;
+      })}
+    </Text>
+  );
+};
+
 const NotificationsScreen = () => {
   const route = useRoute<any>();
   const {t, tt, language} = useLanguage();
@@ -176,6 +218,7 @@ const NotificationsScreen = () => {
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const highlightTimerRef = useRef<any>(null);
 
   const incomingHighlightId = route.params?.highlightId
@@ -464,19 +507,65 @@ const NotificationsScreen = () => {
                   category && detail
                     ? `${category} — ${detail}`
                     : [category, detail].filter(Boolean).join(' · ');
+                const rawImg =
+                  item.imageUrl ||
+                  extra.imageUrl ||
+                  extra.image ||
+                  extra.bigPicture ||
+                  null;
+                const noteImage = resolveMediaUrl(rawImg);
+                const rawLink =
+                  item.url ||
+                  item.link ||
+                  extra.url ||
+                  extra.link ||
+                  extra.webUrl ||
+                  String(`${subject} ${bodyLine}`).match(/https?:\/\/[^\s]+/i)?.[0] ||
+                  null;
+                let cleanLink = rawLink ? String(rawLink).trim() : null;
+                if (cleanLink) {
+                  while (/[.,!?)]$/.test(cleanLink)) {
+                    cleanLink = cleanLink.slice(0, -1);
+                  }
+                }
+
                 return (
                   <>
                     {subject ? (
-                      <Text
-                        style={[
+                      renderTextWithLinks(
+                        subject,
+                        [
                           styles.mantraHighlight,
                           isUnread && styles.mantraHighlightUnread,
-                        ]}>
-                        {subject}
-                      </Text>
+                        ],
+                      )
                     ) : null}
                     {bodyLine ? (
-                      <Text style={styles.subtitle}>{bodyLine}</Text>
+                      renderTextWithLinks(bodyLine, styles.subtitle)
+                    ) : null}
+                    {noteImage ? (
+                      <TouchableOpacity
+                        activeOpacity={0.9}
+                        onPress={() => setSelectedImage(noteImage)}
+                        style={styles.imageWrap}>
+                        <Image
+                          source={{uri: noteImage}}
+                          style={styles.bannerImage}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ) : null}
+                    {cleanLink ? (
+                      <TouchableOpacity
+                        style={styles.openLinkBtn}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          Linking.openURL(cleanLink!).catch(() => {
+                            Alert.alert('Link Error', 'Unable to open link in browser.');
+                          });
+                        }}>
+                        <Text style={styles.openLinkBtnText}>🔗 Open Link</Text>
+                      </TouchableOpacity>
                     ) : null}
                   </>
                 );
@@ -505,6 +594,31 @@ const NotificationsScreen = () => {
           </TouchableOpacity>
         );
       })}
+      <Modal
+        visible={Boolean(selectedImage)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}>
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setSelectedImage(null)}>
+          <View style={styles.modalContent}>
+            {selectedImage ? (
+              <Image
+                source={{uri: selectedImage}}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+            ) : null}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setSelectedImage(null)}>
+              <Text style={styles.modalCloseBtnText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -691,5 +805,75 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: Colors.textSecondary,
+  },
+  imageWrap: {
+    marginTop: 10,
+    marginBottom: 4,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F3E2C6',
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  bannerImage: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F3E2C6',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    width: '100%',
+    height: '80%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+  },
+  fullImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: -42,
+    right: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 18,
+    width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalCloseBtnText: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  linkText: {
+    color: '#1D4ED8',
+    textDecorationLine: 'underline',
+    fontWeight: '700',
+  },
+  openLinkBtn: {
+    marginTop: 8,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  openLinkBtnText: {
+    color: '#1D4ED8',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
