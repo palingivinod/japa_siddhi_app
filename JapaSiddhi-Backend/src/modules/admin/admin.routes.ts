@@ -4579,10 +4579,12 @@ router.post('/dob-details/notify', async (req: Request, res: Response) => {
       }
     }
 
-    const messageWithWa =
-      whatsappResult?.sentCount && Number(whatsappResult.sentCount) > 0
-        ? `${result.message} & WhatsApp sent to ${whatsappResult.sentCount} devotees.`
-        : result.message;
+    let messageWithWa = result.message;
+    if (whatsappResult?.sentCount && Number(whatsappResult.sentCount) > 0) {
+      messageWithWa = `${result.message} & WhatsApp sent to ${whatsappResult.sentCount} devotees.`;
+    } else if (whatsappResult && Number(whatsappResult.failedCount) > 0) {
+      messageWithWa = `${result.message}\n⚠️ WhatsApp delivery failed for ${whatsappResult.failedCount} devotee(s) (check AiSensy API key / campaign setup).`;
+    }
 
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
       success: true,

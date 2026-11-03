@@ -190,19 +190,29 @@ export const sendBirthdayWhatsAppWishes = async ({
   let eligible = 0;
 
   for (const user of rows) {
-    if (isPlaceholderMobile(user.firebaseUid, user.mobileNumber)) {
+    const rawMobile =
+      user.mobileNumber || user.mobilenumber || user.mobile_number;
+    const rawCountry =
+      user.mobileCountryCode ||
+      user.mobilecountrycode ||
+      user.mobile_country_code;
+    const rawUid =
+      user.firebaseUid || user.firebaseuid || user.firebase_uid;
+    const rawName = user.fullName || user.fullname || user.full_name;
+
+    if (isPlaceholderMobile(rawUid, rawMobile)) {
       continue;
     }
     const destination = formatAiSensyMobile(
-      user.mobileNumber,
-      user.mobileCountryCode,
+      rawMobile,
+      rawCountry,
     );
     if (!destination) {
       continue;
     }
 
     eligible++;
-    const devoteeName = String(user.fullName || 'Devotee').trim() || 'Devotee';
+    const devoteeName = String(rawName || 'Devotee').trim() || 'Devotee';
 
     const result = await sendAiSensyCampaign({
       destination,
@@ -276,19 +286,29 @@ export const sendHomamWhatsAppMessage = async ({
   let eligible = 0;
 
   for (const user of rows) {
-    if (isPlaceholderMobile(user.firebaseUid, user.mobileNumber)) {
+    const rawMobile =
+      user.mobileNumber || user.mobilenumber || user.mobile_number;
+    const rawCountry =
+      user.mobileCountryCode ||
+      user.mobilecountrycode ||
+      user.mobile_country_code;
+    const rawUid =
+      user.firebaseUid || user.firebaseuid || user.firebase_uid;
+    const rawName = user.fullName || user.fullname || user.full_name;
+
+    if (isPlaceholderMobile(rawUid, rawMobile)) {
       continue;
     }
     const destination = formatAiSensyMobile(
-      user.mobileNumber,
-      user.mobileCountryCode,
+      rawMobile,
+      rawCountry,
     );
     if (!destination) {
       continue;
     }
 
     eligible++;
-    const devoteeName = String(user.fullName || 'Devotee').trim() || 'Devotee';
+    const devoteeName = String(rawName || 'Devotee').trim() || 'Devotee';
 
     const result = await sendAiSensyCampaign({
       destination,

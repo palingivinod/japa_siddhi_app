@@ -882,6 +882,7 @@ export const translateToPg = (rawSql: string): {sql: string; isInsertWithId: boo
     'claimPhone',
     'rewardName',
     'createdAt',
+    'firebaseUid',
   ]) {
     const re = new RegExp(`(?<!")\\b${alias}\\b(?!")`, 'g');
     sql = sql.replace(re, `"${alias}"`);
