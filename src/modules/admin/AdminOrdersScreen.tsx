@@ -66,7 +66,6 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Confirmed', label: 'Confirmed'},
   {id: 'Packing', label: 'Packing'},
   {id: 'Shipped', label: 'Shipped'},
-  {id: 'Delivered', label: 'Delivered'},
   {id: 'Cancelled', label: 'Cancelled'},
 ];
 
@@ -318,7 +317,7 @@ const AdminOrdersScreen = () => {
         userCode: String(row.userCode || '').trim(),
         userReceived: Boolean(row.userReceived ?? row.user_received),
         userReceivedAt: row.userReceivedAt || row.user_received_at || '',
-      }));
+      })).filter((o: AdminOrder) => o.status !== 'Delivered');
       setOrders(mapped);
       setNoteDrafts(prev => {
         const next = {...prev};
@@ -543,20 +542,16 @@ const AdminOrdersScreen = () => {
     const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
     const packing = itemFilteredOrders.filter(o => o.status === 'Packing').length;
     const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
-    const delivered = itemFilteredOrders.filter(o => o.status === 'Delivered').length;
     const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
-    // 'All' tab only shows active orders; delivered orders are excluded and only shown in 'Delivered' filter
-    const all = itemFilteredOrders.filter(o => o.status !== 'Delivered').length;
     return {
       total,
-      all,
+      all: total,
       underReview,
       calledDevotee,
       sankalpTaken,
       confirmed,
       packing,
       shipped,
-      delivered,
       cancelled,
     };
   }, [itemFilteredOrders]);
@@ -564,7 +559,7 @@ const AdminOrdersScreen = () => {
   const visibleOrders = useMemo(() => {
     const list =
       tab === 'All'
-        ? itemFilteredOrders.filter(o => o.status !== 'Delivered')
+        ? itemFilteredOrders
         : itemFilteredOrders.filter(o => o.status === tab);
 
     return [...list].sort((a, b) => {
@@ -585,7 +580,6 @@ const AdminOrdersScreen = () => {
     if (tabId === 'Confirmed') return orderCounts.confirmed;
     if (tabId === 'Packing') return orderCounts.packing;
     if (tabId === 'Shipped') return orderCounts.shipped;
-    if (tabId === 'Delivered') return orderCounts.delivered;
     if (tabId === 'Cancelled') return orderCounts.cancelled;
     return 0;
   };
@@ -679,13 +673,6 @@ const AdminOrdersScreen = () => {
               {orderCounts.shipped}
             </Text>
             <Text style={styles.miniStatLabel}>Shipped</Text>
-          </View>
-          <View style={styles.miniStatDivider} />
-          <View style={styles.miniStatItem}>
-            <Text style={[styles.miniStatCount, {color: '#15803D'}]}>
-              {orderCounts.delivered}
-            </Text>
-            <Text style={styles.miniStatLabel}>Delivered</Text>
           </View>
         </View>
       </View>

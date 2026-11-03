@@ -14,6 +14,7 @@ import {
   bindPushToAppLifecycle,
   startPushNotifications,
 } from './src/services/pushNotifications';
+import {clearAppBadge, syncAppBadgeWithServer} from './src/services/appBadge';
 import {getToken, hydrateSession, setTokenListener} from './src/services/session';
 
 export default function App() {
@@ -36,6 +37,7 @@ export default function App() {
       const token = await getToken();
       if (token) {
         await startPushNotifications().catch(() => undefined);
+        await syncAppBadgeWithServer().catch(() => undefined);
       }
     };
 
@@ -46,12 +48,16 @@ export default function App() {
     const unsubToken = setTokenListener(token => {
       if (token) {
         startPushNotifications().catch(() => undefined);
+        syncAppBadgeWithServer().catch(() => undefined);
+      } else {
+        clearAppBadge().catch(() => undefined);
       }
     });
 
     const authSub = AppState.addEventListener('change', state => {
       if (state === 'active') {
         ensureFreshToken().catch(() => undefined);
+        syncAppBadgeWithServer().catch(() => undefined);
       }
     });
     const pushUnbind = bindPushToAppLifecycle();

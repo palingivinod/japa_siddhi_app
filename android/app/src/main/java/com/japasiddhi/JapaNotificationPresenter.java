@@ -14,6 +14,7 @@ import androidx.core.app.Person;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.drawable.IconCompat;
 import com.google.firebase.messaging.RemoteMessage;
+import me.leolin.shortcutbadger.ShortcutBadger;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -56,6 +57,21 @@ public final class JapaNotificationPresenter {
 
     ensureChannel(context);
 
+    int badgeCount = 1;
+    if (data != null && data.containsKey("badge")) {
+      try {
+        badgeCount = Math.max(0, Integer.parseInt(data.get("badge")));
+      } catch (Exception ignored) {}
+    }
+
+    try {
+      if (badgeCount > 0) {
+        ShortcutBadger.applyCount(context.getApplicationContext(), badgeCount);
+      } else {
+        ShortcutBadger.removeCount(context.getApplicationContext());
+      }
+    } catch (Exception ignored) {}
+
     Uri deepLink = buildNotifyUri(data, title, body);
     Intent launchIntent = new Intent(Intent.ACTION_VIEW, deepLink);
     launchIntent.setClass(context, MainActivity.class);
@@ -85,6 +101,7 @@ public final class JapaNotificationPresenter {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
+            .setNumber(Math.max(1, badgeCount))
             .setCategory(
                 remoteBitmap != null
                     ? NotificationCompat.CATEGORY_PROMO
@@ -257,6 +274,7 @@ public final class JapaNotificationPresenter {
         new NotificationChannel(CHANNEL_ID, CHANNEL_NAME, NotificationManager.IMPORTANCE_HIGH);
     channel.setDescription("Japa Siddhi alerts");
     channel.enableVibration(true);
+    channel.setShowBadge(true);
     manager.createNotificationChannel(channel);
   }
 }

@@ -22,6 +22,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedNotification} from '../../utils/localizedContent';
 import {resolveMediaUrl} from '../../services/profilePhoto';
+import {clearAppBadge, setAppBadgeCount} from '../../services/appBadge';
 
 const notificationEmoji = (item: any) => {
   const action = String(item.actionType || '');
@@ -272,6 +273,8 @@ const NotificationsScreen = () => {
         (item: any) => !clearedSet.has(String(item.id)),
       );
       setItems(visible);
+      const unreadCount = visible.filter((item: any) => !item.isRead).length;
+      setAppBadgeCount(unreadCount).catch(() => undefined);
     } catch (err) {
       setRawError(err);
       setError(getApiError(err, t('couldNotLoadMilestones')));
@@ -337,6 +340,10 @@ const NotificationsScreen = () => {
     setItems(current =>
       current.map(row => (row.id === item.id ? {...row, isRead: true} : row)),
     );
+    const remainingUnread = items.filter(
+      row => row.id !== item.id && !row.isRead,
+    ).length;
+    setAppBadgeCount(remainingUnread).catch(() => undefined);
 
     const action = String(item.actionType || '');
     const extra =
@@ -371,11 +378,33 @@ const NotificationsScreen = () => {
   };
 
   /**
+   * Mark a single notification as read explicitly
+   */
+  const markSingleNotificationAsRead = async (item: any) => {
+    setItems(current =>
+      current.map(row => (row.id === item.id ? {...row, isRead: true} : row)),
+    );
+    try {
+      await apiService.put(`/notifications/${item.id}/read`);
+    } catch {
+      // ignore
+    }
+    const remainingUnread = items.filter(
+      row => row.id !== item.id && !row.isRead,
+    ).length;
+    setAppBadgeCount(remainingUnread).catch(() => undefined);
+  };
+
+  /**
    * Delete a single notification directly
    */
   const deleteSingleNotification = async (item: any) => {
     const itemId = String(item.id);
     setItems(current => current.filter(row => row.id !== item.id));
+    const remainingUnread = items.filter(
+      row => row.id !== item.id && !row.isRead,
+    ).length;
+    setAppBadgeCount(remainingUnread).catch(() => undefined);
     try {
       await apiService.delete(`/notifications/${item.id}`).catch(() => undefined);
     } catch {
@@ -402,6 +431,7 @@ const NotificationsScreen = () => {
           onPress: async () => {
             const currentIds = items.map(item => String(item.id));
             setItems([]);
+            clearAppBadge().catch(() => undefined);
             try {
               await Promise.allSettled([
                 apiService.delete('/notifications/clear'),
@@ -611,12 +641,27 @@ const NotificationsScreen = () => {
                     <View style={styles.timeSpacer} />
                   );
                 })()}
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
-                  onPress={() => deleteSingleNotification(item)}>
-                  <Text style={styles.deleteBtnText}>✕</Text>
-                </TouchableOpacity>
+                <View style={styles.actionRowRight}>
+                  {isUnread ? (
+                    <TouchableOpacity
+                      style={styles.markReadBtn}
+                      activeOpacity={0.7}
+                      hitSlop={{top: 6, bottom: 6, left: 6, right: 6}}
+                      onPress={() => markSingleNotificationAsRead(item)}>
+                      <Text style={styles.markReadBtnText}>✓ Mark as read</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.readPill}>
+                      <Text style={styles.readPillText}>✓ Read</Text>
+                    </View>
+                  )}
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}
+                    onPress={() => deleteSingleNotification(item)}>
+                    <Text style={styles.deleteBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </TouchableOpacity>
@@ -820,6 +865,38 @@ const styles = StyleSheet.create({
   },
   timeSpacer: {
     flex: 1,
+  },
+  actionRowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  markReadBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    backgroundColor: '#EDF7E9',
+    borderWidth: 1,
+    borderColor: '#C8E6C9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  markReadBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2E7D32',
+  },
+  readPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: '#F5F5F5',
+  },
+  readPillText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    opacity: 0.7,
   },
   deleteBtn: {
     paddingHorizontal: 6,

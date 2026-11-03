@@ -542,6 +542,7 @@ const tryPush = async (
         ),
         title,
         body: message,
+        badge: String(safeExtra.badge || '1'),
         ...safeExtra,
       },
       android: {
@@ -559,7 +560,7 @@ const tryPush = async (
               body: message,
             },
             sound: 'default',
-            badge: 1,
+            badge: Number(safeExtra.badge || 1),
             'content-available': 1,
           },
         },

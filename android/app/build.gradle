@@ -100,6 +100,7 @@ dependencies {
     // RNFirebase pulls these transitively at runtime, but not always for app javac.
     implementation platform("com.google.firebase:firebase-bom:33.14.0")
     implementation "com.google.firebase:firebase-messaging"
+    implementation "me.leolin:ShortcutBadger:1.1.22@aar"
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

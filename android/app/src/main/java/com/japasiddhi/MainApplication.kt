@@ -18,6 +18,7 @@ class MainApplication : Application(), ReactApplication {
             PackageList(this).packages.apply {
               add(FileDownloadPackage())
               add(ChantBeepPackage())
+              add(JapaBadgePackage())
             }
 
         override fun getJSMainModuleName(): String = "index"
