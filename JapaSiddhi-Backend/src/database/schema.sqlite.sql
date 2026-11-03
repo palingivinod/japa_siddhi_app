@@ -412,6 +412,16 @@ CREATE TABLE IF NOT EXISTS notifications (
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+CREATE TABLE IF NOT EXISTS automated_wishes_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  wish_type TEXT NOT NULL,
+  wish_date TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'ALL',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE (user_id, wish_type, wish_date)
+);
+
 INSERT OR IGNORE INTO languages
 (id, code, locale, name, native_name, direction, flag_emoji, google_translate_code, is_default, is_active, display_order)
 VALUES

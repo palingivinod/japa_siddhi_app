@@ -4639,6 +4639,32 @@ router.post('/dob-details/notify', async (req: Request, res: Response) => {
   }
 });
 
+/** Preview tomorrow's birthdays (dry-run without sending) in IST */
+router.get('/birthdays/advance-preview', async (req: Request, res: Response) => {
+  try {
+    const { runAdvanceBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');
+    const result = await runAdvanceBirthdaySweep({ dryRun: true });
+    return res.json({ success: true, data: result });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error?.message || 'Failed to preview advance birthdays.' });
+  }
+});
+
+/** Manually trigger tomorrow's advance birthday sweep in IST */
+router.post('/birthdays/advance-trigger', async (req: Request, res: Response) => {
+  try {
+    const { runAdvanceBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');
+    const result = await runAdvanceBirthdaySweep({ dryRun: false });
+    return res.json({
+      success: true,
+      message: `Advance birthday sweep completed: ${result.sentInApp} In-App, ${result.sentWhatsApp} WhatsApp.`,
+      data: result,
+    });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: error?.message || 'Failed to trigger advance birthdays.' });
+  }
+});
+
 router.get('/reports/export', async (req: Request, res: Response) => {
   try {
     await mysql.query('SELECT 1');

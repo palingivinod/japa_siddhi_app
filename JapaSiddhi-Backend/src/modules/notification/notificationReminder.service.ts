@@ -1066,6 +1066,11 @@ export const startNotificationReminderScheduler = () => {
       import('../admin/meetingNotify.service')
         .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
         .catch(() => undefined);
+      import('./advanceBirthdayReminder.service')
+        .then(({checkAndRunScheduledAdvanceBirthdaySweep}) =>
+          checkAndRunScheduledAdvanceBirthdaySweep(),
+        )
+        .catch(() => undefined);
     }, 60 * 1000);
     if (typeof queueTimer.unref === 'function') {
       queueTimer.unref();

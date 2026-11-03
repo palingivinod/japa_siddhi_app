@@ -572,6 +572,16 @@ CREATE TABLE IF NOT EXISTS admin_notification_queue (
   processed_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS automated_wishes_log (
+  id SERIAL PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  wish_type TEXT NOT NULL,
+  wish_date TEXT NOT NULL,
+  channel TEXT NOT NULL DEFAULT 'ALL',
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT,
+  CONSTRAINT uq_automated_wishes UNIQUE (user_id, wish_type, wish_date)
+);
+
 CREATE INDEX IF NOT EXISTS idx_japa_sessions_user_id ON japa_sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_japa_sessions_created_at ON japa_sessions(created_at);
 CREATE INDEX IF NOT EXISTS idx_japa_sessions_mantra_id ON japa_sessions(mantra_id);
