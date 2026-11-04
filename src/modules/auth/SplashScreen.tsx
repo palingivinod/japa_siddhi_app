@@ -97,7 +97,7 @@ const SplashScreen = ({navigation}: Props) => {
           } catch {
             // Use the stored profile if the refresh fails.
           }
-          if (isSocialLoginUser(user) && profileNeedsDetails(user)) {
+          if (false && isSocialLoginUser(user) && profileNeedsDetails(user)) {
             promptSocialDetails(navigation, user, {
               title: t('socialDetailsTitle'),
               message: t('socialDetailsMessage'),

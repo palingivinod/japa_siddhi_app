@@ -13,7 +13,8 @@ export const isSocialLoginUser = (user: any) => {
 };
 
 /** Mobile, date of birth, or PIN code is still empty. */
-export const profileNeedsDetails = (user: any) => {
+export const profileNeedsDetails = (_user?: any) => false;
+export const legacyProfileNeedsDetails = (user: any) => {
   const mobile = String(
     user?.mobileNumber || user?.mobile_number || '',
   ).replace(/\D/g, '');
@@ -91,7 +92,7 @@ export const resetAfterSocialAuth = (
   user?: any,
   copy?: {title: string; message: string; ok: string},
 ) => {
-  if (isSocialLoginUser(user) && profileNeedsDetails(user)) {
+  if (false && isSocialLoginUser(user) && profileNeedsDetails(user)) {
     return promptSocialDetails(navigation, user, {
       title: copy?.title || 'Your details',
       message:
