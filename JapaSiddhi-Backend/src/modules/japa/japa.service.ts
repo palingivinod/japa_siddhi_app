@@ -927,11 +927,24 @@ class JapaService {
       ]);
     const progress = buildMilestoneProgress(milestoneTotal);
     const claimedTargets = await milestoneRewardService.claimedTargets(userId);
+    const achievedRewardTargets = [5000, 50000, 100000, 200000, 500000, 1000000].filter(
+      t => milestoneTotal >= t,
+    );
+    const latestRewardTarget =
+      achievedRewardTargets[achievedRewardTargets.length - 1] || 0;
+    const nextRewardTarget =
+      [5000, 50000, 100000, 200000, 500000, 1000000].find(
+        t => milestoneTotal < t,
+      ) || null;
+    const latestRewardClaimed =
+      latestRewardTarget > 0 ? claimedTargets.includes(latestRewardTarget) : false;
     return {
       ...progress,
       eligibleForAnnadanam: milestoneTotal >= 1000,
       claimedTargets,
-      latestRewardClaimed: claimedTargets.includes(progress.latest),
+      latestRewardTarget,
+      nextRewardTarget,
+      latestRewardClaimed,
       notificationsOn: Number(settings.notificationsOn) === 1,
       unreadCount,
       latestAt: latestNote?.sentAt || null,

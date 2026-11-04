@@ -110,7 +110,11 @@ const MilestoneNotificationsScreen = () => {
       item.target || 0,
     ).toLocaleString('en-IN')} japa count`;
   const achieved = latest > 0;
-  const rewardClaimed = claimedTargets.includes(latest);
+  const REWARD_MILESTONE_TARGETS = [5000, 50000, 100000, 200000, 500000, 1000000];
+  const eligibleRewardTargets = REWARD_MILESTONE_TARGETS.filter(t => total >= t);
+  const currentRewardTarget = eligibleRewardTargets[eligibleRewardTargets.length - 1] || 0;
+  const hasRewardTier = currentRewardTarget >= 5000;
+  const rewardClaimed = hasRewardTier ? claimedTargets.includes(currentRewardTarget) : false;
   const headlineCount = achieved ? latest : total;
 
   return (
@@ -168,29 +172,35 @@ const MilestoneNotificationsScreen = () => {
                     : `${total.toLocaleString()} / ${next.toLocaleString()}`}
                 </Text>
               </View>
-              {achieved ? (
+              {hasRewardTier ? (
                 <TouchableOpacity
                   style={[styles.cta, rewardClaimed && styles.ctaDisabled]}
                   disabled={rewardClaimed}
                   onPress={() => {
-                    if (total < 5000) {
-                      const remaining = Math.max(0, 5000 - total);
-                      Alert.alert(
-                        t('rewardLockedTitle'),
-                        t('rewardLockedMsg', {
-                          required: '5,000',
-                          remaining: remaining.toLocaleString('en-IN'),
-                          current: total.toLocaleString('en-IN'),
-                        }),
-                      );
-                      return;
-                    }
                     navigation.navigate('MilestoneRewardSelect', {
-                      target: latest,
+                      target: currentRewardTarget,
                     });
                   }}>
                   <Text style={styles.ctaText}>
                     {rewardClaimed ? t('rewardClaimed') : t('grabReward')}
+                  </Text>
+                </TouchableOpacity>
+              ) : achieved && total < 5000 ? (
+                <TouchableOpacity
+                  style={[styles.cta, styles.ctaDisabled]}
+                  onPress={() => {
+                    const remaining = Math.max(0, 5000 - total);
+                    Alert.alert(
+                      t('rewardLockedTitle'),
+                      t('rewardLockedMsg', {
+                        required: '5,000',
+                        remaining: remaining.toLocaleString('en-IN'),
+                        current: total.toLocaleString('en-IN'),
+                      }),
+                    );
+                  }}>
+                  <Text style={styles.ctaText}>
+                    {t('unlocksAt', {target: '5,000'}) || 'Unlocks at 5,000'}
                   </Text>
                 </TouchableOpacity>
               ) : null}

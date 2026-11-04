@@ -9,6 +9,15 @@ export const SPIRITUAL_MILESTONES = [
 
 export type SpiritualMilestone = (typeof SPIRITUAL_MILESTONES)[number];
 
+/**
+ * Spiritual milestones that grant a physical reward.
+ * Non-reward milestones (2,498, 30,000, 75,000) are spiritual achievement titles only.
+ */
+export const REWARD_MILESTONE_TARGETS = [5000, 50000, 100000, 200000, 500000, 1000000];
+
+export const isRewardEligibleTarget = (target: number): boolean =>
+  REWARD_MILESTONE_TARGETS.includes(Number(target));
+
 export const milestoneByTarget = (target: number) =>
   SPIRITUAL_MILESTONES.find(item => item.target === target) || null;
 

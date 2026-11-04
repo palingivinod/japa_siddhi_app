@@ -4,7 +4,7 @@ import challengeRepository from '../challenge/challenge.repository';
 import orderService from '../orders/order.service';
 import emailOtpService from '../../services/emailOtp.service';
 import japaRepository from './japa.repository';
-import {milestoneByTarget} from './japa.milestones';
+import {isRewardEligibleTarget, milestoneByTarget} from './japa.milestones';
 
 export type MilestoneDelivery = {
   fullName: string;
@@ -199,6 +199,9 @@ class MilestoneRewardService {
     if (!milestone) {
       throw new Error('Milestone not found');
     }
+    if (!isRewardEligibleTarget(milestone.target)) {
+      throw new Error('Milestone ' + milestone.target.toLocaleString('en-IN') + ' does not include a physical reward.');
+    }
     const [rewards, total, claimed, claimRows] = await Promise.all([
       challengeRepository.listRewards(),
       japaRepository.getUserMilestoneJapa(userId),
@@ -246,6 +249,11 @@ class MilestoneRewardService {
     const total = await japaRepository.getUserMilestoneJapa(userId);
     if (total < milestone.target) {
       throw new Error('Reach this milestone before grabbing a reward');
+    }
+    if (!isRewardEligibleTarget(milestone.target)) {
+      throw new Error(
+        'Rewards are only available at 5,000, 50,000, and 1,00,000+ Japa milestones. Milestone ' + milestone.target.toLocaleString('en-IN') + ' is a spiritual title only.',
+      );
     }
     if (milestone.target < 5000) {
       const remaining = Math.max(0, 5000 - total);

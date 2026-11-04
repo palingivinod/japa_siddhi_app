@@ -19,15 +19,22 @@ type Props = {
   onPress?: () => void;
 };
 
-const FIRST_REWARD_AT = 5000;
+const REWARD_TIERS = [5000, 50000, 100000, 200000, 500000, 1000000];
 
 const getRewardOrdinal = (total: number, t: (key: any, params?: any) => string): string => {
-  if (total < FIRST_REWARD_AT) return t('firstReward') || 'first reward';
-  if (total < 30000) return t('secondReward') || 'second reward';
-  if (total < 50000) return t('thirdReward') || 'third reward';
-  if (total < 75000) return t('fourthReward') || 'fourth reward';
-  if (total < 100000) return t('fifthReward') || 'fifth reward';
+  if (total < 5000) return t('firstReward') || 'first reward';
+  if (total < 50000) return t('secondReward') || 'second reward';
+  if (total < 100000) return t('thirdReward') || 'third reward';
+  if (total < 200000) return t('fourthReward') || 'fourth reward';
+  if (total < 500000) return t('fifthReward') || 'fifth reward';
   return t('nextReward') || 'next reward';
+};
+
+const getNextRewardTarget = (total: number): number => {
+  for (const tier of REWARD_TIERS) {
+    if (total < tier) return tier;
+  }
+  return 1000000;
 };
 
 const MilestoneProgressCard = ({milestone, onPress}: Props) => {
@@ -50,10 +57,8 @@ const MilestoneProgressCard = ({milestone, onPress}: Props) => {
       });
 
   const rewardOrdinal = getRewardOrdinal(total, t);
-  const remainingCount =
-    total < FIRST_REWARD_AT
-      ? FIRST_REWARD_AT - total
-      : Number(milestone.remaining || 0);
+  const nextRewardTarget = getNextRewardTarget(total);
+  const remainingCount = Math.max(0, nextRewardTarget - total);
 
   const content = (
     <View style={styles.card}>
