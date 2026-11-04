@@ -437,14 +437,14 @@ class AuthService {
     ) {
       throw new AppError('Enter a valid mobile number', 400);
     }
-    if (!email || !email.includes('@')) {
+    if (email && !email.includes('@')) {
       throw new AppError('Enter a valid email address', 400);
     }
-    if (fullName.length < 3) {
+    if (fullName.length < 2) {
       throw new AppError('Full name is required', 400);
     }
 
-    const existingEmail = await authRepository.findUserByEmail(email);
+    const existingEmail = email ? await authRepository.findUserByEmail(email) : null;
     const existingMobile =
       mobileNumber && !isPlaceholderMobile(null, mobileNumber)
         ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
@@ -1366,7 +1366,7 @@ class AuthService {
       throw new AppError('Enter a valid mobile number to create your account.', 400);
     }
 
-    const existingUserByEmail = await authRepository.findUserByEmail(email);
+    const existingUserByEmail = email ? await authRepository.findUserByEmail(email) : null;
     const existingUserByMobile =
       mobileNumber && !isPlaceholderMobile(null, mobileNumber)
         ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
@@ -1412,8 +1412,8 @@ class AuthService {
     firebaseToken?: string;
   }) {
     const email = String(data.email || '').trim().toLowerCase();
-    if (!email || !email.includes('@')) {
-      throw new AppError('Email is required to create your account.', 400);
+    if (email && !email.includes('@')) {
+      throw new AppError('Enter a valid email address.', 400);
     }
     const expectedCc = normalizePhone(data.mobileCountryCode || '') || '91';
     const expectedMobile = normalizePhone(data.mobileNumber || '');

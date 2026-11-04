@@ -1,4 +1,4 @@
-﻿
+
 
 import { body } from 'express-validator';
 
@@ -74,7 +74,7 @@ export const otpSendValidation = [
     const mobile = String(req.body?.mobileNumber || '').replace(/\D/g, '');
 
     if (mode === 'register') {
-      if (!email || !email.includes('@')) {
+      if (channel === 'email' && (!email || !email.includes('@'))) {
         throw new Error('Enter a valid email address.');
       }
       if (!country) {
@@ -198,7 +198,25 @@ export const forgotPasswordResetValidation = [
 ];
 
 export const registerValidation = [
-  ...phoneAuthValidation,
+  body('mobileCountryCode')
+    .trim()
+    .notEmpty()
+    .withMessage('Country code is required.'),
+  body('mobileNumber')
+    .trim()
+    .notEmpty()
+    .isLength({min: 6, max: 15})
+    .withMessage('Enter a valid mobile number.'),
+  body('email')
+    .optional({nullable: true})
+    .trim()
+    .custom(value => {
+      if (!value) return true;
+      if (!String(value).includes('@')) {
+        throw new Error('Enter a valid email address.');
+      }
+      return true;
+    }),
   strictMobileNumber,
   body('password')
     .custom((value, {req}) => {
@@ -207,6 +225,8 @@ export const registerValidation = [
         req.body?.firebaseUid ||
         req.body?.authProvider === 'google' ||
         req.body?.authProvider === 'facebook' ||
+        req.body?.authProvider === 'phone' ||
+        req.body?.channel === 'phone' ||
         req.body?.provider === 'google' ||
         req.body?.provider === 'facebook',
       );
@@ -222,7 +242,7 @@ export const registerValidation = [
     .trim()
     .notEmpty()
     .withMessage('Full name is required.')
-    .isLength({min: 3, max: 100})
+    .isLength({min: 2, max: 100})
     .withMessage('Full name must be between 3 and 100 characters.'),
   body('gender')
     .notEmpty()
@@ -232,16 +252,8 @@ export const registerValidation = [
   body('dateOfBirth')
     .custom((_, {req}) => Boolean(req.body.dateOfBirth || req.body.dob))
     .withMessage('Date of birth is required.'),
-  body('countryId')
-    .notEmpty()
-    .withMessage('Country is required.')
-    .isInt({min: 1})
-    .withMessage('Invalid country.'),
-  body('preferredLanguageId')
-    .custom((_, {req}) =>
-      Number(req.body.preferredLanguageId || req.body.languageId) > 0,
-    )
-    .withMessage('Preferred language is required.'),
+  body('countryId').optional({nullable: true}),
+  body('preferredLanguageId').optional({nullable: true}),
   body('address').optional({nullable: true}),
   body('maritalStatus')
     .optional({nullable: true})
@@ -276,11 +288,7 @@ export const completeProfileValidation = [
     .custom((_, {req}) => Boolean(req.body.dateOfBirth || req.body.dob))
     .withMessage('Date of birth is required.'),
 
-  body('countryId')
-    .notEmpty()
-    .withMessage('Country is required.')
-    .isInt({ min: 1 })
-    .withMessage('Invalid country.'),
+  body('countryId').optional({nullable: true}),
 
   body('stateId')
     .optional({ nullable: true })

@@ -10,11 +10,11 @@ export interface CompleteProfileRequest {
     | 'Female'
     | 'Other'
     | 'Prefer Not To Say';
-  dob: string;
-  countryId: number;
-  stateId: number;
-  cityId: number;
-  languageId: number;
+  dob?: string;
+  countryId?: number;
+  stateId?: number;
+  cityId?: number;
+  languageId?: number;
   address?: string;
   postalCode?: string;
   maritalStatus?: 'Bachelor' | 'Married';
@@ -182,11 +182,11 @@ class ProfileApi {
       gender: data.gender,
       dateOfBirth: data.dob,
       dob: data.dob,
-      countryId: data.countryId,
+      countryId: data.countryId || 1,
       stateId: data.stateId || undefined,
       cityId: data.cityId || undefined,
-      preferredLanguageId: data.languageId,
-      languageId: data.languageId,
+      preferredLanguageId: data.languageId || 1,
+      languageId: data.languageId || 1,
       address: data.address,
       postalCode: data.postalCode,
       pinCode: data.postalCode,
@@ -216,11 +216,11 @@ class ProfileApi {
       mobileNumber: phoneDigits.length > 10 ? phoneDigits.slice(-10) : phoneDigits,
       mobileCountryCode:
         phoneDigits.length > 10 ? phoneDigits.slice(0, phoneDigits.length - 10) : '91',
-      countryId: data.countryId,
+      countryId: data.countryId || 1,
       stateId: data.stateId || undefined,
       cityId: data.cityId || undefined,
-      preferredLanguageId: data.languageId,
-      languageId: data.languageId,
+      preferredLanguageId: data.languageId || 1,
+      languageId: data.languageId || 1,
       address: data.address,
       postalCode: data.postalCode,
       pinCode: data.postalCode,

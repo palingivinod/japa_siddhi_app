@@ -89,6 +89,32 @@ const OtpScreen = ({route, navigation}: any) => {
           return;
         }
 
+        if (route?.params?.fullName) {
+          const {default: ProfileApi} = await import('./services/profileApi');
+          const regResponse = await ProfileApi.register({
+            mobileCountryCode: mobileCountryCode || '91',
+            mobileNumber,
+            phoneNumber:
+              phoneNumber || `${mobileCountryCode || '91'}${mobileNumber}`,
+            fullName: String(route.params.fullName).trim(),
+            dob: route.params?.dateOfBirth,
+            gender: route.params?.gender || 'Prefer Not To Say',
+            firebaseToken: fb.idToken,
+            firebaseUid: fb.user?.uid,
+            authProvider: 'phone',
+          });
+          const regData = regResponse?.data || regResponse || {};
+          if (regData?.token) {
+            await saveSession(regData.token, regData.user);
+          }
+          resetAuthGate();
+          const {resetToHomeAfterAuth} = await import(
+            '../../navigation/goHomeAfterAuth'
+          );
+          await resetToHomeAfterAuth(navigation);
+          return;
+        }
+
         if (!password || String(password).length < 6) {
           Alert.alert(
             t('createAccountAlertTitle'),
