@@ -528,7 +528,7 @@ export const kn: TranslationDict = {
   baanalingamDistribution: 'ಬಾಣಲಿಂಗ ವಿತರಣೆ.',
   savedAddresses: 'ಉಳಿಸಿದ ವಿಳಾಸಗಳು',
   clickHereForSavedAddresses: 'ಉಳಿಸಲಾದ ವಿಳಾಸಗಳಿಗಾಗಿ ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ',
-  addNewAddress: 'ಹೊಸ ವಿಳಾಸವನ್ನು ಸೇರಿಸಿ',
+  addNewAddress: 'ಹೊಸ ವಿಳಾಸ',
   flatDoorStreetAreaNote:
     'ಸೂಚನೆ: ದಯವಿಟ್ಟು ಫ್ಲಾಟ್ ನಂ, ಡೋರ್ ನಂ, ರಸ್ತೆ ಮತ್ತು ಪ್ರದೇಶದ ಹೆಸರನ್ನು ನಮೂದಿಸಿ',
   houseFlatDoorStreet: 'ಫ್ಲಾಟ್ / ಡೋರ್ / ಮನೆ ನಂ. & ರಸ್ತೆ',

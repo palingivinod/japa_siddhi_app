@@ -776,9 +776,9 @@ const en = {
   sacredService: 'Sacred service',
   applyBaanalingamDelivery: 'Apply to receive Baanalingam with delivery.',
   baanalingamDistribution: 'Baanalingam Distribution.',
-  savedAddresses: 'Saved addresses',
+  savedAddresses: 'Saved Addresses',
   clickHereForSavedAddresses: 'Click here for saved addresses',
-  addNewAddress: 'Add New Address',
+  addNewAddress: 'Add Address',
   flatDoorStreetAreaNote:
     'Note: Please enter flat no, door no, street and area name',
   houseFlatDoorStreet: 'Flat / Door / House No. & Street',

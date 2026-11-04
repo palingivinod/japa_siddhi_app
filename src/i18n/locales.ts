@@ -1432,7 +1432,7 @@ export const te: TranslationDict = {
   baanalingamDistribution: 'బాణలింగం పంపిణీ.',
   savedAddresses: 'సేవ్ చేసిన చిరునామాలు',
   clickHereForSavedAddresses: 'సేవ్ చేసిన చిరునామాల కోసం ఇక్కడ క్లిక్ చేయండి',
-  addNewAddress: 'కొత్త చిరునామాను జోడించండి',
+  addNewAddress: 'కొత్త చిరునామా',
   flatDoorStreetAreaNote:
     'గమనిక: దయచేసి ఫ్లాట్ నెం, డోర్ నెం, వీధి మరియు ప్రాంతం పేరును నమోదు చేయండి',
   houseFlatDoorStreet: 'ఫ్లాట్ / డోర్ / ఇంటి నెం. & వీధి',

@@ -529,7 +529,7 @@ export const ta: TranslationDict = {
   baanalingamDistribution: 'Baanalingam விநியோகம்.',
   savedAddresses: 'சேமிக்கப்பட்ட முகவரிகள்',
   clickHereForSavedAddresses: 'சேமிக்கப்பட்ட முகவரிகளுக்கு இங்கே கிளிக் செய்யவும்',
-  addNewAddress: 'புதிய முகவரியைச் சேர்க்கவும்',
+  addNewAddress: 'புதிய முகவரி',
   flatDoorStreetAreaNote:
     'குறிப்பு: பிளாட் எண், கதவு எண், தெரு மற்றும் பகுதி பெயரை உள்ளிடவும்',
   houseFlatDoorStreet: 'பிளாட் / கதவு / வீடு எண் & தெரு',
