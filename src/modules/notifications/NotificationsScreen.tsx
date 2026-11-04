@@ -239,6 +239,46 @@ const renderParagraphsWithLinks = (text: string, baseStyle?: any) => {
   );
 };
 
+const NotificationCardImage: React.FC<{
+  uri: string;
+  onPress: () => void;
+}> = ({uri, onPress}) => {
+  const [loading, setLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={onPress}
+      style={styles.imageWrap}>
+      <Image
+        source={{uri}}
+        style={styles.bannerImage}
+        resizeMode="cover"
+        onLoadStart={() => {
+          setLoading(true);
+          setHasError(false);
+        }}
+        onLoadEnd={() => setLoading(false)}
+        onError={() => {
+          setLoading(false);
+          setHasError(true);
+        }}
+      />
+      {loading ? (
+        <View style={styles.imageLoaderWrap}>
+          <ActivityIndicator size="small" color={Colors.templeGold} />
+        </View>
+      ) : null}
+      {hasError ? (
+        <View style={styles.imageErrorWrap}>
+          <Text style={styles.imageErrorText}>Tap to preview image</Text>
+        </View>
+      ) : null}
+    </TouchableOpacity>
+  );
+};
+
 const NotificationsScreen = () => {
   const route = useRoute<any>();
   const {t, tt, language} = useLanguage();
@@ -589,6 +629,12 @@ const NotificationsScreen = () => {
 
                 return (
                   <>
+                    {noteImage ? (
+                      <NotificationCardImage
+                        uri={noteImage}
+                        onPress={() => setSelectedImage(noteImage)}
+                      />
+                    ) : null}
                     {subject ? (
                       renderTextWithLinks(
                         subject,
@@ -600,18 +646,6 @@ const NotificationsScreen = () => {
                     ) : null}
                     {bodyLine ? (
                       renderParagraphsWithLinks(bodyLine, styles.subtitle)
-                    ) : null}
-                    {noteImage ? (
-                      <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => setSelectedImage(noteImage)}
-                        style={styles.imageWrap}>
-                        <Image
-                          source={{uri: noteImage}}
-                          style={styles.bannerImage}
-                          resizeMode="cover"
-                        />
-                      </TouchableOpacity>
                     ) : null}
                     {cleanLink ? (
                       <TouchableOpacity
@@ -912,18 +946,40 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   imageWrap: {
-    marginTop: 10,
-    marginBottom: 4,
+    width: '100%',
+    height: 180,
+    marginTop: 8,
+    marginBottom: 8,
     borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#F3E2C6',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+    backgroundColor: '#FAF5EE',
+    overflow: 'hidden',
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bannerImage: {
     width: '100%',
-    height: 180,
-    backgroundColor: '#F3E2C6',
+    height: '100%',
+    borderRadius: 12,
+  },
+  imageLoaderWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(250, 245, 238, 0.5)',
+  },
+  imageErrorWrap: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAF5EE',
+  },
+  imageErrorText: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   modalBackdrop: {
     flex: 1,
