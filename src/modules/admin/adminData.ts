@@ -90,6 +90,7 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Challenge Analytics', route: 'AdminChallengeAnalytics'},
   {title: 'Donation Analytics', route: 'AdminDonationAnalytics'},
   {title: 'Festival Analytics', route: 'AdminFestivalAnalytics'},
+  {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
 ];
 
 export const ADMIN_USERS: AdminUser[] = [];

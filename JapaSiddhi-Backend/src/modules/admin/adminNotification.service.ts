@@ -1027,6 +1027,35 @@ export const sendAdminNotification = async (input: {
     };
   }
 
+  const now = nowIstStamp();
+  let queueId: number | null = null;
+  try {
+    const queueInsert = await mysql.query<ResultSetHeader>(
+      `
+      INSERT INTO admin_notification_queue (
+        title, message, translations, target_group, send_at, status,
+        recipient_ids, bypass_hours, image_url, recipient_count, processed_at
+      ) VALUES (?, ?, ?, ?, ?, 'SENDING', ?, ?, ?, 0, ?)
+      `,
+      [
+        title,
+        message,
+        translations,
+        userIds.length ? 'selected_users' : target,
+        now,
+        userIds.length ? JSON.stringify(userIds) : null,
+        bypassHours ? 1 : 0,
+        imageUrl,
+        now,
+      ],
+    );
+    queueId = Number(
+      (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+    );
+  } catch (err) {
+    console.warn('admin_notification_queue insert failed on sendNow:', err);
+  }
+
   const delivered = await deliverAdminNotification({
     title,
     message,
@@ -1036,7 +1065,26 @@ export const sendAdminNotification = async (input: {
     bypassHours,
     actionType,
     imageUrl,
+    extraData: queueId ? {broadcastId: queueId, queuedId: queueId} : undefined,
   });
+
+  if (queueId) {
+    try {
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENT',
+            recipient_count = ?,
+            processed_at = ?
+        WHERE id = ?
+        `,
+        [delivered.recipientCount, now, queueId],
+      );
+    } catch (err) {
+      console.warn('admin_notification_queue update failed:', err);
+    }
+  }
+
   const pushNote = delivered.pushSent
     ? ` and ${delivered.pushSent} push popup(s)`
     : delivered.pushSkipped
@@ -1060,10 +1108,129 @@ export const sendAdminNotification = async (input: {
   };
 };
 
+export const getNotificationAnalytics = async () => {
+  await ensureQueueTable();
+  const rows = await mysql.query<any[]>(
+    `
+    SELECT
+      id,
+      title,
+      message,
+      translations,
+      target_group AS targetGroup,
+      recipient_count AS recipientCount,
+      status,
+      send_at AS sendAt,
+      processed_at AS processedAt,
+      created_at AS createdAt
+    FROM admin_notification_queue
+    WHERE status IN ('SENT', 'SENDING')
+    ORDER BY id DESC
+    LIMIT 100
+    `,
+  );
+
+  const items = [];
+  let totalDelivered = 0;
+  let totalRead = 0;
+
+  for (const row of rows || []) {
+    const queueId = Number(row.id);
+    const declaredSent = Number(row.recipientCount || 0);
+
+    let readCount = 0;
+    let actualInboxCount = 0;
+
+    try {
+      const stats = await mysql.query<any[]>(
+        `
+        SELECT
+          COUNT(*) AS total_inbox,
+          COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
+        FROM notifications
+        WHERE (
+          extra_data LIKE ?
+          OR extra_data LIKE ?
+        )
+        `,
+        [`%"broadcastId":${queueId}%`, `%"queuedId":${queueId}%`],
+      );
+      if (stats?.length) {
+        actualInboxCount = Number(stats[0].total_inbox || 0);
+        readCount = Number(stats[0].read_count || 0);
+      }
+    } catch (err) {
+      console.warn('Analytics stats query failed for queue item', queueId, err);
+    }
+
+    if (actualInboxCount === 0 && row.title) {
+      try {
+        const cleanTitle = String(row.title).slice(0, 30).trim();
+        const fallbackStats = await mysql.query<any[]>(
+          `
+          SELECT
+            COUNT(*) AS total_inbox,
+            COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
+          FROM notifications
+          WHERE notification_type = 'SYSTEM'
+            AND (title LIKE ? OR extra_data LIKE ?)
+          `,
+          [`%${cleanTitle}%`, `%"mantraName":"%${cleanTitle}%`],
+        );
+        if (
+          fallbackStats?.length &&
+          Number(fallbackStats[0].total_inbox || 0) > 0
+        ) {
+          actualInboxCount = Number(fallbackStats[0].total_inbox || 0);
+          readCount = Number(fallbackStats[0].read_count || 0);
+        }
+      } catch {
+        // ignore fallback error
+      }
+    }
+
+    const sentCount = Math.max(declaredSent, actualInboxCount);
+    const unreadCount = Math.max(0, sentCount - readCount);
+    const readRate =
+      sentCount > 0 ? Math.round((readCount / sentCount) * 100) : 0;
+
+    totalDelivered += sentCount;
+    totalRead += readCount;
+
+    items.push({
+      id: queueId,
+      title: row.title,
+      message: row.message,
+      targetGroup: row.targetGroup || 'all',
+      sentAt: row.processedAt || row.sendAt || row.createdAt,
+      sentCount,
+      readCount,
+      unreadCount,
+      readRate,
+    });
+  }
+
+  const totalBroadcasts = items.length;
+  const averageReadRate =
+    totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
+
+  return {
+    summary: {
+      totalBroadcasts,
+      totalDelivered,
+      totalRead,
+      totalUnread: Math.max(0, totalDelivered - totalRead),
+      averageReadRate,
+    },
+    items,
+  };
+};
+
 export default {
   sendAdminNotification,
   flushDueAdminNotifications,
   notifyAdminContentCreated,
   deliverAdminNotification,
+  getNotificationAnalytics,
   mapTarget,
 };

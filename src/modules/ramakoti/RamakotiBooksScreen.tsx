@@ -1,4 +1,4 @@
-import React, {useCallback, useRef, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {
   Alert,
   Image,
@@ -6,52 +6,54 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
+import {
+  getLatestSelectedAddress,
+  loadSavedAddresses,
+  saveDeliveryAddress,
+  setLatestSelectedAddress,
+} from '../../services/savedAddresses';
 import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import SavedAddressSelectorModal from '../../components/SavedAddressSelectorModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const RAMAKOTI_POSTER = require('../../assets/images/ramakoti_poster.jpg');
 
 const RamakotiBooksScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
-  const askedForAddress = useRef(false);
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
+  const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [comments, setComments] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
-
-  const askForProfileAddress = useCallback(() => {
-    Alert.alert(t('ramakotiSeva'), t('addAddressInProfile'), [
-      {text: t('cancel'), style: 'cancel'},
-      {
-        text: t('personalDetails'),
-        onPress: () => navigation.navigate('PersonalDetails'),
-      },
-    ]);
-  }, [navigation, t]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const load = async () => {
-        const [stored, profile] = await Promise.all([
+        const [stored, profile, addresses] = await Promise.all([
           getStoredUser(),
           ProfileApi.getProfile().catch(() => null),
+          loadSavedAddresses(),
         ]);
         if (!active) {
           return;
         }
+        setSavedAddresses(addresses);
         const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
         const phone =
           profile?.mobileNumber ||
@@ -59,58 +61,63 @@ const RamakotiBooksScreen = () => {
           stored?.mobile_number ||
           stored?.phone ||
           '';
-        const line = String(profile?.address || stored?.address || '').trim();
-        const pin = String(
-          profile?.postalCode ||
-            profile?.pinCode ||
-            stored?.postalCode ||
-            stored?.pinCode ||
-            '',
-        )
-          .replace(/\D/g, '')
-          .slice(0, 6);
-        const region = String(profile?.region || stored?.region || '').trim();
-        const city = String(profile?.cityName || stored?.cityName || '').trim();
-        const state = String(
-          profile?.stateName || stored?.stateName || '',
-        ).trim();
-        const profileAddress = [line, region, city, state, pin]
-          .filter(Boolean)
-          .join(', ');
         if (name) {
           setFullName(String(name));
         }
         if (phone) {
           setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
         }
-        // Always refresh from latest profile so address/pincode edits apply.
-        if (profileAddress) {
-          setAddress(profileAddress);
-          askedForAddress.current = false;
-          return;
-        }
-        setAddress('');
-        if (!askedForAddress.current) {
-          askedForAddress.current = true;
-          askForProfileAddress();
+
+        if (route.params?.selectedAddress) {
+          setAddress(route.params.selectedAddress);
+          await setLatestSelectedAddress(route.params.selectedAddress);
+        } else {
+          const latestChosen = await getLatestSelectedAddress();
+          const profileAddr = [
+            String(profile?.address || stored?.address || '').trim(),
+            String(profile?.region || stored?.region || '').trim(),
+            String(profile?.cityName || stored?.cityName || '').trim(),
+            String(profile?.stateName || stored?.stateName || '').trim(),
+            String(
+              profile?.postalCode ||
+                (profile as any)?.pinCode ||
+                stored?.postalCode ||
+                stored?.pinCode ||
+                '',
+            )
+              .replace(/\D/g, '')
+              .slice(0, 6),
+          ]
+            .filter(Boolean)
+            .join(', ');
+          const latest = latestChosen || addresses[0] || profileAddr;
+          if (latest) {
+            setAddress(current => current || latest);
+          }
         }
       };
       load();
       return () => {
         active = false;
       };
-    }, [askForProfileAddress]),
+    }, [route.params?.selectedAddress]),
   );
 
-  const submit = () => {
+  const submit = async () => {
     if (!fullName.trim() || !isMobile(mobile)) {
       Alert.alert(t('ramakotiSeva'), t('baanalingamFieldsRequired'));
       return;
     }
     if (!address.trim()) {
-      askForProfileAddress();
+      Alert.alert(
+        t('ramakotiSeva'),
+        t('flatDoorStreetAreaNote') ||
+          '* Please enter flat no, door no, street and area name',
+      );
       return;
     }
+    await saveDeliveryAddress(address.trim());
+    await setLatestSelectedAddress(address.trim());
     navigation.navigate('RamakotiBooksReview', {
       fullName: fullName.trim(),
       mobile,
@@ -155,13 +162,40 @@ const RamakotiBooksScreen = () => {
         value={mobile}
         onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
+      <View style={styles.addressBtnRow}>
+        <TouchableOpacity
+          style={styles.savedAddressesBtn}
+          activeOpacity={0.8}
+          onPress={() => setSavedModalVisible(true)}>
+          <Text style={styles.savedAddressesBtnIcon}>📍</Text>
+          <Text style={styles.savedAddressesBtnText} numberOfLines={1}>
+            {t('clickHereForSavedAddresses')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addNewAddrBtn}
+          activeOpacity={0.8}
+          onPress={() =>
+            navigation.navigate('AddAddress', {returnTo: 'RamakotiBooks'})
+          }>
+          <Text style={styles.addNewAddrBtnText}>
+            ＋ {t('addNewAddress')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FormField
-        label={t('address')}
+        label={t('deliveryAddress')}
         placeholder={t('deliveryAddress')}
         value={address}
-        onChangeText={setAddress}
+        onChangeText={text => {
+          setAddress(text);
+          setLatestSelectedAddress(text);
+        }}
       />
-      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
+      <Text style={styles.addressRedNote}>
+        {t('flatDoorStreetAreaNote')}
+      </Text>
       <FormField
         label={t('comments')}
         placeholder={t('generalCommentsPlaceholder')}
@@ -180,6 +214,19 @@ const RamakotiBooksScreen = () => {
         }
         onPress={submit}
         disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
+      />
+      <SavedAddressSelectorModal
+        visible={savedModalVisible}
+        addresses={savedAddresses}
+        selectedAddress={address}
+        onSelect={async addr => {
+          setAddress(addr);
+          await setLatestSelectedAddress(addr);
+        }}
+        onAddNew={() => {
+          navigation.navigate('AddAddress', {returnTo: 'RamakotiBooks'});
+        }}
+        onClose={() => setSavedModalVisible(false)}
       />
     </ScreenLayout>
   );
@@ -217,6 +264,54 @@ const styles = StyleSheet.create({
   large: {
     width: '100%',
     height: '78%',
+  },
+  addressBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  savedAddressesBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8EE',
+    borderWidth: 1.2,
+    borderColor: Colors.templeGold,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  savedAddressesBtnIcon: {
+    fontSize: 14,
+  },
+  savedAddressesBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    flex: 1,
+  },
+  addNewAddrBtn: {
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addNewAddrBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  addressRedNote: {
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: -8,
+    marginBottom: 14,
+    lineHeight: 17,
   },
   addressNote: {
     color: '#D32F2F',

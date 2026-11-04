@@ -12,6 +12,7 @@ import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrderStatus} from './adminData';
@@ -164,6 +165,7 @@ const MobileDetailRow = ({
 
 const AdminOrderDetailsScreen = () => {
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const orderId = String(route.params?.orderId || '');
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -248,7 +250,12 @@ const AdminOrderDetailsScreen = () => {
         status: next,
       });
       setOrder(applyOrder(response.data?.data || {}));
-      Alert.alert('Status updated', `Order is now ${next}.`);
+      Alert.alert(
+        'Status updated',
+        next === 'Shipped'
+          ? `Order ${order.orderNo} is now Shipped and moved to Order History.`
+          : `Order is now ${next}.`,
+      );
     } catch (err) {
       Alert.alert(
         'Update failed',
@@ -352,36 +359,36 @@ const AdminOrderDetailsScreen = () => {
       }
       if (order.status === 'Sankalp Taken') {
         return {
-          title: saving ? 'UPDATING...' : '✓ ORDER CONFIRMATION',
+          title: saving ? t('updating') : `✓ ${t('confirmApproveOrder')}`,
           onPress: () => advanceStatus('Confirmed'),
         };
       }
     } else if (order.status === 'Under Review') {
       return {
-        title: saving ? 'CONFIRMING...' : '✓ CONFIRM / APPROVE ORDER',
+        title: saving ? t('updating') : `✓ ${t('confirmApproveOrder')}`,
         onPress: confirmOrder,
       };
     }
     if (order.status === 'Confirmed') {
       return {
-        title: saving ? 'UPDATING...' : '📦 MARK AS PACKING',
+        title: saving ? t('updating') : `📦 ${t('markAsPacking')}`,
         onPress: () => advanceStatus('Packing'),
       };
     }
     if (order.status === 'Packing') {
       return {
-        title: saving ? 'UPDATING...' : '🚚 MARK AS SHIPPED',
+        title: saving ? t('updating') : `🚚 ${t('markAsShipped')}`,
         onPress: () => advanceStatus('Shipped'),
       };
     }
     if (order.status === 'Shipped') {
       return {
-        title: saving ? 'UPDATING...' : '✓ MARK AS DELIVERED',
+        title: saving ? t('updating') : `✓ ${t('markAsDelivered')}`,
         onPress: () => advanceStatus('Delivered'),
       };
     }
     return {
-      title: saving ? 'UPDATING...' : '📦 MARK AS PACKING',
+      title: saving ? t('updating') : `📦 ${t('markAsPacking')}`,
       onPress: () => advanceStatus('Packing'),
     };
   })();
@@ -408,7 +415,7 @@ const AdminOrderDetailsScreen = () => {
     if (!prevStatus) return null;
 
     return {
-      title: `↩ UNDO STATUS TO ${prevStatus.toUpperCase()}`,
+      title: `↩ ${t('undoStatusTo')} ${prevStatus.toUpperCase()}`,
       prevStatus,
       onPress: () => revertStatus(prevStatus!),
     };
@@ -556,6 +563,7 @@ const AdminOrderDetailsScreen = () => {
 
           {nextAction ? (
             <PrimaryButton
+              rawTitle
               title={nextAction.title}
               onPress={nextAction.onPress}
               disabled={saving}

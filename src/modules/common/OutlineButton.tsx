@@ -7,9 +7,10 @@ import {useLanguage} from '../../i18n/LanguageContext';
 interface Props {
   title: string;
   onPress: () => void;
+  rawTitle?: boolean;
 }
 
-const OutlineButton: React.FC<Props> = ({title, onPress}) => {
+const OutlineButton: React.FC<Props> = ({title, onPress, rawTitle = false}) => {
   const {tt} = useLanguage();
   return (
     <TouchableOpacity style={styles.button} onPress={onPress} activeOpacity={0.8}>
@@ -20,7 +21,7 @@ const OutlineButton: React.FC<Props> = ({title, onPress}) => {
         minimumFontScale={0.72}
         maxFontSizeMultiplier={1.15}
         allowFontScaling>
-        {tt(title)}
+        {rawTitle ? title : tt(title)}
       </Text>
     </TouchableOpacity>
   );

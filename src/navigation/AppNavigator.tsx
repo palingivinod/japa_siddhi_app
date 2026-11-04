@@ -68,6 +68,7 @@ import GoalAnalyticsScreen from '../modules/analytics/GoalAnalyticsScreen';
 import StreakAnalyticsScreen from '../modules/analytics/StreakAnalyticsScreen';
 import ProfileViewScreen from '../modules/profile/ProfileViewScreen';
 import PersonalDetailsScreen from '../modules/profile/PersonalDetailsScreen';
+import AddAddressScreen from '../modules/profile/AddAddressScreen';
 import SpiritualDetailsScreen from '../modules/profile/SpiritualDetailsScreen';
 import SettingsScreen from '../modules/profile/SettingsScreen';
 import AboutAppScreen from '../modules/profile/AboutAppScreen';
@@ -120,6 +121,7 @@ import AdminChallengesScreen from '../modules/admin/AdminChallengesScreen';
 import AdminRewardsScreen from '../modules/admin/AdminRewardsScreen';
 import AdminRewardStockScreen from '../modules/admin/AdminRewardStockScreen';
 import AdminNotificationsScreen from '../modules/admin/AdminNotificationsScreen';
+import AdminNotificationAnalyticsScreen from '../modules/admin/AdminNotificationAnalyticsScreen';
 import AdminOrdersScreen from '../modules/admin/AdminOrdersScreen';
 import AdminOrderHistoryScreen from '../modules/admin/AdminOrderHistoryScreen';
 import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
@@ -313,6 +315,7 @@ export type RootStackParamList = {
   StreakAnalytics: undefined;
   Profile: undefined;
   PersonalDetails: {profile?: any} | undefined;
+  AddAddress: {returnTo?: string} | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   AboutApp: undefined;
@@ -400,6 +403,7 @@ export type RootStackParamList = {
       }
     | undefined;
   AdminNotifications: undefined;
+  AdminNotificationAnalytics: undefined;
   AdminOrders: undefined;
   AdminOrderHistory: undefined;
   AdminAutopayRequests: undefined;
@@ -510,6 +514,7 @@ const ProtectedGoalAnalytics = withAuth(GoalAnalyticsScreen);
 const ProtectedStreakAnalytics = withAuth(StreakAnalyticsScreen);
 const ProtectedProfile = withAuth(ProfileViewScreen);
 const ProtectedPersonal = withAuth(PersonalDetailsScreen);
+const ProtectedAddAddress = withAuth(AddAddressScreen);
 const ProtectedSpiritual = withAuth(SpiritualDetailsScreen);
 const ProtectedSettings = withAuth(SettingsScreen);
 const ProtectedAboutApp = withAuth(AboutAppScreen);
@@ -558,6 +563,7 @@ const ProtectedAdminChallenges = withAdminAuth(AdminChallengesScreen);
 const ProtectedAdminRewards = withAdminAuth(AdminRewardsScreen);
 const ProtectedAdminRewardStock = withAdminAuth(AdminRewardStockScreen);
 const ProtectedAdminNotifications = withAdminAuth(AdminNotificationsScreen);
+const ProtectedAdminNotificationAnalytics = withAdminAuth(AdminNotificationAnalyticsScreen);
 const ProtectedAdminOrders = withAdminAuth(AdminOrdersScreen);
 const ProtectedAdminOrderHistory = withAdminAuth(AdminOrderHistoryScreen);
 const ProtectedAdminAutopayRequests = withAdminAuth(AdminAutopayRequestsScreen);
@@ -768,6 +774,7 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="Profile" component={ProtectedProfile} />
         <Stack.Screen name="PersonalDetails" component={ProtectedPersonal} />
+        <Stack.Screen name="AddAddress" component={ProtectedAddAddress} />
         <Stack.Screen name="SpiritualDetails" component={ProtectedSpiritual} />
         <Stack.Screen name="Settings" component={ProtectedSettings} />
         <Stack.Screen name="AboutApp" component={ProtectedAboutApp} />
@@ -872,6 +879,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminNotifications"
           component={ProtectedAdminNotifications}
+        />
+        <Stack.Screen
+          name="AdminNotificationAnalytics"
+          component={ProtectedAdminNotificationAnalytics}
         />
         <Stack.Screen name="AdminOrders" component={ProtectedAdminOrders} />
         <Stack.Screen

@@ -13,8 +13,10 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import {
+  getLatestSelectedAddress,
   loadSavedAddresses,
   saveDeliveryAddress,
+  setLatestSelectedAddress,
 } from '../../services/savedAddresses';
 import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
@@ -22,6 +24,7 @@ import FormField from '../common/FormField';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import SavedAddressSelectorModal from '../../components/SavedAddressSelectorModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
 
@@ -39,6 +42,7 @@ const SevaRequestScreen = () => {
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
+  const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
@@ -80,16 +84,25 @@ const SevaRequestScreen = () => {
           );
         }
         setSavedAddresses(addresses);
-        const latest = addresses[0] || String(profile?.address || stored?.address || '');
-        if (latest) {
-          setAddress(current => current || latest);
+        if (route.params?.selectedAddress) {
+          setAddress(route.params.selectedAddress);
+          await setLatestSelectedAddress(route.params.selectedAddress);
+        } else {
+          const latestChosen = await getLatestSelectedAddress();
+          const latest =
+            latestChosen ||
+            addresses[0] ||
+            String(profile?.address || stored?.address || '');
+          if (latest) {
+            setAddress(current => current || latest);
+          }
         }
       };
       load();
       return () => {
         active = false;
       };
-    }, []),
+    }, [route.params?.selectedAddress]),
   );
 
   const submit = async () => {
@@ -105,6 +118,7 @@ const SevaRequestScreen = () => {
       return;
     }
     const nextAddresses = await saveDeliveryAddress(address);
+    await setLatestSelectedAddress(address.trim());
     setSavedAddresses(nextAddresses);
     navigation.navigate(request.reviewRoute, {
       fullName,
@@ -163,33 +177,40 @@ const SevaRequestScreen = () => {
         value={mobile}
         onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
-      {savedAddresses.length ? (
-        <>
-          <Text style={styles.label}>{t('savedAddresses')}</Text>
-          <View style={styles.chips}>
-            {savedAddresses.map(item => {
-              const active = item === address.trim();
-              return (
-                <TouchableOpacity
-                  key={item}
-                  style={[styles.chip, active && styles.chipOn]}
-                  onPress={() => setAddress(item)}>
-                  <Text style={styles.chipText} numberOfLines={2}>
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </>
-      ) : null}
+      <View style={styles.addressBtnRow}>
+        <TouchableOpacity
+          style={styles.savedAddressesBtn}
+          activeOpacity={0.8}
+          onPress={() => setSavedModalVisible(true)}>
+          <Text style={styles.savedAddressesBtnIcon}>📍</Text>
+          <Text style={styles.savedAddressesBtnText} numberOfLines={1}>
+            {t('clickHereForSavedAddresses')}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addNewAddrBtn}
+          activeOpacity={0.8}
+          onPress={() =>
+            navigation.navigate('AddAddress', {returnTo: request.formRoute})
+          }>
+          <Text style={styles.addNewAddrBtnText}>
+            ＋ {t('addNewAddress')}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <FormField
-        label={savedAddresses.length ? t('newOrSelectedAddress') : t('address')}
+        label={t('deliveryAddress')}
         placeholder={t('deliveryAddress')}
         value={address}
-        onChangeText={setAddress}
+        onChangeText={text => {
+          setAddress(text);
+          setLatestSelectedAddress(text);
+        }}
       />
-      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
+      <Text style={styles.addressRedNote}>
+        {t('flatDoorStreetAreaNote')}
+      </Text>
       <FormField label="Gothram" placeholder="Optional" value={gothram} onChangeText={setGothram} />
       <FormField
         label="Nakshatram"
@@ -215,6 +236,19 @@ const SevaRequestScreen = () => {
         }
         onPress={submit}
         disabled={!ready}
+      />
+      <SavedAddressSelectorModal
+        visible={savedModalVisible}
+        addresses={savedAddresses}
+        selectedAddress={address}
+        onSelect={async addr => {
+          setAddress(addr);
+          await setLatestSelectedAddress(addr);
+        }}
+        onAddNew={() => {
+          navigation.navigate('AddAddress', {returnTo: request.formRoute});
+        }}
+        onClose={() => setSavedModalVisible(false)}
       />
     </ScreenLayout>
   );
@@ -284,6 +318,54 @@ const styles = StyleSheet.create({
   large: {
     width: '100%',
     height: '78%',
+  },
+  addressBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  savedAddressesBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF8EE',
+    borderWidth: 1.2,
+    borderColor: Colors.templeGold,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 6,
+  },
+  savedAddressesBtnIcon: {
+    fontSize: 14,
+  },
+  savedAddressesBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    flex: 1,
+  },
+  addNewAddrBtn: {
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addNewAddrBtnText: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: Colors.white,
+  },
+  addressRedNote: {
+    color: '#D32F2F',
+    fontSize: 12,
+    fontWeight: '700',
+    marginTop: -8,
+    marginBottom: 14,
+    lineHeight: 17,
   },
   addressNote: {
     color: '#D32F2F',

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import {useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {dismissKeyboardThen} from '../../utils/keyboard';
@@ -138,6 +139,7 @@ const formatTimeLabel = (date: Date) =>
   });
 
 const AdminNotificationsScreen = () => {
+  const navigation = useNavigation<any>();
   const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
   const [translations, setTranslations] = useState<
     Record<AdminSupportedLang, NotificationLangFields>
@@ -441,6 +443,21 @@ const AdminNotificationsScreen = () => {
       <Text style={styles.sub}>
         Type in English, and it automatically translates into Telugu, Hindi, Tamil, and Kannada. You can switch tabs to review or edit anytime.
       </Text>
+
+      <View style={styles.analyticsNavRow}>
+        <TouchableOpacity
+          style={styles.analyticsNavBtn}
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('AdminNotificationAnalytics')}>
+          <View style={styles.analyticsNavLeft}>
+            <Text style={styles.analyticsNavIcon}>📊</Text>
+            <Text style={styles.analyticsNavText}>
+              Notification Analytics & Delivery Stats
+            </Text>
+          </View>
+          <Text style={styles.analyticsNavArrow}>View Stats →</Text>
+        </TouchableOpacity>
+      </View>
 
       <AdminLanguageTabs
         activeLang={activeLang}
@@ -861,6 +878,40 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '800',
     fontSize: 15,
+  },
+  analyticsNavRow: {
+    marginTop: 10,
+    marginBottom: 16,
+  },
+  analyticsNavBtn: {
+    backgroundColor: '#FFF8EE',
+    borderWidth: 1.2,
+    borderColor: Colors.templeGold,
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  analyticsNavLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  analyticsNavIcon: {
+    fontSize: 16,
+  },
+  analyticsNavText: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  analyticsNavArrow: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: Colors.leafGreen,
   },
   loading: {alignItems: 'center', marginBottom: 10},
   field: {marginBottom: 14},

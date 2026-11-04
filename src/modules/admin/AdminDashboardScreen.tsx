@@ -147,7 +147,9 @@ const AdminDashboardScreen = () => {
                 : item.title === 'Meeting Management'
                 ? 'Schedule Google Meet & live classes'
                 : item.title === 'Order History'
-                ? 'All delivered orders archive & search'
+                ? 'All shipped & delivered orders archive & search'
+                : item.title === 'Notification Analytics'
+                ? 'Sent & read counts for broadcast notifications'
                 : 'Central management'}
             </Text>
           </View>

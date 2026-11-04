@@ -104,8 +104,27 @@ export function translateTitle(dict: TranslationDict, title: string): string {
     return translate(dict, direct);
   }
 
+  // Check if string has leading symbols/emojis (e.g. "✓ Delivered" or "📦 Packing")
+  const stripped = trimmed
+    .replace(/^[\s\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}✓📦🚚📞🙏↩⤺•–—]+\s*/u, '')
+    .trim();
+  if (stripped && stripped !== trimmed) {
+    const directStripped = lookupKey(stripped);
+    if (directStripped) {
+      const prefix = trimmed.slice(0, trimmed.length - stripped.length);
+      return `${prefix}${translate(dict, directStripped)}`;
+    }
+  }
+
   const isEnglishDict = dict.continue === en.continue && dict.settings === en.settings;
   if (isEnglishDict) {
+    return trimmed;
+  }
+
+  // Never perform partial single-word replacement on short action titles/buttons (<= 4 words)
+  // because replacing only one word (e.g. "DELIVERED" in "MARK AS DELIVERED") causes half-translated strings.
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount <= 4) {
     return trimmed;
   }
 

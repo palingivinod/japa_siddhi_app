@@ -61,7 +61,7 @@ const matchesOrderSearch = (order: AdminOrder, query: string) => {
 export type HistoryItemFilter = 'ALL' | 'BL' | 'RK' | 'BP' | 'HB' | 'REWARD';
 
 const HISTORY_FILTERS: Array<{id: HistoryItemFilter; label: string}> = [
-  {id: 'ALL', label: 'All Delivered'},
+  {id: 'ALL', label: 'All Orders'},
   {id: 'BL', label: 'Baanalingam'},
   {id: 'RK', label: 'Ramakoti'},
   {id: 'BP', label: 'Bhirava Pendant'},
@@ -238,8 +238,10 @@ const AdminOrderHistoryScreen = () => {
           userReceived: Boolean(row.userReceived ?? row.user_received),
           userReceivedAt: row.userReceivedAt || row.user_received_at || '',
         }))
-        // Only delivered orders belong in Order History
-        .filter((o: AdminOrder) => o.status === 'Delivered');
+        // Shipped and delivered orders belong in Order History
+        .filter(
+          (o: AdminOrder) => o.status === 'Delivered' || o.status === 'Shipped',
+        );
 
       setOrders(mapped);
     } catch (err) {
@@ -315,7 +317,7 @@ const AdminOrderHistoryScreen = () => {
     <AdminScreenLayout title="Order History" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Order History</Text>
       <Text style={styles.sub}>
-        All delivered orders archive across all categories.
+        All shipped and delivered orders archive across all categories.
       </Text>
 
       {/* Search Input */}
@@ -331,18 +333,18 @@ const AdminOrderHistoryScreen = () => {
       />
       {searchActive ? (
         <Text style={styles.searchHint}>
-          Showing delivered matches for “{search.trim()}” ({filteredOrders.length})
+          Showing matches for “{search.trim()}” ({filteredOrders.length})
         </Text>
       ) : null}
 
       {/* Summary Card */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryLeft}>
-          <Text style={styles.summaryLabel}>TOTAL DELIVERED ORDERS</Text>
+          <Text style={styles.summaryLabel}>TOTAL ARCHIVED ORDERS</Text>
           <Text style={styles.summaryCount}>{orders.length}</Text>
         </View>
         <View style={styles.deliveredPill}>
-          <Text style={styles.deliveredPillText}>✓ Completed Archive</Text>
+          <Text style={styles.deliveredPillText}>📦 Shipped & Delivered</Text>
         </View>
       </View>
 
@@ -390,11 +392,11 @@ const AdminOrderHistoryScreen = () => {
       {/* Empty State */}
       {!loading && !error && filteredOrders.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>No Delivered Orders Found</Text>
+          <Text style={styles.emptyTitle}>No Orders Found</Text>
           <Text style={styles.empty}>
             {searchActive
-              ? `No delivered orders matched “${search.trim()}”.`
-              : 'No delivered orders in this category yet.'}
+              ? `No orders matched “${search.trim()}”.`
+              : 'No shipped or delivered orders in this category yet.'}
           </Text>
           {searchActive || categoryFilter !== 'ALL' ? (
             <TouchableOpacity
@@ -458,8 +460,22 @@ const AdminOrderHistoryScreen = () => {
               </View>
 
               <View style={styles.statusCol}>
-                <View style={styles.statusPill}>
-                  <Text style={styles.statusPillText}>✓ DELIVERED</Text>
+                <View
+                  style={[
+                    styles.statusPill,
+                    order.status === 'Shipped'
+                      ? styles.statusPillShipped
+                      : styles.statusPillDelivered,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.statusPillText,
+                      order.status === 'Shipped'
+                        ? styles.statusPillTextShipped
+                        : styles.statusPillTextDelivered,
+                    ]}>
+                    {order.status === 'Shipped' ? '🚚 SHIPPED' : '✓ DELIVERED'}
+                  </Text>
                 </View>
                 {order.userReceived ? (
                   <View style={styles.userConfirmedBadge}>
@@ -725,17 +741,28 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   statusPill: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#16A34A',
     borderWidth: 1,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
+  statusPillShipped: {
+    backgroundColor: '#F3E8FF',
+    borderColor: '#9333EA',
+  },
+  statusPillDelivered: {
+    backgroundColor: '#DCFCE7',
+    borderColor: '#16A34A',
+  },
   statusPillText: {
-    color: '#15803D',
     fontSize: 11,
     fontWeight: '800',
+  },
+  statusPillTextShipped: {
+    color: '#7E22CE',
+  },
+  statusPillTextDelivered: {
+    color: '#15803D',
   },
   userConfirmedBadge: {
     marginTop: 6,

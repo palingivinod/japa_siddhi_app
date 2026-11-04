@@ -330,7 +330,7 @@ class ProfileRepository {
     await mysql.query(
       `
       UPDATE users
-      SET address = ?, updated_at = CURRENT_TIMESTAMP
+      SET address = COALESCE(NULLIF(TRIM(address), ''), ?), updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
       [next, userId],

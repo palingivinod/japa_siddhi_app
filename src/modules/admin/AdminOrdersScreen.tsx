@@ -65,7 +65,6 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Sankalp Taken', label: 'Sankalp'},
   {id: 'Confirmed', label: 'Confirmed'},
   {id: 'Packing', label: 'Packing'},
-  {id: 'Shipped', label: 'Shipped'},
   {id: 'Cancelled', label: 'Cancelled'},
 ];
 
@@ -317,7 +316,9 @@ const AdminOrdersScreen = () => {
         userCode: String(row.userCode || '').trim(),
         userReceived: Boolean(row.userReceived ?? row.user_received),
         userReceivedAt: row.userReceivedAt || row.user_received_at || '',
-      })).filter((o: AdminOrder) => o.status !== 'Delivered');
+      })).filter(
+        (o: AdminOrder) => o.status !== 'Delivered' && o.status !== 'Shipped',
+      );
       setOrders(mapped);
       setNoteDrafts(prev => {
         const next = {...prev};
@@ -541,7 +542,6 @@ const AdminOrdersScreen = () => {
     ).length;
     const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
     const packing = itemFilteredOrders.filter(o => o.status === 'Packing').length;
-    const shipped = itemFilteredOrders.filter(o => o.status === 'Shipped').length;
     const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
     return {
       total,
@@ -551,7 +551,6 @@ const AdminOrdersScreen = () => {
       sankalpTaken,
       confirmed,
       packing,
-      shipped,
       cancelled,
     };
   }, [itemFilteredOrders]);
@@ -579,7 +578,6 @@ const AdminOrdersScreen = () => {
     if (tabId === 'Sankalp Taken') return orderCounts.sankalpTaken;
     if (tabId === 'Confirmed') return orderCounts.confirmed;
     if (tabId === 'Packing') return orderCounts.packing;
-    if (tabId === 'Shipped') return orderCounts.shipped;
     if (tabId === 'Cancelled') return orderCounts.cancelled;
     return 0;
   };
@@ -666,13 +664,6 @@ const AdminOrdersScreen = () => {
               {orderCounts.packing}
             </Text>
             <Text style={styles.miniStatLabel}>Packing</Text>
-          </View>
-          <View style={styles.miniStatDivider} />
-          <View style={styles.miniStatItem}>
-            <Text style={[styles.miniStatCount, {color: '#7E22CE'}]}>
-              {orderCounts.shipped}
-            </Text>
-            <Text style={styles.miniStatLabel}>Shipped</Text>
           </View>
         </View>
       </View>

@@ -4,12 +4,14 @@ import apiService from './apiService';
 import {userScopedKey} from './session';
 
 const STORAGE_BASE = 'saved_delivery_addresses';
+const LATEST_KEY = 'latest_selected_delivery_address';
 /** Addresses used to live under one shared key, so that copy is dropped. */
 const SHARED_KEY = 'saved_delivery_addresses';
 
 let sharedKeyDropped = false;
 
 const storageKey = () => userScopedKey(STORAGE_BASE);
+const latestKey = () => userScopedKey(LATEST_KEY);
 
 const dropSharedAddresses = async () => {
   if (sharedKeyDropped) {
@@ -51,7 +53,30 @@ const writeLocal = async (items: string[]) => {
   await AsyncStorage.setItem(await storageKey(), JSON.stringify(unique(items)));
 };
 
-export const loadSavedAddresses = async () => {
+export const getLatestSelectedAddress = async (): Promise<string> => {
+  try {
+    const latest = await AsyncStorage.getItem(await latestKey());
+    if (latest && latest.trim()) {
+      return latest.trim();
+    }
+  } catch {
+    // ignore
+  }
+  const all = await loadSavedAddresses();
+  return all[0] || '';
+};
+
+export const setLatestSelectedAddress = async (address: string): Promise<void> => {
+  const clean = String(address || '').trim();
+  if (!clean) return;
+  try {
+    await AsyncStorage.setItem(await latestKey(), clean);
+  } catch {
+    // ignore
+  }
+};
+
+export const loadSavedAddresses = async (): Promise<string[]> => {
   const local = await readLocal();
   try {
     const response = await apiService.get('/profile/addresses');
@@ -66,11 +91,12 @@ export const loadSavedAddresses = async () => {
   }
 };
 
-export const saveDeliveryAddress = async (address: string) => {
+export const saveDeliveryAddress = async (address: string): Promise<string[]> => {
   const next = String(address || '').trim();
   if (!next) {
     return loadSavedAddresses();
   }
+  await setLatestSelectedAddress(next);
   const local = unique([next, ...(await readLocal())]);
   await writeLocal(local);
   try {

@@ -8,9 +8,15 @@ interface Props {
   title: string;
   onPress: () => void;
   disabled?: boolean;
+  rawTitle?: boolean;
 }
 
-const PrimaryButton: React.FC<Props> = ({title, onPress, disabled}) => {
+const PrimaryButton: React.FC<Props> = ({
+  title,
+  onPress,
+  disabled,
+  rawTitle = false,
+}) => {
   const {tt} = useLanguage();
   return (
     <TouchableOpacity
@@ -25,7 +31,7 @@ const PrimaryButton: React.FC<Props> = ({title, onPress, disabled}) => {
         minimumFontScale={0.72}
         maxFontSizeMultiplier={1.15}
         allowFontScaling>
-        {tt(title)}
+        {rawTitle ? title : tt(title)}
       </Text>
     </TouchableOpacity>
   );

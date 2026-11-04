@@ -2222,6 +2222,22 @@ router.post(
   },
 );
 
+router.get('/notifications/analytics', async (_req: Request, res: Response) => {
+  try {
+    const {getNotificationAnalytics} = await import(
+      './adminNotification.service'
+    );
+    const data = await getNotificationAnalytics();
+    return res.json({success: true, data});
+  } catch (error: any) {
+    console.error('getNotificationAnalytics error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load notification analytics.',
+    });
+  }
+});
+
 router.get('/annadanam-features', async (_req: Request, res: Response) => {
   try {
     const {listAnnadanamFeatures} = await import('./annadanamFeatures.service');
