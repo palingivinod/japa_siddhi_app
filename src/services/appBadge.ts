@@ -92,7 +92,10 @@ export const syncAppBadgeWithServer = async (): Promise<number> => {
           : Array.isArray(listRes.data)
           ? listRes.data
           : [];
-        unreadCount = list.filter((item: any) => !item.isRead).length;
+        unreadCount = list.filter(
+          (item: any) =>
+            !item.isRead && !item.is_read && !item.readAt && !item.read_at,
+        ).length;
       } catch {
         unreadCount = 0;
       }
