@@ -362,8 +362,8 @@ const AdminCancelledOrdersScreen = () => {
                 {/* Header: Order No, Date & Cancelled Tag */}
                 <View style={styles.cardHeader}>
                   <View>
-                    <Text style={styles.orderNo}>{order.orderNo}</Text>
-                    <Text style={styles.orderDate}>{order.date}</Text>
+                    <Text selectable={true} style={styles.orderNo}>{order.orderNo}</Text>
+                    <Text selectable={true} style={styles.orderDate}>{order.date}</Text>
                   </View>
                   <View style={styles.cancelledBadge}>
                     <Text style={styles.cancelledBadgeText}>CANCELLED</Text>
@@ -371,12 +371,12 @@ const AdminCancelledOrdersScreen = () => {
                 </View>
 
                 {/* Product / Seva title */}
-                <Text style={styles.productTitle}>{order.product}</Text>
+                <Text selectable={true} style={styles.productTitle}>{order.product}</Text>
 
                 {/* Devotee Info */}
                 <View style={styles.infoRow}>
                   <Text style={styles.infoLabel}>Devotee:</Text>
-                  <Text style={styles.infoValue}>
+                  <Text selectable={true} style={styles.infoValue}>
                     {order.customer} {userDisplay ? `(${userDisplay})` : ''}
                   </Text>
                 </View>
@@ -387,7 +387,7 @@ const AdminCancelledOrdersScreen = () => {
                     <TouchableOpacity
                       onPress={() => dialCustomer(displayMobile)}
                       activeOpacity={0.7}>
-                      <Text style={styles.phoneLink}>📞 {displayMobile}</Text>
+                      <Text selectable={true} style={styles.phoneLink}>📞 {displayMobile}</Text>
                     </TouchableOpacity>
                   </View>
                 ) : null}
@@ -404,7 +404,7 @@ const AdminCancelledOrdersScreen = () => {
                   </View>
                   <View style={styles.reasonRow}>
                     <Text style={styles.cancelMetaLabel}>Reason:</Text>
-                    <Text style={styles.reasonText}>
+                    <Text selectable={true} style={styles.reasonText}>
                       {order.cancelReason || 'No specific reason provided.'}
                     </Text>
                   </View>
@@ -412,7 +412,7 @@ const AdminCancelledOrdersScreen = () => {
 
                 {/* Remarks if any */}
                 {order.remarks ? (
-                  <Text style={styles.remarksText}>
+                  <Text selectable={true} style={styles.remarksText}>
                     Address/Remarks: {order.remarks}
                   </Text>
                 ) : null}

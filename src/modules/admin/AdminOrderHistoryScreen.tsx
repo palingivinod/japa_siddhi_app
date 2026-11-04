@@ -429,7 +429,7 @@ const AdminOrderHistoryScreen = () => {
             <View style={styles.cardTop}>
               <View style={styles.copy}>
                 <View style={styles.titleRow}>
-                  <Text style={styles.orderNo}>{order.orderNo}</Text>
+                  <Text selectable={true} style={styles.orderNo}>{order.orderNo}</Text>
                   <View
                     style={[
                       styles.groupBadge,
@@ -448,12 +448,12 @@ const AdminOrderHistoryScreen = () => {
                     </Text>
                   </View>
                 </View>
-                <Text style={styles.productText}>
+                <Text selectable={true} style={styles.productText}>
                   {order.rewardName || order.product}
                 </Text>
-                <Text style={styles.devoteeText}>Devotee: {order.customer}</Text>
+                <Text selectable={true} style={styles.devoteeText}>Devotee: {order.customer}</Text>
                 {(order as any).createdAt || (order as any).date ? (
-                  <Text style={styles.dateText}>
+                  <Text selectable={true} style={styles.dateText}>
                     Placed: {(order as any).createdAt || (order as any).date}
                   </Text>
                 ) : null}

@@ -821,7 +821,7 @@ const AdminOrdersScreen = () => {
                 navigation.navigate('AdminOrderDetails', {orderId: order.id})
               }>
               <View style={styles.copy}>
-                <Text style={styles.name}>
+                <Text selectable={true} style={styles.name}>
                   {order.orderNo}
                   {order.userCode
                     ? ` • ${order.userCode}`
@@ -829,19 +829,19 @@ const AdminOrdersScreen = () => {
                       ? ` • User #${order.userId}`
                       : ''}
                 </Text>
-                <Text style={styles.meta}>
+                <Text selectable={true} style={styles.meta}>
                   {order.rewardName || order.product} • {order.customer}
                   {searchActive && order.orderGroup
                     ? ` • ${order.orderGroup === 'reward' ? 'Reward' : 'Normal'}`
                     : ''}
                 </Text>
                 {order.customerMobile || order.mobileNumber ? (
-                  <Text style={styles.phoneMeta}>
+                  <Text selectable={true} style={styles.phoneMeta}>
                     {order.customerMobile || order.mobileNumber}
                   </Text>
                 ) : null}
                 {order.cancelReason ? (
-                  <Text style={styles.reason}>Reason: {order.cancelReason}</Text>
+                  <Text selectable={true} style={styles.reason}>Reason: {order.cancelReason}</Text>
                 ) : null}
               </View>
               <View style={styles.statusCol}>

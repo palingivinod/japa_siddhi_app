@@ -43,7 +43,7 @@ const Row = ({label, value}: {label: string; value?: string | number | null}) =>
       ? '—'
       : String(value);
   return (
-    <Text style={styles.row}>
+    <Text selectable={true} style={styles.row}>
       {label}: {text}
     </Text>
   );

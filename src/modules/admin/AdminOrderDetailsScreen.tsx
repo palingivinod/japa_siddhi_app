@@ -2,9 +2,12 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Clipboard,
   Linking,
+  Platform,
   StyleSheet,
   Text,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -85,12 +88,22 @@ const formatWhen = (raw?: string | null): string => {
   return str.replace(/\.\d+.*$/, '').trim() || str;
 };
 
+const copyToClipboard = (text: string, label = 'Text') => {
+  if (!text || text === '—') return;
+  Clipboard.setString(text);
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(`${label} copied to clipboard`, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('Copied', `${label} copied to clipboard`);
+  }
+};
+
 const DetailRow = ({label, value}: {label: string; value?: string | number | null}) => {
   const text = value === undefined || value === null || value === '' ? '—' : String(value);
   return (
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{text}</Text>
+      <Text selectable={true} style={styles.detailValue}>{text}</Text>
     </View>
   );
 };
@@ -136,9 +149,18 @@ const MobileDetailRow = ({
     <View style={styles.detailRow}>
       <Text style={styles.detailLabel}>{label}</Text>
       <View style={styles.mobileValueRow}>
-        <Text style={styles.detailValue}>{text}</Text>
+        <Text selectable={true} style={styles.detailValue}>{text}</Text>
         {hasNumber ? (
           <View style={styles.contactActions}>
+            <TouchableOpacity
+              style={[styles.contactBtn, styles.copyBtn]}
+              onPress={() => copyToClipboard(value!, label || 'Mobile number')}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              <Text style={styles.contactBtnIcon}>📋</Text>
+              <Text style={styles.contactBtnText}>Copy</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               style={[styles.contactBtn, styles.phoneBtn]}
               onPress={() => handleCall(value!)}
@@ -155,6 +177,41 @@ const MobileDetailRow = ({
               hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
               <Text style={styles.contactBtnIcon}>💬</Text>
               <Text style={styles.contactBtnText}>WhatsApp</Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
+const EmailDetailRow = ({
+  label,
+  value,
+}: {
+  label: string;
+  value?: string | null;
+}) => {
+  const text =
+    value === undefined || value === null || value === ''
+      ? '—'
+      : String(value);
+  const hasEmail = Boolean(value && value.trim() && value.trim() !== '—');
+
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <View style={styles.mobileValueRow}>
+        <Text selectable={true} style={styles.detailValue}>{text}</Text>
+        {hasEmail ? (
+          <View style={styles.contactActions}>
+            <TouchableOpacity
+              style={[styles.contactBtn, styles.copyBtn]}
+              onPress={() => copyToClipboard(value!.trim(), label || 'Email')}
+              activeOpacity={0.7}
+              hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+              <Text style={styles.contactBtnIcon}>📋</Text>
+              <Text style={styles.contactBtnText}>Copy</Text>
             </TouchableOpacity>
           </View>
         ) : null}
@@ -450,7 +507,7 @@ const AdminOrderDetailsScreen = () => {
 
       {order ? (
         <>
-          <Text style={styles.sub}>
+          <Text selectable={true} style={styles.sub}>
             Order {order.orderNo} • {order.product}
           </Text>
 
@@ -491,7 +548,7 @@ const AdminOrderDetailsScreen = () => {
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Devotee</Text>
             <View style={styles.row}>
-              <Text style={styles.customer}>{order.customer}</Text>
+              <Text selectable={true} style={styles.customer}>{order.customer}</Text>
               <View
                 style={[
                   styles.pill,
@@ -527,7 +584,7 @@ const AdminOrderDetailsScreen = () => {
               </View>
             </View>
             <DetailRow label="User id" value={order.userId} />
-            <DetailRow label="Email" value={order.customerEmail} />
+            <EmailDetailRow label="Email" value={order.customerEmail} />
             <MobileDetailRow
               label="Mobile"
               value={order.customerMobile}
@@ -535,7 +592,19 @@ const AdminOrderDetailsScreen = () => {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.cardLabel}>Delivery address</Text>
+            <View style={styles.cardHeaderRow}>
+              <Text style={styles.cardLabel}>Delivery address</Text>
+              {fullAddress ? (
+                <TouchableOpacity
+                  style={styles.copyAddressBtn}
+                  onPress={() => copyToClipboard(fullAddress, 'Full address')}
+                  activeOpacity={0.7}
+                  hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                  <Text style={styles.copyAddressIcon}>📋</Text>
+                  <Text style={styles.copyAddressText}>Copy Full Address</Text>
+                </TouchableOpacity>
+              ) : null}
+            </View>
             <DetailRow
               label="Full name"
               value={delivery.fullName || order.customer}
@@ -544,7 +613,7 @@ const AdminOrderDetailsScreen = () => {
               label="Mobile"
               value={delivery.mobile}
             />
-            <DetailRow label="Email" value={delivery.email} />
+            <EmailDetailRow label="Email" value={delivery.email} />
             <DetailRow label="Address" value={delivery.address} />
             <DetailRow label="Region" value={delivery.region} />
             <DetailRow label="City" value={delivery.city} />
@@ -613,6 +682,31 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     marginBottom: 10,
+  },
+  cardHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  copyAddressBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#FEF3C7',
+    borderColor: Colors.templeGold,
+    borderWidth: 1,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  copyAddressIcon: {
+    fontSize: 12,
+  },
+  copyAddressText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
   row: {
     flexDirection: 'row',
@@ -708,6 +802,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: 4,
+  },
+  copyBtn: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#D1D5DB',
   },
   phoneBtn: {
     backgroundColor: '#EFF6FF',
