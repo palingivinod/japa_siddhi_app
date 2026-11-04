@@ -7,6 +7,7 @@ import {
 import donationRepository from './donation.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import orderService from '../orders/order.service';
+import orderRepository from '../orders/order.repository';
 import banaLingamService from '../banaLingam/banaLingam.service';
 import profileRepository from '../profile/profile.repository';
 import AppError from '../../utils/appError';
@@ -339,21 +340,10 @@ class DonationService {
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
 
     if (kind === 'BANA_LINGAM') {
-      const activeBanaOrder = await mysql.query<any[]>(
-        `
-        SELECT id, order_number, order_status
-        FROM orders
-        WHERE user_id = ?
-          AND (order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%')
-          AND upper(order_status) NOT IN ('DELIVERED', 'CANCELLED')
-        LIMIT 1
-        `,
-        [userId],
-      );
-
-      if (activeBanaOrder && activeBanaOrder.length > 0) {
+      const activeBanaOrder = await orderRepository.findActiveOrderForKind(userId, 'BANA_LINGAM');
+      if (activeBanaOrder) {
         throw new AppError(
-          'Already one order is in review. You can order another once your previous order is delivered.',
+          `Already one Baanalingam order (${activeBanaOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
           400,
         );
       }
@@ -361,18 +351,42 @@ class DonationService {
       itemName = 'Baanalingam';
       orderType = 'BANA_LINGAM';
     } else if (kind === 'RAMAKOTI_BOOKS') {
+      const activeRkOrder = await orderRepository.findActiveOrderForKind(userId, 'RAMAKOTI_BOOKS');
+      if (activeRkOrder) {
+        throw new AppError(
+          `Already one Ramakoti Books order (${activeRkOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+
       itemName = 'Ramakoti Books';
       orderType = 'RAMAKOTI_BOOKS';
       if (!String(data.address || '').trim()) {
         throw new AppError('Add your address in Personal Details.', 400);
       }
     } else if (kind === 'HOMA_BHASMA') {
+      const activeHbOrder = await orderRepository.findActiveOrderForKind(userId, 'HOMA_BHASMA');
+      if (activeHbOrder) {
+        throw new AppError(
+          `Already one Homa Bhasma order (${activeHbOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+
       itemName = 'Homa Bhasma';
       orderType = 'HOMA_BHASMA';
       if (!String(data.address || '').trim()) {
         throw new AppError('Enter a delivery address.', 400);
       }
     } else if (kind === 'BIRAVA_PENDANT') {
+      const activeBpOrder = await orderRepository.findActiveOrderForKind(userId, 'BIRAVA_PENDANT');
+      if (activeBpOrder) {
+        throw new AppError(
+          `Already one Bhirava Pendant order (${activeBpOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+
       itemName = 'Bhirava Pendent';
       orderType = 'BIRAVA_PENDANT';
       if (!String(data.address || '').trim()) {

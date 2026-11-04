@@ -308,6 +308,15 @@ const en = {
   banaLingamPendingOrderTitle: 'Order In Review',
   banaLingamPendingOrderMessage:
     'Already one order is in review. You can order another once your previous order is delivered.',
+  ramakotiPendingOrderTitle: 'Ramakoti Books Order In Review',
+  ramakotiPendingOrderMessage:
+    'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
+  homaBhasmaPendingOrderTitle: 'Homa Bhasma Order In Review',
+  homaBhasmaPendingOrderMessage:
+    'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.',
+  biravaPendingOrderTitle: 'Bhirava Pendant Order In Review',
+  biravaPendingOrderMessage:
+    'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.',
   tileAnnadanam: 'Anna Santharpana',
   tileAnnadanamSub: 'Offer Anna Santharpana',
   tileNithyaHomam: 'Nithya Homam',

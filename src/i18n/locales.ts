@@ -177,6 +177,15 @@ export const hi: TranslationDict = {
   banaLingamPendingOrderTitle: 'ऑर्डर समीक्षाधीन है',
   banaLingamPendingOrderMessage:
     'पहले से एक ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  ramakotiPendingOrderTitle: 'रामकोटि ऑर्डर समीक्षाधीन है',
+  ramakotiPendingOrderMessage:
+    'पहले से एक रामकोटि पुस्तकों का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  homaBhasmaPendingOrderTitle: 'होम भस्म ऑर्डर समीक्षाधीन है',
+  homaBhasmaPendingOrderMessage:
+    'पहले से एक होम भस्म का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  biravaPendingOrderTitle: 'भैरव लॉकेट ऑर्डर समीक्षाधीन है',
+  biravaPendingOrderMessage:
+    'पहले से एक भैरव लॉकेट का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पित करें',
   tileNithyaHomam: 'नित्य होम',
@@ -1153,6 +1162,15 @@ export const te: TranslationDict = {
   banaLingamPendingOrderTitle: 'ఆర్డర్ పరిశీలనలో ఉంది',
   banaLingamPendingOrderMessage:
     'ఇప్పటికే ఒక ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  ramakotiPendingOrderTitle: 'రామకోటి ఆర్డర్ పరిశీలనలో ఉంది',
+  ramakotiPendingOrderMessage:
+    'ఇప్పటికే రామకోటి పుస్తకాల ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  homaBhasmaPendingOrderTitle: 'హోమ భస్మం ఆర్డర్ పరిశీలనలో ఉంది',
+  homaBhasmaPendingOrderMessage:
+    'ఇప్పటికే హోమ భస్మం ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  biravaPendingOrderTitle: 'భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది',
+  biravaPendingOrderMessage:
+    'ఇప్పటికే భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
   tileAnnadanam: 'అన్న సంతర్పణ',
   tileAnnadanamSub: 'అన్న సేవ అర్పించండి',
   tileNithyaHomam: 'నిత్య హోమం',

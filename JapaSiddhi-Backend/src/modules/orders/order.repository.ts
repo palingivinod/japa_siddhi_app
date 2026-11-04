@@ -651,6 +651,60 @@ class OrderRepository {
 
   }
 
+  async findActiveOrderForKind(
+    userId: number,
+    kind: string,
+  ): Promise<{id: number; orderNumber: string; orderStatus: string} | null> {
+    if (!userId) return null;
+    const k = String(kind || '').toUpperCase();
+    let whereClause = '';
+
+    if (k === 'BANA_LINGAM' || k.includes('BANA')) {
+      whereClause = `(order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%' OR order_number LIKE 'BL-%' OR order_number LIKE '#BL-%')`;
+    } else if (k === 'RAMAKOTI_BOOKS' || k.includes('RAMAKOTI')) {
+      whereClause = `(order_type = 'RAMAKOTI_BOOKS' OR lower(item_name) LIKE '%ramakoti%' OR order_number LIKE 'RK%' OR order_number LIKE '#RK%')`;
+    } else if (k === 'HOMA_BHASMA' || k.includes('BHASMA')) {
+      whereClause = `(order_type = 'HOMA_BHASMA' OR lower(item_name) LIKE '%homa%bhasma%' OR lower(item_name) LIKE '%bhasmam%' OR order_number LIKE 'HB%' OR order_number LIKE '#HB%')`;
+    } else if (
+      k === 'BIRAVA_PENDANT' ||
+      k.includes('PENDANT') ||
+      k.includes('PENDENT') ||
+      k.includes('BIRAVA') ||
+      k.includes('BHIRAVA')
+    ) {
+      whereClause = `(order_type = 'BIRAVA_PENDANT' OR lower(item_name) LIKE '%birava%' OR lower(item_name) LIKE '%bhirava%' OR lower(item_name) LIKE '%pendant%' OR lower(item_name) LIKE '%pendent%' OR order_number LIKE 'BP%' OR order_number LIKE '#BP%')`;
+    } else {
+      return null;
+    }
+
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT id, order_number AS orderNumber, order_status AS orderStatus
+        FROM orders
+        WHERE user_id = ?
+          AND ${whereClause}
+          AND COALESCE(deleted_by_user, 0) = 0
+          AND upper(order_status) NOT IN ('DELIVERED', 'CANCELLED')
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [userId],
+      );
+
+      if (rows && rows.length > 0) {
+        return {
+          id: rows[0].id,
+          orderNumber: rows[0].orderNumber || `#${rows[0].id}`,
+          orderStatus: rows[0].orderStatus,
+        };
+      }
+    } catch {
+      // ignore
+    }
+
+    return null;
+  }
 }
 
 export default new OrderRepository();

@@ -9,6 +9,7 @@ import {
 } from './order.types';
 
 import orderRepository from './order.repository';
+import AppError from '../../utils/appError';
 
 class OrderService {
 
@@ -17,6 +18,20 @@ class OrderService {
   ) {
 
     const {numberPrefix, ...order} = data;
+
+    if (order.userId && order.orderType) {
+      const activeOrder = await orderRepository.findActiveOrderForKind(
+        order.userId,
+        order.orderType,
+      );
+      if (activeOrder) {
+        throw new AppError(
+          `Already one order (${activeOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+    }
+
     const orderNumber = await orderRepository.getNextOrderNumber(numberPrefix);
 
     const id =

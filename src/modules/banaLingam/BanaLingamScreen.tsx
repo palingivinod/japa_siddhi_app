@@ -62,10 +62,13 @@ const BanaLingamScreen = () => {
         const undeliveredOrder = allOrders.find((ord: any) => {
           const type = String(ord.orderType || '').toUpperCase();
           const name = String(ord.itemName || '').toLowerCase();
+          const num = String(ord.orderNumber || '').toUpperCase();
           const isBana =
             type === 'BANA_LINGAM' ||
             name.includes('baanalingam') ||
-            name.includes('banalingam');
+            name.includes('banalingam') ||
+            num.startsWith('BL-') ||
+            num.startsWith('#BL-');
           const status = String(ord.orderStatus || ord.status || '').toUpperCase();
           const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
           return isBana && !isFinished;

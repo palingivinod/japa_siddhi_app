@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
+import apiService from '../../services/apiService';
 import {
   getLatestSelectedAddress,
   loadSavedAddresses,
@@ -48,19 +49,75 @@ const SevaRequestScreen = () => {
   const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
   const [largePhoto, setLargePhoto] = useState<number | null>(null);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const load = async () => {
-        const [stored, profile, addresses] = await Promise.all([
+        const [stored, profile, addresses, ordersRes] = await Promise.all([
           getStoredUser(),
           ProfileApi.getProfile().catch(() => null),
           loadSavedAddresses(),
+          apiService.get('/orders').catch(() => null),
         ]);
         if (!active) {
           return;
         }
+
+        const allOrders = ordersRes?.data?.data || [];
+        const undeliveredOrder = allOrders.find((ord: any) => {
+          const type = String(ord.orderType || '').toUpperCase();
+          const name = String(ord.itemName || '').toLowerCase();
+          const num = String(ord.orderNumber || '').toUpperCase();
+          const isMatch =
+            request.kind === 'HOMA_BHASMA'
+              ? type === 'HOMA_BHASMA' ||
+                name.includes('homa') ||
+                name.includes('bhasma') ||
+                num.startsWith('HB') ||
+                num.startsWith('#HB')
+              : type === 'BIRAVA_PENDANT' ||
+                name.includes('birava') ||
+                name.includes('bhirava') ||
+                name.includes('pendant') ||
+                name.includes('pendent') ||
+                num.startsWith('BP') ||
+                num.startsWith('#BP');
+          const status = String(ord.orderStatus || ord.status || '').toUpperCase();
+          const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
+          return isMatch && !isFinished;
+        });
+
+        if (undeliveredOrder) {
+          setHasActiveOrder(true);
+          setActiveOrder(undeliveredOrder);
+          const title =
+            request.kind === 'HOMA_BHASMA'
+              ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
+              : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review';
+          const msg =
+            request.kind === 'HOMA_BHASMA'
+              ? t('homaBhasmaPendingOrderMessage') ||
+                'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
+              : t('biravaPendingOrderMessage') ||
+                'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.';
+          Alert.alert(title, msg, [
+            {
+              text: t('myOrders') || 'My Orders',
+              onPress: () => navigation.navigate('Orders'),
+            },
+            {
+              text: t('ok') || 'OK',
+              style: 'cancel',
+            },
+          ]);
+        } else {
+          setHasActiveOrder(false);
+          setActiveOrder(null);
+        }
+
         const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
         const phone =
           profile?.mobileNumber ||
@@ -107,6 +164,29 @@ const SevaRequestScreen = () => {
   );
 
   const submit = async () => {
+    if (hasActiveOrder) {
+      const title =
+        request.kind === 'HOMA_BHASMA'
+          ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
+          : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review';
+      const msg =
+        request.kind === 'HOMA_BHASMA'
+          ? t('homaBhasmaPendingOrderMessage') ||
+            'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
+          : t('biravaPendingOrderMessage') ||
+            'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.';
+      Alert.alert(title, msg, [
+        {
+          text: t('myOrders') || 'My Orders',
+          onPress: () => navigation.navigate('Orders'),
+        },
+        {
+          text: t('ok') || 'OK',
+          style: 'cancel',
+        },
+      ]);
+      return;
+    }
     if (!fullName.trim() || !mobile.trim() || !address.trim()) {
       Alert.alert(t(request.titleKey), t('baanalingamFieldsRequired'));
       return;
@@ -137,6 +217,30 @@ const SevaRequestScreen = () => {
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
       <Text style={styles.heading}>{t(request.titleKey)}</Text>
       <MenuCard icon={request.icon} title={t('sacredService')} subtitle={t(request.detailKey)} />
+      {hasActiveOrder ? (
+        <View style={styles.pendingOrderBanner}>
+          <Text style={styles.pendingOrderIcon}>⏳</Text>
+          <View style={styles.pendingOrderTextCol}>
+            <Text style={styles.pendingOrderTitle}>
+              {request.kind === 'HOMA_BHASMA'
+                ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
+                : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'}
+            </Text>
+            <Text style={styles.pendingOrderDesc}>
+              {request.kind === 'HOMA_BHASMA'
+                ? t('homaBhasmaPendingOrderMessage') ||
+                  'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
+                : t('biravaPendingOrderMessage') ||
+                  'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.'}
+            </Text>
+            {activeOrder?.orderNumber ? (
+              <Text style={styles.pendingOrderNum}>
+                {t('orderDetails') || 'Order Details'}: {activeOrder.orderNumber}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
       {request.kind === 'BIRAVA_PENDANT' ? (
         <View style={styles.photos}>
           {BIRAVA_PHOTOS.map((photo, index) => (
@@ -241,15 +345,24 @@ const SevaRequestScreen = () => {
         numberOfLines={3}
         style={styles.commentsInput}
       />
-      <PrimaryButton
-        title={
-          ready
-            ? t('overviewBtn') || 'OVERVIEW'
-            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
-        }
-        onPress={submit}
-        disabled={!ready}
-      />
+      {hasActiveOrder ? (
+        <TouchableOpacity
+          style={styles.viewOrdersBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Orders')}>
+          <Text style={styles.viewOrdersBtnText}>📦 {t('myOrders') || 'My Orders'}</Text>
+        </TouchableOpacity>
+      ) : (
+        <PrimaryButton
+          title={
+            ready
+              ? t('overviewBtn') || 'OVERVIEW'
+              : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+          }
+          onPress={submit}
+          disabled={!ready}
+        />
+      )}
       <SavedAddressSelectorModal
         visible={savedModalVisible}
         addresses={savedAddresses}
@@ -416,5 +529,54 @@ const styles = StyleSheet.create({
   commentsInput: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  pendingOrderBanner: {
+    backgroundColor: '#FFF4E5',
+    borderWidth: 1.5,
+    borderColor: '#E8730C',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  pendingOrderIcon: {
+    fontSize: 22,
+    marginTop: 2,
+  },
+  pendingOrderTextCol: {
+    flex: 1,
+  },
+  pendingOrderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#9A3412',
+    marginBottom: 4,
+  },
+  pendingOrderDesc: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#7C2D12',
+  },
+  pendingOrderNum: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C2410C',
+    marginTop: 6,
+  },
+  viewOrdersBtn: {
+    marginTop: 12,
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewOrdersBtnText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

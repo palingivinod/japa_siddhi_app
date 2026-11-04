@@ -64,6 +64,7 @@ const BanaLingamReviewScreen = () => {
       const msg = getApiError(error, t('couldNotSubmitApplication'));
       const isPendingOrder =
         msg.toLowerCase().includes('already one order') ||
+        msg.toLowerCase().includes('in progress') ||
         msg.toLowerCase().includes('in review');
       if (isPendingOrder) {
         Alert.alert(

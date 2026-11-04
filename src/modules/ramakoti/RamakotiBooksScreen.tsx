@@ -13,6 +13,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
+import apiService from '../../services/apiService';
 import {
   getLatestSelectedAddress,
   loadSavedAddresses,
@@ -41,19 +42,61 @@ const RamakotiBooksScreen = () => {
   const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [comments, setComments] = useState('');
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [hasActiveOrder, setHasActiveOrder] = useState(false);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
       const load = async () => {
-        const [stored, profile, addresses] = await Promise.all([
+        const [stored, profile, addresses, ordersRes] = await Promise.all([
           getStoredUser(),
           ProfileApi.getProfile().catch(() => null),
           loadSavedAddresses(),
+          apiService.get('/orders').catch(() => null),
         ]);
         if (!active) {
           return;
         }
+
+        const allOrders = ordersRes?.data?.data || [];
+        const undeliveredOrder = allOrders.find((ord: any) => {
+          const type = String(ord.orderType || '').toUpperCase();
+          const name = String(ord.itemName || '').toLowerCase();
+          const num = String(ord.orderNumber || '').toUpperCase();
+          const isRk =
+            type === 'RAMAKOTI_BOOKS' ||
+            name.includes('ramakoti') ||
+            num.startsWith('RK') ||
+            num.startsWith('#RK');
+          const status = String(ord.orderStatus || ord.status || '').toUpperCase();
+          const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
+          return isRk && !isFinished;
+        });
+
+        if (undeliveredOrder) {
+          setHasActiveOrder(true);
+          setActiveOrder(undeliveredOrder);
+          Alert.alert(
+            t('ramakotiPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review',
+            t('ramakotiPendingOrderMessage') ||
+              'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
+            [
+              {
+                text: t('myOrders') || 'My Orders',
+                onPress: () => navigation.navigate('Orders'),
+              },
+              {
+                text: t('ok') || 'OK',
+                style: 'cancel',
+              },
+            ],
+          );
+        } else {
+          setHasActiveOrder(false);
+          setActiveOrder(null);
+        }
+
         setSavedAddresses(addresses);
         const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
         const phone =
@@ -105,6 +148,24 @@ const RamakotiBooksScreen = () => {
   );
 
   const submit = async () => {
+    if (hasActiveOrder) {
+      Alert.alert(
+        t('ramakotiPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review',
+        t('ramakotiPendingOrderMessage') ||
+          'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
+        [
+          {
+            text: t('myOrders') || 'My Orders',
+            onPress: () => navigation.navigate('Orders'),
+          },
+          {
+            text: t('ok') || 'OK',
+            style: 'cancel',
+          },
+        ],
+      );
+      return;
+    }
     if (!fullName.trim() || !isMobile(mobile)) {
       Alert.alert(t('ramakotiSeva'), t('baanalingamFieldsRequired'));
       return;
@@ -131,6 +192,25 @@ const RamakotiBooksScreen = () => {
     <ScreenLayout title={t('ramakotiSeva')} showBack tab="SevaHub">
       <Text style={styles.heading}>{t('ramakotiSeva')}</Text>
       <MenuCard icon="ramakoti" title={t('ramakotiSeva')} subtitle={t('ramakotiIntro')} />
+      {hasActiveOrder ? (
+        <View style={styles.pendingOrderBanner}>
+          <Text style={styles.pendingOrderIcon}>⏳</Text>
+          <View style={styles.pendingOrderTextCol}>
+            <Text style={styles.pendingOrderTitle}>
+              {t('ramakotiPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'}
+            </Text>
+            <Text style={styles.pendingOrderDesc}>
+              {t('ramakotiPendingOrderMessage') ||
+                'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.'}
+            </Text>
+            {activeOrder?.orderNumber ? (
+              <Text style={styles.pendingOrderNum}>
+                {t('orderDetails') || 'Order Details'}: {activeOrder.orderNumber}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : null}
       <TouchableOpacity
         style={styles.thumbWrap}
         activeOpacity={0.85}
@@ -219,15 +299,24 @@ const RamakotiBooksScreen = () => {
         numberOfLines={3}
         style={styles.commentsInput}
       />
-      <PrimaryButton
-        title={
-          fullName.trim() && isMobile(mobile) && address.trim()
-            ? t('overviewBtn') || 'OVERVIEW'
-            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
-        }
-        onPress={submit}
-        disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
-      />
+      {hasActiveOrder ? (
+        <TouchableOpacity
+          style={styles.viewOrdersBtn}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('Orders')}>
+          <Text style={styles.viewOrdersBtnText}>📦 {t('myOrders') || 'My Orders'}</Text>
+        </TouchableOpacity>
+      ) : (
+        <PrimaryButton
+          title={
+            fullName.trim() && isMobile(mobile) && address.trim()
+              ? t('overviewBtn') || 'OVERVIEW'
+              : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+          }
+          onPress={submit}
+          disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
+        />
+      )}
       <SavedAddressSelectorModal
         visible={savedModalVisible}
         addresses={savedAddresses}
@@ -362,5 +451,54 @@ const styles = StyleSheet.create({
   commentsInput: {
     minHeight: 80,
     textAlignVertical: 'top',
+  },
+  pendingOrderBanner: {
+    backgroundColor: '#FFF4E5',
+    borderWidth: 1.5,
+    borderColor: '#E8730C',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  pendingOrderIcon: {
+    fontSize: 22,
+    marginTop: 2,
+  },
+  pendingOrderTextCol: {
+    flex: 1,
+  },
+  pendingOrderTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#9A3412',
+    marginBottom: 4,
+  },
+  pendingOrderDesc: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    color: '#7C2D12',
+  },
+  pendingOrderNum: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#C2410C',
+    marginTop: 6,
+  },
+  viewOrdersBtn: {
+    marginTop: 12,
+    backgroundColor: Colors.leafGreen,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  viewOrdersBtnText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

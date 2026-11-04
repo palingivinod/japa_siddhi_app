@@ -49,10 +49,29 @@ const SevaRequestReviewScreen = () => {
         {cancelable: false},
       );
     } catch (error) {
-      Alert.alert(
-        t('applicationOverview'),
-        getApiError(error, t('couldNotSubmitApplication')),
-      );
+      const msg = getApiError(error, t('couldNotSubmitApplication'));
+      if (
+        msg.toLowerCase().includes('already one') ||
+        msg.toLowerCase().includes('in progress') ||
+        msg.toLowerCase().includes('in review')
+      ) {
+        Alert.alert(
+          t('banaLingamPendingOrderTitle') || 'Order In Review',
+          msg,
+          [
+            {
+              text: t('myOrders') || 'My Orders',
+              onPress: () => navigation.navigate('Orders'),
+            },
+            {
+              text: t('ok') || 'OK',
+              style: 'cancel',
+            },
+          ],
+        );
+      } else {
+        Alert.alert(t('applicationOverview'), msg);
+      }
     } finally {
       setSaving(false);
     }
