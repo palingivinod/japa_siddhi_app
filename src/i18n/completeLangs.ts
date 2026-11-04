@@ -530,7 +530,7 @@ export const kn: TranslationDict = {
   clickHereForSavedAddresses: 'ಉಳಿಸಲಾದ ವಿಳಾಸಗಳಿಗಾಗಿ ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ',
   addNewAddress: 'ಹೊಸ ವಿಳಾಸವನ್ನು ಸೇರಿಸಿ',
   flatDoorStreetAreaNote:
-    '* ದಯವಿಟ್ಟು ಫ್ಲಾಟ್ ನಂ, ಡೋರ್ ನಂ, ರಸ್ತೆ ಮತ್ತು ಪ್ರದೇಶದ ಹೆಸರನ್ನು ನಮೂದಿಸಿ',
+    'ಸೂಚನೆ: ದಯವಿಟ್ಟು ಫ್ಲಾಟ್ ನಂ, ಡೋರ್ ನಂ, ರಸ್ತೆ ಮತ್ತು ಪ್ರದೇಶದ ಹೆಸರನ್ನು ನಮೂದಿಸಿ',
   houseFlatDoorStreet: 'ಫ್ಲಾಟ್ / ಡೋರ್ / ಮನೆ ನಂ. & ರಸ್ತೆ',
   areaLandmark: 'ಪ್ರದೇಶ / ಲ್ಯಾಂಡ್‌ಮಾರ್ಕ್ / ಕಾಲೋನಿ',
   pinCodeMandatory: 'ಪಿನ್ ಕೋಡ್ ಕಡ್ಡಾಯವಾಗಿದೆ (6 ಅಂಕೆಗಳು)',

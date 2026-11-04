@@ -780,7 +780,7 @@ const en = {
   clickHereForSavedAddresses: 'Click here for saved addresses',
   addNewAddress: 'Add New Address',
   flatDoorStreetAreaNote:
-    '* Please enter flat no, door no, street and area name',
+    'Note: Please enter flat no, door no, street and area name',
   houseFlatDoorStreet: 'Flat / Door / House No. & Street',
   areaLandmark: 'Area / Landmark / Colony',
   pinCodeMandatory: 'PIN code is mandatory (6 digits)',

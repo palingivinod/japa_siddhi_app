@@ -531,7 +531,7 @@ export const ta: TranslationDict = {
   clickHereForSavedAddresses: 'சேமிக்கப்பட்ட முகவரிகளுக்கு இங்கே கிளிக் செய்யவும்',
   addNewAddress: 'புதிய முகவரியைச் சேர்க்கவும்',
   flatDoorStreetAreaNote:
-    '* பிளாட் எண், கதவு எண், தெரு மற்றும் பகுதி பெயரை உள்ளிடவும்',
+    'குறிப்பு: பிளாட் எண், கதவு எண், தெரு மற்றும் பகுதி பெயரை உள்ளிடவும்',
   houseFlatDoorStreet: 'பிளாட் / கதவு / வீடு எண் & தெரு',
   areaLandmark: 'பகுதி / முக்கிய அடையாளம் / காலனி',
   pinCodeMandatory: 'பின் குறியீடு கட்டாயமானது (6 இலக்கங்கள்)',

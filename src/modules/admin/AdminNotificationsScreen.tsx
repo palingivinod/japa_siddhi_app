@@ -541,8 +541,6 @@ const AdminNotificationsScreen = () => {
         value={linkUrl}
         onChangeText={setLinkUrl}
         placeholder="e.g. https://japasiddhi.com/payments/ or https://..."
-        autoCapitalize="none"
-        keyboardType="url"
       />
       <Text style={styles.linkFieldHint}>
         Devotees will see this clickable link clearly with an "🔗 Open Link" button.

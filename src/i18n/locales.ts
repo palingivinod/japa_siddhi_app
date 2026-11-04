@@ -546,7 +546,7 @@ export const hi: TranslationDict = {
   clickHereForSavedAddresses: 'सहेजे गए पतों के लिए यहाँ क्लिक करें',
   addNewAddress: 'नया पता जोड़ें',
   flatDoorStreetAreaNote:
-    '* कृपया फ्लैट नं, डोर नं, गली और क्षेत्र का नाम दर्ज करें',
+    'नोट: कृपया फ्लैट नं, डोर नं, गली और क्षेत्र का नाम दर्ज करें',
   houseFlatDoorStreet: 'फ्लैट / डोर / मकान नं. और गली',
   areaLandmark: 'क्षेत्र / लैंडमार्क / कॉलोनी',
   pinCodeMandatory: 'पिन कोड अनिवार्य है (6 अंक)',
@@ -1434,7 +1434,7 @@ export const te: TranslationDict = {
   clickHereForSavedAddresses: 'సేవ్ చేసిన చిరునామాల కోసం ఇక్కడ క్లిక్ చేయండి',
   addNewAddress: 'కొత్త చిరునామాను జోడించండి',
   flatDoorStreetAreaNote:
-    '* దయచేసి ఫ్లాట్ నెం, డోర్ నెం, వీధి మరియు ప్రాంతం పేరును నమోదు చేయండి',
+    'గమనిక: దయచేసి ఫ్లాట్ నెం, డోర్ నెం, వీధి మరియు ప్రాంతం పేరును నమోదు చేయండి',
   houseFlatDoorStreet: 'ఫ్లాట్ / డోర్ / ఇంటి నెం. & వీధి',
   areaLandmark: 'ప్రాంతం / ల్యాండ్‌మార్క్ / కాలనీ',
   pinCodeMandatory: 'పిన్ కోడ్ తప్పనిసరి (6 అంకెలు)',

@@ -80,14 +80,6 @@ const AddAddressScreen = () => {
 
   const handleSave = async () => {
     const streetClean = flatStreet.trim();
-    if (!streetClean) {
-      Alert.alert(
-        t('address') || 'Address',
-        t('flatDoorStreetAreaNote') ||
-          'Please enter flat no, door no, street and area name.',
-      );
-      return;
-    }
 
     const pinClean = pinCode.replace(/\D/g, '');
     if (!pinClean || pinClean.length !== 6) {
@@ -175,7 +167,7 @@ const AddAddressScreen = () => {
           <View style={styles.formCard}>
             {/* Flat / Door / Street */}
             <Text style={styles.fieldLabel}>
-              {t('houseFlatDoorStreet') || 'Flat / Door / House No. & Street'} *
+              {t('houseFlatDoorStreet') || 'Flat / Door / House No. & Street'}
             </Text>
             <TextInput
               style={[styles.input, styles.multilineInput]}
@@ -190,7 +182,7 @@ const AddAddressScreen = () => {
             {/* Red Note Requirement */}
             <Text style={styles.redNote}>
               {t('flatDoorStreetAreaNote') ||
-                '* Please enter flat no, door no, street and area name'}
+                'Note: Please enter flat no, door no, street and area name'}
             </Text>
 
             {/* Area / Landmark */}
@@ -208,8 +200,7 @@ const AddAddressScreen = () => {
             {/* PIN Code - Mandatory */}
             <View style={styles.pinLabelRow}>
               <Text style={styles.fieldLabel}>
-                {t('pinCode') || 'PIN Code'} * (
-                {t('pinCodeMandatory') || 'Mandatory 6 digits'})
+                {t('pinCode') || 'PIN Code'} *
               </Text>
               {detectingPin ? (
                 <View style={styles.detectingRow}>
@@ -231,7 +222,7 @@ const AddAddressScreen = () => {
             />
 
             {/* City (Auto-filled by PIN code, user can change if wrong) */}
-            <Text style={styles.fieldLabel}>{t('city') || 'City'} *</Text>
+            <Text style={styles.fieldLabel}>{t('city') || 'City'}</Text>
             <TextInput
               style={styles.input}
               value={city}
@@ -241,7 +232,7 @@ const AddAddressScreen = () => {
             />
 
             {/* State (Auto-filled by PIN code, user can change if wrong) */}
-            <Text style={styles.fieldLabel}>{t('state') || 'State'} *</Text>
+            <Text style={styles.fieldLabel}>{t('state') || 'State'}</Text>
             <TextInput
               style={styles.input}
               value={stateName}
