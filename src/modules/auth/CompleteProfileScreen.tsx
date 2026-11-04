@@ -282,7 +282,7 @@ const CompleteProfileScreen = ({
       }
     }
 
-  if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
+  if (false && maritalStatus === 'Married' && spouseName.trim().length < 3) {
     Alert.alert(t('validation'), t('spouseNameRequiredMarried'));
     return;
   }
@@ -709,7 +709,7 @@ const CompleteProfileScreen = ({
 
         {maritalStatus === 'Married' ? (
           <>
-            <Text style={styles.label}>{t('spouseNameStar')}</Text>
+            <Text style={styles.label}>{t('spouseName') || 'Spouse Name'}</Text>
             <TextInput
               style={styles.input}
               placeholder={t('enterSpouseName')}
@@ -718,7 +718,7 @@ const CompleteProfileScreen = ({
               onChangeText={setSpouseName}
             />
 
-            <Text style={styles.label}>{t('spouseDobStar')}</Text>
+            <Text style={styles.label}>{t('spouseDateOfBirth') || 'Spouse Date of Birth'}</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() =>
@@ -737,7 +737,7 @@ const CompleteProfileScreen = ({
               }}
             />
 
-            <Text style={styles.label}>{t('anniversaryDateStar')}</Text>
+            <Text style={styles.label}>{t('anniversaryDate') || 'Anniversary Date'}</Text>
             <TouchableOpacity
               style={styles.input}
               onPress={() =>

@@ -197,7 +197,7 @@ const SignupPersonalScreen = () => {
       Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
-    if (maritalStatus === 'Married' && spouseName.trim().length < 2) {
+    if (false && maritalStatus === 'Married' && spouseName.trim().length < 2) {
       Alert.alert(t('required'), t('enterSpouseNameMarried'));
       return;
     }

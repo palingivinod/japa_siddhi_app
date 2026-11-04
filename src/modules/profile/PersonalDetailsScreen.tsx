@@ -20,7 +20,6 @@ import SelectField from '../common/SelectField';
 import CountryPickerField from '../auth/components/CountryPickerField';
 import StateSelector from '../auth/components/StateSelector';
 import CitySelector from '../auth/components/CitySelector';
-import LanguageSelector from '../auth/components/LanguageSelector';
 import ProfileApi from '../auth/services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import DatePickerModal from '../common/DatePickerModal';
@@ -105,6 +104,12 @@ const PersonalDetailsScreen = () => {
     'Bachelor',
   );
   const [spouseName, setSpouseName] = useState('');
+  const [spouseDob, setSpouseDob] = useState('');
+  const [spouseDobText, setSpouseDobText] = useState('');
+  const [showSpouseDobPicker, setShowSpouseDobPicker] = useState(false);
+  const [anniversaryDate, setAnniversaryDate] = useState('');
+  const [anniversaryDateText, setAnniversaryDateText] = useState('');
+  const [showAnniversaryPicker, setShowAnniversaryPicker] = useState(false);
   const [country, setCountry] = useState<CountryItem | null>(null);
   const [stateModel, setStateModel] = useState<StateModel | null>(null);
   const [cityModel, setCityModel] = useState<CityModel | null>(null);
@@ -128,6 +133,12 @@ const PersonalDetailsScreen = () => {
       data.maritalStatus === 'Married' ? 'Married' : 'Bachelor',
     );
     setSpouseName(data.spouseName || '');
+    const isoSpouseDob = String(data.spouseDob || data.spouse_dob || '').slice(0, 10);
+    setSpouseDob(isoSpouseDob);
+    setSpouseDobText(formatDobDisplay(isoSpouseDob));
+    const isoAnniversary = String(data.anniversaryDate || data.anniversary_date || '').slice(0, 10);
+    setAnniversaryDate(isoAnniversary);
+    setAnniversaryDateText(formatDobDisplay(isoAnniversary));
 
     const matchedCountry =
       countryList.find(
@@ -202,10 +213,6 @@ const PersonalDetailsScreen = () => {
       Alert.alert(t('required'), t('enterPinCode'));
       return;
     }
-    if (maritalStatus === 'Married' && spouseName.trim().length < 3) {
-      Alert.alert(t('validationTitle'), t('spouseNameRequired'));
-      return;
-    }
 
     setSaving(true);
     try {
@@ -230,12 +237,20 @@ const PersonalDetailsScreen = () => {
         cityId: cityModel?.id ? Number(cityModel.id) : undefined,
         preferredLanguageId: language?.id
           ? Number(language.id)
-          : undefined,
+          : (profile?.preferredLanguageId ? Number(profile.preferredLanguageId) : undefined),
         address: address.trim(),
         postalCode: pinCode,
         maritalStatus,
         spouseName:
           maritalStatus === 'Married' ? spouseName.trim() : '',
+        spouseDob:
+          maritalStatus === 'Married'
+            ? (spouseDobText.trim() ? parseDob(spouseDobText) || spouseDob || undefined : undefined)
+            : undefined,
+        anniversaryDate:
+          maritalStatus === 'Married'
+            ? (anniversaryDateText.trim() ? parseDob(anniversaryDateText) || anniversaryDate || undefined : undefined)
+            : undefined,
       });
 
       if (updated) {
@@ -300,7 +315,11 @@ const PersonalDetailsScreen = () => {
         />
         <Row label="Marital status" value={maritalStatus} />
         {maritalStatus === 'Married' ? (
-          <Row label="Spouse name" value={spouseName} />
+          <>
+            {spouseName ? <Row label="Spouse name" value={spouseName} /> : null}
+            {spouseDob ? <Row label="Spouse DOB" value={formatDobDisplay(spouseDob)} /> : null}
+            {anniversaryDate ? <Row label="Anniversary" value={formatDobDisplay(anniversaryDate)} /> : null}
+          </>
         ) : null}
 
         <PrimaryButton title="EDIT DETAILS" onPress={() => setEditing(true)} />
@@ -428,12 +447,14 @@ const PersonalDetailsScreen = () => {
           }
           try {
             const found = await ProfileApi.lookupPin(digits);
-            setStateModel({id: Number(found.stateId), name: found.stateName});
-            setCityModel({id: Number(found.cityId), name: found.cityName});
+            if (found?.stateId && found?.stateName) {
+              setStateModel({id: Number(found.stateId), name: found.stateName});
+            }
+            if (found?.cityId && found?.cityName) {
+              setCityModel({id: Number(found.cityId), name: found.cityName});
+            }
           } catch {
-            setStateModel(null);
-            setCityModel(null);
-            Alert.alert(t('pinCode'), t('pinNotFound'));
+            // User can select or adjust manually
           }
         }}
       />
@@ -462,13 +483,7 @@ const PersonalDetailsScreen = () => {
         onChangeText={setAddress}
         placeholder={t('enterAddress')}
       />
-      <Text style={styles.addressNote}>* {t('addressDetailedHint')}</Text>
-
-      <Text style={styles.label}>{t('language')}</Text>
-      <LanguageSelector
-        value={language}
-        onChange={(item: Language) => setLanguage(item)}
-      />
+      <Text style={styles.addressNote}>{t('flatDoorStreetAreaNote')}</Text>
 
       <Text style={styles.label}>{t('maritalStatus')}</Text>
       <SelectField
@@ -489,6 +504,106 @@ const PersonalDetailsScreen = () => {
             value={spouseName}
             onChangeText={setSpouseName}
             placeholder={t('spouseName')}
+          />
+
+          <Text style={styles.label}>{t('spouseDateOfBirth') || 'Spouse Date of Birth'}</Text>
+          <View style={styles.dobRow}>
+            <TextInput
+              style={[styles.input, styles.dobInput]}
+              value={spouseDobText}
+              onChangeText={value => {
+                const masked = maskDob(value);
+                setSpouseDobText(masked);
+                const parsed = parseDob(masked);
+                if (parsed) {
+                  setSpouseDob(parsed);
+                } else if (!value.trim()) {
+                  setSpouseDob('');
+                }
+              }}
+              placeholder={t('dobFormatPlaceholder') || 'DD-MM-YYYY'}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+            <TouchableOpacity
+              style={styles.dobButton}
+              onPress={() => setShowSpouseDobPicker(true)}>
+              <Text style={styles.dobButtonText}>📅</Text>
+            </TouchableOpacity>
+          </View>
+          <DatePickerModal
+            visible={showSpouseDobPicker}
+            value={(() => {
+              const picked = parseDob(spouseDobText) || spouseDob;
+              return picked
+                ? new Date(
+                    Number(picked.slice(0, 4)),
+                    Number(picked.slice(5, 7)) - 1,
+                    Number(picked.slice(8, 10)),
+                  )
+                : new Date(1995, 0, 1);
+            })()}
+            maximumDate={new Date()}
+            onCancel={() => setShowSpouseDobPicker(false)}
+            onConfirm={selected => {
+              const month = String(selected.getMonth() + 1).padStart(2, '0');
+              const day = String(selected.getDate()).padStart(2, '0');
+              const iso = `${selected.getFullYear()}-${month}-${day}`;
+              setSpouseDob(iso);
+              setSpouseDobText(formatDobDisplay(iso));
+              setShowSpouseDobPicker(false);
+            }}
+          />
+
+          <Text style={styles.label}>{t('anniversaryDate') || 'Anniversary Date'}</Text>
+          <View style={styles.dobRow}>
+            <TextInput
+              style={[styles.input, styles.dobInput]}
+              value={anniversaryDateText}
+              onChangeText={value => {
+                const masked = maskDob(value);
+                setAnniversaryDateText(masked);
+                const parsed = parseDob(masked);
+                if (parsed) {
+                  setAnniversaryDate(parsed);
+                } else if (!value.trim()) {
+                  setAnniversaryDate('');
+                }
+              }}
+              placeholder={t('dobFormatPlaceholder') || 'DD-MM-YYYY'}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="number-pad"
+              maxLength={10}
+            />
+            <TouchableOpacity
+              style={styles.dobButton}
+              onPress={() => setShowAnniversaryPicker(true)}>
+              <Text style={styles.dobButtonText}>📅</Text>
+            </TouchableOpacity>
+          </View>
+          <DatePickerModal
+            visible={showAnniversaryPicker}
+            value={(() => {
+              const picked = parseDob(anniversaryDateText) || anniversaryDate;
+              return picked
+                ? new Date(
+                    Number(picked.slice(0, 4)),
+                    Number(picked.slice(5, 7)) - 1,
+                    Number(picked.slice(8, 10)),
+                  )
+                : new Date(2015, 0, 1);
+            })()}
+            maximumDate={new Date()}
+            onCancel={() => setShowAnniversaryPicker(false)}
+            onConfirm={selected => {
+              const month = String(selected.getMonth() + 1).padStart(2, '0');
+              const day = String(selected.getDate()).padStart(2, '0');
+              const iso = `${selected.getFullYear()}-${month}-${day}`;
+              setAnniversaryDate(iso);
+              setAnniversaryDateText(formatDobDisplay(iso));
+              setShowAnniversaryPicker(false);
+            }}
           />
         </>
       ) : null}
