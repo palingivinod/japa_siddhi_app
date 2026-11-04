@@ -4684,7 +4684,7 @@ router.post('/birthdays/advance-trigger', async (req: Request, res: Response) =>
   }
 });
 
-/** Preview today's 7:00 AM birthdays (dry-run without sending) in IST */
+/** Preview today's 6:00 AM birthdays (dry-run without sending) in IST */
 router.get('/birthdays/today-preview', async (req: Request, res: Response) => {
   try {
     const { runTodayBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');
@@ -4695,7 +4695,7 @@ router.get('/birthdays/today-preview', async (req: Request, res: Response) => {
   }
 });
 
-/** Manually trigger today's 7:00 AM birthday sweep with all_birthday_wishes in IST */
+/** Manually trigger today's 6:00 AM birthday sweep with all_birthday_wishes in IST */
 router.post('/birthdays/today-trigger', async (req: Request, res: Response) => {
   try {
     const { runTodayBirthdaySweep } = await import('../notification/advanceBirthdayReminder.service');

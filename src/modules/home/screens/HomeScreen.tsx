@@ -48,6 +48,7 @@ import {
   writeDailyPlanSnap,
 } from '../../../utils/mantraDailyPlan';
 import {getAppVersionName} from '../../../utils/appVersion';
+import {syncAppBadgeWithServer} from '../../../services/appBadge';
 
 type ActiveGoal = {
   id: number;
@@ -618,6 +619,7 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       load();
+      syncAppBadgeWithServer().catch(() => undefined);
     }, [t, language]),
   );
 

@@ -10,6 +10,7 @@ import {AppState, PermissionsAndroid, Platform} from 'react-native';
 import apiService from './apiService';
 import {getToken} from './session';
 import {openFromPushMessage} from '../navigation/notificationDeepLink';
+import {syncAppBadgeWithServer} from './appBadge';
 
 let started = false;
 let channelReady = false;
@@ -41,8 +42,8 @@ const ensureAndroidChannel = async () => {
 };
 
 /**
- * Check if the current time is within allowed notification hours (7:00 AM to 10:00 PM IST).
- * Outside 7 AM - 10 PM Indian Standard Time, notifications are suppressed.
+ * Check if the current time is within allowed notification hours (6:00 AM to 10:00 PM IST).
+ * Outside 6 AM - 10 PM Indian Standard Time, notifications are suppressed.
  */
 export const isWithinNotificationHoursIST = (): boolean => {
   try {
@@ -52,14 +53,14 @@ export const isWithinNotificationHoursIST = (): boolean => {
       hourCycle: 'h23',
     });
     const hour = parseInt(formatter.format(new Date()), 10);
-    return hour >= 7 && hour < 22;
+    return hour >= 6 && hour < 22;
   } catch {
     const now = new Date();
     const utcHours = now.getUTCHours();
     const utcMinutes = now.getUTCMinutes();
     const istMinutes = utcHours * 60 + utcMinutes + 330;
     const istHour = Math.floor((istMinutes / 60) % 24);
-    return istHour >= 7 && istHour < 22;
+    return istHour >= 6 && istHour < 22;
   }
 };
 
@@ -240,6 +241,7 @@ export const startPushNotifications = async () => {
     } catch (error) {
       console.warn('Foreground notification display failed:', error);
     }
+    syncAppBadgeWithServer().catch(() => undefined);
   });
 
   // Tray / banner press → deep-link (chant page for goals/challenges).

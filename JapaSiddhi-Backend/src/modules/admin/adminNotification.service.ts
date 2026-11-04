@@ -467,8 +467,8 @@ const parseRecipientIds = (raw: unknown): number[] => {
 };
 
 /**
- * Check if the current time is within allowed notification hours (7:00 AM to 10:00 PM IST).
- * Outside 7 AM - 10 PM Indian Standard Time, notifications are suppressed.
+ * Check if the current time is within allowed notification hours (6:00 AM to 10:00 PM IST).
+ * Outside 6 AM - 10 PM Indian Standard Time, notifications are suppressed.
  */
 export const isWithinNotificationHoursIST = (): boolean => {
   try {
@@ -478,14 +478,14 @@ export const isWithinNotificationHoursIST = (): boolean => {
       hourCycle: 'h23',
     });
     const hour = parseInt(formatter.format(new Date()), 10);
-    return hour >= 7 && hour < 22;
+    return hour >= 6 && hour < 22;
   } catch {
     const now = new Date();
     const utcHours = now.getUTCHours();
     const utcMinutes = now.getUTCMinutes();
     const istMinutes = utcHours * 60 + utcMinutes + 330;
     const istHour = Math.floor((istMinutes / 60) % 24);
-    return istHour >= 7 && istHour < 22;
+    return istHour >= 6 && istHour < 22;
   }
 };
 
@@ -501,7 +501,7 @@ const tryPush = async (
     return {
       pushSent: 0,
       pushFailed: 0,
-      pushSkipped: 'quiet_hours_7am_to_10pm_ist' as string | null,
+      pushSkipped: 'quiet_hours_6am_to_10pm_ist' as string | null,
     };
   }
 

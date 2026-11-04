@@ -239,7 +239,7 @@ export const runTodayBirthdaySweep = async (options?: {
         target: 'all',
         userIds: [user.id],
         actionType: 'TODAY_BIRTHDAY',
-        bypassHours: true, // MUST send at 7:00 AM with NO time restrictions
+        bypassHours: true, // MUST send at 6:00 AM with NO time restrictions
       });
       sentInApp++;
     } catch (inAppErr: any) {
@@ -513,7 +513,7 @@ export const runAdvanceBirthdaySweep = async (options?: {
 
 /**
  * Background Scheduler Poller (invoked every minute):
- * 1. At 7:00 AM IST sharp: runs runTodayBirthdaySweep() using "all_birthday_wishes".
+ * 1. At 6:00 AM IST sharp: runs runTodayBirthdaySweep() using "all_birthday_wishes".
  * 2. At 7:00 PM IST (19:00 IST) sharp: runs runAdvanceBirthdaySweep() using "advance_birthday_wishes".
  */
 let lastSweptTodayDay = '';
@@ -522,20 +522,20 @@ let lastSweptAdvanceDay = '';
 export const checkAndRunScheduledBirthdaySweeps = async (): Promise<void> => {
   const ist = getIstNow();
 
-  // 1. 7:00 AM IST (window: 07:00 - 07:10 IST): Today's Birthday wishes
-  if (ist.hour === 7 && ist.minute >= 0 && ist.minute < 10) {
+  // 1. 6:00 AM IST (window: 06:00 - 06:10 IST): Today's Birthday wishes
+  if (ist.hour === 6 && ist.minute >= 0 && ist.minute < 10) {
     if (lastSweptTodayDay !== ist.ymd) {
       lastSweptTodayDay = ist.ymd;
       console.log(
-        `[Birthday Scheduler] Triggering 7:00 AM IST TODAY Birthday sweep for ${ist.ymd}...`,
+        `[Birthday Scheduler] Triggering 6:00 AM IST TODAY Birthday sweep for ${ist.ymd}...`,
       );
       try {
         const result = await runTodayBirthdaySweep();
         console.log(
-          `[Birthday Scheduler] 7:00 AM sweep completed: ${result.sentInApp} in-app, ${result.sentWhatsApp} WhatsApp sent.`,
+          `[Birthday Scheduler] 6:00 AM sweep completed: ${result.sentInApp} in-app, ${result.sentWhatsApp} WhatsApp sent.`,
         );
       } catch (err) {
-        console.error('[Birthday Scheduler] 7:00 AM sweep error:', err);
+        console.error('[Birthday Scheduler] 6:00 AM sweep error:', err);
       }
     }
   }
