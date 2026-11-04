@@ -157,6 +157,7 @@ const AdminNotificationsScreen = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [linkUrl, setLinkUrl] = useState('');
   const [rewards, setRewards] = useState<
     Array<{id: string; name: string; imageUrl?: string | null}>
   >([]);
@@ -381,6 +382,19 @@ const AdminNotificationsScreen = () => {
     }
     setSending(true);
     try {
+      let extractedLink =
+        linkUrl.trim() ||
+        String(primaryMessage).match(/(?:https?:\/\/|www\.)[^\s]+/i)?.[0] ||
+        undefined;
+      if (extractedLink) {
+        while (/[.,!?);:\]\>]$/.test(extractedLink)) {
+          extractedLink = extractedLink.slice(0, -1);
+        }
+        if (/^www\./i.test(extractedLink)) {
+          extractedLink = `https://${extractedLink}`;
+        }
+      }
+
       const response = await apiService.post('/admin/notifications/send', {
         title: primaryTitle,
         message: primaryMessage,
@@ -391,6 +405,12 @@ const AdminNotificationsScreen = () => {
         scheduledAt:
           schedule === 'Later' ? toScheduleStamp(scheduledAt) : undefined,
         imageUrl: imageUrl || undefined,
+        url: extractedLink || undefined,
+        link: extractedLink || undefined,
+        linkUrl: extractedLink || undefined,
+        extraData: extractedLink
+          ? {url: extractedLink, link: extractedLink}
+          : undefined,
       });
       const data = response.data?.data || {};
       const detail =
@@ -421,6 +441,7 @@ const AdminNotificationsScreen = () => {
       setTestQuery('');
       setSchedule('Now');
       setScheduledAt(defaultLater());
+      setLinkUrl('');
       clearImage();
     } catch (err) {
       Alert.alert(
@@ -514,6 +535,18 @@ const AdminNotificationsScreen = () => {
         }
         multiline
       />
+
+      <Field
+        label="Link / Website URL (optional)"
+        value={linkUrl}
+        onChangeText={setLinkUrl}
+        placeholder="e.g. https://japasiddhi.com/payments/ or https://..."
+        autoCapitalize="none"
+        keyboardType="url"
+      />
+      <Text style={styles.linkFieldHint}>
+        Devotees will see this clickable link clearly with an "🔗 Open Link" button.
+      </Text>
 
       <View style={styles.divider} />
 
@@ -762,6 +795,14 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 10,
+  },
+  linkFieldHint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: -8,
+    marginBottom: 14,
+    fontStyle: 'italic',
   },
   imagePreview: {
     width: '100%',

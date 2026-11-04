@@ -2169,6 +2169,9 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
         .map((id: any) => Number(id))
         .filter((id: number) => Number.isFinite(id) && id > 0),
       imageUrl: imageUrl || undefined,
+      url: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
+      link: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
+      extraData: req.body?.extraData,
     });
     return res.status(result.mode === 'scheduled' ? 202 : 200).json({
       success: true,

@@ -636,6 +636,8 @@ export const deliverAdminNotification = async (input: {
   actionId?: number | null;
   /** Public https URL shown as Big Picture in the Android tray. */
   imageUrl?: string | null;
+  url?: string | null;
+  link?: string | null;
   /** When true, push even outside 7 AM–10 PM IST (e.g. class going live). */
   bypassHours?: boolean;
 }) => {
@@ -656,9 +658,19 @@ export const deliverAdminNotification = async (input: {
       ? Number(input.actionId)
       : null;
   const imageUrl = String(input.imageUrl || '').trim();
-  const extractedUrl =
-    String(input.message || '').match(/https?:\/\/[^\s]+/i)?.[0] ||
-    String(input.extraData?.url || input.extraData?.link || '');
+  let extractedUrl =
+    String((input as any).url || (input as any).link || (input as any).linkUrl || '').trim() ||
+    String(input.extraData?.url || input.extraData?.link || '').trim() ||
+    String(input.message || '').match(/(?:https?:\/\/|www\.)[^\s]+/i)?.[0] ||
+    '';
+  if (extractedUrl) {
+    while (/[.,!?);:\]\>]$/.test(extractedUrl)) {
+      extractedUrl = extractedUrl.slice(0, -1);
+    }
+    if (/^www\./i.test(extractedUrl)) {
+      extractedUrl = `https://${extractedUrl}`;
+    }
+  }
 
   const tokensByLang: Record<string, string[]> = {};
   let inboxCreated = 0;
@@ -927,6 +939,10 @@ export const sendAdminNotification = async (input: {
   /** When Target Group is Test: name / id / phone / email of one person. */
   testQuery?: string;
   imageUrl?: string | null;
+  url?: string | null;
+  link?: string | null;
+  linkUrl?: string | null;
+  extraData?: Record<string, any>;
   /** Skip 7 AM–10 PM IST quiet hours (DOB wishes, live class, etc.). */
   bypassHours?: boolean;
   actionType?: string;
@@ -1065,7 +1081,12 @@ export const sendAdminNotification = async (input: {
     bypassHours,
     actionType,
     imageUrl,
-    extraData: queueId ? {broadcastId: queueId, queuedId: queueId} : undefined,
+    url: input.url || input.link || input.linkUrl,
+    link: input.url || input.link || input.linkUrl,
+    extraData: {
+      ...(input.extraData || {}),
+      ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
+    },
   });
 
   if (queueId) {

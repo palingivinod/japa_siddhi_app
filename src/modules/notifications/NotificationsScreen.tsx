@@ -177,7 +177,7 @@ const renderTextWithLinks = (text: string, baseStyle?: any) => {
   if (!text) {
     return null;
   }
-  const urlRegex = /(https?:\/\/[^\s]+)/gi;
+  const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+)/gi;
   const parts = text.split(urlRegex);
 
   return (
@@ -186,16 +186,19 @@ const renderTextWithLinks = (text: string, baseStyle?: any) => {
         if (urlRegex.test(part)) {
           let cleanUrl = part;
           let suffix = '';
-          while (/[.,!?)]$/.test(cleanUrl)) {
+          while (/[.,!?);:\]\>]$/.test(cleanUrl)) {
             suffix = cleanUrl.slice(-1) + suffix;
             cleanUrl = cleanUrl.slice(0, -1);
           }
+          const openTarget = /^www\./i.test(cleanUrl)
+            ? `https://${cleanUrl}`
+            : cleanUrl;
           return (
             <React.Fragment key={index}>
               <Text
                 style={styles.linkText}
                 onPress={() => {
-                  Linking.openURL(cleanUrl).catch(() => {
+                  Linking.openURL(openTarget).catch(() => {
                     Alert.alert('Link Error', 'Unable to open link in browser.');
                   });
                 }}>
@@ -209,6 +212,54 @@ const renderTextWithLinks = (text: string, baseStyle?: any) => {
       })}
     </Text>
   );
+};
+
+const extractNotificationLink = (
+  item: any,
+  subject?: string,
+  bodyLine?: string,
+): string | null => {
+  const extra =
+    item?.extraData && typeof item.extraData === 'object'
+      ? item.extraData
+      : {};
+  const candidates: Array<unknown> = [
+    item?.url,
+    item?.link,
+    extra.url,
+    extra.link,
+    extra.webUrl,
+    extra.actionUrl,
+    bodyLine,
+    subject,
+    item?.message,
+    item?.body,
+    extra.detail,
+    extra.pushBody,
+    extra.translations?.en?.message,
+    extra.translations?.en?.title,
+  ];
+
+  const urlRegex = /(?:https?:\/\/|www\.)[^\s]+/i;
+  for (const cand of candidates) {
+    if (!cand || typeof cand !== 'string') {
+      continue;
+    }
+    const match = cand.match(urlRegex);
+    if (match && match[0]) {
+      let raw = match[0].trim();
+      while (/[.,!?);:\]\>]$/.test(raw)) {
+        raw = raw.slice(0, -1);
+      }
+      if (/^www\./i.test(raw)) {
+        raw = `https://${raw}`;
+      }
+      if (raw.length > 5) {
+        return raw;
+      }
+    }
+  }
+  return null;
 };
 
 const renderParagraphsWithLinks = (text: string, baseStyle?: any) => {
@@ -612,20 +663,14 @@ const NotificationsScreen = () => {
                   extra.bigPicture ||
                   null;
                 const noteImage = resolveMediaUrl(rawImg);
-                const rawLink =
-                  item.url ||
-                  item.link ||
-                  extra.url ||
-                  extra.link ||
-                  extra.webUrl ||
-                  String(`${subject} ${bodyLine}`).match(/https?:\/\/[^\s]+/i)?.[0] ||
-                  null;
-                let cleanLink = rawLink ? String(rawLink).trim() : null;
-                if (cleanLink) {
-                  while (/[.,!?)]$/.test(cleanLink)) {
-                    cleanLink = cleanLink.slice(0, -1);
-                  }
-                }
+                const cleanLink = extractNotificationLink(item, subject, bodyLine);
+                const linkAlreadyInBody =
+                  cleanLink &&
+                  (String(subject || '').toLowerCase().includes(cleanLink.toLowerCase()) ||
+                    String(bodyLine || '').toLowerCase().includes(cleanLink.toLowerCase()) ||
+                    String(`${subject} ${bodyLine}`)
+                      .toLowerCase()
+                      .includes(cleanLink.replace(/^https?:\/\//i, '').toLowerCase()));
 
                 return (
                   <>
@@ -647,12 +692,23 @@ const NotificationsScreen = () => {
                     {bodyLine ? (
                       renderParagraphsWithLinks(bodyLine, styles.subtitle)
                     ) : null}
+                    {cleanLink && !linkAlreadyInBody ? (
+                      <Text
+                        style={[styles.linkText, styles.standaloneLink]}
+                        onPress={() => {
+                          Linking.openURL(cleanLink).catch(() => {
+                            Alert.alert('Link Error', 'Unable to open link in browser.');
+                          });
+                        }}>
+                        {cleanLink}
+                      </Text>
+                    ) : null}
                     {cleanLink ? (
                       <TouchableOpacity
                         style={styles.openLinkBtn}
                         activeOpacity={0.8}
                         onPress={() => {
-                          Linking.openURL(cleanLink!).catch(() => {
+                          Linking.openURL(cleanLink).catch(() => {
                             Alert.alert('Link Error', 'Unable to open link in browser.');
                           });
                         }}>
@@ -1020,6 +1076,12 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     textDecorationLine: 'underline',
     fontWeight: '700',
+  },
+  standaloneLink: {
+    marginTop: 8,
+    marginBottom: 4,
+    fontSize: 13.5,
+    lineHeight: 20,
   },
   openLinkBtn: {
     marginTop: 8,
