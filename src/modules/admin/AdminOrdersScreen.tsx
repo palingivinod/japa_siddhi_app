@@ -65,7 +65,6 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Sankalp Taken', label: 'Sankalp'},
   {id: 'Confirmed', label: 'Confirmed'},
   {id: 'Packing', label: 'Packing'},
-  {id: 'Cancelled', label: 'Cancelled'},
 ];
 
 const isBaanalingamOrder = (order: {
@@ -317,7 +316,10 @@ const AdminOrdersScreen = () => {
         userReceived: Boolean(row.userReceived ?? row.user_received),
         userReceivedAt: row.userReceivedAt || row.user_received_at || '',
       })).filter(
-        (o: AdminOrder) => o.status !== 'Delivered' && o.status !== 'Shipped',
+        (o: AdminOrder) =>
+          o.status !== 'Delivered' &&
+          o.status !== 'Shipped' &&
+          o.status !== 'Cancelled',
       );
       setOrders(mapped);
       setNoteDrafts(prev => {
@@ -388,11 +390,7 @@ const AdminOrdersScreen = () => {
           setBusyId(orderId);
           try {
             await apiService.put(`/admin/orders/${orderId}/cancel`);
-            setOrders(prev =>
-              prev.map(o =>
-                o.id === orderId ? {...o, status: 'Cancelled', cancelledBy: 'ADMIN'} : o,
-              ),
-            );
+            setOrders(prev => prev.filter(o => o.id !== orderId));
           } catch (err) {
             Alert.alert('Cancel failed', getApiError(err, 'Could not cancel order.'));
           } finally {
@@ -542,7 +540,6 @@ const AdminOrdersScreen = () => {
     ).length;
     const confirmed = itemFilteredOrders.filter(o => o.status === 'Confirmed').length;
     const packing = itemFilteredOrders.filter(o => o.status === 'Packing').length;
-    const cancelled = itemFilteredOrders.filter(o => o.status === 'Cancelled').length;
     return {
       total,
       all: total,
@@ -551,7 +548,6 @@ const AdminOrdersScreen = () => {
       sankalpTaken,
       confirmed,
       packing,
-      cancelled,
     };
   }, [itemFilteredOrders]);
 
@@ -578,7 +574,6 @@ const AdminOrdersScreen = () => {
     if (tabId === 'Sankalp Taken') return orderCounts.sankalpTaken;
     if (tabId === 'Confirmed') return orderCounts.confirmed;
     if (tabId === 'Packing') return orderCounts.packing;
-    if (tabId === 'Cancelled') return orderCounts.cancelled;
     return 0;
   };
 

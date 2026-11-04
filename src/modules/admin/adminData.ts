@@ -78,6 +78,7 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Notification Management', route: 'AdminNotifications'},
   {title: 'Banner Management', route: 'AdminBanners'},
   {title: 'Orders', route: 'AdminOrders'},
+  {title: 'Cancelled Orders', route: 'AdminCancelledOrders'},
   {title: 'Order History', route: 'AdminOrderHistory'},
   {title: 'Autopay Requests', route: 'AdminAutopayRequests'},
   {title: 'Meeting Management', route: 'AdminMeeting'},
@@ -140,6 +141,8 @@ export type AdminOrder = {
   product: string;
   customer: string;
   status: AdminOrderStatus;
+  date?: string;
+  createdAt?: string;
   orderGroup?: AdminOrderGroup;
   orderType?: string;
   orderSource?: string;

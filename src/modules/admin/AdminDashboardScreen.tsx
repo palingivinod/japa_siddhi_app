@@ -148,6 +148,8 @@ const AdminDashboardScreen = () => {
                 ? 'Schedule Google Meet & live classes'
                 : item.title === 'Order History'
                 ? 'All shipped & delivered orders archive & search'
+                : item.title === 'Cancelled Orders'
+                ? 'All devotee and admin cancelled orders archive & search'
                 : item.title === 'Notification Analytics'
                 ? 'Sent & read counts for broadcast notifications'
                 : 'Central management'}
