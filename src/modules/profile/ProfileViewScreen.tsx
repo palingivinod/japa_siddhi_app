@@ -268,14 +268,14 @@ const ProfileViewScreen = () => {
         onPress={() => navigation.navigate('PersonalDetails', {profile})}
       />
       <MenuCard
-        emoji="📍"
-        title={t('savedAddresses') || 'Saved Addresses'}
-        onPress={() => navigation.navigate('AddAddress')}
-      />
-      <MenuCard
         icon="notificationsPhoto"
         title={t('notifications')}
         onPress={() => navigation.navigate('Notifications')}
+      />
+      <MenuCard
+        emoji="📍"
+        title={t('savedAddresses') || 'Saved Addresses'}
+        onPress={() => navigation.navigate('AddAddress')}
       />
       <MenuCard
         icon="trophy"
