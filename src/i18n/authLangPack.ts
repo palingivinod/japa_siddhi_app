@@ -29,6 +29,7 @@ export const authLangPack: Record<string, AuthPack> = {
     unableToLogin: 'लॉगिन नहीं हो सका। ईमेल/नंबर और पासवर्ड जाँचें।',
     unableSendOtpRetry: 'OTP नहीं भेजा जा सका। फिर कोशिश करें।',
     createAccountTitle: 'खाता बनाएँ',
+    signUpWithMobile: 'मोबाइल नंबर से साइन अप करें',
     createYourAccount: 'अपना खाता बनाएँ',
     createAccountHelper:
       'ईमेल, पासवर्ड और मोबाइल आवश्यक हैं। हम ईमेल सत्यापित करने के लिए OTP भेजेंगे।',
@@ -196,6 +197,7 @@ export const authLangPack: Record<string, AuthPack> = {
     unableToLogin: 'లాగిన్ కాలేదు. ఇమెయిల్/నంబర్ మరియు పాస్‌వర్డ్ తనిఖీ చేయండి.',
     unableSendOtpRetry: 'OTP పంపలేకపోయాం. మళ్లీ ప్రయత్నించండి.',
     createAccountTitle: 'ఖాతా సృష్టించండి',
+    signUpWithMobile: 'మొబైల్ నంబరుతో సైన్ అప్ చేయండి',
     createYourAccount: 'మీ ఖాతాను సృష్టించండి',
     createAccountHelper:
       'ఇమెయిల్, పాస్‌వర్డ్ మరియు మొబైల్ అవసరం. ఇమెయిల్ ధృవీకరణకు OTP పంపుతాం.',
@@ -366,6 +368,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'ಲಾಗಿನ್ ಆಗಲಿಲ್ಲ. ಇಮೇಲ್/ಸಂಖ್ಯೆ ಮತ್ತು ಪಾಸ್‌ವರ್ಡ್ ಪರಿಶೀಲಿಸಿ.',
     unableSendOtpRetry: 'OTP ಕಳುಹಿಸಲಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     createAccountTitle: 'ಖಾತೆ ರಚಿಸಿ',
+    signUpWithMobile: 'ಮೊಬೈಲ್ ಸಂಖ್ಯೆಯೊಂದಿಗೆ ಸೈನ್ ಅಪ್ ಮಾಡಿ',
     createYourAccount: 'ನಿಮ್ಮ ಖಾತೆಯನ್ನು ರಚಿಸಿ',
     createAccountHelper:
       'ಇಮೇಲ್, ಪಾಸ್‌ವರ್ಡ್ ಮತ್ತು ಮೊಬೈಲ್ ಅಗತ್ಯ. ನಿಮ್ಮ ಇಮೇಲ್ ಪರಿಶೀಲಿಸಲು ನಾವು OTP ಕಳುಹಿಸುತ್ತೇವೆ.',
@@ -535,6 +538,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'உள்நுழைய முடியவில்லை. மின்னஞ்சல்/எண் மற்றும் கடவுச்சொல்லைச் சரிபார்க்கவும்.',
     unableSendOtpRetry: 'OTP அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
     createAccountTitle: 'கணக்கை உருவாக்கு',
+    signUpWithMobile: 'கைபேசி எண்ணுடன் பதிவு செய்க',
     createYourAccount: 'உங்கள் கணக்கை உருவாக்குங்கள்',
     createAccountHelper:
       'மின்னஞ்சல், கடவுச்சொல் மற்றும் மொபைல் தேவை. உங்கள் மின்னஞ்சலைச் சரிபார்க்க OTP அனுப்புவோம்.',
@@ -709,6 +713,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'ലോഗിൻ ചെയ്യാൻ കഴിഞ്ഞില്ല. ഇമെയിൽ/നമ്പറും പാസ്‌വേഡും പരിശോധിക്കുക.',
     unableSendOtpRetry: 'OTP അയയ്ക്കാൻ കഴിഞ്ഞില്ല. വീണ്ടും ശ്രമിക്കുക.',
     createAccountTitle: 'അക്കൗണ്ട് സൃഷ്ടിക്കുക',
+    signUpWithMobile: 'മൊബൈൽ നമ്പർ ഉപയോഗിച്ച് സൈൻ അപ്പ് ചെയ്യുക',
     createYourAccount: 'നിങ്ങളുടെ അക്കൗണ്ട് സൃഷ്ടിക്കുക',
     createAccountHelper:
       'ഇമെയിൽ, പാസ്‌വേഡ്, മൊബൈൽ എന്നിവ ആവശ്യമാണ്. നിങ്ങളുടെ ഇമെയിൽ പരിശോധിക്കാൻ ഞങ്ങൾ OTP അയയ്ക്കും.',
@@ -878,6 +883,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'लॉगिन करता आले नाही. ईमेल/क्रमांक आणि पासवर्ड तपासा.',
     unableSendOtpRetry: 'OTP पाठवता आला नाही. कृपया पुन्हा प्रयत्न करा.',
     createAccountTitle: 'खाते तयार करा',
+    signUpWithMobile: 'मोबाईल क्रमांकासह साइन अप करा',
     createYourAccount: 'तुमचे खाते तयार करा',
     createAccountHelper:
       'ईमेल, पासवर्ड आणि मोबाइल आवश्यक आहेत. तुमचा ईमेल सत्यापित करण्यासाठी आम्ही OTP पाठवू.',
@@ -1046,6 +1052,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'লগইন করা যায়নি। ইমেইল/নম্বর ও পাসওয়ার্ড যাচাই করুন।',
     unableSendOtpRetry: 'OTP পাঠানো যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।',
     createAccountTitle: 'অ্যাকাউন্ট তৈরি করুন',
+    signUpWithMobile: 'মোবাইল নম্বর দিয়ে সাইন আপ করুন',
     createYourAccount: 'আপনার অ্যাকাউন্ট তৈরি করুন',
     createAccountHelper:
       'ইমেইল, পাসওয়ার্ড ও মোবাইল প্রয়োজন। আপনার ইমেইল যাচাই করতে আমরা OTP পাঠাব।',
@@ -1214,6 +1221,7 @@ export const authLangPack: Record<string, AuthPack> = {
       'ଲଗଇନ୍ କରାଯାଇପାରିଲା ନାହିଁ। ଇମେଲ୍/ନମ୍ବର ଓ ପାସୱାର୍ଡ ଯାଞ୍ଚ କରନ୍ତୁ।',
     unableSendOtpRetry: 'OTP ପଠାଯାଇପାରିଲା ନାହିଁ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
     createAccountTitle: 'ଖାତା ସୃଷ୍ଟି କରନ୍ତୁ',
+    signUpWithMobile: 'ମୋବାଇଲ୍ ନମ୍ବର ସହିତ ସାଇନ୍ ଅପ୍ କରନ୍ତୁ',
     createYourAccount: 'ଆପଣଙ୍କ ଖାତା ସୃଷ୍ଟି କରନ୍ତୁ',
     createAccountHelper:
       'ଇମେଲ୍, ପାସୱାର୍ଡ ଓ ମୋବାଇଲ୍ ଆବଶ୍ୟକ। ଆପଣଙ୍କ ଇମେଲ୍ ଯାଞ୍ଚ ପାଇଁ ଆମେ OTP ପଠାଇବୁ।',

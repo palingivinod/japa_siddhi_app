@@ -93,6 +93,7 @@ const en = {
   phoneOtpComingSoon: 'Use email for now. Mobile OTP will come soon.',
   useEmailOtp: 'Use Email OTP',
   createAccountTitle: 'Create Account',
+  signUpWithMobile: 'Sign up with mobile number',
   createYourAccount: 'Create your account',
   createAccountHelper:
     'Email, password and mobile are required. Choose Email or Phone to receive your OTP (they use different codes).',

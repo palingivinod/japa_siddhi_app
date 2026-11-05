@@ -427,7 +427,7 @@ class AuthService {
       }
     }
     if (!firebaseUid) {
-      firebaseUid = `email:${email}`;
+      firebaseUid = email ? `email:${email}` : `usr:${randomUUID()}`;
     }
 
     if (
@@ -471,27 +471,28 @@ class AuthService {
       }
     }
 
-    if (existingEmail) {
+    const existingTargetUser = existingEmail || existingMobile;
+    if (existingTargetUser) {
       if (passwordHash) {
-        await authRepository.setPasswordHash(existingEmail.id, passwordHash);
+        await authRepository.setPasswordHash(existingTargetUser.id, passwordHash);
       }
-      if (firebaseUid && String(existingEmail.firebaseUid || '') !== firebaseUid) {
-        await authRepository.linkFirebaseUid(existingEmail.id, firebaseUid).catch(() => undefined);
+      if (firebaseUid && String(existingTargetUser.firebaseUid || '') !== firebaseUid) {
+        await authRepository.linkFirebaseUid(existingTargetUser.id, firebaseUid).catch(() => undefined);
       }
       await authRepository.completeProfile(
-        existingEmail.id,
+        existingTargetUser.id,
         profileFields({
           ...data,
-          fullName: fullName || existingEmail.fullName,
-          email,
+          fullName: fullName || existingTargetUser.fullName,
+          email: email || existingTargetUser.email || '',
         }),
       );
       await authRepository.updateMobileIfChanged(
-        existingEmail.id,
+        existingTargetUser.id,
         mobileCountryCode,
         mobileNumber,
       );
-      const existingUser = await authRepository.findUserById(existingEmail.id);
+      const existingUser = await authRepository.findUserById(existingTargetUser.id);
       if (!existingUser) {
         throw new AppError('User login failed', 500);
       }
@@ -1075,6 +1076,61 @@ class AuthService {
     }
 
     const destinationEmail = String(data.email || '').trim().toLowerCase();
+    const mobileCountryCode = normalizePhone(data.mobileCountryCode || '') || '91';
+    const mobileNumber = normalizePhone(data.mobileNumber || '');
+
+    // Phone OTP is sent by Firebase on the app — email OTP stays on the backend.
+    if (channel === 'phone') {
+      if (
+        !mobileCountryCode ||
+        mobileNumber.length < 6 ||
+        /^0+$/.test(mobileNumber)
+      ) {
+        throw new AppError(
+          'Enter a valid mobile number to create your account.',
+          400,
+        );
+      }
+
+      const existingByMobile =
+        mobileNumber && !isPlaceholderMobile(null, mobileNumber)
+          ? await authRepository.findUserByMobile(mobileCountryCode, mobileNumber)
+          : null;
+
+      if (existingByMobile) {
+        throw new AppError(
+          'This mobile number is already registered. Please try another mobile number or sign in with your account.',
+          409,
+        );
+      }
+
+      if (destinationEmail) {
+        const existingByEmail = await authRepository.findUserByEmail(destinationEmail);
+        if (existingByEmail) {
+          throw new AppError(
+            'This email is already registered. Please try another email or sign in with your password.',
+            409,
+          );
+        }
+      }
+
+      if (!isPhoneOtpEnabled()) {
+        return phoneOtpComingSoon('register', mobileCountryCode, mobileNumber);
+      }
+      return {
+        sent: true,
+        provider: 'firebase' as const,
+        sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
+        expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+        mobileCountryCode,
+        mobileNumber,
+        email: destinationEmail || '',
+        channel: 'phone' as const,
+        mode: 'register' as const,
+      };
+    }
+
+    // Email registration channel
     if (!destinationEmail || !destinationEmail.includes('@')) {
       throw new AppError(
         'Enter the email address for your account.',
@@ -1082,8 +1138,6 @@ class AuthService {
       );
     }
 
-    const mobileCountryCode = normalizePhone(data.mobileCountryCode || '');
-    const mobileNumber = normalizePhone(data.mobileNumber || '');
     if (
       !mobileCountryCode ||
       mobileNumber.length < 6 ||
@@ -1118,25 +1172,6 @@ class AuthService {
         'This mobile number is already registered. Please try another mobile number or sign in with your account.',
         409,
       );
-    }
-
-    // Phone OTP is sent by Firebase on the app — email OTP stays on the backend.
-    // Different channels never share the same code.
-    if (channel === 'phone') {
-      if (!isPhoneOtpEnabled()) {
-        return phoneOtpComingSoon('register', mobileCountryCode, mobileNumber);
-      }
-      return {
-        sent: true,
-        provider: 'firebase' as const,
-        sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
-        expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
-      mobileCountryCode,
-      mobileNumber,
-        email: destinationEmail,
-        channel: 'phone' as const,
-        mode: 'register' as const,
-      };
     }
 
     const existing = await otpRepository.findActiveByEmail(destinationEmail);

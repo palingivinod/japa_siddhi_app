@@ -305,7 +305,7 @@ const CreateAccountScreen = () => {
 
       {/* 3. Sign up with mobile number heading */}
       <Text style={styles.sectionTitle}>
-        {(t as any)('signUpWithMobile') || 'Sign up with mobile number'}
+        {t('signUpWithMobile')}
       </Text>
 
       {/* Mobile Number * */}
