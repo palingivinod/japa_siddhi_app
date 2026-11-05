@@ -215,7 +215,7 @@ export const runTodayBirthdaySweep = async (options?: {
 
   const eligibleUsers = rows || [];
   console.log(
-    `[TodayBirthday] 7:00 AM IST Sweep for today (${todayDate}): Found ${eligibleUsers.length} eligible devotee(s).`,
+    `[TodayBirthday] 6:00 AM IST Sweep for today (${todayDate}): Found ${eligibleUsers.length} eligible devotee(s).`,
   );
 
   if (isTodaySweepRunning && !dryRun) {
