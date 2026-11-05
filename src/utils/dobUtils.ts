@@ -35,3 +35,4 @@ export const maskDob = (value: string): string => {
   }
   return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 };
+

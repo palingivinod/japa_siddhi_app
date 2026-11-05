@@ -53,7 +53,7 @@ export const ADMIN_FRAMES: AdminFrame[] = [
   },
   {
     id: '09b',
-    title: 'Update Reward Stock',
+    title: 'Edit Reward',
     route: 'AdminRewardStock',
     status: 'done',
   },

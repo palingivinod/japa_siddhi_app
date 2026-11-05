@@ -28,8 +28,9 @@ const AdminRewardsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newStock, setNewStock] = useState('0');
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newEligibility, setNewEligibility] = useState('');
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -40,6 +41,8 @@ const AdminRewardsScreen = () => {
       const mapped = rows.map((row: any) => ({
         id: String(row.id),
         name: String(row.name || ''),
+        description: String(row.description || ''),
+        eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
         stock: Number(row.stock || 0),
         imageUrl: row.imageUrl || row.imagePath || null,
       }));
@@ -59,19 +62,38 @@ const AdminRewardsScreen = () => {
   );
 
   const addReward = async () => {
-    const name = newName.trim();
-    if (!name) {
-      Alert.alert('Required', 'Enter a reward name.');
+    const title = newTitle.trim();
+    const desc = newDescription.trim();
+    const rawElig = newEligibility.replace(/\D/g, '');
+    const eligibility = parseInt(rawElig, 10);
+
+    if (!title) {
+      Alert.alert('Required', 'Enter a reward title.');
       return;
     }
+    if (!desc) {
+      Alert.alert('Required', 'Enter a reward description.');
+      return;
+    }
+    if (!eligibility || eligibility <= 0) {
+      Alert.alert(
+        'Required',
+        'Enter a valid eligibility number (greater than 0).',
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       await apiService.post('/admin/rewards', {
-        name,
-        stock: Math.max(0, Number(newStock) || 0),
+        name: title,
+        title,
+        description: desc,
+        eligibilityCriteria: eligibility,
       });
-      setNewName('');
-      setNewStock('0');
+      setNewTitle('');
+      setNewDescription('');
+      setNewEligibility('');
       setShowAdd(false);
       await load();
     } catch (err) {
@@ -160,10 +182,10 @@ const AdminRewardsScreen = () => {
   return (
     <AdminScreenLayout title="Configure Rewards" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Configure Rewards</Text>
-      <Text style={styles.section}>Reward choices.</Text>
+      <Text style={styles.section}>Reward choices & eligibility.</Text>
       <Text style={styles.hint}>
-        Upload a photo on each reward. You can also attach an image when sending
-        a notification.
+        Configure spiritual rewards with title, description, and eligibility criteria.
+        Upload a photo on each reward.
       </Text>
 
       <PrimaryButton
@@ -174,21 +196,31 @@ const AdminRewardsScreen = () => {
 
       {showAdd ? (
         <View style={styles.addCard}>
-          <Text style={styles.label}>Reward name</Text>
+          <Text style={styles.label}>Reward Title *</Text>
           <TextInput
             style={styles.input}
-            value={newName}
-            onChangeText={setNewName}
-            placeholder="Enter reward name"
+            value={newTitle}
+            onChangeText={setNewTitle}
+            placeholder="e.g. Consecrated Mala"
             placeholderTextColor={Colors.placeholder}
           />
-          <Text style={styles.label}>Stock</Text>
+          <Text style={styles.label}>Description *</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            value={newDescription}
+            onChangeText={setNewDescription}
+            placeholder="Enter reward description and benefits"
+            placeholderTextColor={Colors.placeholder}
+            multiline
+            numberOfLines={3}
+          />
+          <Text style={styles.label}>Eligibility Criteria (Japa Count) *</Text>
           <TextInput
             style={styles.input}
-            value={newStock}
-            onChangeText={setNewStock}
+            value={newEligibility}
+            onChangeText={setNewEligibility}
             keyboardType="number-pad"
-            placeholder="0"
+            placeholder="e.g. 5000, 30000"
             placeholderTextColor={Colors.placeholder}
           />
           <PrimaryButton
@@ -214,7 +246,19 @@ const AdminRewardsScreen = () => {
             )}
             <View style={styles.copy}>
               <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.stock}>Stock: {item.stock}</Text>
+              <View style={styles.eligibilityRow}>
+                <Text style={styles.eligibilityLabel}>Eligibility:</Text>
+                <Text style={styles.eligibilityValue}>
+                  {item.eligibilityCriteria && item.eligibilityCriteria > 0
+                    ? `${item.eligibilityCriteria.toLocaleString()} Japas`
+                    : '5,000 Japas'}
+                </Text>
+              </View>
+              {item.description ? (
+                <Text style={styles.desc} numberOfLines={2}>
+                  {item.description}
+                </Text>
+              ) : null}
               <View style={styles.rowActions}>
                 <TouchableOpacity
                   onPress={() => uploadImage(item)}
@@ -229,7 +273,8 @@ const AdminRewardsScreen = () => {
                     navigation.navigate('AdminRewardStock', {
                       id: item.id,
                       name: item.name,
-                      stock: item.stock,
+                      description: item.description,
+                      eligibilityCriteria: item.eligibilityCriteria,
                     })
                   }
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
@@ -311,6 +356,11 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontSize: 16,
   },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+    paddingTop: 12,
+  },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 16,
@@ -345,11 +395,27 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.sacredBrown,
   },
-  stock: {
-    marginTop: 2,
-    color: Colors.textSecondary,
-    fontWeight: '600',
+  eligibilityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  eligibilityLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+  },
+  eligibilityValue: {
     fontSize: 13,
+    fontWeight: '800',
+    color: Colors.templeGold,
+  },
+  desc: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
   },
   rowActions: {
     marginTop: 8,

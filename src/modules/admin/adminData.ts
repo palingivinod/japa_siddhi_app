@@ -55,7 +55,9 @@ export type AdminChallenge = {
 export type AdminReward = {
   id: string;
   name: string;
-  stock: number;
+  description?: string;
+  eligibilityCriteria?: number;
+  stock?: number;
   imageUrl?: string | null;
 };
 

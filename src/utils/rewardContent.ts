@@ -863,14 +863,24 @@ export const checkRewardEligibility = (
   rewardName: string,
   userJapaCount: number = 0,
   lang: string = 'en',
+  customEligibilityCriteria?: number,
 ): RewardEligibility => {
   const req = getRewardRequirement(rewardName, lang);
+  const targetCount =
+    typeof customEligibilityCriteria === 'number' && customEligibilityCriteria > 0
+      ? customEligibilityCriteria
+      : req.count;
   const count = Number(userJapaCount) || 0;
-  const isEligible = req.count <= 0 || count >= req.count;
-  const remainingJapas = isEligible ? 0 : Math.max(0, req.count - count);
+  const isEligible = targetCount <= 0 || count >= targetCount;
+  const remainingJapas = isEligible ? 0 : Math.max(0, targetCount - count);
+  const requiredLabel =
+    typeof customEligibilityCriteria === 'number' && customEligibilityCriteria > 0
+      ? `${customEligibilityCriteria.toLocaleString('en-IN')} Japas`
+      : req.label;
+
   return {
-    requiredJapas: req.count,
-    requiredLabel: req.label,
+    requiredJapas: targetCount,
+    requiredLabel,
     isEligible,
     remainingJapas,
   };

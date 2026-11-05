@@ -29,6 +29,7 @@ type RewardItem = {
   stock?: number;
   inStock?: boolean;
   description?: string;
+  eligibilityCriteria?: number;
   emoji?: string;
 };
 
@@ -84,11 +85,14 @@ const AvailableRewardsScreen = () => {
             id: row.id,
             name: String(row.name || ''),
             stock: Number(row.stock || 0),
-            inStock: Number(row.stock ?? 1) > 0,
+            inStock: true,
             emoji: row.emoji,
             description: row.description,
+            eligibilityCriteria: Number(
+              row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+            ),
           }))
-          .filter(row => isCanonicalReward(row.name));
+          .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
 
         // Guarantee 5 Lakhs & 10 Lakhs canonical rewards are always visible even if backend DB hasn't seeded them
         const missingCanonical = DEFAULT_REWARDS.filter(def => {
@@ -134,8 +138,13 @@ const AvailableRewardsScreen = () => {
   );
 
   const handleCardPress = (item: RewardItem, localized: any) => {
-    const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
-    const description = String(localized.description || '').trim();
+    const eligibility = checkRewardEligibility(
+      item.name,
+      userTotalJapas,
+      language,
+      item.eligibilityCriteria,
+    );
+    const description = String(item.description || localized.description || '').trim();
     const title = localized.title || tt(item.name);
     const message = (line: string) =>
       description ? `${description}\n\n${line}` : line;
@@ -193,7 +202,12 @@ const AvailableRewardsScreen = () => {
       <View style={styles.listContainer}>
         {rewards.map(item => {
           const localized = getLocalizedReward(item.name, language);
-          const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
+          const eligibility = checkRewardEligibility(
+            item.name,
+            userTotalJapas,
+            language,
+            item.eligibilityCriteria,
+          );
           const isLocked = !eligibility.isEligible;
 
           return (
@@ -230,7 +244,7 @@ const AvailableRewardsScreen = () => {
                 </View>
               </View>
               <Text style={styles.description}>
-                {localized.description || tt(item.description || '')}
+                {item.description || localized.description || tt(item.description || '')}
               </Text>
               {isLocked ? (
                 <Text style={styles.remainingHint}>

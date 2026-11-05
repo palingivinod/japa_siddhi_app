@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Alert,
   StyleSheet,
@@ -13,44 +13,25 @@ import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 
-const Field = ({
-  label,
-  value,
-  onChangeText,
-  keyboardType = 'default',
-}: {
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  keyboardType?: 'default' | 'numeric' | 'number-pad';
-}) => (
-  <View style={styles.field}>
-    <Text style={styles.label}>{label}</Text>
-    <TextInput
-      style={styles.input}
-      value={value}
-      onChangeText={onChangeText}
-      keyboardType={keyboardType}
-      placeholderTextColor={Colors.placeholder}
-    />
-  </View>
-);
-
 const AdminRewardStockScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const rewardId = String(route.params?.id || '').trim();
 
   const [name, setName] = useState(String(route.params?.name || ''));
-  const [currentStock, setCurrentStock] = useState(
-    String(route.params?.stock ?? 0),
+  const [description, setDescription] = useState(
+    String(route.params?.description || ''),
   );
-  const [quantity, setQuantity] = useState('0');
+  const [eligibilityCriteria, setEligibilityCriteria] = useState(
+    route.params?.eligibilityCriteria
+      ? String(route.params.eligibilityCriteria)
+      : '',
+  );
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!route.params?.name && Boolean(rewardId));
 
   useEffect(() => {
-    if (!rewardId || route.params?.name) {
+    if (!rewardId) {
       return;
     }
     let alive = true;
@@ -69,8 +50,11 @@ const AdminRewardStockScreen = () => {
           Alert.alert('Not found', 'Reward could not be loaded.');
           return;
         }
-        setName(String(match.name || ''));
-        setCurrentStock(String(match.stock ?? 0));
+        setName(String(match.name || match.title || ''));
+        setDescription(String(match.description || ''));
+        if (match.eligibilityCriteria) {
+          setEligibilityCriteria(String(match.eligibilityCriteria));
+        }
       })
       .catch(err => {
         Alert.alert('Rewards', getApiError(err, 'Could not load reward.'));
@@ -83,37 +67,48 @@ const AdminRewardStockScreen = () => {
     return () => {
       alive = false;
     };
-  }, [rewardId, route.params?.name]);
-
-  const previewStock = useMemo(() => {
-    const base = Number(currentStock);
-    const delta = Number(quantity);
-    const safeBase = Number.isFinite(base) ? base : 0;
-    const safeDelta = Number.isFinite(delta) ? delta : 0;
-    return Math.max(0, Math.round(safeBase + safeDelta));
-  }, [currentStock, quantity]);
+  }, [rewardId]);
 
   const save = async () => {
     if (!rewardId) {
       Alert.alert('Missing reward', 'Reward id is required.');
       return;
     }
-    if (!name.trim()) {
-      Alert.alert('Required', 'Enter a reward name.');
+    const title = name.trim();
+    const desc = description.trim();
+    const rawElig = eligibilityCriteria.replace(/\D/g, '');
+    const eligibility = parseInt(rawElig, 10);
+
+    if (!title) {
+      Alert.alert('Required', 'Enter a reward title.');
       return;
     }
+    if (!desc) {
+      Alert.alert('Required', 'Enter a reward description.');
+      return;
+    }
+    if (!eligibility || eligibility <= 0) {
+      Alert.alert(
+        'Required',
+        'Enter a valid eligibility number (greater than 0).',
+      );
+      return;
+    }
+
     setSaving(true);
     try {
       await apiService.put(`/admin/rewards/${rewardId}`, {
-        name: name.trim(),
-        stock: previewStock,
+        name: title,
+        title,
+        description: desc,
+        eligibilityCriteria: eligibility,
         active: true,
       });
-      Alert.alert('Stock updated', `${name.trim()} stock is now ${previewStock}.`, [
+      Alert.alert('Reward updated', `${title} details saved successfully.`, [
         {text: 'OK', onPress: () => navigation.goBack()},
       ]);
     } catch (err) {
-      Alert.alert('Update failed', getApiError(err, 'Could not update stock.'));
+      Alert.alert('Update failed', getApiError(err, 'Could not update reward.'));
     } finally {
       setSaving(false);
     }
@@ -121,36 +116,54 @@ const AdminRewardStockScreen = () => {
 
   return (
     <AdminScreenLayout
-      title="Update Reward Stock"
+      title="Edit Reward"
       tab="AdminDashboard"
       showBack>
-      <Text style={styles.heading}>Update Reward Stock</Text>
+      <Text style={styles.heading}>Edit Reward</Text>
 
       {loading ? (
         <Text style={styles.hint}>Loading reward...</Text>
       ) : (
         <>
-          <Field label="Reward" value={name} onChangeText={setName} />
-          <Field
-            label="Current Stock"
-            value={currentStock}
-            onChangeText={setCurrentStock}
-            keyboardType="number-pad"
-          />
-          <Field
-            label="Add / Remove Quantity"
-            value={quantity}
-            onChangeText={setQuantity}
-            keyboardType="numeric"
-          />
+          <View style={styles.field}>
+            <Text style={styles.label}>Reward Title *</Text>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter reward title"
+              placeholderTextColor={Colors.placeholder}
+            />
+          </View>
 
-          <Text style={styles.preview}>
-            After update: {previewStock} available
-          </Text>
+          <View style={styles.field}>
+            <Text style={styles.label}>Description *</Text>
+            <TextInput
+              style={[styles.input, styles.textArea]}
+              value={description}
+              onChangeText={setDescription}
+              placeholder="Enter description and benefits"
+              placeholderTextColor={Colors.placeholder}
+              multiline
+              numberOfLines={4}
+            />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Eligibility Criteria (Japa Count) *</Text>
+            <TextInput
+              style={styles.input}
+              value={eligibilityCriteria}
+              onChangeText={setEligibilityCriteria}
+              keyboardType="number-pad"
+              placeholder="e.g. 5000, 30000"
+              placeholderTextColor={Colors.placeholder}
+            />
+          </View>
 
           <View style={styles.gap} />
           <PrimaryButton
-            title={saving ? 'UPDATING...' : 'UPDATE STOCK'}
+            title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={save}
             disabled={saving || loading}
           />
@@ -169,7 +182,7 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     marginBottom: 18,
   },
-  field: {marginBottom: 14},
+  field: {marginBottom: 16},
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
@@ -185,28 +198,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.textPrimary,
   },
-  badge: {
-    alignSelf: 'flex-start',
-    borderRadius: 20,
-    borderWidth: 1.5,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginBottom: 8,
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 14,
   },
-  badgeOn: {borderColor: Colors.leafGreen},
-  badgeOff: {borderColor: Colors.error},
-  badgeText: {fontWeight: '800', fontSize: 13, letterSpacing: 0.3},
-  badgeTextOn: {color: Colors.leafGreen},
-  badgeTextOff: {color: Colors.error},
   hint: {
     color: Colors.textSecondary,
     lineHeight: 20,
     marginBottom: 8,
-  },
-  preview: {
-    color: Colors.sacredBrown,
-    fontWeight: '700',
-    marginTop: 4,
   },
   gap: {height: 16},
 });

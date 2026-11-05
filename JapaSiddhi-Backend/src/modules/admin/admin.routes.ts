@@ -5646,21 +5646,39 @@ router.get('/reports/export', async (req: Request, res: Response) => {
   }
 });
 
-const ensureRewardImageColumn = async () => {
+const ensureRewardColumns = async () => {
   try {
     await mysql.query(
-      `ALTER TABLE challenge_rewards ADD COLUMN image_url TEXT NULL`,
+      'ALTER TABLE challenge_rewards ADD COLUMN image_url TEXT NULL',
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await mysql.query(
+      'ALTER TABLE challenge_rewards ADD COLUMN description TEXT NULL',
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await mysql.query(
+      'ALTER TABLE challenge_rewards ADD COLUMN eligibility_criteria INTEGER NOT NULL DEFAULT 0',
     );
   } catch {
     // Column already exists.
   }
 };
+const ensureRewardImageColumn = ensureRewardColumns;
 
 const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
   const path = String(row.imageUrl || row.image_url || '').trim();
   return {
     id: String(row.id),
     name: String(row.name || ''),
+    title: String(row.name || ''),
+    description: String(row.description || ''),
+    eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
     stock: Number(row.stock || 0),
     active: Number(row.isActive ?? row.is_active ?? 1) === 1,
     imageUrl: absoluteUrl || path || null,
@@ -5669,16 +5687,16 @@ const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
 };
 
 const CANONICAL_REWARDS = [
-  {name: 'Rudrakshi Mala', stock: 50, order: 1, aliases: ['rudraksh']},
-  {name: 'Tulasi Mala', stock: 50, order: 2, aliases: ['tulasi', 'tulsi']},
-  {name: 'Pasupu Mala', stock: 50, order: 3, aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
-  {name: 'Sandal Wood Mala', stock: 50, order: 4, aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
-  {name: 'Karungali Mala', stock: 50, order: 5, aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
-  {name: 'Spatik Mala', stock: 50, order: 6, aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
-  {name: 'Green Agate', stock: 50, order: 7, aliases: ['green agate', 'green hakik']},
-  {name: 'Yellow Agate', stock: 50, order: 8, aliases: ['yellow agate', 'yellow hakik']},
-  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 9, aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
-  {name: 'Spiritual Reward', stock: 50, order: 10, aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
+  {name: 'Rudrakshi Mala', stock: 50, order: 1, eligibility: 5000, description: 'Sacred Rudraksha bead mala for spiritual protection, inner peace, and focused daily mantra japa.', aliases: ['rudraksh']},
+  {name: 'Tulasi Mala', stock: 50, order: 2, eligibility: 5000, description: 'Sacred Tulasi bead mala revered for heart-centered devotion, calm awareness, and Vishnu / Krishna worship.', aliases: ['tulasi', 'tulsi']},
+  {name: 'Pasupu Mala', stock: 50, order: 3, eligibility: 5000, description: 'Traditional consecrated turmeric (Haldi) bead mala attracting divine grace, positivity, and obstacle removal.', aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
+  {name: 'Sandal Wood Mala', stock: 50, order: 4, eligibility: 30000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
+  {name: 'Karungali Mala', stock: 50, order: 5, eligibility: 50000, description: 'Authentic dense black ebony wood beads renowned for shielding against negative energies and victory in sadhana.', aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
+  {name: 'Spatik Mala', stock: 50, order: 6, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
+  {name: 'Green Agate', stock: 50, order: 7, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},
+  {name: 'Yellow Agate', stock: 50, order: 8, eligibility: 200000, description: 'Bright yellow agate gemstone beads fostering courage, knowledge, intellect, and divine auspiciousness.', aliases: ['yellow agate', 'yellow hakik']},
+  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 9, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
+  {name: 'Spiritual Reward', stock: 50, order: 10, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];
 
 const ensureRewardSeed = async () => {

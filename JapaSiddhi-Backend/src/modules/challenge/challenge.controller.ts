@@ -277,7 +277,10 @@ class ChallengeController {
           id: Number(row.id),
           name: String(row.name || ''),
           stock: Number(row.stock || 0),
-          inStock: Number(row.stock || 0) > 0,
+          inStock: true,
+          description: String(row.description || ''),
+          eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
+          imageUrl: row.imageUrl || null,
         })),
       });
     } catch (error) {

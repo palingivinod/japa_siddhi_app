@@ -446,6 +446,8 @@ CREATE TABLE IF NOT EXISTS challenge_ratings (
 CREATE TABLE IF NOT EXISTS challenge_rewards (
   id SERIAL PRIMARY KEY,
   name TEXT NOT NULL,
+  description TEXT,
+  eligibility_criteria INTEGER NOT NULL DEFAULT 0,
   stock INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1,
   display_order INTEGER NOT NULL DEFAULT 0,

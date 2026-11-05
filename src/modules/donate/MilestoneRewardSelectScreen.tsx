@@ -25,8 +25,10 @@ import {
 type RewardItem = {
   id: number;
   name: string;
-  stock: number;
-  inStock: boolean;
+  stock?: number;
+  inStock?: boolean;
+  description?: string;
+  eligibilityCriteria?: number;
 };
 
 const MilestoneRewardSelectScreen = () => {
@@ -49,10 +51,18 @@ const MilestoneRewardSelectScreen = () => {
       .then(response => {
         const data = response.data?.data || {};
         setUserTotalJapas(Number(data.total || 0));
+        const rawList: any[] = data.rewards || [];
         setRewards(
           sortRewardsCanonical<RewardItem>(
-            (data.rewards || []).filter((row: RewardItem) =>
-              isCanonicalReward(String(row.name || '')),
+            rawList.map((row: any) => ({
+              id: Number(row.id),
+              name: String(row.name || ''),
+              stock: Number(row.stock || 0),
+              inStock: true,
+              description: row.description,
+              eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
+            })).filter((row: RewardItem) =>
+              row.name && (isCanonicalReward(row.name) || Boolean(row.id)),
             ),
           ),
         );
@@ -78,7 +88,7 @@ const MilestoneRewardSelectScreen = () => {
     if (claimed || !reached) {
       return;
     }
-    const eligibility = checkRewardEligibility(item.name, userTotalJapas, language);
+    const eligibility = checkRewardEligibility(item.name, userTotalJapas, language, item.eligibilityCriteria);
     if (!eligibility.isEligible) {
       Alert.alert(
         t('rewardLockedTitle') || 'Reward Locked',

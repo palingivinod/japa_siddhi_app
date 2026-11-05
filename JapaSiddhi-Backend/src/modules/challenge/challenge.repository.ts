@@ -528,7 +528,10 @@ class ChallengeRepository {
         name,
         stock,
         is_active AS isActive,
-        display_order AS displayOrder
+        display_order AS displayOrder,
+        IFNULL(description, '') AS description,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       ORDER BY display_order ASC, id ASC
       `,

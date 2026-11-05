@@ -490,6 +490,8 @@ class SqliteEngine {
       CREATE TABLE IF NOT EXISTS challenge_rewards (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        description TEXT,
+        eligibility_criteria INTEGER NOT NULL DEFAULT 0,
         stock INTEGER NOT NULL DEFAULT 0,
         is_active INTEGER NOT NULL DEFAULT 1,
         display_order INTEGER NOT NULL DEFAULT 0,
@@ -592,6 +594,8 @@ class SqliteEngine {
     addColumn('notifications', 'translations', 'TEXT');
     addColumn('admin_notification_queue', 'translations', 'TEXT');
     addColumn('challenge_rewards', 'image_url', 'TEXT');
+    addColumn('challenge_rewards', 'description', 'TEXT');
+    addColumn('challenge_rewards', 'eligibility_criteria', 'INTEGER DEFAULT 0');
   }
 
   private seedAdminAccounts(): void {
