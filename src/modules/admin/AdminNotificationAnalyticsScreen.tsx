@@ -20,7 +20,7 @@ export type NotificationAnalyticsItem = {
   title: string;
   message: string;
   targetGroup: string;
-  category?: 'general' | 'specific';
+  category?: 'general' | 'birthday' | 'orders' | 'specific';
   actionType?: string;
   sentAt: string;
   sentCount: number;
@@ -36,10 +36,45 @@ export type AnalyticsSummary = {
   totalUnread: number;
   averageReadRate: number;
   generalCount?: number;
+  birthdayCount?: number;
+  ordersCount?: number;
   specificCount?: number;
 };
 
-type FilterCategory = 'general' | 'specific' | 'all';
+type FilterCategory = 'general' | 'birthday' | 'orders';
+
+const resolveItemCategory = (
+  item: NotificationAnalyticsItem,
+): FilterCategory => {
+  const raw = String(item.category || '').toLowerCase();
+  if (raw === 'orders' || raw === 'order') {
+    return 'orders';
+  }
+  if (raw === 'birthday' || raw === 'specific') {
+    return 'birthday';
+  }
+  const action = String(item.actionType || '').toUpperCase();
+  if (action === 'ORDER_STATUS' || action === 'ORDER_ADMIN_NOTE') {
+    return 'orders';
+  }
+  if (
+    action === 'TODAY_BIRTHDAY' ||
+    action === 'ADVANCE_BIRTHDAY' ||
+    action === 'DOB_WISH' ||
+    /birthday|jayanthi|vardhanti|occasion|anniversary/i.test(
+      String(item.title || ''),
+    )
+  ) {
+    return 'birthday';
+  }
+  return 'general';
+};
+
+const categoryBadgeLabel = (category: FilterCategory) => {
+  if (category === 'orders') return '📦 Orders';
+  if (category === 'birthday') return '🎂 Specific';
+  return '🌐 General';
+};
 
 const formatTargetGroup = (target: string) => {
   const t = String(target || '').toLowerCase();
@@ -76,6 +111,7 @@ const AdminNotificationAnalyticsScreen = () => {
     }
     setError('');
     try {
+      // Load unfiltered list; tabs filter client-side so counts stay consistent.
       const response = await apiService.get('/admin/notifications/analytics');
       const data = response.data?.data || {};
       setSummary(data.summary || null);
@@ -100,25 +136,27 @@ const AdminNotificationAnalyticsScreen = () => {
 
   const categoryCounts = useMemo(() => {
     let general = 0;
-    let specific = 0;
+    let birthday = 0;
+    let orders = 0;
     for (const item of items) {
-      if (item.category === 'specific') {
-        specific += 1;
+      const cat = resolveItemCategory(item);
+      if (cat === 'orders') {
+        orders += 1;
+      } else if (cat === 'birthday') {
+        birthday += 1;
       } else {
         general += 1;
       }
     }
-    return {general, specific, all: items.length};
-  }, [items]);
+    return {
+      general: summary?.generalCount ?? general,
+      birthday: summary?.birthdayCount ?? summary?.specificCount ?? birthday,
+      orders: summary?.ordersCount ?? orders,
+    };
+  }, [items, summary]);
 
   const tabFilteredItems = useMemo(() => {
-    if (activeTab === 'general') {
-      return items.filter(it => it.category !== 'specific');
-    }
-    if (activeTab === 'specific') {
-      return items.filter(it => it.category === 'specific');
-    }
-    return items;
+    return items.filter(it => resolveItemCategory(it) === activeTab);
   }, [items, activeTab]);
 
   const activeSummary = useMemo(() => {
@@ -153,9 +191,9 @@ const AdminNotificationAnalyticsScreen = () => {
   }, [tabFilteredItems, search]);
 
   const summaryHeaderLabel = useMemo(() => {
-    if (activeTab === 'general') return 'GENERAL NOTIFICATION STATS';
-    if (activeTab === 'specific') return 'SPECIFIC (BIRTHDAY & OCCASION) STATS';
-    return 'OVERALL NOTIFICATION STATS';
+    if (activeTab === 'birthday') return 'SPECIFIC (BIRTHDAY & OCCASION) STATS';
+    if (activeTab === 'orders') return 'ORDERS NOTIFICATION STATS';
+    return 'GENERAL NOTIFICATION STATS';
   }, [activeTab]);
 
   const renderHeader = () => (
@@ -175,46 +213,31 @@ const AdminNotificationAnalyticsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Two Main Filters: General and Specific (plus All) */}
       <View style={styles.tabBar}>
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'general' && styles.tabBtnActive]}
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('general')}>
-          <Text
-            style={[
-              styles.tabBtnText,
-              activeTab === 'general' && styles.tabBtnTextActive,
-            ]}>
-            🌐 General ({categoryCounts.general})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'specific' && styles.tabBtnActive]}
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('specific')}>
-          <Text
-            style={[
-              styles.tabBtnText,
-              activeTab === 'specific' && styles.tabBtnTextActive,
-            ]}>
-            🎂 Specific ({categoryCounts.specific})
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tabBtn, activeTab === 'all' && styles.tabBtnActive]}
-          activeOpacity={0.8}
-          onPress={() => setActiveTab('all')}>
-          <Text
-            style={[
-              styles.tabBtnText,
-              activeTab === 'all' && styles.tabBtnTextActive,
-            ]}>
-            📋 All ({categoryCounts.all})
-          </Text>
-        </TouchableOpacity>
+        {(
+          [
+            {id: 'general' as const, label: `🌐 General (${categoryCounts.general})`},
+            {
+              id: 'birthday' as const,
+              label: `🎂 Specific (${categoryCounts.birthday})`,
+            },
+            {id: 'orders' as const, label: `📦 Orders (${categoryCounts.orders})`},
+          ] as const
+        ).map(tab => (
+          <TouchableOpacity
+            key={tab.id}
+            style={[styles.tabBtn, activeTab === tab.id && styles.tabBtnActive]}
+            activeOpacity={0.8}
+            onPress={() => setActiveTab(tab.id)}>
+            <Text
+              style={[
+                styles.tabBtnText,
+                activeTab === tab.id && styles.tabBtnTextActive,
+              ]}>
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {/* Top Summary Cards (Dynamic based on selected filter tab) */}
@@ -272,7 +295,7 @@ const AdminNotificationAnalyticsScreen = () => {
 
   const renderItem = ({item}: {item: NotificationAnalyticsItem}) => {
     const isExpanded = Boolean(expandedIds[item.id]);
-    const isSpecific = item.category === 'specific';
+    const itemCategory = resolveItemCategory(item);
 
     return (
       <View style={styles.card}>
@@ -287,14 +310,22 @@ const AdminNotificationAnalyticsScreen = () => {
             <View
               style={[
                 styles.categoryBadge,
-                isSpecific ? styles.specificBadge : styles.generalBadge,
+                itemCategory === 'orders'
+                  ? styles.ordersBadge
+                  : itemCategory === 'birthday'
+                    ? styles.specificBadge
+                    : styles.generalBadge,
               ]}>
               <Text
                 style={[
                   styles.categoryBadgeBaseText,
-                  isSpecific ? styles.specificBadgeText : styles.generalBadgeText,
+                  itemCategory === 'orders'
+                    ? styles.ordersBadgeText
+                    : itemCategory === 'birthday'
+                      ? styles.specificBadgeText
+                      : styles.generalBadgeText,
                 ]}>
-                {isSpecific ? '🎂 Specific' : '🌐 General'}
+                {categoryBadgeLabel(itemCategory)}
               </Text>
             </View>
             <View style={styles.targetBadge}>
@@ -366,9 +397,11 @@ const AdminNotificationAnalyticsScreen = () => {
         <Text style={styles.emptySub}>
           {search.trim().length > 0
             ? `No notifications matched “${search.trim()}”.`
-            : activeTab === 'specific'
-              ? 'No birthday or occasion-specific notifications found yet.'
-              : 'Notifications sent by admin will appear here with delivery and read counts.'}
+            : activeTab === 'birthday'
+              ? 'No specific (birthday or occasion) notifications found yet.'
+              : activeTab === 'orders'
+                ? 'No order-related notifications found yet.'
+                : 'Notifications sent by admin will appear here with delivery and read counts.'}
         </Text>
       </View>
     );
@@ -468,7 +501,7 @@ const styles = StyleSheet.create({
   tabBtn: {
     flex: 1,
     paddingVertical: 9,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -482,9 +515,10 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   tabBtnText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: Colors.textSecondary,
+    textAlign: 'center',
   },
   tabBtnTextActive: {
     color: Colors.white,
@@ -609,6 +643,15 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     color: '#BE185D',
+  },
+  ordersBadge: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  ordersBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#047857',
   },
   targetBadge: {
     backgroundColor: '#FEF3C7',

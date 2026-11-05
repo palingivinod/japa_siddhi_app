@@ -1062,12 +1062,7 @@ export const sendAdminNotification = async (input: {
       throw error;
     }
 
-    const isSpecific =
-      actionType === 'TODAY_BIRTHDAY' ||
-      actionType === 'ADVANCE_BIRTHDAY' ||
-      actionType === 'DOB_WISH' ||
-      /birthday|jayanthi|vardhanti/i.test(title);
-    const category = isSpecific ? 'specific' : 'general';
+    const category = resolveAnalyticsCategory(actionType, title);
 
     const insert = await mysql.query<ResultSetHeader>(
       `
@@ -1109,12 +1104,7 @@ export const sendAdminNotification = async (input: {
   }
 
   const now = nowIstStamp();
-  const isSpecific =
-    actionType === 'TODAY_BIRTHDAY' ||
-    actionType === 'ADVANCE_BIRTHDAY' ||
-    actionType === 'DOB_WISH' ||
-    /birthday|jayanthi|vardhanti/i.test(title);
-  const category = isSpecific ? 'specific' : 'general';
+  const category = resolveAnalyticsCategory(actionType, title);
 
   let queueId: number | null = null;
   try {
@@ -1204,6 +1194,53 @@ export const sendAdminNotification = async (input: {
 };
 
 
+/** Analytics buckets for admin Notification Analytics filters. */
+export type AnalyticsCategory = 'general' | 'birthday' | 'orders';
+
+const ORDER_ACTION_TYPES = new Set([
+  'ORDER_STATUS',
+  'ORDER_ADMIN_NOTE',
+]);
+
+const BIRTHDAY_ACTION_TYPES = new Set([
+  'TODAY_BIRTHDAY',
+  'ADVANCE_BIRTHDAY',
+  'DOB_WISH',
+]);
+
+export const resolveAnalyticsCategory = (
+  actionTypeRaw?: string | null,
+  titleRaw?: string | null,
+  storedCategory?: string | null,
+): AnalyticsCategory => {
+  const actionType = String(actionTypeRaw || '')
+    .trim()
+    .toUpperCase();
+  const title = String(titleRaw || '');
+  const stored = String(storedCategory || '')
+    .trim()
+    .toLowerCase();
+
+  if (ORDER_ACTION_TYPES.has(actionType) || stored === 'orders') {
+    return 'orders';
+  }
+  if (
+    BIRTHDAY_ACTION_TYPES.has(actionType) ||
+    stored === 'birthday' ||
+    /birthday|jayanthi|vardhanti|occasion|anniversary/i.test(title)
+  ) {
+    return 'birthday';
+  }
+  // Legacy "specific" rows without order action → treat as birthday/occasion.
+  if (stored === 'specific' && !ORDER_ACTION_TYPES.has(actionType)) {
+    if (/order/i.test(title)) {
+      return 'orders';
+    }
+    return 'birthday';
+  }
+  return 'general';
+};
+
 export const syncUnqueuedBatchesToAnalytics = async () => {
   try {
     const unqueued = await mysql.query<any[]>(`
@@ -1246,17 +1283,9 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       else if (actionType === 'ADMIN_SEVA_REPLY') title = 'Seva Prayer Reply 🙏';
       else title = 'Notification';
 
-      const isSpecific = [
-        'TODAY_BIRTHDAY',
-        'ADVANCE_BIRTHDAY',
-        'DOB_WISH',
-        'ORDER_STATUS',
-        'ORDER_ADMIN_NOTE',
-        'SUPPORT_TICKET_REPLY',
-        'ADMIN_SEVA_REPLY',
-      ].includes(actionType);
-      const category = isSpecific ? 'specific' : 'general';
-      const targetGroup = isSpecific ? 'selected_users' : 'all';
+      const category = resolveAnalyticsCategory(actionType, title);
+      const targetGroup =
+        category === 'general' ? 'all' : 'selected_users';
 
       const insertResult = await mysql.query<ResultSetHeader>(`
         INSERT INTO admin_notification_queue (
@@ -1320,7 +1349,7 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
     FROM admin_notification_queue
     WHERE status IN ('SENT', 'SENDING')
     ORDER BY id DESC
-    LIMIT 100
+    LIMIT 200
     `,
   );
 
@@ -1332,6 +1361,8 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
       let readCount = 0;
       let actualInboxCount = 0;
 
+      // Only count inbox rows linked to this queue id — never fuzzy title match
+      // (that was inflating Overall Delivered into tens of thousands).
       try {
         const stats = await mysql.query<any[]>(
           `
@@ -1354,53 +1385,23 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
         console.warn('Analytics stats query failed for queue item', queueId, err);
       }
 
-      if (actualInboxCount === 0 && row.title) {
-        try {
-          const cleanTitle = String(row.title).slice(0, 30).trim();
-          const fallbackStats = await mysql.query<any[]>(
-            `
-            SELECT
-              COUNT(*) AS total_inbox,
-              COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
-            FROM notifications
-            WHERE notification_type = 'SYSTEM'
-              AND (title LIKE ? OR extra_data LIKE ?)
-            `,
-            [`%${cleanTitle}%`, `%"mantraName":"%${cleanTitle}%`],
-          );
-          if (
-            fallbackStats?.length &&
-            Number(fallbackStats[0].total_inbox || 0) > 0
-          ) {
-            actualInboxCount = Number(fallbackStats[0].total_inbox || 0);
-            readCount = Number(fallbackStats[0].read_count || 0);
-          }
-        } catch {
-          // ignore fallback error
-        }
-      }
-
-      const sentCount = Math.max(declaredSent, actualInboxCount);
-      const safeReadCount = Math.min(readCount, sentCount);
+      // Prefer declared recipient_count; use linked inbox count only when declared is 0.
+      const sentCount =
+        declaredSent > 0
+          ? declaredSent
+          : actualInboxCount > 0
+            ? actualInboxCount
+            : 0;
+      const safeReadCount = Math.min(readCount, sentCount || readCount);
       const unreadCount = Math.max(0, sentCount - safeReadCount);
       const readRate =
         sentCount > 0 ? Math.round((safeReadCount / sentCount) * 100) : 0;
 
-      const isSpecific =
-        row.category === 'specific' ||
-        [
-          'TODAY_BIRTHDAY',
-          'ADVANCE_BIRTHDAY',
-          'DOB_WISH',
-          'ORDER_STATUS',
-          'ORDER_ADMIN_NOTE',
-          'SUPPORT_TICKET_REPLY',
-          'ADMIN_SEVA_REPLY',
-        ].includes(row.actionType) ||
-        /birthday|jayanthi|vardhanti|order|support|ticket|seva/i.test(row.title || '');
-      const category: 'general' | 'specific' = isSpecific
-        ? 'specific'
-        : 'general';
+      const category = resolveAnalyticsCategory(
+        row.actionType,
+        row.title,
+        row.category,
+      );
 
       return {
         id: queueId,
@@ -1430,13 +1431,21 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
     totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
 
   const generalItems = items.filter(i => i.category === 'general');
-  const specificItems = items.filter(i => i.category === 'specific');
+  const birthdayItems = items.filter(i => i.category === 'birthday');
+  const ordersItems = items.filter(i => i.category === 'orders');
+  // Legacy alias: "specific" = birthday & occasion
+  const specificItems = birthdayItems;
 
   let filteredItems = items;
-  if (categoryFilter === 'general') {
+  const filter = String(categoryFilter || '')
+    .trim()
+    .toLowerCase();
+  if (filter === 'general') {
     filteredItems = generalItems;
-  } else if (categoryFilter === 'specific') {
-    filteredItems = specificItems;
+  } else if (filter === 'birthday' || filter === 'specific') {
+    filteredItems = birthdayItems;
+  } else if (filter === 'orders' || filter === 'order') {
+    filteredItems = ordersItems;
   }
 
   return {
@@ -1447,6 +1456,8 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
       totalUnread: Math.max(0, totalDelivered - totalRead),
       averageReadRate,
       generalCount: generalItems.length,
+      birthdayCount: birthdayItems.length,
+      ordersCount: ordersItems.length,
       specificCount: specificItems.length,
     },
     items: filteredItems,
