@@ -31,6 +31,11 @@ const AdminRewardsScreen = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newEligibility, setNewEligibility] = useState('');
+  const [newImage, setNewImage] = useState<{
+    uri: string;
+    type?: string;
+    fileName?: string;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -61,6 +66,27 @@ const AdminRewardsScreen = () => {
     }, [load]),
   );
 
+  const pickNewImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Reward image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (picked?.uri) {
+        setNewImage(picked);
+      }
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+      }
+    }
+  };
+
   const addReward = async () => {
     const title = newTitle.trim();
     const desc = newDescription.trim();
@@ -85,15 +111,32 @@ const AdminRewardsScreen = () => {
 
     setSaving(true);
     try {
-      await apiService.post('/admin/rewards', {
+      const res = await apiService.post('/admin/rewards', {
         name: title,
         title,
         description: desc,
         eligibilityCriteria: eligibility,
       });
+
+      const createdId = res.data?.data?.id;
+      if (createdId && newImage?.uri) {
+        try {
+          const formData = new FormData();
+          formData.append('image', {
+            uri: newImage.uri,
+            type: newImage.type || 'image/jpeg',
+            name: newImage.fileName || 'reward.jpg',
+          } as any);
+          await apiService.post(`/admin/rewards/${createdId}/image`, formData);
+        } catch {
+          // Photo upload can be retried via CHANGE PHOTO on the card
+        }
+      }
+
       setNewTitle('');
       setNewDescription('');
       setNewEligibility('');
+      setNewImage(null);
       setShowAdd(false);
       await load();
     } catch (err) {
@@ -136,7 +179,7 @@ const AdminRewardsScreen = () => {
       );
       Alert.alert(
         'Image saved',
-        'This photo will show in reward notifications when you send one with it.',
+        'This photo will show in reward notifications and user catalog.',
       );
     } catch (err: any) {
       if (String(err?.message || '') === 'native_module_missing') {
@@ -185,7 +228,7 @@ const AdminRewardsScreen = () => {
       <Text style={styles.section}>Reward choices & eligibility.</Text>
       <Text style={styles.hint}>
         Configure spiritual rewards with title, description, and eligibility criteria.
-        Upload a photo on each reward.
+        Upload a photo for each reward.
       </Text>
 
       <PrimaryButton
@@ -196,6 +239,26 @@ const AdminRewardsScreen = () => {
 
       {showAdd ? (
         <View style={styles.addCard}>
+          <Text style={styles.label}>Reward Photo</Text>
+          <TouchableOpacity
+            style={styles.imagePickerBtn}
+            onPress={pickNewImage}
+            activeOpacity={0.85}>
+            {newImage?.uri ? (
+              <View style={styles.imagePickerFilled}>
+                <Image source={{uri: newImage.uri}} style={styles.imagePreview} />
+                <Text style={styles.changeImageText}>Change Photo</Text>
+              </View>
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.imagePlaceholderIcon}>📷</Text>
+                <Text style={styles.imagePlaceholderText}>
+                  + Tap to select reward photo
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+
           <Text style={styles.label}>Reward Title *</Text>
           <TextInput
             style={styles.input}
@@ -204,6 +267,7 @@ const AdminRewardsScreen = () => {
             placeholder="e.g. Consecrated Mala"
             placeholderTextColor={Colors.placeholder}
           />
+
           <Text style={styles.label}>Description *</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
@@ -214,6 +278,7 @@ const AdminRewardsScreen = () => {
             multiline
             numberOfLines={3}
           />
+
           <Text style={styles.label}>Eligibility Criteria (Japa Count) *</Text>
           <TextInput
             style={styles.input}
@@ -223,8 +288,9 @@ const AdminRewardsScreen = () => {
             placeholder="e.g. 5000, 30000"
             placeholderTextColor={Colors.placeholder}
           />
+
           <PrimaryButton
-            title={saving ? 'ADDING...' : 'SAVE REWARD'}
+            title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={addReward}
             disabled={saving}
           />
@@ -275,6 +341,7 @@ const AdminRewardsScreen = () => {
                       name: item.name,
                       description: item.description,
                       eligibilityCriteria: item.eligibilityCriteria,
+                      imageUrl: item.imageUrl,
                     })
                   }
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
@@ -344,6 +411,45 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  imagePickerBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    backgroundColor: Colors.background,
+    padding: 12,
+    marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePickerFilled: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  imagePreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+  },
+  changeImageText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 4,
+  },
+  imagePlaceholderIcon: {
+    fontSize: 28,
+  },
+  imagePlaceholderText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
   input: {
     height: 48,

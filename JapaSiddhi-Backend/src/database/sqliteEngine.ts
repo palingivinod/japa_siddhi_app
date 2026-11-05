@@ -540,6 +540,8 @@ class SqliteEngine {
       CREATE TABLE IF NOT EXISTS spiritual_products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
+        description TEXT,
+        eligibility_criteria INTEGER NOT NULL DEFAULT 0,
         stock INTEGER NOT NULL DEFAULT 0,
         is_active INTEGER NOT NULL DEFAULT 1,
         display_order INTEGER NOT NULL DEFAULT 0,

@@ -1,9 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
   Text,
   TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
@@ -11,6 +14,10 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {
+  pickProfilePhoto,
+  resolveMediaUrl,
+} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 
 const AdminRewardStockScreen = () => {
@@ -27,6 +34,14 @@ const AdminRewardStockScreen = () => {
       ? String(route.params.eligibilityCriteria)
       : '',
   );
+  const [imageUrl, setImageUrl] = useState<string | null>(
+    route.params?.imageUrl || null,
+  );
+  const [newImage, setNewImage] = useState<{
+    uri: string;
+    type?: string;
+    fileName?: string;
+  } | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!route.params?.name && Boolean(rewardId));
 
@@ -55,6 +70,9 @@ const AdminRewardStockScreen = () => {
         if (match.eligibilityCriteria) {
           setEligibilityCriteria(String(match.eligibilityCriteria));
         }
+        if (match.imageUrl) {
+          setImageUrl(match.imageUrl);
+        }
       })
       .catch(err => {
         Alert.alert('Rewards', getApiError(err, 'Could not load reward.'));
@@ -68,6 +86,27 @@ const AdminRewardStockScreen = () => {
       alive = false;
     };
   }, [rewardId]);
+
+  const pickImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Reward image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (picked?.uri) {
+        setNewImage(picked);
+      }
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+      }
+    }
+  };
 
   const save = async () => {
     if (!rewardId) {
@@ -104,6 +143,17 @@ const AdminRewardStockScreen = () => {
         eligibilityCriteria: eligibility,
         active: true,
       });
+
+      if (newImage?.uri) {
+        const formData = new FormData();
+        formData.append('image', {
+          uri: newImage.uri,
+          type: newImage.type || 'image/jpeg',
+          name: newImage.fileName || 'reward.jpg',
+        } as any);
+        await apiService.post(`/admin/rewards/${rewardId}/image`, formData);
+      }
+
       Alert.alert('Reward updated', `${title} details saved successfully.`, [
         {text: 'OK', onPress: () => navigation.goBack()},
       ]);
@@ -114,6 +164,8 @@ const AdminRewardStockScreen = () => {
     }
   };
 
+  const displayPhoto = newImage?.uri || resolveMediaUrl(imageUrl);
+
   return (
     <AdminScreenLayout
       title="Edit Reward"
@@ -122,9 +174,31 @@ const AdminRewardStockScreen = () => {
       <Text style={styles.heading}>Edit Reward</Text>
 
       {loading ? (
-        <Text style={styles.hint}>Loading reward...</Text>
+        <ActivityIndicator color={Colors.templeGold} />
       ) : (
         <>
+          <View style={styles.field}>
+            <Text style={styles.label}>Reward Photo</Text>
+            <TouchableOpacity
+              style={styles.imagePickerBtn}
+              onPress={pickImage}
+              activeOpacity={0.85}>
+              {displayPhoto ? (
+                <View style={styles.imagePickerFilled}>
+                  <Image source={{uri: displayPhoto}} style={styles.imagePreview} />
+                  <Text style={styles.changeImageText}>Change Photo</Text>
+                </View>
+              ) : (
+                <View style={styles.imagePlaceholder}>
+                  <Text style={styles.imagePlaceholderIcon}>📷</Text>
+                  <Text style={styles.imagePlaceholderText}>
+                    + Tap to select reward photo
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.field}>
             <Text style={styles.label}>Reward Title *</Text>
             <TextInput
@@ -188,6 +262,44 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginBottom: 8,
   },
+  imagePickerBtn: {
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    borderStyle: 'dashed',
+    borderRadius: 14,
+    backgroundColor: Colors.background,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  imagePickerFilled: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  imagePreview: {
+    width: 84,
+    height: 84,
+    borderRadius: 12,
+    backgroundColor: Colors.white,
+  },
+  changeImageText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    gap: 4,
+  },
+  imagePlaceholderIcon: {
+    fontSize: 28,
+  },
+  imagePlaceholderText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
   input: {
     height: 54,
     borderWidth: 1,
@@ -202,11 +314,6 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
     paddingTop: 14,
-  },
-  hint: {
-    color: Colors.textSecondary,
-    lineHeight: 20,
-    marginBottom: 8,
   },
   gap: {height: 16},
 });
