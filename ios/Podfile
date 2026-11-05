@@ -29,12 +29,29 @@ target 'JapaSiddhi' do
   )
 
   post_install do |installer|
-    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(
       installer,
       config[:reactNativePath],
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # FORCE ALL PACKAGES TO MATCH A UNIFORM DEPLOYMENT TARGET
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        
+        # FIX FOR THE FMT CONSTEVAL COMPILER CRASH
+        if target.name == 'fmt'
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        end
+
+        # OSCompat.h is C++. Xcode's module verifier also imports the
+        # framework as Objective-C, which fails with 'cstdint' file not found.
+        if target.name == 'React-oscompat'
+          config.build_settings['ENABLE_MODULE_VERIFIER'] = 'NO'
+        end
+      end
+    end
   end
 end

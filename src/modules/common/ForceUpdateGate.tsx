@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   BackHandler,
   Linking,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -32,7 +33,9 @@ const ForceUpdateGate = ({children}: {children: React.ReactNode}) => {
   useEffect(() => {
     let cancelled = false;
     const installed = getAppVersionName();
-    if (!installed || installed === '—') {
+    // This gate compares against the Play Store release and opens Google Play.
+    // There is no iOS update to install, so it must not block iPhone.
+    if (Platform.OS !== 'android' || !installed || installed === '—') {
       setPhase('ready');
       return;
     }
