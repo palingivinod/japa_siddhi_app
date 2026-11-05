@@ -1331,25 +1331,54 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
   await ensureQueueTable();
   await syncUnqueuedBatchesToAnalytics();
 
+  // Pull non-order + order rows separately so ORDER_STATUS spam does not
+  // bury meetings / admin broadcasts / birthday sends under General & Specific.
   const rows = await mysql.query<any[]>(
     `
-    SELECT
-      id,
-      title,
-      message,
-      translations,
-      target_group AS targetGroup,
-      recipient_count AS recipientCount,
-      status,
-      send_at AS sendAt,
-      processed_at AS processedAt,
-      created_at AS createdAt,
-      IFNULL(category, 'general') AS category,
-      action_type AS actionType
-    FROM admin_notification_queue
-    WHERE status IN ('SENT', 'SENDING')
+    SELECT * FROM (
+      (
+        SELECT
+          id,
+          title,
+          message,
+          translations,
+          target_group AS targetGroup,
+          recipient_count AS recipientCount,
+          status,
+          send_at AS sendAt,
+          processed_at AS processedAt,
+          created_at AS createdAt,
+          IFNULL(category, 'general') AS category,
+          action_type AS actionType
+        FROM admin_notification_queue
+        WHERE status IN ('SENT', 'SENDING')
+          AND IFNULL(action_type, '') NOT IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+        ORDER BY id DESC
+        LIMIT 150
+      )
+      UNION ALL
+      (
+        SELECT
+          id,
+          title,
+          message,
+          translations,
+          target_group AS targetGroup,
+          recipient_count AS recipientCount,
+          status,
+          send_at AS sendAt,
+          processed_at AS processedAt,
+          created_at AS createdAt,
+          IFNULL(category, 'general') AS category,
+          action_type AS actionType
+        FROM admin_notification_queue
+        WHERE status IN ('SENT', 'SENDING')
+          AND action_type IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+        ORDER BY id DESC
+        LIMIT 100
+      )
+    ) AS analytics_rows
     ORDER BY id DESC
-    LIMIT 200
     `,
   );
 
