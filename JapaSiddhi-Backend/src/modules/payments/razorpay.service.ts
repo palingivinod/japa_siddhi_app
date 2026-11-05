@@ -359,6 +359,16 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
     ),
   );
 
+  
+  if (userId && specificType === 'ANNADANAM') {
+    try {
+      const japaService = (await import('../japa/japa.service')).default;
+      await japaService.onAnnadanamPaid(userId);
+    } catch (milestoneErr) {
+      console.warn('Could not advance Annadanam milestone on payment:', milestoneErr);
+    }
+  }
+
   const sevaLabel =
     specificType === 'ANNADANAM'
       ? 'Anna Santharpana'

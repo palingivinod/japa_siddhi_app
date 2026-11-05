@@ -122,6 +122,8 @@ const ChantScreen = () => {
   const dailyTargetRef = useRef(dailyTarget);
   const matchedGoalIdRef = useRef(0);
   const dailyGoalCompletedShownRef = useRef(false);
+  const [annadanamModalTarget, setAnnadanamModalTarget] = useState<number | null>(null);
+  const annadanamShownRef = useRef<Record<number, boolean>>({});
 
   countRef.current = count;
   goalRef.current = goal;
@@ -551,6 +553,20 @@ const ChantScreen = () => {
   ) => {
     const userTotal = Number(data?.userTotal ?? savedTotal + fallbackCount);
     const savedCount = Number(data?.count ?? fallbackCount);
+    if (data?.annadanamMilestone && Number(data.annadanamMilestone) > 0) {
+      const aTarget = Number(data.annadanamMilestone);
+      if (!annadanamShownRef.current[aTarget]) {
+        annadanamShownRef.current[aTarget] = true;
+        setAnnadanamModalTarget(aTarget);
+      }
+    }
+    if (data?.annadanamMilestone && Number(data.annadanamMilestone) > 0) {
+      const aTarget = Number(data.annadanamMilestone);
+      if (!annadanamShownRef.current[aTarget]) {
+        annadanamShownRef.current[aTarget] = true;
+        setAnnadanamModalTarget(aTarget);
+      }
+    }
     const reached = (data?.milestonesReached || []).filter(
       (level: unknown) => Number(level) > 0,
     );
@@ -979,7 +995,47 @@ const ChantScreen = () => {
     return (
       <ScreenLayout title={t('japaChanting') || 'Japa Chanting'} showBack tab="JapaHub">
         <ActivityIndicator color={Colors.templeGold} />
-      </ScreenLayout>
+        <Modal
+        visible={Boolean(annadanamModalTarget)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAnnadanamModalTarget(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.annadanamCelebrationCard]}>
+            <View style={styles.annadanamCelebrationIconsCircle}>
+              <Text style={styles.annadanamCelebrationIcons}>🎉 🍲 🕉️</Text>
+            </View>
+            <Text style={styles.annadanamCelebrationTitle}>
+              Sacred Milestone Reached! 🙏
+            </Text>
+            <Text style={styles.annadanamCelebrationMessage}>
+              {`Congratulations! You have completed ${(annadanamModalTarget || 5000).toLocaleString()} sacred Japas. On this blessed occasion, would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers?`}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.annadanamCelebrationYesBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                setAnnadanamModalTarget(null);
+                navigation.navigate('JapaAnnadanam');
+              }}>
+              <Text style={styles.annadanamCelebrationYesBtnText}>
+                Yes, Perform Annadanam
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.annadanamCelebrationLaterBtn}
+              activeOpacity={0.85}
+              onPress={() => setAnnadanamModalTarget(null)}>
+              <Text style={styles.annadanamCelebrationLaterBtnText}>
+                Later
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </ScreenLayout>
     );
   }
 
@@ -1601,4 +1657,91 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     includeFontPadding: true,
   },
+
+  annadanamCelebrationCard: {
+    backgroundColor: '#FFFDF6',
+    borderWidth: 2,
+    borderColor: '#D4AF37',
+    borderRadius: 22,
+    padding: 24,
+    shadowColor: '#B8860B',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  annadanamCelebrationIconsCircle: {
+    paddingVertical: 6,
+    paddingHorizontal: 16,
+    borderRadius: 30,
+    backgroundColor: '#FEF3D6',
+    borderWidth: 1.5,
+    borderColor: '#E6C665',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  annadanamCelebrationIcons: {
+    fontSize: 26,
+    letterSpacing: 4,
+  },
+  annadanamCelebrationTitle: {
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '800',
+    color: '#0F5132',
+    textAlign: 'center',
+    marginBottom: 8,
+    includeFontPadding: true,
+  },
+  annadanamCelebrationMessage: {
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontWeight: '600',
+    color: '#4A3B2C',
+    textAlign: 'center',
+    marginBottom: 22,
+    paddingHorizontal: 4,
+    includeFontPadding: true,
+  },
+  annadanamCelebrationYesBtn: {
+    width: '100%',
+    backgroundColor: '#0F5132',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+    shadowColor: '#0F5132',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  annadanamCelebrationYesBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    lineHeight: 22,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    includeFontPadding: true,
+  },
+  annadanamCelebrationLaterBtn: {
+    width: '100%',
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  annadanamCelebrationLaterBtnText: {
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    lineHeight: 20,
+    fontWeight: '700',
+    includeFontPadding: true,
+  },
+
 });

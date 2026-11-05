@@ -90,4 +90,23 @@ router.get(
 );
 
 
+
+router.get(
+  '/annadanam-prompt',
+  authenticate,
+  japaController.getAnnadanamPrompt,
+);
+
+router.post(
+  '/annadanam-prompt/custom-target',
+  authenticate,
+  japaController.setAnnadanamCustomTarget,
+);
+
+router.post(
+  '/annadanam-prompt/payment-done',
+  authenticate,
+  japaController.onAnnadanamPaymentDone,
+);
+
 export default router;

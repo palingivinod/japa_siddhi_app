@@ -349,7 +349,65 @@ class JapaController {
     }
   }
 
-}
 
+  async getAnnadanamPrompt(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getAnnadanamMilestonePrompt(userId);
+      return apiResponse.success(res, 'Annadanam milestone prompt fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async setAnnadanamCustomTarget(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const customTarget = Number(req.body?.customTarget);
+      if (!customTarget || customTarget <= 0) {
+        return apiResponse.error(res, 'Invalid target count', 400);
+      }
+      const result = await japaService.setAnnadanamCustomTarget(userId, customTarget);
+      return apiResponse.success(res, 'Custom target set successfully', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, error.statusCode || 400);
+      }
+      next(error);
+    }
+  }
+
+  async onAnnadanamPaymentDone(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.onAnnadanamPaid(userId);
+      return apiResponse.success(res, 'Annadanam payment recorded for milestone', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+}
 
 export default new JapaController();

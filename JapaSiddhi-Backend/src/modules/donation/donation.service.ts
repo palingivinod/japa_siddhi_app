@@ -518,6 +518,16 @@ class DonationService {
         : kind === 'NITHYA_HOMAM'
           ? `NH${order.id}${String(Date.now()).slice(-3)}`
           : `ANN${order.id}${String(Date.now()).slice(-3)}`;
+    
+    if (userId && donationType === 'ANNADANAM') {
+      try {
+        const japaService = (await import('../japa/japa.service')).default;
+        await japaService.onAnnadanamPaid(userId);
+      } catch (milestoneErr) {
+        console.warn('Could not advance Annadanam milestone on donation creation:', milestoneErr);
+      }
+    }
+
     return {
       donationId,
       requestId,

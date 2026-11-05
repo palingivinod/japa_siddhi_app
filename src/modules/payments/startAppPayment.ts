@@ -148,11 +148,14 @@ export async function startAppPayment(input: AppPaymentInput) {
     const paidOrderId = String(result?.razorpay_order_id || orderId);
     const signature = String(result?.razorpay_signature || '');
     try {
-      await apiService.post('/payments/razorpay/verify', {
+            await apiService.post('/payments/razorpay/verify', {
         razorpay_order_id: paidOrderId,
         razorpay_payment_id: paymentId,
         razorpay_signature: signature,
       });
+      if (String(input.seva || input.purpose || '').toLowerCase().includes('annadanam')) {
+        void apiService.post('/japa/annadanam-prompt/payment-done').catch(() => {});
+      }
     } catch {
       Alert.alert(
         'Payment',

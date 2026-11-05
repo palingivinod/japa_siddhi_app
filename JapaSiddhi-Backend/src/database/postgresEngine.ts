@@ -640,6 +640,7 @@ const TABLES_WITHOUT_ID_SERIAL = new Set([
   'app_seed_meta',
   'annadanam_features',
   'mantra_category_seed',
+  'user_annadanam_milestones',
 ]);
 
 const ALL_TABLES_IN_COPY_ORDER = [

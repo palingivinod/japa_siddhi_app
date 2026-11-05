@@ -277,6 +277,52 @@ class JapaService {
           milestoneTotal,
         );
 
+    // Annadanam milestone popup check
+    let annadanamMilestone: number | null = null;
+    try {
+      await japaRepository.ensureMilestoneTable();
+      const milestoneRows = await mysql.query<any[]>(
+        `SELECT * FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
+        [userId],
+      );
+      let target = 5000;
+      let popupShown = 0;
+      let isCustom = false;
+      if (milestoneRows && milestoneRows.length > 0) {
+        target = Number(milestoneRows[0].next_target ?? milestoneRows[0].nextTarget ?? 5000);
+        popupShown = Number(milestoneRows[0].popup_shown_for_target ?? milestoneRows[0].popupShownForTarget ?? 0);
+        isCustom = Boolean(Number(milestoneRows[0].custom_target_set ?? milestoneRows[0].customTargetSet ?? 0));
+      } else {
+        await mysql.query(
+          `INSERT INTO user_annadanam_milestones (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target)
+           VALUES (?, 5000, 0, 0, 0)`,
+          [userId],
+        ).catch(() => {});
+      }
+
+      if (previousTotal < target && milestoneTotal >= target && popupShown < target) {
+        annadanamMilestone = target;
+        await mysql.query(
+          `UPDATE user_annadanam_milestones SET popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+          [target, userId],
+        );
+      } else if (!isCustom) {
+        const next5k = Math.floor(milestoneTotal / 5000) * 5000;
+        if (next5k > target && next5k >= 5000 && popupShown < next5k) {
+          const prev5k = Math.floor(previousTotal / 5000) * 5000;
+          if (prev5k < next5k) {
+            annadanamMilestone = next5k;
+            await mysql.query(
+              `UPDATE user_annadanam_milestones SET next_target = ?, popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+              [next5k, next5k, userId],
+            );
+          }
+        }
+      }
+    } catch (annadanamErr) {
+      console.warn('Annadanam milestone check error:', annadanamErr);
+    }
+
     return {
       sessionId,
       count: data.sessionCount,
@@ -285,6 +331,7 @@ class JapaService {
       milestoneTotal,
       challengeUpdates,
       milestonesReached,
+      annadanamMilestone: annadanamMilestone || null,
     };
 
   }
@@ -1060,6 +1107,128 @@ class JapaService {
         mantraId: null,
       }
     );
+  }
+
+  async getAnnadanamMilestonePrompt(userId: number) {
+    await japaRepository.ensureMilestoneTable();
+    const userTotal = await japaRepository.getUserMilestoneJapa(userId);
+
+    const rows = await mysql.query<any[]>(
+      `SELECT * FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
+      [userId],
+    );
+
+    let row = rows?.[0];
+    if (!row) {
+      let nextTarget = 5000;
+      if (userTotal >= 5000) {
+        nextTarget = Math.floor(userTotal / 5000) * 5000;
+      }
+      try {
+        await mysql.query(
+          `INSERT INTO user_annadanam_milestones (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target)
+           VALUES (?, ?, 0, 0, 0)`,
+          [userId, nextTarget],
+        );
+      } catch {}
+      row = {
+        user_id: userId,
+        next_target: nextTarget,
+        last_paid_target: 0,
+        custom_target_set: 0,
+        popup_shown_for_target: 0,
+      };
+    }
+
+    const nextTarget = Number(row.next_target ?? row.nextTarget ?? 5000);
+    const lastPaidTarget = Number(row.last_paid_target ?? row.lastPaidTarget ?? 0);
+    const isCustom = Boolean(Number(row.custom_target_set ?? row.customTargetSet ?? 0));
+
+    let showCard = false;
+    if (userTotal >= 5000 && userTotal >= nextTarget && lastPaidTarget < nextTarget) {
+      showCard = true;
+    }
+
+    return {
+      showCard,
+      milestoneTarget: nextTarget,
+      userTotal,
+      isCustomTarget: isCustom,
+      lastPaidTarget,
+    };
+  }
+
+  async setAnnadanamCustomTarget(userId: number, customTarget: number) {
+    await japaRepository.ensureMilestoneTable();
+    const userTotal = await japaRepository.getUserMilestoneJapa(userId);
+    const target = Math.round(Number(customTarget));
+    if (!Number.isFinite(target) || target <= userTotal) {
+      throw new AppError(
+        `Please enter a target count greater than your current total of ${userTotal.toLocaleString()}`,
+        400,
+      );
+    }
+
+    const rows = await mysql.query<any[]>(
+      `SELECT user_id FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
+      [userId],
+    );
+
+    if (rows && rows.length > 0) {
+      await mysql.query(
+        `UPDATE user_annadanam_milestones
+         SET next_target = ?, custom_target_set = 1, popup_shown_for_target = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?`,
+        [target, userId],
+      );
+    } else {
+      await mysql.query(
+        `INSERT INTO user_annadanam_milestones
+         (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target, updated_at)
+         VALUES (?, ?, 0, 1, 0, CURRENT_TIMESTAMP)`,
+        [userId, target],
+      );
+    }
+
+    return {
+      success: true,
+      nextTarget: target,
+      userTotal,
+    };
+  }
+
+  async onAnnadanamPaid(userId: number) {
+    await japaRepository.ensureMilestoneTable();
+    const userTotal = await japaRepository.getUserMilestoneJapa(userId);
+    const rows = await mysql.query<any[]>(
+      `SELECT * FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
+      [userId],
+    );
+
+    let currentTarget = 5000;
+    if (rows && rows.length > 0) {
+      currentTarget = Number(rows[0].next_target ?? rows[0].nextTarget ?? 5000);
+      const nextTarget = currentTarget + 5000;
+      await mysql.query(
+        `UPDATE user_annadanam_milestones
+         SET last_paid_target = ?, next_target = ?, custom_target_set = 0, popup_shown_for_target = 0, updated_at = CURRENT_TIMESTAMP
+         WHERE user_id = ?`,
+        [currentTarget, nextTarget, userId],
+      );
+      return { lastPaidTarget: currentTarget, nextTarget };
+    } else {
+      if (userTotal >= 5000) {
+        currentTarget = Math.floor(userTotal / 5000) * 5000;
+      }
+      const nextTarget = currentTarget + 5000;
+      await mysql.query(
+        `INSERT INTO user_annadanam_milestones
+         (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target, updated_at)
+         VALUES (?, ?, ?, 0, 0, CURRENT_TIMESTAMP)`,
+        [userId, nextTarget, currentTarget],
+      );
+      return { lastPaidTarget: currentTarget, nextTarget };
+    }
   }
 
 }

@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo, useState} from 'react';
-import {ScrollView, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {Alert, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -16,6 +16,15 @@ const JapaHubScreen = () => {
   const {t} = useLanguage();
   const [today, setToday] = useState(0);
   const [streak, setStreak] = useState(0);
+  const [annadanamPrompt, setAnnadanamPrompt] = useState<{
+    showCard: boolean;
+    milestoneTarget: number;
+    userTotal: number;
+    isCustomTarget: boolean;
+  } | null>(null);
+  const [showLaterModal, setShowLaterModal] = useState(false);
+  const [customCountInput, setCustomCountInput] = useState('');
+  const [savingCustomCount, setSavingCustomCount] = useState(false);
   const tabSwipe = useTabSwipe('JapaHub');
 
   const items = useMemo(
@@ -66,7 +75,7 @@ const JapaHubScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
-      apiService
+            apiService
         .get('/japa/summary')
         .then(response => {
           const data = response.data.data ?? {};
@@ -74,8 +83,59 @@ const JapaHubScreen = () => {
           setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
         })
         .catch(() => undefined);
+
+      apiService
+        .get('/japa/annadanam-prompt')
+        .then(response => {
+          const data = response.data?.data;
+          if (data) {
+            setAnnadanamPrompt(data);
+          }
+        })
+        .catch(() => undefined);
     }, []),
   );
+
+
+  const handleSaveCustomTarget = async () => {
+    const rawVal = customCountInput.replace(/\D/g, '');
+    const count = parseInt(rawVal, 10);
+    const currentTotal = Number(annadanamPrompt?.userTotal || 0);
+
+    if (!count || count <= currentTotal) {
+      Alert.alert(
+        t('validationTitle') || 'Invalid Count',
+        `Please enter a count greater than your current total of ${currentTotal.toLocaleString()} Japas.`,
+      );
+      return;
+    }
+
+    setSavingCustomCount(true);
+    try {
+      await apiService.post('/japa/annadanam-prompt/custom-target', {
+        customTarget: count,
+      });
+      setShowLaterModal(false);
+      setCustomCountInput('');
+      setAnnadanamPrompt(prev =>
+        prev
+          ? {
+              ...prev,
+              showCard: false,
+              milestoneTarget: count,
+              isCustomTarget: true,
+            }
+          : null,
+      );
+    } catch (err: any) {
+      Alert.alert(
+        'Error',
+        err?.response?.data?.message || 'Could not save target count.',
+      );
+    } finally {
+      setSavingCustomCount(false);
+    }
+  };
 
   return (
     <SafeAreaView
@@ -90,6 +150,52 @@ const JapaHubScreen = () => {
           removeClippedSubviews={false}
           overScrollMode="never"
           keyboardShouldPersistTaps="handled">
+                    {annadanamPrompt?.showCard ? (
+            <View style={styles.annadanamCard}>
+              <View style={styles.annadanamCardHeader}>
+                <View style={styles.annadanamBadge}>
+                  <Text style={styles.annadanamBadgeText}>🍲 ANNA SANTHARPANA</Text>
+                </View>
+                <Text style={styles.annadanamOm}>🕉️</Text>
+              </View>
+
+              <Text style={styles.annadanamCardTitle}>
+                {'Sacred Milestone Reached! 🙏'}
+              </Text>
+
+              <Text style={styles.annadanamCardBody}>
+                {annadanamPrompt.userTotal === annadanamPrompt.milestoneTarget
+                  ? `Congratulations! You have completed ${annadanamPrompt.userTotal.toLocaleString()} sacred Japas. Would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers?`
+                  : `You have completed ${annadanamPrompt.userTotal.toLocaleString()} sacred Japas! On this blessed occasion, dedicate your sadhana by offering Anna Santharpana for devotees.`}
+              </Text>
+
+              <View style={styles.annadanamActions}>
+                <TouchableOpacity
+                  style={styles.annadanamPerformBtn}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('JapaAnnadanam')}>
+                  <Text style={styles.annadanamPerformBtnText}>
+                    {'Perform Annadanam'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.annadanamLaterBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    const currentTotal = annadanamPrompt.userTotal || 5000;
+                    const suggest = (Math.ceil((currentTotal + 1) / 1000) * 1000).toString();
+                    setCustomCountInput(suggest);
+                    setShowLaterModal(true);
+                  }}>
+                  <Text style={styles.annadanamLaterBtnText}>
+                    {t('later') || 'Later'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : null}
+
           <Text style={styles.heading}>{t('chooseYourJapa')}</Text>
           {items.map(item => (
             <TouchableOpacity
@@ -134,6 +240,66 @@ const JapaHubScreen = () => {
         </ScrollView>
       </View>
       <BottomTabs active="JapaHub" />
+      <Modal
+        visible={showLaterModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLaterModal(false)}>
+        <View style={styles.customModalOverlay}>
+          <View style={styles.customModalCard}>
+            <View style={styles.customModalIconCircle}>
+              <Text style={styles.customModalIcon}>🍲</Text>
+            </View>
+            <Text style={styles.customModalTitle}>
+              {'Choose Next Target Count'}
+            </Text>
+            <Text style={styles.customModalSub}>
+              {`Current Count: ${(annadanamPrompt?.userTotal || 0).toLocaleString()} Japas`}
+            </Text>
+            <Text style={styles.customModalInstruction}>
+              {t('enterTargetCountInstruction') ||
+                'Please enter at which japa count you wish to offer Anna Santharpana:'}
+            </Text>
+
+            <View style={styles.customInputContainer}>
+              <TextInput
+                style={styles.customCountTextInput}
+                keyboardType="numeric"
+                placeholder={`e.g. ${((annadanamPrompt?.userTotal || 5000) + 2000).toLocaleString()}`}
+                placeholderTextColor={Colors.placeholder}
+                value={customCountInput}
+                onChangeText={setCustomCountInput}
+                maxLength={9}
+                autoFocus
+              />
+            </View>
+
+            <View style={styles.customModalBtnRow}>
+              <TouchableOpacity
+                style={styles.customModalCancelBtn}
+                activeOpacity={0.8}
+                disabled={savingCustomCount}
+                onPress={() => setShowLaterModal(false)}>
+                <Text style={styles.customModalCancelBtnText}>
+                  {t('cancel') || 'Cancel'}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.customModalSaveBtn}
+                activeOpacity={0.85}
+                disabled={savingCustomCount}
+                onPress={handleSaveCustomTarget}>
+                <Text style={styles.customModalSaveBtnText}>
+                  {savingCustomCount
+                    ? 'Saving...'
+                    : 'Set Target'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -236,4 +402,215 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: true,
   },
+
+  annadanamCard: {
+    backgroundColor: '#FFFDF6',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#B8860B',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  annadanamCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  annadanamBadge: {
+    backgroundColor: '#FEF3D6',
+    borderWidth: 1,
+    borderColor: '#E6C665',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  annadanamBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#8A6208',
+    letterSpacing: 0.5,
+  },
+  annadanamOm: {
+    fontSize: 20,
+  },
+  annadanamCardTitle: {
+    fontSize: 17,
+    lineHeight: 23,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+    includeFontPadding: true,
+  },
+  annadanamCardBody: {
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontWeight: '600',
+    color: '#5C4A38',
+    marginBottom: 14,
+    includeFontPadding: true,
+  },
+  annadanamActions: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  annadanamPerformBtn: {
+    flex: 2,
+    backgroundColor: '#0F5132',
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F5132',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  annadanamPerformBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    includeFontPadding: true,
+  },
+  annadanamLaterBtn: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  annadanamLaterBtnText: {
+    color: Colors.sacredBrown,
+    fontSize: 14,
+    fontWeight: '700',
+    includeFontPadding: true,
+  },
+  customModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  customModalCard: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFDF8',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    padding: 22,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 4},
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  customModalIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEF3D6',
+    borderWidth: 1,
+    borderColor: '#E6C665',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  customModalIcon: {
+    fontSize: 28,
+  },
+  customModalTitle: {
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+    marginBottom: 4,
+    includeFontPadding: true,
+  },
+  customModalSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: '#0F5132',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  customModalInstruction: {
+    fontSize: 13.5,
+    lineHeight: 19,
+    fontWeight: '600',
+    color: '#5C4A38',
+    textAlign: 'center',
+    marginBottom: 16,
+    includeFontPadding: true,
+  },
+  customInputContainer: {
+    width: '100%',
+    marginBottom: 20,
+  },
+  customCountTextInput: {
+    width: '100%',
+    height: 48,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#D4AF37',
+    paddingHorizontal: 14,
+    fontSize: 18,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+  },
+  customModalBtnRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 10,
+  },
+  customModalCancelBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  customModalCancelBtnText: {
+    color: Colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  customModalSaveBtn: {
+    flex: 1.4,
+    backgroundColor: '#0F5132',
+    borderRadius: 12,
+    paddingVertical: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0F5132',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  customModalSaveBtnText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+
 });

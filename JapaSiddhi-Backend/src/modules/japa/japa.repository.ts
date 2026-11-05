@@ -39,6 +39,29 @@ const EXCLUDE_CHALLENGE_REMARKS_J = `
 
 class JapaRepository {
   private sessionUserColumnsReady = false;
+  private milestoneTableReady = false;
+
+  async ensureMilestoneTable(): Promise<void> {
+    if (this.milestoneTableReady) {
+      return;
+    }
+    try {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS user_annadanam_milestones (
+          user_id INT PRIMARY KEY,
+          next_target INT NOT NULL DEFAULT 5000,
+          last_paid_target INT NOT NULL DEFAULT 0,
+          custom_target_set INT NOT NULL DEFAULT 0,
+          popup_shown_for_target INT NOT NULL DEFAULT 0,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      this.milestoneTableReady = true;
+    } catch {
+      // Table already exists or initialized
+    }
+  }
 
   private async ensureSessionUserColumns(): Promise<void> {
     if (this.sessionUserColumnsReady) {
