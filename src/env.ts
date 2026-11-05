@@ -29,6 +29,10 @@ const ENV = {
   GOOGLE_WEB_CLIENT_ID:
     '89483752433-qm61dvgo3um3jit5l9lokdqj8vg2g9h5.apps.googleusercontent.com',
 
+  // Firebase iOS OAuth client (client_type 2). Required for Google sign-in on iPhone.
+  GOOGLE_IOS_CLIENT_ID:
+    '89483752433-5mo8tneko4634toohk7m23qigvifldgk.apps.googleusercontent.com',
+
   // Meta Developer Console → Your App → Settings → Basic
   // Also paste the same App ID / Client Token into:
   //   android/app/src/main/res/values/strings.xml

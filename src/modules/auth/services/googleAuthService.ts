@@ -16,14 +16,21 @@ let configured = false;
 
 const ensureGoogleConfigured = () => {
   const webClientId = String(ENV.GOOGLE_WEB_CLIENT_ID || '').trim();
+  const iosClientId = String(ENV.GOOGLE_IOS_CLIENT_ID || '').trim();
   if (!webClientId) {
     throw new Error(
       'Google Web Client ID is missing. Add GOOGLE_WEB_CLIENT_ID in src/env.ts from Firebase Console (Web client).',
     );
   }
+  if (Platform.OS === 'ios' && !iosClientId) {
+    throw new Error(
+      'Google iOS Client ID is missing. Add GOOGLE_IOS_CLIENT_ID in src/env.ts from the iOS OAuth client.',
+    );
+  }
   if (!configured) {
     GoogleSignin.configure({
       webClientId,
+      iosClientId: iosClientId || undefined,
       // Firebase only needs the ID token. offlineAccess asks Google for a
       // server auth code and returns error 10 on Play-signed builds.
       offlineAccess: false,
@@ -67,7 +74,9 @@ const mapGoogleError = (error: unknown): Error => {
 export const signInWithGoogle = async () => {
   ensureGoogleConfigured();
 
-  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  if (Platform.OS === 'android') {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  }
 
   // Clear a stale Google session so the account picker always returns a fresh token.
   try {
