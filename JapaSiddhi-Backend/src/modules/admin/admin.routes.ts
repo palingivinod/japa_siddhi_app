@@ -2225,12 +2225,16 @@ router.post(
   },
 );
 
-router.get('/notifications/analytics', async (_req: Request, res: Response) => {
+router.get('/notifications/analytics', async (req: Request, res: Response) => {
   try {
     const {getNotificationAnalytics} = await import(
       './adminNotification.service'
     );
-    const data = await getNotificationAnalytics();
+    const category =
+      typeof req.query?.category === 'string'
+        ? (req.query.category as string)
+        : undefined;
+    const data = await getNotificationAnalytics(category);
     return res.json({success: true, data});
   } catch (error: any) {
     console.error('getNotificationAnalytics error:', error);

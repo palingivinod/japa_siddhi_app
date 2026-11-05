@@ -257,6 +257,30 @@ export const runTodayBirthdaySweep = async (options?: {
     let sentInApp = 0;
     const errors: Array<{ userId: number; error: string }> = [];
 
+    let queueId: number | null = null;
+    try {
+      const sweepTime = `${istNow.ymd} ${String(istNow.hour).padStart(2, '0')}:${String(istNow.minute).padStart(2, '0')}:00`;
+      const queueInsert = await mysql.query<any>(
+        `
+        INSERT INTO admin_notification_queue (
+          title, message, target_group, category, action_type, send_at, status,
+          recipient_count, processed_at
+        ) VALUES (?, ?, 'selected_users', 'specific', 'TODAY_BIRTHDAY', ?, 'SENDING', 0, ?)
+        `,
+        [
+          'Happy Birthday! 🎂🌸',
+          `Automated 6:00 AM birthday blessings for ${eligibleUsers.length} devotee(s) celebrating on ${todayDate}.`,
+          sweepTime,
+          sweepTime,
+        ],
+      );
+      queueId = Number(
+        (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+      );
+    } catch (qErr) {
+      console.warn('[TodayBirthday] queue insert error:', qErr);
+    }
+
     for (const user of eligibleUsers) {
       // 0. ATOMIC DB CLAIM BEFORE SENDING:
       // Guarantees strictly ONE delivery even across concurrent instances, zero-downtime restarts, or multiple schedulers.
@@ -312,6 +336,7 @@ export const runTodayBirthdaySweep = async (options?: {
           userIds: [user.id],
           actionType: 'TODAY_BIRTHDAY',
           bypassHours: true, // MUST send at 6:00 AM with NO time restrictions
+          extraData: queueId ? { broadcastId: queueId, queuedId: queueId } : undefined,
         });
         sentInApp++;
       } catch (inAppErr: any) {
@@ -356,6 +381,15 @@ export const runTodayBirthdaySweep = async (options?: {
         );
         errors.push({ userId: user.id, error: `WhatsApp: ${waErr?.message}` });
       }
+    }
+
+    if (queueId) {
+      try {
+        await mysql.query(
+          `UPDATE admin_notification_queue SET status = 'SENT', recipient_count = ? WHERE id = ?`,
+          [sentInApp, queueId],
+        );
+      } catch {}
     }
 
     return {
@@ -459,6 +493,30 @@ export const runAdvanceBirthdaySweep = async (options?: {
     let sentInApp = 0;
     const errors: Array<{ userId: number; error: string }> = [];
 
+    let queueId: number | null = null;
+    try {
+      const sweepTime = `${istNow.ymd} 19:00:00`;
+      const queueInsert = await mysql.query<any>(
+        `
+        INSERT INTO admin_notification_queue (
+          title, message, target_group, category, action_type, send_at, status,
+          recipient_count, processed_at
+        ) VALUES (?, ?, 'selected_users', 'specific', 'ADVANCE_BIRTHDAY', ?, 'SENDING', 0, ?)
+        `,
+        [
+          'Advance Birthday Blessings 🌸',
+          `Automated 7:00 PM advance birthday blessings for ${eligibleUsers.length} devotee(s) celebrating on ${tomorrow.fullDate}.`,
+          sweepTime,
+          sweepTime,
+        ],
+      );
+      queueId = Number(
+        (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+      );
+    } catch (qErr) {
+      console.warn('[AdvanceBirthday] queue insert error:', qErr);
+    }
+
     for (const user of eligibleUsers) {
       // 0. ATOMIC DB CLAIM BEFORE SENDING:
       // Guarantees strictly ONE delivery even across concurrent instances, zero-downtime restarts, or multiple schedulers.
@@ -494,6 +552,7 @@ export const runAdvanceBirthdaySweep = async (options?: {
           userIds: [user.id],
           actionType: 'ADVANCE_BIRTHDAY',
           bypassHours: true,
+          extraData: queueId ? { broadcastId: queueId, queuedId: queueId } : undefined,
         });
         sentInApp++;
       } catch (inAppErr: any) {
@@ -538,6 +597,15 @@ export const runAdvanceBirthdaySweep = async (options?: {
         );
         errors.push({ userId: user.id, error: `WhatsApp: ${waErr?.message}` });
       }
+    }
+
+    if (queueId) {
+      try {
+        await mysql.query(
+          `UPDATE admin_notification_queue SET status = 'SENT', recipient_count = ? WHERE id = ?`,
+          [sentInApp, queueId],
+        );
+      } catch {}
     }
 
     return {

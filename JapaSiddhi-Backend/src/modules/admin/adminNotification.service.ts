@@ -78,6 +78,20 @@ const ensureQueueTable = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN category VARCHAR(40) NOT NULL DEFAULT 'general'`,
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN action_type VARCHAR(60) NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
   queueReady = true;
 };
 
@@ -831,14 +845,56 @@ export const notifyAdminContentCreated = async (input: {
   } as const;
 
   const cfg = configs[input.kind];
-  return deliverAdminNotification({
+  await ensureQueueTable();
+  const now = nowIstStamp();
+  let queueId: number | null = null;
+  try {
+    const queueInsert = await mysql.query<ResultSetHeader>(
+      `
+      INSERT INTO admin_notification_queue (
+        title, message, target_group, category, action_type, send_at, status,
+        recipient_count, processed_at
+      ) VALUES (?, ?, 'all', 'general', ?, ?, 'SENDING', 0, ?)
+      `,
+      [cfg.title, cfg.message, cfg.actionType, now, now],
+    );
+    queueId = Number(
+      (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+    );
+  } catch (err) {
+    console.warn('admin_notification_queue insert failed on notifyAdminContentCreated:', err);
+  }
+
+  const delivered = await deliverAdminNotification({
     title: cfg.title,
     message: cfg.message,
     target: 'all',
     actionType: cfg.actionType,
     actionId: id,
-    extraData: cfg.extraData,
+    extraData: {
+      ...cfg.extraData,
+      ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
+    },
   });
+
+  if (queueId) {
+    try {
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENT',
+            recipient_count = ?,
+            processed_at = ?
+        WHERE id = ?
+        `,
+        [delivered.recipientCount, now, queueId],
+      );
+    } catch (err) {
+      console.warn('admin_notification_queue update failed:', err);
+    }
+  }
+
+  return delivered;
 };
 
 export const flushDueAdminNotifications = async () => {
@@ -1006,18 +1062,27 @@ export const sendAdminNotification = async (input: {
       throw error;
     }
 
+    const isSpecific =
+      actionType === 'TODAY_BIRTHDAY' ||
+      actionType === 'ADVANCE_BIRTHDAY' ||
+      actionType === 'DOB_WISH' ||
+      /birthday|jayanthi|vardhanti/i.test(title);
+    const category = isSpecific ? 'specific' : 'general';
+
     const insert = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO admin_notification_queue (
-        title, message, translations, target_group, send_at, status,
+        title, message, translations, target_group, category, action_type, send_at, status,
         recipient_ids, bypass_hours, image_url
-      ) VALUES (?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
       `,
       [
         title,
         message,
         translations,
         userIds.length ? 'selected_users' : target,
+        category,
+        actionType || 'ADMIN_BROADCAST',
         sendAt,
         userIds.length ? JSON.stringify(userIds) : null,
         bypassHours ? 1 : 0,
@@ -1044,20 +1109,29 @@ export const sendAdminNotification = async (input: {
   }
 
   const now = nowIstStamp();
+  const isSpecific =
+    actionType === 'TODAY_BIRTHDAY' ||
+    actionType === 'ADVANCE_BIRTHDAY' ||
+    actionType === 'DOB_WISH' ||
+    /birthday|jayanthi|vardhanti/i.test(title);
+  const category = isSpecific ? 'specific' : 'general';
+
   let queueId: number | null = null;
   try {
     const queueInsert = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO admin_notification_queue (
-        title, message, translations, target_group, send_at, status,
+        title, message, translations, target_group, category, action_type, send_at, status,
         recipient_ids, bypass_hours, image_url, recipient_count, processed_at
-      ) VALUES (?, ?, ?, ?, ?, 'SENDING', ?, ?, ?, 0, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'SENDING', ?, ?, ?, 0, ?)
       `,
       [
         title,
         message,
         translations,
         userIds.length ? 'selected_users' : target,
+        category,
+        actionType || 'ADMIN_BROADCAST',
         now,
         userIds.length ? JSON.stringify(userIds) : null,
         bypassHours ? 1 : 0,
@@ -1129,8 +1203,90 @@ export const sendAdminNotification = async (input: {
   };
 };
 
-export const getNotificationAnalytics = async () => {
+
+export const syncUnqueuedBatchesToAnalytics = async () => {
+  try {
+    const unqueued = await mysql.query<any[]>(`
+      SELECT action_type, message, count(*) as count,
+             min(created_at) as first_created,
+             min(extra_data) as sample_extra
+      FROM notifications
+      WHERE action_type IN (
+        'ADMIN_REWARD_NEW', 'ADMIN_MANTRA_NEW', 'ADMIN_BANNER_NEW',
+        'ADMIN_CHALLENGE_NEW', 'ADMIN_PRODUCT_NEW', 'TODAY_BIRTHDAY',
+        'ADVANCE_BIRTHDAY', 'DOB_WISH'
+      )
+      AND (extra_data NOT LIKE '%"broadcastId":%' OR extra_data IS NULL)
+      GROUP BY action_type, message
+      ORDER BY first_created ASC
+      LIMIT 20
+    `);
+
+    for (const batch of unqueued || []) {
+      const actionType = String(batch.action_type || '');
+      const message = String(batch.message || '');
+      const count = Number(batch.count || 0);
+      const firstCreated = batch.first_created || nowIstStamp();
+
+      let title = '';
+      if (actionType === 'ADMIN_REWARD_NEW') title = 'New Reward';
+      else if (actionType === 'ADMIN_MANTRA_NEW') title = 'New Mantra';
+      else if (actionType === 'ADMIN_CHALLENGE_NEW') title = 'New Challenge';
+      else if (actionType === 'ADMIN_BANNER_NEW') title = 'New Update';
+      else if (actionType === 'ADMIN_PRODUCT_NEW') title = 'New Offering';
+      else if (actionType === 'TODAY_BIRTHDAY') title = 'Happy Birthday! 🎂🌸';
+      else if (actionType === 'ADVANCE_BIRTHDAY') title = 'Advance Birthday Blessings 🌸';
+      else if (actionType === 'DOB_WISH') title = 'Birthday Wishes 🎂';
+      else title = 'Notification';
+
+      const isSpecific = ['TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH'].includes(actionType);
+      const category = isSpecific ? 'specific' : 'general';
+      const targetGroup = isSpecific ? 'selected_users' : 'all';
+
+      const insertResult = await mysql.query<ResultSetHeader>(`
+        INSERT INTO admin_notification_queue (
+          title, message, target_group, category, action_type, send_at, status,
+          recipient_count, processed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'SENT', ?, ?)
+      `, [title, message, targetGroup, category, actionType, firstCreated, count, firstCreated]);
+
+      const queueId = Number(
+        (insertResult as any)?.insertId ?? (insertResult as any)?.id ?? 0,
+      );
+
+      if (queueId > 0) {
+        const matchingRows = await mysql.query<any[]>(`
+          SELECT id FROM notifications
+          WHERE action_type = ? AND message = ?
+            AND (extra_data NOT LIKE '%"broadcastId":%' OR extra_data IS NULL)
+        `, [actionType, message]);
+
+        const ids = (matchingRows || []).map(r => r.id);
+        if (ids.length > 0) {
+          for (let i = 0; i < ids.length; i += 200) {
+            const chunk = ids.slice(i, i + 200);
+            await mysql.query(`
+              UPDATE notifications
+              SET extra_data = CASE
+                WHEN extra_data IS NULL OR extra_data = '' THEN '{"broadcastId":${queueId},"queuedId":${queueId}}'
+                WHEN extra_data LIKE '{%}' THEN REPLACE(extra_data, '{', '{"broadcastId":${queueId},"queuedId":${queueId},')
+                ELSE extra_data
+              END
+              WHERE id IN (${chunk.join(',')})
+            `);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[AdminNotification] syncUnqueuedBatches error:', err);
+  }
+};
+
+export const getNotificationAnalytics = async (categoryFilter?: string) => {
   await ensureQueueTable();
+  await syncUnqueuedBatchesToAnalytics();
+
   const rows = await mysql.query<any[]>(
     `
     SELECT
@@ -1143,7 +1299,9 @@ export const getNotificationAnalytics = async () => {
       status,
       send_at AS sendAt,
       processed_at AS processedAt,
-      created_at AS createdAt
+      created_at AS createdAt,
+      IFNULL(category, 'general') AS category,
+      action_type AS actionType
     FROM admin_notification_queue
     WHERE status IN ('SENT', 'SENDING')
     ORDER BY id DESC
@@ -1151,89 +1309,114 @@ export const getNotificationAnalytics = async () => {
     `,
   );
 
-  const items = [];
-  let totalDelivered = 0;
-  let totalRead = 0;
+  const items = await Promise.all(
+    (rows || []).map(async row => {
+      const queueId = Number(row.id);
+      const declaredSent = Number(row.recipientCount || 0);
 
-  for (const row of rows || []) {
-    const queueId = Number(row.id);
-    const declaredSent = Number(row.recipientCount || 0);
+      let readCount = 0;
+      let actualInboxCount = 0;
 
-    let readCount = 0;
-    let actualInboxCount = 0;
-
-    try {
-      const stats = await mysql.query<any[]>(
-        `
-        SELECT
-          COUNT(*) AS total_inbox,
-          COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
-        FROM notifications
-        WHERE (
-          extra_data LIKE ?
-          OR extra_data LIKE ?
-        )
-        `,
-        [`%"broadcastId":${queueId}%`, `%"queuedId":${queueId}%`],
-      );
-      if (stats?.length) {
-        actualInboxCount = Number(stats[0].total_inbox || 0);
-        readCount = Number(stats[0].read_count || 0);
-      }
-    } catch (err) {
-      console.warn('Analytics stats query failed for queue item', queueId, err);
-    }
-
-    if (actualInboxCount === 0 && row.title) {
       try {
-        const cleanTitle = String(row.title).slice(0, 30).trim();
-        const fallbackStats = await mysql.query<any[]>(
+        const stats = await mysql.query<any[]>(
           `
           SELECT
             COUNT(*) AS total_inbox,
             COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
           FROM notifications
-          WHERE notification_type = 'SYSTEM'
-            AND (title LIKE ? OR extra_data LIKE ?)
+          WHERE (
+            extra_data LIKE ?
+            OR extra_data LIKE ?
+          )
           `,
-          [`%${cleanTitle}%`, `%"mantraName":"%${cleanTitle}%`],
+          [`%"broadcastId":${queueId}%`, `%"queuedId":${queueId}%`],
         );
-        if (
-          fallbackStats?.length &&
-          Number(fallbackStats[0].total_inbox || 0) > 0
-        ) {
-          actualInboxCount = Number(fallbackStats[0].total_inbox || 0);
-          readCount = Number(fallbackStats[0].read_count || 0);
+        if (stats?.length) {
+          actualInboxCount = Number(stats[0].total_inbox || 0);
+          readCount = Number(stats[0].read_count || 0);
         }
-      } catch {
-        // ignore fallback error
+      } catch (err) {
+        console.warn('Analytics stats query failed for queue item', queueId, err);
       }
-    }
 
-    const sentCount = Math.max(declaredSent, actualInboxCount);
-    const unreadCount = Math.max(0, sentCount - readCount);
-    const readRate =
-      sentCount > 0 ? Math.round((readCount / sentCount) * 100) : 0;
+      if (actualInboxCount === 0 && row.title) {
+        try {
+          const cleanTitle = String(row.title).slice(0, 30).trim();
+          const fallbackStats = await mysql.query<any[]>(
+            `
+            SELECT
+              COUNT(*) AS total_inbox,
+              COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
+            FROM notifications
+            WHERE notification_type = 'SYSTEM'
+              AND (title LIKE ? OR extra_data LIKE ?)
+            `,
+            [`%${cleanTitle}%`, `%"mantraName":"%${cleanTitle}%`],
+          );
+          if (
+            fallbackStats?.length &&
+            Number(fallbackStats[0].total_inbox || 0) > 0
+          ) {
+            actualInboxCount = Number(fallbackStats[0].total_inbox || 0);
+            readCount = Number(fallbackStats[0].read_count || 0);
+          }
+        } catch {
+          // ignore fallback error
+        }
+      }
 
-    totalDelivered += sentCount;
-    totalRead += readCount;
+      const sentCount = Math.max(declaredSent, actualInboxCount);
+      const safeReadCount = Math.min(readCount, sentCount);
+      const unreadCount = Math.max(0, sentCount - safeReadCount);
+      const readRate =
+        sentCount > 0 ? Math.round((safeReadCount / sentCount) * 100) : 0;
 
-    items.push({
-      id: queueId,
-      title: row.title,
-      message: row.message,
-      targetGroup: row.targetGroup || 'all',
-      sentAt: row.processedAt || row.sendAt || row.createdAt,
-      sentCount,
-      readCount,
-      unreadCount,
-      readRate,
-    });
+      const isSpecific =
+        row.category === 'specific' ||
+        ['TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH'].includes(
+          row.actionType,
+        ) ||
+        /birthday|jayanthi|vardhanti/i.test(row.title || '');
+      const category: 'general' | 'specific' = isSpecific
+        ? 'specific'
+        : 'general';
+
+      return {
+        id: queueId,
+        title: row.title,
+        message: row.message,
+        targetGroup: row.targetGroup || 'all',
+        category,
+        actionType: row.actionType || 'ADMIN_BROADCAST',
+        sentAt: row.processedAt || row.sendAt || row.createdAt,
+        sentCount,
+        readCount: safeReadCount,
+        unreadCount,
+        readRate,
+      };
+    }),
+  );
+
+  let totalDelivered = 0;
+  let totalRead = 0;
+  for (const item of items) {
+    totalDelivered += item.sentCount;
+    totalRead += item.readCount;
   }
 
   const totalBroadcasts = items.length;
   const averageReadRate =
     totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
+
+  const generalItems = items.filter(i => i.category === 'general');
+  const specificItems = items.filter(i => i.category === 'specific');
+
+  let filteredItems = items;
+  if (categoryFilter === 'general') {
+    filteredItems = generalItems;
+  } else if (categoryFilter === 'specific') {
+    filteredItems = specificItems;
+  }
 
   return {
     summary: {
@@ -1242,8 +1425,10 @@ export const getNotificationAnalytics = async () => {
       totalRead,
       totalUnread: Math.max(0, totalDelivered - totalRead),
       averageReadRate,
+      generalCount: generalItems.length,
+      specificCount: specificItems.length,
     },
-    items,
+    items: filteredItems,
   };
 };
 

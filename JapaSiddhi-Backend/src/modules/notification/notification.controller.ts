@@ -54,6 +54,57 @@ class NotificationController {
 
   }
 
+  async markAllAsRead(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(
+          res,
+          'User not authenticated',
+          401,
+        );
+      }
+      await notificationService.markAllAsRead(userId);
+      return apiResponse.success(
+        res,
+        'All notifications marked as read',
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async markActionAsRead(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(
+          res,
+          'User not authenticated',
+          401,
+        );
+      }
+      const actionType = String(req.body?.actionType || req.query?.actionType || '').trim();
+      const actionId = req.body?.actionId ? Number(req.body.actionId) : undefined;
+      const broadcastId = req.body?.broadcastId ? Number(req.body.broadcastId) : undefined;
+      await notificationService.markMatchingAsRead(userId, { actionType, actionId, broadcastId });
+      return apiResponse.success(
+        res,
+        'Notifications marked as read',
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async markAsRead(
     req: Request,
     res: Response,

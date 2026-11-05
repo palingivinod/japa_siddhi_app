@@ -155,6 +155,19 @@ class NotificationService {
     return notificationRepository.getLatestByAction(userId, actionType);
   }
 
+    async markAllAsRead(userId: number) {
+    await notificationRepository.markAllAsRead(userId);
+    return {success: true};
+  }
+
+  async markMatchingAsRead(
+    userId: number,
+    filters: { actionType?: string; actionId?: number; broadcastId?: number },
+  ) {
+    await notificationRepository.markMatchingAsRead(userId, filters);
+    return {success: true};
+  }
+
   async markActionAsRead(userId: number, actionType: string) {
     await notificationRepository.markActionAsRead(userId, actionType);
     return {success: true};

@@ -30,6 +30,18 @@ router.put(
 
 
 router.put(
+  '/read-all',
+  authenticate,
+  notificationController.markAllAsRead,
+);
+
+router.put(
+  '/action/read',
+  authenticate,
+  notificationController.markActionAsRead,
+);
+
+router.put(
   '/:id/read',
   authenticate,
   notificationController.markAsRead,

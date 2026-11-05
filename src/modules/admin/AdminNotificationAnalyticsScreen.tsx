@@ -20,6 +20,8 @@ export type NotificationAnalyticsItem = {
   title: string;
   message: string;
   targetGroup: string;
+  category?: 'general' | 'specific';
+  actionType?: string;
   sentAt: string;
   sentCount: number;
   readCount: number;
@@ -33,7 +35,11 @@ export type AnalyticsSummary = {
   totalRead: number;
   totalUnread: number;
   averageReadRate: number;
+  generalCount?: number;
+  specificCount?: number;
 };
+
+type FilterCategory = 'general' | 'specific' | 'all';
 
 const formatTargetGroup = (target: string) => {
   const t = String(target || '').toLowerCase();
@@ -59,6 +65,7 @@ const AdminNotificationAnalyticsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<FilterCategory>('general');
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
 
   const loadAnalytics = useCallback(async (isRefresh = false) => {
@@ -91,16 +98,65 @@ const AdminNotificationAnalyticsScreen = () => {
     setExpandedIds(prev => ({...prev, [id]: !prev[id]}));
   };
 
-  const filteredItems = useMemo(() => {
+  const categoryCounts = useMemo(() => {
+    let general = 0;
+    let specific = 0;
+    for (const item of items) {
+      if (item.category === 'specific') {
+        specific += 1;
+      } else {
+        general += 1;
+      }
+    }
+    return {general, specific, all: items.length};
+  }, [items]);
+
+  const tabFilteredItems = useMemo(() => {
+    if (activeTab === 'general') {
+      return items.filter(it => it.category !== 'specific');
+    }
+    if (activeTab === 'specific') {
+      return items.filter(it => it.category === 'specific');
+    }
+    return items;
+  }, [items, activeTab]);
+
+  const activeSummary = useMemo(() => {
+    let totalDelivered = 0;
+    let totalRead = 0;
+    for (const it of tabFilteredItems) {
+      totalDelivered += it.sentCount;
+      totalRead += it.readCount;
+    }
+    const totalBroadcasts = tabFilteredItems.length;
+    const averageReadRate =
+      totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
+    return {
+      totalBroadcasts,
+      totalDelivered,
+      totalRead,
+      totalUnread: Math.max(0, totalDelivered - totalRead),
+      averageReadRate,
+    };
+  }, [tabFilteredItems]);
+
+  const displayedItems = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(
+    if (!q) return tabFilteredItems;
+    return tabFilteredItems.filter(
       item =>
         String(item.title || '').toLowerCase().includes(q) ||
         String(item.message || '').toLowerCase().includes(q) ||
-        String(item.targetGroup || '').toLowerCase().includes(q),
+        String(item.targetGroup || '').toLowerCase().includes(q) ||
+        String(item.actionType || '').toLowerCase().includes(q),
     );
-  }, [items, search]);
+  }, [tabFilteredItems, search]);
+
+  const summaryHeaderLabel = useMemo(() => {
+    if (activeTab === 'general') return 'GENERAL NOTIFICATION STATS';
+    if (activeTab === 'specific') return 'SPECIFIC (BIRTHDAY & OCCASION) STATS';
+    return 'OVERALL NOTIFICATION STATS';
+  }, [activeTab]);
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
@@ -119,46 +175,86 @@ const AdminNotificationAnalyticsScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Top Summary Cards (Numbers only, clean & simple) */}
-      {summary ? (
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryTitle}>OVERALL NOTIFICATION STATS</Text>
-          <View style={styles.summaryGrid}>
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryNum}>{summary.totalBroadcasts}</Text>
-              <Text style={styles.summaryLabel}>Total Sent</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryNum, {color: '#0369A1'}]}>
-                {summary.totalDelivered.toLocaleString()}
-              </Text>
-              <Text style={styles.summaryLabel}>Delivered</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryNum, {color: '#15803D'}]}>
-                {summary.totalRead.toLocaleString()}
-              </Text>
-              <Text style={styles.summaryLabel}>Read</Text>
-            </View>
-            <View style={styles.summaryDivider} />
-            <View style={styles.summaryBox}>
-              <Text style={[styles.summaryNum, {color: '#B45309'}]}>
-                {summary.averageReadRate}%
-              </Text>
-              <Text style={styles.summaryLabel}>Read Rate</Text>
-            </View>
+      {/* Two Main Filters: General and Specific (plus All) */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'general' && styles.tabBtnActive]}
+          activeOpacity={0.8}
+          onPress={() => setActiveTab('general')}>
+          <Text
+            style={[
+              styles.tabBtnText,
+              activeTab === 'general' && styles.tabBtnTextActive,
+            ]}>
+            🌐 General ({categoryCounts.general})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'specific' && styles.tabBtnActive]}
+          activeOpacity={0.8}
+          onPress={() => setActiveTab('specific')}>
+          <Text
+            style={[
+              styles.tabBtnText,
+              activeTab === 'specific' && styles.tabBtnTextActive,
+            ]}>
+            🎂 Specific ({categoryCounts.specific})
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'all' && styles.tabBtnActive]}
+          activeOpacity={0.8}
+          onPress={() => setActiveTab('all')}>
+          <Text
+            style={[
+              styles.tabBtnText,
+              activeTab === 'all' && styles.tabBtnTextActive,
+            ]}>
+            📋 All ({categoryCounts.all})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Top Summary Cards (Dynamic based on selected filter tab) */}
+      <View style={styles.summaryCard}>
+        <Text style={styles.summaryTitle}>{summaryHeaderLabel}</Text>
+        <View style={styles.summaryGrid}>
+          <View style={styles.summaryBox}>
+            <Text style={styles.summaryNum}>{activeSummary.totalBroadcasts}</Text>
+            <Text style={styles.summaryLabel}>Total Sent</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryBox}>
+            <Text style={[styles.summaryNum, {color: '#0369A1'}]}>
+              {activeSummary.totalDelivered.toLocaleString()}
+            </Text>
+            <Text style={styles.summaryLabel}>Delivered</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryBox}>
+            <Text style={[styles.summaryNum, {color: '#15803D'}]}>
+              {activeSummary.totalRead.toLocaleString()}
+            </Text>
+            <Text style={styles.summaryLabel}>Read</Text>
+          </View>
+          <View style={styles.summaryDivider} />
+          <View style={styles.summaryBox}>
+            <Text style={[styles.summaryNum, {color: '#B45309'}]}>
+              {activeSummary.averageReadRate}%
+            </Text>
+            <Text style={styles.summaryLabel}>Read Rate</Text>
           </View>
         </View>
-      ) : null}
+      </View>
 
       {/* Search Input */}
       <View style={styles.searchWrap}>
         <TextInput
           value={search}
           onChangeText={setSearch}
-          placeholder="Search by title, message, or audience..."
+          placeholder="Search notifications..."
           placeholderTextColor={Colors.placeholder}
           style={styles.search}
           autoCapitalize="none"
@@ -167,7 +263,7 @@ const AdminNotificationAnalyticsScreen = () => {
         />
         {search.trim().length > 0 ? (
           <Text style={styles.searchCountText}>
-            Showing {filteredItems.length} of {items.length} notifications
+            Showing {displayedItems.length} of {tabFilteredItems.length} notifications
           </Text>
         ) : null}
       </View>
@@ -176,6 +272,7 @@ const AdminNotificationAnalyticsScreen = () => {
 
   const renderItem = ({item}: {item: NotificationAnalyticsItem}) => {
     const isExpanded = Boolean(expandedIds[item.id]);
+    const isSpecific = item.category === 'specific';
 
     return (
       <View style={styles.card}>
@@ -186,10 +283,25 @@ const AdminNotificationAnalyticsScreen = () => {
               <Text style={styles.itemDate}>📅 {formatDate(item.sentAt)}</Text>
             ) : null}
           </View>
-          <View style={styles.targetBadge}>
-            <Text style={styles.targetBadgeText}>
-              {formatTargetGroup(item.targetGroup)}
-            </Text>
+          <View style={styles.badgeColumn}>
+            <View
+              style={[
+                styles.categoryBadge,
+                isSpecific ? styles.specificBadge : styles.generalBadge,
+              ]}>
+              <Text
+                style={[
+                  styles.categoryBadgeBaseText,
+                  isSpecific ? styles.specificBadgeText : styles.generalBadgeText,
+                ]}>
+                {isSpecific ? '🎂 Specific' : '🌐 General'}
+              </Text>
+            </View>
+            <View style={styles.targetBadge}>
+              <Text style={styles.targetBadgeText}>
+                {formatTargetGroup(item.targetGroup)}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -211,7 +323,7 @@ const AdminNotificationAnalyticsScreen = () => {
           </TouchableOpacity>
         ) : null}
 
-        {/* Stats Numbers Grid (No bars, clean numbers only) */}
+        {/* Stats Numbers Grid */}
         <View style={styles.statsCard}>
           <View style={styles.statCol}>
             <Text style={[styles.statNum, {color: '#0369A1'}]}>
@@ -254,25 +366,24 @@ const AdminNotificationAnalyticsScreen = () => {
         <Text style={styles.emptySub}>
           {search.trim().length > 0
             ? `No notifications matched “${search.trim()}”.`
-            : 'Notifications sent by admin will appear here with delivery and read counts.'}
+            : activeTab === 'specific'
+              ? 'No birthday or occasion-specific notifications found yet.'
+              : 'Notifications sent by admin will appear here with delivery and read counts.'}
         </Text>
       </View>
     );
   };
 
   return (
-    <AdminScreenLayout
-      title="Notification Analytics"
-      tab="AdminDashboard"
-      showBack>
-      {loading ? (
-        <View style={styles.centerBox}>
-          <ActivityIndicator size="large" color={Colors.templeGold} />
-          <Text style={styles.loadingText}>Loading notification analytics...</Text>
+    <AdminScreenLayout title="Notification Analytics" tab="AdminMore" showBack>
+      {loading && !refreshing ? (
+        <View style={styles.loaderWrap}>
+          <ActivityIndicator size="large" color={Colors.leafGreen} />
+          <Text style={styles.loaderText}>Loading analytics...</Text>
         </View>
       ) : error ? (
         <View style={styles.errorBox}>
-          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>⚠️ {error}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
             onPress={() => loadAnalytics()}>
@@ -281,7 +392,7 @@ const AdminNotificationAnalyticsScreen = () => {
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
+          data={displayedItems}
           keyExtractor={item => String(item.id)}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
@@ -292,8 +403,8 @@ const AdminNotificationAnalyticsScreen = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={() => loadAnalytics(true)}
-              tintColor={Colors.templeGold}
-              colors={[Colors.templeGold]}
+              tintColor={Colors.leafGreen}
+              colors={[Colors.leafGreen]}
             />
           }
         />
@@ -344,6 +455,39 @@ const styles = StyleSheet.create({
   sendNewBtnText: {
     color: Colors.white,
     fontSize: 13,
+    fontWeight: '800',
+  },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 16,
+    gap: 6,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabBtnActive: {
+    backgroundColor: Colors.leafGreen,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  tabBtnTextActive: {
+    color: Colors.white,
     fontWeight: '800',
   },
   summaryCard: {
@@ -434,74 +578,131 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 3,
   },
+  badgeColumn: {
+    alignItems: 'flex-end',
+    gap: 4,
+  },
+  categoryBadge: {
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 0.8,
+  },
+  categoryBadgeBaseText: {
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  generalBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  generalBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
+  },
+  specificBadge: {
+    backgroundColor: '#FDF2F8',
+    borderColor: '#EC4899',
+  },
+  specificBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#BE185D',
+  },
   targetBadge: {
     backgroundColor: '#FEF3C7',
     borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderWidth: 0.8,
     borderColor: '#F59E0B',
   },
   targetBadgeText: {
-    fontSize: 10.5,
+    fontSize: 10,
     fontWeight: '800',
     color: '#B45309',
   },
   itemMessage: {
     fontSize: 13.5,
-    color: '#4B5563',
     lineHeight: 19,
-    marginBottom: 6,
+    color: '#374151',
+    marginTop: 2,
+    marginBottom: 4,
   },
   expandText: {
     fontSize: 11.5,
-    color: Colors.leafGreen,
     fontWeight: '700',
-    marginBottom: 10,
+    color: Colors.leafGreen,
+    marginBottom: 8,
   },
   statsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E5E7EB',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 10,
-    paddingHorizontal: 6,
-    marginTop: 6,
+    paddingHorizontal: 12,
+    marginTop: 8,
   },
   statCol: {
     flex: 1,
     alignItems: 'center',
   },
   statNum: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     marginBottom: 2,
   },
   statLabel: {
     fontSize: 10.5,
+    fontWeight: '700',
     color: Colors.textSecondary,
-    fontWeight: '600',
   },
   statDivider: {
     width: 1,
-    height: 28,
+    height: 24,
     backgroundColor: '#E5E7EB',
   },
-  centerBox: {
+  emptyBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyIcon: {
+    fontSize: 42,
+    marginBottom: 10,
+  },
+  emptyTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 6,
+  },
+  emptySub: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
+    maxWidth: 280,
+  },
+  loaderWrap: {
     paddingVertical: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  loadingText: {
+  loaderText: {
     fontSize: 14,
     color: Colors.textSecondary,
     marginTop: 12,
+    fontWeight: '600',
   },
   errorBox: {
-    paddingVertical: 40,
+    padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -509,39 +710,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#DC2626',
     textAlign: 'center',
-    marginBottom: 12,
+    lineHeight: 20,
+    marginBottom: 14,
   },
   retryBtn: {
     backgroundColor: Colors.leafGreen,
     borderRadius: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 8,
   },
   retryBtnText: {
     color: Colors.white,
-    fontWeight: '700',
-  },
-  emptyBox: {
-    paddingVertical: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyIcon: {
-    fontSize: 36,
-    marginBottom: 8,
-  },
-  emptyTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-    marginBottom: 4,
-  },
-  emptySub: {
     fontSize: 13,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-    lineHeight: 18,
+    fontWeight: '800',
   },
 });
-

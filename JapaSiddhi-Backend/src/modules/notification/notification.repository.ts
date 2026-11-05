@@ -87,7 +87,20 @@ class NotificationRepository {
       WHERE is_read = 1
         AND read_at IS NOT NULL
         AND read_at <= ${readOlderThan1Day}
-        AND IFNULL(action_type, '') <> 'JAPA_MILESTONE'
+        AND IFNULL(action_type, '') NOT IN (
+          'JAPA_MILESTONE',
+          'ADMIN_BROADCAST',
+          'ADMIN_REWARD_NEW',
+          'ADMIN_MANTRA_NEW',
+          'ADMIN_BANNER_NEW',
+          'ADMIN_CHALLENGE_NEW',
+          'ADMIN_PRODUCT_NEW',
+          'TODAY_BIRTHDAY',
+          'ADVANCE_BIRTHDAY',
+          'DOB_WISH',
+          'MEETING_LIVE',
+          'MEETING_SCHEDULED'
+        )
         ${userFilter}
       `,
       params,
@@ -260,7 +273,20 @@ class NotificationRepository {
         is_read = 1,
         read_at = CURRENT_TIMESTAMP,
         expires_at = CASE
-          WHEN IFNULL(action_type, '') = 'JAPA_MILESTONE' THEN expires_at
+          WHEN IFNULL(action_type, '') IN (
+            'JAPA_MILESTONE',
+            'ADMIN_BROADCAST',
+            'ADMIN_REWARD_NEW',
+            'ADMIN_MANTRA_NEW',
+            'ADMIN_BANNER_NEW',
+            'ADMIN_CHALLENGE_NEW',
+            'ADMIN_PRODUCT_NEW',
+            'TODAY_BIRTHDAY',
+            'ADVANCE_BIRTHDAY',
+            'DOB_WISH',
+            'MEETING_LIVE',
+            'MEETING_SCHEDULED'
+          ) THEN expires_at
           WHEN expires_at IS NOT NULL
             AND expires_at <> ''
             AND expires_at > ${nowExpr}
@@ -435,6 +461,61 @@ class NotificationRepository {
       [userId, actionType],
     );
     return rows[0] ?? null;
+  }
+
+    async markAllAsRead(userId: number): Promise<void> {
+    await this.ensureExpiresColumn();
+    await mysql.query(
+      `
+      UPDATE notifications
+      SET
+        is_read = 1,
+        read_at = CURRENT_TIMESTAMP
+      WHERE user_id = ?
+        AND is_read = 0
+      `,
+      [userId],
+    );
+  }
+
+  async markMatchingAsRead(
+    userId: number,
+    filters: { actionType?: string; actionId?: number; broadcastId?: number },
+  ): Promise<void> {
+    await this.ensureExpiresColumn();
+    const clauses: string[] = ['user_id = ?', 'is_read = 0'];
+    const params: any[] = [userId];
+
+    const matchClauses: string[] = [];
+    if (filters.actionType) {
+      matchClauses.push('action_type = ?');
+      params.push(filters.actionType);
+    }
+    if (filters.actionId) {
+      matchClauses.push('action_id = ?');
+      params.push(filters.actionId);
+    }
+    if (filters.broadcastId) {
+      matchClauses.push('(extra_data LIKE ? OR extra_data LIKE ?)');
+      params.push(`%"broadcastId":${filters.broadcastId}%`);
+      params.push(`%"queuedId":${filters.broadcastId}%`);
+    }
+
+    if (matchClauses.length === 0) {
+      return;
+    }
+
+    await mysql.query(
+      `
+      UPDATE notifications
+      SET
+        is_read = 1,
+        read_at = CURRENT_TIMESTAMP
+      WHERE ${clauses.join(' AND ')}
+        AND (${matchClauses.join(' OR ')})
+      `,
+      params,
+    );
   }
 
   async markActionAsRead(userId: number, actionType: string) {

@@ -37,9 +37,22 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     data.notificationId || data.id || data.highlightId,
   );
 
-  // Best-effort mark-as-read when we have an inbox id.
+  // Best-effort mark-as-read when we have an inbox id or matching action.
   if (notificationId && /^\d+$/.test(notificationId)) {
     apiService.put(`/notifications/${notificationId}/read`).catch(() => undefined);
+  } else if (action || data.actionId || data.broadcastId) {
+    apiService
+      .put('/notifications/action/read', {
+        actionType: action,
+        actionId:
+          data.actionId ||
+          data.rewardId ||
+          data.mantraId ||
+          data.challengeId ||
+          data.bannerId,
+        broadcastId: data.broadcastId,
+      })
+      .catch(() => undefined);
   }
 
   const rawUrl = str(data.url || data.link || data.webUrl);

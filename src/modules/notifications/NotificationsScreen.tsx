@@ -442,17 +442,19 @@ const NotificationsScreen = () => {
         ? item.extraData
         : {};
 
-    // Completions: mark read on server, stay on this screen.
+    // Mark as read on server immediately for any notification clicked
+    try {
+      apiService.put(`/notifications/${item.id}/read`).catch(() => undefined);
+    } catch {
+      // ignore
+    }
+
+    // Completions: stay on this screen.
     if (
       action === 'GOAL_COMPLETED' ||
       action === 'DAILY_GOAL_COMPLETED' ||
       action === 'CHALLENGE_COMPLETED'
     ) {
-      try {
-        await apiService.put(`/notifications/${item.id}/read`);
-      } catch {
-        // ignore
-      }
       return;
     }
 
@@ -502,6 +504,16 @@ const NotificationsScreen = () => {
       // ignore
     }
     await recordClearedId(itemId);
+  };
+
+  const handleMarkAllAsRead = async () => {
+    setItems(current => current.map(row => ({...row, isRead: true})));
+    setAppBadgeCount(0).catch(() => undefined);
+    try {
+      await apiService.put('/notifications/read-all');
+    } catch {
+      // ignore
+    }
   };
 
   const clearNotifications = () => {
@@ -563,14 +575,26 @@ const NotificationsScreen = () => {
           <Text style={styles.sectionHeading}>
             {t('recentNotifications') || 'Recent notifications'} ({items.length})
           </Text>
-          <TouchableOpacity
-            style={styles.clearBtnTop}
-            activeOpacity={0.8}
-            onPress={clearNotifications}>
-            <Text style={styles.clearBtnTopText}>
-              {t('clearAll') || 'Clear all'}
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.headerBtnRow}>
+            {items.some(it => !it.isRead) ? (
+              <TouchableOpacity
+                style={styles.markAllReadBtn}
+                activeOpacity={0.8}
+                onPress={handleMarkAllAsRead}>
+                <Text style={styles.markAllReadBtnText}>
+                  {(t as any)('markAllRead') || 'Mark all read'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity
+              style={styles.clearBtnTop}
+              activeOpacity={0.8}
+              onPress={clearNotifications}>
+              <Text style={styles.clearBtnTopText}>
+                {t('clearAll') || 'Clear all'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
 
@@ -801,6 +825,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  headerBtnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  markAllReadBtn: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 1,
+    borderColor: '#A5D6A7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 18,
+  },
+  markAllReadBtnText: {
+    color: '#2E7D32',
+    fontSize: 12,
+    fontWeight: '700',
   },
   clearBtnTop: {
     backgroundColor: Colors.templeGold,
