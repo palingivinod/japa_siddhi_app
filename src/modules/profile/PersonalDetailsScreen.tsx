@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import countryList, {CountryItem} from '../../constants/countries';
@@ -85,6 +85,7 @@ const Row = ({label, value}: {label: string; value?: string}) => {
 
 const PersonalDetailsScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -126,6 +127,9 @@ const PersonalDetailsScreen = () => {
     const isoDob = String(data.dateOfBirth || data.dob || '').slice(0, 10);
     setDateOfBirth(isoDob);
     setDobText(formatDobDisplay(isoDob));
+    if (route?.params?.startEditing || !isoDob) {
+      setEditing(true);
+    }
     setGender(data.gender || '');
     setAddress(data.address || '');
     setPinCode(String(data.postalCode || data.pinCode || '').replace(/\D/g, '').slice(0, 6));
@@ -196,20 +200,21 @@ const PersonalDetailsScreen = () => {
 
   const savePersonal = async () => {
     const mobile = mobileNumber.replace(/\D/g, '');
-    if (
-      !mobile ||
-      /^0+$/.test(mobile) ||
-      (mobile.length === MOBILE_DIGITS ? !isMobile(mobile) : mobile.length < 6)
-    ) {
-      Alert.alert(t('required'), t('enterValidMobileNumber'));
-      return;
+    if (mobile) {
+      if (
+        /^0+$/.test(mobile) ||
+        (mobile.length === MOBILE_DIGITS ? !isMobile(mobile) : mobile.length < 6)
+      ) {
+        Alert.alert(t('required'), t('enterValidMobileNumber'));
+        return;
+      }
     }
     const isoDob = parseDob(dobText);
     if (!isoDob) {
       Alert.alert(t('required'), t('enterDateOfBirth'));
       return;
     }
-    if (!/^[0-9]{6}$/.test(pinCode)) {
+    if (pinCode && pinCode.trim() && !/^[0-9]{6}$/.test(pinCode.trim())) {
       Alert.alert(t('required'), t('enterPinCode'));
       return;
     }
@@ -265,7 +270,16 @@ const PersonalDetailsScreen = () => {
       }
 
       setEditing(false);
-      Alert.alert(t('savedTitle'), t('personalDetailsUpdated'));
+      Alert.alert(t('savedTitle'), t('personalDetailsUpdated'), [
+        {
+          text: t('ok') || 'OK',
+          onPress: () => {
+            if (route?.params?.fromHomeGate) {
+              navigation.goBack();
+            }
+          },
+        },
+      ]);
     } catch (error: any) {
       Alert.alert(
         t('updateFailedTitle'),
@@ -432,7 +446,7 @@ const PersonalDetailsScreen = () => {
         }}
       />
 
-      <Text style={styles.label}>{t('pinCode')} *</Text>
+      <Text style={styles.label}>{t('pinCode')}</Text>
       <TextInput
         style={styles.input}
         value={pinCode}

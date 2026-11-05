@@ -645,6 +645,31 @@ const HomeScreen = () => {
           return;
         }
         const role = String(user?.role || '').toUpperCase();
+        const dob = String(
+          user?.dateOfBirth || user?.date_of_birth || user?.dob || '',
+        ).slice(0, 10);
+        const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(dob);
+
+        if (role !== 'ADMIN' && !hasValidDob) {
+          Alert.alert(
+            (t as any)('dobRequiredTitle') || 'Date of Birth Required 🙏',
+            (t as any)('dobRequiredMessage') ||
+              'Please enter your Date of Birth in your profile to continue.',
+            [
+              {
+                text: t('ok') || 'OK',
+                onPress: () =>
+                  navigation.navigate('PersonalDetails', {
+                    startEditing: true,
+                    fromHomeGate: true,
+                  }),
+              },
+            ],
+            {cancelable: false},
+          );
+          return;
+        }
+
         if (role === 'ADMIN' || !regionMissing(user)) {
           return;
         }

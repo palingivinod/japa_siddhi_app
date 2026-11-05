@@ -257,8 +257,7 @@ const JapaHubScreen = () => {
               {`Current Count: ${(annadanamPrompt?.userTotal || 0).toLocaleString()} Japas`}
             </Text>
             <Text style={styles.customModalInstruction}>
-              {t('enterTargetCountInstruction') ||
-                'Please enter at which japa count you wish to offer Anna Santharpana:'}
+              {'Please enter at which japa count you wish to offer Anna Santharpana:'}
             </Text>
 
             <View style={styles.customInputContainer}>

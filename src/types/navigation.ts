@@ -52,7 +52,9 @@ export type RootStackParamList = {
   Festivals: undefined;
   Progress: undefined;
   Profile: undefined;
-  PersonalDetails: {profile?: any} | undefined;
+  PersonalDetails:
+    | {profile?: any; startEditing?: boolean; fromHomeGate?: boolean}
+    | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   AvailableRewards: undefined;
@@ -75,6 +77,7 @@ export type RootStackParamList = {
       }
     | undefined;
   GeneralAnnadanam: undefined;
+  JapaAnnadanam: undefined;
   PaymentConfirmation: any;
   MonthlySupportThankYou: any;
   MilestoneNotifications: undefined;
