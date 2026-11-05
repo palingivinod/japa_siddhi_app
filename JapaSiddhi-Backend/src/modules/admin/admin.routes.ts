@@ -2726,14 +2726,30 @@ const notifyUserOrderStatus = async (input: {
   const orderNo = String(input.orderNo || `#${orderId}`).trim() || `#${orderId}`;
   const product = String(input.product || 'your order').trim() || 'your order';
   const label = userFacingOrderStatusLabel(input.dbStatus);
+  const title = `Order ${orderNo} update`;
+  const message = `Your order ${orderNo} (${product}) is now: ${label}.`;
   try {
-    const {deliverAdminNotification} = await import(
+    const {deliverAdminNotification, nowIstStamp} = await import(
       './adminNotification.service'
     );
-    await deliverAdminNotification({
-      title: `Order ${orderNo} update`,
-      message: `Your order ${orderNo} (${product}) is now: ${label}.`,
-      target: 'all',
+    let queueId = 0;
+    const now = nowIstStamp();
+    try {
+      const q = await mysql.query<any>(
+        `INSERT INTO admin_notification_queue (
+          title, message, target_group, category, action_type, send_at, status, recipient_count, created_at
+        ) VALUES (?, ?, 'selected_users', 'specific', 'ORDER_STATUS', ?, 'SENDING', 1, ?)`,
+        [title, message, now, now],
+      );
+      queueId = Number((q as any)?.insertId ?? (q as any)?.id ?? 0);
+    } catch (qErr) {
+      console.warn('Order status queue insert failed', qErr);
+    }
+
+    const delivered = await deliverAdminNotification({
+      title,
+      message,
+      target: 'selected_users',
       userIds: [userId],
       actionType: 'ORDER_STATUS',
       actionId: orderId > 0 ? orderId : null,
@@ -2741,9 +2757,17 @@ const notifyUserOrderStatus = async (input: {
         screen: 'OrderDetails',
         orderId: orderId > 0 ? orderId : undefined,
         orderStatus: String(input.dbStatus || '').toUpperCase(),
+        ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
       },
       bypassHours: true,
     });
+
+    if (queueId) {
+      await mysql.query(
+        `UPDATE admin_notification_queue SET status = 'SENT', recipient_count = ?, processed_at = ? WHERE id = ?`,
+        [delivered.recipientCount || 1, now, queueId],
+      ).catch(() => {});
+    }
   } catch (err) {
     console.warn('Order status notify failed', err);
   }
@@ -3247,15 +3271,31 @@ router.put('/orders/:id/admin-note', async (req: Request, res: Response) => {
     const userId = Number(existing[0].userId || 0);
     if (sendNotify && note && userId > 0) {
       try {
-        const {deliverAdminNotification} = await import(
+        const {deliverAdminNotification, nowIstStamp} = await import(
           './adminNotification.service'
         );
         const orderNo = String(existing[0].orderNumber || `#${id}`);
         const product = String(existing[0].itemName || 'your order');
-        await deliverAdminNotification({
-          title: `Update on order ${orderNo}`,
-          message: note,
-          target: 'all',
+        const title = `Update on order ${orderNo}`;
+        const message = note;
+        const now = nowIstStamp();
+        let queueId = 0;
+        try {
+          const q = await mysql.query<any>(
+            `INSERT INTO admin_notification_queue (
+              title, message, target_group, category, action_type, send_at, status, recipient_count, created_at
+            ) VALUES (?, ?, 'selected_users', 'specific', 'ORDER_ADMIN_NOTE', ?, 'SENDING', 1, ?)`,
+            [title, message, now, now],
+          );
+          queueId = Number((q as any)?.insertId ?? (q as any)?.id ?? 0);
+        } catch (qErr) {
+          console.warn('Order admin-note queue insert failed', qErr);
+        }
+
+        const delivered = await deliverAdminNotification({
+          title,
+          message,
+          target: 'selected_users',
           userIds: [userId],
           actionType: 'ORDER_ADMIN_NOTE',
           actionId: id,
@@ -3263,9 +3303,17 @@ router.put('/orders/:id/admin-note', async (req: Request, res: Response) => {
             screen: 'OrderDetails',
             orderId: id,
             product,
+            ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
           },
           bypassHours: true,
         });
+
+        if (queueId) {
+          await mysql.query(
+            `UPDATE admin_notification_queue SET status = 'SENT', recipient_count = ?, processed_at = ? WHERE id = ?`,
+            [delivered.recipientCount || 1, now, queueId],
+          ).catch(() => {});
+        }
         notified = true;
       } catch (err) {
         console.warn('Order admin-note notify failed', err);

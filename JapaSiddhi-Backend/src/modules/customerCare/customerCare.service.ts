@@ -101,6 +101,21 @@ class CustomerCareService {
       ? `Your ticket ${ticketCode} was marked solved. Reply: ${cleanReply}`
       : `Support replied on ${ticketCode}: ${cleanReply}`;
 
+    let queueId = 0;
+    try {
+      const {nowIstStamp} = await import('../admin/adminNotification.service');
+      const now = nowIstStamp();
+      const q = await mysql.query<any>(
+        `INSERT INTO admin_notification_queue (
+          title, message, target_group, category, action_type, send_at, status, recipient_count, created_at
+        ) VALUES (?, ?, 'selected_users', 'specific', 'SUPPORT_TICKET_REPLY', ?, 'SENDING', 1, ?)`,
+        [title, message, now, now],
+      );
+      queueId = Number((q as any)?.insertId ?? (q as any)?.id ?? 0);
+    } catch (qErr) {
+      console.warn('Support reply queue insert failed:', qErr);
+    }
+
     try {
       const notificationService = (
         await import('../notification/notification.service')
@@ -115,8 +130,18 @@ class CustomerCareService {
         extraData: {
           ticketId: id,
           status: nextStatus,
+          ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
         },
       });
+
+      if (queueId) {
+        const {nowIstStamp} = await import('../admin/adminNotification.service');
+        const now = nowIstStamp();
+        await mysql.query(
+          `UPDATE admin_notification_queue SET status = 'SENT', recipient_count = 1, processed_at = ? WHERE id = ?`,
+          [now, queueId],
+        ).catch(() => {});
+      }
     } catch (error) {
       console.warn('Support reply in-app notification failed:', error);
     }

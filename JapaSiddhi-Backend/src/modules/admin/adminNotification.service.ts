@@ -4,7 +4,7 @@ import mysql from '../../database/mysql';
 import {admin, isFirebaseReady} from '../../firebase/firebase';
 import notificationService from '../notification/notification.service';
 
-export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked';
+export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked' | 'selected_users';
 
 let queueReady = false;
 let fcmColumnReady = false;
@@ -100,7 +100,7 @@ const ensureQueueTable = async () => {
  * phone as local IST; Render runs in UTC, so we must never use server-local
  * Date.parse / NOW() for schedule comparisons.
  */
-const nowIstStamp = (date = new Date()) => {
+export const nowIstStamp = (date = new Date()) => {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Asia/Kolkata',
     year: 'numeric',
@@ -1214,7 +1214,8 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       WHERE action_type IN (
         'ADMIN_REWARD_NEW', 'ADMIN_MANTRA_NEW', 'ADMIN_BANNER_NEW',
         'ADMIN_CHALLENGE_NEW', 'ADMIN_PRODUCT_NEW', 'TODAY_BIRTHDAY',
-        'ADVANCE_BIRTHDAY', 'DOB_WISH', 'MEETING_SCHEDULED', 'MEETING_LIVE'
+        'ADVANCE_BIRTHDAY', 'DOB_WISH', 'MEETING_SCHEDULED', 'MEETING_LIVE',
+        'ORDER_STATUS', 'ORDER_ADMIN_NOTE', 'SUPPORT_TICKET_REPLY', 'ADMIN_SEVA_REPLY'
       )
       AND (extra_data NOT LIKE '%"broadcastId":%' OR extra_data IS NULL)
       GROUP BY action_type, message
@@ -1239,9 +1240,21 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       else if (actionType === 'DOB_WISH') title = 'Birthday Wishes 🎂';
       else if (actionType === 'MEETING_SCHEDULED') title = 'Online Class Scheduled';
       else if (actionType === 'MEETING_LIVE') title = 'Online Class is LIVE';
+      else if (actionType === 'ORDER_STATUS') title = 'Order Status Update 📦';
+      else if (actionType === 'ORDER_ADMIN_NOTE') title = 'Order Update Note 📝';
+      else if (actionType === 'SUPPORT_TICKET_REPLY') title = 'Support Ticket Reply 💬';
+      else if (actionType === 'ADMIN_SEVA_REPLY') title = 'Seva Prayer Reply 🙏';
       else title = 'Notification';
 
-      const isSpecific = ['TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH'].includes(actionType);
+      const isSpecific = [
+        'TODAY_BIRTHDAY',
+        'ADVANCE_BIRTHDAY',
+        'DOB_WISH',
+        'ORDER_STATUS',
+        'ORDER_ADMIN_NOTE',
+        'SUPPORT_TICKET_REPLY',
+        'ADMIN_SEVA_REPLY',
+      ].includes(actionType);
       const category = isSpecific ? 'specific' : 'general';
       const targetGroup = isSpecific ? 'selected_users' : 'all';
 
@@ -1375,10 +1388,16 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
 
       const isSpecific =
         row.category === 'specific' ||
-        ['TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH'].includes(
-          row.actionType,
-        ) ||
-        /birthday|jayanthi|vardhanti/i.test(row.title || '');
+        [
+          'TODAY_BIRTHDAY',
+          'ADVANCE_BIRTHDAY',
+          'DOB_WISH',
+          'ORDER_STATUS',
+          'ORDER_ADMIN_NOTE',
+          'SUPPORT_TICKET_REPLY',
+          'ADMIN_SEVA_REPLY',
+        ].includes(row.actionType) ||
+        /birthday|jayanthi|vardhanti|order|support|ticket|seva/i.test(row.title || '');
       const category: 'general' | 'specific' = isSpecific
         ? 'specific'
         : 'general';
@@ -1441,4 +1460,5 @@ export default {
   deliverAdminNotification,
   getNotificationAnalytics,
   mapTarget,
+  nowIstStamp,
 };
