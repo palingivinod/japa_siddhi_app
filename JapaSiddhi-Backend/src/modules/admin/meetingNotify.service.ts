@@ -1,5 +1,83 @@
 import appSettingsService from './appSettings.service';
 import {deliverAdminNotification} from './adminNotification.service';
+import mysql from '../../database/mysql';
+import {ResultSetHeader} from 'mysql2';
+
+const nowIstStamp = (date = new Date()) => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) =>
+    parts.find(part => part.type === type)?.value || '00';
+  let hour = get('hour');
+  if (hour === '24') hour = '00';
+  return `${get("year")}-${get("month")}-${get("day")} ${hour}:${get("minute")}:${get("second")}`;
+};
+
+const deliverMeetingNotificationWithAnalytics = async (input: {
+  title: string;
+  message: string;
+  actionType: 'MEETING_SCHEDULED' | 'MEETING_LIVE';
+  extraData?: Record<string, any>;
+  bypassHours?: boolean;
+  target?: string;
+}) => {
+  let queueId = 0;
+  const now = nowIstStamp();
+  try {
+    const queueInsert = await mysql.query<ResultSetHeader>(
+      `
+      INSERT INTO admin_notification_queue (
+        title, message, target_group, category, action_type, send_at, status, recipient_count, created_at
+      ) VALUES (?, ?, 'all', 'general', ?, ?, 'SENDING', 0, ?)
+      `,
+      [input.title, input.message, input.actionType, now, now],
+    );
+    queueId = Number(
+      (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+    );
+  } catch (err) {
+    console.warn('Meeting notification queue insert failed:', err);
+  }
+
+  const delivered = await deliverAdminNotification({
+    title: input.title,
+    message: input.message,
+    target: 'all',
+    actionType: input.actionType,
+    extraData: {
+      ...(input.extraData || {}),
+      ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
+    },
+    bypassHours: input.bypassHours ?? false,
+  });
+
+  if (queueId) {
+    try {
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENT',
+            recipient_count = ?,
+            processed_at = ?
+        WHERE id = ?
+        `,
+        [delivered.recipientCount, now, queueId],
+      );
+    } catch (err) {
+      console.warn('Meeting notification queue update failed:', err);
+    }
+  }
+
+  return delivered;
+};
 
 const SCHEDULE_FP_KEY = 'meeting_schedule_notify_fp';
 const LIVE_FP_KEY = 'meeting_live_notify_fp';
@@ -101,7 +179,7 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
 
   try {
     if (isFuture) {
-      await deliverAdminNotification({
+      await deliverMeetingNotificationWithAnalytics({
         title: 'Class scheduled',
         message: `${title} is scheduled for ${timeLabel}. Open Home to see the countdown.`,
         target: 'all',
@@ -114,10 +192,9 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
     } else {
       const liveFp = liveFingerprint(meeting);
       await appSettingsService.setSetting(LIVE_FP_KEY, liveFp);
-      await deliverAdminNotification({
+      await deliverMeetingNotificationWithAnalytics({
         title: `${title} is LIVE`,
         message: `Join now from the Home screen.`,
-        target: 'all',
         actionType: 'MEETING_LIVE',
         extraData: {screen: 'Home', meetingTitle: title},
         bypassHours: true,
@@ -166,10 +243,9 @@ export const checkAndNotifyMeetingLive = async () => {
 
     const title = String(meeting.title || '').trim() || 'Online Class';
     try {
-      await deliverAdminNotification({
+      await deliverMeetingNotificationWithAnalytics({
         title: `${title} is LIVE`,
         message: `Join now from the Home screen.`,
-        target: 'all',
         actionType: 'MEETING_LIVE',
         extraData: {screen: 'Home', meetingTitle: title},
         bypassHours: true,

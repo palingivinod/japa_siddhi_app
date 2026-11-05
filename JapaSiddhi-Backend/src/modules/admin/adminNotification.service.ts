@@ -1214,7 +1214,7 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       WHERE action_type IN (
         'ADMIN_REWARD_NEW', 'ADMIN_MANTRA_NEW', 'ADMIN_BANNER_NEW',
         'ADMIN_CHALLENGE_NEW', 'ADMIN_PRODUCT_NEW', 'TODAY_BIRTHDAY',
-        'ADVANCE_BIRTHDAY', 'DOB_WISH'
+        'ADVANCE_BIRTHDAY', 'DOB_WISH', 'MEETING_SCHEDULED', 'MEETING_LIVE'
       )
       AND (extra_data NOT LIKE '%"broadcastId":%' OR extra_data IS NULL)
       GROUP BY action_type, message
@@ -1237,6 +1237,8 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       else if (actionType === 'TODAY_BIRTHDAY') title = 'Happy Birthday! 🎂🌸';
       else if (actionType === 'ADVANCE_BIRTHDAY') title = 'Advance Birthday Blessings 🌸';
       else if (actionType === 'DOB_WISH') title = 'Birthday Wishes 🎂';
+      else if (actionType === 'MEETING_SCHEDULED') title = 'Online Class Scheduled';
+      else if (actionType === 'MEETING_LIVE') title = 'Online Class is LIVE';
       else title = 'Notification';
 
       const isSpecific = ['TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH'].includes(actionType);
