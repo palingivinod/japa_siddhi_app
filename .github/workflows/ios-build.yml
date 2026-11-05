@@ -10,14 +10,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - ios/**
-      - src/**
-      - package.json
-      - package-lock.json
-      - Gemfile
-      - Gemfile.lock
-      - .github/workflows/ios-build.yml
+    # Always build on main so IPA artifacts appear after every push
+    # (path filters previously skipped backend-only / analytics commits).
 
 jobs:
   build-ios:

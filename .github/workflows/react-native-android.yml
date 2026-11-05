@@ -9,13 +9,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths:
-      - android/**
-      - src/**
-      - package.json
-      - package-lock.json
-      - index.js
-      - .github/workflows/react-native-android.yml
+    # Always build on main so APK artifacts appear after every push
+    # (path filters previously skipped backend-only / analytics commits).
 
 jobs:
   build:
