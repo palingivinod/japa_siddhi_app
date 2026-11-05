@@ -681,10 +681,11 @@ export interface RewardEligibility {
 
 const REQUIREMENT_LABELS: Record<
   string,
-  {first: string; fiftyK: string; one: string; two: string; five: string; ten: string}
+  {first: string; thirtyK: string; fiftyK: string; one: string; two: string; five: string; ten: string}
 > = {
   te: {
     first: '5,000',
+    thirtyK: '30,000 (30 వేలు)',
     fiftyK: '50,000 (50 వేలు)',
     one: '1,00,000 (1 లక్ష)',
     two: '2,00,000 (2 లక్షలు)',
@@ -693,6 +694,7 @@ const REQUIREMENT_LABELS: Record<
   },
   hi: {
     first: '5,000',
+    thirtyK: '30,000 (30 हज़ार)',
     fiftyK: '50,000 (50 हज़ार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
@@ -701,6 +703,7 @@ const REQUIREMENT_LABELS: Record<
   },
   ta: {
     first: '5,000',
+    thirtyK: '30,000 (30 ஆயிரம்)',
     fiftyK: '50,000 (50 ஆயிரம்)',
     one: '1,00,000 (1 லட்சம்)',
     two: '2,00,000 (2 லட்சம்)',
@@ -709,6 +712,7 @@ const REQUIREMENT_LABELS: Record<
   },
   kn: {
     first: '5,000',
+    thirtyK: '30,000 (30 ಸಾವಿರ)',
     fiftyK: '50,000 (50 ಸಾವಿರ)',
     one: '1,00,000 (1 ಲಕ್ಷ)',
     two: '2,00,000 (2 ಲಕ್ಷ)',
@@ -717,6 +721,7 @@ const REQUIREMENT_LABELS: Record<
   },
   ml: {
     first: '5,000',
+    thirtyK: '30,000 (30 ആയിരം)',
     fiftyK: '50,000 (50 ആയിരം)',
     one: '1,00,000 (1 ലക്ഷം)',
     two: '2,00,000 (2 ലക്ഷം)',
@@ -725,6 +730,7 @@ const REQUIREMENT_LABELS: Record<
   },
   mr: {
     first: '5,000',
+    thirtyK: '30,000 (30 हजार)',
     fiftyK: '50,000 (50 हजार)',
     one: '1,00,000 (1 लाख)',
     two: '2,00,000 (2 लाख)',
@@ -733,6 +739,7 @@ const REQUIREMENT_LABELS: Record<
   },
   bn: {
     first: '5,000',
+    thirtyK: '30,000 (30 হাজার)',
     fiftyK: '50,000 (50 হাজার)',
     one: '1,00,000 (1 লাখ)',
     two: '2,00,000 (2 লাখ)',
@@ -741,6 +748,7 @@ const REQUIREMENT_LABELS: Record<
   },
   or: {
     first: '5,000',
+    thirtyK: '30,000 (30 ହଜାର)',
     fiftyK: '50,000 (50 ହଜାର)',
     one: '1,00,000 (1 ଲକ୍ଷ)',
     two: '2,00,000 (2 ଲକ୍ଷ)',
@@ -749,6 +757,7 @@ const REQUIREMENT_LABELS: Record<
   },
   en: {
     first: '5,000',
+    thirtyK: '30,000 (30k)',
     fiftyK: '50,000 (50k)',
     one: '1,00,000 (1 Lakh)',
     two: '2,00,000 (2 Lakhs)',
@@ -825,15 +834,25 @@ export const getRewardRequirement = (
   ) {
     return {count: 50000, label: reqText.fiftyK};
   }
+  // Sandal Wood / Chandan Mala => 30,000 Japas (30k)
+  if (
+    lower.includes('sandal') ||
+    lower.includes('chandan') ||
+    lower.includes('గంధం') ||
+    lower.includes('చందనం') ||
+    lower.includes('चंदन') ||
+    lower.includes('సందల్')
+  ) {
+    return {count: 30000, label: reqText.thirtyK};
+  }
+  // Rudraksha, Tulasi, Pasupu => 5,000 Japas
   if (
     lower.includes('rudraksh') ||
     lower.includes('tulasi') ||
     lower.includes('tulsi') ||
     lower.includes('pasupu') ||
     lower.includes('turmeric') ||
-    lower.includes('haldi') ||
-    lower.includes('sandal') ||
-    lower.includes('chandan')
+    lower.includes('haldi')
   ) {
     return {count: 5000, label: reqText.first};
   }
@@ -862,7 +881,7 @@ export const checkRewardEligibility = (
  * 1. Rudraksha Mala / Rudrakshi Mala
  * 2. Tulasi Mala
  * 3. Pasupu Mala
- * 4. Sandalwood Mala (5k eligibility)
+ * 4. Sandalwood Mala (30k eligibility)
  * 5. Karungali Mala (50k eligibility)
  * 6. Spatik Mala (1 Lakh eligibility)
  * 7. Green Agate (2 Lakhs eligibility)

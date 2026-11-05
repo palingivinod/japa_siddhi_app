@@ -488,15 +488,42 @@ class ChallengeService {
       }
     }
 
+    // Karungali Mala requires 50,000 Japas (50k)
+    if (
+      rewardNameLower.includes('karungali') ||
+      rewardNameLower.includes('ebony') ||
+      rewardNameLower.includes('black wood') ||
+      rewardNameLower.includes('sacred japa mala')
+    ) {
+      if (userTotalJapa < 50000) {
+        const remaining = 50000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 50,000 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
+    // Sandal Wood / Chandan Mala requires 30,000 Japas (30k)
+    if (
+      rewardNameLower.includes('sandal') ||
+      rewardNameLower.includes('chandan')
+    ) {
+      if (userTotalJapa < 30000) {
+        const remaining = 30000 - userTotalJapa;
+        throw new Error(
+          `This reward is available after 30,000 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+        );
+      }
+    }
+
+    // 5,000 Japa rewards: Rudraksha, Tulasi, Pasupu
     if (
       rewardNameLower.includes('rudraksh') ||
       rewardNameLower.includes('tulasi') ||
       rewardNameLower.includes('tulsi') ||
       rewardNameLower.includes('pasupu') ||
       rewardNameLower.includes('turmeric') ||
-      rewardNameLower.includes('haldi') ||
-      rewardNameLower.includes('sandal') ||
-      rewardNameLower.includes('chandan')
+      rewardNameLower.includes('haldi')
     ) {
       if (userTotalJapa < 5000) {
         const remaining = 5000 - userTotalJapa;
