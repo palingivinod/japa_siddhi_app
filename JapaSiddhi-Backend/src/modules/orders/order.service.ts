@@ -218,7 +218,7 @@ class OrderService {
           date:
             doneDate(rank >= 2, ['CALLED_TALKED', 'CALLED_DEVOTEE'], {
               isCurrent: rank === 2,
-            }) || 'Awaiting call',
+            }) || 'Update soon',
           done: rank >= 2,
         },
         {
@@ -226,7 +226,7 @@ class OrderService {
           label: 'Sankalp taken by devotee',
           date:
             doneDate(rank >= 3, ['SANKALP_TAKEN'], {isCurrent: rank === 3}) ||
-            'Awaiting sankalp',
+            'Update soon',
           done: rank >= 3,
         },
         {
@@ -237,7 +237,7 @@ class OrderService {
               rank >= 4,
               ['CONFIRMED', 'PROCESSING', 'READY'],
               {isCurrent: rank === 4},
-            ) || 'Awaiting confirmation',
+            ) || 'Update soon',
           done: rank >= 4,
         },
         {
@@ -245,7 +245,7 @@ class OrderService {
           label: 'Packing',
           date:
             doneDate(rank >= 5, ['PACKING'], {isCurrent: rank === 5}) ||
-            `Expected ${addDaysFrom(lastKnown, 1)}`,
+            'Update soon',
           done: rank >= 5,
         },
         {
@@ -253,7 +253,7 @@ class OrderService {
           label: 'Shipped',
           date:
             doneDate(rank >= 6, ['SHIPPED'], {isCurrent: rank === 6}) ||
-            `Expected ${addDaysFrom(lastKnown, 2)}`,
+            'Update soon',
           done: rank >= 6,
         },
         {
@@ -261,7 +261,7 @@ class OrderService {
           label: 'Delivered',
           date:
             doneDate(rank >= 7, ['DELIVERED'], {isCurrent: rank === 7}) ||
-            `Expected ${addDaysFrom(lastKnown, 4)}`,
+            'Update soon',
           done: rank >= 7,
         },
       ];
@@ -282,7 +282,7 @@ class OrderService {
       return {
         ...order,
         currentStatus,
-        eta: addDaysFrom(lastKnown, 4),
+        eta: rank >= 7 ? (doneDate(true, ['DELIVERED']) || 'Delivered') : 'Update soon',
         steps,
         canMarkReceived:
           (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,
@@ -332,7 +332,7 @@ class OrderService {
             rank >= 2,
             ['CONFIRMED', 'PROCESSING', 'READY'],
             {isCurrent: rank === 2},
-          ) || 'Awaiting confirmation',
+          ) || 'Update soon',
         done: rank >= 2,
       },
       {
@@ -340,7 +340,7 @@ class OrderService {
         label: 'Packing',
         date:
           doneDate(rank >= 3, ['PACKING'], {isCurrent: rank === 3}) ||
-          `Expected ${addDaysFrom(lastKnown, 1)}`,
+          'Update soon',
         done: rank >= 3,
       },
       {
@@ -348,7 +348,7 @@ class OrderService {
         label: 'Shipped',
         date:
           doneDate(rank >= 4, ['SHIPPED'], {isCurrent: rank === 4}) ||
-          `Expected ${addDaysFrom(lastKnown, 2)}`,
+          'Update soon',
         done: rank >= 4,
       },
       {
@@ -356,7 +356,7 @@ class OrderService {
         label: 'Delivered',
         date:
           doneDate(rank >= 5, ['DELIVERED'], {isCurrent: rank === 5}) ||
-          `Expected ${addDaysFrom(lastKnown, 4)}`,
+          'Update soon',
         done: rank >= 5,
       },
     ];
@@ -372,7 +372,7 @@ class OrderService {
               : rank >= 2
                 ? 'Order Confirmed'
                 : 'Under Review',
-      eta: addDaysFrom(lastKnown, 4),
+      eta: rank >= 5 ? (doneDate(true, ['DELIVERED']) || 'Delivered') : 'Update soon',
       steps,
       canMarkReceived:
         (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,
