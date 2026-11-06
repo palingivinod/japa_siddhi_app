@@ -1,5 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
@@ -17,6 +18,7 @@ import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {isValidPin} from '../../utils/deliveryAddress';
 
 const Field = ({
   label,
@@ -24,12 +26,14 @@ const Field = ({
   onChangeText,
   keyboardType,
   maxLength,
+  editable = true,
 }: {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
   keyboardType?: 'default' | 'phone-pad' | 'number-pad';
   maxLength?: number;
+  editable?: boolean;
 }) => (
   <View style={styles.field}>
     <Text style={styles.label}>{label}</Text>
@@ -38,9 +42,10 @@ const Field = ({
       onChangeText={onChangeText}
       placeholder="Enter here"
       placeholderTextColor={Colors.textSecondary}
-      style={styles.input}
+      style={[styles.input, !editable && styles.inputReadonly]}
       keyboardType={keyboardType}
       maxLength={maxLength}
+      editable={editable}
     />
   </View>
 );
@@ -59,6 +64,7 @@ const MilestoneRewardAddressScreen = () => {
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
   const [pinCode, setPinCode] = useState('');
+  const [detectingPin, setDetectingPin] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -79,8 +85,6 @@ const MilestoneRewardAddressScreen = () => {
           stored?.phone ||
           '';
         const addr = profile?.address || stored?.address || '';
-        const cityName = profile?.cityName || stored?.cityName || '';
-        const region = profile?.stateName || stored?.stateName || '';
         const pin =
           profile?.pinCode ||
           profile?.postalCode ||
@@ -96,14 +100,23 @@ const MilestoneRewardAddressScreen = () => {
         if (addr) {
           setAddress(String(addr));
         }
-        if (cityName) {
-          setCity(String(cityName));
-        }
-        if (region) {
-          setStateName(String(region));
-        }
-        if (pin) {
-          setPinCode(digitsOnly(String(pin)).slice(0, 6));
+        const pinDigits = digitsOnly(String(pin)).slice(0, 6);
+        if (isValidPin(pinDigits)) {
+          setPinCode(pinDigits);
+          try {
+            const found = await ProfileApi.lookupPin(pinDigits);
+            if (!active) {
+              return;
+            }
+            if (found?.cityName) {
+              setCity(String(found.cityName));
+            }
+            if (found?.stateName) {
+              setStateName(String(found.stateName));
+            }
+          } catch {
+            // Devotee must enter a valid PIN.
+          }
         }
       } catch {
         // The devotee can type the details.
@@ -114,6 +127,31 @@ const MilestoneRewardAddressScreen = () => {
       active = false;
     };
   }, []);
+
+  const onPinChange = async (text: string) => {
+    const digits = digitsOnly(text).slice(0, 6);
+    setPinCode(digits);
+    if (digits.length !== 6) {
+      setCity('');
+      setStateName('');
+      return;
+    }
+    setDetectingPin(true);
+    try {
+      const found = await ProfileApi.lookupPin(digits);
+      setCity(String(found?.cityName || ''));
+      setStateName(String(found?.stateName || ''));
+      if (!found?.cityName || !found?.stateName) {
+        Alert.alert(t('pinCode'), t('pinNotFound'));
+      }
+    } catch {
+      setCity('');
+      setStateName('');
+      Alert.alert(t('pinCode'), t('pinNotFound'));
+    } finally {
+      setDetectingPin(false);
+    }
+  };
 
   const continueNext = () => {
     if (
@@ -134,8 +172,8 @@ const MilestoneRewardAddressScreen = () => {
       );
       return;
     }
-    if (!/^[0-9]{6}$/.test(pinCode)) {
-      Alert.alert(t('required'), t('enterValidPin'));
+    if (!isValidPin(pinCode)) {
+      Alert.alert(t('required'), t('pinCodeMandatory'));
       return;
     }
     navigation.navigate('MilestoneRewardOverview', {
@@ -156,9 +194,7 @@ const MilestoneRewardAddressScreen = () => {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Text style={styles.heading}>{rewardName}</Text>
-        <Text style={styles.hint}>
-          {t('deliveryPrefillHint')}
-        </Text>
+        <Text style={styles.hint}>{t('deliveryPrefillHint')}</Text>
         <Field label={t('fullName')} value={fullName} onChangeText={setFullName} />
         <Field
           label={t('mobileNumber')}
@@ -168,16 +204,36 @@ const MilestoneRewardAddressScreen = () => {
           maxLength={MOBILE_DIGITS}
         />
         <Field label={t('address')} value={address} onChangeText={setAddress} />
-        <Field label={t('city')} value={city} onChangeText={setCity} />
-        <Field label={t('state')} value={stateName} onChangeText={setStateName} />
         <Field
-          label={t('pinCode')}
+          label={`${t('pinCode')} *`}
           value={pinCode}
-          onChangeText={text => setPinCode(digitsOnly(text).slice(0, 6))}
+          onChangeText={onPinChange}
           keyboardType="number-pad"
           maxLength={6}
         />
-        <PrimaryButton title="CONTINUE" onPress={continueNext} />
+        {detectingPin ? (
+          <View style={styles.detectingRow}>
+            <ActivityIndicator size="small" color={Colors.leafGreen} />
+            <Text style={styles.detectingText}>{t('pinCodeAutoDetect')}</Text>
+          </View>
+        ) : null}
+        <Field
+          label={t('city')}
+          value={city}
+          onChangeText={setCity}
+          editable={false}
+        />
+        <Field
+          label={t('state')}
+          value={stateName}
+          onChangeText={setStateName}
+          editable={false}
+        />
+        <PrimaryButton
+          title="CONTINUE"
+          onPress={continueNext}
+          disabled={detectingPin}
+        />
       </KeyboardAvoidingView>
     </ScreenLayout>
   );
@@ -213,5 +269,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     color: Colors.textPrimary,
     fontSize: 16,
+  },
+  inputReadonly: {
+    backgroundColor: '#F7F5F2',
+  },
+  detectingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -6,
+    marginBottom: 12,
+  },
+  detectingText: {
+    fontSize: 12,
+    color: Colors.leafGreen,
+    fontWeight: '700',
   },
 });

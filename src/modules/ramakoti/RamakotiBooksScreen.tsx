@@ -28,6 +28,10 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SavedAddressSelectorModal from '../../components/SavedAddressSelectorModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {
+  addressHasValidPin,
+  parseDeliveryAddress,
+} from '../../utils/deliveryAddress';
 
 const RAMAKOTI_POSTER = require('../../assets/images/ramakoti_poster.jpg');
 
@@ -117,26 +121,10 @@ const RamakotiBooksScreen = () => {
           await setLatestSelectedAddress(route.params.selectedAddress);
         } else {
           const latestChosen = await getLatestSelectedAddress();
-          const profileAddr = [
-            String(profile?.address || stored?.address || '').trim(),
-            String(profile?.region || stored?.region || '').trim(),
-            String(profile?.cityName || stored?.cityName || '').trim(),
-            String(profile?.stateName || stored?.stateName || '').trim(),
-            String(
-              profile?.postalCode ||
-                (profile as any)?.pinCode ||
-                stored?.postalCode ||
-                stored?.pinCode ||
-                '',
-            )
-              .replace(/\D/g, '')
-              .slice(0, 6),
-          ]
-            .filter(Boolean)
-            .join(', ');
-          const latest = latestChosen || addresses[0] || profileAddr;
-          if (latest) {
-            setAddress(current => current || latest);
+          const candidates = [latestChosen, addresses[0]].filter(Boolean) as string[];
+          const withPin = candidates.find(addressHasValidPin);
+          if (withPin) {
+            setAddress(current => current || withPin);
           }
         }
       };
@@ -178,12 +166,31 @@ const RamakotiBooksScreen = () => {
       );
       return;
     }
+    if (!addressHasValidPin(address)) {
+      Alert.alert(
+        t('pinCode') || 'PIN Code',
+        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+        [
+          {
+            text: t('addNewAddress') || 'Add Address',
+            onPress: () =>
+              navigation.navigate('AddAddress', {returnTo: 'RamakotiBooks'}),
+          },
+          {text: t('ok') || 'OK', style: 'cancel'},
+        ],
+      );
+      return;
+    }
+    const parsed = parseDeliveryAddress(address.trim());
     await saveDeliveryAddress(address.trim());
     await setLatestSelectedAddress(address.trim());
     navigation.navigate('RamakotiBooksReview', {
       fullName: fullName.trim(),
       mobile,
       address: address.trim(),
+      city: parsed.city,
+      state: parsed.state,
+      pinCode: parsed.pinCode,
       comments: comments.trim(),
     });
   };
@@ -309,12 +316,20 @@ const RamakotiBooksScreen = () => {
       ) : (
         <PrimaryButton
           title={
-            fullName.trim() && isMobile(mobile) && address.trim()
+            fullName.trim() &&
+            isMobile(mobile) &&
+            address.trim() &&
+            addressHasValidPin(address)
               ? t('overviewBtn') || 'OVERVIEW'
               : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
           }
           onPress={submit}
-          disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
+          disabled={
+            !fullName.trim() ||
+            !isMobile(mobile) ||
+            !address.trim() ||
+            !addressHasValidPin(address)
+          }
         />
       )}
       <SavedAddressSelectorModal
@@ -322,6 +337,23 @@ const RamakotiBooksScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
+          if (!addressHasValidPin(addr)) {
+            Alert.alert(
+              t('pinCode') || 'PIN Code',
+              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+              [
+                {
+                  text: t('addNewAddress') || 'Add Address',
+                  onPress: () =>
+                    navigation.navigate('AddAddress', {
+                      returnTo: 'RamakotiBooks',
+                    }),
+                },
+                {text: t('ok') || 'OK', style: 'cancel'},
+              ],
+            );
+            return;
+          }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
         }}

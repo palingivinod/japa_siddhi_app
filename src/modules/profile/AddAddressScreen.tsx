@@ -60,43 +60,67 @@ const AddAddressScreen = () => {
   const onPinChange = async (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 6);
     setPinCode(digits);
-    if (digits.length === 6) {
-      setDetectingPin(true);
-      try {
-        const found = await ProfileApi.lookupPin(digits);
-        if (found?.cityName) {
-          setCity(found.cityName);
-        }
-        if (found?.stateName) {
-          setStateName(found.stateName);
-        }
-      } catch {
-        // Devotee can type City and State manually
-      } finally {
-        setDetectingPin(false);
+    if (digits.length !== 6) {
+      setCity('');
+      setStateName('');
+      return;
+    }
+    setDetectingPin(true);
+    try {
+      const found = await ProfileApi.lookupPin(digits);
+      if (found?.cityName) {
+        setCity(String(found.cityName));
       }
+      if (found?.stateName) {
+        setStateName(String(found.stateName));
+      }
+      if (!found?.cityName || !found?.stateName) {
+        setCity('');
+        setStateName('');
+        Alert.alert(t('pinCode') || 'PIN Code', t('pinNotFound'));
+      }
+    } catch {
+      setCity('');
+      setStateName('');
+      Alert.alert(t('pinCode') || 'PIN Code', t('pinNotFound'));
+    } finally {
+      setDetectingPin(false);
     }
   };
 
   const handleSave = async () => {
     const streetClean = flatStreet.trim();
+    if (!streetClean) {
+      Alert.alert(
+        t('address') || 'Address',
+        t('flatDoorStreetAreaNote') ||
+          'Please enter flat no, door no, street and area name',
+      );
+      return;
+    }
 
     const pinClean = pinCode.replace(/\D/g, '');
     if (!pinClean || pinClean.length !== 6) {
       Alert.alert(
         t('pinCode') || 'PIN Code',
-        t('enterValidPin') || 'Please enter a valid 6-digit PIN code.',
+        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
       );
       return;
     }
 
     if (!city.trim()) {
-      Alert.alert(t('city') || 'City', 'Please enter your city.');
+      Alert.alert(
+        t('city') || 'City',
+        t('pinNotFound') || 'Could not find that PIN code. Check it and try again.',
+      );
       return;
     }
 
     if (!stateName.trim()) {
-      Alert.alert(t('state') || 'State', 'Please enter your state.');
+      Alert.alert(
+        t('state') || 'State',
+        t('pinNotFound') || 'Could not find that PIN code. Check it and try again.',
+      );
       return;
     }
 
@@ -221,23 +245,22 @@ const AddAddressScreen = () => {
               maxLength={6}
             />
 
-            {/* City (Auto-filled by PIN code, user can change if wrong) */}
+            {/* City / State — filled only from PIN lookup (no profile defaults) */}
             <Text style={styles.fieldLabel}>{t('city') || 'City'}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.readonlyInput]}
               value={city}
-              onChangeText={setCity}
-              placeholder="e.g. Bhimavaram / West Godavari"
+              editable={false}
+              placeholder={t('pinCodeAutoDetect') || 'Auto-fetching from PIN...'}
               placeholderTextColor={Colors.placeholder}
             />
 
-            {/* State (Auto-filled by PIN code, user can change if wrong) */}
             <Text style={styles.fieldLabel}>{t('state') || 'State'}</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, styles.readonlyInput]}
               value={stateName}
-              onChangeText={setStateName}
-              placeholder="e.g. Andhra Pradesh"
+              editable={false}
+              placeholder={t('pinCodeAutoDetect') || 'Auto-fetching from PIN...'}
               placeholderTextColor={Colors.placeholder}
             />
 
@@ -350,6 +373,10 @@ const styles = StyleSheet.create({
     minHeight: 70,
     textAlignVertical: 'top',
     paddingTop: 10,
+  },
+  readonlyInput: {
+    backgroundColor: '#F7F5F2',
+    color: Colors.textSecondary,
   },
   redNote: {
     color: Colors.error,

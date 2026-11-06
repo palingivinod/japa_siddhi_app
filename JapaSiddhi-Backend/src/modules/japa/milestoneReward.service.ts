@@ -3,6 +3,7 @@ import authRepository from '../auth/auth.repository';
 import challengeRepository from '../challenge/challenge.repository';
 import orderService from '../orders/order.service';
 import emailOtpService from '../../services/emailOtp.service';
+import masterService from '../master/master.service';
 import japaRepository from './japa.repository';
 import {isRewardEligibleTarget, milestoneByTarget} from './japa.milestones';
 
@@ -330,17 +331,27 @@ class MilestoneRewardService {
     const fullName = String(delivery.fullName || '').trim();
     const mobile = String(delivery.mobile || '').replace(/\D/g, '').slice(-10);
     const address = String(delivery.address || '').trim();
-    const city = String(delivery.city || '').trim();
-    const state = String(delivery.state || '').trim();
     const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
-    if (!fullName || !address || !city || !state) {
+    if (!fullName || !address) {
       throw new Error('Enter all delivery details');
     }
     if (!/^[0-9]{10}$/.test(mobile)) {
       throw new Error('Enter a valid 10-digit mobile number');
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
-      throw new Error('Enter a valid 6-digit PIN code');
+      throw new Error('PIN code is mandatory (6 digits)');
+    }
+    let city = '';
+    let state = '';
+    try {
+      const lookedUp = await masterService.lookupPincode(pinCode);
+      city = String(lookedUp.cityName || '').trim();
+      state = String(lookedUp.stateName || '').trim();
+    } catch {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
+    }
+    if (!city || !state) {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
     }
 
     const rewardName = String(reward.name || 'Milestone reward');

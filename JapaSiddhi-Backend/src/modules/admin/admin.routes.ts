@@ -2880,13 +2880,32 @@ const mapOrderRow = (row: any) => {
 
 const parseRemarkLine = (remarks: string, label: string) => {
   const match = String(remarks || '')
-    .split(/\r?\n/)
+    .split(/\r?\n|\s*\|\s*/)
     .map(line => line.trim())
     .find(line => line.toLowerCase().startsWith(`${label.toLowerCase()}:`));
   if (!match) {
     return '';
   }
   return match.slice(label.length + 1).trim();
+};
+
+/** Parse city/state/PIN from AddAddress-style "street, city, state, 600001" text. */
+const parseAddressParts = (fullAddress: string) => {
+  const raw = String(fullAddress || '').trim();
+  const parts = raw
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+  const pinMatches = raw.match(/\b(\d{6})\b/g);
+  const pinCode = pinMatches?.[pinMatches.length - 1] || '';
+  if (parts.length >= 3 && /^\d{6}$/.test(parts[parts.length - 1])) {
+    return {
+      city: parts[parts.length - 3] || '',
+      state: parts[parts.length - 2] || '',
+      pinCode: parts[parts.length - 1],
+    };
+  }
+  return {city: '', state: '', pinCode};
 };
 
 const mapOrderDetail = (row: any) => {
@@ -2909,31 +2928,29 @@ const mapOrderDetail = (row: any) => {
     row.banaAddress ||
     parseRemarkLine(remarks, 'Address') ||
     '';
-  const profileCity = String(row.profileCityName || '').trim();
-  const profileState = String(row.profileStateName || '').trim();
-  const profilePin = String(row.profilePostalCode || '')
-    .replace(/\D/g, '')
-    .slice(0, 6);
-  const profileRegion = String(row.profileRegion || '').trim();
+  // Never fall back to profile city/state (those defaulted to Hyderabad/Telangana).
+  const fromAddress = parseAddressParts(deliveryAddress);
   const deliveryCity =
     row.claimCity ||
     parseRemarkLine(remarks, 'City') ||
-    profileCity ||
+    fromAddress.city ||
     '';
   const deliveryState =
     row.claimState ||
     parseRemarkLine(remarks, 'State') ||
-    profileState ||
+    fromAddress.state ||
     '';
+  const banaPin = String(row.banaPostalCode || '')
+    .replace(/\D/g, '')
+    .slice(0, 6);
   const deliveryPin =
     row.claimPinCode ||
-    row.banaPostalCode ||
+    (banaPin && banaPin !== '000000' ? banaPin : '') ||
     parseRemarkLine(remarks, 'PIN') ||
     parseRemarkLine(remarks, 'PIN Code') ||
-    profilePin ||
+    fromAddress.pinCode ||
     '';
-  const deliveryRegion =
-    parseRemarkLine(remarks, 'Region') || profileRegion || '';
+  const deliveryRegion = parseRemarkLine(remarks, 'Region') || '';
   const email = row.customerEmail || row.banaEmail || '';
   const mobile = [row.customerMobileCode, row.customerMobile]
     .filter(Boolean)

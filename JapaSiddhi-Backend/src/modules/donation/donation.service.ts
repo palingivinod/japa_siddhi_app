@@ -10,8 +10,29 @@ import orderService from '../orders/order.service';
 import orderRepository from '../orders/order.repository';
 import banaLingamService from '../banaLingam/banaLingam.service';
 import profileRepository from '../profile/profile.repository';
+import masterService from '../master/master.service';
 import AppError from '../../utils/appError';
 import mysql from '../../database/mysql';
+
+const extractPinFromText = (text: string) => {
+  const matches = String(text || '').match(/\b(\d{6})\b/g);
+  return matches?.[matches.length - 1] || '';
+};
+
+const parseCityStateFromAddress = (fullAddress: string) => {
+  const parts = String(fullAddress || '')
+    .split(',')
+    .map(part => part.trim())
+    .filter(Boolean);
+  if (parts.length >= 3 && /^\d{6}$/.test(parts[parts.length - 1])) {
+    return {
+      city: parts[parts.length - 3] || '',
+      state: parts[parts.length - 2] || '',
+      pinCode: parts[parts.length - 1],
+    };
+  }
+  return {city: '', state: '', pinCode: extractPinFromText(fullAddress)};
+};
 
 
 
@@ -277,6 +298,9 @@ class DonationService {
       fullName?: string;
       mobile?: string;
       address?: string;
+      city?: string;
+      state?: string;
+      pinCode?: string;
       occasion?: string;
       nakshatram?: string;
       gothram?: string;
@@ -313,13 +337,61 @@ class DonationService {
       throw new AppError('Enter a valid 10-digit mobile number.', 400);
     }
 
+    const needsDeliveryAddress =
+      kind === 'BANA_LINGAM' ||
+      kind === 'RAMAKOTI_BOOKS' ||
+      kind === 'HOMA_BHASMA' ||
+      kind === 'BIRAVA_PENDANT';
+
+    const addressText = String(data.address || '').trim();
+    const parsedAddress = parseCityStateFromAddress(addressText);
+    let deliveryCity = String(data.city || parsedAddress.city || '').trim();
+    let deliveryState = String(data.state || parsedAddress.state || '').trim();
+    let deliveryPin = String(data.pinCode || parsedAddress.pinCode || '')
+      .replace(/\D/g, '')
+      .slice(0, 6);
+    let deliveryCityId: number | null = null;
+    let deliveryStateId: number | null = null;
+    let deliveryCountryId = 1;
+
+    if (needsDeliveryAddress) {
+      if (!addressText) {
+        throw new AppError('Enter a delivery address with a 6-digit PIN code.', 400);
+      }
+      if (!/^[0-9]{6}$/.test(deliveryPin)) {
+        throw new AppError('PIN code is mandatory (6 digits) for delivery orders.', 400);
+      }
+      try {
+        const lookedUp = await masterService.lookupPincode(deliveryPin);
+        deliveryCity = String(lookedUp.cityName || deliveryCity).trim();
+        deliveryState = String(lookedUp.stateName || deliveryState).trim();
+        deliveryCityId = Number(lookedUp.cityId) || null;
+        deliveryStateId = Number(lookedUp.stateId) || null;
+        deliveryCountryId = Number(lookedUp.countryId) || 1;
+      } catch {
+        throw new AppError(
+          'Could not find that PIN code. Enter a valid 6-digit PIN so city and state can be set.',
+          400,
+        );
+      }
+      if (!deliveryCity || !deliveryState || !deliveryCityId || !deliveryStateId) {
+        throw new AppError(
+          'Could not find that PIN code. Enter a valid 6-digit PIN so city and state can be set.',
+          400,
+        );
+      }
+    }
+
     const remarks = [
       data.fullName ? `Name: ${data.fullName}` : '',
       mobile ? `Mobile: ${mobile}` : '',
       data.gothram ? `Gothram: ${data.gothram}` : '',
       data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
       data.occasion ? `Occasion: ${data.occasion}` : '',
-      data.address ? `Address: ${data.address}` : '',
+      addressText ? `Address: ${addressText}` : '',
+      deliveryCity ? `City: ${deliveryCity}` : '',
+      deliveryState ? `State: ${deliveryState}` : '',
+      deliveryPin ? `PIN: ${deliveryPin}` : '',
       purpose ? `Purpose: ${purpose}` : '',
       comments ? `Comments: ${comments}` : '',
       utr ? `UTR: ${utr}` : '',
@@ -361,9 +433,6 @@ class DonationService {
 
       itemName = 'Ramakoti Books';
       orderType = 'RAMAKOTI_BOOKS';
-      if (!String(data.address || '').trim()) {
-        throw new AppError('Add your address in Personal Details.', 400);
-      }
     } else if (kind === 'HOMA_BHASMA') {
       const activeHbOrder = await orderRepository.findActiveOrderForKind(userId, 'HOMA_BHASMA');
       if (activeHbOrder) {
@@ -375,9 +444,6 @@ class DonationService {
 
       itemName = 'Homa Bhasma';
       orderType = 'HOMA_BHASMA';
-      if (!String(data.address || '').trim()) {
-        throw new AppError('Enter a delivery address.', 400);
-      }
     } else if (kind === 'BIRAVA_PENDANT') {
       const activeBpOrder = await orderRepository.findActiveOrderForKind(userId, 'BIRAVA_PENDANT');
       if (activeBpOrder) {
@@ -389,9 +455,6 @@ class DonationService {
 
       itemName = 'Bhirava Pendent';
       orderType = 'BIRAVA_PENDANT';
-      if (!String(data.address || '').trim()) {
-        throw new AppError('Enter a delivery address.', 400);
-      }
     } else if (kind === 'NITHYA_HOMAM') {
       itemName = 'Nithya Homam';
       orderType = 'NITHYA_HOMAM';
@@ -426,16 +489,22 @@ class DonationService {
     const deliveryLines = [
       `Name: ${data.fullName || 'Devotee'}`,
       `Mobile: ${mobile || '-'}`,
-      `Address: ${String(data.address || '').trim()}`,
+      `Address: ${addressText}`,
+      deliveryCity ? `City: ${deliveryCity}` : '',
+      deliveryState ? `State: ${deliveryState}` : '',
+      deliveryPin ? `PIN: ${deliveryPin}` : '',
       data.gothram ? `Gothram: ${data.gothram}` : '',
       data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
+      purpose && kind === 'BANA_LINGAM' ? `Purpose: ${purpose}` : '',
+      comments ? `Comments: ${comments}` : '',
     ]
       .filter(Boolean)
       .join('\n');
     const orderRemarks =
       kind === 'RAMAKOTI_BOOKS' ||
       kind === 'HOMA_BHASMA' ||
-      kind === 'BIRAVA_PENDANT'
+      kind === 'BIRAVA_PENDANT' ||
+      kind === 'BANA_LINGAM'
         ? deliveryLines
         : remarks || `Paid ₹${amount} via UPI QR`;
     const numberPrefix =
@@ -487,19 +556,19 @@ class DonationService {
         orderNumber: order.orderNumber,
         fullName: data.fullName || 'Devotee',
         mobile,
-        address: data.address || 'Temple delivery',
-        cityId: 1,
-        stateId: 1,
-        countryId: 1,
-        postalCode: '000000',
+        address: addressText,
+        cityId: deliveryCityId as number,
+        stateId: deliveryStateId as number,
+        countryId: deliveryCountryId,
+        postalCode: deliveryPin,
         nakshatram: data.nakshatram,
         gothram: data.gothram,
         quantity: 1,
         remarks,
       });
       requestId = request.id;
-      if (data.address) {
-        await profileRepository.saveAddress(userId, data.address);
+      if (addressText) {
+        await profileRepository.saveAddress(userId, addressText);
       }
     }
 
@@ -507,9 +576,9 @@ class DonationService {
       (kind === 'RAMAKOTI_BOOKS' ||
         kind === 'HOMA_BHASMA' ||
         kind === 'BIRAVA_PENDANT') &&
-      data.address
+      addressText
     ) {
-      await profileRepository.saveAddress(userId, data.address);
+      await profileRepository.saveAddress(userId, addressText);
     }
 
     const confirmationId =

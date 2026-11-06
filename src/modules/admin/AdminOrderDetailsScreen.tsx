@@ -479,15 +479,13 @@ const AdminOrderDetailsScreen = () => {
   })();
 
   const delivery = order?.delivery || {};
-  const fullAddress = [
-    delivery.address,
-    delivery.region,
-    delivery.city,
-    delivery.state,
-    delivery.pinCode,
-  ]
-    .filter(Boolean)
-    .join(', ');
+  const addressText = String(delivery.address || '').trim();
+  const pinInAddress = /\b\d{6}\b/.test(addressText);
+  const fullAddress = pinInAddress
+    ? addressText
+    : [addressText, delivery.region, delivery.city, delivery.state, delivery.pinCode]
+        .filter(Boolean)
+        .join(', ');
 
   return (
     <AdminScreenLayout title="Order Details" tab="AdminOrders" showBack>

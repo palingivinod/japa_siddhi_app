@@ -29,6 +29,9 @@ const RamakotiBooksReviewScreen = () => {
         fullName: params.fullName,
         mobile: params.mobile,
         address,
+        city: params.city || undefined,
+        state: params.state || undefined,
+        pinCode: params.pinCode || undefined,
         comments: params.comments?.trim() || undefined,
         remarks: params.comments?.trim() || 'Ramakoti Books request',
       });

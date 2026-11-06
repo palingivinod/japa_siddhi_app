@@ -28,6 +28,10 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SavedAddressSelectorModal from '../../components/SavedAddressSelectorModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {
+  addressHasValidPin,
+  parseDeliveryAddress,
+} from '../../utils/deliveryAddress';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
 
 const BIRAVA_PHOTOS = [
@@ -147,12 +151,10 @@ const SevaRequestScreen = () => {
           await setLatestSelectedAddress(route.params.selectedAddress);
         } else {
           const latestChosen = await getLatestSelectedAddress();
-          const latest =
-            latestChosen ||
-            addresses[0] ||
-            String(profile?.address || stored?.address || '');
-          if (latest) {
-            setAddress(current => current || latest);
+          const candidates = [latestChosen, addresses[0]].filter(Boolean) as string[];
+          const withPin = candidates.find(addressHasValidPin);
+          if (withPin) {
+            setAddress(current => current || withPin);
           }
         }
       };
@@ -198,6 +200,22 @@ const SevaRequestScreen = () => {
       );
       return;
     }
+    if (!addressHasValidPin(address)) {
+      Alert.alert(
+        t('pinCode') || 'PIN Code',
+        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+        [
+          {
+            text: t('addNewAddress') || 'Add Address',
+            onPress: () =>
+              navigation.navigate('AddAddress', {returnTo: request.formRoute}),
+          },
+          {text: t('ok') || 'OK', style: 'cancel'},
+        ],
+      );
+      return;
+    }
+    const parsed = parseDeliveryAddress(address.trim());
     const nextAddresses = await saveDeliveryAddress(address);
     await setLatestSelectedAddress(address.trim());
     setSavedAddresses(nextAddresses);
@@ -205,13 +223,18 @@ const SevaRequestScreen = () => {
       fullName,
       mobile,
       address: address.trim(),
+      city: parsed.city,
+      state: parsed.state,
+      pinCode: parsed.pinCode,
       gothram,
       nakshatram,
       comments: comments.trim(),
     });
   };
 
-  const ready = Boolean(fullName.trim() && isMobile(mobile) && address.trim());
+  const ready = Boolean(
+    fullName.trim() && isMobile(mobile) && address.trim() && addressHasValidPin(address),
+  );
 
   return (
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
@@ -368,6 +391,23 @@ const SevaRequestScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
+          if (!addressHasValidPin(addr)) {
+            Alert.alert(
+              t('pinCode') || 'PIN Code',
+              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+              [
+                {
+                  text: t('addNewAddress') || 'Add Address',
+                  onPress: () =>
+                    navigation.navigate('AddAddress', {
+                      returnTo: request.formRoute,
+                    }),
+                },
+                {text: t('ok') || 'OK', style: 'cancel'},
+              ],
+            );
+            return;
+          }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
         }}

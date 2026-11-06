@@ -1,10 +1,12 @@
 import React, {useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
+  View,
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
@@ -17,6 +19,7 @@ import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {isValidPin} from '../../utils/deliveryAddress';
 
 const ChallengeRewardDeliveryScreen = () => {
   const navigation = useNavigation<any>();
@@ -31,6 +34,7 @@ const ChallengeRewardDeliveryScreen = () => {
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pinCode, setPinCode] = useState('');
+  const [detectingPin, setDetectingPin] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -53,8 +57,6 @@ const ChallengeRewardDeliveryScreen = () => {
           stored?.phone ||
           '';
         const addr = profile?.address || stored?.address || '';
-        const cityName = profile?.cityName || stored?.cityName || '';
-        const stateName = profile?.stateName || stored?.stateName || '';
         const pin =
           profile?.pinCode ||
           profile?.postalCode ||
@@ -71,14 +73,23 @@ const ChallengeRewardDeliveryScreen = () => {
         if (addr) {
           setAddress(String(addr));
         }
-        if (cityName) {
-          setCity(String(cityName));
-        }
-        if (stateName) {
-          setState(String(stateName));
-        }
-        if (pin) {
-          setPinCode(digitsOnly(String(pin)).slice(0, 6));
+        const pinDigits = digitsOnly(String(pin)).slice(0, 6);
+        if (isValidPin(pinDigits)) {
+          setPinCode(pinDigits);
+          try {
+            const found = await ProfileApi.lookupPin(pinDigits);
+            if (!active) {
+              return;
+            }
+            if (found?.cityName) {
+              setCity(String(found.cityName));
+            }
+            if (found?.stateName) {
+              setState(String(found.stateName));
+            }
+          } catch {
+            // User must enter a valid PIN.
+          }
         }
       } catch {
         // User can enter details manually.
@@ -89,6 +100,31 @@ const ChallengeRewardDeliveryScreen = () => {
       active = false;
     };
   }, []);
+
+  const onPinChange = async (text: string) => {
+    const digits = digitsOnly(text).slice(0, 6);
+    setPinCode(digits);
+    if (digits.length !== 6) {
+      setCity('');
+      setState('');
+      return;
+    }
+    setDetectingPin(true);
+    try {
+      const found = await ProfileApi.lookupPin(digits);
+      setCity(String(found?.cityName || ''));
+      setState(String(found?.stateName || ''));
+      if (!found?.cityName || !found?.stateName) {
+        Alert.alert(t('pinCode'), t('pinNotFound'));
+      }
+    } catch {
+      setCity('');
+      setState('');
+      Alert.alert(t('pinCode'), t('pinNotFound'));
+    } finally {
+      setDetectingPin(false);
+    }
+  };
 
   const submit = async () => {
     if (
@@ -107,6 +143,10 @@ const ChallengeRewardDeliveryScreen = () => {
         t('required'),
         t('enterValidMobileDigits', {digits: MOBILE_DIGITS}),
       );
+      return;
+    }
+    if (!isValidPin(pinCode)) {
+      Alert.alert(t('required'), t('pinCodeMandatory'));
       return;
     }
     if (!challengeId) {
@@ -174,30 +214,38 @@ const ChallengeRewardDeliveryScreen = () => {
           onChangeText={setAddress}
         />
         <FormField
-          label={t('city')}
-          placeholder={t('enterHere')}
-          value={city}
-          onChangeText={setCity}
-        />
-        <FormField
-          label={t('state')}
-          placeholder={t('enterHere')}
-          value={state}
-          onChangeText={setState}
-        />
-        <FormField
           label={t('pinCode')}
           placeholder={t('enterHere')}
           value={pinCode}
-          onChangeText={text => setPinCode(digitsOnly(text).slice(0, 6))}
+          onChangeText={onPinChange}
           keyboardType="number-pad"
           maxLength={6}
+        />
+        {detectingPin ? (
+          <View style={styles.detectingRow}>
+            <ActivityIndicator size="small" color={Colors.leafGreen} />
+            <Text style={styles.detectingText}>{t('pinCodeAutoDetect')}</Text>
+          </View>
+        ) : null}
+        <FormField
+          label={t('city')}
+          placeholder={t('pinCodeAutoDetect')}
+          value={city}
+          onChangeText={setCity}
+          editable={false}
+        />
+        <FormField
+          label={t('state')}
+          placeholder={t('pinCodeAutoDetect')}
+          value={state}
+          onChangeText={setState}
+          editable={false}
         />
 
         <PrimaryButton
           title={saving ? t('submitting') : t('submitDeliveryDetails')}
           onPress={submit}
-          disabled={saving}
+          disabled={saving || detectingPin}
         />
       </KeyboardAvoidingView>
     </ScreenLayout>
@@ -218,5 +266,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 16,
+  },
+  detectingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -8,
+    marginBottom: 12,
+  },
+  detectingText: {
+    fontSize: 12,
+    color: Colors.leafGreen,
+    fontWeight: '700',
   },
 });

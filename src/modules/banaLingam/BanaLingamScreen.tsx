@@ -27,6 +27,10 @@ import ScreenLayout from '../common/ScreenLayout';
 import SelectField from '../common/SelectField';
 import SavedAddressSelectorModal from '../../components/SavedAddressSelectorModal';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {
+  addressHasValidPin,
+  parseDeliveryAddress,
+} from '../../utils/deliveryAddress';
 
 const BanaLingamScreen = () => {
   const navigation = useNavigation<any>();
@@ -126,12 +130,10 @@ const BanaLingamScreen = () => {
           await setLatestSelectedAddress(route.params.selectedAddress);
         } else {
           const latestChosen = await getLatestSelectedAddress();
-          const latest =
-            latestChosen ||
-            addresses[0] ||
-            String(profile?.address || stored?.address || '');
-          if (latest) {
-            setAddress(current => current || latest);
+          const candidates = [latestChosen, addresses[0]].filter(Boolean) as string[];
+          const withPin = candidates.find(addressHasValidPin);
+          if (withPin) {
+            setAddress(current => current || withPin);
           }
         }
       };
@@ -175,6 +177,22 @@ const BanaLingamScreen = () => {
       Alert.alert(t('baanalingamSeva'), t('purposeRequiredBaanalingam'));
       return;
     }
+    if (!addressHasValidPin(address)) {
+      Alert.alert(
+        t('pinCode') || 'PIN Code',
+        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+        [
+          {
+            text: t('addNewAddress') || 'Add Address',
+            onPress: () =>
+              navigation.navigate('AddAddress', {returnTo: 'BanaLingam'}),
+          },
+          {text: t('ok') || 'OK', style: 'cancel'},
+        ],
+      );
+      return;
+    }
+    const parsed = parseDeliveryAddress(address.trim());
     const nextAddresses = await saveDeliveryAddress(address);
     await setLatestSelectedAddress(address.trim());
     setSavedAddresses(nextAddresses);
@@ -182,6 +200,9 @@ const BanaLingamScreen = () => {
       fullName,
       mobile,
       address: address.trim(),
+      city: parsed.city,
+      state: parsed.state,
+      pinCode: parsed.pinCode,
       gothram,
       nakshatram,
       purpose,
@@ -315,9 +336,13 @@ const BanaLingamScreen = () => {
         title={
           hasActiveOrder
             ? t('banaLingamPendingOrderTitle')
-            : fullName.trim() && isMobile(mobile) && address.trim() && purpose
-            ? t('overviewBtn') || 'OVERVIEW'
-            : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+            : fullName.trim() &&
+                isMobile(mobile) &&
+                address.trim() &&
+                addressHasValidPin(address) &&
+                purpose
+              ? t('overviewBtn') || 'OVERVIEW'
+              : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         onPress={submit}
         disabled={
@@ -325,6 +350,7 @@ const BanaLingamScreen = () => {
           !fullName.trim() ||
           !isMobile(mobile) ||
           !address.trim() ||
+          !addressHasValidPin(address) ||
           !purpose
         }
       />
@@ -342,6 +368,21 @@ const BanaLingamScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
+          if (!addressHasValidPin(addr)) {
+            Alert.alert(
+              t('pinCode') || 'PIN Code',
+              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
+              [
+                {
+                  text: t('addNewAddress') || 'Add Address',
+                  onPress: () =>
+                    navigation.navigate('AddAddress', {returnTo: 'BanaLingam'}),
+                },
+                {text: t('ok') || 'OK', style: 'cancel'},
+              ],
+            );
+            return;
+          }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
         }}

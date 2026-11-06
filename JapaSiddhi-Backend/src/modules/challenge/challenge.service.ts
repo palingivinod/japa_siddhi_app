@@ -8,6 +8,7 @@ import mysql from '../../database/mysql';
 import emailOtpService from '../../services/emailOtp.service';
 import authRepository from '../auth/auth.repository';
 import japaRepository from '../japa/japa.repository';
+import masterService from '../master/master.service';
 
 class ChallengeService {
   private async userSummary(userId: number) {
@@ -635,11 +636,24 @@ class ChallengeService {
     const fullName = String(delivery.fullName || '').trim();
     const mobile = String(delivery.mobile || '').trim();
     const address = String(delivery.address || '').trim();
-    const city = String(delivery.city || '').trim();
-    const state = String(delivery.state || '').trim();
-    const pinCode = String(delivery.pinCode || '').trim();
-    if (!fullName || !mobile || !address || !city || !state || !pinCode) {
+    const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
+    if (!fullName || !mobile || !address || !pinCode) {
       throw new Error('Enter all delivery details');
+    }
+    if (!/^[0-9]{6}$/.test(pinCode)) {
+      throw new Error('PIN code is mandatory (6 digits)');
+    }
+    let city = '';
+    let state = '';
+    try {
+      const lookedUp = await masterService.lookupPincode(pinCode);
+      city = String(lookedUp.cityName || '').trim();
+      state = String(lookedUp.stateName || '').trim();
+    } catch {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
+    }
+    if (!city || !state) {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
     }
 
     const remarks = [
