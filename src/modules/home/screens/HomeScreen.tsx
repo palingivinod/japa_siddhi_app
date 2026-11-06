@@ -736,6 +736,20 @@ const HomeScreen = () => {
       ? Math.min(100, Math.round((goalCompleted / goalTarget) * 100))
       : 0;
 
+  // Antharanga/own mantra: show stored script; catalog/community still follow UI language.
+  const activeGoalMantraLabel = (() => {
+    if (!activeJapaGoal) {
+      return '';
+    }
+    const rawName = String(
+      activeJapaGoal.mantraName || activeJapaGoal.goalName || '',
+    ).trim();
+    const isPersonal =
+      String(activeJapaGoal.mantraType || '').toUpperCase() === 'PERSONAL' ||
+      Boolean(activeJapaGoal.personalMantraId);
+    return isPersonal ? rawName : tt(rawName);
+  })();
+
   const handleDailyGoalPress = () => {
     navigation.navigate('YourJapas');
   };
@@ -1044,7 +1058,7 @@ const HomeScreen = () => {
                 <View style={styles.sectionHeaderRow}>
                   <Text style={styles.progressTitle} numberOfLines={2}>
                     {activeJapaGoal
-                      ? `${tt(activeJapaGoal.mantraName || activeJapaGoal.goalName)} · ${t('dailyGoal')}`
+                      ? `${activeGoalMantraLabel} · ${t('dailyGoal')}`
                       : t('dailyGoal')}
                   </Text>
                   <View

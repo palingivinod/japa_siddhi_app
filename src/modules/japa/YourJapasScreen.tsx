@@ -495,9 +495,11 @@ const YourJapasScreen = () => {
                   </View>
                 </View>
 
-                {/* Mantra Name */}
+                {/* Antharanga/own: show stored script as-is (do not re-localize on UI language / update). */}
                 <Text style={styles.mantraTitle} numberOfLines={2}>
-                  {tt(item.mantraName)}
+                  {item.sourceType === 'PERSONAL'
+                    ? item.mantraName
+                    : tt(item.mantraName)}
                 </Text>
 
                 {item.isChallenge ? (
