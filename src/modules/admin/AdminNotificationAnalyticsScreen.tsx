@@ -47,24 +47,30 @@ const resolveItemCategory = (
   item: NotificationAnalyticsItem,
 ): FilterCategory => {
   const raw = String(item.category || '').toLowerCase();
-  if (raw === 'orders' || raw === 'order') {
-    return 'orders';
-  }
-  if (raw === 'birthday' || raw === 'specific') {
-    return 'birthday';
-  }
   const action = String(item.actionType || '').toUpperCase();
-  if (action === 'ORDER_STATUS' || action === 'ORDER_ADMIN_NOTE') {
+  const title = String(item.title || '');
+
+  // Order actions / titles first — legacy rows were often stored as "specific".
+  if (
+    raw === 'orders' ||
+    raw === 'order' ||
+    action === 'ORDER_STATUS' ||
+    action === 'ORDER_ADMIN_NOTE' ||
+    /order status|order update/i.test(title)
+  ) {
     return 'orders';
   }
   if (
+    raw === 'birthday' ||
     action === 'TODAY_BIRTHDAY' ||
     action === 'ADVANCE_BIRTHDAY' ||
     action === 'DOB_WISH' ||
-    /birthday|jayanthi|vardhanti|occasion|anniversary/i.test(
-      String(item.title || ''),
-    )
+    /birthday|jayanthi|vardhanti|occasion|anniversary/i.test(title)
   ) {
+    return 'birthday';
+  }
+  // Legacy "specific" without order/birthday signals → Specific tab.
+  if (raw === 'specific') {
     return 'birthday';
   }
   return 'general';
@@ -264,11 +270,17 @@ const AdminNotificationAnalyticsScreen = () => {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryBox}>
-            <Text style={[styles.summaryNum, {color: '#B45309'}]}>
-              {activeSummary.averageReadRate}%
+            <Text style={[styles.summaryNum, {color: '#6B7280'}]}>
+              {activeSummary.totalUnread.toLocaleString()}
             </Text>
-            <Text style={styles.summaryLabel}>Read Rate</Text>
+            <Text style={styles.summaryLabel}>Unread</Text>
           </View>
+        </View>
+        <View style={styles.summaryRateRow}>
+          <Text style={styles.summaryRateLabel}>Read Rate</Text>
+          <Text style={styles.summaryRateValue}>
+            {activeSummary.averageReadRate}%
+          </Text>
         </View>
       </View>
 
@@ -563,6 +575,25 @@ const styles = StyleSheet.create({
     width: 1,
     height: 32,
     backgroundColor: '#E5E7EB',
+  },
+  summaryRateRow: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  summaryRateLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  summaryRateValue: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#B45309',
   },
   searchWrap: {
     marginBottom: 8,

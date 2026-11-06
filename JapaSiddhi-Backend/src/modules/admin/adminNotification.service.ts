@@ -1257,7 +1257,7 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       AND (extra_data NOT LIKE '%"broadcastId":%' OR extra_data IS NULL)
       GROUP BY action_type, message
       ORDER BY first_created ASC
-      LIMIT 20
+      LIMIT 100
     `);
 
     for (const batch of unqueued || []) {
@@ -1333,6 +1333,7 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
 
   // Pull non-order + order rows separately so ORDER_STATUS spam does not
   // bury meetings / admin broadcasts / birthday sends under General & Specific.
+  // High limits so admin-sent queue rows are not dropped from analytics.
   const rows = await mysql.query<any[]>(
     `
     SELECT * FROM (
@@ -1353,8 +1354,13 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
         FROM admin_notification_queue
         WHERE status IN ('SENT', 'SENDING')
           AND IFNULL(action_type, '') NOT IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+          AND NOT (
+            IFNULL(category, '') = 'orders'
+            OR title LIKE '%Order Status%'
+            OR title LIKE '%Order Update%'
+          )
         ORDER BY id DESC
-        LIMIT 150
+        LIMIT 500
       )
       UNION ALL
       (
@@ -1373,9 +1379,14 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
           action_type AS actionType
         FROM admin_notification_queue
         WHERE status IN ('SENT', 'SENDING')
-          AND action_type IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+          AND (
+            action_type IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+            OR IFNULL(category, '') = 'orders'
+            OR title LIKE '%Order Status%'
+            OR title LIKE '%Order Update%'
+          )
         ORDER BY id DESC
-        LIMIT 100
+        LIMIT 500
       )
     ) AS analytics_rows
     ORDER BY id DESC
