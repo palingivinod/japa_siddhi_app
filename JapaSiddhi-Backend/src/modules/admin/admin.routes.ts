@@ -5786,14 +5786,17 @@ const ensureRewardSeed = async () => {
     );
     const existingList = Array.isArray(existingRows) ? existingRows : [];
 
+    await ensureRewardColumns();
+
     if (existingList.length === 0) {
       for (const item of CANONICAL_REWARDS) {
         await mysql.query(
           `
-          INSERT INTO challenge_rewards (name, stock, is_active, display_order)
-          VALUES (?, ?, 1, ?)
+          INSERT INTO challenge_rewards
+            (name, stock, is_active, display_order, description, eligibility_criteria)
+          VALUES (?, ?, 1, ?, ?, ?)
           `,
-          [item.name, item.stock, item.order],
+          [item.name, item.stock, item.order, item.description, item.eligibility],
         );
       }
       return;
@@ -5816,14 +5819,34 @@ const ensureRewardSeed = async () => {
       });
 
       if (match) {
+        // Fill missing eligibility/description from canonical; keep admin overrides.
         await mysql.query(
-          `UPDATE challenge_rewards SET name = ?, display_order = ?, is_active = 1 WHERE id = ?`,
-          [item.name, item.order, match.id],
+          `
+          UPDATE challenge_rewards
+          SET
+            name = ?,
+            display_order = ?,
+            is_active = 1,
+            description = CASE
+              WHEN description IS NULL OR TRIM(description) = '' THEN ?
+              ELSE description
+            END,
+            eligibility_criteria = CASE
+              WHEN IFNULL(eligibility_criteria, 0) <= 0 THEN ?
+              ELSE eligibility_criteria
+            END
+          WHERE id = ?
+          `,
+          [item.name, item.order, item.description, item.eligibility, match.id],
         );
       } else {
         await mysql.query(
-          `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
-          [item.name, item.stock, item.order],
+          `
+          INSERT INTO challenge_rewards
+            (name, stock, is_active, display_order, description, eligibility_criteria)
+          VALUES (?, ?, 1, ?, ?, ?)
+          `,
+          [item.name, item.stock, item.order, item.description, item.eligibility],
         );
       }
     }
@@ -5843,6 +5866,8 @@ router.get('/rewards', async (req: Request, res: Response) => {
         name,
         stock,
         is_active AS isActive,
+        IFNULL(description, '') AS description,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       ORDER BY display_order ASC, id ASC
@@ -5874,7 +5899,24 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       req.body?.stock === undefined || req.body?.stock === null
         ? undefined
         : Math.max(0, Number(req.body.stock) || 0);
-    const name = String(req.body?.name || '').trim();
+    const name =
+      req.body?.name !== undefined || req.body?.title !== undefined
+        ? String(req.body?.name || req.body?.title || '').trim()
+        : undefined;
+    const description =
+      req.body?.description !== undefined
+        ? String(req.body.description || '').trim()
+        : undefined;
+    const eligibilityCriteria =
+      req.body?.eligibilityCriteria !== undefined ||
+      req.body?.eligibility_criteria !== undefined
+        ? Math.max(
+            0,
+            Number(
+              req.body?.eligibilityCriteria ?? req.body?.eligibility_criteria ?? 0,
+            ) || 0,
+          )
+        : undefined;
     const active =
       req.body?.active === undefined
         ? undefined
@@ -5885,7 +5927,14 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
     await ensureRewardImageColumn();
     const current = await mysql.query<any[]>(
       `
-      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
+      SELECT
+        id,
+        name,
+        stock,
+        is_active AS isActive,
+        IFNULL(description, '') AS description,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -5901,13 +5950,21 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       UPDATE challenge_rewards
       SET
         name = ?,
+        description = ?,
+        eligibility_criteria = ?,
         stock = ?,
         is_active = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
       [
-        name || current[0].name,
+        name !== undefined ? name : current[0].name,
+        description !== undefined
+          ? description
+          : String(current[0].description || ''),
+        eligibilityCriteria !== undefined
+          ? eligibilityCriteria
+          : Number(current[0].eligibilityCriteria || 0),
         stock === undefined ? Number(current[0].stock || 0) : stock,
         active === undefined
           ? Number(current[0].isActive ?? 1)
@@ -5921,7 +5978,14 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(
       `
-      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
+      SELECT
+        id,
+        name,
+        stock,
+        is_active AS isActive,
+        IFNULL(description, '') AS description,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -6016,24 +6080,39 @@ router.post(
 router.post('/rewards', async (req: Request, res: Response) => {
   try {
     await ensureRewardImageColumn();
-    const name = String(req.body?.name || '').trim();
-    if (!name) {
-      return res.status(400).json({
-        success: false,
-        message: 'Reward name is required.',
-      });
-    }
+    const name = String(req.body?.name || req.body?.title || '').trim();
+    const description = String(req.body?.description || '').trim();
+    const eligibilityCriteria = Math.max(
+      0,
+      Number(
+        req.body?.eligibilityCriteria ?? req.body?.eligibility_criteria ?? 0,
+      ) || 0,
+    );
     const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
     await mysql.query(
       `
-      INSERT INTO challenge_rewards (name, stock, is_active, display_order)
-      VALUES (?, ?, 1, ?)
+      INSERT INTO challenge_rewards
+        (name, stock, is_active, display_order, description, eligibility_criteria)
+      VALUES (?, ?, 1, ?, ?, ?)
       `,
-      [name, stock, Number(req.body?.displayOrder || 99)],
+      [
+        name,
+        stock,
+        Number(req.body?.displayOrder || 99),
+        description || null,
+        eligibilityCriteria,
+      ],
     );
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(`
-      SELECT id, name, stock, is_active AS isActive, IFNULL(image_url, '') AS imageUrl
+      SELECT
+        id,
+        name,
+        stock,
+        is_active AS isActive,
+        IFNULL(description, '') AS description,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
       ORDER BY id DESC
       LIMIT 1

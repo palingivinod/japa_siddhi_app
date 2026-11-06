@@ -6,13 +6,24 @@ import Colors from '../../theme/colors';
 
 interface Props extends TextInputProps {
   label: string;
+  /** Appends a single * after the label (mandatory field). */
+  required?: boolean;
 }
 
-const FormField: React.FC<Props> = ({label, style, placeholder, ...props}) => {
+const FormField: React.FC<Props> = ({
+  label,
+  required,
+  style,
+  placeholder,
+  ...props
+}) => {
   const {tt} = useLanguage();
   return (
     <View style={styles.wrap}>
-      <Text style={styles.label}>{tt(label)}</Text>
+      <Text style={styles.label}>
+        {tt(label)}
+        {required ? ' *' : ''}
+      </Text>
       <TextInput
         placeholder={placeholder ? tt(placeholder) : placeholder}
         placeholderTextColor={Colors.placeholder}

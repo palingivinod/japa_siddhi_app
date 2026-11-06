@@ -19,6 +19,16 @@ import {
   resolveMediaUrl,
 } from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
+import {getRewardRequirement} from '../../utils/rewardContent';
+
+const resolveEligibilityField = (rewardName: string, apiValue?: number | string) => {
+  const parsed = Number(apiValue || 0);
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return String(parsed);
+  }
+  const fromName = getRewardRequirement(rewardName || '').count;
+  return fromName > 0 ? String(fromName) : '';
+};
 
 const AdminRewardStockScreen = () => {
   const navigation = useNavigation<any>();
@@ -30,9 +40,10 @@ const AdminRewardStockScreen = () => {
     String(route.params?.description || ''),
   );
   const [eligibilityCriteria, setEligibilityCriteria] = useState(
-    route.params?.eligibilityCriteria
-      ? String(route.params.eligibilityCriteria)
-      : '',
+    resolveEligibilityField(
+      String(route.params?.name || ''),
+      route.params?.eligibilityCriteria,
+    ),
   );
   const [imageUrl, setImageUrl] = useState<string | null>(
     route.params?.imageUrl || null,
@@ -70,11 +81,15 @@ const AdminRewardStockScreen = () => {
           Alert.alert('Not found', 'Reward could not be loaded.');
           return;
         }
-        setName(String(match.name || match.title || ''));
+        const rewardName = String(match.name || match.title || '');
+        setName(rewardName);
         setDescription(String(match.description || ''));
-        if (match.eligibilityCriteria) {
-          setEligibilityCriteria(String(match.eligibilityCriteria));
-        }
+        setEligibilityCriteria(
+          resolveEligibilityField(
+            rewardName,
+            match.eligibilityCriteria ?? match.eligibility_criteria,
+          ),
+        );
         if (match.imageUrl) {
           setImageUrl(match.imageUrl);
         }
@@ -148,23 +163,10 @@ const AdminRewardStockScreen = () => {
     const title = name.trim();
     const desc = description.trim();
     const rawElig = eligibilityCriteria.replace(/\D/g, '');
-    const eligibility = parseInt(rawElig, 10);
-
-    if (!title) {
-      Alert.alert('Required', 'Enter a reward title.');
-      return;
-    }
-    if (!desc) {
-      Alert.alert('Required', 'Enter a reward description.');
-      return;
-    }
-    if (!eligibility || eligibility <= 0) {
-      Alert.alert(
-        'Required',
-        'Enter a valid eligibility number (greater than 0).',
-      );
-      return;
-    }
+    const parsed = rawElig ? parseInt(rawElig, 10) : 0;
+    const fromName = title ? getRewardRequirement(title).count : 0;
+    const eligibility =
+      Number.isFinite(parsed) && parsed > 0 ? parsed : fromName > 0 ? fromName : 0;
 
     setSaving(true);
     try {
@@ -233,7 +235,7 @@ const AdminRewardStockScreen = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Reward Title *</Text>
+            <Text style={styles.label}>Reward Title</Text>
             <TextInput
               style={styles.input}
               value={name}
@@ -244,7 +246,7 @@ const AdminRewardStockScreen = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Description *</Text>
+            <Text style={styles.label}>Description</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={description}
@@ -257,7 +259,7 @@ const AdminRewardStockScreen = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Eligibility Criteria (Japa Count) *</Text>
+            <Text style={styles.label}>Eligibility Criteria (Japa Count)</Text>
             <TextInput
               style={styles.input}
               value={eligibilityCriteria}

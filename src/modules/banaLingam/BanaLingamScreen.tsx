@@ -127,18 +127,25 @@ const BanaLingamScreen = () => {
           stored?.fullName ||
           stored?.full_name ||
           '';
-        const phone =
+        const phoneRaw =
           profile?.mobileNumber ||
+          (profile as any)?.phoneNumber ||
           stored?.mobileNumber ||
           stored?.mobile_number ||
+          stored?.phoneNumber ||
+          stored?.phone_number ||
           stored?.phone ||
           '';
+        const phone = digitsOnly(String(phoneRaw || '')).slice(-MOBILE_DIGITS);
         if (name) {
           setFullName(current => current || String(name));
         }
-        if (phone) {
-          setMobile(
-            current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS),
+        // Prefill from profile when empty; user can still edit manually.
+        if (phone.length === MOBILE_DIGITS) {
+          setMobile(current =>
+            digitsOnly(String(current || '')).length === MOBILE_DIGITS
+              ? current
+              : phone,
           );
         }
         if (profile?.gothram || stored?.gothram) {
@@ -271,6 +278,7 @@ const BanaLingamScreen = () => {
       />
       <FormField
         label={t('mobile')}
+        required
         placeholder={t('placeholderMobile')}
         keyboardType="phone-pad"
         maxLength={MOBILE_DIGITS}

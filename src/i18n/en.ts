@@ -1448,13 +1448,13 @@ const en = {
   liveNow: 'LIVE NOW',
   banaSankalpHeading: 'Sankalp/promise to parmeswara',
   banaSankalp1:
-    'I promice parmeswara that i will never leave his hand throughout my life',
+    'I promise parmeswara that i will never leave his hand throughout my life',
   banaSankalp2:
-    'I promise parmeswara that this shivalinga willnot be given to anyone  (or) will not be left anywhere',
+    'I promise parmeswara that this shivalinga will not be given to anyone (or) will not be left anywhere',
   banaSankalp3:
     'I promise parmeswara that this shivalinga will be with me throughout my life',
   banaSankalp4:
-    'I promise parmeswara that this shivalinga will not be left by me if i see a content in youtube/insta/reels which convey message that we should not keep shivalinga at home or any mis consuption with regard to shivalinga and shiva pooja',
+    'I promise parmeswara that this shivalinga will not be left by me if i see content in youtube/insta/reels which conveys a message that we should not keep shivalinga at home or any misconception with regard to shivalinga and shiva pooja',
   banaSankalp5:
     'I will abide throughout my life to all these above sankalp/promise made by me',
   banaSankalpRequired:

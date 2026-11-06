@@ -73,11 +73,18 @@ export const mapProfile = (data: any) => {
     return null;
   }
 
-  const rawMobile = data.mobileNumber ?? data.mobile_number ?? '';
+  const rawMobile =
+    data.mobileNumber ??
+    data.mobile_number ??
+    data.phoneNumber ??
+    data.phone_number ??
+    data.phone ??
+    '';
   const firebaseUid = data.firebaseUid ?? data.firebase_uid ?? '';
   const mobileNumber = isPlaceholderMobile(firebaseUid, rawMobile)
     ? ''
-    : rawMobile;
+    : String(rawMobile || '').replace(/\D/g, '').slice(-10) ||
+      String(rawMobile || '');
 
   return {
     id: data.id,

@@ -20,7 +20,25 @@ import {
 } from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminReward} from './adminData';
-import {sortRewardsCanonical} from '../../utils/rewardContent';
+import {
+  checkRewardEligibility,
+  getRewardRequirement,
+  sortRewardsCanonical,
+} from '../../utils/rewardContent';
+
+/** Same eligibility devotees see (API override, else name-based). */
+const displayEligibility = (name: string, apiCriteria?: number) => {
+  const elig = checkRewardEligibility(
+    name,
+    0,
+    'en',
+    typeof apiCriteria === 'number' && apiCriteria > 0 ? apiCriteria : undefined,
+  );
+  if (elig.requiredJapas > 0) {
+    return `${elig.requiredJapas.toLocaleString('en-IN')} Japas`;
+  }
+  return elig.requiredLabel || '—';
+};
 
 const AdminRewardsScreen = () => {
   const navigation = useNavigation<any>();
@@ -91,23 +109,10 @@ const AdminRewardsScreen = () => {
     const title = newTitle.trim();
     const desc = newDescription.trim();
     const rawElig = newEligibility.replace(/\D/g, '');
-    const eligibility = parseInt(rawElig, 10);
-
-    if (!title) {
-      Alert.alert('Required', 'Enter a reward title.');
-      return;
-    }
-    if (!desc) {
-      Alert.alert('Required', 'Enter a reward description.');
-      return;
-    }
-    if (!eligibility || eligibility <= 0) {
-      Alert.alert(
-        'Required',
-        'Enter a valid eligibility number (greater than 0).',
-      );
-      return;
-    }
+    const parsed = rawElig ? parseInt(rawElig, 10) : 0;
+    const fromName = title ? getRewardRequirement(title).count : 0;
+    const eligibility =
+      Number.isFinite(parsed) && parsed > 0 ? parsed : fromName > 0 ? fromName : 0;
 
     setSaving(true);
     try {
@@ -259,7 +264,7 @@ const AdminRewardsScreen = () => {
             )}
           </TouchableOpacity>
 
-          <Text style={styles.label}>Reward Title *</Text>
+          <Text style={styles.label}>Reward Title</Text>
           <TextInput
             style={styles.input}
             value={newTitle}
@@ -268,7 +273,7 @@ const AdminRewardsScreen = () => {
             placeholderTextColor={Colors.placeholder}
           />
 
-          <Text style={styles.label}>Description *</Text>
+          <Text style={styles.label}>Description</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={newDescription}
@@ -279,7 +284,7 @@ const AdminRewardsScreen = () => {
             numberOfLines={3}
           />
 
-          <Text style={styles.label}>Eligibility Criteria (Japa Count) *</Text>
+          <Text style={styles.label}>Eligibility Criteria (Japa Count)</Text>
           <TextInput
             style={styles.input}
             value={newEligibility}
@@ -315,9 +320,7 @@ const AdminRewardsScreen = () => {
               <View style={styles.eligibilityRow}>
                 <Text style={styles.eligibilityLabel}>Eligibility:</Text>
                 <Text style={styles.eligibilityValue}>
-                  {item.eligibilityCriteria && item.eligibilityCriteria > 0
-                    ? `${item.eligibilityCriteria.toLocaleString()} Japas`
-                    : '5,000 Japas'}
+                  {displayEligibility(item.name, item.eligibilityCriteria)}
                 </Text>
               </View>
               <Text
@@ -344,16 +347,21 @@ const AdminRewardsScreen = () => {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() =>
+                  onPress={() => {
+                    const apiElig = Number(item.eligibilityCriteria || 0);
+                    const resolved =
+                      apiElig > 0
+                        ? apiElig
+                        : getRewardRequirement(item.name).count;
                     navigation.navigate('AdminRewardStock', {
                       id: item.id,
                       name: item.name,
                       description: item.description,
-                      eligibilityCriteria: item.eligibilityCriteria,
+                      eligibilityCriteria: resolved > 0 ? resolved : undefined,
                       imageUrl: item.imageUrl,
                       stock: item.stock,
-                    })
-                  }
+                    });
+                  }}
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
                   <Text style={styles.edit}>EDIT</Text>
                 </TouchableOpacity>
