@@ -52,15 +52,24 @@ const OrderTrackingScreen = () => {
               : `Order #${item.orderNumber}`
           : `Order #${id || 'BL-0001'}`}
       </Text>
-      {(item?.steps || []).map((step: any) => (
-        <View key={step.key} style={styles.step}>
-          <View style={[styles.dot, step.done && styles.dotOn]} />
-          <View>
-            <Text style={styles.label}>{step.label}</Text>
-            <Text style={styles.date}>{step.date}</Text>
+      {(item?.steps || []).map((step: any) => {
+        const dateLabel = String(step?.date || '').trim() || 'Update soon';
+        return (
+          <View key={step.key} style={styles.step}>
+            <View style={[styles.dot, step.done && styles.dotOn]} />
+            <View style={styles.stepCopy}>
+              <Text style={styles.label}>{step.label}</Text>
+              <Text
+                style={[
+                  styles.date,
+                  dateLabel === 'Update soon' && styles.dateSoon,
+                ]}>
+                {dateLabel}
+              </Text>
+            </View>
           </View>
-        </View>
-      ))}
+        );
+      })}
       <PrimaryButton
         title="DELIVERY STATUS"
         onPress={() => navigation.navigate('DeliveryStatus', {id, order: item})}
@@ -79,6 +88,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   step: {flexDirection: 'row', alignItems: 'flex-start', marginBottom: 22},
+  stepCopy: {flex: 1, paddingRight: 8},
   dot: {
     width: 16,
     height: 16,
@@ -90,4 +100,5 @@ const styles = StyleSheet.create({
   dotOn: {backgroundColor: Colors.templeGold},
   label: {fontWeight: '800', color: Colors.sacredBrown, fontSize: 16},
   date: {marginTop: 4, color: Colors.leafGreen, fontWeight: '700'},
+  dateSoon: {color: Colors.textSecondary, fontWeight: '600'},
 });

@@ -138,12 +138,24 @@ const OrderDetailsScreen = () => {
         );
       })()}
       <Text style={styles.section}>Status</Text>
-      {(item?.steps || []).map((step: any) => (
-        <View key={step.key} style={styles.step}>
-          <View style={[styles.dot, step.done && styles.dotOn]} />
-          <Text style={styles.stepText}>{step.label}</Text>
-        </View>
-      ))}
+      {(item?.steps || []).map((step: any) => {
+        const dateLabel = String(step?.date || '').trim() || 'Update soon';
+        return (
+          <View key={step.key} style={styles.step}>
+            <View style={[styles.dot, step.done && styles.dotOn]} />
+            <View style={styles.stepCopy}>
+              <Text style={styles.stepText}>{step.label}</Text>
+              <Text
+                style={[
+                  styles.stepDate,
+                  dateLabel === 'Update soon' && styles.stepDateSoon,
+                ]}>
+                {dateLabel}
+              </Text>
+            </View>
+          </View>
+        );
+      })}
       <View style={styles.gap} />
       <PrimaryButton
         title="TRACK ORDER"
@@ -190,16 +202,25 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   section: {color: Colors.leafGreen, fontWeight: '800', fontSize: 14.5, marginBottom: 10},
-  step: {flexDirection: 'row', alignItems: 'center', marginBottom: 16},
+  step: {flexDirection: 'row', alignItems: 'flex-start', marginBottom: 16},
+  stepCopy: {flex: 1, paddingRight: 8},
   dot: {
     width: 16,
     height: 16,
     borderRadius: 8,
     backgroundColor: Colors.lightGold,
     marginRight: 12,
+    marginTop: 3,
   },
   dotOn: {backgroundColor: Colors.templeGold},
   stepText: {color: Colors.sacredBrown, fontWeight: '700', fontSize: 14, lineHeight: 20},
+  stepDate: {
+    marginTop: 3,
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 12.5,
+  },
+  stepDateSoon: {color: Colors.textSecondary, fontWeight: '600'},
   gap: {height: 16},
   receivedBtn: {
     marginTop: 12,

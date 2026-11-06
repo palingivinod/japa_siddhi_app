@@ -99,22 +99,23 @@ class OrderService {
   async getTracking(id: number) {
     const order = await this.getById(id);
     const created = new Date(order.createdAt || Date.now());
-    const updated = new Date(order.updatedAt || order.createdAt || Date.now());
-    const formatDay = (raw: Date | string | number) => {
+    const PENDING_LABEL = 'Update soon';
+
+    /** Real calendar day in IST — never invents a future/guessed date. */
+    const formatDay = (raw: Date | string | number | null | undefined) => {
+      if (raw == null || raw === '') {
+        return '';
+      }
       const date = raw instanceof Date ? raw : new Date(raw);
       if (Number.isNaN(date.getTime())) {
         return '';
       }
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString('en-IN', {
         timeZone: 'Asia/Kolkata',
-        month: 'short',
         day: 'numeric',
+        month: 'short',
+        year: 'numeric',
       });
-    };
-    const addDaysFrom = (base: Date, days: number) => {
-      const date = new Date(base);
-      date.setDate(date.getDate() + days);
-      return formatDay(date);
     };
 
     let eventMap: Record<string, Date> = {};
@@ -134,29 +135,28 @@ class OrderService {
     };
 
     /**
-     * Done steps use the real status-change day.
-     * Legacy orders (no events yet): Order Placed = created; current status = updated.
+     * Phase date rules (strict):
+     * - Use only recorded admin status-event timestamps.
+     * - Order Placed / Under Review may use real order created_at if no event yet.
+     * - Never copy order.updatedAt or invent dates for other phases.
+     * - Not reached / no real date → "Update soon".
      */
-    const doneDate = (
+    const phaseDate = (
       done: boolean,
       statuses: string[],
-      opts?: {isPlaced?: boolean; isCurrent?: boolean},
+      opts?: {allowCreatedFallback?: boolean},
     ) => {
       if (!done) {
-        return null;
+        return PENDING_LABEL;
       }
       const fromEvent = firstOf(...statuses);
       if (fromEvent) {
-        return formatDay(fromEvent);
+        return formatDay(fromEvent) || PENDING_LABEL;
       }
-      if (opts?.isPlaced) {
-        return formatDay(created);
+      if (opts?.allowCreatedFallback) {
+        return formatDay(created) || PENDING_LABEL;
       }
-      if (opts?.isCurrent) {
-        return formatDay(updated);
-      }
-      // Older completed steps with no history: use last update day (best effort).
-      return formatDay(updated);
+      return PENDING_LABEL;
     };
 
     const status = String(order.orderStatus || 'UNDER_REVIEW').toUpperCase();
@@ -187,81 +187,49 @@ class OrderService {
                     ? 2
                     : 1;
       const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
-      const lastKnown =
-        firstOf(
-          'DELIVERED',
-          'SHIPPED',
-          'PACKING',
-          'READY',
-          'PROCESSING',
-          'CONFIRMED',
-          'SANKALP_TAKEN',
-          'CALLED_TALKED',
-          'CALLED_DEVOTEE',
-          'UNDER_REVIEW',
-          'PENDING',
-        ) || created;
       const steps = [
         {
           key: 'under_review',
           label: isUnderReview ? 'Under Review' : 'Order Placed',
-          date:
-            doneDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
-              isPlaced: true,
-              isCurrent: rank === 1,
-            }) || formatDay(created),
+          date: phaseDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
+            allowCreatedFallback: true,
+          }),
           done: rank >= 1,
         },
         {
           key: 'called',
           label: 'Called and talked with devotee',
-          date:
-            doneDate(rank >= 2, ['CALLED_TALKED', 'CALLED_DEVOTEE'], {
-              isCurrent: rank === 2,
-            }) || 'Update soon',
+          date: phaseDate(rank >= 2, ['CALLED_TALKED', 'CALLED_DEVOTEE']),
           done: rank >= 2,
         },
         {
           key: 'sankalp',
           label: 'Sankalp taken by devotee',
-          date:
-            doneDate(rank >= 3, ['SANKALP_TAKEN'], {isCurrent: rank === 3}) ||
-            'Update soon',
+          date: phaseDate(rank >= 3, ['SANKALP_TAKEN']),
           done: rank >= 3,
         },
         {
           key: 'confirmed',
           label: 'Order confirmation',
-          date:
-            doneDate(
-              rank >= 4,
-              ['CONFIRMED', 'PROCESSING', 'READY'],
-              {isCurrent: rank === 4},
-            ) || 'Update soon',
+          date: phaseDate(rank >= 4, ['CONFIRMED', 'PROCESSING', 'READY']),
           done: rank >= 4,
         },
         {
           key: 'packing',
           label: 'Packing',
-          date:
-            doneDate(rank >= 5, ['PACKING'], {isCurrent: rank === 5}) ||
-            'Update soon',
+          date: phaseDate(rank >= 5, ['PACKING']),
           done: rank >= 5,
         },
         {
           key: 'shipped',
           label: 'Shipped',
-          date:
-            doneDate(rank >= 6, ['SHIPPED'], {isCurrent: rank === 6}) ||
-            'Update soon',
+          date: phaseDate(rank >= 6, ['SHIPPED']),
           done: rank >= 6,
         },
         {
           key: 'delivered',
           label: 'Delivered',
-          date:
-            doneDate(rank >= 7, ['DELIVERED'], {isCurrent: rank === 7}) ||
-            'Update soon',
+          date: phaseDate(rank >= 7, ['DELIVERED']),
           done: rank >= 7,
         },
       ];
@@ -282,7 +250,12 @@ class OrderService {
       return {
         ...order,
         currentStatus,
-        eta: rank >= 7 ? (doneDate(true, ['DELIVERED']) || 'Delivered') : 'Update soon',
+        eta:
+          rank >= 7
+            ? phaseDate(true, ['DELIVERED']) === PENDING_LABEL
+              ? 'Delivered'
+              : phaseDate(true, ['DELIVERED'])
+            : PENDING_LABEL,
         steps,
         canMarkReceived:
           (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,
@@ -302,61 +275,37 @@ class OrderService {
               ? 2
               : 1;
     const isUnderReview = status === 'UNDER_REVIEW' || status === 'PENDING';
-    const lastKnown =
-      firstOf(
-        'DELIVERED',
-        'SHIPPED',
-        'PACKING',
-        'READY',
-        'PROCESSING',
-        'CONFIRMED',
-        'UNDER_REVIEW',
-        'PENDING',
-      ) || created;
     const steps = [
       {
         key: 'under_review',
         label: isUnderReview ? 'Under Review' : 'Order Placed',
-        date:
-          doneDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
-            isPlaced: true,
-            isCurrent: rank === 1,
-          }) || formatDay(created),
+        date: phaseDate(rank >= 1, ['UNDER_REVIEW', 'PENDING'], {
+          allowCreatedFallback: true,
+        }),
         done: rank >= 1,
       },
       {
         key: 'confirmed',
         label: 'Order Confirmed',
-        date:
-          doneDate(
-            rank >= 2,
-            ['CONFIRMED', 'PROCESSING', 'READY'],
-            {isCurrent: rank === 2},
-          ) || 'Update soon',
+        date: phaseDate(rank >= 2, ['CONFIRMED', 'PROCESSING', 'READY']),
         done: rank >= 2,
       },
       {
         key: 'packing',
         label: 'Packing',
-        date:
-          doneDate(rank >= 3, ['PACKING'], {isCurrent: rank === 3}) ||
-          'Update soon',
+        date: phaseDate(rank >= 3, ['PACKING']),
         done: rank >= 3,
       },
       {
         key: 'shipped',
         label: 'Shipped',
-        date:
-          doneDate(rank >= 4, ['SHIPPED'], {isCurrent: rank === 4}) ||
-          'Update soon',
+        date: phaseDate(rank >= 4, ['SHIPPED']),
         done: rank >= 4,
       },
       {
         key: 'delivered',
         label: 'Delivered',
-        date:
-          doneDate(rank >= 5, ['DELIVERED'], {isCurrent: rank === 5}) ||
-          'Update soon',
+        date: phaseDate(rank >= 5, ['DELIVERED']),
         done: rank >= 5,
       },
     ];
@@ -372,7 +321,12 @@ class OrderService {
               : rank >= 2
                 ? 'Order Confirmed'
                 : 'Under Review',
-      eta: rank >= 5 ? (doneDate(true, ['DELIVERED']) || 'Delivered') : 'Update soon',
+      eta:
+        rank >= 5
+          ? phaseDate(true, ['DELIVERED']) === PENDING_LABEL
+            ? 'Delivered'
+            : phaseDate(true, ['DELIVERED'])
+          : PENDING_LABEL,
       steps,
       canMarkReceived:
         (status === 'SHIPPED' || status === 'DELIVERED') && !order.userReceived,

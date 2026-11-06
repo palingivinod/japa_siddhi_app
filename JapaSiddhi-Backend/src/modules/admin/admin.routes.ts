@@ -3392,8 +3392,9 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       } else {
         await orderRepository.recordStatusEvent(id, nextStatus);
       }
-    } catch {
-      // Timeline recording is best-effort.
+    } catch (err) {
+      // Tracking dates depend on this — log so Render shows failures.
+      console.warn('Order status timeline record failed:', id, nextStatus, err);
     }
 
     await ensureOrderDetailJoins();
