@@ -10,12 +10,14 @@ import {
 
 import Colors from '../theme/colors';
 import {useLanguage} from '../i18n/LanguageContext';
+import {addressHasValidPin} from '../utils/deliveryAddress';
 
 interface Props {
   visible: boolean;
   addresses: string[];
   selectedAddress?: string;
   onSelect: (address: string) => void;
+  onEdit?: (address: string) => void;
   onAddNew: () => void;
   onClose: () => void;
 }
@@ -25,6 +27,7 @@ const SavedAddressSelectorModal: React.FC<Props> = ({
   addresses,
   selectedAddress,
   onSelect,
+  onEdit,
   onAddNew,
   onClose,
 }) => {
@@ -67,30 +70,56 @@ const SavedAddressSelectorModal: React.FC<Props> = ({
                 const isSelected =
                   String(selectedAddress || '').trim().toLowerCase() ===
                   String(item).trim().toLowerCase();
+                const hasPin = addressHasValidPin(item);
                 return (
-                  <TouchableOpacity
+                  <View
                     key={`${item}-${idx}`}
-                    style={[styles.addressCard, isSelected && styles.addressCardActive]}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      onSelect(item);
-                      onClose();
-                    }}>
-                    <View style={styles.cardRow}>
-                      <View style={[styles.radio, isSelected && styles.radioActive]}>
-                        {isSelected ? <View style={styles.radioDot} /> : null}
+                    style={[
+                      styles.addressCard,
+                      isSelected && styles.addressCardActive,
+                    ]}>
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        onSelect(item);
+                        onClose();
+                      }}>
+                      <View style={styles.cardRow}>
+                        <View
+                          style={[styles.radio, isSelected && styles.radioActive]}>
+                          {isSelected ? <View style={styles.radioDot} /> : null}
+                        </View>
+                        <View style={styles.cardCopy}>
+                          <Text
+                            style={[
+                              styles.addressText,
+                              isSelected && styles.addressTextActive,
+                            ]}>
+                            {item}
+                          </Text>
+                          {!hasPin ? (
+                            <Text style={styles.missingPinNote}>
+                              {t('pinCodeMandatory') ||
+                                'PIN code is mandatory (6 digits)'}
+                            </Text>
+                          ) : null}
+                        </View>
                       </View>
-                      <View style={styles.cardCopy}>
-                        <Text
-                          style={[
-                            styles.addressText,
-                            isSelected && styles.addressTextActive,
-                          ]}>
-                          {item}
+                    </TouchableOpacity>
+                    {onEdit ? (
+                      <TouchableOpacity
+                        style={styles.editBtn}
+                        onPress={() => {
+                          onClose();
+                          onEdit(item);
+                        }}
+                        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                        <Text style={styles.editBtnText}>
+                          {t('edit') || 'Edit'}
                         </Text>
-                      </View>
-                    </View>
-                  </TouchableOpacity>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                 );
               })
             )}
@@ -224,6 +253,26 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '700',
   },
+  missingPinNote: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.error,
+    lineHeight: 16,
+  },
+  editBtn: {
+    alignSelf: 'flex-end',
+    marginTop: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Colors.leafGreen,
+  },
+  editBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   addNewBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -248,4 +297,3 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
   },
 });
-

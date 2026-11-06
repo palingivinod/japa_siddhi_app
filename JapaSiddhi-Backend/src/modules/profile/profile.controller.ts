@@ -218,6 +218,40 @@ class ProfileController {
     }
   }
 
+  async updateAddress(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const oldAddress = String(
+        req.body?.oldAddress || req.body?.previousAddress || '',
+      ).trim();
+      const address = String(
+        req.body?.address || req.body?.newAddress || '',
+      ).trim();
+      if (!oldAddress || !address) {
+        return apiResponse.error(
+          res,
+          'Previous address and new address are required',
+          400,
+        );
+      }
+      const result = await profileService.updateAddress(
+        userId,
+        oldAddress,
+        address,
+      );
+      return apiResponse.success(res, 'Address updated', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
 
   /** Store the device FCM token so admin broadcasts can show system popups. */
   async savePushToken(

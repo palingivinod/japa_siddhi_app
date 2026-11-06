@@ -103,6 +103,10 @@ class ProfileService {
     return profileRepository.saveAddress(userId, address);
   }
 
+  async updateAddress(userId: number, oldAddress: string, newAddress: string) {
+    return profileRepository.updateAddress(userId, oldAddress, newAddress);
+  }
+
   async savePushToken(
     userId: number,
     fcmToken: string,

@@ -316,7 +316,9 @@ export type RootStackParamList = {
   StreakAnalytics: undefined;
   Profile: undefined;
   PersonalDetails: {profile?: any} | undefined;
-  AddAddress: {returnTo?: string} | undefined;
+  AddAddress:
+    | {returnTo?: string; editAddress?: string; selectedAddress?: string}
+    | undefined;
   SpiritualDetails: {profile?: any} | undefined;
   Settings: undefined;
   AboutApp: undefined;

@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -22,24 +22,38 @@ import {
   loadSavedAddresses,
   saveDeliveryAddress,
   setLatestSelectedAddress,
+  updateDeliveryAddress,
 } from '../../services/savedAddresses';
+import {parseDeliveryAddress} from '../../utils/deliveryAddress';
 
 const AddAddressScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
   const returnTo = route.params?.returnTo;
+  const routeEditAddress = String(route.params?.editAddress || '').trim();
+  const scrollRef = useRef<ScrollView>(null);
 
   const [flatStreet, setFlatStreet] = useState('');
   const [area, setArea] = useState('');
   const [pinCode, setPinCode] = useState('');
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
+  const [editingOriginal, setEditingOriginal] = useState<string | null>(null);
 
   const [detectingPin, setDetectingPin] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedList, setSavedList] = useState<string[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+
+  const clearForm = () => {
+    setFlatStreet('');
+    setArea('');
+    setPinCode('');
+    setCity('');
+    setStateName('');
+    setEditingOriginal(null);
+  };
 
   const loadList = useCallback(async () => {
     setLoadingList(true);
@@ -53,9 +67,46 @@ const AddAddressScreen = () => {
     }
   }, []);
 
+  const startEdit = useCallback(
+    async (addr: string) => {
+      const parsed = parseDeliveryAddress(addr);
+      setEditingOriginal(addr);
+      setFlatStreet(parsed.street || addr);
+      setArea('');
+      setPinCode(parsed.pinCode || '');
+      setCity(parsed.city || '');
+      setStateName(parsed.state || '');
+      scrollRef.current?.scrollTo({y: 0, animated: true});
+
+      if (parsed.pinCode.length === 6 && (!parsed.city || !parsed.state)) {
+        setDetectingPin(true);
+        try {
+          const found = await ProfileApi.lookupPin(parsed.pinCode);
+          if (found?.cityName) {
+            setCity(String(found.cityName));
+          }
+          if (found?.stateName) {
+            setStateName(String(found.stateName));
+          }
+        } catch {
+          // User can correct PIN.
+        } finally {
+          setDetectingPin(false);
+        }
+      }
+    },
+    [],
+  );
+
   useEffect(() => {
     loadList();
   }, [loadList]);
+
+  useEffect(() => {
+    if (routeEditAddress) {
+      startEdit(routeEditAddress);
+    }
+  }, [routeEditAddress, startEdit]);
 
   const onPinChange = async (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, 6);
@@ -135,29 +186,35 @@ const AddAddressScreen = () => {
       ].filter(Boolean);
       const fullAddress = parts.join(', ');
 
-      await saveDeliveryAddress(fullAddress);
-      await setLatestSelectedAddress(fullAddress);
-
-      if (returnTo) {
-        navigation.navigate(returnTo, {selectedAddress: fullAddress});
+      if (editingOriginal) {
+        const nextList = await updateDeliveryAddress(editingOriginal, fullAddress);
+        setSavedList(nextList);
+        await setLatestSelectedAddress(fullAddress);
+        if (returnTo) {
+          navigation.navigate(returnTo, {selectedAddress: fullAddress});
+        } else {
+          Alert.alert(
+            t('addressSavedSuccess') || 'Address saved successfully',
+            fullAddress,
+            [{text: 'OK', onPress: clearForm}],
+          );
+        }
       } else {
-        Alert.alert(
-          t('addressSavedSuccess') || 'Address saved successfully',
-          fullAddress,
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                setFlatStreet('');
-                setArea('');
-                setPinCode('');
-                setCity('');
-                setStateName('');
-                loadList();
-              },
-            },
-          ],
-        );
+        await saveDeliveryAddress(fullAddress);
+        await setLatestSelectedAddress(fullAddress);
+
+        if (returnTo) {
+          navigation.navigate(returnTo, {selectedAddress: fullAddress});
+        } else {
+          Alert.alert(
+            t('addressSavedSuccess') || 'Address saved successfully',
+            fullAddress,
+            [{text: 'OK', onPress: () => {
+              clearForm();
+              loadList();
+            }}],
+          );
+        }
       }
     } catch {
       Alert.alert('Save Failed', 'Could not save address. Please try again.');
@@ -166,9 +223,15 @@ const AddAddressScreen = () => {
     }
   };
 
+  const isEditing = Boolean(editingOriginal);
+
   return (
     <ScreenLayout
-      title={t('addNewAddress') || 'Add New Address'}
+      title={
+        isEditing
+          ? t('edit') || 'Edit'
+          : t('addNewAddress') || 'Add New Address'
+      }
       showBack
       tab="Profile">
       <KeyboardAvoidingView
@@ -176,20 +239,21 @@ const AddAddressScreen = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
         style={styles.keyboardWrap}>
         <ScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled">
           <Text style={styles.heading}>
-            {t('addNewAddress') || 'Add New Address'}
+            {isEditing
+              ? `${t('edit') || 'Edit'} ${t('address') || 'Address'}`
+              : t('addNewAddress') || 'Add New Address'}
           </Text>
           <Text style={styles.subHeading}>
             {t('addressDetailedHint') ||
               'Please ensure to enter Door No., Flat No., Street and Area name.'}
           </Text>
 
-          {/* Form Card */}
           <View style={styles.formCard}>
-            {/* Flat / Door / Street */}
             <Text style={styles.fieldLabel}>
               {t('houseFlatDoorStreet') || 'Flat / Door / House No. & Street'}
             </Text>
@@ -203,13 +267,11 @@ const AddAddressScreen = () => {
               numberOfLines={2}
             />
 
-            {/* Red Note Requirement */}
             <Text style={styles.redNote}>
               {t('flatDoorStreetAreaNote') ||
                 'Note: Please enter flat no, door no, street and area name'}
             </Text>
 
-            {/* Area / Landmark */}
             <Text style={styles.fieldLabel}>
               {t('areaLandmark') || 'Area / Landmark / Colony'}
             </Text>
@@ -221,7 +283,6 @@ const AddAddressScreen = () => {
               placeholderTextColor={Colors.placeholder}
             />
 
-            {/* PIN Code - Mandatory */}
             <View style={styles.pinLabelRow}>
               <Text style={styles.fieldLabel}>
                 {t('pinCode') || 'PIN Code'} *
@@ -245,7 +306,6 @@ const AddAddressScreen = () => {
               maxLength={6}
             />
 
-            {/* City / State — filled only from PIN lookup (no profile defaults) */}
             <Text style={styles.fieldLabel}>{t('city') || 'City'}</Text>
             <TextInput
               style={[styles.input, styles.readonlyInput]}
@@ -266,15 +326,30 @@ const AddAddressScreen = () => {
 
             <View style={styles.btnWrap}>
               <PrimaryButton
-                title={saving ? 'SAVING...' : 'SAVE ADDRESS'}
+                title={
+                  saving
+                    ? 'SAVING...'
+                    : isEditing
+                      ? 'UPDATE ADDRESS'
+                      : 'SAVE ADDRESS'
+                }
                 rawTitle
                 onPress={handleSave}
                 disabled={saving}
               />
+              {isEditing ? (
+                <TouchableOpacity
+                  style={styles.cancelEditBtn}
+                  onPress={clearForm}
+                  disabled={saving}>
+                  <Text style={styles.cancelEditText}>
+                    {t('cancel') || 'Cancel'}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </View>
 
-          {/* List of Already Saved Addresses */}
           {!returnTo ? (
             <View style={styles.listCard}>
               <Text style={styles.listTitle}>
@@ -291,12 +366,28 @@ const AddAddressScreen = () => {
                     'No saved addresses found. Please add a new address.'}
                 </Text>
               ) : (
-                savedList.map((addr, idx) => (
-                  <View key={`${addr}-${idx}`} style={styles.savedItem}>
-                    <Text style={styles.savedItemIcon}>📍</Text>
-                    <Text style={styles.savedItemText}>{addr}</Text>
-                  </View>
-                ))
+                savedList.map((addr, idx) => {
+                  const selected = editingOriginal === addr;
+                  return (
+                    <View
+                      key={`${addr}-${idx}`}
+                      style={[
+                        styles.savedItem,
+                        selected ? styles.savedItemEditing : null,
+                      ]}>
+                      <Text style={styles.savedItemIcon}>📍</Text>
+                      <Text style={styles.savedItemText}>{addr}</Text>
+                      <TouchableOpacity
+                        style={styles.editBtn}
+                        onPress={() => startEdit(addr)}
+                        hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                        <Text style={styles.editBtnText}>
+                          {t('edit') || 'Edit'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })
               )}
             </View>
           ) : null}
@@ -388,6 +479,17 @@ const styles = StyleSheet.create({
   btnWrap: {
     marginTop: 22,
   },
+  cancelEditBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  cancelEditText: {
+    color: Colors.templeGold,
+    fontWeight: '700',
+    fontSize: 15,
+    textDecorationLine: 'underline',
+  },
   listCard: {
     backgroundColor: Colors.white,
     borderRadius: 18,
@@ -419,6 +521,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E8DEC8',
   },
+  savedItemEditing: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#F3Faf4',
+  },
   savedItemIcon: {
     fontSize: 16,
     marginRight: 10,
@@ -431,5 +537,16 @@ const styles = StyleSheet.create({
     color: Colors.textPrimary,
     fontWeight: '600',
   },
+  editBtn: {
+    marginLeft: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: Colors.leafGreen,
+  },
+  editBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
 });
-

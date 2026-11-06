@@ -32,6 +32,7 @@ import {
   addressHasValidPin,
   parseDeliveryAddress,
 } from '../../utils/deliveryAddress';
+import {ensureAddressHasPinOrEdit} from '../../utils/promptAddressPin';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
 
 const BIRAVA_PHOTOS = [
@@ -200,19 +201,13 @@ const SevaRequestScreen = () => {
       );
       return;
     }
-    if (!addressHasValidPin(address)) {
-      Alert.alert(
-        t('pinCode') || 'PIN Code',
-        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-        [
-          {
-            text: t('addNewAddress') || 'Add Address',
-            onPress: () =>
-              navigation.navigate('AddAddress', {returnTo: request.formRoute}),
-          },
-          {text: t('ok') || 'OK', style: 'cancel'},
-        ],
-      );
+    if (
+      !ensureAddressHasPinOrEdit(address, {
+        t,
+        navigate: navigation.navigate,
+        returnTo: request.formRoute,
+      })
+    ) {
       return;
     }
     const parsed = parseDeliveryAddress(address.trim());
@@ -232,9 +227,7 @@ const SevaRequestScreen = () => {
     });
   };
 
-  const ready = Boolean(
-    fullName.trim() && isMobile(mobile) && address.trim() && addressHasValidPin(address),
-  );
+  const ready = Boolean(fullName.trim() && isMobile(mobile) && address.trim());
 
   return (
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
@@ -342,6 +335,8 @@ const SevaRequestScreen = () => {
           placeholderTextColor={Colors.placeholder}
           style={styles.deliveryInput}
           value={address}
+          multiline
+          textAlignVertical="top"
           onChangeText={text => {
             setAddress(text);
             setLatestSelectedAddress(text);
@@ -391,25 +386,23 @@ const SevaRequestScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
-          if (!addressHasValidPin(addr)) {
-            Alert.alert(
-              t('pinCode') || 'PIN Code',
-              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-              [
-                {
-                  text: t('addNewAddress') || 'Add Address',
-                  onPress: () =>
-                    navigation.navigate('AddAddress', {
-                      returnTo: request.formRoute,
-                    }),
-                },
-                {text: t('ok') || 'OK', style: 'cancel'},
-              ],
-            );
+          if (
+            !ensureAddressHasPinOrEdit(addr, {
+              t,
+              navigate: navigation.navigate,
+              returnTo: request.formRoute,
+            })
+          ) {
             return;
           }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
+        }}
+        onEdit={addr => {
+          navigation.navigate('AddAddress', {
+            returnTo: request.formRoute,
+            editAddress: addr,
+          });
         }}
         onAddNew={() => {
           navigation.navigate('AddAddress', {returnTo: request.formRoute});
@@ -505,7 +498,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     lineHeight: 22,
-    minHeight: 52,
+    minHeight: 110,
     color: Colors.sacredBrown,
     marginBottom: 6,
   },

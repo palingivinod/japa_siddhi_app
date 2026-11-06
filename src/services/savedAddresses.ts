@@ -111,3 +111,47 @@ export const saveDeliveryAddress = async (address: string): Promise<string[]> =>
     return local;
   }
 };
+
+export const updateDeliveryAddress = async (
+  oldAddress: string,
+  newAddress: string,
+): Promise<string[]> => {
+  const prev = String(oldAddress || '').trim();
+  const next = String(newAddress || '').trim();
+  if (!next) {
+    return loadSavedAddresses();
+  }
+  if (!prev || prev.toLowerCase() === next.toLowerCase()) {
+    return saveDeliveryAddress(next);
+  }
+
+  const local = unique([
+    next,
+    ...(await readLocal()).filter(item => item.toLowerCase() !== prev.toLowerCase()),
+  ]);
+  await writeLocal(local);
+
+  try {
+    const latest = await AsyncStorage.getItem(await latestKey());
+    if (latest && latest.trim().toLowerCase() === prev.toLowerCase()) {
+      await setLatestSelectedAddress(next);
+    }
+  } catch {
+    await setLatestSelectedAddress(next);
+  }
+
+  try {
+    const response = await apiService.put('/profile/addresses', {
+      oldAddress: prev,
+      address: next,
+    });
+    const remote = (response.data.data || [])
+      .map((item: any) => String(item.address || item || ''))
+      .filter(Boolean);
+    const merged = unique([...remote, ...local]);
+    await writeLocal(merged);
+    return merged;
+  } catch {
+    return local;
+  }
+};

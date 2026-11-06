@@ -338,6 +338,38 @@ class ProfileRepository {
     return this.listAddresses(userId);
   }
 
+  async updateAddress(userId: number, oldAddress: string, newAddress: string) {
+    const prev = String(oldAddress || '').trim();
+    const next = String(newAddress || '').trim();
+    if (!next) {
+      return this.listAddresses(userId);
+    }
+    if (!prev || prev.toLowerCase() === next.toLowerCase()) {
+      return this.saveAddress(userId, next);
+    }
+
+    await mysql.query(
+      `
+      DELETE FROM user_addresses
+      WHERE user_id = ?
+        AND lower(trim(address)) = lower(trim(?))
+      `,
+      [userId, prev],
+    );
+
+    await mysql.query(
+      `
+      UPDATE users
+      SET address = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND lower(trim(IFNULL(address, ''))) = lower(trim(?))
+      `,
+      [next, userId, prev],
+    );
+
+    return this.saveAddress(userId, next);
+  }
+
 
   private fcmColumnReady = false;
 

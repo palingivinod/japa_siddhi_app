@@ -32,6 +32,7 @@ import {
   addressHasValidPin,
   parseDeliveryAddress,
 } from '../../utils/deliveryAddress';
+import {ensureAddressHasPinOrEdit} from '../../utils/promptAddressPin';
 
 const RAMAKOTI_POSTER = require('../../assets/images/ramakoti_poster.jpg');
 
@@ -166,19 +167,13 @@ const RamakotiBooksScreen = () => {
       );
       return;
     }
-    if (!addressHasValidPin(address)) {
-      Alert.alert(
-        t('pinCode') || 'PIN Code',
-        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-        [
-          {
-            text: t('addNewAddress') || 'Add Address',
-            onPress: () =>
-              navigation.navigate('AddAddress', {returnTo: 'RamakotiBooks'}),
-          },
-          {text: t('ok') || 'OK', style: 'cancel'},
-        ],
-      );
+    if (
+      !ensureAddressHasPinOrEdit(address, {
+        t,
+        navigate: navigation.navigate,
+        returnTo: 'RamakotiBooks',
+      })
+    ) {
       return;
     }
     const parsed = parseDeliveryAddress(address.trim());
@@ -287,6 +282,8 @@ const RamakotiBooksScreen = () => {
           placeholderTextColor={Colors.placeholder}
           style={styles.deliveryInput}
           value={address}
+          multiline
+          textAlignVertical="top"
           onChangeText={text => {
             setAddress(text);
             setLatestSelectedAddress(text);
@@ -316,20 +313,12 @@ const RamakotiBooksScreen = () => {
       ) : (
         <PrimaryButton
           title={
-            fullName.trim() &&
-            isMobile(mobile) &&
-            address.trim() &&
-            addressHasValidPin(address)
+            fullName.trim() && isMobile(mobile) && address.trim()
               ? t('overviewBtn') || 'OVERVIEW'
               : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
           }
           onPress={submit}
-          disabled={
-            !fullName.trim() ||
-            !isMobile(mobile) ||
-            !address.trim() ||
-            !addressHasValidPin(address)
-          }
+          disabled={!fullName.trim() || !isMobile(mobile) || !address.trim()}
         />
       )}
       <SavedAddressSelectorModal
@@ -337,25 +326,23 @@ const RamakotiBooksScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
-          if (!addressHasValidPin(addr)) {
-            Alert.alert(
-              t('pinCode') || 'PIN Code',
-              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-              [
-                {
-                  text: t('addNewAddress') || 'Add Address',
-                  onPress: () =>
-                    navigation.navigate('AddAddress', {
-                      returnTo: 'RamakotiBooks',
-                    }),
-                },
-                {text: t('ok') || 'OK', style: 'cancel'},
-              ],
-            );
+          if (
+            !ensureAddressHasPinOrEdit(addr, {
+              t,
+              navigate: navigation.navigate,
+              returnTo: 'RamakotiBooks',
+            })
+          ) {
             return;
           }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
+        }}
+        onEdit={addr => {
+          navigation.navigate('AddAddress', {
+            returnTo: 'RamakotiBooks',
+            editAddress: addr,
+          });
         }}
         onAddNew={() => {
           navigation.navigate('AddAddress', {returnTo: 'RamakotiBooks'});
@@ -419,7 +406,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     lineHeight: 22,
-    minHeight: 52,
+    minHeight: 110,
     color: Colors.sacredBrown,
     marginBottom: 6,
   },

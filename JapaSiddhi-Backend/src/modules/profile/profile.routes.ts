@@ -59,6 +59,12 @@ router.post(
 );
 
 router.put(
+  '/addresses',
+  authenticate,
+  profileController.updateAddress,
+);
+
+router.put(
   '/push-token',
   authenticate,
   profileController.savePushToken,

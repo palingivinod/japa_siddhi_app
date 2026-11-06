@@ -31,6 +31,7 @@ import {
   addressHasValidPin,
   parseDeliveryAddress,
 } from '../../utils/deliveryAddress';
+import {ensureAddressHasPinOrEdit} from '../../utils/promptAddressPin';
 
 const BanaLingamScreen = () => {
   const navigation = useNavigation<any>();
@@ -177,19 +178,13 @@ const BanaLingamScreen = () => {
       Alert.alert(t('baanalingamSeva'), t('purposeRequiredBaanalingam'));
       return;
     }
-    if (!addressHasValidPin(address)) {
-      Alert.alert(
-        t('pinCode') || 'PIN Code',
-        t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-        [
-          {
-            text: t('addNewAddress') || 'Add Address',
-            onPress: () =>
-              navigation.navigate('AddAddress', {returnTo: 'BanaLingam'}),
-          },
-          {text: t('ok') || 'OK', style: 'cancel'},
-        ],
-      );
+    if (
+      !ensureAddressHasPinOrEdit(address, {
+        t,
+        navigate: navigation.navigate,
+        returnTo: 'BanaLingam',
+      })
+    ) {
       return;
     }
     const parsed = parseDeliveryAddress(address.trim());
@@ -293,6 +288,8 @@ const BanaLingamScreen = () => {
           placeholderTextColor={Colors.placeholder}
           style={styles.deliveryInput}
           value={address}
+          multiline
+          textAlignVertical="top"
           onChangeText={text => {
             setAddress(text);
             setLatestSelectedAddress(text);
@@ -336,11 +333,7 @@ const BanaLingamScreen = () => {
         title={
           hasActiveOrder
             ? t('banaLingamPendingOrderTitle')
-            : fullName.trim() &&
-                isMobile(mobile) &&
-                address.trim() &&
-                addressHasValidPin(address) &&
-                purpose
+            : fullName.trim() && isMobile(mobile) && address.trim() && purpose
               ? t('overviewBtn') || 'OVERVIEW'
               : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
@@ -350,7 +343,6 @@ const BanaLingamScreen = () => {
           !fullName.trim() ||
           !isMobile(mobile) ||
           !address.trim() ||
-          !addressHasValidPin(address) ||
           !purpose
         }
       />
@@ -368,23 +360,23 @@ const BanaLingamScreen = () => {
         addresses={savedAddresses}
         selectedAddress={address}
         onSelect={async addr => {
-          if (!addressHasValidPin(addr)) {
-            Alert.alert(
-              t('pinCode') || 'PIN Code',
-              t('pinCodeMandatory') || 'PIN code is mandatory (6 digits)',
-              [
-                {
-                  text: t('addNewAddress') || 'Add Address',
-                  onPress: () =>
-                    navigation.navigate('AddAddress', {returnTo: 'BanaLingam'}),
-                },
-                {text: t('ok') || 'OK', style: 'cancel'},
-              ],
-            );
+          if (
+            !ensureAddressHasPinOrEdit(addr, {
+              t,
+              navigate: navigation.navigate,
+              returnTo: 'BanaLingam',
+            })
+          ) {
             return;
           }
           setAddress(addr);
           await setLatestSelectedAddress(addr);
+        }}
+        onEdit={addr => {
+          navigation.navigate('AddAddress', {
+            returnTo: 'BanaLingam',
+            editAddress: addr,
+          });
         }}
         onAddNew={() => {
           navigation.navigate('AddAddress', {returnTo: 'BanaLingam'});
@@ -498,7 +490,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
     lineHeight: 22,
-    minHeight: 52,
+    minHeight: 110,
     color: Colors.sacredBrown,
     marginBottom: 6,
   },
