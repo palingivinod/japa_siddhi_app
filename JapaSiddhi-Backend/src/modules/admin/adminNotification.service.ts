@@ -1208,6 +1208,19 @@ const BIRTHDAY_ACTION_TYPES = new Set([
   'DOB_WISH',
 ]);
 
+const GENERAL_ACTION_TYPES = new Set([
+  'SUPPORT_TICKET_REPLY',
+  'ADMIN_SEVA_REPLY',
+  'MEETING_SCHEDULED',
+  'MEETING_LIVE',
+  'ADMIN_BROADCAST',
+  'ADMIN_REWARD_NEW',
+  'ADMIN_MANTRA_NEW',
+  'ADMIN_BANNER_NEW',
+  'ADMIN_CHALLENGE_NEW',
+  'ADMIN_PRODUCT_NEW',
+]);
+
 export const resolveAnalyticsCategory = (
   actionTypeRaw?: string | null,
   titleRaw?: string | null,
@@ -1224,6 +1237,16 @@ export const resolveAnalyticsCategory = (
   if (ORDER_ACTION_TYPES.has(actionType) || stored === 'orders') {
     return 'orders';
   }
+  // Support tickets / seva replies / meetings always belong in General —
+  // older rows were wrongly stored as category "specific".
+  if (
+    GENERAL_ACTION_TYPES.has(actionType) ||
+    /support\s*ticket|support replied|ticket solved|seva prayer reply|online class|class scheduled|class is live/i.test(
+      title,
+    )
+  ) {
+    return 'general';
+  }
   if (
     BIRTHDAY_ACTION_TYPES.has(actionType) ||
     stored === 'birthday' ||
@@ -1236,9 +1259,47 @@ export const resolveAnalyticsCategory = (
     if (/order/i.test(title)) {
       return 'orders';
     }
+    if (/support|ticket|seva|meeting|class/i.test(title)) {
+      return 'general';
+    }
     return 'birthday';
   }
   return 'general';
+};
+
+/**
+ * Analytics timestamps for admin UI in Asia/Kolkata.
+ * DB drivers often return UTC Date / ISO-Z; never show raw UTC to admins.
+ */
+export const toIstAnalyticsStamp = (raw: any): string => {
+  if (raw == null || raw === '') {
+    return '';
+  }
+  if (raw instanceof Date && Number.isFinite(raw.getTime())) {
+    return nowIstStamp(raw);
+  }
+  const str = String(raw).trim();
+  if (!str) {
+    return '';
+  }
+  if (
+    /^\d{4}-\d{2}-\d{2}T/.test(str) ||
+    /Z$/i.test(str) ||
+    /[+-]\d{2}:\d{2}$/.test(str)
+  ) {
+    const ms = Date.parse(str);
+    if (Number.isFinite(ms)) {
+      return nowIstStamp(new Date(ms));
+    }
+  }
+  // Naive "YYYY-MM-DD HH:mm:ss" from nowIstStamp / TEXT columns is already IST.
+  const naive = str.match(
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/,
+  );
+  if (naive) {
+    return `${naive[1]} ${naive[2]}`;
+  }
+  return str.replace('T', ' ').slice(0, 19);
 };
 
 export const syncUnqueuedBatchesToAnalytics = async () => {
@@ -1264,7 +1325,8 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
       const actionType = String(batch.action_type || '');
       const message = String(batch.message || '');
       const count = Number(batch.count || 0);
-      const firstCreated = batch.first_created || nowIstStamp();
+      const firstCreated =
+        toIstAnalyticsStamp(batch.first_created) || nowIstStamp();
 
       let title = '';
       if (actionType === 'ADMIN_REWARD_NEW') title = 'New Reward';
@@ -1330,6 +1392,20 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
 export const getNotificationAnalytics = async (categoryFilter?: string) => {
   await ensureQueueTable();
   await syncUnqueuedBatchesToAnalytics();
+
+  // One-time style repair: support replies used to be stored as "specific".
+  try {
+    await mysql.query(
+      `
+      UPDATE admin_notification_queue
+      SET category = 'general'
+      WHERE action_type IN ('SUPPORT_TICKET_REPLY', 'ADMIN_SEVA_REPLY', 'MEETING_SCHEDULED', 'MEETING_LIVE')
+        AND IFNULL(category, '') IN ('specific', 'birthday')
+      `,
+    );
+  } catch {
+    // Ignore if table/columns differ on older DBs.
+  }
 
   // Pull non-order + order rows separately so ORDER_STATUS spam does not
   // bury meetings / admin broadcasts / birthday sends under General & Specific.
@@ -1450,7 +1526,9 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
         targetGroup: row.targetGroup || 'all',
         category,
         actionType: row.actionType || 'ADMIN_BROADCAST',
-        sentAt: row.processedAt || row.sendAt || row.createdAt,
+        sentAt: toIstAnalyticsStamp(
+          row.processedAt || row.sendAt || row.createdAt,
+        ),
         sentCount,
         readCount: safeReadCount,
         unreadCount,
@@ -1512,4 +1590,6 @@ export default {
   getNotificationAnalytics,
   mapTarget,
   nowIstStamp,
+  toIstAnalyticsStamp,
+  resolveAnalyticsCategory,
 };

@@ -60,6 +60,18 @@ const resolveItemCategory = (
   ) {
     return 'orders';
   }
+  // Support tickets, seva replies, meetings → General (not Specific).
+  if (
+    action === 'SUPPORT_TICKET_REPLY' ||
+    action === 'ADMIN_SEVA_REPLY' ||
+    action === 'MEETING_SCHEDULED' ||
+    action === 'MEETING_LIVE' ||
+    /support\s*ticket|support replied|ticket solved|seva prayer reply|online class|class scheduled|class is live/i.test(
+      title,
+    )
+  ) {
+    return 'general';
+  }
   if (
     raw === 'birthday' ||
     action === 'TODAY_BIRTHDAY' ||
@@ -69,7 +81,7 @@ const resolveItemCategory = (
   ) {
     return 'birthday';
   }
-  // Legacy "specific" without order/birthday signals → Specific tab.
+  // Legacy "specific" without order/birthday/support signals → Specific tab.
   if (raw === 'specific') {
     return 'birthday';
   }
@@ -92,10 +104,41 @@ const formatTargetGroup = (target: string) => {
   return target;
 };
 
+/** Show send time in India (IST). API usually already returns IST wall-clock. */
 const formatDate = (raw: string) => {
   if (!raw) return '';
-  const clean = raw.replace('T', ' ').slice(0, 19);
-  return clean;
+  const trimmed = String(raw).trim();
+  if (!trimmed) return '';
+
+  const hasTz =
+    /T/.test(trimmed) ||
+    /Z$/i.test(trimmed) ||
+    /[+-]\d{2}:?\d{2}$/.test(trimmed);
+
+  if (hasTz) {
+    const ms = Date.parse(trimmed);
+    if (Number.isFinite(ms)) {
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      }).formatToParts(new Date(ms));
+      const get = (type: string) =>
+        parts.find(part => part.type === type)?.value || '00';
+      let hour = get('hour');
+      if (hour === '24') hour = '00';
+      return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
+        'minute',
+      )}:${get('second')}`;
+    }
+  }
+
+  return trimmed.replace('T', ' ').slice(0, 19);
 };
 
 const AdminNotificationAnalyticsScreen = () => {

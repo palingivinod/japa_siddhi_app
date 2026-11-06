@@ -108,7 +108,7 @@ class CustomerCareService {
       const q = await mysql.query<any>(
         `INSERT INTO admin_notification_queue (
           title, message, target_group, category, action_type, send_at, status, recipient_count, created_at
-        ) VALUES (?, ?, 'selected_users', 'specific', 'SUPPORT_TICKET_REPLY', ?, 'SENDING', 1, ?)`,
+        ) VALUES (?, ?, 'selected_users', 'general', 'SUPPORT_TICKET_REPLY', ?, 'SENDING', 1, ?)`,
         [title, message, now, now],
       );
       queueId = Number((q as any)?.insertId ?? (q as any)?.id ?? 0);
