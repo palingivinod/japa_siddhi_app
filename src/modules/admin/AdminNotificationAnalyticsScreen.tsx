@@ -104,38 +104,58 @@ const formatTargetGroup = (target: string) => {
   return target;
 };
 
-/** Show send time in India (IST). API usually already returns IST wall-clock. */
+/** Show send time in India (IST). Naive stamps without offset are treated as UTC. */
 const formatDate = (raw: string) => {
   if (!raw) return '';
   const trimmed = String(raw).trim();
   if (!trimmed) return '';
 
+  const toIstWall = (ms: number) => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(ms));
+    const get = (type: string) =>
+      parts.find(part => part.type === type)?.value || '00';
+    let hour = get('hour');
+    if (hour === '24') hour = '00';
+    return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
+      'minute',
+    )}:${get('second')}`;
+  };
+
+  // Backend may already send IST with +05:30 — parse once, display wall clock.
+  if (/\+05:30$/.test(trimmed)) {
+    const ms = Date.parse(trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T'));
+    if (Number.isFinite(ms)) {
+      return toIstWall(ms);
+    }
+  }
+
+  const naive = trimmed.match(
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/,
+  );
   const hasTz =
     /T/.test(trimmed) ||
     /Z$/i.test(trimmed) ||
     /[+-]\d{2}:?\d{2}$/.test(trimmed);
 
+  let ms = NaN;
   if (hasTz) {
-    const ms = Date.parse(trimmed);
-    if (Number.isFinite(ms)) {
-      const parts = new Intl.DateTimeFormat('en-GB', {
-        timeZone: 'Asia/Kolkata',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false,
-      }).formatToParts(new Date(ms));
-      const get = (type: string) =>
-        parts.find(part => part.type === type)?.value || '00';
-      let hour = get('hour');
-      if (hour === '24') hour = '00';
-      return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
-        'minute',
-      )}:${get('second')}`;
-    }
+    ms = Date.parse(trimmed);
+  } else if (naive) {
+    // Old API/DB UTC wall without Z — e.g. 11:40:04 → 17:10:04 IST
+    ms = Date.parse(`${naive[1]}T${naive[2]}Z`);
+  }
+
+  if (Number.isFinite(ms)) {
+    return toIstWall(ms);
   }
 
   return trimmed.replace('T', ' ').slice(0, 19);

@@ -1269,18 +1269,30 @@ export const resolveAnalyticsCategory = (
 
 /**
  * Analytics timestamps for admin UI in Asia/Kolkata.
- * DB drivers often return UTC Date / ISO-Z; never show raw UTC to admins.
+ * DB/drivers on Render store/return UTC; convert and tag +05:30 so clients
+ * do not shift the value a second time.
  */
 export const toIstAnalyticsStamp = (raw: any): string => {
   if (raw == null || raw === '') {
     return '';
   }
+
+  const toTaggedIst = (date: Date) => {
+    const wall = nowIstStamp(date);
+    return `${wall.replace(' ', 'T')}+05:30`;
+  };
+
   if (raw instanceof Date && Number.isFinite(raw.getTime())) {
-    return nowIstStamp(raw);
+    return toTaggedIst(raw);
   }
   const str = String(raw).trim();
   if (!str) {
     return '';
+  }
+  // Already tagged IST from a previous convert — keep wall clock stable.
+  if (/\+05:30$/.test(str)) {
+    const wall = str.replace('T', ' ').replace(/\+05:30$/, '').trim();
+    return `${wall.replace(' ', 'T')}+05:30`;
   }
   if (
     /^\d{4}-\d{2}-\d{2}T/.test(str) ||
@@ -1289,14 +1301,18 @@ export const toIstAnalyticsStamp = (raw: any): string => {
   ) {
     const ms = Date.parse(str);
     if (Number.isFinite(ms)) {
-      return nowIstStamp(new Date(ms));
+      return toTaggedIst(new Date(ms));
     }
   }
-  // Naive "YYYY-MM-DD HH:mm:ss" from nowIstStamp / TEXT columns is already IST.
+  // Naive "YYYY-MM-DD HH:mm:ss" is UTC wall-clock (e.g. 11:40 → 17:10 IST).
   const naive = str.match(
     /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/,
   );
   if (naive) {
+    const asUtc = Date.parse(`${naive[1]}T${naive[2]}Z`);
+    if (Number.isFinite(asUtc)) {
+      return toTaggedIst(new Date(asUtc));
+    }
     return `${naive[1]} ${naive[2]}`;
   }
   return str.replace('T', ' ').slice(0, 19);
