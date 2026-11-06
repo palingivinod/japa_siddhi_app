@@ -5,6 +5,10 @@ import {useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {
+  getSavedFormComments,
+  saveFormComments,
+} from '../../utils/savedFormComments';
 import DatePickerModal from '../common/DatePickerModal';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
@@ -34,6 +38,11 @@ const JapaAnnadanamScreen = () => {
       .get('/annadanam/visibility')
       .then(response => setEnabled(response.data?.data?.japa !== false))
       .catch(() => setEnabled(true));
+    getSavedFormComments('japa_annadanam').then(saved => {
+      if (saved) {
+        setComments(prev => prev || saved);
+      }
+    });
   }, []);
 
   return (
@@ -118,13 +127,15 @@ const JapaAnnadanamScreen = () => {
                 Alert.alert(t('validationTitle'), t('commentsRequired'));
                 return;
               }
+              const trimmedComments = comments.trim();
+              void saveFormComments('japa_annadanam', trimmedComments);
               navigation.navigate('DonationForm', {
                 kind: 'JAPA_ANNADANAM',
                 persons,
                 amount: totalAmount,
                 itemName: t('japaAnnadanam'),
                 preferDate,
-                comments: comments.trim(),
+                comments: trimmedComments,
               });
             }}
           />

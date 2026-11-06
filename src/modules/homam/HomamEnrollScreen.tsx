@@ -10,6 +10,10 @@ import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {startAppPayment} from '../payments/startAppPayment';
+import {
+  getSavedFormComments,
+  saveFormComments,
+} from '../../utils/savedFormComments';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const HOMAM_AMOUNT = 500;
@@ -29,9 +33,10 @@ const HomamEnrollScreen = () => {
       let active = true;
       const load = async () => {
         try {
-          const [stored, profile] = await Promise.all([
+          const [stored, profile, savedComments] = await Promise.all([
             getStoredUser(),
             ProfileApi.getProfile().catch(() => null),
+            getSavedFormComments('nithya_homam'),
           ]);
           if (!active) {
             return;
@@ -48,6 +53,9 @@ const HomamEnrollScreen = () => {
           }
           if (phone) {
             setMobile(prev => prev || digitsOnly(String(phone)).slice(0, MOBILE_DIGITS));
+          }
+          if (savedComments) {
+            setComments(prev => prev || savedComments);
           }
         } catch {
           // ignore profile load error
@@ -93,6 +101,9 @@ const HomamEnrollScreen = () => {
       return;
     }
 
+    const trimmedComments = comments.trim();
+    void saveFormComments('nithya_homam', trimmedComments);
+
     await startAppPayment({
       amount: HOMAM_AMOUNT,
       purpose: `Nithya Homam: ${cleanPurpose}`.slice(0, 80),
@@ -101,7 +112,7 @@ const HomamEnrollScreen = () => {
       phone: cleanMobile,
       gothram: cleanGothram,
       nakshatram: cleanNakshatram,
-      comments: comments.trim(),
+      comments: trimmedComments,
     });
   };
 

@@ -22,6 +22,10 @@ import ScreenLayout from '../common/ScreenLayout';
 import SelectField from '../common/SelectField';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 import {startAppPayment} from '../payments/startAppPayment';
+import {
+  getSavedFormComments,
+  saveFormComments,
+} from '../../utils/savedFormComments';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const GeneralAnnadanamScreen = () => {
@@ -68,9 +72,10 @@ const GeneralAnnadanamScreen = () => {
       let active = true;
       const loadProfile = async () => {
         try {
-          const [stored, profile] = await Promise.all([
+          const [stored, profile, savedComments] = await Promise.all([
             getStoredUser(),
             ProfileApi.getProfile().catch(() => null),
+            getSavedFormComments('general_annadanam'),
           ]);
           if (!active) return;
           const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
@@ -78,6 +83,9 @@ const GeneralAnnadanamScreen = () => {
 
           setFullName(current => current || String(name));
           setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          if (savedComments) {
+            setComments(current => current || savedComments);
+          }
           setGender(String(profile?.gender || stored?.gender || ''));
           setSpouseName(String(profile?.spouseName || stored?.spouseName || stored?.spouse_name || ''));
           setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
@@ -154,6 +162,9 @@ const GeneralAnnadanamScreen = () => {
       return;
     }
 
+    const trimmedComments = comments.trim();
+    void saveFormComments('general_annadanam', trimmedComments);
+
     await startAppPayment({
       amount: totalAmount,
       purpose: occasion,
@@ -172,7 +183,7 @@ const GeneralAnnadanamScreen = () => {
       phone: cleanMobile,
       gothram: gothram.trim(),
       nakshatram: nakshatram.trim(),
-      comments: comments.trim(),
+      comments: trimmedComments,
     });
   };
 

@@ -13,6 +13,10 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 import {startAppPayment} from '../payments/startAppPayment';
+import {
+  getSavedFormComments,
+  saveFormComments,
+} from '../../utils/savedFormComments';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 
 const DonationFormScreen = () => {
@@ -20,6 +24,10 @@ const DonationFormScreen = () => {
   const {t} = useLanguage();
   const route = useRoute<any>();
   const params = route.params || {};
+  const commentSaveKey =
+    String(params.kind || '').toUpperCase() === 'JAPA_ANNADANAM'
+      ? 'japa_annadanam'
+      : 'general_annadanam';
   const [fullName, setFullName] = useState(params.fullName || '');
   const [mobile, setMobile] = useState(
     digitsOnly(params.mobile || '').slice(-MOBILE_DIGITS),
@@ -43,9 +51,10 @@ const DonationFormScreen = () => {
       let active = true;
       const loadProfile = async () => {
         try {
-          const [stored, profile] = await Promise.all([
+          const [stored, profile, savedComments] = await Promise.all([
             getStoredUser(),
             ProfileApi.getProfile().catch(() => null),
+            getSavedFormComments(commentSaveKey),
           ]);
           if (!active) return;
           const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
@@ -62,6 +71,9 @@ const DonationFormScreen = () => {
             current =>
               current || String(profile?.nakshatram || stored?.nakshatram || ''),
           );
+          if (savedComments) {
+            setComments(current => current || savedComments);
+          }
         } catch {
           // ignore profile load error
         }
@@ -71,7 +83,7 @@ const DonationFormScreen = () => {
       return () => {
         active = false;
       };
-    }, [fullName, mobile]),
+    }, [fullName, mobile, commentSaveKey]),
   );
 
   const totalAmount = persons * RATE_PER_PERSON;
@@ -110,6 +122,9 @@ const DonationFormScreen = () => {
       return;
     }
 
+    const trimmedComments = comments.trim();
+    void saveFormComments(commentSaveKey, trimmedComments);
+
     await startAppPayment({
       amount: totalAmount,
       purpose: occasion.trim() || params.itemName || 'Anna Santharpana',
@@ -120,7 +135,7 @@ const DonationFormScreen = () => {
       phone: cleanMobile,
       gothram: gothram.trim(),
       nakshatram: nakshatram.trim(),
-      comments: comments.trim(),
+      comments: trimmedComments,
     });
   };
 
