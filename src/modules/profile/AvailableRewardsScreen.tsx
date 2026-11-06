@@ -2,7 +2,6 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,7 +11,8 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import AppIcon from '../../components/icons/AppIcon';
-import apiService, {getApiError} from '../../services/apiService';
+import apiService from '../../services/apiService';
+import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
@@ -20,8 +20,14 @@ import {
   checkRewardEligibility,
   getLocalizedReward,
   isCanonicalReward,
+  isMarakataShivlingName,
+  MARAKATA_SHIVLING_EXTRA_JAPAS,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
+import {
+  MARAKATA_SHIVLING_REWARD_NAME,
+  resolveMarakataUnlockTarget,
+} from '../../utils/marakataShivling';
 
 type RewardItem = {
   id: number | string;
@@ -42,8 +48,13 @@ const DEFAULT_REWARDS: RewardItem[] = [
   {id: 6, name: 'Spatik Mala', inStock: true},
   {id: 7, name: 'Green Agate', inStock: true},
   {id: 8, name: 'Yellow Agate', inStock: true},
-  {id: 9, name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', inStock: true},
-  {id: 10, name: 'Spiritual Reward', inStock: true},
+  {id: 9, name: MARAKATA_SHIVLING_REWARD_NAME, inStock: true},
+  {
+    id: 10,
+    name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
+    inStock: true,
+  },
+  {id: 11, name: 'Spiritual Reward', inStock: true},
 ];
 
 const AvailableRewardsScreen = () => {
@@ -51,6 +62,7 @@ const AvailableRewardsScreen = () => {
   const {t, tt, language} = useLanguage();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [userTotalJapas, setUserTotalJapas] = useState(0);
+  const [marakataTarget, setMarakataTarget] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -60,16 +72,36 @@ const AvailableRewardsScreen = () => {
     setError('');
     setRawError(null);
     try {
-      const [response, milestoneRes] = await Promise.all([
+      const stored = await getStoredUser();
+      const userId = stored?.id || stored?.userId || 'anon';
+
+      const [response, milestoneRes, marakataRes] = await Promise.all([
         apiService
           .get('/challenges/rewards')
           .catch(() => apiService.get('/admin/rewards')),
         apiService.get('/japa/milestones').catch(() => null),
+        apiService
+          .get('/japa/relative-rewards/marakata-shivling')
+          .catch(() => null),
       ]);
 
       const milestoneData = milestoneRes?.data?.data || {};
-      const total = Number(milestoneData.total || milestoneData.milestoneTotal || 0);
+      const marakataData = marakataRes?.data?.data || {};
+      const total = Number(
+        marakataData.total ||
+          milestoneData.total ||
+          milestoneData.milestoneTotal ||
+          0,
+      );
       setUserTotalJapas(total);
+
+      const locked = await resolveMarakataUnlockTarget(
+        userId,
+        total,
+        Number(marakataData.unlockTarget || marakataData.target || 0) ||
+          undefined,
+      );
+      setMarakataTarget(locked);
 
       const raw =
         response.data?.data?.rewards ||
@@ -81,34 +113,51 @@ const AvailableRewardsScreen = () => {
 
       if (rows.length > 0) {
         const mapped = rows
-          .map((row: any) => ({
-            id: row.id,
-            name: String(row.name || ''),
-            stock: Number(row.stock || 0),
-            inStock: true,
-            emoji: row.emoji,
-            description: row.description,
-            eligibilityCriteria: Number(
-              row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
-            ),
-          }))
+          .map((row: any) => {
+            const stock = Number(row.stock || 0);
+            const explicitInStock =
+              row.inStock === true ||
+              row.inStock === 1 ||
+              row.inStock === '1';
+            const explicitOut =
+              row.inStock === false ||
+              row.inStock === 0 ||
+              row.inStock === '0';
+            return {
+              id: row.id,
+              name: String(row.name || ''),
+              stock,
+              inStock: explicitOut ? false : explicitInStock ? true : stock > 0,
+              emoji: row.emoji,
+              description: row.description,
+              eligibilityCriteria: Number(
+                row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+              ),
+            };
+          })
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
 
-        // Guarantee 5 Lakhs & 10 Lakhs canonical rewards are always visible even if backend DB hasn't seeded them
         const missingCanonical = DEFAULT_REWARDS.filter(def => {
           const defLower = def.name.toLowerCase();
           return !mapped.some((m: any) => {
             const mLower = String(m.name || '').toLowerCase();
-            return (
-              mLower === defLower ||
-              (defLower.includes('sandal') &&
-                (mLower.includes('sandal') || mLower.includes('chandan'))) ||
-              (defLower.includes('marakatha') &&
+            if (isMarakataShivlingName(def.name)) {
+              return isMarakataShivlingName(m.name);
+            }
+            if (defLower.includes('sree chakra') || defLower.includes('sri chakra')) {
+              return (
+                !isMarakataShivlingName(m.name) &&
                 (mLower.includes('marakatha') ||
                   mLower.includes('green jade') ||
                   mLower.includes('sri chakra') ||
                   mLower.includes('sree chakra') ||
-                  mLower.includes('aventurine'))) ||
+                  (mLower.includes('aventurine') && mLower.includes('chakra')))
+              );
+            }
+            return (
+              mLower === defLower ||
+              (defLower.includes('sandal') &&
+                (mLower.includes('sandal') || mLower.includes('chandan'))) ||
               (defLower.includes('spiritual reward') &&
                 mLower.includes('spiritual reward'))
             );
@@ -124,8 +173,17 @@ const AvailableRewardsScreen = () => {
       }
     } catch (err) {
       setRawError(err);
-      // Fall back to default sacred rewards if offline or network issue
       setRewards(DEFAULT_REWARDS);
+      try {
+        const stored = await getStoredUser();
+        const locked = await resolveMarakataUnlockTarget(
+          stored?.id || stored?.userId || 'anon',
+          0,
+        );
+        setMarakataTarget(locked);
+      } catch {
+        setMarakataTarget(MARAKATA_SHIVLING_EXTRA_JAPAS);
+      }
     } finally {
       setLoading(false);
     }
@@ -137,17 +195,72 @@ const AvailableRewardsScreen = () => {
     }, [load]),
   );
 
-  const handleCardPress = (item: RewardItem, localized: any) => {
-    const eligibility = checkRewardEligibility(
+  const eligibilityFor = (item: RewardItem) =>
+    checkRewardEligibility(
       item.name,
       userTotalJapas,
       language,
       item.eligibilityCriteria,
+      isMarakataShivlingName(item.name) ? marakataTarget : undefined,
     );
+
+  const handleCardPress = (item: RewardItem, localized: any) => {
+    const eligibility = eligibilityFor(item);
     const description = String(item.description || localized.description || '').trim();
     const title = localized.title || tt(item.name);
     const message = (line: string) =>
       description ? `${description}\n\n${line}` : line;
+    const outOfStock = item.inStock === false || Number(item.stock || 0) <= 0;
+
+    if (outOfStock) {
+      Alert.alert(
+        t('outOfStockTitle') || 'Out of Stock',
+        message(t('outOfStockRewardMsg') || 'This reward item is currently out of stock.'),
+        [{text: t('ok')}],
+      );
+      return;
+    }
+
+    if (isMarakataShivlingName(item.name)) {
+      const lockedLine = t('marakataUnlockRule', {
+        present: userTotalJapas.toLocaleString('en-IN'),
+        extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN'),
+        target: (marakataTarget || eligibility.requiredJapas).toLocaleString(
+          'en-IN',
+        ),
+      });
+      if (!eligibility.isEligible) {
+        Alert.alert(
+          title,
+          message(
+            `${lockedLine}\n\n${t('needMoreJapasReward', {
+              count: eligibility.remainingJapas.toLocaleString('en-IN'),
+            })}`,
+          ),
+          [{text: t('ok')}],
+        );
+        return;
+      }
+      Alert.alert(
+        title,
+        message(
+          `${lockedLine}\n\n${t('marakataEligibleHint') || t('youAreEligibleForReward')}`,
+        ),
+        [
+          {text: t('ok')},
+          {
+            text: t('clickHereToGrabReward'),
+            onPress: () =>
+              navigation.navigate('MarakataShivlingClaim', {
+                rewardId: item.id,
+                rewardName: item.name,
+              }),
+          },
+        ],
+      );
+      return;
+    }
+
     if (!eligibility.isEligible) {
       Alert.alert(
         title,
@@ -172,7 +285,6 @@ const AvailableRewardsScreen = () => {
 
   return (
     <ScreenLayout title={t('availableRewards') || 'Available Rewards'} tab="Rewards">
-      {/* Banner / Info Header */}
       <View style={styles.banner}>
         <View style={styles.bannerIconWrap}>
           <Text style={styles.bannerEmoji}>🎁</Text>
@@ -202,13 +314,10 @@ const AvailableRewardsScreen = () => {
       <View style={styles.listContainer}>
         {rewards.map(item => {
           const localized = getLocalizedReward(item.name, language);
-          const eligibility = checkRewardEligibility(
-            item.name,
-            userTotalJapas,
-            language,
-            item.eligibilityCriteria,
-          );
-          const isLocked = !eligibility.isEligible;
+          const eligibility = eligibilityFor(item);
+          const outOfStock =
+            item.inStock === false || Number(item.stock || 0) <= 0;
+          const isLocked = !eligibility.isEligible || outOfStock;
 
           return (
             <TouchableOpacity
@@ -230,7 +339,15 @@ const AvailableRewardsScreen = () => {
                   <Text style={styles.rewardName}>
                     {localized.title || tt(item.name)}
                   </Text>
-                  {!isLocked ? (
+                  {outOfStock ? (
+                    <View style={styles.badgeRow}>
+                      <View style={styles.oosBadge}>
+                        <Text style={styles.oosText}>
+                          {t('outOfStockTitle') || 'Out of Stock'}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : !isLocked ? (
                     <View style={styles.badgeRow}>
                       <View style={styles.statusBadge}>
                         <Text style={styles.statusText}>
@@ -246,10 +363,25 @@ const AvailableRewardsScreen = () => {
               <Text style={styles.description}>
                 {item.description || localized.description || tt(item.description || '')}
               </Text>
-              {isLocked ? (
+              {outOfStock ? (
                 <Text style={styles.remainingHint}>
-                  {t('unlocksAt', {target: eligibility.requiredLabel}) ||
-                    `Unlocks at ${eligibility.requiredLabel}`}
+                  {t('outOfStockRewardMsg') ||
+                    'This reward item is currently out of stock.'}
+                </Text>
+              ) : !eligibility.isEligible ? (
+                <Text style={styles.remainingHint}>
+                  {isMarakataShivlingName(item.name)
+                    ? t('marakataUnlockRule', {
+                        present: userTotalJapas.toLocaleString('en-IN'),
+                        extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString(
+                          'en-IN',
+                        ),
+                        target: (
+                          marakataTarget || eligibility.requiredJapas
+                        ).toLocaleString('en-IN'),
+                      })
+                    : t('unlocksAt', {target: eligibility.requiredLabel}) ||
+                      `Unlocks at ${eligibility.requiredLabel}`}
                   {'\n'}
                   {t('needMoreJapasReward', {
                     count: eligibility.remainingJapas.toLocaleString('en-IN'),
@@ -376,6 +508,20 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: Colors.leafGreen,
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '700',
+    includeFontPadding: true,
+  },
+  oosBadge: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  oosText: {
+    color: Colors.error,
     fontSize: 12,
     lineHeight: 18,
     fontWeight: '700',

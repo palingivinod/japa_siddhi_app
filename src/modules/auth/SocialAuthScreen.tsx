@@ -573,7 +573,7 @@ const SocialAuthScreen = () => {
             </View>
           </View>
         </Modal>
-      </ScreenLayout>
+    </ScreenLayout>
   );
 };
 

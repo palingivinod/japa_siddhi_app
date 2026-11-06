@@ -165,15 +165,30 @@ const JapaHubScreen = () => {
 
               <Text style={styles.annadanamCardBody}>
                 {annadanamPrompt.userTotal === annadanamPrompt.milestoneTarget
-                  ? `Congratulations! You have completed ${annadanamPrompt.userTotal.toLocaleString()} sacred Japas. Would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers?`
-                  : `You have completed ${annadanamPrompt.userTotal.toLocaleString()} sacred Japas! On this blessed occasion, dedicate your sadhana by offering Anna Santharpana for devotees.`}
+                  ? t('annadanamMilestonePrompt', {
+                      count: Number(
+                        annadanamPrompt.userTotal || 0,
+                      ).toLocaleString('en-IN'),
+                    }) ||
+                    `Congratulations! You have completed ${Number(annadanamPrompt.userTotal || 0).toLocaleString('en-IN')} sacred Japas. Would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers? Try to offer for at least 2 persons.`
+                  : t('annadanamMilestonePromptShort', {
+                      count: Number(
+                        annadanamPrompt.userTotal || 0,
+                      ).toLocaleString('en-IN'),
+                    }) ||
+                    `You have completed ${Number(annadanamPrompt.userTotal || 0).toLocaleString('en-IN')} sacred Japas! On this blessed occasion, dedicate your sadhana by offering Anna Santharpana for devotees. Try to offer for at least 2 persons.`}
               </Text>
 
               <View style={styles.annadanamActions}>
                 <TouchableOpacity
                   style={styles.annadanamPerformBtn}
                   activeOpacity={0.85}
-                  onPress={() => navigation.navigate('JapaAnnadanam')}>
+                  onPress={() =>
+                    navigation.navigate('JapaAnnadanam', {
+                      persons: 2,
+                      suggestPersons: true,
+                    })
+                  }>
                   <Text style={styles.annadanamPerformBtnText}>
                     {'Perform Annadanam'}
                   </Text>

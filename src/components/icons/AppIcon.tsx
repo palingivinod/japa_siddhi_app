@@ -39,6 +39,7 @@ export type AppIconName =
   | 'greenAgate'
   | 'yellowAgate'
   | 'marakathaSriChakra'
+  | 'marakataShivling'
   | 'pasupuKommulaMala'
   | 'karungaliMala'
   | 'spatikaMala'
@@ -81,6 +82,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   greenAgate: require('../../assets/images/green_agate.jpg'),
   yellowAgate: require('../../assets/images/yellow_agate.jpg'),
   marakathaSriChakra: require('../../assets/images/marakatha_sri_chakra.png'),
+  marakataShivling: require('../../assets/images/marakata_shivling.jpg'),
   pasupuKommulaMala: require('../../assets/images/pasupu_kommula_mala.jpg'),
   karungaliMala: require('../../assets/images/karungali_mala.jpg'),
   spatikaMala: require('../../assets/images/spatika_mala.png'),

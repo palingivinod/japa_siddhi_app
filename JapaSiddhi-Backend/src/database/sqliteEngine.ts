@@ -833,8 +833,9 @@ class SqliteEngine {
         ('Spatik Mala', 50, 1, 6),
         ('Green Agate', 50, 1, 7),
         ('Yellow Agate', 50, 1, 8),
-        ('Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', 50, 1, 9),
-        ('Spiritual Reward', 50, 1, 10)
+        ('Marakata Shivling (Green Aventurine)', 50, 1, 9),
+        ('Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', 50, 1, 10),
+        ('Spiritual Reward', 50, 1, 11)
       `,
     );
   }

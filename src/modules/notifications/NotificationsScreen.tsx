@@ -367,7 +367,7 @@ const NotificationsScreen = () => {
       const unreadCount = visible.filter((item: any) => !item.isRead).length;
       setAppBadgeCount(unreadCount).catch(() => undefined);
     } catch (err) {
-      setRawError(err);
+        setRawError(err);
       setError(getApiError(err, t('couldNotLoadMilestones')));
     } finally {
       setLoading(false);
@@ -610,7 +610,7 @@ const NotificationsScreen = () => {
         const isHighlighted = highlightedId === String(item.id);
         return (
           <TouchableOpacity
-            key={item.id}
+          key={item.id}
             activeOpacity={0.75}
             style={[
               styles.card,
@@ -731,7 +731,7 @@ const NotificationsScreen = () => {
                       <TouchableOpacity
                         style={styles.openLinkBtn}
                         activeOpacity={0.8}
-                        onPress={() => {
+          onPress={() => {
                           Linking.openURL(cleanLink).catch(() => {
                             Alert.alert('Link Error', 'Unable to open link in browser.');
                           });

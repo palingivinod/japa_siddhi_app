@@ -16,6 +16,37 @@ export type MilestoneDelivery = {
   pinCode: string;
 };
 
+/** Distinct from Marakata Sree Chakra — relative present+3000 claim. */
+export const isMarakataShivlingName = (rewardName: string): boolean => {
+  const lower = String(rewardName || '').toLowerCase();
+  if (!lower) {
+    return false;
+  }
+  if (lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+    return false;
+  }
+  const isMarakata =
+    lower.includes('marakata') ||
+    lower.includes('marakatha') ||
+    lower.includes('మరకత') ||
+    lower.includes('मरकत');
+  const isShivling =
+    lower.includes('shivling') ||
+    lower.includes('shivalinga') ||
+    lower.includes('shiva ling') ||
+    lower.includes('lingam') ||
+    lower.includes('శివలింగ') ||
+    lower.includes('शिवलिंग');
+  const isGreenAventurineShivling = lower.includes('aventurine') && isShivling;
+  return (isMarakata && isShivling) || isGreenAventurineShivling;
+};
+
+export const MARAKATA_SHIVLING_EXTRA_JAPAS = 3000;
+/** Sentinel claim key — not a real japa milestone count. */
+export const MARAKATA_SHIVLING_CLAIM_TARGET = 900003;
+export const MARAKATA_SHIVLING_REWARD_NAME =
+  'Marakata Shivling (Green Aventurine)';
+
 const rewardJapaRequirement = (name: string) => {
   const lower = String(name || '').toLowerCase();
   if (
@@ -24,6 +55,10 @@ const rewardJapaRequirement = (name: string) => {
     lower.includes('spiritual product')
   ) {
     return 1000000;
+  }
+  // Marakata Shivling uses relative present+3000 (handled in claimMarakataShivling)
+  if (isMarakataShivlingName(name)) {
+    return 0;
   }
   if (
     lower.includes('marakatha') ||
@@ -233,12 +268,484 @@ class MilestoneRewardService {
       reached: total >= milestone.target,
       claimed: claimed.includes(milestone.target),
       isRetry,
-      rewards: (rewards || []).map((row: any) => ({
-        id: Number(row.id),
-        name: String(row.name || ''),
-        stock: Number(row.stock || 0),
-        inStock: Number(row.stock || 0) > 0,
-      })),
+      rewards: (rewards || [])
+        .filter((row: any) => !isMarakataShivlingName(String(row.name || '')))
+        .map((row: any) => ({
+          id: Number(row.id),
+          name: String(row.name || ''),
+          stock: Number(row.stock || 0),
+          inStock: Number(row.stock || 0) > 0,
+        })),
+    };
+  }
+
+  private async ensureRelativeBaselineTable() {
+    await mysql.query('SELECT 1');
+    const engine = mysql.getEngineName();
+    if (engine === 'mysql') {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS relative_reward_baselines (
+          id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+          user_id INT NOT NULL,
+          reward_key VARCHAR(64) NOT NULL,
+          baseline INT NOT NULL,
+          unlock_target INT NOT NULL,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE KEY uniq_relative_reward (user_id, reward_key)
+        )
+      `);
+    } else {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS relative_reward_baselines (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          reward_key TEXT NOT NULL,
+          baseline INTEGER NOT NULL,
+          unlock_target INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, reward_key)
+        )
+      `);
+    }
+  }
+
+  private async ensureMarakataRewardRow(): Promise<{
+    id: number;
+    name: string;
+    stock: number;
+  }> {
+    const rewards = await challengeRepository.listRewards();
+    const found = (rewards || []).find((row: any) =>
+      isMarakataShivlingName(String(row.name || '')),
+    );
+    if (found) {
+      return {
+        id: Number(found.id),
+        name: String(found.name),
+        stock: Number(found.stock || 0),
+      };
+    }
+    await mysql.query(
+      `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
+      [MARAKATA_SHIVLING_REWARD_NAME, 50, 9],
+    );
+    const again = await challengeRepository.listRewards();
+    const created = (again || []).find((row: any) =>
+      isMarakataShivlingName(String(row.name || '')),
+    );
+    if (!created) {
+      throw new Error('Could not create Marakata Shivling reward');
+    }
+    return {
+      id: Number(created.id),
+      name: String(created.name),
+      stock: Number(created.stock || 0),
+    };
+  }
+
+  async getMarakataShivlingStatus(userId: number) {
+    await this.ensureTable();
+    await this.ensureRelativeBaselineTable();
+    const reward = await this.ensureMarakataRewardRow();
+    const total = await japaRepository.getUserMilestoneJapa(userId);
+    const existingBaseline = await mysql.query<any[]>(
+      `
+      SELECT baseline, unlock_target AS unlockTarget
+      FROM relative_reward_baselines
+      WHERE user_id = ? AND reward_key = 'marakata_shivling'
+      LIMIT 1
+      `,
+      [userId],
+    );
+    let baseline = Number(existingBaseline?.[0]?.baseline);
+    let unlockTarget = Number(existingBaseline?.[0]?.unlockTarget);
+    if (!(baseline >= 0) || !(unlockTarget > 0)) {
+      baseline = Math.max(0, Number(total) || 0);
+      unlockTarget = baseline + MARAKATA_SHIVLING_EXTRA_JAPAS;
+      try {
+        await mysql.query(
+          `
+          INSERT INTO relative_reward_baselines (user_id, reward_key, baseline, unlock_target)
+          VALUES (?, 'marakata_shivling', ?, ?)
+          `,
+          [userId, baseline, unlockTarget],
+        );
+      } catch {
+        const again = await mysql.query<any[]>(
+          `
+          SELECT baseline, unlock_target AS unlockTarget
+          FROM relative_reward_baselines
+          WHERE user_id = ? AND reward_key = 'marakata_shivling'
+          LIMIT 1
+          `,
+          [userId],
+        );
+        baseline = Number(again?.[0]?.baseline ?? baseline);
+        unlockTarget = Number(again?.[0]?.unlockTarget ?? unlockTarget);
+      }
+    }
+
+    const claimedRows = await mysql.query<any[]>(
+      `
+      SELECT
+        c.id,
+        c.order_id AS orderId,
+        c.order_number AS orderNumber,
+        COALESCE(c.retry_count, 0) AS retryCount,
+        o.order_status AS orderStatus
+      FROM milestone_reward_claims c
+      LEFT JOIN orders o ON o.id = c.order_id
+      WHERE c.user_id = ? AND c.milestone_target = ?
+      LIMIT 1
+      `,
+      [userId, MARAKATA_SHIVLING_CLAIM_TARGET],
+    );
+    const claim = claimedRows?.[0];
+    // Same as other rewards: 1 grab; if order cancelled (user or admin) and retry unused → 1 more chance.
+    let claimed = false;
+    let isRetryAvailable = false;
+    if (claim?.orderId) {
+      const status = String(claim.orderStatus || '').toUpperCase();
+      const retryCount = Number(claim.retryCount || 0);
+      if (status === 'CANCELLED' && retryCount === 0) {
+        claimed = false;
+        isRetryAvailable = true;
+      } else {
+        claimed = true;
+      }
+    }
+    const stock = Number(reward.stock || 0);
+
+    return {
+      rewardId: reward.id,
+      rewardName: reward.name,
+      total,
+      baseline,
+      unlockTarget,
+      target: unlockTarget,
+      extraJapas: MARAKATA_SHIVLING_EXTRA_JAPAS,
+      eligible: total >= unlockTarget,
+      remaining: Math.max(0, unlockTarget - total),
+      claimed,
+      isRetry: isRetryAvailable,
+      stock,
+      inStock: stock > 0,
+      orderId: claim?.orderId ? Number(claim.orderId) : null,
+      orderNumber: claim?.orderNumber ? String(claim.orderNumber) : null,
+    };
+  }
+
+  async claimMarakataShivling(userId: number, rewardId: number, delivery: MilestoneDelivery) {
+    await this.ensureTable();
+    await this.ensureRelativeBaselineTable();
+    const status = await this.getMarakataShivlingStatus(userId);
+    if (status.claimed) {
+      return {
+        alreadySubmitted: true,
+        target: MARAKATA_SHIVLING_CLAIM_TARGET,
+        title: 'Marakata Shivling',
+        rewardName: status.rewardName,
+        orderId: status.orderId,
+        orderNumber: status.orderNumber,
+      };
+    }
+
+    const reward = await challengeRepository.getRewardById(rewardId);
+    if (!reward || !isMarakataShivlingName(String(reward.name || ''))) {
+      throw new Error('Select Marakata Shivling reward');
+    }
+    if (Number(rewardId) !== Number(status.rewardId)) {
+      throw new Error('Invalid Marakata Shivling reward');
+    }
+    if (Number(reward.stock || 0) <= 0) {
+      throw new Error('This reward item is currently out of stock.');
+    }
+
+    const total = Number(status.total) || 0;
+    const unlockTarget = Number(status.unlockTarget) || 0;
+    if (total < unlockTarget) {
+      const remaining = unlockTarget - total;
+      throw new Error(
+        `This reward unlocks at ${unlockTarget.toLocaleString()} Japas (present + ${MARAKATA_SHIVLING_EXTRA_JAPAS}). You need ${remaining.toLocaleString()} more Japas.`,
+      );
+    }
+
+    // Same cancel-retry rules as other milestone rewards (user or admin cancel).
+    return this.claimRelativeWithTarget(
+      userId,
+      MARAKATA_SHIVLING_CLAIM_TARGET,
+      'Marakata Shivling (present + 3000)',
+      rewardId,
+      String(reward.name || MARAKATA_SHIVLING_REWARD_NAME),
+      delivery,
+    );
+  }
+
+  private async claimRelativeWithTarget(
+    userId: number,
+    claimTarget: number,
+    title: string,
+    rewardId: number,
+    rewardName: string,
+    delivery: MilestoneDelivery,
+  ) {
+    const existing = await mysql.query<any[]>(
+      `
+      SELECT
+        c.id,
+        c.reward_name AS rewardName,
+        c.order_id AS orderId,
+        c.order_number AS orderNumber,
+        COALESCE(c.retry_count, 0) AS retryCount,
+        o.order_status AS orderStatus
+      FROM milestone_reward_claims c
+      LEFT JOIN orders o ON o.id = c.order_id
+      WHERE c.user_id = ?
+      AND c.milestone_target = ?
+      LIMIT 1
+      `,
+      [userId, claimTarget],
+    );
+
+    const existingClaim = existing?.[0];
+    let isRetry = false;
+
+    if (existingClaim?.orderId) {
+      const orderStatus = String(existingClaim.orderStatus || '').toUpperCase();
+      const retryCount = Number(existingClaim.retryCount || 0);
+      // Active / delivered → blocked. Cancelled once (user or admin) → 1 retry. Retry used → blocked.
+      if (orderStatus !== 'CANCELLED') {
+        return {
+          alreadySubmitted: true,
+          target: claimTarget,
+          title,
+          rewardName: String(existingClaim.rewardName || ''),
+          orderId: Number(existingClaim.orderId),
+          orderNumber: String(existingClaim.orderNumber || ''),
+        };
+      }
+      if (retryCount >= 1) {
+        return {
+          alreadySubmitted: true,
+          target: claimTarget,
+          title,
+          rewardName: String(existingClaim.rewardName || ''),
+          orderId: Number(existingClaim.orderId),
+          orderNumber: String(existingClaim.orderNumber || ''),
+        };
+      }
+      isRetry = true;
+    }
+
+    const stockRows = await mysql.query<any[]>(
+      `SELECT stock FROM challenge_rewards WHERE id = ? LIMIT 1`,
+      [rewardId],
+    );
+    if (Number(stockRows?.[0]?.stock || 0) <= 0) {
+      throw new Error('This reward item is currently out of stock.');
+    }
+
+    const fullName = String(delivery.fullName || '').trim();
+    const mobile = String(delivery.mobile || '').replace(/\D/g, '').slice(-10);
+    const address = String(delivery.address || '').trim();
+    const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
+    if (!fullName || !address) {
+      throw new Error('Enter all delivery details');
+    }
+    if (!/^[0-9]{10}$/.test(mobile)) {
+      throw new Error('Enter a valid 10-digit mobile number');
+    }
+    if (!/^[0-9]{6}$/.test(pinCode)) {
+      throw new Error('PIN code is mandatory (6 digits)');
+    }
+    let city = '';
+    let state = '';
+    try {
+      const lookedUp = await masterService.lookupPincode(pinCode);
+      city = String(lookedUp.cityName || '').trim();
+      state = String(lookedUp.stateName || '').trim();
+    } catch {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
+    }
+    if (!city || !state) {
+      throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
+    }
+
+    const remarks = [
+      'Relative reward',
+      `Reward track: ${title}`,
+      `Reward: ${rewardName}`,
+      `Name: ${fullName}`,
+      `Mobile: ${mobile}`,
+      `Address: ${address}`,
+      `City: ${city}`,
+      `State: ${state}`,
+      `PIN: ${pinCode}`,
+    ].join('\n');
+
+    const created = await orderService.create({
+      userId,
+      orderType: 'SPIRITUAL_PRODUCT',
+      orderSource: 'MILESTONE',
+      itemName: rewardName,
+      quantity: 1,
+      paymentId: null,
+      orderStatus: 'UNDER_REVIEW',
+      remarks,
+    });
+    const orderNumber = `RW${String(10000 + Number(created.id)).padStart(5, '0')}`;
+
+    if (existingClaim?.id) {
+      await mysql.query(
+        `
+        UPDATE milestone_reward_claims
+        SET
+          reward_id = ?,
+          reward_name = ?,
+          full_name = ?,
+          mobile = ?,
+          address = ?,
+          city = ?,
+          state = ?,
+          pin_code = ?,
+          order_id = ?,
+          order_number = ?,
+          retry_count = ${isRetry ? 'COALESCE(retry_count, 0) + 1' : '0'},
+          created_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [
+          rewardId,
+          rewardName,
+          fullName,
+          mobile,
+          address,
+          city,
+          state,
+          pinCode,
+          created.id,
+          orderNumber,
+          existingClaim.id,
+        ],
+      );
+    } else {
+      try {
+        await mysql.query(
+          `
+          INSERT INTO milestone_reward_claims (
+            user_id,
+            milestone_target,
+            reward_id,
+            reward_name,
+            full_name,
+            mobile,
+            address,
+            city,
+            state,
+            pin_code,
+            order_id,
+            order_number,
+            retry_count
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+          `,
+          [
+            userId,
+            claimTarget,
+            rewardId,
+            rewardName,
+            fullName,
+            mobile,
+            address,
+            city,
+            state,
+            pinCode,
+            created.id,
+            orderNumber,
+          ],
+        );
+      } catch (error) {
+        await mysql.query('DELETE FROM orders WHERE id = ?', [created.id]);
+        const again = await mysql.query<any[]>(
+          `
+          SELECT order_id AS orderId, order_number AS orderNumber, reward_name AS rewardName
+          FROM milestone_reward_claims
+          WHERE user_id = ? AND milestone_target = ?
+          LIMIT 1
+          `,
+          [userId, claimTarget],
+        );
+        if (again[0]?.orderId) {
+          return {
+            alreadySubmitted: true,
+            target: claimTarget,
+            title,
+            rewardName: String(again[0].rewardName || rewardName),
+            orderId: Number(again[0].orderId),
+            orderNumber: String(again[0].orderNumber || ''),
+          };
+        }
+        throw error;
+      }
+    }
+
+    await mysql.query(
+      `
+      UPDATE orders
+      SET order_number = ?, payment_status = 'SUCCESS'
+      WHERE id = ?
+      `,
+      [orderNumber, created.id],
+    );
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+      `,
+      [rewardId],
+    );
+
+    let devotee = {name: fullName, email: '-', mobile};
+    try {
+      const user = await authRepository.findUserById(userId);
+      if (user) {
+        devotee = {
+          name: user.fullName || fullName,
+          email: user.email || '-',
+          mobile:
+            `${user.mobileCountryCode || ''}${user.mobileNumber || mobile}`.trim() ||
+            mobile,
+        };
+      }
+    } catch {
+      // Delivery details are already on the order.
+    }
+
+    await emailOtpService.notifyAdmin(
+      `Marakata Shivling reward order - ${orderNumber}`,
+      [
+        'A devotee submitted a Marakata Shivling reward order.',
+        `Reward: ${rewardName}`,
+        `Order: ${orderNumber}`,
+        `Name: ${devotee.name}`,
+        `Email: ${devotee.email}`,
+        `Mobile: ${mobile}`,
+        `Address: ${address}`,
+        `City: ${city}`,
+        `State: ${state}`,
+        `PIN: ${pinCode}`,
+        `User ID: ${userId}`,
+      ].join('\n'),
+    );
+
+    return {
+      alreadySubmitted: false,
+      target: claimTarget,
+      title,
+      rewardName,
+      orderId: Number(created.id),
+      orderNumber,
     };
   }
 
@@ -319,6 +826,14 @@ class MilestoneRewardService {
     const reward = await challengeRepository.getRewardById(rewardId);
     if (!reward) {
       throw new Error('Reward not found');
+    }
+    if (isMarakataShivlingName(String(reward.name || ''))) {
+      throw new Error(
+        'Marakata Shivling is claimed from Available Rewards after present japas + 3000.',
+      );
+    }
+    if (Number(reward.stock || 0) <= 0) {
+      throw new Error('This reward item is currently out of stock.');
     }
     const required = rewardJapaRequirement(String(reward.name || ''));
     if (required > 0 && total < required) {

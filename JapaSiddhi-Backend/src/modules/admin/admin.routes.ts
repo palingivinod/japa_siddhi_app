@@ -5752,6 +5752,19 @@ const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
   };
 };
 
+const isMarakataShivlingRewardName = (name: string) => {
+  const lower = String(name || '').toLowerCase();
+  if (!lower || lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+    return false;
+  }
+  const isMarakata = lower.includes('marakata') || lower.includes('marakatha');
+  const isShivling =
+    lower.includes('shivling') ||
+    lower.includes('shivalinga') ||
+    lower.includes('lingam');
+  return (isMarakata && isShivling) || (lower.includes('aventurine') && isShivling);
+};
+
 const CANONICAL_REWARDS = [
   {name: 'Rudrakshi Mala', stock: 50, order: 1, eligibility: 5000, description: 'Sacred Rudraksha bead mala for spiritual protection, inner peace, and focused daily mantra japa.', aliases: ['rudraksh']},
   {name: 'Tulasi Mala', stock: 50, order: 2, eligibility: 5000, description: 'Sacred Tulasi bead mala revered for heart-centered devotion, calm awareness, and Vishnu / Krishna worship.', aliases: ['tulasi', 'tulsi']},
@@ -5761,8 +5774,9 @@ const CANONICAL_REWARDS = [
   {name: 'Spatik Mala', stock: 50, order: 6, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
   {name: 'Green Agate', stock: 50, order: 7, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},
   {name: 'Yellow Agate', stock: 50, order: 8, eligibility: 200000, description: 'Bright yellow agate gemstone beads fostering courage, knowledge, intellect, and divine auspiciousness.', aliases: ['yellow agate', 'yellow hakik']},
-  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 9, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri']},
-  {name: 'Spiritual Reward', stock: 50, order: 10, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
+  {name: 'Marakata Shivling (Green Aventurine)', stock: 50, order: 9, eligibility: 3000, description: 'Sacred Shiva Lingam carved from green aventurine. Significance: inner peace, emotional balance, prosperity, heart-chakra harmony, growth, optimism, and positive spiritual energy.', aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga']},
+  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 10, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri', 'marakata sree', 'marakatha sri']},
+  {name: 'Spiritual Reward', stock: 50, order: 11, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];
 
 const ensureRewardSeed = async () => {
@@ -5787,8 +5801,14 @@ const ensureRewardSeed = async () => {
 
     // Match each canonical reward with existing items or insert if missing
     for (const item of CANONICAL_REWARDS) {
+      const itemIsShivling = isMarakataShivlingRewardName(item.name);
       const match = existingList.find((r: any) => {
         const rowName = String(r.name || '').toLowerCase().trim();
+        const rowIsShivling = isMarakataShivlingRewardName(rowName);
+        // Never let Sree Chakra aliases overwrite Marakata Shivling (or vice versa)
+        if (itemIsShivling !== rowIsShivling) {
+          return false;
+        }
         return (
           rowName === item.name.toLowerCase() ||
           item.aliases.some(alias => rowName.includes(alias))

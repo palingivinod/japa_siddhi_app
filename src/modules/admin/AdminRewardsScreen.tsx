@@ -320,6 +320,15 @@ const AdminRewardsScreen = () => {
                     : '5,000 Japas'}
                 </Text>
               </View>
+              <Text
+                style={[
+                  styles.stockStatus,
+                  (item.stock || 0) > 0
+                    ? styles.stockStatusOn
+                    : styles.stockStatusOff,
+                ]}>
+                {(item.stock || 0) > 0 ? 'In Stock' : 'Out of Stock'}
+              </Text>
               {item.description ? (
                 <Text style={styles.desc} numberOfLines={2}>
                   {item.description}
@@ -342,6 +351,7 @@ const AdminRewardsScreen = () => {
                       description: item.description,
                       eligibilityCriteria: item.eligibilityCriteria,
                       imageUrl: item.imageUrl,
+                      stock: item.stock,
                     })
                   }
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
@@ -516,6 +526,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '800',
     color: Colors.templeGold,
+  },
+  stockStatus: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  stockStatusOn: {
+    color: Colors.leafGreen,
+  },
+  stockStatusOff: {
+    color: Colors.error,
   },
   desc: {
     marginTop: 4,

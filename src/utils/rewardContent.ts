@@ -35,6 +35,40 @@ export const SPIRITUAL_REWARD_CONTENT: LocalizedReward = {
 
 const FALLBACK_CONTENT: LocalizedReward = SPIRITUAL_REWARD_CONTENT;
 
+/** Marakata Shivling — distinct from Marakata Sree Chakra. */
+export const isMarakataShivlingName = (rewardName: string): boolean => {
+  const lower = String(rewardName || '').toLowerCase();
+  if (!lower) {
+    return false;
+  }
+  if (lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+    return false;
+  }
+  const isMarakata =
+    lower.includes('marakata') ||
+    lower.includes('marakatha') ||
+    lower.includes('మరకత') ||
+    lower.includes('मरकत') ||
+    lower.includes('মরকত') ||
+    lower.includes('ମରକତ');
+  const isShivling =
+    lower.includes('shivling') ||
+    lower.includes('shivalinga') ||
+    lower.includes('shiva ling') ||
+    lower.includes('lingam') ||
+    lower.includes('శివలింగ') ||
+    lower.includes('शिवलिंग') ||
+    lower.includes('சிவலிங்க') ||
+    lower.includes('ಶಿವಲಿಂಗ') ||
+    lower.includes('ശിവലിംഗ');
+  const isGreenAventurineShivling =
+    lower.includes('aventurine') && isShivling;
+  return (isMarakata && isShivling) || isGreenAventurineShivling;
+};
+
+/** Extra japas needed from the devotee's present count for Marakata Shivling. */
+export const MARAKATA_SHIVLING_EXTRA_JAPAS = 3000;
+
 const REWARD_LOCALIZATIONS: Array<{
   match: (name: string) => boolean;
   content: LocalizedReward;
@@ -257,10 +291,44 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 6. Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)
+  // 6a. Marakata Shivling (Green Aventurine) — must match before Sree Chakra
+  {
+    match: name => isMarakataShivlingName(name),
+    content: {
+      emoji: '🕉️',
+      imageName: 'marakataShivling',
+      title: {
+        en: 'Marakata Shivling (Green Aventurine)',
+        te: 'మరకత శివలింగం (గ్రీన్ అవెంచురిన్)',
+        hi: 'मरकत शिवलिंग (ग्रीन एवेंच्यूरिन)',
+        ta: 'மரகத சிவலிங்கம் (கிரீன் அவென்சுரின்)',
+        kn: 'ಮರಕತ ಶಿವಲಿಂಗ (ಗ್ರೀನ್ ಅವೆಂಚುರಿನ್)',
+        ml: 'മരകത ശിവലിംഗം (ഗ്രീൻ അവഞ്ചുരിൻ)',
+        mr: 'मरकत शिवलिंग (ग्रीन अॅव्हेन्च्युरिन)',
+        bn: 'মরকত শিবলিঙ্গ (গ্রিন অ্যাভেঞ্চুরিন)',
+        or: 'ମରକତ ଶିବଲିଙ୍ଗ (ଗ୍ରୀନ୍ ଆଭେଞ୍ଚୁରିନ୍)',
+      },
+      description: {
+        en: 'Marakata Shivling (Green Aventurine) is a sacred Shiva Lingam carved from green gemstone. Its significance is inner peace, emotional balance, prosperity, heart-chakra harmony, growth, optimism, and positive spiritual energy.',
+        te: 'మరకత శివలింగం (గ్రీన్ అవెంచురిన్) పచ్చని రత్నంతో చేసిన పవిత్ర శివలింగం. దీని ప్రాధాన్యం: అంతఃశాంతి, భావోద్వేగ సమతుల్యత, సమృద్ధి, హృదయ చక్ర సామరస్యం, వికాసం, ఆశావాదం మరియు సానుకూల ఆధ్యాత్మిక శక్తి.',
+        hi: 'मरकत शिवलिंग (ग्रीन एवेंच्यूरिन) हरे रत्न से बना पवित्र शिवलिंग है। इसका महत्व है—आंतरिक शांति, भावनात्मक संतुलन, समृद्धि, हृदय चक्र का सामंजस्य, विकास, आशावाद और सकारात्मक आध्यात्मिक ऊर्जा।',
+        ta: 'மரகத சிவலிங்கம் (கிரீன் அவென்சுரின்) பச்சை இரத்தினத்தால் செதுக்கப்பட்ட புனித சிவலிங்கம். இதன் முக்கியத்துவம்: உள் அமைதி, உணர்ச்சி சமநிலை, செழிப்பு, இதய சக்கர இணக்கம், வளர்ச்சி, நம்பிக்கை மற்றும் நேர்மறை ஆன்மீக ஆற்றல்.',
+        kn: 'ಮರಕತ ಶಿವಲಿಂಗ (ಗ್ರೀನ್ ಅವೆಂಚುರಿನ್) ಹಸಿರು ರತ್ನದಿಂದ ಕೆತ್ತಿದ ಪವಿತ್ರ ಶಿವಲಿಂಗ. ಇದರ ಮಹತ್ವ: ಆಂತರಿಕ ಶಾಂತಿ, ಭಾವನಾತ್ಮಕ ಸಮತೋಲನ, ಸಮೃದ್ಧಿ, ಹೃದಯ ಚಕ್ರ ಸಾಮರಸ್ಯ, ಬೆಳವಣಿಗೆ, ಆಶಾವಾದ ಮತ್ತು ಸಕಾರಾತ್ಮಕ ಆಧ್ಯಾತ್ಮಿಕ ಶಕ್ತಿ.',
+        ml: 'മരകത ശിവലിംഗം (ഗ്രീൻ അവഞ്ചുരിൻ) പച്ച രത്നത്തിൽ നിന്ന് കൊത്തിയ പവിത്ര ശിവലിംഗം. ഇതിന്റെ പ്രാധാന്യം: ആന്തരിക ശാന്തി, വൈകാരിക സന്തുലനം, സമൃദ്ധി, ഹൃദയ ചക്ര ഐക്യം, വളർച്ച, ശുഭാപ്തിവിശ്വാസം, ക്രിയാത്മക ആത്മീയ ഊർജം.',
+        mr: 'मरकत शिवलिंग (ग्रीन अॅव्हेन्च्युरिन) हिरव्या रत्नापासून बनवलेले पवित्र शिवलिंग आहे. याचे महत्त्व: आंतरिक शांती, भावनिक संतुलन, समृद्धी, हृदय चक्र सामंजस्य, विकास, आशावाद आणि सकारात्मक आध्यात्मिक ऊर्जा.',
+        bn: 'মরকত শিবলিঙ্গ (গ্রিন অ্যাভেঞ্চুরিন) সবুজ রত্ন দিয়ে তৈরি পবিত্র শিবলিঙ্গ। এর তাৎপর্য: অন্তর্শান্তি, আবেগিক ভারসাম্য, সমৃদ্ধি, হৃদয় চক্রের সামঞ্জস্য, বিকাশ, আশাবাদ ও ইতিবাচক আধ্যাত্মিক শক্তি।',
+        or: 'ମରକତ ଶିବଲିଙ୍ଗ (ଗ୍ରୀନ୍ ଆଭେଞ୍ଚୁରିନ୍) ସବୁଜ ରତ୍ନରୁ ତିଆରି ପବିତ୍ର ଶିବଲିଙ୍ଗ। ଏହାର ଗୁରୁତ୍ୱ: ଆଭ୍ୟନ୍ତରିଣ ଶାନ୍ତି, ଭାବନାତ୍ମକ ସନ୍ତୁଳନ, ସମୃଦ୍ଧି, ହୃଦୟ ଚକ୍ର ସାମଞ୍ଜସ୍ୟ, ବିକାଶ, ଆଶାବାଦ ଏବଂ ସକାରାତ୍ମକ ଆଧ୍ୟାତ୍ମିକ ଶକ୍ତି।',
+      },
+    },
+  },
+
+  // 6b. Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)
   {
     match: name => {
       const lower = name.toLowerCase();
+      if (isMarakataShivlingName(name)) {
+        return false;
+      }
       return (
         lower.includes('marakatha') ||
         lower.includes('marakata') ||
@@ -292,14 +360,14 @@ const REWARD_LOCALIZATIONS: Array<{
         or: 'ଗ୍ରୀନ ଜେଡ୍ / ଆଭେଞ୍ଚୁରିନ ଶ୍ରୀ ଚକ୍ର\n(ମରକତ ଶ୍ରୀ ଚକ୍ର)',
       },
       description: {
-        en: 'Sacred 3D Meru Sri Chakra carved in pure Green Jade / Aventurine (Marakata), combining supreme cosmic geometry of Goddess Lalita Tripura Sundari with Mercury\'s healing energy to bestow immense wealth, wisdom, Vastu harmony, and spiritual liberation.',
-        te: 'లలితా త్రిపుర సుందరీ దేవి దివ్య శక్తి, బుధ గ్రహ అనుగ్రహం, అఖండ ఐశ్వర్యం, జ్ఞానం మరియు సర్వ వాస్తు శాంతిని ప్రసాదించే అత్యంత పవిత్రమైన గ్రీన్ జేడ్ / అవెంచురిన్ (మరకత) శ్రీ చక్రం (మేరు).',
+        en: 'Sacred 3D Meru Sri Chakra carved in pure Green Jade / Aventurine (Marakata), combining supreme cosmic geometry of Goddess Lalita Tripura Sundari to bestow immense wealth, wisdom, Vastu harmony, and spiritual liberation.',
+        te: 'లలితా త్రిపుర సుందరీ దేవి దివ్య శక్తి, అఖండ ఐశ్వర్యం, జ్ఞానం మరియు సర్వ వాస్తు శాంతిని ప్రసాదించే అత్యంత పవిత్రమైన గ్రీన్ జేడ్ / అవెంచురిన్ (మరకత) శ్రీ చక్రం (మేరు).',
         hi: 'माता ललिता त्रिपुर सुंदरी की दिव्य ऊर्जा, अपार सुख-समृद्धि, ज्ञान, शांति और वास्तु दोष निवारण का वरदान देने वाला अत्यंत पवित्र ग्रीन जेड / एवेंट्यूरिन (मरकत) श्री चक्र।',
         ta: 'லலிதா திரிபுர சுந்தரி தேவியின் அருள், பெரும் செல்வம், ஞானம் மற்றும் வாஸ்து தோஷ நிவர்த்தி தரும் அதியற்புத கிரீன் ஜேட் / அவென்டுரின் (மரகத) ஸ்ரீ சக்கரம்.',
         kn: 'ಲಲಿತಾ ತ್ರಿಪುರ ಸುಂದರಿ ದೇವಿಯ ಅನುಗ್ರಹ, ಅಪಾರ ಸಂಪತ್ತು, ಜ್ಞಾನ ಮತ್ತು ವಾಸ್ತು ದೋಷ ನಿವಾರಣೆ ನೀಡುವ ಪರಮ ಪವಿತ್ರ ಗ್ರೀನ್ ಜೇಡ್ / ಅವೆಂಚುರಿನ್ (ಮರಕತ) ಶ್ರೀ ಚಕ್ರ.',
         ml: 'ലളിതാ ത്രിപുരസുന്ദരീ ദേവിയുടെ അനുഗ്രഹവും അപാരമായ ഐശ്വര്യവും ജ്ഞാനവും വാസ്തുദോഷ നിവാരണവും പ്രദാനം ചെയ്യുന്ന പവിത്രമായ ഗ്രീൻ ജേഡ് / അവഞ്ചുറിൻ (മരതക) ശ്രീ ചക്രം.',
         mr: 'माता ललिता त्रिपुर सुंदरीचा आशीर्वाद, अपार धन-समृद्धी, ज्ञान आणि वास्तू शांती प्रदान करणारे अत्यंत पवित्र ग्रीन जेड / एव्हेंचरिन (मरकत) श्री चक्र.',
-        bn: 'মা ললিতা ত্রিপুরা সুন্দরীর আশীর্বাদ, অফুরন্ত ধন-সম্পদ, প্রজ্ঞা ও বাস্তু শান্তি প্রদানকারী পরম পবিত্র গ্রিন জেড / অ্যাভেঞ্চুরিন (মরকত) শ্রী चक्र।',
+        bn: 'মা ললিতা ত্রিপুরা সুন্দরীর আশীর্বাদ, অফুরন্ত ধন-সম্পদ, প্রজ্ঞা ও বাস্তু শান্তি প্রদানকারী পরম পবিত্র গ্রিন জেড / অ্যাভেঞ্চুরিন (মরকত) শ্রী চক্র।',
         or: 'ମା\' ଲଳିତା ତ୍ରିପୁର ସୁନ୍ଦରୀଙ୍କ ଦିବ୍ୟ କୃପା, ଅପାର ସୁଖ-ସମୃଦ୍ଧି, ଜ୍ଞାନ ଏବଂ ବାସ୍ତୁ ଶାନ୍ତି ପ୍ରଦାନ କରୁଥିବା ପବିତ୍ର ଗ୍ରୀନ ଜେଡ୍ / ଆଭେଞ୍ଚୁରିନ (ମରକତ) ଶ୍ରୀ ଚକ୍ର।',
       },
     },
@@ -784,6 +852,13 @@ export const getRewardRequirement = (
   ) {
     return {count: 1000000, label: reqText.ten};
   }
+  // Marakata Shivling => present count + 3000 (resolved in checkRewardEligibility)
+  if (isMarakataShivlingName(rewardName)) {
+    return {
+      count: MARAKATA_SHIVLING_EXTRA_JAPAS,
+      label: `present + ${MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN')}`,
+    };
+  }
   // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) => 5,00,000 Japas (5 Lakhs)
   if (
     lower.includes('marakatha') ||
@@ -864,13 +939,31 @@ export const checkRewardEligibility = (
   userJapaCount: number = 0,
   lang: string = 'en',
   customEligibilityCriteria?: number,
+  relativeTargetOverride?: number,
 ): RewardEligibility => {
   const req = getRewardRequirement(rewardName, lang);
+  const count = Number(userJapaCount) || 0;
+
+  // Marakata Shivling: present + 3000 (locked target from baseline helper)
+  if (isMarakataShivlingName(rewardName)) {
+    const targetCount =
+      typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0
+        ? relativeTargetOverride
+        : count + MARAKATA_SHIVLING_EXTRA_JAPAS;
+    const isEligible = count >= targetCount;
+    const remainingJapas = isEligible ? 0 : Math.max(0, targetCount - count);
+    return {
+      requiredJapas: targetCount,
+      requiredLabel: `${targetCount.toLocaleString('en-IN')} (${count.toLocaleString('en-IN')} + ${MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN')})`,
+      isEligible,
+      remainingJapas,
+    };
+  }
+
   const targetCount =
     typeof customEligibilityCriteria === 'number' && customEligibilityCriteria > 0
       ? customEligibilityCriteria
       : req.count;
-  const count = Number(userJapaCount) || 0;
   const isEligible = targetCount <= 0 || count >= targetCount;
   const remainingJapas = isEligible ? 0 : Math.max(0, targetCount - count);
   const requiredLabel =
@@ -896,8 +989,9 @@ export const checkRewardEligibility = (
  * 6. Spatik Mala (1 Lakh eligibility)
  * 7. Green Agate (2 Lakhs eligibility)
  * 8. Yellow Agate (2 Lakhs eligibility)
- * 9. Marakatha Sri Chakram (5 Lakhs eligibility)
- * 10. Spiritual Reward (10 Lakhs eligibility)
+ * 9. Marakata Shivling (present + 3000)
+ * 10. Marakatha Sri Chakram (5 Lakhs eligibility)
+ * 11. Spiritual Reward (10 Lakhs eligibility)
  */
 export const getRewardSortRank = (rewardName: string): number => {
   const lower = String(rewardName || '').toLowerCase();
@@ -935,6 +1029,9 @@ export const getRewardSortRank = (rewardName: string): number => {
   ) {
     return 8;
   }
+  if (isMarakataShivlingName(rewardName)) {
+    return 9;
+  }
   if (
     lower.includes('marakatha') ||
     lower.includes('marakata') ||
@@ -950,7 +1047,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('జేడ్') ||
     lower.includes('जेड')
   ) {
-    return 9;
+    return 10;
   }
   if (
     lower.includes('spiritual reward') ||
@@ -960,7 +1057,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('ఆధ్యాత్మిక బహుమతి') ||
     lower.includes('आध्यात्मिक उपहार')
   ) {
-    return 10;
+    return 11;
   }
   return 99;
 };

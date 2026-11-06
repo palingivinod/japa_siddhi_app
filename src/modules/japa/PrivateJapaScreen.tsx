@@ -300,13 +300,15 @@ const PrivateJapaScreen = () => {
         keyboardDismissMode="on-drag"
         removeClippedSubviews={false}
         overScrollMode="never">
-      <View style={styles.card}>
+        <View style={styles.card}>
           <View style={styles.dot}>
             <Text style={styles.emoji}>🕉️</Text>
           </View>
-        <View style={styles.copy}>
+          <View style={styles.copy}>
             <Text style={styles.title}>{t('privateMantra')}</Text>
-            <Text style={styles.meta}>{t('mantraHiddenSecure')}</Text>
+            <Text style={styles.meta} numberOfLines={1}>
+              {t('mantraHiddenSecure')}
+            </Text>
           </View>
         </View>
 
@@ -322,7 +324,7 @@ const PrivateJapaScreen = () => {
           <View style={styles.rule} />
           <Text style={styles.orText}>{(t('or') || 'OR').toUpperCase()}</Text>
           <View style={styles.rule} />
-      </View>
+        </View>
 
         {/* 1. Mantra Name Input */}
         <Text style={styles.label}>{t('enterYourMantra')}</Text>
@@ -584,15 +586,15 @@ const PrivateJapaScreen = () => {
         ) : null}
 
         {message ? <Text style={styles.error}>{message}</Text> : null}
-
-        <View style={styles.buttonSpacing}>
-      <PrimaryButton
-            title={saving ? t('loading') : t('startPrivateJapa')}
-            onPress={start}
-            disabled={saving}
-          />
-        </View>
       </ScrollView>
+
+      <View style={styles.startBar}>
+        <PrimaryButton
+          title={saving ? t('loading') : t('startPrivateJapa')}
+          onPress={start}
+          disabled={saving}
+        />
+      </View>
     </ScreenLayout>
   );
 };
@@ -601,31 +603,32 @@ export default PrivateJapaScreen;
 
 const styles = StyleSheet.create({
   flex: {flex: 1},
-  scrollContent: {paddingBottom: 140},
+  scrollContent: {paddingBottom: 16},
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 8,
   },
   dot: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: '#E4EFDF',
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    marginRight: 12,
+    marginRight: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emoji: {
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 18,
     textAlign: 'center',
     includeFontPadding: false,
   },
@@ -633,37 +636,39 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: '800',
     color: Colors.sacredBrown,
-    fontSize: 16,
-    lineHeight: 23,
+    fontSize: 14,
+    lineHeight: 18,
   },
   meta: {
-    marginTop: 4,
+    marginTop: 1,
     color: Colors.textSecondary,
-    fontSize: 13,
-    lineHeight: 19,
+    fontSize: 11,
+    lineHeight: 14,
   },
   label: {
     color: Colors.leafGreen,
     fontWeight: '700',
-    fontSize: 15,
-    lineHeight: 22,
-    marginBottom: 6,
-    paddingBottom: 2,
+    fontSize: 13.5,
+    lineHeight: 18,
+    marginBottom: 4,
+    marginTop: 2,
   },
   inputContainer: {
     position: 'relative',
     zIndex: 10,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   input: {
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.inputBorder,
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 18,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    fontSize: 16,
     fontWeight: '700',
     color: Colors.sacredBrown,
+    marginBottom: 4,
   },
   suggestionsPopup: {
     marginTop: 4,
@@ -739,18 +744,18 @@ const styles = StyleSheet.create({
   presetsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 6,
-    marginBottom: 16,
+    gap: 6,
+    marginTop: 2,
+    marginBottom: 8,
   },
   presetChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    minHeight: 34,
+    minHeight: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -773,17 +778,17 @@ const styles = StyleSheet.create({
   quickDaysRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 10,
+    gap: 6,
+    marginBottom: 6,
   },
   quickDayChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    minHeight: 34,
+    minHeight: 30,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -802,33 +807,34 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   quickDaysHint: {
-    fontSize: 12,
+    fontSize: 11,
     color: Colors.textSecondary,
-    marginBottom: 10,
-    marginTop: -2,
-    lineHeight: 17,
+    marginBottom: 6,
+    marginTop: 0,
+    lineHeight: 15,
   },
   calendarBtn: {
     backgroundColor: Colors.white,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
-    borderRadius: 14,
-    padding: 14,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   calendarLabel: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: Colors.sacredBrown,
   },
   breakdownCard: {
     backgroundColor: '#FFFDF9',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 12,
+    padding: 12,
     borderWidth: 1.5,
     borderColor: Colors.templeGold,
-    marginBottom: 18,
+    marginBottom: 8,
   },
   breakdownHeaderRow: {
     flexDirection: 'row',
@@ -903,15 +909,19 @@ const styles = StyleSheet.create({
     color: Colors.selectedOrange,
   },
   listedMantra: {
-    marginTop: 16,
+    marginTop: 0,
   },
-  buttonSpacing: {
-    marginTop: 6,
+  startBar: {
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+    backgroundColor: Colors.background,
   },
   orRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    marginVertical: 8,
   },
   rule: {
     flex: 1,
@@ -919,20 +929,20 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.cardBorder,
   },
   orText: {
-    marginHorizontal: 12,
+    marginHorizontal: 10,
     color: Colors.textSecondary,
     fontWeight: '700',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 12,
+    lineHeight: 16,
     letterSpacing: 1,
   },
   hint: {
-    marginTop: 10,
+    marginTop: 4,
     color: Colors.textSecondary,
     textAlign: 'center',
-    fontSize: 14,
-    lineHeight: 22,
-    paddingBottom: 4,
+    fontSize: 12,
+    lineHeight: 16,
+    paddingBottom: 0,
   },
   targetWarningText: {
     marginTop: 6,
@@ -942,7 +952,7 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   error: {
-    marginBottom: 12,
+    marginBottom: 8,
     color: Colors.error,
     fontWeight: '700',
     textAlign: 'center',

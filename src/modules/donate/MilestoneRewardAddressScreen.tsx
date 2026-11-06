@@ -57,6 +57,7 @@ const MilestoneRewardAddressScreen = () => {
   const target = Number(route.params?.target || 0);
   const rewardId = Number(route.params?.rewardId || 0);
   const rewardName = String(route.params?.rewardName || 'Reward');
+  const claimKind = String(route.params?.claimKind || '');
 
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
@@ -180,6 +181,7 @@ const MilestoneRewardAddressScreen = () => {
       target,
       rewardId,
       rewardName,
+      claimKind: claimKind || undefined,
       fullName: fullName.trim(),
       mobile: mobile.trim(),
       address: address.trim(),

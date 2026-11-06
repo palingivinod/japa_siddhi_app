@@ -17,6 +17,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
+  isMarakataShivlingName,
   getLocalizedReward,
   isCanonicalReward,
   sortRewardsCanonical,
@@ -59,15 +60,28 @@ const ChallengeRewardSelectScreen = () => {
         const rawList: any[] = data.rewards || [];
         setRewards(
           sortRewardsCanonical<RewardItem>(
-            rawList.map((row: any) => ({
-              id: Number(row.id),
-              name: String(row.name || ''),
-              stock: Number(row.stock || 0),
-              inStock: true,
-              description: row.description,
-              eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-            })).filter((row: RewardItem) =>
-              row.name && (isCanonicalReward(row.name) || Boolean(row.id)),
+            rawList.map((row: any) => {
+              const stock = Number(row.stock || 0);
+              return {
+                id: Number(row.id),
+                name: String(row.name || ''),
+                stock,
+                inStock:
+                  row.inStock === false
+                    ? false
+                    : row.inStock === true
+                      ? true
+                      : stock > 0,
+                description: row.description,
+                eligibilityCriteria: Number(
+                  row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+                ),
+              };
+            }).filter(
+              (row: RewardItem) =>
+                row.name &&
+                !isMarakataShivlingName(row.name) &&
+                (isCanonicalReward(row.name) || Boolean(row.id)),
             ),
           ),
         );
@@ -110,6 +124,15 @@ const ChallengeRewardSelectScreen = () => {
 
   const handleRewardPress = (item: RewardItem) => {
     if (deliverySubmitted) {
+      return;
+    }
+    if (item.inStock === false || Number(item.stock || 0) <= 0) {
+      Alert.alert(
+        t('outOfStockTitle') || 'Out of Stock',
+        t('outOfStockRewardMsg') ||
+          'This reward item is currently out of stock.',
+        [{text: t('ok') || 'OK'}],
+      );
       return;
     }
     const eligibility = checkRewardEligibility(item.name, userTotalJapas, language, item.eligibilityCriteria);

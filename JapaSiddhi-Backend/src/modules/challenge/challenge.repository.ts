@@ -492,22 +492,46 @@ class ChallengeRepository {
         {name: 'Green Agate', stock: 50, order: 7, aliases: ['green agate', 'green hakik']},
         {name: 'Yellow Agate', stock: 50, order: 8, aliases: ['yellow agate', 'yellow hakik']},
         {
-          name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
+          name: 'Marakata Shivling (Green Aventurine)',
           stock: 50,
           order: 9,
-          aliases: ['green jade', 'aventurine', 'marakata', 'marakatha', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri'],
+          aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga'],
+          shivling: true,
+        },
+        {
+          name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
+          stock: 50,
+          order: 10,
+          aliases: ['green jade', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri', 'marakata sree', 'marakatha sri'],
+          shivling: false,
         },
         {
           name: 'Spiritual Reward',
           stock: 50,
-          order: 10,
+          order: 11,
           aliases: ['spiritual reward', 'spiritual offering', 'spiritual product'],
         },
       ];
 
+      const rowIsShivling = (rowName: string) => {
+        const lower = String(rowName || '').toLowerCase();
+        if (lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+          return false;
+        }
+        return (
+          lower.includes('shivling') ||
+          lower.includes('shivalinga') ||
+          (lower.includes('lingam') &&
+            (lower.includes('marakata') || lower.includes('aventurine')))
+        );
+      };
+
       for (const item of canonicalItems) {
         const found = existingList.find((r: any) => {
           const rowName = String(r.name || '').toLowerCase().trim();
+          if (Boolean((item as any).shivling) !== rowIsShivling(rowName)) {
+            return false;
+          }
           return rowName === item.name.toLowerCase() || item.aliases.some(a => rowName.includes(a));
         });
         if (!found) {

@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
@@ -16,10 +16,20 @@ import ScreenLayout from '../common/ScreenLayout';
 
 import AnnadanamMembersSelector, {RATE_PER_PERSON} from './components/AnnadanamMembersSelector';
 
+/** Suggested default when opened from 5k milestone popup/card (editable, not mandatory). */
+export const JAPA_ANNADANAM_SUGGESTED_PERSONS = 2;
+
 const JapaAnnadanamScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
-  const [persons, setPersons] = useState(0);
+  const paramPersons = Number(route.params?.persons);
+  const initialPersons =
+    Number.isFinite(paramPersons) && paramPersons > 0
+      ? Math.floor(paramPersons)
+      : 0;
+  const fromMilestoneSuggest = Boolean(route.params?.suggestPersons);
+  const [persons, setPersons] = useState(initialPersons);
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
   const [comments, setComments] = useState('');
@@ -45,6 +55,13 @@ const JapaAnnadanamScreen = () => {
     });
   }, []);
 
+  useEffect(() => {
+    const next = Number(route.params?.persons);
+    if (Number.isFinite(next) && next > 0) {
+      setPersons(Math.floor(next));
+    }
+  }, [route.params?.persons]);
+
   return (
     <ScreenLayout title={t('japaAnnadanam')} showBack tab="SevaHub">
       {!enabled ? (
@@ -64,6 +81,12 @@ const JapaAnnadanamScreen = () => {
               </Text>
             </View>
           </View>
+          {fromMilestoneSuggest || initialPersons >= JAPA_ANNADANAM_SUGGESTED_PERSONS ? (
+            <Text style={styles.suggestHint}>
+              {t('annadanamSuggestedPersonsHint') ||
+                'Suggested: at least 2 persons. You can edit this number.'}
+            </Text>
+          ) : null}
           <AnnadanamMembersSelector
             persons={persons}
             onChangePersons={setPersons}
@@ -157,6 +180,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingBottom: 4,
     includeFontPadding: false,
+  },
+  suggestHint: {
+    marginBottom: 10,
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    color: '#92400E',
+    backgroundColor: '#FFFBEB',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    overflow: 'hidden',
   },
   milestoneWrap: {
     alignItems: 'center',

@@ -48,6 +48,28 @@ const BanaLingamScreen = () => {
   const [comments, setComments] = useState('');
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [sankalpChecks, setSankalpChecks] = useState([
+    false,
+    false,
+    false,
+    false,
+    false,
+  ]);
+
+  const sankalpItems = [
+    t('banaSankalp1'),
+    t('banaSankalp2'),
+    t('banaSankalp3'),
+    t('banaSankalp4'),
+    t('banaSankalp5'),
+  ];
+  const allSankalpAccepted = sankalpChecks.every(Boolean);
+
+  const toggleSankalp = (index: number) => {
+    setSankalpChecks(prev =>
+      prev.map((value, i) => (i === index ? !value : value)),
+    );
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -178,6 +200,10 @@ const BanaLingamScreen = () => {
       Alert.alert(t('baanalingamSeva'), t('purposeRequiredBaanalingam'));
       return;
     }
+    if (!allSankalpAccepted) {
+      Alert.alert(t('baanalingamSeva'), t('banaSankalpRequired'));
+      return;
+    }
     if (
       !ensureAddressHasPinOrEdit(address, {
         t,
@@ -299,6 +325,30 @@ const BanaLingamScreen = () => {
           {t('flatDoorStreetAreaNote')}
         </Text>
       </View>
+
+      <View style={styles.sankalpSection}>
+        <Text style={styles.sankalpHeading}>{t('banaSankalpHeading')}</Text>
+        {sankalpItems.map((label, index) => {
+          const checked = sankalpChecks[index];
+          return (
+            <TouchableOpacity
+              key={`sankalp-${index}`}
+              style={styles.sankalpRow}
+              activeOpacity={0.85}
+              onPress={() => toggleSankalp(index)}>
+              <View
+                style={[
+                  styles.sankalpCheckbox,
+                  checked && styles.sankalpCheckboxOn,
+                ]}>
+                {checked ? <Text style={styles.sankalpCheckMark}>✓</Text> : null}
+              </View>
+              <Text style={styles.sankalpText}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       <FormField
         label="Gothram"
         placeholder="Optional"
@@ -333,7 +383,11 @@ const BanaLingamScreen = () => {
         title={
           hasActiveOrder
             ? t('banaLingamPendingOrderTitle')
-            : fullName.trim() && isMobile(mobile) && address.trim() && purpose
+            : fullName.trim() &&
+                isMobile(mobile) &&
+                address.trim() &&
+                purpose &&
+                allSankalpAccepted
               ? t('overviewBtn') || 'OVERVIEW'
               : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
@@ -343,7 +397,8 @@ const BanaLingamScreen = () => {
           !fullName.trim() ||
           !isMobile(mobile) ||
           !address.trim() ||
-          !purpose
+          !purpose ||
+          !allSankalpAccepted
         }
       />
       {hasActiveOrder ? (
@@ -541,6 +596,57 @@ const styles = StyleSheet.create({
     marginTop: -8,
     marginBottom: 14,
     lineHeight: 17,
+  },
+  sankalpSection: {
+    marginBottom: 16,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 6,
+  },
+  sankalpHeading: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  sankalpRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 10,
+  },
+  sankalpCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    backgroundColor: '#FFF8EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  sankalpCheckboxOn: {
+    backgroundColor: Colors.leafGreen,
+    borderColor: Colors.leafGreen,
+  },
+  sankalpCheckMark: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  sankalpText: {
+    flex: 1,
+    color: Colors.sacredBrown,
+    fontSize: 13.5,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   addressNote: {
     color: '#D32F2F',

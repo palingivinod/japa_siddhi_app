@@ -42,8 +42,13 @@ const AdminRewardStockScreen = () => {
     type?: string;
     fileName?: string;
   } | null>(null);
+  const [stock, setStock] = useState(
+    Math.max(0, Number(route.params?.stock ?? 0)),
+  );
   const [saving, setSaving] = useState(false);
+  const [stockBusy, setStockBusy] = useState(false);
   const [loading, setLoading] = useState(!route.params?.name && Boolean(rewardId));
+  const inStock = stock > 0;
 
   useEffect(() => {
     if (!rewardId) {
@@ -73,6 +78,7 @@ const AdminRewardStockScreen = () => {
         if (match.imageUrl) {
           setImageUrl(match.imageUrl);
         }
+        setStock(Math.max(0, Number(match.stock || 0)));
       })
       .catch(err => {
         Alert.alert('Rewards', getApiError(err, 'Could not load reward.'));
@@ -86,6 +92,32 @@ const AdminRewardStockScreen = () => {
       alive = false;
     };
   }, [rewardId]);
+
+  const setStockStatus = async (nextInStock: boolean) => {
+    if (!rewardId) {
+      Alert.alert('Missing reward', 'Reward id is required.');
+      return;
+    }
+    const nextStock = nextInStock ? (stock > 0 ? stock : 50) : 0;
+    if (nextInStock === inStock) {
+      return;
+    }
+    setStockBusy(true);
+    try {
+      await apiService.put(`/admin/rewards/${rewardId}`, {
+        stock: nextStock,
+        active: true,
+      });
+      setStock(nextStock);
+    } catch (err) {
+      Alert.alert(
+        'Stock',
+        getApiError(err, 'Could not update stock status.'),
+      );
+    } finally {
+      setStockBusy(false);
+    }
+  };
 
   const pickImage = async () => {
     try {
@@ -141,6 +173,7 @@ const AdminRewardStockScreen = () => {
         title,
         description: desc,
         eligibilityCriteria: eligibility,
+        stock,
         active: true,
       });
 
@@ -235,11 +268,56 @@ const AdminRewardStockScreen = () => {
             />
           </View>
 
+          <View style={styles.field}>
+            <Text style={styles.label}>Stock Status</Text>
+            <Text style={styles.stockHint}>
+              {inStock
+                ? `In Stock (${stock.toLocaleString('en-IN')}) — devotees can grab if eligible.`
+                : 'Out of Stock — devotees cannot grab this reward.'}
+            </Text>
+            <View style={styles.stockRow}>
+              <TouchableOpacity
+                style={[
+                  styles.stockBtn,
+                  inStock && styles.stockBtnOn,
+                  stockBusy && styles.stockBtnDisabled,
+                ]}
+                activeOpacity={0.85}
+                disabled={stockBusy || saving}
+                onPress={() => setStockStatus(true)}>
+                <Text
+                  style={[
+                    styles.stockBtnText,
+                    inStock && styles.stockBtnTextOn,
+                  ]}>
+                  In Stock
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.stockBtn,
+                  !inStock && styles.stockBtnOff,
+                  stockBusy && styles.stockBtnDisabled,
+                ]}
+                activeOpacity={0.85}
+                disabled={stockBusy || saving}
+                onPress={() => setStockStatus(false)}>
+                <Text
+                  style={[
+                    styles.stockBtnText,
+                    !inStock && styles.stockBtnTextOff,
+                  ]}>
+                  Out of Stock
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
           <View style={styles.gap} />
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={save}
-            disabled={saving || loading}
+            disabled={saving || loading || stockBusy}
           />
         </>
       )}
@@ -314,6 +392,47 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
     paddingTop: 14,
+  },
+  stockHint: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: Colors.textSecondary,
+    marginBottom: 10,
+  },
+  stockRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  stockBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  stockBtnOn: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#EBF7EE',
+  },
+  stockBtnOff: {
+    borderColor: Colors.error,
+    backgroundColor: '#FEE2E2',
+  },
+  stockBtnDisabled: {
+    opacity: 0.6,
+  },
+  stockBtnText: {
+    fontWeight: '800',
+    fontSize: 14,
+    color: Colors.sacredBrown,
+  },
+  stockBtnTextOn: {
+    color: Colors.leafGreen,
+  },
+  stockBtnTextOff: {
+    color: Colors.error,
   },
   gap: {height: 16},
 });

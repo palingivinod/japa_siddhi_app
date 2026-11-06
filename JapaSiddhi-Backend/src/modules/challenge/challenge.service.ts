@@ -366,15 +366,20 @@ class ChallengeService {
             orderNumber: claim.orderNumber || null,
           }
         : null,
-      rewards: (rewards || []).map((row: any) => ({
-        id: Number(row.id),
-        name: String(row.name || ''),
-        stock: Number(row.stock || 0),
-        inStock: true,
-        description: String(row.description || ''),
-        eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-        imageUrl: row.imageUrl || null,
-      })),
+      rewards: (rewards || []).map((row: any) => {
+        const stock = Number(row.stock || 0);
+        return {
+          id: Number(row.id),
+          name: String(row.name || ''),
+          stock,
+          inStock: stock > 0,
+          description: String(row.description || ''),
+          eligibilityCriteria: Number(
+            row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+          ),
+          imageUrl: row.imageUrl || null,
+        };
+      }),
     };
   }
 
@@ -427,6 +432,9 @@ class ChallengeService {
     if (!reward) {
       throw new Error('Reward not found');
     }
+    if (Number(reward.stock || 0) <= 0) {
+      throw new Error('This reward item is currently out of stock.');
+    }
 
     const rewardNameLower = String(reward.name || '').toLowerCase();
     const userTotalJapa = await japaRepository.getUserTotalJapa(userId);
@@ -443,6 +451,25 @@ class ChallengeService {
           `This reward is available after 10,00,000 (10 Lakhs) Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
         );
       }
+    }
+
+    // Marakata Shivling is only via Available Rewards (present + 3000) — not challenge pick
+    const isMarakataShivling =
+      !(
+        rewardNameLower.includes('chakra') ||
+        rewardNameLower.includes('chakram') ||
+        rewardNameLower.includes('yantra')
+      ) &&
+      ((rewardNameLower.includes('marakata') ||
+        rewardNameLower.includes('marakatha') ||
+        rewardNameLower.includes('aventurine')) &&
+        (rewardNameLower.includes('shivling') ||
+          rewardNameLower.includes('shivalinga') ||
+          rewardNameLower.includes('lingam')));
+    if (isMarakataShivling) {
+      throw new Error(
+        'Marakata Shivling is claimed from Available Rewards after present japas + 3000.',
+      );
     }
 
     // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) requires 5,00,000 Japas

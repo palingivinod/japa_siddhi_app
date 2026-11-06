@@ -19,6 +19,7 @@ import {
   checkRewardEligibility,
   getLocalizedReward,
   isCanonicalReward,
+  isMarakataShivlingName,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
@@ -54,15 +55,28 @@ const MilestoneRewardSelectScreen = () => {
         const rawList: any[] = data.rewards || [];
         setRewards(
           sortRewardsCanonical<RewardItem>(
-            rawList.map((row: any) => ({
-              id: Number(row.id),
-              name: String(row.name || ''),
-              stock: Number(row.stock || 0),
-              inStock: true,
-              description: row.description,
-              eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-            })).filter((row: RewardItem) =>
-              row.name && (isCanonicalReward(row.name) || Boolean(row.id)),
+            rawList.map((row: any) => {
+              const stock = Number(row.stock || 0);
+              return {
+                id: Number(row.id),
+                name: String(row.name || ''),
+                stock,
+                inStock:
+                  row.inStock === false
+                    ? false
+                    : row.inStock === true
+                      ? true
+                      : stock > 0,
+                description: row.description,
+                eligibilityCriteria: Number(
+                  row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+                ),
+              };
+            }).filter(
+              (row: RewardItem) =>
+                row.name &&
+                !isMarakataShivlingName(row.name) &&
+                (isCanonicalReward(row.name) || Boolean(row.id)),
             ),
           ),
         );
@@ -86,6 +100,15 @@ const MilestoneRewardSelectScreen = () => {
 
   const handleRewardPress = (item: RewardItem) => {
     if (claimed || !reached) {
+      return;
+    }
+    if (item.inStock === false || Number(item.stock || 0) <= 0) {
+      Alert.alert(
+        t('outOfStockTitle') || 'Out of Stock',
+        t('outOfStockRewardMsg') ||
+          'This reward item is currently out of stock.',
+        [{text: t('ok') || 'OK'}],
+      );
       return;
     }
     const eligibility = checkRewardEligibility(item.name, userTotalJapas, language, item.eligibilityCriteria);
@@ -148,7 +171,9 @@ const MilestoneRewardSelectScreen = () => {
             language,
           );
           const localized = getLocalizedReward(item.name, language);
-          const isLocked = !eligibility.isEligible;
+          const outOfStock =
+            item.inStock === false || Number(item.stock || 0) <= 0;
+          const isLocked = !eligibility.isEligible || outOfStock;
           return (
             <TouchableOpacity
               key={item.id}
@@ -169,7 +194,11 @@ const MilestoneRewardSelectScreen = () => {
                 ) : null}
               </View>
               <Text style={styles.name}>{localized.title || tt(item.name)}</Text>
-              {isLocked ? (
+              {outOfStock ? (
+                <Text style={styles.requirementHint}>
+                  {t('outOfStockTitle') || 'Out of Stock'}
+                </Text>
+              ) : isLocked ? (
                 <Text style={styles.requirementHint}>
                   {t('unlocksAt', {target: eligibility.requiredLabel}) ||
                     `Unlocks at ${eligibility.requiredLabel}`}

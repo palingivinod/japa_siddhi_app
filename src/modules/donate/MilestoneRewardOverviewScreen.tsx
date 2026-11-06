@@ -27,15 +27,18 @@ const MilestoneRewardOverviewScreen = () => {
   const target = Number(params.target || 0);
   const rewardId = Number(params.rewardId || 0);
   const rewardName = String(params.rewardName || 'Reward');
+  const claimKind = String(params.claimKind || '');
+  const isMarakataClaim =
+    claimKind === 'marakata_shivling' || target === 900003;
 
   const submit = async () => {
-    if (!target || !rewardId) {
+    if ((!target && !isMarakataClaim) || !rewardId) {
       Alert.alert(t('rewards'), t('missingRewardDetails'));
       return;
     }
     setSaving(true);
     try {
-      const response = await apiService.post(`/japa/milestones/${target}/reward`, {
+      const payload = {
         rewardId,
         fullName: params.fullName,
         mobile: params.mobile,
@@ -43,7 +46,13 @@ const MilestoneRewardOverviewScreen = () => {
         city: params.city,
         state: params.state,
         pinCode: params.pinCode,
-      });
+      };
+      const response = isMarakataClaim
+        ? await apiService.post(
+            '/japa/relative-rewards/marakata-shivling',
+            payload,
+          )
+        : await apiService.post(`/japa/milestones/${target}/reward`, payload);
       const data = response.data?.data || {};
       const orderNumber = String(data.orderNumber || '');
       Alert.alert(
@@ -54,7 +63,10 @@ const MilestoneRewardOverviewScreen = () => {
         [
           {
             text: t('ok'),
-            onPress: () => navigation.navigate('MilestoneNotifications'),
+            onPress: () =>
+              navigation.navigate(
+                isMarakataClaim ? 'AvailableRewards' : 'MilestoneNotifications',
+              ),
           },
         ],
         {cancelable: false},

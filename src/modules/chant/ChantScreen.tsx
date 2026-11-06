@@ -1009,7 +1009,10 @@ const ChantScreen = () => {
               Sacred Milestone Reached! 🙏
             </Text>
             <Text style={styles.annadanamCelebrationMessage}>
-              {`Congratulations! You have completed ${(annadanamModalTarget || 5000).toLocaleString()} sacred Japas. On this blessed occasion, would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers?`}
+              {t('annadanamMilestonePrompt', {
+                count: (annadanamModalTarget || 5000).toLocaleString('en-IN'),
+              }) ||
+                `Congratulations! You have completed ${(annadanamModalTarget || 5000).toLocaleString('en-IN')} sacred Japas. On this blessed occasion, would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers? Try to offer for at least 2 persons.`}
             </Text>
 
             <TouchableOpacity
@@ -1017,7 +1020,10 @@ const ChantScreen = () => {
               activeOpacity={0.85}
               onPress={() => {
                 setAnnadanamModalTarget(null);
-                navigation.navigate('JapaAnnadanam');
+                navigation.navigate('JapaAnnadanam', {
+                  persons: 2,
+                  suggestPersons: true,
+                });
               }}>
               <Text style={styles.annadanamCelebrationYesBtnText}>
                 Yes, Perform Annadanam
@@ -1257,6 +1263,53 @@ const ChantScreen = () => {
               }}>
               <Text style={styles.modalSaveFinishBtnText}>
                 {t('saveAndFinish') || 'Save & Finish'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={Boolean(annadanamModalTarget)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setAnnadanamModalTarget(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.annadanamCelebrationCard]}>
+            <View style={styles.annadanamCelebrationIconsCircle}>
+              <Text style={styles.annadanamCelebrationIcons}>🎉 🍲 🕉️</Text>
+            </View>
+            <Text style={styles.annadanamCelebrationTitle}>
+              Sacred Milestone Reached! 🙏
+            </Text>
+            <Text style={styles.annadanamCelebrationMessage}>
+              {t('annadanamMilestonePrompt', {
+                count: (annadanamModalTarget || 5000).toLocaleString('en-IN'),
+              }) ||
+                `Congratulations! You have completed ${(annadanamModalTarget || 5000).toLocaleString('en-IN')} sacred Japas. On this blessed occasion, would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers? Try to offer for at least 2 persons.`}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.annadanamCelebrationYesBtn}
+              activeOpacity={0.85}
+              onPress={() => {
+                setAnnadanamModalTarget(null);
+                navigation.navigate('JapaAnnadanam', {
+                  persons: 2,
+                  suggestPersons: true,
+                });
+              }}>
+              <Text style={styles.annadanamCelebrationYesBtnText}>
+                Yes, Perform Annadanam
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.annadanamCelebrationLaterBtn}
+              activeOpacity={0.85}
+              onPress={() => setAnnadanamModalTarget(null)}>
+              <Text style={styles.annadanamCelebrationLaterBtnText}>
+                Later
               </Text>
             </TouchableOpacity>
           </View>

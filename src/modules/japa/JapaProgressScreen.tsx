@@ -131,7 +131,10 @@ const JapaProgressScreen = () => {
 
   const resumeJapa = async () => {
     if (lifetime >= 5000) {
-      navigation.navigate('JapaAnnadanam');
+      navigation.navigate('JapaAnnadanam', {
+        persons: 2,
+        suggestPersons: true,
+      });
       return;
     }
     // Normal / Antharanga resume only — never open a challenge draft here.

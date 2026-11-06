@@ -273,15 +273,20 @@ class ChallengeController {
     try {
       const rows = await challengeRepository.listRewards();
       return apiResponse.success(res, 'Available rewards fetched', {
-        rewards: (rows || []).map((row: any) => ({
-          id: Number(row.id),
-          name: String(row.name || ''),
-          stock: Number(row.stock || 0),
-          inStock: true,
-          description: String(row.description || ''),
-          eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-          imageUrl: row.imageUrl || null,
-        })),
+        rewards: (rows || []).map((row: any) => {
+          const stock = Number(row.stock || 0);
+          return {
+            id: Number(row.id),
+            name: String(row.name || ''),
+            stock,
+            inStock: stock > 0,
+            description: String(row.description || ''),
+            eligibilityCriteria: Number(
+              row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+            ),
+            imageUrl: row.imageUrl || null,
+          };
+        }),
       });
     } catch (error) {
       next(error);

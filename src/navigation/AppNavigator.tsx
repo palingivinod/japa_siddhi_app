@@ -52,6 +52,7 @@ import MilestoneNotificationsScreen from '../modules/donate/MilestoneNotificatio
 import MilestoneRewardSelectScreen from '../modules/donate/MilestoneRewardSelectScreen';
 import MilestoneRewardAddressScreen from '../modules/donate/MilestoneRewardAddressScreen';
 import MilestoneRewardOverviewScreen from '../modules/donate/MilestoneRewardOverviewScreen';
+import MarakataShivlingClaimScreen from '../modules/profile/MarakataShivlingClaimScreen';
 import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
 import DonationFormScreen from '../modules/donate/DonationFormScreen';
 import MonthlySupportScreen from '../modules/home/screens/MonthlySupportScreen';
@@ -278,7 +279,9 @@ export type RootStackParamList = {
         openAutopay?: boolean;
       }
     | undefined;
-  JapaAnnadanam: undefined;
+  JapaAnnadanam:
+    | {persons?: number; suggestPersons?: boolean}
+    | undefined;
   MilestoneNotifications: undefined;
   MilestoneRewardSelect: {target?: number} | undefined;
   MilestoneRewardAddress:
@@ -295,7 +298,11 @@ export type RootStackParamList = {
         city?: string;
         state?: string;
         pinCode?: string;
+        claimKind?: string;
       }
+    | undefined;
+  MarakataShivlingClaim:
+    | {rewardId?: number | string; rewardName?: string}
     | undefined;
   GeneralAnnadanam: undefined;
   DonationForm: any;
@@ -499,6 +506,7 @@ const ProtectedMilestoneNotes = withAuth(MilestoneNotificationsScreen);
 const ProtectedMilestoneRewardSelect = withAuth(MilestoneRewardSelectScreen);
 const ProtectedMilestoneRewardAddress = withAuth(MilestoneRewardAddressScreen);
 const ProtectedMilestoneRewardOverview = withAuth(MilestoneRewardOverviewScreen);
+const ProtectedMarakataShivlingClaim = withAuth(MarakataShivlingClaimScreen);
 const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
 const ProtectedDonationForm = withAuth(DonationFormScreen);
 const ProtectedMonthlySupport = withAuth(MonthlySupportScreen);
@@ -744,6 +752,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="MilestoneRewardOverview"
           component={ProtectedMilestoneRewardOverview}
+        />
+        <Stack.Screen
+          name="MarakataShivlingClaim"
+          component={ProtectedMarakataShivlingClaim}
         />
         <Stack.Screen
           name="GeneralAnnadanam"

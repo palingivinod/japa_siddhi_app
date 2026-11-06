@@ -556,6 +556,12 @@ const en = {
 
   offerAnnadanam: 'Anna Santharpana',
   japaAnnadanamSub: 'After a Japa milestone, sponsor Anna Santharpana.',
+  annadanamMilestonePrompt:
+    'Congratulations! You have completed {{count}} sacred Japas. On this blessed occasion, would you like to dedicate your sadhana by offering Anna Santharpana (Food Donation) for devotees and seekers? Try to offer for at least 2 persons.',
+  annadanamMilestonePromptShort:
+    'You have completed {{count}} sacred Japas! On this blessed occasion, dedicate your sadhana by offering Anna Santharpana for devotees. Try to offer for at least 2 persons.',
+  annadanamSuggestedPersonsHint:
+    'Suggested: at least 2 persons. You can edit this number.',
   generalAnnadanamSub: 'Offer Anna Santharpana for an occasion.',
   milestoneReminders: 'Milestone reminders',
   milestoneRemindersSub: 'See Japa milestone notifications.',
@@ -1073,6 +1079,14 @@ const en = {
   youAreNotEligibleReward:
     'You are not eligible. You have completed {{count}} Japas. Complete {{required}} Japas to be eligible for this reward.',
   clickHereToGrabReward: 'Click here to grab your reward',
+  marakataUnlockRule:
+    'You can grab this reward after your present japa count + {{extra}} ({{present}} + {{extra}} = {{target}}).',
+  marakataEligibleHint:
+    'You have completed the required japas. Tap Grab to continue.',
+  marakataNotEligibleYet:
+    'You can grab this after present + {{extra}} Japas ({{present}} + {{extra}} = {{target}}). Need {{remaining}} more Japas.',
+  marakataAlreadyClaimed:
+    'You have already grabbed Marakata Shivling. It can be claimed only once.',
   outOfStockTitle: 'Out of Stock',
   outOfStockRewardMsg: 'This reward item is currently out of stock.',
   chooseInStockReward: 'Choose an in-stock reward to continue.',
@@ -1432,6 +1446,19 @@ const en = {
   startsIn: 'STARTS IN',
   soon: 'SOON',
   liveNow: 'LIVE NOW',
+  banaSankalpHeading: 'Sankalp/promise to parmeswara',
+  banaSankalp1:
+    'I promice parmeswara that i will never leave his hand throughout my life',
+  banaSankalp2:
+    'I promise parmeswara that this shivalinga willnot be given to anyone  (or) will not be left anywhere',
+  banaSankalp3:
+    'I promise parmeswara that this shivalinga will be with me throughout my life',
+  banaSankalp4:
+    'I promise parmeswara that this shivalinga will not be left by me if i see a content in youtube/insta/reels which convey message that we should not keep shivalinga at home or any mis consuption with regard to shivalinga and shiva pooja',
+  banaSankalp5:
+    'I will abide throughout my life to all these above sankalp/promise made by me',
+  banaSankalpRequired:
+    'Please accept all Sankalp / promise checkboxes to continue.',
 } as const;
 
 export type TranslationKey = keyof typeof en;

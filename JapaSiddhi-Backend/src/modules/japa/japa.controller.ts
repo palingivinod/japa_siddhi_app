@@ -332,6 +332,57 @@ class JapaController {
     }
   }
 
+  async getMarakataShivlingReward(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await milestoneRewardService.getMarakataShivlingStatus(userId);
+      return apiResponse.success(res, 'Marakata Shivling reward status', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
+  async claimMarakataShivlingReward(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await milestoneRewardService.claimMarakataShivling(
+        userId,
+        Number(req.body?.rewardId),
+        {
+          fullName: String(req.body?.fullName || ''),
+          mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          address: String(req.body?.address || ''),
+          city: String(req.body?.city || ''),
+          state: String(req.body?.state || ''),
+          pinCode: String(req.body?.pinCode || req.body?.postalCode || ''),
+        },
+      );
+      return apiResponse.success(res, 'Marakata Shivling reward submitted', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
   async getReference(
     req: Request,
     res: Response,
