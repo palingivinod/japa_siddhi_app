@@ -37,28 +37,28 @@ const CONTENT: Record<Exclude<ShippedOrderKind, 'GENERIC'>, ShippedNotifyContent
       kind: 'BAANALINGAM',
       title: 'Your Baanalingam order has been shipped',
       message:
-        'Your Baanalingam order has been shipped.\n\nAfter you receive it, please send us a photo of you with the Baanalingam. This helps us confirm safe delivery.\n\nThank you for your devotion. 🙏',
+        'After you receive it, please send us a photo of you with the Baanalingam. This helps us confirm safe delivery.\n\nThank you for your devotion. 🙏',
       ...MEDIA_BY_KIND.BAANALINGAM,
     },
     RAMAKOTI: {
       kind: 'RAMAKOTI',
       title: 'Your Ramakoti books have been shipped',
       message:
-        'Your Ramakoti books have been shipped.\n\nAfter you receive them, please send us a photo of you with the Ramakoti books. This helps us confirm delivery.\n\nThank you for continuing your Ramakoti japa. 🙏',
+        'After you receive them, please send us a photo of you with the Ramakoti books. This helps us confirm delivery.\n\nThank you for continuing your Ramakoti japa. 🙏',
       ...MEDIA_BY_KIND.RAMAKOTI,
     },
     HOMA_BHASMA: {
       kind: 'HOMA_BHASMA',
       title: 'Your Homa Bhasma order has been shipped',
       message:
-        'Your Homa Bhasma order has been shipped.\n\nAfter you receive it, please send us a photo of you with the Homa Bhasma. This helps us confirm safe delivery.\n\nThank you. 🙏',
+        'After you receive it, please send us a photo of you with the Homa Bhasma. This helps us confirm safe delivery.\n\nThank you. 🙏',
       ...MEDIA_BY_KIND.HOMA_BHASMA,
     },
     BHIRAVA: {
       kind: 'BHIRAVA',
       title: 'Your Bhirava Pendent has been shipped',
       message:
-        'Your Bhirava Pendent has been shipped.\n\nAfter you receive it, please send us a photo of you wearing / holding the pendant. This helps us confirm delivery.\n\nThank you. 🙏',
+        'After you receive it, please send us a photo of you wearing / holding the pendant. This helps us confirm delivery.\n\nThank you. 🙏',
       ...MEDIA_BY_KIND.BHIRAVA,
     },
   };
@@ -136,6 +136,6 @@ export const getShippedNotifyContent = (input: {
   return {
     kind: 'GENERIC',
     title: 'Your order has been shipped',
-    message: `Your order (${product}) has been shipped.\n\nAfter you receive it, please send us a photo of you with the item. This helps us confirm safe delivery.\n\nThank you. 🙏`,
+    message: `After you receive it, please send us a photo of you with the item (${product}). This helps us confirm safe delivery.\n\nThank you. 🙏`,
   };
 };
