@@ -2760,6 +2760,8 @@ const notifyUserOrderStatus = async (input: {
   userId?: number | string | null;
   orderNo?: string | null;
   product?: string | null;
+  orderType?: string | null;
+  remarks?: string | null;
   dbStatus: string;
 }) => {
   const userId = Number(input.userId || 0);
@@ -2769,9 +2771,30 @@ const notifyUserOrderStatus = async (input: {
   const orderId = Number(input.orderId || 0);
   const orderNo = String(input.orderNo || `#${orderId}`).trim() || `#${orderId}`;
   const product = String(input.product || 'your order').trim() || 'your order';
-  const label = userFacingOrderStatusLabel(input.dbStatus);
-  const title = `Order ${orderNo} update`;
-  const message = `Your order ${orderNo} (${product}) is now: ${label}.`;
+  const dbStatus = String(input.dbStatus || '').toUpperCase();
+  const label = userFacingOrderStatusLabel(dbStatus);
+
+  let title = `Order ${orderNo} update`;
+  let message = `Your order ${orderNo} (${product}) is now: ${label}.`;
+  let imageUrl: string | undefined;
+  let videoUrl: string | undefined;
+  let shippedKind: string | undefined;
+
+  if (dbStatus === 'SHIPPED') {
+    const {getShippedNotifyContent} = await import('./shippedNotifyContent');
+    const shipped = getShippedNotifyContent({
+      orderType: input.orderType,
+      orderNo,
+      product,
+      remarks: input.remarks,
+    });
+    title = shipped.title;
+    message = shipped.message;
+    imageUrl = String(shipped.imageUrl || '').trim() || undefined;
+    videoUrl = String(shipped.videoUrl || '').trim() || undefined;
+    shippedKind = shipped.kind;
+  }
+
   try {
     const {deliverAdminNotification, nowIstStamp} = await import(
       './adminNotification.service'
@@ -2797,10 +2820,15 @@ const notifyUserOrderStatus = async (input: {
       userIds: [userId],
       actionType: 'ORDER_STATUS',
       actionId: orderId > 0 ? orderId : null,
+      imageUrl,
+      videoUrl,
       extraData: {
         screen: 'OrderDetails',
         orderId: orderId > 0 ? orderId : undefined,
-        orderStatus: String(input.dbStatus || '').toUpperCase(),
+        orderStatus: dbStatus,
+        ...(shippedKind ? {shippedKind} : {}),
+        ...(imageUrl ? {imageUrl} : {}),
+        ...(videoUrl ? {videoUrl} : {}),
         ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
       },
       bypassHours: true,
@@ -3456,6 +3484,8 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       userId: detail.userId,
       orderNo: detail.orderNo,
       product: detail.product,
+      orderType: detail.orderType,
+      remarks: detail.remarks,
       dbStatus: nextStatus,
     });
 
