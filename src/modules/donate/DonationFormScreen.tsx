@@ -17,7 +17,14 @@ import {
   getSavedFormComments,
   saveFormComments,
 } from '../../utils/savedFormComments';
-import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {MOBILE_DIGITS} from '../../utils/validators';
+import {
+  isValidProfileMobile,
+  resolveCallingCountry,
+  resolveProfilePhone,
+} from '../../utils/profilePhone';
+import MobileWithCountryField from '../auth/components/MobileWithCountryField';
+import {CountryItem} from '../../constants/countries';
 
 const DonationFormScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,9 +36,10 @@ const DonationFormScreen = () => {
       ? 'japa_annadanam'
       : 'general_annadanam';
   const [fullName, setFullName] = useState(params.fullName || '');
-  const [mobile, setMobile] = useState(
-    digitsOnly(params.mobile || '').slice(-MOBILE_DIGITS),
+  const [mobileCountry, setMobileCountry] = useState<CountryItem>(
+    resolveCallingCountry('91'),
   );
+  const [mobile, setMobile] = useState('');
   const [occasion, setOccasion] = useState(params.occasion || 'Anna Santharpana');
   const [preferDate, setPreferDate] = useState(params.preferDate || '');
   const [showDate, setShowDate] = useState(false);
@@ -62,27 +70,19 @@ const DonationFormScreen = () => {
             stored?.fullName ||
             stored?.full_name ||
             '';
-          const phoneRaw =
-            profile?.mobileNumber ||
-            (profile as any)?.phoneNumber ||
-            stored?.mobileNumber ||
-            stored?.mobile_number ||
-            stored?.phoneNumber ||
-            stored?.phone_number ||
-            stored?.phone ||
-            '';
-          const phone = digitsOnly(String(phoneRaw || '')).slice(-MOBILE_DIGITS);
+          const phone = resolveProfilePhone(profile, stored);
 
           if (name) {
             setFullName(current => current || String(name));
           }
           // Prefill from profile when empty; user can still edit.
-          if (phone.length === MOBILE_DIGITS) {
-            setMobile(current =>
-              digitsOnly(String(current || '')).length === MOBILE_DIGITS
-                ? current
-                : phone,
-            );
+          if (isValidProfileMobile(phone.countryCode, phone.mobile)) {
+            setMobile(current => {
+              if (!current) {
+                setMobileCountry(phone.country);
+              }
+              return current || phone.mobile;
+            });
           }
           setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
           setNakshatram(
@@ -105,11 +105,12 @@ const DonationFormScreen = () => {
   );
 
   const totalAmount = persons * RATE_PER_PERSON;
+  const countryCode =
+    mobileCountry.callingCode.replace(/\D/g, '') || '91';
   const cleanMobile = mobile.replace(/\D/g, '');
   const detailsReady =
     fullName.trim().length >= 2 &&
-    isMobile(cleanMobile) &&
-    !/^0+$/.test(cleanMobile) &&
+    isValidProfileMobile(countryCode, cleanMobile) &&
     /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
     persons > 0 &&
     comments.trim().length > 0;
@@ -120,10 +121,13 @@ const DonationFormScreen = () => {
       return;
     }
     const cleanMobile = mobile.replace(/\D/g, '');
-    if (!isMobile(cleanMobile) || /^0+$/.test(cleanMobile)) {
+    const code = mobileCountry.callingCode.replace(/\D/g, '') || '91';
+    if (!isValidProfileMobile(code, cleanMobile)) {
       Alert.alert(
         t('validationTitle'),
-        t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}),
+        code === '91'
+          ? t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)})
+          : t('enterValidMobileNumber'),
       );
       return;
     }
@@ -151,6 +155,7 @@ const DonationFormScreen = () => {
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
+      mobileCountryCode: code,
       gothram: gothram.trim(),
       nakshatram: nakshatram.trim(),
       comments: trimmedComments,
@@ -170,13 +175,18 @@ const DonationFormScreen = () => {
         value={fullName}
         onChangeText={setFullName}
       />
-      <FormField
+      <MobileWithCountryField
         label={t('mobileNumber')}
-        placeholder={t('enterMobileNumber')}
-        keyboardType="phone-pad"
-        maxLength={MOBILE_DIGITS}
-        value={mobile}
-        onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
+        country={mobileCountry}
+        mobile={mobile}
+        onCountryChange={item => {
+          setMobileCountry(item);
+          const code = item.callingCode.replace(/\D/g, '') || '91';
+          if (code === '91') {
+            setMobile(prev => prev.replace(/\D/g, '').slice(-MOBILE_DIGITS));
+          }
+        }}
+        onMobileChange={setMobile}
       />
       <FormField
         label={t('occasionLabel')}

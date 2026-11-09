@@ -36,14 +36,21 @@ class ProfileService {
     // A mobile already in use must not be taken from its owner, which would
     // leave them unable to sign in with their own number.
     const nextMobile = String(editable.mobileNumber || '').replace(/\D/g, '');
+    const nextCountry =
+      String(editable.mobileCountryCode || '').replace(/\D/g, '') || '91';
     if (nextMobile) {
       const current = await profileRepository.getProfile(userId);
       const currentMobile = String(current?.mobileNumber || '').replace(
         /\D/g,
         '',
       );
-      if (nextMobile !== currentMobile) {
-        const owner = await authRepository.findUserByMobile('', nextMobile);
+      const currentCountry =
+        String(current?.mobileCountryCode || '').replace(/\D/g, '') || '91';
+      if (nextMobile !== currentMobile || nextCountry !== currentCountry) {
+        const owner = await authRepository.findUserByMobile(
+          nextCountry,
+          nextMobile,
+        );
         if (owner && Number(owner.id) !== Number(userId)) {
           throw new AppError(
             'That mobile number already belongs to another account.',

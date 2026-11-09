@@ -23,7 +23,35 @@ class FeedbackController {
       if (!message && !file) {
         return apiResponse.error(res, 'Add a comment or a video.', 400);
       }
-      const videoUrl = file?.filename ? publicFeedbackPath(file.filename) : null;
+
+      let videoUrl: string | null = file?.filename
+        ? publicFeedbackPath(file.filename)
+        : null;
+
+      if (file?.path && file?.filename) {
+        try {
+          const {
+            deleteLocalUploadQuietly,
+            isFirebaseStorageReady,
+            uploadFileToFirebase,
+          } = await import('../../firebase/firebaseStorage');
+          if (isFirebaseStorageReady()) {
+            videoUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'feedback',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+          }
+        } catch (firebaseError: any) {
+          console.warn(
+            'Firebase Storage feedback upload failed; using local path:',
+            firebaseError?.message || firebaseError,
+          );
+        }
+      }
+
       const mediaBaseUrl =
         absoluteMediaUrl(req, '/')?.replace(/\/$/, '') ||
         `https://${req.get('host') || 'japasiddhi.onrender.com'}`;

@@ -18,12 +18,18 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SelectField from '../common/SelectField';
 import CountryPickerField from '../auth/components/CountryPickerField';
+import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import StateSelector from '../auth/components/StateSelector';
 import CitySelector from '../auth/components/CitySelector';
 import ProfileApi from '../auth/services/profileApi';
 import {hydrateSession, saveSession} from '../../services/session';
 import DatePickerModal from '../common/DatePickerModal';
-import {isMobile, MOBILE_DIGITS} from '../../utils/validators';
+import {MOBILE_DIGITS} from '../../utils/validators';
+import {
+  isValidProfileMobile,
+  resolveCallingCountry,
+  resolveProfilePhone,
+} from '../../utils/profilePhone';
 
 const formatDobDisplay = (iso: string) => {
   const match = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
@@ -95,6 +101,9 @@ const PersonalDetailsScreen = () => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [mobileCountry, setMobileCountry] = useState<CountryItem>(
+    resolveCallingCountry('91'),
+  );
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [dobText, setDobText] = useState('');
   const [showDobPicker, setShowDobPicker] = useState(false);
@@ -123,17 +132,16 @@ const PersonalDetailsScreen = () => {
     setProfile(data);
     setFullName(data.fullName || '');
     setEmail(data.email || '');
-    setMobileNumber(data.mobileNumber || '');
+    const phone = resolveProfilePhone(data);
+    setMobileNumber(phone.mobile);
+    setMobileCountry(phone.country);
     const isoDob = String(data.dateOfBirth || data.dob || '').slice(0, 10);
     setDateOfBirth(isoDob);
     setDobText(formatDobDisplay(isoDob));
-    const phoneDigits = String(data.mobileNumber || '')
-      .replace(/\D/g, '')
-      .slice(-MOBILE_DIGITS);
-    const phoneMissing =
-      phoneDigits.length !== MOBILE_DIGITS ||
-      !isMobile(phoneDigits) ||
-      /^0+$/.test(phoneDigits);
+    const phoneMissing = !isValidProfileMobile(
+      phone.countryCode,
+      phone.mobile,
+    );
     if (route?.params?.startEditing || !isoDob || phoneMissing) {
       setEditing(true);
     }
@@ -213,12 +221,19 @@ const PersonalDetailsScreen = () => {
   };
 
   const savePersonal = async () => {
-    const mobile = mobileNumber.replace(/\D/g, '').slice(-MOBILE_DIGITS);
-    if (!isMobile(mobile) || /^0+$/.test(mobile)) {
+    const countryCode =
+      mobileCountry.callingCode.replace(/\D/g, '') || '91';
+    const mobile =
+      countryCode === '91'
+        ? mobileNumber.replace(/\D/g, '').slice(-MOBILE_DIGITS)
+        : mobileNumber.replace(/\D/g, '').slice(0, 15);
+    if (!isValidProfileMobile(countryCode, mobile)) {
       Alert.alert(
         t('required'),
-        t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}) ||
-          t('enterValidMobileNumber'),
+        countryCode === '91'
+          ? t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}) ||
+              t('enterValidMobileNumber')
+          : t('enterValidMobileNumber'),
       );
       return;
     }
@@ -248,6 +263,7 @@ const PersonalDetailsScreen = () => {
 
       const updated = await ProfileApi.updateProfile({
         mobileNumber: mobile,
+        mobileCountryCode: countryCode,
         dateOfBirth: isoDob,
         gender: gender || undefined,
         countryId,
@@ -329,7 +345,14 @@ const PersonalDetailsScreen = () => {
     <ScreenLayout title="Personal Details" showBack tab="Profile">
         {userCode ? <Row label={t('userId')} value={userCode} /> : null}
         <Row label="Full name" value={fullName} />
-        <Row label="Mobile" value={mobileNumber} />
+        <Row
+          label="Mobile"
+          value={
+            mobileNumber
+              ? `${mobileCountry.callingCode || '+91'} ${mobileNumber}`
+              : ''
+          }
+        />
         <Row label={t('dateOfBirth')} value={formatDobDisplay(dateOfBirth)} />
         <Row label={t('pinCode')} value={pinCode} />
         <Row label="Email" value={email} />
@@ -378,13 +401,18 @@ const PersonalDetailsScreen = () => {
         autoCapitalize="none"
       />
 
-      <Text style={styles.label}>{t('mobile')} *</Text>
-      <TextInput
-        style={styles.input}
-        value={mobileNumber}
-        onChangeText={setMobileNumber}
-        keyboardType="phone-pad"
-        placeholder={t('placeholderMobile')}
+      <MobileWithCountryField
+        label={`${t('mobile')} *`}
+        country={mobileCountry}
+        mobile={mobileNumber}
+        onCountryChange={item => {
+          setMobileCountry(item);
+          const code = item.callingCode.replace(/\D/g, '') || '91';
+          if (code === '91') {
+            setMobileNumber(prev => prev.replace(/\D/g, '').slice(-MOBILE_DIGITS));
+          }
+        }}
+        onMobileChange={setMobileNumber}
       />
 
       <Text style={styles.label}>{t('dateOfBirth')} *</Text>

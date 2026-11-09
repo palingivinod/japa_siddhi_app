@@ -324,7 +324,9 @@ const NotificationCardImage: React.FC<{
       ) : null}
       {hasError ? (
         <View style={styles.imageErrorWrap}>
-          <Text style={styles.imageErrorText}>Tap to preview image</Text>
+          <Text style={styles.imageErrorText}>
+            Image unavailable (link may be expired)
+          </Text>
         </View>
       ) : null}
     </TouchableOpacity>

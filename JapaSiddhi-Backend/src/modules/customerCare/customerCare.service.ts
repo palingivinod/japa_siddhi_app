@@ -31,9 +31,12 @@ class CustomerCareService {
       ...data,
       message: storedMessage,
     });
-    const screenshotLink = data.screenshotUrl
-      ? `${mediaBaseUrl || ''}${data.screenshotUrl}`
-      : '-';
+    const rawScreenshot = String(data.screenshotUrl || '').trim();
+    const screenshotLink = !rawScreenshot
+      ? '-'
+      : /^https?:\/\//i.test(rawScreenshot)
+        ? rawScreenshot
+        : `${mediaBaseUrl || ''}${rawScreenshot}`;
     const userName = await this.resolveUserName(data.userId);
 
     await emailOtpService.notifyAdmin(

@@ -10,6 +10,7 @@ export type AppPaymentInput = {
   seva?: string;
   name?: string;
   phone?: string;
+  mobileCountryCode?: string;
   preferDate?: string;
   occasion?: string;
   forWhom?: string;

@@ -37,6 +37,9 @@ import {formatDobDisplay, parseDob, maskDob} from '../../utils/dobUtils';
 import DatePickerModal from '../common/DatePickerModal';
 import ProfileApi from './services/profileApi';
 import {getAppVersionName} from '../../utils/appVersion';
+import AuthLoadingOverlay, {
+  waitForLoadingPaint,
+} from './components/AuthLoadingOverlay';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -124,6 +127,7 @@ const LoginScreen = () => {
     }
 
     setSubmitting(true);
+    await waitForLoadingPaint();
     try {
       try {
         const admin = await verifyAdminCredentials(value, password);
@@ -250,6 +254,7 @@ const LoginScreen = () => {
       return;
     }
     setGoogleBusy(true);
+    await waitForLoadingPaint();
     try {
       const signedIn = await signInWithGoogle();
       const user = signedIn.user || {};
@@ -322,14 +327,28 @@ const LoginScreen = () => {
   };
 
   const handleSendLoginOtp = async () => {
+    if (submitting || googleBusy) {
+      return;
+    }
+    if (otpChannel === 'email') {
+      const email = otpEmail.trim().toLowerCase();
+      if (!EMAIL_REGEX.test(email)) {
+        Alert.alert(t('required'), t('enterValidEmail'));
+        return;
+      }
+    } else {
+      const mobile = otpMobile.replace(/\D/g, '');
+      if (mobile.length !== 10 || /^0+$/.test(mobile)) {
+        Alert.alert(t('required'), t('enterValidMobileNumber'));
+        return;
+      }
+    }
+
     setSubmitting(true);
+    await waitForLoadingPaint();
     try {
       if (otpChannel === 'email') {
         const email = otpEmail.trim().toLowerCase();
-        if (!EMAIL_REGEX.test(email)) {
-          Alert.alert(t('required'), t('enterValidEmail'));
-          return;
-        }
         const response = await apiService.post('/auth/otp/send', {
           mode: 'login',
           channel: 'email',
@@ -344,10 +363,6 @@ const LoginScreen = () => {
         });
       } else {
         const mobile = otpMobile.replace(/\D/g, '');
-        if (mobile.length !== 10 || /^0+$/.test(mobile)) {
-          Alert.alert(t('required'), t('enterValidMobileNumber'));
-          return;
-        }
         // 1) Backend: account must exist for this number
         const response = await apiService.post('/auth/otp/send', {
           mode: 'login',
@@ -644,6 +659,25 @@ const LoginScreen = () => {
           </>
         )}
       </ScrollView>
+      <AuthLoadingOverlay
+        visible={googleBusy || submitting}
+        title={
+          googleBusy
+            ? t('loggingIn') || 'Signing in...'
+            : loginMethod === 'otp'
+              ? t('sendingOtp') || 'Sending OTP...'
+              : t('loggingIn') || 'Signing in...'
+        }
+        subtitle={
+          googleBusy
+            ? 'Connecting your Google account'
+            : loginMethod === 'otp'
+              ? otpChannel === 'phone'
+                ? 'Sending SMS code to your phone'
+                : 'Sending code to your email'
+              : 'Please wait'
+        }
+      />
       {/* Google Details Modal (Date of Birth and Mr / Mrs) */}
       <Modal
         visible={showGoogleDetailsModal}

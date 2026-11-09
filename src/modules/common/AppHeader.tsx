@@ -104,7 +104,7 @@ const AppHeader: React.FC<Props> = ({
           style={styles.bellHit}
           accessibilityRole="button"
           accessibilityLabel={t('notifications') || 'Notifications'}>
-          <AppIcon name="bell" size={26} color={Colors.sacredBrown} />
+          <AppIcon name="notificationsPhoto" size={28} color={Colors.sacredBrown} />
           {badgeLabel ? (
             <View style={styles.badge}>
               <Text style={styles.badgeText}>{badgeLabel}</Text>

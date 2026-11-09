@@ -317,6 +317,9 @@ class JapaController {
         {
           fullName: String(req.body?.fullName || ''),
           mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          mobileCountryCode: String(
+            req.body?.mobileCountryCode || req.body?.countryCode || '91',
+          ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),
           state: String(req.body?.state || ''),
@@ -368,6 +371,9 @@ class JapaController {
         {
           fullName: String(req.body?.fullName || ''),
           mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          mobileCountryCode: String(
+            req.body?.mobileCountryCode || req.body?.countryCode || '91',
+          ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),
           state: String(req.body?.state || ''),

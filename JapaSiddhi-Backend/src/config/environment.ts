@@ -61,6 +61,10 @@ const environment = {
   FIREBASE_SERVICE_ACCOUNT_BASE64:
     process.env.FIREBASE_SERVICE_ACCOUNT_BASE64 || '',
 
+  FIREBASE_STORAGE_BUCKET:
+    process.env.FIREBASE_STORAGE_BUCKET ||
+    'japa-siddhi-a1626.firebasestorage.app',
+
   SMTP_HOST:
     process.env.SMTP_HOST || 'smtp.gmail.com',
 

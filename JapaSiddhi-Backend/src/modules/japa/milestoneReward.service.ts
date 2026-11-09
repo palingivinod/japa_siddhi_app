@@ -10,6 +10,7 @@ import {isRewardEligibleTarget, milestoneByTarget} from './japa.milestones';
 export type MilestoneDelivery = {
   fullName: string;
   mobile: string;
+  mobileCountryCode?: string;
   address: string;
   city: string;
   state: string;
@@ -546,14 +547,28 @@ class MilestoneRewardService {
     }
 
     const fullName = String(delivery.fullName || '').trim();
-    const mobile = String(delivery.mobile || '').replace(/\D/g, '').slice(-10);
+    const mobileCountryCode =
+      String(delivery.mobileCountryCode || '91').replace(/\D/g, '') || '91';
+    const mobileDigits = String(delivery.mobile || '').replace(/\D/g, '');
+    const mobile =
+      mobileCountryCode === '91'
+        ? mobileDigits.slice(-10)
+        : mobileDigits.slice(0, 15);
     const address = String(delivery.address || '').trim();
     const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
     if (!fullName || !address) {
       throw new Error('Enter all delivery details');
     }
-    if (!/^[0-9]{10}$/.test(mobile)) {
-      throw new Error('Enter a valid 10-digit mobile number');
+    if (
+      (mobileCountryCode === '91' && !/^[0-9]{10}$/.test(mobile)) ||
+      (mobileCountryCode !== '91' &&
+        (mobile.length < 6 || mobile.length > 15))
+    ) {
+      throw new Error(
+        mobileCountryCode === '91'
+          ? 'Enter a valid 10-digit mobile number'
+          : 'Enter a valid mobile number',
+      );
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
       throw new Error('PIN code is mandatory (6 digits)');
@@ -576,7 +591,7 @@ class MilestoneRewardService {
       `Reward track: ${title}`,
       `Reward: ${rewardName}`,
       `Name: ${fullName}`,
-      `Mobile: ${mobile}`,
+      `Mobile: +${mobileCountryCode}${mobile}`,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
@@ -730,7 +745,7 @@ class MilestoneRewardService {
         `Order: ${orderNumber}`,
         `Name: ${devotee.name}`,
         `Email: ${devotee.email}`,
-        `Mobile: ${mobile}`,
+        `Mobile: +${mobileCountryCode}${mobile}`,
         `Address: ${address}`,
         `City: ${city}`,
         `State: ${state}`,
@@ -844,14 +859,28 @@ class MilestoneRewardService {
     }
 
     const fullName = String(delivery.fullName || '').trim();
-    const mobile = String(delivery.mobile || '').replace(/\D/g, '').slice(-10);
+    const mobileCountryCode =
+      String(delivery.mobileCountryCode || '91').replace(/\D/g, '') || '91';
+    const mobileDigits = String(delivery.mobile || '').replace(/\D/g, '');
+    const mobile =
+      mobileCountryCode === '91'
+        ? mobileDigits.slice(-10)
+        : mobileDigits.slice(0, 15);
     const address = String(delivery.address || '').trim();
     const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
     if (!fullName || !address) {
       throw new Error('Enter all delivery details');
     }
-    if (!/^[0-9]{10}$/.test(mobile)) {
-      throw new Error('Enter a valid 10-digit mobile number');
+    if (
+      (mobileCountryCode === '91' && !/^[0-9]{10}$/.test(mobile)) ||
+      (mobileCountryCode !== '91' &&
+        (mobile.length < 6 || mobile.length > 15))
+    ) {
+      throw new Error(
+        mobileCountryCode === '91'
+          ? 'Enter a valid 10-digit mobile number'
+          : 'Enter a valid mobile number',
+      );
     }
     if (!/^[0-9]{6}$/.test(pinCode)) {
       throw new Error('PIN code is mandatory (6 digits)');
@@ -875,7 +904,7 @@ class MilestoneRewardService {
       `Milestone: ${milestone.title} (${milestone.target})`,
       `Reward: ${rewardName}`,
       `Name: ${fullName}`,
-      `Mobile: ${mobile}`,
+      `Mobile: +${mobileCountryCode}${mobile}`,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
@@ -1028,7 +1057,7 @@ class MilestoneRewardService {
         `Order: ${orderNumber}`,
         `Name: ${devotee.name}`,
         `Email: ${devotee.email}`,
-        `Mobile: ${mobile}`,
+        `Mobile: +${mobileCountryCode}${mobile}`,
         `Address: ${address}`,
         `City: ${city}`,
         `State: ${state}`,

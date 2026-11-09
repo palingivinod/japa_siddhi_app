@@ -21,6 +21,9 @@ import {formatDobDisplay, parseDob, maskDob} from '../../utils/dobUtils';
 import DatePickerModal from '../common/DatePickerModal';
 import ProfileApi from './services/profileApi';
 import {resetAfterSocialAuth, resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
+import AuthLoadingOverlay, {
+  waitForLoadingPaint,
+} from './components/AuthLoadingOverlay';
 
 const showAlertLater = (title: string, message: string) => {
   // Android Activity can be null right as native sign-in returns; Alert then
@@ -66,6 +69,7 @@ const SocialAuthScreen = () => {
 
     try {
       setBusy(true);
+      await waitForLoadingPaint();
       const signedIn = await signInWithGoogle();
       resetAuthGate();
       setTimeout(() => {
@@ -101,6 +105,7 @@ const SocialAuthScreen = () => {
 
     try {
       setBusy(true);
+      await waitForLoadingPaint();
       const signedIn = await signInWithFacebook();
       resetAuthGate();
       setTimeout(() => {
@@ -155,29 +160,23 @@ const SocialAuthScreen = () => {
   if (provider === 'Google') {
     return (
       <ScreenLayout title={t('continueWithGoogle')} showBack>
+        <AuthLoadingOverlay
+          visible={busy}
+          title={t('loggingIn') || 'Signing in...'}
+          subtitle="Connecting your Google account"
+        />
         <Text style={styles.title}>{t('continueWithGoogle')}</Text>
         <Text style={styles.copy}>{t('googleAuthHelper')}</Text>
-        {busy ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.templeGold} />
-            <Text style={styles.loadingTitle}>Signing in with Google...</Text>
-            <Text style={styles.loadingSubtitle}>
-              Please wait while we connect your account
-            </Text>
-          </View>
-        ) : (
-          <>
-            <PrimaryButton
-              title={t('continueWithGoogleBtn')}
-              onPress={continueWithGoogle}
-            />
-            <View style={styles.gap} />
-            <OutlineButton
-              title={t('signInWithEmailPassword')}
-              onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
-            />
-          </>
-        )}
+        <PrimaryButton
+          title={t('continueWithGoogleBtn')}
+          onPress={continueWithGoogle}
+          disabled={busy}
+        />
+        <View style={styles.gap} />
+        <OutlineButton
+          title={t('signInWithEmailPassword')}
+          onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
+        />
               {/* Google Details Modal (Date of Birth and Mr / Mrs) */}
         <Modal
           visible={showGoogleDetailsModal}
@@ -295,36 +294,30 @@ const SocialAuthScreen = () => {
   if (provider === 'Facebook') {
     return (
       <ScreenLayout title={t('continueWithFacebook')} showBack>
+        <AuthLoadingOverlay
+          visible={busy}
+          title={t('loggingIn') || 'Signing in...'}
+          subtitle="Connecting your Facebook account"
+        />
         <Text style={styles.title}>{t('continueWithFacebook')}</Text>
         <Text style={styles.copy}>{t('facebookAuthHelper')}</Text>
-        {busy ? (
-          <View style={styles.loadingBox}>
-            <ActivityIndicator size="large" color={Colors.templeGold} />
-            <Text style={styles.loadingTitle}>Signing in with Facebook...</Text>
-            <Text style={styles.loadingSubtitle}>
-              Please wait while we connect your account
-            </Text>
-          </View>
-        ) : (
-          <>
-            <PrimaryButton
-              title={t('continueWithFacebookBtn')}
-              onPress={continueWithFacebook}
-            />
-            <View style={styles.gap} />
-            <OutlineButton
-              title={t('tryGoogleInstead')}
-              onPress={() =>
-                navigation.replace('SocialAuth', {provider: 'Google'})
-              }
-            />
-            <View style={styles.gap} />
-            <OutlineButton
-              title={t('signInWithEmailPassword')}
-              onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
-            />
-          </>
-        )}
+        <PrimaryButton
+          title={t('continueWithFacebookBtn')}
+          onPress={continueWithFacebook}
+          disabled={busy}
+        />
+        <View style={styles.gap} />
+        <OutlineButton
+          title={t('tryGoogleInstead')}
+          onPress={() =>
+            navigation.replace('SocialAuth', {provider: 'Google'})
+          }
+        />
+        <View style={styles.gap} />
+        <OutlineButton
+          title={t('signInWithEmailPassword')}
+          onPress={() => navigation.navigate('Login', {forceLoginForm: true})}
+        />
               {/* Google Details Modal (Date of Birth and Mr / Mrs) */}
         <Modal
           visible={showGoogleDetailsModal}

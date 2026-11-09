@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {ActivityIndicator, Alert, StyleSheet, Text, View} from 'react-native';
+import {Alert, StyleSheet, Text, View} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -14,6 +14,9 @@ import Colors from '../../theme/colors';
 import {useBottomNavPad} from '../../utils/safeArea';
 import {BODY_PAD} from '../../utils/layoutSpacing';
 import firebaseAuthService from './services/firebaseAuthService';
+import AuthLoadingOverlay, {
+  waitForLoadingPaint,
+} from './components/AuthLoadingOverlay';
 
 const OtpScreen = ({route, navigation}: any) => {
   const {
@@ -47,10 +50,14 @@ const OtpScreen = ({route, navigation}: any) => {
       );
       return;
     }
+    if (loading) {
+      return;
+    }
+    setLoading(true);
+    await waitForLoadingPaint();
 
-    if (otpChannel === 'phone') {
-      setLoading(true);
-      try {
+    try {
+      if (otpChannel === 'phone') {
         if (autoCode) {
           setOtp(autoCode);
         }
@@ -146,27 +153,15 @@ const OtpScreen = ({route, navigation}: any) => {
           firebaseToken: fb.idToken,
           firebaseUid: data.firebaseUid,
         });
-      } catch (error: any) {
-        Alert.alert(
-          t('verificationFailed'),
-          error?.response?.data?.message ||
-            error?.message ||
-            t('otpVerificationFailed'),
-        );
-      } finally {
-        setLoading(false);
+        return;
       }
-      return;
-    }
 
-    if (isLogin) {
-      setLoading(true);
-      try {
+      if (isLogin) {
         const response = await apiService.post('/auth/otp/verify', {
           mode: 'login',
           channel: 'email',
           email,
-          otp,
+          otp: entered,
         });
         const data = response.data?.data || {};
         if (!data?.token || !data?.user) {
@@ -187,32 +182,22 @@ const OtpScreen = ({route, navigation}: any) => {
           '../../navigation/goHomeAfterAuth'
         );
         await resetToHomeAfterAuth(navigation);
-      } catch (error: any) {
-        Alert.alert(
-          t('verificationFailed'),
-          error?.response?.data?.message || t('otpVerificationFailed'),
-        );
-      } finally {
-        setLoading(false);
+        return;
       }
-      return;
-    }
 
-    if (!password || String(password).length < 6) {
-      Alert.alert(
-        t('createAccountAlertTitle'),
-        t('passwordMissingSignup'),
-      );
-      return;
-    }
+      if (!password || String(password).length < 6) {
+        Alert.alert(
+          t('createAccountAlertTitle'),
+          t('passwordMissingSignup'),
+        );
+        return;
+      }
 
-    setLoading(true);
-    try {
       const response = await apiService.post('/auth/otp/verify', {
         mobileCountryCode,
         mobileNumber,
         email,
-        otp,
+        otp: entered,
         mode: 'register',
         channel: 'email',
       });
@@ -232,7 +217,9 @@ const OtpScreen = ({route, navigation}: any) => {
     } catch (error: any) {
       Alert.alert(
         t('verificationFailed'),
-        error?.response?.data?.message || t('otpVerificationFailed'),
+        error?.response?.data?.message ||
+          error?.message ||
+          t('otpVerificationFailed'),
       );
     } finally {
       setLoading(false);
@@ -363,20 +350,27 @@ const OtpScreen = ({route, navigation}: any) => {
     <SafeAreaView
       style={[styles.container, {paddingHorizontal: BODY_PAD}]}
       edges={['top', 'left', 'right']}>
+      <AuthLoadingOverlay
+        visible={loading}
+        title={t('loggingIn') || 'Please wait...'}
+        subtitle={
+          otpChannel === 'phone'
+            ? 'Verifying your phone code'
+            : 'Verifying your email code'
+        }
+      />
       <AppHeader title={headerTitle} showBack />
       <Text style={styles.subtitle}>{subtitle}</Text>
       <Text style={styles.mobile}>{sentTo || email || phoneNumber}</Text>
       <OTPInput value={otp} onChange={setOtp} length={otpLength} />
       <ResendTimer seconds={60} onResend={resendOTP} />
       <View style={[styles.action, {paddingBottom: bottomPad}]}>
-        {loading ? (
-          <ActivityIndicator size="large" color={Colors.templeGold} />
-        ) : (
-          <ContinueButton
-            title={isLogin ? t('verifyAndLogin') : t('verifyAndContinue')}
-            onPress={() => verifyOTP()}
-          />
-        )}
+        <ContinueButton
+          title={isLogin ? t('verifyAndLogin') : t('verifyAndContinue')}
+          onPress={() => verifyOTP()}
+          loading={loading}
+          disabled={loading}
+        />
         <Text style={styles.change} onPress={() => navigation.goBack()}>
           {t('changeDetails')}
         </Text>

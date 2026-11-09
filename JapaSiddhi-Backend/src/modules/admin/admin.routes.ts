@@ -2210,6 +2210,39 @@ router.post(
             message: 'Choose a JPEG, PNG, or WebP image to upload.',
           });
         }
+
+        const {
+          deleteLocalUploadQuietly,
+          isFirebaseStorageReady,
+          uploadFileToFirebase,
+        } = await import('../../firebase/firebaseStorage');
+
+        if (isFirebaseStorageReady() && file.path) {
+          try {
+            const imageUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'notifications',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+            return res.json({
+              success: true,
+              message: 'Notification image uploaded.',
+              data: {
+                path: imageUrl,
+                imageUrl,
+                storage: 'firebase',
+              },
+            });
+          } catch (firebaseError: any) {
+            console.warn(
+              'Firebase Storage image upload failed; falling back to local URL:',
+              firebaseError?.message || firebaseError,
+            );
+          }
+        }
+
         const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
         const path = publicNotifyPath(file.filename);
         return res.json({
@@ -2218,6 +2251,7 @@ router.post(
           data: {
             path,
             imageUrl: absoluteMediaUrl(req, path),
+            storage: 'local',
           },
         });
       } catch (error: any) {
@@ -2249,6 +2283,39 @@ router.post(
             message: 'Choose an MP4/MOV/WebM video to upload.',
           });
         }
+
+        const {
+          deleteLocalUploadQuietly,
+          isFirebaseStorageReady,
+          uploadFileToFirebase,
+        } = await import('../../firebase/firebaseStorage');
+
+        if (isFirebaseStorageReady() && file.path) {
+          try {
+            const videoUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'notifications',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+            return res.json({
+              success: true,
+              message: 'Notification video uploaded.',
+              data: {
+                path: videoUrl,
+                videoUrl,
+                storage: 'firebase',
+              },
+            });
+          } catch (firebaseError: any) {
+            console.warn(
+              'Firebase Storage video upload failed; falling back to local URL:',
+              firebaseError?.message || firebaseError,
+            );
+          }
+        }
+
         const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
         const path = publicNotifyPath(file.filename);
         return res.json({
@@ -2257,6 +2324,7 @@ router.post(
           data: {
             path,
             videoUrl: absoluteMediaUrl(req, path),
+            storage: 'local',
           },
         });
       } catch (error: any) {

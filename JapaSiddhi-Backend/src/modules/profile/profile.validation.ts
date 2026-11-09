@@ -20,8 +20,14 @@ export const updateProfileValidation = [
   body('mobileNumber')
     .optional({nullable: true})
     .trim()
-    .isLength({min: 8, max: 20})
+    .isLength({min: 6, max: 20})
     .withMessage('Invalid mobile number'),
+
+  body('mobileCountryCode')
+    .optional({nullable: true})
+    .trim()
+    .isLength({min: 1, max: 6})
+    .withMessage('Invalid mobile country code'),
 
   body('gender')
     .optional({

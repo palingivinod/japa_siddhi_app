@@ -26,6 +26,9 @@ import {signInWithGoogle, explainGoogleSignInError} from './services/googleAuthS
 import {resetAuthGate} from '../common/AuthGate';
 import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 import ProfileApi from './services/profileApi';
+import AuthLoadingOverlay, {
+  waitForLoadingPaint,
+} from './components/AuthLoadingOverlay';
 
 const defaultIndia: CountryItem =
   countries.find(c => c.code === 'IN') || {
@@ -104,6 +107,7 @@ const CreateAccountScreen = () => {
       return;
     }
     setGoogleBusy(true);
+    await waitForLoadingPaint();
     try {
       const signedIn = await signInWithGoogle();
       const user = signedIn.user || {};
@@ -213,6 +217,7 @@ const CreateAccountScreen = () => {
     }
 
     setSubmitting(true);
+    await waitForLoadingPaint();
     try {
       await clearSession().catch(() => undefined);
       const response = await apiService.post('/auth/otp/send', {
@@ -273,6 +278,19 @@ const CreateAccountScreen = () => {
 
   return (
     <ScreenLayout title={t('createAccountTitle') || 'Create Account'} showBack>
+      <AuthLoadingOverlay
+        visible={googleBusy || submitting}
+        title={
+          googleBusy
+            ? t('loggingIn') || 'Signing in...'
+            : t('sendingOtp') || 'Sending OTP...'
+        }
+        subtitle={
+          googleBusy
+            ? 'Connecting your Google account'
+            : 'Sending SMS code to your phone'
+        }
+      />
       <Text style={styles.heading}>{t('createYourAccount') || 'Create your account'}</Text>
       <Text style={styles.helper}>
         Sign up with Google or enter your mobile number to get started.
@@ -284,16 +302,12 @@ const CreateAccountScreen = () => {
         onPress={handleGoogleSignup}
         disabled={googleBusy || submitting}
         activeOpacity={0.85}>
-        {googleBusy ? (
-          <ActivityIndicator color={Colors.white} size="small" />
-        ) : (
-          <View style={styles.googleBtnContent}>
-            <Text style={styles.googleLogo}>G</Text>
-            <Text style={styles.googleBtnText}>
-              {t('continueWithGoogleBtn') || 'Sign up with Google'}
-            </Text>
-          </View>
-        )}
+        <View style={styles.googleBtnContent}>
+          <Text style={styles.googleLogo}>G</Text>
+          <Text style={styles.googleBtnText}>
+            {t('continueWithGoogleBtn') || 'Sign up with Google'}
+          </Text>
+        </View>
       </TouchableOpacity>
 
       {/* 2. OR divider */}

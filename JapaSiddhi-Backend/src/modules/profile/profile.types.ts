@@ -3,6 +3,7 @@ export interface UpdateProfileRequest {
   fullName?: string;
   email?: string | null;
   mobileNumber?: string | null;
+  mobileCountryCode?: string | null;
   gender?: string | null;
   dateOfBirth?: string | null;
   countryId?: number | null;
@@ -26,6 +27,7 @@ export interface ProfileResponse {
   userCode?: string | null;
   firebaseUid: string;
   mobileNumber: string;
+  mobileCountryCode?: string | null;
   fullName: string;
   email: string | null;
   gender: string | null;

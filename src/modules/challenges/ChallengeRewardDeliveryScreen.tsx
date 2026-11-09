@@ -18,8 +18,15 @@ import Colors from '../../theme/colors';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
-import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
+import {MOBILE_DIGITS, digitsOnly} from '../../utils/validators';
 import {isValidPin} from '../../utils/deliveryAddress';
+import {
+  isValidProfileMobile,
+  resolveCallingCountry,
+  resolveProfilePhone,
+} from '../../utils/profilePhone';
+import MobileWithCountryField from '../auth/components/MobileWithCountryField';
+import {CountryItem} from '../../constants/countries';
 
 const ChallengeRewardDeliveryScreen = () => {
   const navigation = useNavigation<any>();
@@ -29,6 +36,9 @@ const ChallengeRewardDeliveryScreen = () => {
   const rewardName = String(route.params?.rewardName || 'Reward');
 
   const [fullName, setFullName] = useState('');
+  const [mobileCountry, setMobileCountry] = useState<CountryItem>(
+    resolveCallingCountry('91'),
+  );
   const [mobile, setMobile] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
@@ -50,12 +60,7 @@ const ChallengeRewardDeliveryScreen = () => {
         }
         const name =
           profile?.fullName || stored?.fullName || stored?.full_name || '';
-        const phone =
-          profile?.mobileNumber ||
-          stored?.mobileNumber ||
-          stored?.mobile_number ||
-          stored?.phone ||
-          '';
+        const phone = resolveProfilePhone(profile, stored);
         const addr = profile?.address || stored?.address || '';
         const pin =
           profile?.pinCode ||
@@ -67,8 +72,9 @@ const ChallengeRewardDeliveryScreen = () => {
         if (name) {
           setFullName(String(name));
         }
-        if (phone) {
-          setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+        if (isValidProfileMobile(phone.countryCode, phone.mobile)) {
+          setMobileCountry(phone.country);
+          setMobile(phone.mobile);
         }
         if (addr) {
           setAddress(String(addr));
@@ -138,10 +144,14 @@ const ChallengeRewardDeliveryScreen = () => {
       Alert.alert(t('required'), t('enterAllDeliveryDetails'));
       return;
     }
-    if (!isMobile(mobile)) {
+    const countryCode =
+      mobileCountry.callingCode.replace(/\D/g, '') || '91';
+    if (!isValidProfileMobile(countryCode, mobile)) {
       Alert.alert(
         t('required'),
-        t('enterValidMobileDigits', {digits: MOBILE_DIGITS}),
+        countryCode === '91'
+          ? t('enterValidMobileDigits', {digits: MOBILE_DIGITS})
+          : t('enterValidMobileNumber'),
       );
       return;
     }
@@ -160,6 +170,7 @@ const ChallengeRewardDeliveryScreen = () => {
         {
           fullName: fullName.trim(),
           mobile: mobile.trim(),
+          mobileCountryCode: countryCode,
           address: address.trim(),
           city: city.trim(),
           state: state.trim(),
@@ -197,15 +208,18 @@ const ChallengeRewardDeliveryScreen = () => {
           value={fullName}
           onChangeText={setFullName}
         />
-        <FormField
+        <MobileWithCountryField
           label={t('mobileNumber')}
-          placeholder={t('enterHere')}
-          value={mobile}
-          onChangeText={text =>
-            setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))
-          }
-          keyboardType="phone-pad"
-          maxLength={MOBILE_DIGITS}
+          country={mobileCountry}
+          mobile={mobile}
+          onCountryChange={item => {
+            setMobileCountry(item);
+            const code = item.callingCode.replace(/\D/g, '') || '91';
+            if (code === '91') {
+              setMobile(prev => prev.replace(/\D/g, '').slice(-MOBILE_DIGITS));
+            }
+          }}
+          onMobileChange={setMobile}
         />
         <FormField
           label={t('address')}

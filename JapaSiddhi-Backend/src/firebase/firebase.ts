@@ -117,15 +117,21 @@ const initializeFirebase = () => {
   }
 
   try {
+    const storageBucket = String(
+      process.env.FIREBASE_STORAGE_BUCKET ||
+        `${(serviceAccount as any).project_id || ''}.firebasestorage.app`,
+    ).trim();
+
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+      ...(storageBucket ? {storageBucket} : {}),
     });
     initialized = true;
     initError = null;
     console.log(
       `Firebase Admin Initialized (project: ${
         (serviceAccount as any).project_id || 'unknown'
-      })`,
+      }${storageBucket ? `, bucket: ${storageBucket}` : ''})`,
     );
   } catch (error: any) {
     initError = error?.message || 'Firebase Admin credential rejected.';

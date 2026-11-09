@@ -29,6 +29,7 @@ export interface CompleteProfileRequest {
 
 export interface UpdateProfileRequest {
   mobileNumber?: string;
+  mobileCountryCode?: string;
   gender?: string;
   dateOfBirth?: string;
   countryId?: number;
@@ -81,15 +82,29 @@ export const mapProfile = (data: any) => {
     data.phone ??
     '';
   const firebaseUid = data.firebaseUid ?? data.firebase_uid ?? '';
-  const mobileNumber = isPlaceholderMobile(firebaseUid, rawMobile)
-    ? ''
-    : String(rawMobile || '').replace(/\D/g, '').slice(-10) ||
-      String(rawMobile || '');
+  const mobileCountryCode =
+    String(
+      data.mobileCountryCode ??
+        data.mobile_country_code ??
+        '',
+    ).replace(/\D/g, '') || '91';
+  let mobileNumber = '';
+  if (!isPlaceholderMobile(firebaseUid, rawMobile)) {
+    const digits = String(rawMobile || '').replace(/\D/g, '');
+    if (digits.startsWith(mobileCountryCode) && digits.length > mobileCountryCode.length + 5) {
+      mobileNumber = digits.slice(mobileCountryCode.length);
+    } else if (mobileCountryCode === '91') {
+      mobileNumber = digits.slice(-10) || digits;
+    } else {
+      mobileNumber = digits;
+    }
+  }
 
   return {
     id: data.id,
     fullName: data.fullName ?? data.full_name ?? 'Devotee',
     mobileNumber,
+    mobileCountryCode,
     email: data.email ?? '',
     gender: data.gender ?? '',
     dateOfBirth: data.dateOfBirth ?? data.date_of_birth ?? '',

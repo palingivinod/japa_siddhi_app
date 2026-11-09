@@ -50,6 +50,8 @@ class ProfileRepository {
 
           u.mobile_number AS mobileNumber,
 
+          u.mobile_country_code AS mobileCountryCode,
+
           u.full_name AS fullName,
 
           u.email,
@@ -177,6 +179,7 @@ class ProfileRepository {
       UPDATE users
       SET
         mobile_number = COALESCE(?, mobile_number),
+        mobile_country_code = COALESCE(?, mobile_country_code),
         gender = COALESCE(?, gender),
         date_of_birth = COALESCE(?, date_of_birth),
         country_id = COALESCE(?, country_id),
@@ -200,6 +203,9 @@ class ProfileRepository {
       `,
       [
         data.mobileNumber ?? null,
+        data.mobileCountryCode
+          ? String(data.mobileCountryCode).replace(/\D/g, '') || null
+          : null,
         data.gender ?? null,
         data.dateOfBirth ?? null,
         data.countryId ?? null,

@@ -42,6 +42,7 @@ const MilestoneRewardOverviewScreen = () => {
         rewardId,
         fullName: params.fullName,
         mobile: params.mobile,
+        mobileCountryCode: params.mobileCountryCode || '91',
         address: params.address,
         city: params.city,
         state: params.state,
@@ -84,7 +85,10 @@ const MilestoneRewardOverviewScreen = () => {
         <Text style={styles.cardHeader}>Reward and delivery</Text>
         <Row label="Reward" value={rewardName} />
         <Row label={t('fullName')} value={String(params.fullName || '')} />
-        <Row label={t('mobile')} value={String(params.mobile || '')} />
+        <Row
+          label={t('mobile')}
+          value={`${params.mobileCountryCode ? `+${String(params.mobileCountryCode).replace(/\D/g, '')} ` : '+91 '}${params.mobile || ''}`.trim()}
+        />
         <Row label={t('address')} value={String(params.address || '')} />
         <Row label={t('city')} value={String(params.city || '')} />
         <Row label={t('state')} value={String(params.state || '')} />

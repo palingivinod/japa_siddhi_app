@@ -639,6 +639,7 @@ class ChallengeService {
     delivery: {
       fullName: string;
       mobile: string;
+      mobileCountryCode?: string;
       address: string;
       city: string;
       state: string;
@@ -661,7 +662,13 @@ class ChallengeService {
     }
 
     const fullName = String(delivery.fullName || '').trim();
-    const mobile = String(delivery.mobile || '').trim();
+    const mobileCountryCode =
+      String(delivery.mobileCountryCode || '91').replace(/\D/g, '') || '91';
+    const mobileDigits = String(delivery.mobile || '').replace(/\D/g, '');
+    const mobile =
+      mobileCountryCode === '91'
+        ? mobileDigits.slice(-10)
+        : mobileDigits.slice(0, 15);
     const address = String(delivery.address || '').trim();
     const pinCode = String(delivery.pinCode || '').replace(/\D/g, '').slice(0, 6);
     if (!fullName || !mobile || !address || !pinCode) {
@@ -686,7 +693,7 @@ class ChallengeService {
     const remarks = [
       'Challenge reward delivery',
       `Name: ${fullName}`,
-      `Mobile: ${mobile}`,
+      `Mobile: +${mobileCountryCode}${mobile}`,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
@@ -720,7 +727,7 @@ class ChallengeService {
 
     await challengeRepository.saveRewardDelivery(Number(claim.id), {
       fullName,
-      mobile,
+      mobile: `+${mobileCountryCode}${mobile}`,
       address,
       city,
       state,

@@ -25,9 +25,34 @@ class CustomerCareController {
       }
 
       const file = req.file as Express.Multer.File | undefined;
-      const screenshotUrl = file?.filename
+      let screenshotUrl: string | null = file?.filename
         ? publicSupportPath(file.filename)
         : null;
+
+      if (file?.path && file?.filename) {
+        try {
+          const {
+            deleteLocalUploadQuietly,
+            isFirebaseStorageReady,
+            uploadFileToFirebase,
+          } = await import('../../firebase/firebaseStorage');
+          if (isFirebaseStorageReady()) {
+            screenshotUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'support',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+          }
+        } catch (firebaseError: any) {
+          console.warn(
+            'Firebase Storage support upload failed; using local path:',
+            firebaseError?.message || firebaseError,
+          );
+        }
+      }
+
       const mediaBaseUrl =
         absoluteMediaUrl(req, '/')?.replace(/\/$/, '') ||
         `https://${req.get('host') || 'japasiddhi.onrender.com'}`;

@@ -33,9 +33,12 @@ class FeedbackService {
 
   async create(data: CreateFeedbackRequest, mediaBaseUrl?: string) {
     const id = await feedbackRepository.create(data);
-    const videoLink = data.videoUrl
-      ? `${mediaBaseUrl || ''}${data.videoUrl}`
-      : '-';
+    const rawVideo = String(data.videoUrl || '').trim();
+    const videoLink = !rawVideo
+      ? '-'
+      : /^https?:\/\//i.test(rawVideo)
+        ? rawVideo
+        : `${mediaBaseUrl || ''}${rawVideo}`;
     const devotee = await this.resolveDevotee(data.userId);
 
     await emailOtpService.notifyAdmin(
