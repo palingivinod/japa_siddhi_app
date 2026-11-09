@@ -106,10 +106,13 @@ export const pickProfilePhoto = (labels: {
         assertPickerReady();
         if (source === 'camera' && Platform.OS === 'android') {
           try {
-            const granted = await PermissionsAndroid.request(
+            const {requestAndroidPermissionSafe} = await import(
+              '../utils/safeAndroidPermission'
+            );
+            const granted = await requestAndroidPermissionSafe(
               PermissionsAndroid.PERMISSIONS.CAMERA,
             );
-            if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+            if (!granted) {
               fail(new Error('permission'));
               return;
             }

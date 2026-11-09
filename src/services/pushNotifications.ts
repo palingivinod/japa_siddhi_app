@@ -11,10 +11,16 @@ import apiService from './apiService';
 import {getToken} from './session';
 import {openFromPushMessage} from '../navigation/notificationDeepLink';
 import {syncAppBadgeWithServer} from './appBadge';
+import {
+  checkAndroidPermission,
+  requestAndroidPermissionSafe,
+} from '../utils/safeAndroidPermission';
 
 let started = false;
 let channelReady = false;
 let lastUploadedToken = '';
+/** Avoid re-prompting POST_NOTIFICATIONS every AppState resume (crash source). */
+let notificationPermissionPrompted = false;
 let unsubscribeRefresh: (() => void) | null = null;
 let unsubscribeForeground: (() => void) | null = null;
 let unsubscribeNotifee: (() => void) | null = null;
@@ -163,14 +169,18 @@ const requestPermission = async () => {
   }
 
   if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
-    try {
-      const result = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
-      );
-      return result === PermissionsAndroid.RESULTS.GRANTED;
-    } catch {
+    const permission = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+    const already = await checkAndroidPermission(permission);
+    if (already) {
+      return true;
+    }
+    // Only one system prompt per process. Overlapping requests crash native
+    // PermissionsModule (ArrayIndexOutOfBoundsException / SparseArray.put).
+    if (notificationPermissionPrompted) {
       return false;
     }
+    notificationPermissionPrompted = true;
+    return requestAndroidPermissionSafe(permission);
   }
 
   return true;
@@ -336,6 +346,7 @@ export const registerBackgroundHandler = () => {
 export const bindPushToAppLifecycle = () => {
   const subscription = AppState.addEventListener('change', state => {
     if (state === 'active') {
+      // Resume: upload token if already allowed — do not force another prompt.
       refreshPushRegistration().catch(() => undefined);
     }
   });
