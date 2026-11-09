@@ -231,6 +231,10 @@ const RamakotiBooksScreen = () => {
           <Image source={RAMAKOTI_POSTER} style={styles.large} resizeMode="contain" />
         </TouchableOpacity>
       </Modal>
+      <Text style={styles.registerNote}>
+        {t('ramakotiRegisterNote') ||
+          'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Ramakoti books.'}
+      </Text>
       <FormField
         label={t('nameLabel')}
         placeholder={t('fullName')}
@@ -449,6 +453,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.white,
     textAlign: 'center',
+  },
+  registerNote: {
+    color: '#8A4104',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19,
+    marginBottom: 12,
+    backgroundColor: '#FFF4E5',
+    borderWidth: 1,
+    borderColor: '#E8C48A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   addressRedNote: {
     color: '#D32F2F',

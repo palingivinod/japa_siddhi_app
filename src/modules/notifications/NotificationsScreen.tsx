@@ -23,6 +23,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedNotification} from '../../utils/localizedContent';
 import {resolveMediaUrl} from '../../services/profilePhoto';
 import {clearAppBadge, setAppBadgeCount} from '../../services/appBadge';
+import {playIntroVideo} from '../../services/introVideos';
 
 const notificationEmoji = (item: any) => {
   const action = String(item.actionType || '');
@@ -326,6 +327,42 @@ const NotificationCardImage: React.FC<{
           <Text style={styles.imageErrorText}>Tap to preview image</Text>
         </View>
       ) : null}
+    </TouchableOpacity>
+  );
+};
+
+/** Plays notification video via native player (same path as intro videos). */
+const NotificationCardVideo: React.FC<{uri: string}> = ({uri}) => {
+  const [playing, setPlaying] = useState(false);
+
+  const onPlay = async () => {
+    if (playing) {
+      return;
+    }
+    setPlaying(true);
+    const ok = await playIntroVideo(uri);
+    setPlaying(false);
+    if (!ok) {
+      Alert.alert('Video', 'Could not play this video. Check your connection.');
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      activeOpacity={0.9}
+      onPress={() => void onPlay()}
+      style={styles.videoWrap}
+      disabled={playing}>
+      <View style={styles.videoInner}>
+        {playing ? (
+          <ActivityIndicator size="small" color={Colors.templeGold} />
+        ) : (
+          <Text style={styles.videoPlayIcon}>▶</Text>
+        )}
+        <Text style={styles.videoPlayLabel}>
+          {playing ? 'Opening video…' : 'Tap to play video'}
+        </Text>
+      </View>
     </TouchableOpacity>
   );
 };
@@ -687,6 +724,12 @@ const NotificationsScreen = () => {
                   extra.bigPicture ||
                   null;
                 const noteImage = resolveMediaUrl(rawImg);
+                const rawVideo =
+                  item.videoUrl ||
+                  extra.videoUrl ||
+                  extra.video ||
+                  null;
+                const noteVideo = resolveMediaUrl(rawVideo);
                 const cleanLink = extractNotificationLink(item, subject, bodyLine);
                 const linkAlreadyInBody =
                   cleanLink &&
@@ -704,6 +747,7 @@ const NotificationsScreen = () => {
                         onPress={() => setSelectedImage(noteImage)}
                       />
                     ) : null}
+                    {noteVideo ? <NotificationCardVideo uri={noteVideo} /> : null}
                     {subject ? (
                       renderTextWithLinks(
                         subject,
@@ -1056,6 +1100,36 @@ const styles = StyleSheet.create({
     position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  videoWrap: {
+    width: '100%',
+    minHeight: 120,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: '#1A1208',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  videoInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  videoPlayIcon: {
+    fontSize: 28,
+    color: Colors.templeGold,
+    fontWeight: '800',
+  },
+  videoPlayLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F5E6C8',
   },
   bannerImage: {
     width: '100%',

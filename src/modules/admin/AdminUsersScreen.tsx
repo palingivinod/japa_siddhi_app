@@ -152,6 +152,7 @@ const AdminUsersScreen = () => {
   const [japaFilter, setJapaFilter] = useState('all');
   const [enrolledDate, setEnrolledDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -226,12 +227,50 @@ const AdminUsersScreen = () => {
     [applyFilters, deletedUsers],
   );
 
+  const selectedUsers = useMemo(
+    () => visibleUsers.filter(user => selectedIds[user.id]),
+    [selectedIds, visibleUsers],
+  );
+
+  const allVisibleSelected =
+    visibleUsers.length > 0 &&
+    visibleUsers.every(user => selectedIds[user.id]);
+
+  const toggleSelectAll = () => {
+    const next: Record<string, boolean> = {...selectedIds};
+    const value = !allVisibleSelected;
+    visibleUsers.forEach(user => {
+      next[user.id] = value;
+    });
+    setSelectedIds(next);
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => ({...prev, [id]: !prev[id]}));
+  };
+
+  const openNotificationForSelected = () => {
+    if (!selectedUsers.length) {
+      Alert.alert('Select users', 'Choose at least one user to notify.');
+      return;
+    }
+    const payload = selectedUsers.map(user => ({
+      id: user.id,
+      name: user.name,
+      userCode: user.userCode,
+      mobile: user.mobile,
+      email: user.email,
+    }));
+    setSelectedIds({});
+    navigation.navigate('AdminNotifications', {selectedUsers: payload});
+  };
+
   const onDownloadJapaExcel = async () => {
     setExporting(true);
     try {
       await downloadAdminExcel(
-        'japa',
-        'Users japa sheet (date, mantra, counts & totals)',
+        'users',
+        'User Data (profile details & total japa)',
       );
     } catch (err) {
       alertExcelError(err);
@@ -261,6 +300,24 @@ const AdminUsersScreen = () => {
         with their japa history.
       </Text>
 
+      {selectedUsers.length > 0 ? (
+        <View style={styles.notifyBar}>
+          <Text style={styles.notifyHint}>
+            {selectedUsers.length} user{selectedUsers.length === 1 ? '' : 's'}{' '}
+            selected
+          </Text>
+          <TouchableOpacity
+            style={styles.sendNotifyBtn}
+            onPress={openNotificationForSelected}
+            activeOpacity={0.85}>
+            <Text style={styles.sendNotifyBtnText}>SEND NOTIFICATION</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => setSelectedIds({})}>
+            <Text style={styles.clearSelection}>Clear selection</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <TouchableOpacity
         style={[styles.exportBtn, exporting && styles.exportBusy]}
         disabled={exporting}
@@ -268,7 +325,7 @@ const AdminUsersScreen = () => {
         {exporting ? (
           <ActivityIndicator color={Colors.sacredBrown} />
         ) : (
-          <Text style={styles.exportText}>DOWNLOAD USERS JAPA EXCEL</Text>
+          <Text style={styles.exportText}>DOWNLOAD USER DATA EXCEL</Text>
         )}
       </TouchableOpacity>
 
@@ -340,27 +397,64 @@ const AdminUsersScreen = () => {
         <Text style={styles.empty}>No users match these filters.</Text>
       ) : null}
 
-      {visibleUsers.map(user => (
-        <TouchableOpacity
-          key={user.id}
-          style={styles.card}
-          activeOpacity={0.85}
-          onPress={() =>
-            navigation.navigate('AdminUserDetails', {userId: user.id})
-          }>
-          <View style={styles.copy}>
-            <Text style={styles.name}>{user.name}</Text>
-            <Text style={styles.meta}>
-              {user.userCode || user.id}
-              {' · '}
-              {user.japaCount.toLocaleString('en-IN')} Japa
-              {user.email ? ` · ${user.email}` : ''}
-              {user.mobile && user.mobile !== '—' ? ` · ${user.mobile}` : ''}
+      {!loading && !error && visibleUsers.length > 0 ? (
+        <View style={styles.selectAllRow}>
+          <TouchableOpacity
+            style={styles.selectAllHit}
+            onPress={toggleSelectAll}
+            activeOpacity={0.75}>
+            <View
+              style={[
+                styles.checkbox,
+                allVisibleSelected && styles.checkboxOn,
+              ]}>
+              {allVisibleSelected ? (
+                <Text style={styles.checkMark}>✓</Text>
+              ) : null}
+            </View>
+            <Text style={styles.selectAllText}>
+              Select all ({visibleUsers.length})
             </Text>
+          </TouchableOpacity>
+          {selectedUsers.length > 0 ? (
+            <Text style={styles.selectedCount}>
+              {selectedUsers.length} selected
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {visibleUsers.map(user => {
+        const checked = Boolean(selectedIds[user.id]);
+        return (
+          <View key={user.id} style={styles.card}>
+            <TouchableOpacity
+              style={styles.checkHit}
+              onPress={() => toggleOne(user.id)}
+              activeOpacity={0.7}>
+              <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+                {checked ? <Text style={styles.checkMark}>✓</Text> : null}
+              </View>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.copy}
+              activeOpacity={0.85}
+              onPress={() =>
+                navigation.navigate('AdminUserDetails', {userId: user.id})
+              }>
+              <Text style={styles.name}>{user.name}</Text>
+              <Text style={styles.meta}>
+                {user.userCode || user.id}
+                {' · '}
+                {user.japaCount.toLocaleString('en-IN')} Japa
+                {user.email ? ` · ${user.email}` : ''}
+                {user.mobile && user.mobile !== '—' ? ` · ${user.mobile}` : ''}
+              </Text>
+            </TouchableOpacity>
+            <StatusPill status={user.status} />
           </View>
-          <StatusPill status={user.status} />
-        </TouchableOpacity>
-      ))}
+        );
+      })}
 
       {visibleDeleted.length > 0 ? (
         <>
@@ -496,6 +590,80 @@ const styles = StyleSheet.create({
     color: Colors.error,
     marginBottom: 12,
     fontWeight: '600',
+  },
+  notifyBar: {
+    backgroundColor: Colors.white,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 14,
+    marginBottom: 14,
+    gap: 10,
+  },
+  notifyHint: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  sendNotifyBtn: {
+    backgroundColor: Colors.sacredBrown,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  sendNotifyBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  clearSelection: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  selectAllRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+    marginTop: 4,
+  },
+  selectAllHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  selectAllText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+  },
+  selectedCount: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+  },
+  checkHit: {
+    paddingRight: 10,
+    paddingVertical: 4,
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    backgroundColor: '#FFF8EE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxOn: {
+    backgroundColor: Colors.leafGreen,
+    borderColor: Colors.leafGreen,
+  },
+  checkMark: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 16,
   },
   card: {
     backgroundColor: Colors.white,

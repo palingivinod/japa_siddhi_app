@@ -17,6 +17,7 @@ import AppIcon from '../../components/icons/AppIcon';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
+import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
 import ScreenLayout from '../common/ScreenLayout';
 
 const TABS: Array<{id: string; key: TranslationKey}> = [
@@ -103,6 +104,7 @@ const OrdersScreen = () => {
   const [cancelError, setCancelError] = useState('');
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [showPlayStoreFeedback, setShowPlayStoreFeedback] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -198,7 +200,7 @@ const OrdersScreen = () => {
                     : o,
                 ),
               );
-              Alert.alert('Delivery Confirmed', 'Thank you for confirming receipt of your order!');
+              setShowPlayStoreFeedback(true);
             } catch (err) {
               Alert.alert('Error', getApiError(err, 'Could not confirm order receipt.'));
             } finally {
@@ -366,6 +368,10 @@ const OrdersScreen = () => {
           </View>
         </View>
       </Modal>
+      <PlayStoreFeedbackModal
+        visible={showPlayStoreFeedback}
+        onClose={() => setShowPlayStoreFeedback(false)}
+      />
     </ScreenLayout>
   );
 };

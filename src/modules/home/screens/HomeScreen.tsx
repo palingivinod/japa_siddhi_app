@@ -3,6 +3,7 @@ import {
   Alert,
   Animated,
   Clipboard,
+  Image,
   Linking,
   Modal,
   NativeModules,
@@ -48,6 +49,7 @@ import {
   writeDailyPlanSnap,
 } from '../../../utils/mantraDailyPlan';
 import {getAppVersionName} from '../../../utils/appVersion';
+import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../../utils/validators';
 import {syncAppBadgeWithServer} from '../../../services/appBadge';
 
 type ActiveGoal = {
@@ -66,6 +68,9 @@ type ActiveGoal = {
   endDate?: string;
   status: string;
 };
+
+const WHATSAPP_GROUP_URL =
+  'https://chat.whatsapp.com/BC0GCM0K5UREZsYSonKFmo?s=cl&p=a&iam=2';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -126,6 +131,7 @@ const HomeScreen = () => {
 
   // Stronger, slightly quicker border blink for Meeting so it stands out
   const meetingBorderAnim = useRef(new Animated.Value(0)).current;
+  const whatsappBlinkAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -144,6 +150,41 @@ const HomeScreen = () => {
     pulse.start();
     return () => pulse.stop();
   }, [meetingBorderAnim]);
+
+  useEffect(() => {
+    const blink = Animated.loop(
+      Animated.sequence([
+        Animated.timing(whatsappBlinkAnim, {
+          toValue: 0.35,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(whatsappBlinkAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    blink.start();
+    return () => blink.stop();
+  }, [whatsappBlinkAnim]);
+
+  const openWhatsAppGroup = async () => {
+    try {
+      const canOpen = await Linking.canOpenURL(WHATSAPP_GROUP_URL);
+      if (canOpen) {
+        await Linking.openURL(WHATSAPP_GROUP_URL);
+        return;
+      }
+    } catch {
+      // fall through
+    }
+    Alert.alert(
+      t('joinWhatsAppGroup') || 'Join our WhatsApp group',
+      t('couldNotOpenLink') || 'Could not open WhatsApp. Please try again.',
+    );
+  };
 
   const meetingBorderColor = meetingBorderAnim.interpolate({
     inputRange: [0, 1],
@@ -649,12 +690,29 @@ const HomeScreen = () => {
           user?.dateOfBirth || user?.date_of_birth || user?.dob || '',
         ).slice(0, 10);
         const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(dob);
+        const phoneDigits = digitsOnly(
+          user?.mobileNumber ||
+            user?.mobile_number ||
+            user?.phoneNumber ||
+            user?.phone ||
+            '',
+        ).slice(-MOBILE_DIGITS);
+        const hasValidPhone =
+          isMobile(phoneDigits) && !/^0+$/.test(phoneDigits);
 
-        if (role !== 'ADMIN' && !hasValidDob) {
+        if (role !== 'ADMIN' && (!hasValidDob || !hasValidPhone)) {
+          const missing: string[] = [];
+          if (!hasValidDob) {
+            missing.push('Date of Birth');
+          }
+          if (!hasValidPhone) {
+            missing.push('Phone number');
+          }
           Alert.alert(
-            (t as any)('dobRequiredTitle') || 'Date of Birth Required 🙏',
-            (t as any)('dobRequiredMessage') ||
-              'Please enter your Date of Birth in your profile to continue.',
+            (t as any)('profileDetailsRequiredTitle') ||
+              'Profile details required 🙏',
+            (t as any)('profileDetailsRequiredMessage') ||
+              `Please enter your ${missing.join(' and ')} in your profile to continue.`,
             [
               {
                 text: t('ok') || 'OK',
@@ -893,6 +951,26 @@ const HomeScreen = () => {
               subtitle: item.subtitle ? tt(item.subtitle) : '',
             }))}
           />
+
+          <Animated.View style={{opacity: whatsappBlinkAnim}}>
+            <TouchableOpacity
+              style={styles.whatsappGroupBtn}
+              onPress={() => void openWhatsAppGroup()}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={
+                t('joinWhatsAppGroup') || 'Join our WhatsApp group'
+              }>
+              <Image
+                source={require('../../../assets/images/whatsapp_logo.png')}
+                style={styles.whatsappGroupLogo}
+                resizeMode="contain"
+              />
+              <Text style={styles.whatsappGroupText}>
+                {t('joinWhatsAppGroup') || 'Join our WhatsApp group'}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
 
           {/* Meeting / Class — same slow border blink */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
@@ -1314,6 +1392,32 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 0.5,
+  },
+  whatsappGroupBtn: {
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#25D366',
+    borderRadius: 22,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginTop: 4,
+    marginBottom: 14,
+    shadowColor: '#128C7E',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  whatsappGroupLogo: {
+    width: 18,
+    height: 18,
+  },
+  whatsappGroupText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
   },
   meetingCardWrapper: {
     backgroundColor: '#FFFDF7',

@@ -9,13 +9,14 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import {dismissKeyboardThen} from '../../utils/keyboard';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
+import {pickFeedbackVideo} from '../../services/mediaPick';
 import {
   pickProfilePhoto,
   resolveMediaUrl,
@@ -29,6 +30,14 @@ import {
   autoTranslateNotification,
   translateText,
 } from '../../services/translationService';
+
+type SelectedNotifyUser = {
+  id: string;
+  name: string;
+  userCode?: string;
+  mobile?: string;
+  email?: string;
+};
 
 interface NotificationLangFields {
   title: string;
@@ -140,10 +149,19 @@ const formatTimeLabel = (date: Date) =>
 
 const AdminNotificationsScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const [activeLang, setActiveLang] = useState<AdminSupportedLang>('en');
   const [translations, setTranslations] = useState<
     Record<AdminSupportedLang, NotificationLangFields>
   >(defaultTranslations);
+
+  const [selectedUsers, setSelectedUsers] = useState<SelectedNotifyUser[]>(
+    () =>
+      Array.isArray(route.params?.selectedUsers)
+        ? route.params.selectedUsers
+        : [],
+  );
+  const selectedMode = selectedUsers.length > 0;
 
   const [target, setTarget] = useState('All users');
   const [testQuery, setTestQuery] = useState('');
@@ -156,11 +174,20 @@ const AdminNotificationsScreen = () => {
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [rewards, setRewards] = useState<
     Array<{id: string; name: string; imageUrl?: string | null}>
   >([]);
+
+  useEffect(() => {
+    const incoming = Array.isArray(route.params?.selectedUsers)
+      ? route.params.selectedUsers
+      : [];
+    setSelectedUsers(incoming);
+  }, [route.params?.selectedUsers]);
 
   const latestEnRef = useRef({title: '', message: ''});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -205,7 +232,7 @@ const AdminNotificationsScreen = () => {
   const pickAndUploadImage = async () => {
     try {
       const picked = await pickProfilePhoto({
-        title: 'Notification image',
+        title: 'Notification media',
         camera: 'Camera',
         gallery: 'Gallery',
         cancel: 'Cancel',
@@ -230,6 +257,7 @@ const AdminNotificationsScreen = () => {
       if (!uploaded) {
         throw new Error('No image URL returned');
       }
+      setVideoUrl(null);
       setImageUrl(String(uploaded));
     } catch (err: any) {
       setLocalPreview(null);
@@ -243,17 +271,76 @@ const AdminNotificationsScreen = () => {
       }
       Alert.alert(
         'Upload failed',
-        getApiError(err, 'Could not upload notification image.'),
+        getApiError(err, 'Could not upload notification photo.'),
       );
     } finally {
       setUploadingImage(false);
     }
   };
 
-  const clearImage = () => {
+  const pickAndUploadVideo = async () => {
+    try {
+      const picked = await pickFeedbackVideo();
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingVideo(true);
+      const formData = new FormData();
+      formData.append('video', {
+        uri: picked.uri,
+        type: picked.type || 'video/mp4',
+        name: picked.fileName || 'notification.mp4',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-video',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.videoUrl || response.data?.data?.path || null;
+      if (!uploaded) {
+        throw new Error('No video URL returned');
+      }
+      setImageUrl(null);
+      setLocalPreview(null);
+      setVideoUrl(String(uploaded));
+    } catch (err: any) {
+      setVideoUrl(null);
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Video picker unavailable',
+          'Rebuild the app so the media picker native module is linked.',
+        );
+        return;
+      }
+      if (String(err?.message || '') === 'permission') {
+        Alert.alert(
+          'Permission needed',
+          'Please allow camera or gallery access to attach a video.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload notification video.'),
+      );
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const clearMedia = () => {
     setImageUrl(null);
     setLocalPreview(null);
+    setVideoUrl(null);
   };
+
+  const selectedUserIds = useMemo(
+    () =>
+      selectedUsers
+        .map(user => Number(user.id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    [selectedUsers],
+  );
 
   const currentFields = translations[activeLang] || emptyFields();
 
@@ -373,7 +460,14 @@ const AdminNotificationsScreen = () => {
       Alert.alert('Schedule', 'Pick a date and time at least one minute from now.');
       return;
     }
-    if (target === 'Test' && !testQuery.trim()) {
+    if (selectedMode && !selectedUserIds.length) {
+      Alert.alert(
+        'No users selected',
+        'Go back to User Management and select users again.',
+      );
+      return;
+    }
+    if (!selectedMode && target === 'Test' && !testQuery.trim()) {
       Alert.alert(
         'Test person required',
         'Enter a name, user id, phone, or email. The notification will only go to that person.',
@@ -399,12 +493,15 @@ const AdminNotificationsScreen = () => {
         title: primaryTitle,
         message: primaryMessage,
         translations,
-        target,
-        testQuery: target === 'Test' ? testQuery.trim() : undefined,
+        target: selectedMode ? 'Selected users' : target,
+        userIds: selectedMode ? selectedUserIds : undefined,
+        testQuery:
+          !selectedMode && target === 'Test' ? testQuery.trim() : undefined,
         schedule,
         scheduledAt:
           schedule === 'Later' ? toScheduleStamp(scheduledAt) : undefined,
         imageUrl: imageUrl || undefined,
+        videoUrl: videoUrl || undefined,
         url: extractedLink || undefined,
         link: extractedLink || undefined,
         linkUrl: extractedLink || undefined,
@@ -423,17 +520,23 @@ const AdminNotificationsScreen = () => {
           ? ''
           : `\nPush popups: ${Number(data.pushSent || 0)}` +
             (data.pushSkipped ? `\nPush note: ${data.pushSkipped}` : '');
-      const toLine =
-        target === 'Test'
+      const toLine = selectedMode
+        ? `${selectedUserIds.length} selected user(s)`
+        : target === 'Test'
           ? `Test → ${data.testUser || testQuery.trim()}`
           : target;
+      const mediaLine = imageUrl
+        ? '\nPhoto: included in popup'
+        : videoUrl
+          ? '\nVideo: included in popup'
+          : '';
       Alert.alert(
         data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
         `${detail}${pushLine}\n\nTo: ${toLine}\nWhen: ${
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
-        }${imageUrl ? '\nImage: included in popup' : ''}\n\nDevotees will receive this in their preferred language.`,
+        }${mediaLine}\n\nDevotees will receive this in their preferred language.`,
       );
       setTranslations(defaultTranslations());
       latestEnRef.current = {title: '', message: ''};
@@ -442,7 +545,12 @@ const AdminNotificationsScreen = () => {
       setSchedule('Now');
       setScheduledAt(defaultLater());
       setLinkUrl('');
-      clearImage();
+      clearMedia();
+      if (selectedMode) {
+        setSelectedUsers([]);
+        navigation.setParams?.({selectedUsers: undefined});
+        navigation.navigate('AdminUsers');
+      }
     } catch (err) {
       Alert.alert(
         'Send failed',
@@ -464,6 +572,33 @@ const AdminNotificationsScreen = () => {
       <Text style={styles.sub}>
         Type in English, and it automatically translates into Telugu, Hindi, Tamil, and Kannada. You can switch tabs to review or edit anytime.
       </Text>
+
+      {selectedMode ? (
+        <View style={styles.selectedUsersCard}>
+          <Text style={styles.selectedUsersTitle}>
+            Sending to {selectedUsers.length} selected user
+            {selectedUsers.length === 1 ? '' : 's'}
+          </Text>
+          <Text style={styles.selectedUsersHint}>
+            From User Management — only these people will receive this
+            notification (not All / Active / Blocked).
+          </Text>
+          {selectedUsers.map(user => (
+            <View key={user.id} style={styles.selectedUserRow}>
+              <Text style={styles.selectedUserName}>{user.name}</Text>
+              <Text style={styles.selectedUserMeta}>
+                {[
+                  user.userCode || `ID ${user.id}`,
+                  user.mobile && user.mobile !== '—' ? user.mobile : '',
+                  user.email || '',
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={styles.analyticsNavRow}>
         <TouchableOpacity
@@ -548,40 +683,55 @@ const AdminNotificationsScreen = () => {
 
       <View style={styles.divider} />
 
-      <Text style={styles.sectionHeading}>Popup image (optional)</Text>
+      <Text style={styles.sectionHeading}>Upload media (optional)</Text>
       <Text style={styles.imageHint}>
-        Upload a photo or pick a reward photo. Devotees see the image in the
-        notification popup — not a link.
+        Add a photo or video for the notification popup. You can also pick a
+        reward photo below.
       </Text>
-      {(localPreview || imageUrl) ? (
+      {localPreview || imageUrl ? (
         <Image
           source={{uri: localPreview || resolveMediaUrl(imageUrl) || undefined}}
           style={styles.imagePreview}
           resizeMode="cover"
         />
       ) : null}
+      {videoUrl ? (
+        <Text style={styles.videoAttached}>Video attached ✓</Text>
+      ) : null}
       <View style={styles.imageActions}>
         <TouchableOpacity
           style={styles.imageBtn}
           onPress={pickAndUploadImage}
-          disabled={uploadingImage || sending}>
+          disabled={uploadingImage || uploadingVideo || sending}>
           <Text style={styles.imageBtnText}>
             {uploadingImage
               ? 'UPLOADING...'
               : imageUrl
-                ? 'CHANGE IMAGE'
-                : 'UPLOAD IMAGE'}
+                ? 'CHANGE PHOTO'
+                : 'UPLOAD PHOTO'}
           </Text>
         </TouchableOpacity>
-        {imageUrl || localPreview ? (
-          <TouchableOpacity
-            style={styles.imageBtnClear}
-            onPress={clearImage}
-            disabled={uploadingImage || sending}>
-            <Text style={styles.imageBtnClearText}>REMOVE</Text>
-          </TouchableOpacity>
-        ) : null}
+        <TouchableOpacity
+          style={styles.imageBtn}
+          onPress={() => void pickAndUploadVideo()}
+          disabled={uploadingImage || uploadingVideo || sending}>
+          <Text style={styles.imageBtnText}>
+            {uploadingVideo
+              ? 'UPLOADING...'
+              : videoUrl
+                ? 'CHANGE VIDEO'
+                : 'UPLOAD VIDEO'}
+          </Text>
+        </TouchableOpacity>
       </View>
+      {imageUrl || localPreview || videoUrl ? (
+        <TouchableOpacity
+          style={styles.imageBtnClear}
+          onPress={clearMedia}
+          disabled={uploadingImage || uploadingVideo || sending}>
+          <Text style={styles.imageBtnClearText}>REMOVE MEDIA</Text>
+        </TouchableOpacity>
+      ) : null}
       {rewards.length ? (
         <View style={styles.rewardPickBox}>
           <Text style={styles.rewardPickLabel}>Or use a reward photo</Text>
@@ -590,6 +740,7 @@ const AdminNotificationsScreen = () => {
               key={item.id}
               style={styles.rewardPickRow}
               onPress={() => {
+                setVideoUrl(null);
                 setImageUrl(item.imageUrl || null);
                 setLocalPreview(null);
               }}>
@@ -612,26 +763,40 @@ const AdminNotificationsScreen = () => {
 
       <Text style={styles.sectionHeading}>Delivery Settings</Text>
 
-      <SelectField
-        label="Target Group"
-        value={target}
-        options={['All users', 'Active japa', 'Blocked', 'Test']}
-        onChange={setTarget}
-      />
-      {target === 'Test' ? (
-        <Field
-          label="Test person"
-          value={testQuery}
-          onChangeText={setTestQuery}
-          placeholder="Name, user id, phone, or email"
-        />
-      ) : null}
-      {target === 'Test' ? (
-        <Text style={styles.hint}>
-          Sends only to this one person — use this to verify the notification
-          before broadcasting.
-        </Text>
-      ) : null}
+      {selectedMode ? (
+        <View style={styles.lockedTargetBox}>
+          <Text style={styles.label}>Target Group</Text>
+          <Text style={styles.lockedTargetValue}>
+            Selected users only ({selectedUsers.length})
+          </Text>
+          <Text style={styles.hint}>
+            Audience is locked to the users shown above from User Management.
+          </Text>
+        </View>
+      ) : (
+        <>
+          <SelectField
+            label="Target Group"
+            value={target}
+            options={['All users', 'Active japa', 'Blocked', 'Test']}
+            onChange={setTarget}
+          />
+          {target === 'Test' ? (
+            <Field
+              label="Test person"
+              value={testQuery}
+              onChangeText={setTestQuery}
+              placeholder="Name, user id, phone, or email"
+            />
+          ) : null}
+          {target === 'Test' ? (
+            <Text style={styles.hint}>
+              Sends only to this one person — use this to verify the notification
+              before broadcasting.
+            </Text>
+          ) : null}
+        </>
+      )}
       <SelectField
         label="Schedule"
         value={schedule}
@@ -713,7 +878,15 @@ const AdminNotificationsScreen = () => {
       ) : null}
 
       <PrimaryButton
-        title={sending ? 'SENDING...' : 'SEND NOTIFICATION'}
+        title={
+          sending
+            ? 'SENDING...'
+            : selectedMode
+              ? `SEND TO ${selectedUsers.length} USER${
+                  selectedUsers.length === 1 ? '' : 'S'
+                }`
+              : 'SEND NOTIFICATION'
+        }
         onPress={send}
         disabled={sending}
       />
@@ -788,6 +961,61 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     marginTop: 2,
   },
+  selectedUsersCard: {
+    backgroundColor: '#FFF8EE',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 14,
+    marginBottom: 16,
+  },
+  selectedUsersTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 4,
+  },
+  selectedUsersHint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 10,
+  },
+  selectedUserRow: {
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Colors.cardBorder,
+  },
+  selectedUserName: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    fontSize: 14,
+  },
+  selectedUserMeta: {
+    marginTop: 2,
+    color: Colors.textSecondary,
+    fontSize: 12,
+  },
+  lockedTargetBox: {
+    marginBottom: 12,
+  },
+  lockedTargetValue: {
+    marginTop: 6,
+    marginBottom: 6,
+    backgroundColor: '#FFF8EE',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.templeGold,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+  },
+  videoAttached: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
   imageHint: {
     color: Colors.textSecondary,
     fontSize: 13,
@@ -837,6 +1065,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10,
+    alignSelf: 'flex-start',
   },
   imageBtnClearText: {
     color: Colors.error,

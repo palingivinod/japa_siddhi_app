@@ -22,6 +22,7 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
+const DAILY_PRESET_GOALS = [108, 216, 324, 1008, 2016];
 const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineToday' as const, days: 1},
   {labelKey: 'deadlineDays7' as const, days: 7},
@@ -29,6 +30,8 @@ const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineDays21' as const, days: 21},
   {labelKey: 'deadlineDays41' as const, days: 41},
 ];
+
+type GoalMode = 'total' | 'daily';
 
 type SavedMantra = {
   id?: number;
@@ -64,7 +67,9 @@ const PrivateJapaScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [mantra, setMantra] = useState('');
+  const [goalMode, setGoalMode] = useState<GoalMode>('total');
   const [goal, setGoal] = useState('');
+  const [dailyGoalText, setDailyGoalText] = useState('');
   const [endDate, setEndDate] = useState<Date>(() => new Date());
   const [showCalendar, setShowCalendar] = useState(false);
   const [todayTargetInput, setTodayTargetInput] = useState('');
@@ -83,7 +88,12 @@ const PrivateJapaScreen = () => {
   }, [keyboardOpen]);
 
   const rawGoal = Number(String(goal).replace(/[^\d]/g, '')) || 0;
+  const dailyGoal = Number(String(dailyGoalText).replace(/[^\d]/g, '')) || 0;
   const remainingDays = useMemo(() => daysUntil(endDate), [endDate]);
+  const calculatedTotalFromDaily = useMemo(() => {
+    if (dailyGoal <= 0) return 0;
+    return dailyGoal * remainingDays;
+  }, [dailyGoal, remainingDays]);
   const defaultDailyTarget = useMemo(() => {
     if (rawGoal <= 0) return 0;
     return Math.max(1, Math.ceil(rawGoal / remainingDays));
@@ -168,7 +178,10 @@ const PrivateJapaScreen = () => {
     }
   };
 
-  const resolvePersonalMantraId = async (name: string) => {
+  const resolvePersonalMantraId = async (
+    name: string,
+    preferredCount?: number,
+  ) => {
     try {
       const existing = await apiService.get('/personal-mantras');
       const rows = existing.data?.data ?? [];
@@ -186,7 +199,7 @@ const PrivateJapaScreen = () => {
     const created = await apiService.post('/personal-mantras', {
       mantraName: name,
       mantraText: name,
-      preferredJapaCount: rawGoal || 108,
+      preferredJapaCount: preferredCount || rawGoal || 108,
     });
     return Number(created.data?.data?.id || 0) || undefined;
   };
@@ -196,11 +209,22 @@ const PrivateJapaScreen = () => {
       return;
     }
     const name = mantra.trim();
+    const isDailyMode = goalMode === 'daily';
+    const finalGoal = isDailyMode ? calculatedTotalFromDaily : rawGoal;
+    const finalDailyTarget = isDailyMode ? dailyGoal : effectiveTodayTarget;
+
     if (!name) {
       setMessage(t('enterYourMantra'));
       return;
     }
-    if (rawGoal <= 0) {
+    if (isDailyMode) {
+      if (dailyGoal <= 0) {
+        setMessage(
+          t('enterDailyGoalCount') || 'Please enter your daily japa count',
+        );
+        return;
+      }
+    } else if (rawGoal <= 0) {
       setMessage(t('setGoalCountToStart') || 'Please enter your japa count goal');
       return;
     }
@@ -208,7 +232,7 @@ const PrivateJapaScreen = () => {
       setMessage(t('pickGoalDateFromCalendar') || 'Please select a deadline date');
       return;
     }
-    if (isTodayCustom && todayTargetInput !== '') {
+    if (!isDailyMode && isTodayCustom && todayTargetInput !== '') {
       const parsed = Number(String(todayTargetInput).replace(/[^\d]/g, ''));
       if (parsed < defaultDailyTarget) {
         setMessage(
@@ -227,11 +251,11 @@ const PrivateJapaScreen = () => {
 
       let personalMantraId: number | undefined;
       try {
-        personalMantraId = await resolvePersonalMantraId(name);
+        personalMantraId = await resolvePersonalMantraId(name, finalGoal);
       } catch {
         personalMantraId = undefined;
       }
-      await saveToRecent(name, rawGoal, personalMantraId);
+      await saveToRecent(name, finalGoal, personalMantraId);
 
       const remDays = daysUntil(endDate);
       const startDateStr = istIsoDate();
@@ -243,8 +267,8 @@ const PrivateJapaScreen = () => {
           mantraType: 'PERSONAL',
           personalMantraId,
           goalName: name.slice(0, 80),
-          targetCount: rawGoal,
-          dailyTarget: effectiveTodayTarget,
+          targetCount: finalGoal,
+          dailyTarget: finalDailyTarget,
           days: remDays,
           startDate: startDateStr,
           endDate: endDateStr,
@@ -262,9 +286,9 @@ const PrivateJapaScreen = () => {
         mode: 'private',
         privateMantra: name,
         personalMantraId,
-        goal: rawGoal,
-        totalGoal: rawGoal,
-        dailyTarget: effectiveTodayTarget,
+        goal: finalGoal,
+        totalGoal: finalGoal,
+        dailyTarget: finalDailyTarget,
         japaGoalId: createdGoalId,
         goalType: 'date',
         endDate: formatDate(endDate),
@@ -405,96 +429,326 @@ const PrivateJapaScreen = () => {
           ) : null}
         </View>
 
-        {/* 2. Total Count Goal */}
-        <Text style={styles.label}>{t('setGoal')}</Text>
-      <TextInput
-        style={styles.input}
-        value={goal}
-          onChangeText={val => {
-            setGoal(val);
-            setMessage('');
-            setIsTodayCustom(false);
-            setTodayTargetInput('');
-          }}
-          placeholder={t('enterTotalJapaCount') || 'Enter total japa count'}
-          placeholderTextColor={Colors.placeholder}
-          keyboardType="numeric"
-          underlineColorAndroid="transparent"
-          blurOnSubmit
-          textAlignVertical="center"
-        />
-        <View style={styles.presetsRow}>
-          {PRESET_GOALS.map(preset => {
-            const isSelected = rawGoal === preset;
-            return (
-              <TouchableOpacity
-                key={preset}
-                style={[
-                  styles.presetChip,
-                  isSelected && styles.presetChipActive,
-                ]}
-                onPress={() => {
-                  setGoal(String(preset));
-                  setMessage('');
-                  setIsTodayCustom(false);
-                  setTodayTargetInput('');
-                }}>
-                <Text
-                  style={[
-                    styles.presetText,
-                    isSelected && styles.presetTextActive,
-                  ]}>
-                  {preset.toLocaleString('en-IN')}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View style={styles.modeTabs}>
+          <TouchableOpacity
+            style={[
+              styles.modeTab,
+              goalMode === 'total' && styles.modeTabActive,
+            ]}
+            onPress={() => {
+              setGoalMode('total');
+              setMessage('');
+            }}
+            activeOpacity={0.85}>
+            <Text
+              style={[
+                styles.modeTabText,
+                goalMode === 'total' && styles.modeTabTextActive,
+              ]}>
+              {t('goalByTotalCount') || 'Goal by total count'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.modeTab,
+              goalMode === 'daily' && styles.modeTabActive,
+            ]}
+            onPress={() => {
+              setGoalMode('daily');
+              setMessage('');
+            }}
+            activeOpacity={0.85}>
+            <Text
+              style={[
+                styles.modeTabText,
+                goalMode === 'daily' && styles.modeTabTextActive,
+              ]}>
+              {t('goalByDailyCount') || 'Goal by daily count'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* 3. Goal End Date / Deadline */}
-        <Text style={styles.label}>
-          {t('deadlineDate') || 'Goal End Date / Deadline'}
-        </Text>
-        <View style={styles.quickDaysRow}>
-          {QUICK_DEADLINE_DAYS.map(item => {
-            const isSelected = remainingDays === item.days;
-            return (
-              <TouchableOpacity
-                key={item.days}
-                style={[
-                  styles.quickDayChip,
-                  isSelected && styles.quickDayChipActive,
-                ]}
-                onPress={() => {
-                  setEndDate(getDateFromDays(item.days));
-                  setIsTodayCustom(false);
-                  setTodayTargetInput('');
-                }}>
-                <Text
-                  style={[
-                    styles.quickDayText,
-                    isSelected && styles.quickDayTextActive,
-                  ]}>
-                  {t(item.labelKey)}
+        {goalMode === 'total' ? (
+          <>
+            {/* 2. Total Count Goal — unchanged */}
+            <Text style={styles.label}>{t('setGoal')}</Text>
+            <TextInput
+              style={styles.input}
+              value={goal}
+              onChangeText={val => {
+                setGoal(val);
+                setMessage('');
+                setIsTodayCustom(false);
+                setTodayTargetInput('');
+              }}
+              placeholder={t('enterTotalJapaCount') || 'Enter total japa count'}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="numeric"
+              underlineColorAndroid="transparent"
+              blurOnSubmit
+              textAlignVertical="center"
+            />
+            <View style={styles.presetsRow}>
+              {PRESET_GOALS.map(preset => {
+                const isSelected = rawGoal === preset;
+                return (
+                  <TouchableOpacity
+                    key={preset}
+                    style={[
+                      styles.presetChip,
+                      isSelected && styles.presetChipActive,
+                    ]}
+                    onPress={() => {
+                      setGoal(String(preset));
+                      setMessage('');
+                      setIsTodayCustom(false);
+                      setTodayTargetInput('');
+                    }}>
+                    <Text
+                      style={[
+                        styles.presetText,
+                        isSelected && styles.presetTextActive,
+                      ]}>
+                      {preset.toLocaleString('en-IN')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 3. Goal End Date / Deadline */}
+            <Text style={styles.label}>
+              {t('deadlineDate') || 'Goal End Date / Deadline'}
+            </Text>
+            <View style={styles.quickDaysRow}>
+              {QUICK_DEADLINE_DAYS.map(item => {
+                const isSelected = remainingDays === item.days;
+                return (
+                  <TouchableOpacity
+                    key={item.days}
+                    style={[
+                      styles.quickDayChip,
+                      isSelected && styles.quickDayChipActive,
+                    ]}
+                    onPress={() => {
+                      setEndDate(getDateFromDays(item.days));
+                      setIsTodayCustom(false);
+                      setTodayTargetInput('');
+                    }}>
+                    <Text
+                      style={[
+                        styles.quickDayText,
+                        isSelected && styles.quickDayTextActive,
+                      ]}>
+                      {t(item.labelKey)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.quickDaysHint}>
+              {t('quickDaysHint') ||
+                'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => dismissKeyboardThen(() => setShowCalendar(true))}
+              activeOpacity={0.85}>
+              <Text style={styles.calendarLabel}>
+                📅{' '}
+                {formatDate(endDate) ||
+                  t('pickDeadlineDate') ||
+                  'Pick Deadline Date'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* 4. Dynamic Daily Goal Breakdown & Customization */}
+            {rawGoal > 0 ? (
+              <View style={styles.breakdownCard}>
+                <View style={styles.breakdownHeaderRow}>
+                  <Text style={styles.breakdownHeaderTitle}>
+                    🎯 {t('dailyBreakdownTitle') || 'Daily Goal Breakdown'}
+                  </Text>
+                  <View style={styles.daysBadge}>
+                    <Text style={styles.daysBadgeText}>
+                      {remainingDays} {remainingDays === 1 ? 'Day' : 'Days'}
+                    </Text>
+                  </View>
+                </View>
+
+                <Text style={styles.breakdownMessage}>
+                  {t('youNeedToDoJapasPerDay', {
+                    count: defaultDailyTarget.toLocaleString('en-IN'),
+                    date: formatDate(endDate),
+                    days: remainingDays,
+                  }) ||
+                    `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete your Japa on or before ${formatDate(endDate)} (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
                 </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
-        <Text style={styles.quickDaysHint}>
-          {t('quickDaysHint') ||
-            'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
-        </Text>
+                <View style={styles.todayTargetContainer}>
+                  <Text style={styles.todayTargetLabel}>
+                    {t('todayTargetLabel') ||
+                      "Customize Today's Target (Optional)"}
+                    :
+                  </Text>
+                  <View style={styles.todayInputRow}>
+                    <TextInput
+                      style={styles.todayInput}
+                      value={
+                        isTodayCustom
+                          ? todayTargetInput
+                          : String(defaultDailyTarget)
+                      }
+                      onChangeText={val => {
+                        setIsTodayCustom(true);
+                        setTodayTargetInput(val);
+                      }}
+                      keyboardType="numeric"
+                      placeholder={String(defaultDailyTarget)}
+                      placeholderTextColor={Colors.placeholder}
+                      underlineColorAndroid="transparent"
+                      blurOnSubmit
+                      textAlignVertical="center"
+                    />
+                    <Text style={styles.todayInputUnit}>{t('japasToday')}</Text>
+                  </View>
 
-        <TouchableOpacity
-          style={styles.calendarBtn}
-          onPress={() => dismissKeyboardThen(() => setShowCalendar(true))}
-          activeOpacity={0.85}>
-          <Text style={styles.calendarLabel}>
-            📅 {formatDate(endDate) || t('pickDeadlineDate') || 'Pick Deadline Date'}
-          </Text>
-        </TouchableOpacity>
+                  {isTodayCustom &&
+                  todayTargetInput !== '' &&
+                  Number(todayTargetInput.replace(/[^\d]/g, '')) <
+                    defaultDailyTarget ? (
+                    <Text style={styles.targetWarningText}>
+                      ⚠️{' '}
+                      {t('customTargetMinHint', {count: defaultDailyTarget}) ||
+                        `Must be at least ${defaultDailyTarget} Japas per day`}
+                    </Text>
+                  ) : null}
+
+                  {isTodayCustom &&
+                  effectiveTodayTarget > defaultDailyTarget &&
+                  remainingDays > 1 ? (
+                    <Text style={styles.futureSplitHint}>
+                      ✨{' '}
+                      {t('futureDailyHint', {
+                        days: remainingDays - 1,
+                        count: futureDailyTarget.toLocaleString('en-IN'),
+                      }) ||
+                        `For the remaining ${remainingDays - 1} days, your daily goal will be ~${futureDailyTarget.toLocaleString('en-IN')} Japas/day.`}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>
+              {t('enterDailyGoalCount') || 'Enter daily japa count'}
+            </Text>
+            <TextInput
+              style={styles.input}
+              value={dailyGoalText}
+              onChangeText={val => {
+                setDailyGoalText(val.replace(/[^\d]/g, ''));
+                setMessage('');
+              }}
+              placeholder={t('enterDailyGoalCount') || 'Enter daily japa count'}
+              placeholderTextColor={Colors.placeholder}
+              keyboardType="numeric"
+              underlineColorAndroid="transparent"
+              blurOnSubmit
+              textAlignVertical="center"
+            />
+            <View style={styles.presetsRow}>
+              {DAILY_PRESET_GOALS.map(preset => {
+                const isSelected = dailyGoal === preset;
+                return (
+                  <TouchableOpacity
+                    key={preset}
+                    style={[
+                      styles.presetChip,
+                      isSelected && styles.presetChipActive,
+                    ]}
+                    onPress={() => {
+                      setDailyGoalText(String(preset));
+                      setMessage('');
+                    }}>
+                    <Text
+                      style={[
+                        styles.presetText,
+                        isSelected && styles.presetTextActive,
+                      ]}>
+                      {preset.toLocaleString('en-IN')}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.label}>
+              {t('deadlineDate') || 'Goal End Date / Deadline'}
+            </Text>
+            <View style={styles.quickDaysRow}>
+              {QUICK_DEADLINE_DAYS.map(item => {
+                const isSelected = remainingDays === item.days;
+                return (
+                  <TouchableOpacity
+                    key={item.days}
+                    style={[
+                      styles.quickDayChip,
+                      isSelected && styles.quickDayChipActive,
+                    ]}
+                    onPress={() => setEndDate(getDateFromDays(item.days))}>
+                    <Text
+                      style={[
+                        styles.quickDayText,
+                        isSelected && styles.quickDayTextActive,
+                      ]}>
+                      {t(item.labelKey)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={styles.quickDaysHint}>
+              {t('quickDaysHint') ||
+                'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+            </Text>
+
+            <TouchableOpacity
+              style={styles.calendarBtn}
+              onPress={() => dismissKeyboardThen(() => setShowCalendar(true))}
+              activeOpacity={0.85}>
+              <Text style={styles.calendarLabel}>
+                📅{' '}
+                {formatDate(endDate) ||
+                  t('pickDeadlineDate') ||
+                  'Pick Deadline Date'}
+              </Text>
+            </TouchableOpacity>
+
+            {dailyGoal > 0 ? (
+              <View style={styles.totalFromDailyCard}>
+                <Text style={styles.totalFromDailyTitle}>
+                  {t('calculatedTotalCount', {
+                    count: calculatedTotalFromDaily.toLocaleString('en-IN'),
+                  }) ||
+                    `Total count : ${calculatedTotalFromDaily.toLocaleString('en-IN')}`}
+                </Text>
+                <Text style={styles.totalFromDailyHint}>
+                  {t('dailyTimesDaysHint', {
+                    daily: dailyGoal.toLocaleString('en-IN'),
+                    days: remainingDays,
+                  }) ||
+                    `${dailyGoal.toLocaleString('en-IN')} japas/day × ${remainingDays} days`}
+                </Text>
+              </View>
+            ) : null}
+          </>
+        )}
 
         <DatePickerModal
           visible={showCalendar}
@@ -504,86 +758,12 @@ const PrivateJapaScreen = () => {
           onConfirm={selected => {
             setEndDate(selected);
             setShowCalendar(false);
-            setIsTodayCustom(false);
-            setTodayTargetInput('');
+            if (goalMode === 'total') {
+              setIsTodayCustom(false);
+              setTodayTargetInput('');
+            }
           }}
         />
-
-        {/* 4. Dynamic Daily Goal Breakdown & Customization */}
-        {rawGoal > 0 ? (
-          <View style={styles.breakdownCard}>
-            <View style={styles.breakdownHeaderRow}>
-              <Text style={styles.breakdownHeaderTitle}>
-                🎯 {t('dailyBreakdownTitle') || 'Daily Goal Breakdown'}
-              </Text>
-              <View style={styles.daysBadge}>
-                <Text style={styles.daysBadgeText}>
-                  {remainingDays} {remainingDays === 1 ? 'Day' : 'Days'}
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.breakdownMessage}>
-              {t('youNeedToDoJapasPerDay', {
-                count: defaultDailyTarget.toLocaleString('en-IN'),
-                date: formatDate(endDate),
-                days: remainingDays,
-              }) ||
-                `You need to do ${defaultDailyTarget.toLocaleString('en-IN')} Japas per day to complete your Japa on or before ${formatDate(endDate)} (${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}).`}
-            </Text>
-
-            {/* Editable Today's Target */}
-            <View style={styles.todayTargetContainer}>
-              <Text style={styles.todayTargetLabel}>
-                {t('todayTargetLabel') || "Customize Today's Target (Optional)"}:
-              </Text>
-              <View style={styles.todayInputRow}>
-                <TextInput
-                  style={styles.todayInput}
-                  value={
-                    isTodayCustom
-                      ? todayTargetInput
-                      : String(defaultDailyTarget)
-                  }
-                  onChangeText={val => {
-                    setIsTodayCustom(true);
-                    setTodayTargetInput(val);
-                  }}
-        keyboardType="numeric"
-                  placeholder={String(defaultDailyTarget)}
-                  placeholderTextColor={Colors.placeholder}
-                  underlineColorAndroid="transparent"
-                  blurOnSubmit
-                  textAlignVertical="center"
-                />
-                <Text style={styles.todayInputUnit}>{t('japasToday')}</Text>
-              </View>
-
-              {isTodayCustom &&
-              todayTargetInput !== '' &&
-              Number(todayTargetInput.replace(/[^\d]/g, '')) < defaultDailyTarget ? (
-                <Text style={styles.targetWarningText}>
-                  ⚠️{' '}
-                  {t('customTargetMinHint', {count: defaultDailyTarget}) ||
-                    `Must be at least ${defaultDailyTarget} Japas per day`}
-                </Text>
-              ) : null}
-
-              {isTodayCustom &&
-              effectiveTodayTarget > defaultDailyTarget &&
-              remainingDays > 1 ? (
-                <Text style={styles.futureSplitHint}>
-                  ✨{' '}
-                  {t('futureDailyHint', {
-                    days: remainingDays - 1,
-                    count: futureDailyTarget.toLocaleString('en-IN'),
-                  }) ||
-                    `For the remaining ${remainingDays - 1} days, your daily goal will be ~${futureDailyTarget.toLocaleString('en-IN')} Japas/day.`}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-        ) : null}
 
         {message ? <Text style={styles.error}>{message}</Text> : null}
       </ScrollView>
@@ -604,6 +784,57 @@ export default PrivateJapaScreen;
 const styles = StyleSheet.create({
   flex: {flex: 1},
   scrollContent: {paddingBottom: 16},
+  modeTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8EE',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 4,
+    marginBottom: 14,
+    gap: 4,
+  },
+  modeTab: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modeTabActive: {
+    backgroundColor: Colors.sacredBrown,
+  },
+  modeTabText: {
+    textAlign: 'center',
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  modeTabTextActive: {
+    color: Colors.white,
+  },
+  totalFromDailyCard: {
+    backgroundColor: '#FFF8EE',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    padding: 14,
+    marginTop: 10,
+    marginBottom: 8,
+  },
+  totalFromDailyTitle: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 16,
+  },
+  totalFromDailyHint: {
+    marginTop: 4,
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   card: {
     backgroundColor: Colors.white,
     borderRadius: 12,

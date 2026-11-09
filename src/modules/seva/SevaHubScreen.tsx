@@ -34,9 +34,13 @@ type SevaItem = {
   title: string;
   sub: string;
   route: BookingScreen;
+  freeDistribution?: boolean;
 };
 
-const buildAllSevaShareText = (items: SevaItem[]) => {
+const buildAllSevaShareText = (
+  items: SevaItem[],
+  freeDistributionLabel: string,
+) => {
   const lines = [
     '🙏 Japa Siddhi – Bilva Patra Trust — Spiritual Services 🙏',
     '',
@@ -44,7 +48,11 @@ const buildAllSevaShareText = (items: SevaItem[]) => {
     '',
   ];
   items.forEach(item => {
-    lines.push(item.title);
+    lines.push(
+      item.freeDistribution
+        ? `${item.title} ${freeDistributionLabel}`
+        : item.title,
+    );
     lines.push(publicBookingUrlForScreen(item.route));
     lines.push('');
   });
@@ -80,6 +88,9 @@ const SevaHubScreen = () => {
     }, []),
   );
 
+  const freeDistributionLabel =
+    t('freeDistribution') || '(free distribution)';
+
   const items = useMemo(() => {
     const all: SevaItem[] = [
       {
@@ -87,6 +98,7 @@ const SevaHubScreen = () => {
         title: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
+        freeDistribution: true,
       },
       {
         icon: 'bowl' as AppIconName,
@@ -105,25 +117,28 @@ const SevaHubScreen = () => {
         title: t('tileRamakoti'),
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
+        freeDistribution: true,
       },
       {
         icon: 'homaBhasma' as AppIconName,
         title: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
+        freeDistribution: true,
       },
       {
         icon: 'biravaPendant' as AppIconName,
         title: t('tileBirava'),
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
+        freeDistribution: true,
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
   }, [t, annadanamEnabled]);
 
   const handleShareAllSevas = async () => {
-    const message = buildAllSevaShareText(items);
+    const message = buildAllSevaShareText(items, freeDistributionLabel);
     try {
       (Clipboard as {setString?: (value: string) => void}).setString?.(message);
       if (Platform.OS === 'android') {
@@ -209,7 +224,15 @@ const SevaHubScreen = () => {
                 )}
               </View>
               <View style={styles.copy}>
-                <Text style={styles.title}>{item.title}</Text>
+                <Text style={styles.title}>
+                  {item.title}
+                  {item.freeDistribution ? (
+                    <Text style={styles.freeDistribution}>
+                      {' '}
+                      {freeDistributionLabel}
+                    </Text>
+                  ) : null}
+                </Text>
                 <Text style={styles.sub}>{item.sub}</Text>
               </View>
             </TouchableOpacity>
@@ -280,6 +303,12 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
+  },
+  freeDistribution: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
   sub: {
     marginTop: 2,

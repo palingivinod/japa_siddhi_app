@@ -198,6 +198,9 @@ const en = {
     'Please allow camera and photo access to add a profile picture.',
   couldNotPickPhoto: 'Could not pick a photo. Please try again.',
   mobileRequiredTitle: 'Mobile required',
+  profileDetailsRequiredTitle: 'Profile details required 🙏',
+  profileDetailsRequiredMessage:
+    'Please enter your Date of Birth and Phone number in your profile to continue.',
   goBackEnterMobile:
     'Go back and enter your {{digits}}-digit mobile number before creating your profile.',
   passwordRequiredTitle: 'Password required',
@@ -250,6 +253,8 @@ const en = {
   namaste: 'Namaste, {{name}}',
   peacefulDay: 'May your day be peaceful',
   beginYourJapa: 'Begin your Japa',
+  joinWhatsAppGroup: 'Join our WhatsApp group',
+  couldNotOpenLink: 'Could not open WhatsApp. Please try again.',
   bannerSubtitle:
     'A digital space for Japa, Anna Santharpana and spiritual participation.',
   startChanting: 'Start Chanting',
@@ -326,6 +331,8 @@ const en = {
   tileRamakotiSub: 'Request a book',
   ramakotiSeva: 'Ramakoti Books',
   ramakotiIntro: 'Request Ramakoti books for delivery.',
+  ramakotiRegisterNote:
+    'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Ramakoti books.',
   tileHomaBhasma: 'Homa Bhasma',
   tileHomaBhasmaSub: 'Request havan bhasma',
   homaBhasma: 'Homa Bhasma',
@@ -333,6 +340,7 @@ const en = {
     'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
+  freeDistribution: '(free distribution)',
   biravaPendant: 'Bhirava Pendent',
   biravaPendantSub:
     'Wearing a locket with Kaala Bhirava on one side and the Sri Chakra on the other helps prevent evil forces from entering. You will get this Bhirava Pendent free of charge.',
@@ -498,6 +506,11 @@ const en = {
   myOrders: 'My Orders',
   deliveryStatus: 'Delivery Status',
   setYourGoal: 'Set Your Goal',
+  goalByTotalCount: 'Goal by total count',
+  goalByDailyCount: 'Goal by daily count',
+  enterDailyGoalCount: 'Enter daily japa count',
+  calculatedTotalCount: 'Total count : {{count}}',
+  dailyTimesDaysHint: '{{daily}} japas/day × {{days}} days',
   familyJapa: 'Family Japa',
   customerCare: 'Customer Care',
   enrollmentConfirmed: 'Enrollment Confirmed',
@@ -963,6 +976,10 @@ const en = {
   orderReceivedTitle: 'Order received',
   orderReceivedMessage: 'Thank you. This order is now marked as delivered.',
   orderReceivedFailed: 'Could not mark this order as received.',
+  playStoreFeedbackTitle: 'Thank you!',
+  playStoreFeedbackMessage:
+    'Please give your feedback on the Play Store. Your review helps other devotees.',
+  rateOnPlayStore: 'Open Play Store',
   orderAlreadyDelivered: 'ORDER DELIVERED',
   updatingStatus: 'UPDATING...',
   cancelOrder: 'Cancel order',

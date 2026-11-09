@@ -1,8 +1,10 @@
-import React, {ReactNode} from 'react';
+import React, {ReactNode, useCallback, useState} from 'react';
 import {Image, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import {useNavigation} from '@react-navigation/native';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
+import AppIcon from '../../components/icons/AppIcon';
 import {useLanguage} from '../../i18n/LanguageContext';
+import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
 
 interface Props {
@@ -11,7 +13,7 @@ interface Props {
   subtitle?: string;
   /** true = always show, false = never, omit = show when navigation can go back */
   showBack?: boolean;
-  /** Home header: no back arrow, and the logo opens the profile. */
+  /** Home only: notification bell + unread count (no logo). */
   showBell?: boolean;
   /** Replaces the empty left slot on Home. */
   leftAction?: ReactNode;
@@ -26,10 +28,43 @@ const AppHeader: React.FC<Props> = ({
 }) => {
   const navigation = useNavigation<any>();
   const {t, tt} = useLanguage();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const shouldShowBack =
     showBack === true ||
     (showBack !== false && !showBell && navigation.canGoBack());
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!showBell) {
+        return undefined;
+      }
+      let active = true;
+      apiService
+        .get('/notifications/unread-count')
+        .then(res => {
+          if (!active) {
+            return;
+          }
+          const payload = res.data?.data ?? res.data ?? {};
+          const raw =
+            payload.unreadCount ??
+            payload.count ??
+            payload.unread ??
+            res.data?.unreadCount ??
+            0;
+          setUnreadCount(Math.max(0, Math.round(Number(raw) || 0)));
+        })
+        .catch(() => {
+          if (active) {
+            setUnreadCount(0);
+          }
+        });
+      return () => {
+        active = false;
+      };
+    }, [showBell]),
+  );
 
   const onBack = () => {
     if (navigation.canGoBack()) {
@@ -38,6 +73,9 @@ const AppHeader: React.FC<Props> = ({
     }
     navigation.navigate('Home');
   };
+
+  const badgeLabel =
+    unreadCount > 99 ? '99+' : unreadCount > 0 ? String(unreadCount) : '';
 
   return (
     <View style={styles.row}>
@@ -60,21 +98,26 @@ const AppHeader: React.FC<Props> = ({
           </Text>
         ) : null}
       </View>
-      <TouchableOpacity
-        onPress={() => {
-          if (showBell) {
-            navigation.navigate('Profile');
-          }
-        }}
-        disabled={!showBell}
-        accessibilityRole="button"
-        accessibilityLabel={t('tabProfile')}>
+      {showBell ? (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Notifications')}
+          style={styles.bellHit}
+          accessibilityRole="button"
+          accessibilityLabel={t('notifications') || 'Notifications'}>
+          <AppIcon name="bell" size={26} color={Colors.sacredBrown} />
+          {badgeLabel ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{badgeLabel}</Text>
+            </View>
+          ) : null}
+        </TouchableOpacity>
+      ) : (
         <Image
           source={require('../../assets/images/login_logo.webp')}
           style={styles.logo}
           resizeMode="contain"
         />
-      </TouchableOpacity>
+      )}
     </View>
   );
 };
@@ -133,5 +176,31 @@ const styles = StyleSheet.create({
   logo: {
     width: 40,
     height: 40,
+  },
+  bellHit: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.error || '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: Colors.white || '#FFF',
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 10,
+    fontWeight: '800',
+    lineHeight: 12,
   },
 });

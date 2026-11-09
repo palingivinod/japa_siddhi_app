@@ -127,7 +127,14 @@ const PersonalDetailsScreen = () => {
     const isoDob = String(data.dateOfBirth || data.dob || '').slice(0, 10);
     setDateOfBirth(isoDob);
     setDobText(formatDobDisplay(isoDob));
-    if (route?.params?.startEditing || !isoDob) {
+    const phoneDigits = String(data.mobileNumber || '')
+      .replace(/\D/g, '')
+      .slice(-MOBILE_DIGITS);
+    const phoneMissing =
+      phoneDigits.length !== MOBILE_DIGITS ||
+      !isMobile(phoneDigits) ||
+      /^0+$/.test(phoneDigits);
+    if (route?.params?.startEditing || !isoDob || phoneMissing) {
       setEditing(true);
     }
     setGender(data.gender || '');
@@ -194,20 +201,26 @@ const PersonalDetailsScreen = () => {
   );
 
   const cancelEdit = () => {
+    if (route?.params?.fromHomeGate) {
+      Alert.alert(
+        t('required') || 'Required',
+        'Please enter your Date of Birth and Phone number to continue.',
+      );
+      return;
+    }
     applyProfile(profile);
     setEditing(false);
   };
 
   const savePersonal = async () => {
-    const mobile = mobileNumber.replace(/\D/g, '');
-    if (mobile) {
-      if (
-        /^0+$/.test(mobile) ||
-        (mobile.length === MOBILE_DIGITS ? !isMobile(mobile) : mobile.length < 6)
-      ) {
-        Alert.alert(t('required'), t('enterValidMobileNumber'));
-        return;
-      }
+    const mobile = mobileNumber.replace(/\D/g, '').slice(-MOBILE_DIGITS);
+    if (!isMobile(mobile) || /^0+$/.test(mobile)) {
+      Alert.alert(
+        t('required'),
+        t('enterValidMobileDigits', {digits: String(MOBILE_DIGITS)}) ||
+          t('enterValidMobileNumber'),
+      );
+      return;
     }
     const isoDob = parseDob(dobText);
     if (!isoDob) {

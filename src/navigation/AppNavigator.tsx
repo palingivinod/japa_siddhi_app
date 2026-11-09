@@ -412,7 +412,17 @@ export type RootStackParamList = {
         stock?: number;
       }
     | undefined;
-  AdminNotifications: undefined;
+  AdminNotifications:
+    | {
+        selectedUsers?: Array<{
+          id: string;
+          name: string;
+          userCode?: string;
+          mobile?: string;
+          email?: string;
+        }>;
+      }
+    | undefined;
   AdminNotificationAnalytics: undefined;
   AdminOrders: undefined;
   AdminCancelledOrders: undefined;

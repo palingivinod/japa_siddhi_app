@@ -32,6 +32,7 @@ export type SevaDonationItem = {
   occasion?: string;
   forWhom?: string;
   personName?: string;
+  cityName?: string;
   remarks?: string;
   transactionId?: string;
   donatedAt?: string;
@@ -853,16 +854,18 @@ const AdminSevaDetailListScreen = () => {
                 </TouchableOpacity>
 
                 <View style={styles.nameCol}>
-                  <Text style={styles.devoteeName}>
+                  <Text selectable style={styles.devoteeName}>
                     {item.donorName || 'Devotee'}
                   </Text>
-                  <Text style={styles.donatedAtText}>
+                  <Text selectable style={styles.donatedAtText}>
                     Donated: {formatDisplayDate(item.donatedAt)}
                     {!canNotify ? ' · no app account' : ''}
                   </Text>
                 </View>
                 <View style={styles.amountBadge}>
-                  <Text style={styles.amountText}>₹{item.amount}</Text>
+                  <Text selectable style={styles.amountText}>
+                    ₹{item.amount}
+                  </Text>
                 </View>
               </View>
 
@@ -877,6 +880,7 @@ const AdminSevaDetailListScreen = () => {
                       : styles.preferDatePast,
                   ]}>
                   <Text
+                    selectable
                     style={[
                       styles.preferDateText,
                       isUpcoming
@@ -892,7 +896,9 @@ const AdminSevaDetailListScreen = () => {
               {item.occasion ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Occasion / Purpose:</Text>
-                  <Text style={styles.detailValue}>{item.occasion}</Text>
+                  <Text selectable style={styles.detailValue}>
+                    {item.occasion}
+                  </Text>
                 </View>
               ) : null}
 
@@ -900,7 +906,7 @@ const AdminSevaDetailListScreen = () => {
               {item.forWhom || item.personName ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>For:</Text>
-                  <Text style={styles.detailValue}>
+                  <Text selectable style={styles.detailValue}>
                     {[item.forWhom, item.personName]
                       .filter(Boolean)
                       .join(' - ')}
@@ -908,22 +914,37 @@ const AdminSevaDetailListScreen = () => {
                 </View>
               ) : null}
 
+              {String(item.cityName || '').trim() ? (
+                <View style={styles.detailRow}>
+                  <Text style={styles.detailLabel}>City:</Text>
+                  <Text selectable style={styles.detailValue}>
+                    {String(item.cityName).trim()}
+                  </Text>
+                </View>
+              ) : null}
+
               {gothram ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Gothram:</Text>
-                  <Text style={styles.detailValue}>{gothram}</Text>
+                  <Text selectable style={styles.detailValue}>
+                    {gothram}
+                  </Text>
                 </View>
               ) : null}
               {nakshatram ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Nakshatram / Star:</Text>
-                  <Text style={styles.detailValue}>{nakshatram}</Text>
+                  <Text selectable style={styles.detailValue}>
+                    {nakshatram}
+                  </Text>
                 </View>
               ) : null}
               {comments ? (
                 <View style={styles.remarksBox}>
                   <Text style={styles.remarksLabel}>Comments:</Text>
-                  <Text style={styles.remarksText}>{comments}</Text>
+                  <Text selectable style={styles.remarksText}>
+                    {comments}
+                  </Text>
                 </View>
               ) : null}
 
@@ -931,7 +952,9 @@ const AdminSevaDetailListScreen = () => {
               {item.remarks && !gothram && !nakshatram && !comments ? (
                 <View style={styles.remarksBox}>
                   <Text style={styles.remarksLabel}>Devotee Details:</Text>
-                  <Text style={styles.remarksText}>{item.remarks}</Text>
+                  <Text selectable style={styles.remarksText}>
+                    {item.remarks}
+                  </Text>
                 </View>
               ) : null}
 
@@ -943,12 +966,14 @@ const AdminSevaDetailListScreen = () => {
                       ✓ Admin Reply Dispatched
                     </Text>
                     {item.adminRepliedAt ? (
-                      <Text style={styles.replyTimeText}>
+                      <Text selectable style={styles.replyTimeText}>
                         {formatDisplayDate(item.adminRepliedAt)}
                       </Text>
                     ) : null}
                   </View>
-                  <Text style={styles.replyContentText}>{item.adminReply}</Text>
+                  <Text selectable style={styles.replyContentText}>
+                    {item.adminReply}
+                  </Text>
                 </View>
               ) : null}
 
@@ -956,7 +981,7 @@ const AdminSevaDetailListScreen = () => {
               <View style={styles.contactRow}>
                 <View style={styles.phoneCol}>
                   <Text style={styles.phoneLabel}>Phone:</Text>
-                  <Text style={styles.phoneNumber}>
+                  <Text selectable style={styles.phoneNumber}>
                     {item.donorPhone || '—'}
                   </Text>
                 </View>

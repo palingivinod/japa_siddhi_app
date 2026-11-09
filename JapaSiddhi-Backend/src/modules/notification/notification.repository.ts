@@ -54,6 +54,24 @@ class NotificationRepository {
     const userFilter = userId ? 'AND user_id = ?' : '';
     const params: any[] = userId ? [userId] : [];
 
+    // Unread for 2+ days → treat as read so Home / app icon badge count drops.
+    const unreadOlderThan2Days =
+      engine === 'mysql'
+        ? `DATE_SUB(NOW(), INTERVAL 2 DAY)`
+        : `datetime('now', 'localtime', '-2 days')`;
+    await mysql.query(
+      `
+      UPDATE notifications
+      SET
+        is_read = 1,
+        read_at = CURRENT_TIMESTAMP
+      WHERE is_read = 0
+        AND COALESCE(sent_at, created_at) <= ${unreadOlderThan2Days}
+        ${userFilter}
+      `,
+      params,
+    );
+
     await mysql.query(
       `
       DELETE FROM notifications
@@ -249,6 +267,7 @@ class NotificationRepository {
         sentAt,
         extraData: parsedExtra,
         imageUrl: parsedExtra?.imageUrl || parsedExtra?.image || null,
+        videoUrl: parsedExtra?.videoUrl || parsedExtra?.video || null,
       };
     });
   }

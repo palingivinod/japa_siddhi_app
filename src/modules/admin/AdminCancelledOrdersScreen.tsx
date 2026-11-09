@@ -138,15 +138,24 @@ const matchesCancelledCategory = (order: AdminOrder, filterId: CancelledItemFilt
 };
 
 const mapAdminOrderStatus = (raw: string): AdminOrder['status'] => {
-  const r = String(raw || '').trim();
-  if (r === 'Delivered') return 'Delivered';
-  if (r === 'Shipped') return 'Shipped';
-  if (r === 'Packing') return 'Packing';
-  if (r === 'Confirmed') return 'Confirmed';
-  if (r === 'Sankalp Taken') return 'Sankalp Taken';
-  if (r === 'Called Devotee') return 'Called Devotee';
-  if (r === 'Cancelled') return 'Cancelled';
-  if (r === 'Under Review') return 'Under Review';
+  const r = String(raw || '').trim().toUpperCase().replace(/[\s-]+/g, '_');
+  if (r === 'DELIVERED') return 'Delivered';
+  if (r === 'SHIPPED') return 'Shipped';
+  if (r === 'PACKING') return 'Packing';
+  if (r === 'CONFIRMED' || r === 'PROCESSING' || r === 'READY') {
+    return 'Confirmed';
+  }
+  if (r === 'SANKALP_TAKEN' || r === 'SANKALP') return 'Sankalp Taken';
+  if (r === 'CALLED_DEVOTEE' || r === 'CALLED_TALKED' || r === 'CALLED') {
+    return 'Called Devotee';
+  }
+  if (r === 'CANCELLED' || r === 'CANCELED') return 'Cancelled';
+  if (r === 'UNDER_REVIEW' || r === 'PENDING') return 'Under Review';
+  // Already-mapped display labels from API
+  const label = String(raw || '').trim().toLowerCase();
+  if (label === 'cancelled' || label === 'canceled') return 'Cancelled';
+  if (label === 'delivered') return 'Delivered';
+  if (label === 'shipped') return 'Shipped';
   return 'Processing';
 };
 
@@ -182,17 +191,26 @@ const mapApiOrder = (row: any): AdminOrder => {
     row.itemName ||
     row.product ||
     (row.orderType ? String(row.orderType).replace(/_/g, ' ') : 'Product');
+  const orderNoRaw = row.orderNo || row.orderNumber || `#${row.id}`;
   return {
     id: String(row.id),
-    orderNo: row.orderNumber || `#${row.id}`,
+    orderNo: String(orderNoRaw).startsWith('#')
+      ? String(orderNoRaw)
+      : `#${orderNoRaw}`,
     product: productTitle,
-    customer: row.customerName || 'Devotee',
+    customer: row.customer || row.customerName || 'Devotee',
     date: row.createdAt ? String(row.createdAt).slice(0, 10) : 'Recent',
-    status: mapAdminOrderStatus(row.orderStatus),
+    createdAt: row.createdAt || '',
+    // Prefer API display status; fall back to raw DB orderStatus (CANCELLED, etc.)
+    status: mapAdminOrderStatus(row.status || row.orderStatus),
     remarks: row.remarks || '',
     adminNote: row.adminNote || '',
     adminNoteAt: row.adminNoteAt || '',
-    orderGroup: orderGroupOf(row),
+    orderGroup: orderGroupOf({
+      ...row,
+      orderNo: orderNoRaw,
+      product: productTitle,
+    }),
     orderType: row.orderType || '',
     orderSource: row.orderSource || '',
     rewardName: row.rewardName || '',
@@ -218,11 +236,21 @@ const AdminCancelledOrdersScreen = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await apiService.get('/admin/orders?includeAll=true&includeDeleted=true');
+      const response = await apiService.get('/admin/orders', {
+        params: {includeAll: 'true', includeDeleted: 'true'},
+      });
       const list = Array.isArray(response.data?.data) ? response.data.data : [];
       const mapped = list
         .map(mapApiOrder)
-        .filter((o: AdminOrder) => o.status === 'Cancelled');
+        .filter((o: AdminOrder) => o.status === 'Cancelled')
+        .sort((a: AdminOrder, b: AdminOrder) => {
+          const aMs = new Date(String(a.createdAt || a.date || 0)).getTime();
+          const bMs = new Date(String(b.createdAt || b.date || 0)).getTime();
+          if (Number.isFinite(bMs) && Number.isFinite(aMs) && bMs !== aMs) {
+            return bMs - aMs;
+          }
+          return Number(b.id) - Number(a.id);
+        });
       setOrders(mapped);
     } catch (err) {
       setOrders([]);

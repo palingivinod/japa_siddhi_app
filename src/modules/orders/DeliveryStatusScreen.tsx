@@ -7,6 +7,7 @@ import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import MenuCard from '../common/MenuCard';
+import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import StatCards from '../common/StatCards';
@@ -19,6 +20,7 @@ const DeliveryStatusScreen = () => {
   const [rawError, setRawError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showPlayStoreFeedback, setShowPlayStoreFeedback] = useState(false);
   const id = route.params?.id || route.params?.order?.id;
 
   const load = () => {
@@ -54,7 +56,7 @@ const DeliveryStatusScreen = () => {
     try {
       const response = await apiService.put(`/orders/${id}/received`);
       setItem(response.data?.data || {...item, orderStatus: 'DELIVERED'});
-      Alert.alert(t('orderReceivedTitle'), t('orderReceivedMessage'));
+      setShowPlayStoreFeedback(true);
     } catch (err) {
       Alert.alert(
         t('validationTitle'),
@@ -117,6 +119,10 @@ const DeliveryStatusScreen = () => {
           />
         </View>
       ) : null}
+      <PlayStoreFeedbackModal
+        visible={showPlayStoreFeedback}
+        onClose={() => setShowPlayStoreFeedback(false)}
+      />
     </ScreenLayout>
   );
 };

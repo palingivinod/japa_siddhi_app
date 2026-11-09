@@ -59,6 +59,7 @@ const matchesOrderSearch = (order: AdminOrder, query: string) => {
 };
 
 export type HistoryItemFilter = 'ALL' | 'BL' | 'RK' | 'BP' | 'HB' | 'REWARD';
+export type HistoryStatusFilter = 'ALL' | 'SHIPPED' | 'DELIVERED';
 
 const HISTORY_FILTERS: Array<{id: HistoryItemFilter; label: string}> = [
   {id: 'ALL', label: 'All Orders'},
@@ -68,6 +69,22 @@ const HISTORY_FILTERS: Array<{id: HistoryItemFilter; label: string}> = [
   {id: 'HB', label: 'Homa Bhasmam'},
   {id: 'REWARD', label: 'Rewards'},
 ];
+
+const STATUS_FILTERS: Array<{id: HistoryStatusFilter; label: string}> = [
+  {id: 'ALL', label: 'All status'},
+  {id: 'SHIPPED', label: 'Shipped'},
+  {id: 'DELIVERED', label: 'Delivered'},
+];
+
+const orderDateValue = (order: AdminOrder) => {
+  const raw =
+    order.userReceivedAt ||
+    order.createdAt ||
+    order.date ||
+    '';
+  const ms = new Date(String(raw)).getTime();
+  return Number.isFinite(ms) ? ms : 0;
+};
 
 const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter): boolean => {
   if (filterId === 'ALL') return true;
@@ -209,6 +226,7 @@ const AdminOrderHistoryScreen = () => {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<HistoryItemFilter>('ALL');
+  const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>('ALL');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadDeliveredOrders = useCallback(async () => {
@@ -295,12 +313,17 @@ const AdminOrderHistoryScreen = () => {
   const searchActive = search.trim().length > 0;
 
   const filteredOrders = useMemo(() => {
-    return orders.filter(order => {
+    const list = orders.filter(order => {
       const matchesSearch = matchesOrderSearch(order, search);
       const matchesCategory = matchesHistoryCategory(order, categoryFilter);
-      return matchesSearch && matchesCategory;
+      const matchesStatus =
+        statusFilter === 'ALL' ||
+        (statusFilter === 'SHIPPED' && order.status === 'Shipped') ||
+        (statusFilter === 'DELIVERED' && order.status === 'Delivered');
+      return matchesSearch && matchesCategory && matchesStatus;
     });
-  }, [orders, search, categoryFilter]);
+    return list.sort((a, b) => orderDateValue(b) - orderDateValue(a));
+  }, [orders, search, categoryFilter, statusFilter]);
 
   const categoryCounts = useMemo(() => {
     return {
@@ -310,6 +333,14 @@ const AdminOrderHistoryScreen = () => {
       BP: orders.filter(o => matchesHistoryCategory(o, 'BP')).length,
       HB: orders.filter(o => matchesHistoryCategory(o, 'HB')).length,
       REWARD: orders.filter(o => matchesHistoryCategory(o, 'REWARD')).length,
+    };
+  }, [orders]);
+
+  const statusCounts = useMemo(() => {
+    return {
+      ALL: orders.length,
+      SHIPPED: orders.filter(o => o.status === 'Shipped').length,
+      DELIVERED: orders.filter(o => o.status === 'Delivered').length,
     };
   }, [orders]);
 
@@ -346,6 +377,37 @@ const AdminOrderHistoryScreen = () => {
         <View style={styles.deliveredPill}>
           <Text style={styles.deliveredPillText}>📦 Shipped & Delivered</Text>
         </View>
+      </View>
+
+      {/* Status Filter: All / Shipped / Delivered */}
+      <View style={styles.categoryContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryScroll}>
+          {STATUS_FILTERS.map(f => {
+            const active = statusFilter === f.id;
+            const count = statusCounts[f.id] || 0;
+            return (
+              <TouchableOpacity
+                key={f.id}
+                style={[
+                  styles.categoryChip,
+                  active && styles.statusChipActive,
+                ]}
+                activeOpacity={0.8}
+                onPress={() => setStatusFilter(f.id)}>
+                <Text
+                  style={[
+                    styles.categoryChipText,
+                    active && styles.categoryChipTextActive,
+                  ]}>
+                  {f.label} ({count})
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Category Filter Scroll */}
@@ -398,12 +460,15 @@ const AdminOrderHistoryScreen = () => {
               ? `No orders matched “${search.trim()}”.`
               : 'No shipped or delivered orders in this category yet.'}
           </Text>
-          {searchActive || categoryFilter !== 'ALL' ? (
+          {searchActive ||
+          categoryFilter !== 'ALL' ||
+          statusFilter !== 'ALL' ? (
             <TouchableOpacity
               style={styles.resetBtn}
               onPress={() => {
                 setSearch('');
                 setCategoryFilter('ALL');
+                setStatusFilter('ALL');
               }}>
               <Text style={styles.resetBtnText}>Clear Search & Filters</Text>
             </TouchableOpacity>
@@ -620,6 +685,10 @@ const styles = StyleSheet.create({
   categoryChipActive: {
     backgroundColor: Colors.sacredBrown,
     borderColor: Colors.sacredBrown,
+  },
+  statusChipActive: {
+    backgroundColor: Colors.leafGreen,
+    borderColor: Colors.leafGreen,
   },
   categoryChipText: {
     fontSize: 13,

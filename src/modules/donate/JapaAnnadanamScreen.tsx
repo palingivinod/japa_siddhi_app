@@ -4,11 +4,14 @@ import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
+import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import {
   getSavedFormComments,
   saveFormComments,
 } from '../../utils/savedFormComments';
+import {MOBILE_DIGITS, digitsOnly} from '../../utils/validators';
+import ProfileApi from '../auth/services/profileApi';
 import DatePickerModal from '../common/DatePickerModal';
 import FormField from '../common/FormField';
 import PrimaryButton from '../common/PrimaryButton';
@@ -35,6 +38,8 @@ const JapaAnnadanamScreen = () => {
   const [comments, setComments] = useState('');
   const [completed, setCompleted] = useState(0);
   const [enabled, setEnabled] = useState(true);
+  const [profileName, setProfileName] = useState('');
+  const [profileMobile, setProfileMobile] = useState('');
   const dateReady = /^\d{4}-\d{2}-\d{2}$/.test(preferDate);
 
   const totalAmount = persons * RATE_PER_PERSON;
@@ -53,6 +58,37 @@ const JapaAnnadanamScreen = () => {
         setComments(prev => prev || saved);
       }
     });
+    (async () => {
+      try {
+        const [stored, profile] = await Promise.all([
+          getStoredUser(),
+          ProfileApi.getProfile().catch(() => null),
+        ]);
+        const name =
+          profile?.fullName ||
+          stored?.fullName ||
+          stored?.full_name ||
+          '';
+        const phoneRaw =
+          profile?.mobileNumber ||
+          (profile as any)?.phoneNumber ||
+          stored?.mobileNumber ||
+          stored?.mobile_number ||
+          stored?.phoneNumber ||
+          stored?.phone_number ||
+          stored?.phone ||
+          '';
+        const phone = digitsOnly(String(phoneRaw || '')).slice(-MOBILE_DIGITS);
+        if (name) {
+          setProfileName(String(name));
+        }
+        if (phone.length === MOBILE_DIGITS) {
+          setProfileMobile(phone);
+        }
+      } catch {
+        // ignore
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -159,6 +195,8 @@ const JapaAnnadanamScreen = () => {
                 itemName: t('japaAnnadanam'),
                 preferDate,
                 comments: trimmedComments,
+                fullName: profileName,
+                mobile: profileMobile,
               });
             }}
           />

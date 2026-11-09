@@ -49,21 +49,21 @@ const handleWhatsApp = (mobile?: string) => {
   });
 };
 
-const formatDate = (isoString?: string) => {
-  if (!isoString) return '—';
-  try {
-    const d = new Date(isoString);
-    if (isNaN(d.getTime())) return isoString;
-    return d.toLocaleString('en-IN', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return isoString;
+/** Show up to seconds only — drop microseconds / timezone (e.g. .84939+00). */
+const formatDate = (raw?: string) => {
+  if (!raw) {
+    return '—';
   }
+  const str = String(raw).trim();
+  if (!str) {
+    return '—';
+  }
+  const match = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+  const cleaned = str.replace(/\.\d+.*$/, '').replace(/([+-]\d{2}(:?\d{2})?|Z)$/i, '').trim();
+  return cleaned || str;
 };
 
 const statusTone = (status: string) => {

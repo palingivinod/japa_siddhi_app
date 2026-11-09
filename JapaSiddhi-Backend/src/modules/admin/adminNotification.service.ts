@@ -650,6 +650,8 @@ export const deliverAdminNotification = async (input: {
   actionId?: number | null;
   /** Public https URL shown as Big Picture in the Android tray. */
   imageUrl?: string | null;
+  /** Optional video for in-app notification playback (does not replace image/url). */
+  videoUrl?: string | null;
   url?: string | null;
   link?: string | null;
   /** When true, push even outside 7 AM–10 PM IST (e.g. class going live). */
@@ -672,6 +674,7 @@ export const deliverAdminNotification = async (input: {
       ? Number(input.actionId)
       : null;
   const imageUrl = String(input.imageUrl || '').trim();
+  const videoUrl = String(input.videoUrl || input.extraData?.videoUrl || '').trim();
   let extractedUrl =
     String((input as any).url || (input as any).link || (input as any).linkUrl || '').trim() ||
     String(input.extraData?.url || input.extraData?.link || '').trim() ||
@@ -729,6 +732,7 @@ export const deliverAdminNotification = async (input: {
         pushTitle,
         pushBody,
         ...(imageUrl ? {imageUrl} : {}),
+        ...(videoUrl ? {videoUrl} : {}),
         ...(extractedUrl ? {url: extractedUrl, link: extractedUrl} : {}),
         ...(Object.keys(cleanTranslations).length ? {translations: cleanTranslations} : {}),
         ...(input.extraData || {}),
@@ -995,6 +999,7 @@ export const sendAdminNotification = async (input: {
   /** When Target Group is Test: name / id / phone / email of one person. */
   testQuery?: string;
   imageUrl?: string | null;
+  videoUrl?: string | null;
   url?: string | null;
   link?: string | null;
   linkUrl?: string | null;
@@ -1036,6 +1041,7 @@ export const sendAdminNotification = async (input: {
   const sendNow = schedule !== 'later';
   const bypassHours = Boolean(input.bypassHours);
   const imageUrl = String(input.imageUrl || '').trim() || null;
+  const videoUrl = String(input.videoUrl || '').trim() || null;
   const translations =
     typeof input.translations === 'object'
       ? JSON.stringify(input.translations)
@@ -1145,6 +1151,7 @@ export const sendAdminNotification = async (input: {
     bypassHours,
     actionType,
     imageUrl,
+    videoUrl,
     url: input.url || input.link || input.linkUrl,
     link: input.url || input.link || input.linkUrl,
     extraData: {

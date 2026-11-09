@@ -301,7 +301,12 @@ export const recordRazorpayPayment = async (payment: RazorpayPayment) => {
   const gothram = String(notes.gothram || '').trim().slice(0, 80);
   const nakshatram = String(notes.nakshatram || '').trim().slice(0, 80);
   const comments = String(notes.comments || '').trim().slice(0, 500);
-  const userId = await userIdForPhone(phone);
+  // Prefer logged-in userId from order notes; phone match is legacy fallback only.
+  const noteUserId = Number(notes.userId || notes.user_id || 0);
+  const userId =
+    Number.isFinite(noteUserId) && noteUserId > 0
+      ? noteUserId
+      : await userIdForPhone(phone);
   const remarks = [
     `Seva: ${note}`,
     name ? `Name: ${name}` : '',

@@ -57,14 +57,32 @@ const DonationFormScreen = () => {
             getSavedFormComments(commentSaveKey),
           ]);
           if (!active) return;
-          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
-          const phone = profile?.mobileNumber || stored?.mobileNumber || stored?.mobile_number || stored?.phone || '';
+          const name =
+            profile?.fullName ||
+            stored?.fullName ||
+            stored?.full_name ||
+            '';
+          const phoneRaw =
+            profile?.mobileNumber ||
+            (profile as any)?.phoneNumber ||
+            stored?.mobileNumber ||
+            stored?.mobile_number ||
+            stored?.phoneNumber ||
+            stored?.phone_number ||
+            stored?.phone ||
+            '';
+          const phone = digitsOnly(String(phoneRaw || '')).slice(-MOBILE_DIGITS);
 
-          if (!fullName && name) {
-            setFullName(String(name));
+          if (name) {
+            setFullName(current => current || String(name));
           }
-          if (!mobile && phone) {
-            setMobile(digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          // Prefill from profile when empty; user can still edit.
+          if (phone.length === MOBILE_DIGITS) {
+            setMobile(current =>
+              digitsOnly(String(current || '')).length === MOBILE_DIGITS
+                ? current
+                : phone,
+            );
           }
           setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
           setNakshatram(
@@ -83,7 +101,7 @@ const DonationFormScreen = () => {
       return () => {
         active = false;
       };
-    }, [fullName, mobile, commentSaveKey]),
+    }, [commentSaveKey]),
   );
 
   const totalAmount = persons * RATE_PER_PERSON;

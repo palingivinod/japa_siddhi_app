@@ -78,11 +78,31 @@ const GeneralAnnadanamScreen = () => {
             getSavedFormComments('general_annadanam'),
           ]);
           if (!active) return;
-          const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
-          const phone = profile?.mobileNumber || stored?.mobileNumber || stored?.mobile_number || stored?.phone || '';
+          const name =
+            profile?.fullName ||
+            stored?.fullName ||
+            stored?.full_name ||
+            '';
+          const phoneRaw =
+            profile?.mobileNumber ||
+            (profile as any)?.phoneNumber ||
+            stored?.mobileNumber ||
+            stored?.mobile_number ||
+            stored?.phoneNumber ||
+            stored?.phone_number ||
+            stored?.phone ||
+            '';
+          const phone = digitsOnly(String(phoneRaw || '')).slice(-MOBILE_DIGITS);
 
           setFullName(current => current || String(name));
-          setMobile(current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS));
+          // Prefill from profile when empty; user can still edit.
+          if (phone.length === MOBILE_DIGITS) {
+            setMobile(current =>
+              digitsOnly(String(current || '')).length === MOBILE_DIGITS
+                ? current
+                : phone,
+            );
+          }
           if (savedComments) {
             setComments(current => current || savedComments);
           }

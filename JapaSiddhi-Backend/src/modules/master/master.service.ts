@@ -6,6 +6,20 @@ const titleCase = (value: string) =>
     .toLowerCase()
     .replace(/\b[a-z]/g, letter => letter.toUpperCase());
 
+/** Clean district labels like "Spsr Nellore" → "Nellore" when useful for city field. */
+const cleanCityName = (raw: string) => {
+  let value = String(raw || '').trim();
+  if (!value) {
+    return '';
+  }
+  value = value
+    .replace(/\bSpsr\b/gi, '')
+    .replace(/\bSri Potti Sriramulu\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return titleCase(value);
+};
+
 type PostalLookup = {
   Status?: string;
   PostOffice?: Array<{
@@ -15,59 +29,121 @@ type PostalLookup = {
   }> | null;
 };
 
+type ResolvedPin = {
+  stateName: string;
+  cityName: string;
+};
 
+const fetchWithTimeout = async (url: string, ms = 8000) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, {signal: controller.signal});
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+/** Primary: third-party India Post mirror (can go down). */
+const lookupFromPostalPincodeIn = async (
+  code: string,
+): Promise<ResolvedPin | null> => {
+  try {
+    const response = await fetchWithTimeout(
+      `https://api.postalpincode.in/pincode/${code}`,
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const body = (await response.json()) as PostalLookup[];
+    const office = body?.[0]?.PostOffice?.[0];
+    if (!office || String(body?.[0]?.Status || '') !== 'Success') {
+      return null;
+    }
+    const stateName = titleCase(String(office.State || '').trim());
+    const cityName = cleanCityName(
+      String(office.District || office.Name || '').trim(),
+    );
+    if (!stateName || !cityName) {
+      return null;
+    }
+    return {stateName, cityName};
+  } catch (err) {
+    console.warn('Primary pincode API failed', code, err);
+    return null;
+  }
+};
+
+/**
+ * Fallback: directory based on All India Pincode Directory (data.gov.in source).
+ * Used when api.postalpincode.in is down or missing a PIN.
+ */
+const lookupFromDharunFallback = async (
+  code: string,
+): Promise<ResolvedPin | null> => {
+  try {
+    const response = await fetchWithTimeout(
+      `https://api.dharun.dev/v1/pincode/${code}`,
+    );
+    if (!response.ok) {
+      return null;
+    }
+    const body = (await response.json()) as {
+      data?: {
+        state?: string;
+        district?: string;
+        offices?: Array<{district?: string; state?: string; name?: string}>;
+      };
+    };
+    const data = body?.data;
+    if (!data) {
+      return null;
+    }
+    const office = data.offices?.[0];
+    const stateName = titleCase(
+      String(data.state || office?.state || '').trim(),
+    );
+    const cityName = cleanCityName(
+      String(data.district || office?.district || office?.name || '').trim(),
+    );
+    if (!stateName || !cityName) {
+      return null;
+    }
+    return {stateName, cityName};
+  } catch (err) {
+    console.warn('Fallback pincode API failed', code, err);
+    return null;
+  }
+};
 
 class MasterService {
-
-
   async getCountries() {
-
     return masterRepository.getCountries();
-
   }
 
-
-
-  async getStates(
-    countryId:number,
-  ) {
-
-    return masterRepository.getStates(
-      countryId,
-    );
-
+  async getStates(countryId: number) {
+    return masterRepository.getStates(countryId);
   }
 
-
-
-  async getCities(
-    stateId:number,
-  ) {
-
-    return masterRepository.getCities(
-      stateId,
-    );
-
+  async getCities(stateId: number) {
+    return masterRepository.getCities(stateId);
   }
-
-
 
   async lookupPincode(pin: string) {
     const code = String(pin || '').replace(/\D/g, '').slice(0, 6);
     if (!/^[0-9]{6}$/.test(code)) {
       throw new AppError('Enter a 6-digit PIN code.', 400);
     }
-    const response = await fetch(`https://api.postalpincode.in/pincode/${code}`);
-    const body = (await response.json()) as PostalLookup[];
-    const office = body?.[0]?.PostOffice?.[0];
-    if (!office || String(body?.[0]?.Status || '') !== 'Success') {
+
+    const resolved =
+      (await lookupFromPostalPincodeIn(code)) ||
+      (await lookupFromDharunFallback(code));
+
+    if (!resolved) {
       throw new AppError('Could not find that PIN code.', 400);
     }
-    const stateName = titleCase(String(office.State || '').trim());
-    const cityName = titleCase(String(office.District || office.Name || '').trim());
-    if (!stateName || !cityName) {
-      throw new AppError('Could not find that PIN code.', 400);
-    }
+
+    const {stateName, cityName} = resolved;
     const countryId = await masterRepository.findIndiaId();
     const state = await masterRepository.findOrCreateState(countryId, stateName);
     const city = await masterRepository.findOrCreateCity(
@@ -103,9 +179,6 @@ class MasterService {
       ];
     }
   }
-
-
 }
-
 
 export default new MasterService();

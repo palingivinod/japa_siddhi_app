@@ -2147,6 +2147,10 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     const imageUrl = rawImage
       ? absoluteMediaUrl(req, rawImage) || rawImage
       : undefined;
+    const rawVideo = String(req.body?.videoUrl || '').trim();
+    const videoUrl = rawVideo
+      ? absoluteMediaUrl(req, rawVideo) || rawVideo
+      : undefined;
     const rawUserIds = Array.isArray(req.body?.userIds)
       ? req.body.userIds
       : [];
@@ -2169,6 +2173,7 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
         .map((id: any) => Number(id))
         .filter((id: number) => Number.isFinite(id) && id > 0),
       imageUrl: imageUrl || undefined,
+      videoUrl: videoUrl || undefined,
       url: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
       link: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
       extraData: req.body?.extraData,
@@ -2219,6 +2224,45 @@ router.post(
         return res.status(500).json({
           success: false,
           message: error?.message || 'Unable to upload notification image.',
+        });
+      }
+    });
+  },
+);
+
+router.post(
+  '/notifications/upload-video',
+  async (req: Request, res: Response, next) => {
+    const {handleNotifyVideoUpload, publicNotifyPath} = await import(
+      '../../middleware/upload.middleware'
+    );
+    handleNotifyVideoUpload(req, res, async err => {
+      if (err) {
+        next(err);
+        return;
+      }
+      try {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file?.filename) {
+          return res.status(400).json({
+            success: false,
+            message: 'Choose an MP4/MOV/WebM video to upload.',
+          });
+        }
+        const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+        const path = publicNotifyPath(file.filename);
+        return res.json({
+          success: true,
+          message: 'Notification video uploaded.',
+          data: {
+            path,
+            videoUrl: absoluteMediaUrl(req, path),
+          },
+        });
+      } catch (error: any) {
+        return res.status(500).json({
+          success: false,
+          message: error?.message || 'Unable to upload notification video.',
         });
       }
     });
@@ -4790,34 +4834,71 @@ router.get('/reports/export', async (req: Request, res: Response) => {
     workbook.created = new Date();
 
     const addUsers = async () => {
+      await ensureAdminUserProfileColumns();
       const rows = await mysql.query<any[]>(`
         SELECT
-          u.id,
-          u.full_name AS fullName,
-          u.email,
-          u.mobile_country_code AS mobileCountryCode,
-          u.mobile_number AS mobileNumber,
-          u.gender,
-          u.account_status AS accountStatus,
-          u.created_at AS createdAt
+          u.id AS userId,
+          IFNULL(u.full_name, '') AS fullName,
+          TRIM(
+            IFNULL(u.mobile_country_code, '') || IFNULL(u.mobile_number, '')
+          ) AS phone,
+          IFNULL(u.date_of_birth, '') AS dob,
+          IFNULL(ci.name, '') AS city,
+          IFNULL(s.name, '') AS state,
+          IFNULL(u.postal_code, '') AS pinCode,
+          IFNULL(u.gothram, '') AS gothram,
+          IFNULL(u.nakshatram, '') AS star,
+          IFNULL(u.address, '') AS address,
+          IFNULL((
+            SELECT SUM(js.session_count)
+            FROM japa_sessions js
+            WHERE js.user_id = u.id
+              AND (
+                js.remarks IS NULL
+                OR TRIM(js.remarks) = ''
+                OR (
+                  lower(js.remarks) NOT LIKE 'challenge%'
+                  AND lower(js.remarks) NOT LIKE '%challenge japa%'
+                )
+              )
+          ), 0) AS totalJapa
         FROM users u
+        LEFT JOIN states s ON u.state_id = s.id
+        LEFT JOIN cities ci ON u.city_id = ci.id
         WHERE u.deleted_at IS NULL
         ${demoUserSql('u')}
-        ORDER BY u.id DESC
-        LIMIT 5000
+        ORDER BY u.id ASC
+        LIMIT 10000
       `);
-      const sheet = workbook.addWorksheet('Users');
+      const sheet = workbook.addWorksheet('User Data');
       sheet.columns = [
-        {header: 'ID', key: 'id', width: 8},
-        {header: 'Name', key: 'fullName', width: 24},
-        {header: 'Email', key: 'email', width: 28},
-        {header: 'Country Code', key: 'mobileCountryCode', width: 12},
-        {header: 'Mobile', key: 'mobileNumber', width: 16},
-        {header: 'Gender', key: 'gender', width: 14},
-        {header: 'Status', key: 'accountStatus', width: 12},
-        {header: 'Created At', key: 'createdAt', width: 22},
+        {header: 'User ID', key: 'userId', width: 10},
+        {header: 'Full Name', key: 'fullName', width: 26},
+        {header: 'Phone No', key: 'phone', width: 16},
+        {header: 'DOB', key: 'dob', width: 14},
+        {header: 'City', key: 'city', width: 18},
+        {header: 'State', key: 'state', width: 18},
+        {header: 'Pincode', key: 'pinCode', width: 12},
+        {header: 'Gothram', key: 'gothram', width: 18},
+        {header: 'Star', key: 'star', width: 16},
+        {header: 'Address', key: 'address', width: 36},
+        {header: 'Total Japa Count', key: 'totalJapa', width: 16},
       ];
-      (rows || []).forEach((row: any) => sheet.addRow(row));
+      (rows || []).forEach((row: any) => {
+        sheet.addRow({
+          userId: row.userId ?? row.user_id ?? '',
+          fullName: row.fullName || row.full_name || '',
+          phone: String(row.phone || '').trim(),
+          dob: String(row.dob || '').slice(0, 10),
+          city: row.city || '',
+          state: row.state || '',
+          pinCode: row.pinCode || row.pin_code || '',
+          gothram: row.gothram || '',
+          star: row.star || '',
+          address: row.address || '',
+          totalJapa: Number(row.totalJapa ?? row.total_japa ?? 0),
+        });
+      });
       sheet.getRow(1).font = {bold: true};
     };
 
@@ -6710,35 +6791,42 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
 
     const sql = `
       SELECT
-        id,
-        COALESCE(
-          user_id,
-          (
-            SELECT u.id
-            FROM users u
-            WHERE donations.donor_phone IS NOT NULL
-              AND LENGTH(TRIM(donations.donor_phone)) >= 10
-              AND RIGHT(REPLACE(REPLACE(REPLACE(donations.donor_phone, ' ', ''), '-', ''), '+', ''), 10) = RIGHT(REPLACE(REPLACE(u.mobile_number, ' ', ''), '-', ''), 10)
-            ORDER BY u.id DESC
-            LIMIT 1
-          )
-        ) AS userId,
-        donation_type AS donationType,
-        amount,
-        donor_name AS donorName,
-        donor_phone AS donorPhone,
-        prefer_date AS preferDate,
-        occasion,
-        for_whom AS forWhom,
-        person_name AS personName,
-        remarks,
-        transaction_id AS transactionId,
-        donated_at AS donatedAt,
-        admin_reply AS adminReply,
-        admin_replied_at AS adminRepliedAt
-      FROM donations
-      ${whereSql}
-      ${orderSql}
+        base.*,
+        IFNULL(ci.name, '') AS cityName
+      FROM (
+        SELECT
+          id,
+          COALESCE(
+            user_id,
+            (
+              SELECT u.id
+              FROM users u
+              WHERE donations.donor_phone IS NOT NULL
+                AND LENGTH(TRIM(donations.donor_phone)) >= 10
+                AND RIGHT(REPLACE(REPLACE(REPLACE(donations.donor_phone, ' ', ''), '-', ''), '+', ''), 10) = RIGHT(REPLACE(REPLACE(u.mobile_number, ' ', ''), '-', ''), 10)
+              ORDER BY u.id DESC
+              LIMIT 1
+            )
+          ) AS userId,
+          donation_type AS donationType,
+          amount,
+          donor_name AS donorName,
+          donor_phone AS donorPhone,
+          prefer_date AS preferDate,
+          occasion,
+          for_whom AS forWhom,
+          person_name AS personName,
+          remarks,
+          transaction_id AS transactionId,
+          donated_at AS donatedAt,
+          admin_reply AS adminReply,
+          admin_replied_at AS adminRepliedAt
+        FROM donations
+        ${whereSql}
+        ${orderSql}
+      ) base
+      LEFT JOIN users u ON u.id = base.userId
+      LEFT JOIN cities ci ON ci.id = u.city_id
     `;
 
     const rows = await mysql.query<any[]>(sql, params);

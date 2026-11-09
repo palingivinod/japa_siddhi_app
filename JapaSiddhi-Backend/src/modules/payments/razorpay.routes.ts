@@ -50,22 +50,53 @@ router.post('/order', async (req: Request, res: Response) => {
     const gothram = String(req.body?.gothram || '').trim().slice(0, 80);
     const nakshatram = String(req.body?.nakshatram || '').trim().slice(0, 80);
     const comments = String(req.body?.comments || '').trim().slice(0, 1000);
+
+    // Trust logged-in JWT for account link (do not rely on optional form phone).
+    let userId = '';
+    try {
+      const authHeader = String(req.headers.authorization || '');
+      const parts = authHeader.split(' ');
+      if (parts.length === 2 && parts[0] === 'Bearer' && parts[1]) {
+        const {default: jwtService} = await import('../../utils/jwt');
+        const decoded = jwtService.verify(parts[1]) as any;
+        const id = Number(decoded?.id || 0);
+        if (Number.isFinite(id) && id > 0) {
+          userId = String(id);
+        }
+      }
+    } catch {
+      // Invalid/expired token — treated as logged out below for app source.
+    }
+
+    if (source === 'app' && !userId) {
+      return apiResponse.error(
+        res,
+        'Please login to complete payment from the app.',
+        401,
+      );
+    }
+
+    const notes: Record<string, string> = {
+      name,
+      phone,
+      note,
+      source,
+      preferDate,
+      occasion,
+      forWhom,
+      personName,
+      gothram,
+      nakshatram,
+      comments,
+    };
+    if (userId) {
+      notes.userId = userId;
+    }
+
     const order = await createRazorpayOrder({
       amountPaise: paise,
       receipt: `js${Date.now()}`,
-      notes: {
-        name,
-        phone,
-        note,
-        source,
-        preferDate,
-        occasion,
-        forWhom,
-        personName,
-        gothram,
-        nakshatram,
-        comments,
-      },
+      notes,
     });
     return apiResponse.success(res, 'Payment started', order);
   } catch (error: any) {

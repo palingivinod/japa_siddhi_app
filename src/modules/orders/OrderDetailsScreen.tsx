@@ -13,6 +13,7 @@ import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import MenuCard from '../common/MenuCard';
+import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -25,6 +26,7 @@ const OrderDetailsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [confirmingReceived, setConfirmingReceived] = useState(false);
+  const [showPlayStoreFeedback, setShowPlayStoreFeedback] = useState(false);
 
   const id = route.params?.id || route.params?.order?.id || route.params?.order?.orderId;
 
@@ -72,7 +74,7 @@ const OrderDetailsScreen = () => {
                 userReceived: true,
                 user_received: 1,
               }));
-              Alert.alert('Delivery Confirmed', 'Thank you for confirming receipt of your order!');
+              setShowPlayStoreFeedback(true);
             } catch (err) {
               Alert.alert('Error', getApiError(err, 'Could not confirm order receipt.'));
             } finally {
@@ -188,6 +190,10 @@ const OrderDetailsScreen = () => {
           </Text>
         </TouchableOpacity>
       ) : null}
+      <PlayStoreFeedbackModal
+        visible={showPlayStoreFeedback}
+        onClose={() => setShowPlayStoreFeedback(false)}
+      />
     </ScreenLayout>
   );
 };

@@ -235,6 +235,23 @@ const notifyUploader = multer({
   },
 });
 
+const notifyVideoStorage = multer.diskStorage({
+  destination: diskDestination(notifyDir),
+  filename: (_req, file, cb) => cb(null, makeFilename(file, '.mp4')),
+});
+
+const notifyVideoUploader = multer({
+  storage: notifyVideoStorage,
+  limits: {fileSize: 40 * 1024 * 1024},
+  fileFilter: (_req, file, cb) => {
+    if (VIDEO_TYPES.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only MP4/MOV/WebM notification videos are allowed'));
+  },
+});
+
 export const handleRewardImageUpload = wrapUpload(
   rewardUploader.single('image'),
   'Reward image must be 8 MB or smaller',
@@ -243,6 +260,11 @@ export const handleRewardImageUpload = wrapUpload(
 export const handleNotifyImageUpload = wrapUpload(
   notifyUploader.single('image'),
   'Notification image must be 8 MB or smaller',
+);
+
+export const handleNotifyVideoUpload = wrapUpload(
+  notifyVideoUploader.single('video'),
+  'Notification video must be 40 MB or smaller',
 );
 
 export const publicPhotoPath = (filename: string) =>
