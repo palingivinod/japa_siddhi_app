@@ -17,7 +17,6 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import SelectField from '../common/SelectField';
-import CountryPickerField from '../auth/components/CountryPickerField';
 import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import StateSelector from '../auth/components/StateSelector';
 import CitySelector from '../auth/components/CitySelector';
@@ -468,23 +467,6 @@ const PersonalDetailsScreen = () => {
           {label: t('otherGender'), value: 'Other'},
           {label: t('preferNotToSay'), value: 'Prefer Not To Say'},
         ]}
-      />
-
-      <Text style={styles.label}>{t('country')}</Text>
-      <CountryPickerField
-        value={
-          country ?? {
-            code: '',
-            name: 'Select Country',
-            flag: '🌍',
-            callingCode: '',
-          }
-        }
-        onChange={(item: CountryItem) => {
-          setCountry(item);
-          setStateModel(null);
-          setCityModel(null);
-        }}
       />
 
       <Text style={styles.label}>{t('pinCode')}</Text>

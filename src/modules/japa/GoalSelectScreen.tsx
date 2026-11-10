@@ -60,6 +60,9 @@ const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineDays11' as const, days: 11},
   {labelKey: 'deadlineDays21' as const, days: 21},
   {labelKey: 'deadlineDays41' as const, days: 41},
+  {labelKey: 'deadlineDays61' as const, days: 61},
+  {labelKey: 'deadlineDays91' as const, days: 91},
+  {labelKey: 'deadlineDays108' as const, days: 108},
 ];
 
 type GoalMode = 'total' | 'daily';
@@ -296,7 +299,7 @@ const GoalSelectScreen = () => {
 
       <Text style={styles.quickDaysHint}>
         {t('quickDaysHint') ||
-          'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.'}
+          'Select a preset duration (e.g. 7, 11, 21, 41, 61, 91, 108 days) or pick a custom deadline from the calendar below.'}
       </Text>
 
       <TouchableOpacity

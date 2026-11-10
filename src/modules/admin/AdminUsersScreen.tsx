@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,8 @@ import {
   alertExcelError,
   downloadAdminExcel,
 } from './adminExcelDownload';
+
+const PAGE_SIZE = 50;
 
 const JAPA_FILTERS = [
   {label: 'All', value: 'all'},
@@ -56,73 +58,20 @@ const dayKey = (date: Date) => {
 const formatDay = (date: Date) =>
   `${date.getDate()} ${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
 
-const matchesJapa = (count: number, filter: string) => {
-  if (filter === '1-100') {
-    return count >= 1 && count <= 100;
-  }
-  if (filter === '101-500') {
-    return count >= 101 && count <= 500;
-  }
-  if (filter === '501-1000') {
-    return count >= 501 && count <= 1000;
-  }
-  if (filter === '1001-1500') {
-    return count >= 1001 && count <= 1500;
-  }
-  if (filter === '1501-2000') {
-    return count >= 1501 && count <= 2000;
-  }
-  if (filter === '2001-2500') {
-    return count >= 2001 && count <= 2500;
-  }
-  if (filter === 'gt-2500') {
-    return count > 2500;
-  }
-  return true;
-};
-
-const byJapaDesc = (a: AdminUser, b: AdminUser) =>
-  b.japaCount - a.japaCount || a.name.localeCompare(b.name);
-
-const digitsOnly = (value: string) => value.replace(/\D/g, '');
-
-/** Name, email, phone, user ID, status, japa count, or enrolled date. */
-const matchesSearch = (user: AdminUser, query: string) => {
-  if (!query) {
-    return true;
-  }
-  const japa = String(user.japaCount);
-  const haystack = [
-    user.name,
-    user.email,
-    user.userCode,
-    user.id,
-    user.mobile,
-    user.mobileNumber,
-    user.mobileCountryCode,
-    user.status,
-    user.enrolledOn,
-    japa,
-    Number(japa).toLocaleString('en-IN'),
-  ]
-    .join(' ')
-    .toLowerCase();
-  if (haystack.includes(query)) {
-    return true;
-  }
-  const queryDigits = digitsOnly(query);
-  if (queryDigits.length < 2) {
-    return false;
-  }
-  const phoneDigits = digitsOnly(
-    `${user.mobileCountryCode || ''}${user.mobileNumber || user.mobile || ''}`,
-  );
-  return (
-    phoneDigits.includes(queryDigits) ||
-    String(user.id).includes(queryDigits) ||
-    japa.includes(queryDigits)
-  );
-};
+const mapUserRow = (row: any): AdminUser => ({
+  id: String(row.id),
+  userCode:
+    String(row.userCode || '').trim() ||
+    `BPJS${String(row.id).padStart(2, '0')}`,
+  name: row.name || 'Devotee',
+  japaCount: Number(row.japaCount) || 0,
+  status: (row.status === 'Blocked' ? 'Blocked' : 'Active') as AdminUserStatus,
+  mobile: row.mobile || '—',
+  email: row.email || '',
+  mobileCountryCode: row.mobileCountryCode || '',
+  mobileNumber: row.mobileNumber || '',
+  enrolledOn: String(row.enrolledOn || '').slice(0, 10),
+});
 
 const StatusPill = ({status}: {status: AdminUserStatus}) => {
   const blocked = status === 'Blocked';
@@ -145,87 +94,103 @@ const AdminUsersScreen = () => {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [deletedUsers, setDeletedUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState(false);
   const [restoringId, setRestoringId] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [japaFilter, setJapaFilter] = useState('all');
   const [enrolledDate, setEnrolledDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const requestSeq = useRef(0);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setError('');
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadDeleted = useCallback(async () => {
     try {
-      const [activeRes, deletedRes] = await Promise.all([
-        apiService.get('/admin/users'),
-        apiService.get('/admin/users-deleted').catch(() => ({data: {data: []}})),
-      ]);
-      const rows = Array.isArray(activeRes.data?.data)
-        ? activeRes.data.data
-        : [];
+      const deletedRes = await apiService
+        .get('/admin/users-deleted')
+        .catch(() => ({data: {data: []}}));
       const deletedRows = Array.isArray(deletedRes.data?.data)
         ? deletedRes.data.data
         : [];
-      const mapRow = (row: any): AdminUser => ({
-        id: String(row.id),
-        userCode:
-          String(row.userCode || '').trim() ||
-          `BPJS${String(row.id).padStart(2, '0')}`,
-        name: row.name || 'Devotee',
-        japaCount: Number(row.japaCount) || 0,
-        status: (row.status === 'Blocked' ? 'Blocked' : 'Active') as AdminUserStatus,
-        mobile: row.mobile || '—',
-        email: row.email || '',
-        mobileCountryCode: row.mobileCountryCode || '',
-        mobileNumber: row.mobileNumber || '',
-        enrolledOn: String(row.enrolledOn || '').slice(0, 10),
-      });
-      setUsers(rows.map(mapRow));
-      setDeletedUsers(deletedRows.map(mapRow));
-    } catch (err) {
-      setUsers([]);
+      setDeletedUsers(deletedRows.map(mapUserRow));
+    } catch {
       setDeletedUsers([]);
-      setError(getApiError(err, 'Could not load users.'));
-    } finally {
-      setLoading(false);
     }
   }, []);
 
+  const loadUsersPage = useCallback(
+    async (pageToLoad: number, append: boolean) => {
+      const seq = ++requestSeq.current;
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError('');
+      }
+      try {
+        const params: Record<string, string | number> = {
+          page: pageToLoad,
+          limit: PAGE_SIZE,
+          japaFilter,
+        };
+        if (debouncedSearch) {
+          params.q = debouncedSearch;
+        }
+        if (enrolledDate) {
+          params.enrolledOn = dayKey(enrolledDate);
+        }
+        const activeRes = await apiService.get('/admin/users', {params});
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        const rows = Array.isArray(activeRes.data?.data)
+          ? activeRes.data.data.map(mapUserRow)
+          : [];
+        const nextTotal = Number(activeRes.data?.total) || 0;
+        const nextHasMore = Boolean(activeRes.data?.hasMore);
+        setPage(pageToLoad);
+        setTotal(nextTotal);
+        setHasMore(nextHasMore);
+        setUsers(prev => (append ? [...prev, ...rows] : rows));
+      } catch (err) {
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        if (!append) {
+          setUsers([]);
+          setTotal(0);
+          setHasMore(false);
+        }
+        setError(getApiError(err, 'Could not load users.'));
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [debouncedSearch, enrolledDate, japaFilter],
+  );
+
   useFocusEffect(
     useCallback(() => {
-      loadUsers();
-    }, [loadUsers]),
+      loadUsersPage(1, false);
+      loadDeleted();
+    }, [loadDeleted, loadUsersPage]),
   );
 
-  const applyFilters = useCallback(
-    (list: AdminUser[]) => {
-      const query = search.trim().toLowerCase();
-      const enrolledKey = enrolledDate ? dayKey(enrolledDate) : '';
-      return list
-        .filter(user => {
-          if (enrolledKey && user.enrolledOn !== enrolledKey) {
-            return false;
-          }
-          if (!matchesJapa(user.japaCount, japaFilter)) {
-            return false;
-          }
-          return matchesSearch(user, query);
-        })
-        .sort(byJapaDesc);
-    },
-    [enrolledDate, japaFilter, search],
-  );
-
-  const visibleUsers = useMemo(
-    () => applyFilters(users),
-    [applyFilters, users],
-  );
-  const visibleDeleted = useMemo(
-    () => applyFilters(deletedUsers),
-    [applyFilters, deletedUsers],
-  );
+  const visibleUsers = users;
+  const visibleDeleted = deletedUsers;
 
   const selectedUsers = useMemo(
     () => visibleUsers.filter(user => selectedIds[user.id]),
@@ -284,7 +249,7 @@ const AdminUsersScreen = () => {
     try {
       await apiService.post(`/admin/users/${userId}/restore`);
       Alert.alert('Restored', `${name} is active again with previous japa data.`);
-      await loadUsers();
+      await Promise.all([loadUsersPage(1, false), loadDeleted()]);
     } catch (err) {
       Alert.alert('Restore failed', getApiError(err, 'Could not restore user.'));
     } finally {
@@ -292,12 +257,19 @@ const AdminUsersScreen = () => {
     }
   };
 
+  const onLoadMore = () => {
+    if (loading || loadingMore || !hasMore) {
+      return;
+    }
+    loadUsersPage(page + 1, true);
+  };
+
   return (
     <AdminScreenLayout title="User Management" tab="AdminUsers" showBack={false}>
       <Text style={styles.heading}>User Management</Text>
       <Text style={styles.sub}>
-        Live users from the server database. Soft-deleted accounts can be restored
-        with their japa history.
+        Live users from the server database (50 per page). Soft-deleted accounts
+        can be restored with their japa history.
       </Text>
 
       {selectedUsers.length > 0 ? (
@@ -384,17 +356,24 @@ const AdminUsersScreen = () => {
       ) : null}
 
       {error ? (
-        <TouchableOpacity onPress={loadUsers}>
+        <TouchableOpacity onPress={() => loadUsersPage(1, false)}>
           <Text style={styles.errorText}>{error} Tap to retry.</Text>
         </TouchableOpacity>
       ) : null}
 
-      {!loading && !error && users.length === 0 ? (
-        <Text style={styles.empty}>No active registered users yet.</Text>
+      {!loading && !error && total > 0 ? (
+        <Text style={styles.pageMeta}>
+          Showing {visibleUsers.length.toLocaleString('en-IN')} of{' '}
+          {total.toLocaleString('en-IN')} users
+        </Text>
       ) : null}
 
-      {!loading && !error && users.length > 0 && visibleUsers.length === 0 ? (
-        <Text style={styles.empty}>No users match these filters.</Text>
+      {!loading && !error && users.length === 0 ? (
+        <Text style={styles.empty}>
+          {debouncedSearch || enrolledDate || japaFilter !== 'all'
+            ? 'No users match these filters.'
+            : 'No active registered users yet.'}
+        </Text>
       ) : null}
 
       {!loading && !error && visibleUsers.length > 0 ? (
@@ -413,7 +392,7 @@ const AdminUsersScreen = () => {
               ) : null}
             </View>
             <Text style={styles.selectAllText}>
-              Select all ({visibleUsers.length})
+              Select all on this page ({visibleUsers.length})
             </Text>
           </TouchableOpacity>
           {selectedUsers.length > 0 ? (
@@ -455,6 +434,20 @@ const AdminUsersScreen = () => {
           </View>
         );
       })}
+
+      {!loading && hasMore ? (
+        <TouchableOpacity
+          style={[styles.loadMoreBtn, loadingMore && styles.exportBusy]}
+          disabled={loadingMore}
+          onPress={onLoadMore}
+          activeOpacity={0.85}>
+          {loadingMore ? (
+            <ActivityIndicator color={Colors.sacredBrown} />
+          ) : (
+            <Text style={styles.loadMoreText}>LOAD MORE USERS</Text>
+          )}
+        </TouchableOpacity>
+      ) : null}
 
       {visibleDeleted.length > 0 ? (
         <>
@@ -585,6 +578,27 @@ const styles = StyleSheet.create({
   empty: {
     color: Colors.textSecondary,
     marginBottom: 12,
+  },
+  pageMeta: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    marginBottom: 10,
+  },
+  loadMoreBtn: {
+    marginTop: 6,
+    marginBottom: 14,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    borderColor: Colors.leafGreen,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+  },
+  loadMoreText: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    fontSize: 13,
   },
   errorText: {
     color: Colors.error,

@@ -5,6 +5,7 @@ import authApi from '../services/authApi';
 
 import storageService from '../../../services/storageService';
 import { STORAGE_KEYS } from '../../../services/storageKeys';
+import {getAppVersionName} from '../../../utils/appVersion';
 
 export const sendOTPThunk = createAsyncThunk(
   'auth/sendOTP',
@@ -65,7 +66,7 @@ export const verifyOTPThunk = createAsyncThunk(
           deviceType: 'ANDROID',
           deviceModel: '',
           deviceOs: '',
-          appVersion: '1.0.0',
+          appVersion: getAppVersionName(),
         });
 
       // Step 3 - Save Session

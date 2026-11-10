@@ -988,6 +988,110 @@ export const flushDueAdminNotifications = async () => {
   }
 };
 
+/** Block accidental repeat admin broadcasts of the same content. */
+const DUPLICATE_SEND_WINDOW_MINUTES = 3;
+
+/** Same-process rapid double-tap before the queue row exists. */
+const liveBroadcastKeys = new Map<string, number>();
+
+const broadcastDedupeKey = (
+  title: string,
+  message: string,
+  targetGroup: string,
+  recipientIdsJson: string | null,
+) => `${title}\n${message}\n${targetGroup}\n${recipientIdsJson || ''}`;
+
+const assertNoRecentDuplicateBroadcast = async (opts: {
+  title: string;
+  message: string;
+  targetGroup: string;
+  recipientIdsJson: string | null;
+  actionType: string;
+}) => {
+  // Only guard manual admin broadcasts — automated jobs use other action types.
+  const action = String(opts.actionType || 'ADMIN_BROADCAST').trim();
+  if (action !== 'ADMIN_BROADCAST') {
+    return;
+  }
+
+  const key = broadcastDedupeKey(
+    opts.title,
+    opts.message,
+    opts.targetGroup,
+    opts.recipientIdsJson,
+  );
+  const nowMs = Date.now();
+  const windowMs = DUPLICATE_SEND_WINDOW_MINUTES * 60_000;
+  for (const [k, startedAt] of liveBroadcastKeys) {
+    if (nowMs - startedAt > windowMs) {
+      liveBroadcastKeys.delete(k);
+    }
+  }
+  if (liveBroadcastKeys.has(key)) {
+    const error: any = new Error(
+      `Same notification was already sent in the last ${DUPLICATE_SEND_WINDOW_MINUTES} minutes. Wait a bit, or change the title/message before sending again.`,
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
+  try {
+    const engine = mysql.getEngineName() || 'sqlite';
+    const sinceExpr =
+      engine === 'mysql'
+        ? `NOW() - INTERVAL ${DUPLICATE_SEND_WINDOW_MINUTES} MINUTE`
+        : engine === 'postgres'
+          ? `NOW() - INTERVAL '${DUPLICATE_SEND_WINDOW_MINUTES} minutes'`
+          : `datetime('now', '-${DUPLICATE_SEND_WINDOW_MINUTES} minutes')`;
+    const coalesceAction =
+      engine === 'postgres'
+        ? `COALESCE(action_type, 'ADMIN_BROADCAST')`
+        : `IFNULL(action_type, 'ADMIN_BROADCAST')`;
+    const rows = await mysql.query<
+      Array<{id?: number; createdAt?: string; sendAt?: string}>
+    >(
+      `
+      SELECT id, created_at AS createdAt, send_at AS sendAt
+      FROM admin_notification_queue
+      WHERE title = ?
+        AND message = ?
+        AND target_group = ?
+        AND ${coalesceAction} = 'ADMIN_BROADCAST'
+        AND status IN ('PENDING', 'SENDING', 'SENT')
+        AND created_at >= ${sinceExpr}
+        AND (
+          (? IS NULL AND recipient_ids IS NULL)
+          OR recipient_ids = ?
+        )
+      ORDER BY id DESC
+      LIMIT 1
+      `,
+      [
+        opts.title,
+        opts.message,
+        opts.targetGroup,
+        opts.recipientIdsJson,
+        opts.recipientIdsJson,
+      ],
+    );
+    if (rows?.length) {
+      const error: any = new Error(
+        `Same notification was already sent in the last ${DUPLICATE_SEND_WINDOW_MINUTES} minutes. Wait a bit, or change the title/message before sending again.`,
+      );
+      error.statusCode = 409;
+      throw error;
+    }
+  } catch (err: any) {
+    if (err?.statusCode === 409) {
+      throw err;
+    }
+    // Queue table / SQL dialect issues must not block legitimate sends.
+    console.warn('Duplicate broadcast check skipped:', err?.message || err);
+  }
+
+  liveBroadcastKeys.set(key, nowMs);
+};
+
 export const sendAdminNotification = async (input: {
   title: string;
   message: string;
@@ -1025,7 +1129,7 @@ export const sendAdminNotification = async (input: {
         .map(id => Number(id))
         .filter(id => Number.isFinite(id) && id > 0),
     ),
-  ];
+  ].sort((a, b) => a - b);
   let testUserLabel = '';
   if (isTestTarget(String(input.targetRaw || '')) && !userIds.length) {
     const resolved = await resolveTestUser(String(input.testQuery || ''));
@@ -1048,6 +1152,16 @@ export const sendAdminNotification = async (input: {
       : input.translations || null;
   const actionType =
     String(input.actionType || 'ADMIN_BROADCAST').trim() || 'ADMIN_BROADCAST';
+  const targetGroup = userIds.length ? 'selected_users' : target;
+  const recipientIdsJson = userIds.length ? JSON.stringify(userIds) : null;
+
+  await assertNoRecentDuplicateBroadcast({
+    title,
+    message,
+    targetGroup,
+    recipientIdsJson,
+    actionType,
+  });
 
   if (!sendNow) {
     const sendAt = normalizeScheduleStamp(String(input.scheduledAt || ''));
@@ -1112,6 +1226,9 @@ export const sendAdminNotification = async (input: {
   const now = nowIstStamp();
   const category = resolveAnalyticsCategory(actionType, title);
 
+  // Claim a queue row first so duplicate guard + admin UI know a send is live.
+  // Delivery (inbox + FCM) runs in the background so Render/proxy timeouts
+  // don't show a fake "server error" after devotees already got the message.
   let queueId: number | null = null;
   try {
     const queueInsert = await mysql.query<ResultSetHeader>(
@@ -1125,11 +1242,11 @@ export const sendAdminNotification = async (input: {
         title,
         message,
         translations,
-        userIds.length ? 'selected_users' : target,
+        targetGroup,
         category,
         actionType || 'ADMIN_BROADCAST',
         now,
-        userIds.length ? JSON.stringify(userIds) : null,
+        recipientIdsJson,
         bypassHours ? 1 : 0,
         imageUrl,
         now,
@@ -1142,7 +1259,7 @@ export const sendAdminNotification = async (input: {
     console.warn('admin_notification_queue insert failed on sendNow:', err);
   }
 
-  const delivered = await deliverAdminNotification({
+  const deliveryInput = {
     title,
     message,
     translations,
@@ -1158,45 +1275,67 @@ export const sendAdminNotification = async (input: {
       ...(input.extraData || {}),
       ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
     },
-  });
+  };
 
-  if (queueId) {
+  const finalizeQueue = async (
+    status: 'SENT' | 'FAILED',
+    recipientCount = 0,
+  ) => {
+    if (!queueId) {
+      return;
+    }
     try {
       await mysql.query(
         `
         UPDATE admin_notification_queue
-        SET status = 'SENT',
+        SET status = ?,
             recipient_count = ?,
             processed_at = ?
         WHERE id = ?
         `,
-        [delivered.recipientCount, now, queueId],
+        [status, recipientCount, nowIstStamp(), queueId],
       );
     } catch (err) {
       console.warn('admin_notification_queue update failed:', err);
     }
-  }
+  };
 
-  const pushNote = delivered.pushSent
-    ? ` and ${delivered.pushSent} push popup(s)`
-    : delivered.pushSkipped
-      ? ` (push skipped: ${delivered.pushSkipped})`
-      : '';
+  setImmediate(() => {
+    deliverAdminNotification(deliveryInput)
+      .then(async delivered => {
+        await finalizeQueue('SENT', delivered.recipientCount);
+        console.log(
+          `[Admin notify] queue #${queueId || '-'} done: inbox=${delivered.inboxCreated} push=${delivered.pushSent}`,
+        );
+      })
+      .catch(async err => {
+        console.warn(
+          `[Admin notify] queue #${queueId || '-'} failed:`,
+          err?.message || err,
+        );
+        await finalizeQueue('FAILED', 0);
+      });
+  });
+
+  const audience = testUserLabel
+    ? testUserLabel
+    : userIds.length
+      ? `${userIds.length} selected user(s)`
+      : 'all matching users';
+
   return {
-    mode: 'sent' as const,
-    target: userIds.length ? 'selected_users' : target,
+    mode: 'sending' as const,
+    target: targetGroup,
     userIds,
     testUser: testUserLabel || undefined,
+    queueId,
     sendAt: localDateTime(),
-    ...delivered,
-    message:
-      delivered.recipientCount > 0
-        ? testUserLabel
-          ? `Sent only to ${testUserLabel} in-app${pushNote}.`
-          : `Sent to ${delivered.recipientCount} user(s) in-app in their language${pushNote}.`
-        : userIds.length
-          ? 'No matching app users found for the selected people.'
-          : 'No matching users found for this target group.',
+    recipientCount: userIds.length,
+    inboxCreated: 0,
+    pushSent: 0,
+    pushFailed: 0,
+    pushSkipped: null,
+    message: `Notification is being delivered to ${audience} now. Do not tap Send again for ${DUPLICATE_SEND_WINDOW_MINUTES} minutes — the same message is blocked to prevent duplicates.`,
   };
 };
 
@@ -1412,11 +1551,101 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
   }
 };
 
-export const getNotificationAnalytics = async (categoryFilter?: string) => {
-  await ensureQueueTable();
-  await syncUnqueuedBatchesToAnalytics();
+const fetchInboxStatsForQueueIds = async (queueIds: number[]) => {
+  const statsById = new Map<number, {inbox: number; read: number}>();
+  const ids = queueIds.filter(id => id > 0);
+  if (!ids.length) {
+    return statsById;
+  }
 
-  // One-time style repair: support replies used to be stored as "specific".
+  // Batch OR lookups (chunks) instead of one query per broadcast.
+  const chunkSize = 40;
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const chunk = ids.slice(i, i + chunkSize);
+    const clauses: string[] = [];
+    const params: any[] = [];
+    chunk.forEach(id => {
+      clauses.push('(extra_data LIKE ? OR extra_data LIKE ?)');
+      params.push(`%"broadcastId":${id}%`, `%"queuedId":${id}%`);
+    });
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT extra_data AS extraData, is_read AS isRead
+        FROM notifications
+        WHERE ${clauses.join(' OR ')}
+        `,
+        params,
+      );
+      (rows || []).forEach(row => {
+        const extra = String(row.extraData || '');
+        const broadcastMatch = extra.match(/"broadcastId"\s*:\s*(\d+)/);
+        const queuedMatch = extra.match(/"queuedId"\s*:\s*(\d+)/);
+        const id = Number(broadcastMatch?.[1] || queuedMatch?.[1] || 0);
+        if (!id) {
+          return;
+        }
+        const prev = statsById.get(id) || {inbox: 0, read: 0};
+        prev.inbox += 1;
+        if (Number(row.isRead) === 1 || row.isRead === true) {
+          prev.read += 1;
+        }
+        statsById.set(id, prev);
+      });
+    } catch (err) {
+      console.warn('Analytics batch stats query failed', err);
+    }
+  }
+  return statsById;
+};
+
+const mapAnalyticsRow = (
+  row: any,
+  statsById: Map<number, {inbox: number; read: number}>,
+) => {
+  const queueId = Number(row.id);
+  const declaredSent = Number(row.recipientCount || 0);
+  const inbox = statsById.get(queueId);
+  const actualInboxCount = Number(inbox?.inbox || 0);
+  const readCount = Number(inbox?.read || 0);
+  const sentCount =
+    declaredSent > 0 ? declaredSent : actualInboxCount > 0 ? actualInboxCount : 0;
+  const safeReadCount = Math.min(readCount, sentCount || readCount);
+  const unreadCount = Math.max(0, sentCount - safeReadCount);
+  const readRate =
+    sentCount > 0 ? Math.round((safeReadCount / sentCount) * 100) : 0;
+  const category = resolveAnalyticsCategory(
+    row.actionType,
+    row.title,
+    row.category,
+  );
+  return {
+    id: queueId,
+    title: row.title,
+    message: row.message,
+    targetGroup: row.targetGroup || 'all',
+    category,
+    actionType: row.actionType || 'ADMIN_BROADCAST',
+    sentAt: toIstAnalyticsStamp(
+      row.processedAt || row.sendAt || row.createdAt,
+    ),
+    sentCount,
+    readCount: safeReadCount,
+    unreadCount,
+    readRate,
+  };
+};
+
+export const getNotificationAnalytics = async (opts?: {
+  categoryFilter?: string;
+  page?: number;
+  limit?: number;
+  q?: string;
+}) => {
+  await ensureQueueTable();
+  // Do not block analytics on sync — run in background.
+  void syncUnqueuedBatchesToAnalytics().catch(() => undefined);
+
   try {
     await mysql.query(
       `
@@ -1430,9 +1659,17 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
     // Ignore if table/columns differ on older DBs.
   }
 
-  // Pull non-order + order rows separately so ORDER_STATUS spam does not
-  // bury meetings / admin broadcasts / birthday sends under General & Specific.
-  // High limits so admin-sent queue rows are not dropped from analytics.
+  const page = Math.max(1, Number(opts?.page) || 1);
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(opts?.limit) || 30),
+  );
+  const offset = (page - 1) * limit;
+  const q = String(opts?.q || '').trim().toLowerCase();
+  const filter = String(opts?.categoryFilter || '')
+    .trim()
+    .toLowerCase();
+
   const rows = await mysql.query<any[]>(
     `
     SELECT * FROM (
@@ -1492,116 +1729,94 @@ export const getNotificationAnalytics = async (categoryFilter?: string) => {
     `,
   );
 
-  const items = await Promise.all(
-    (rows || []).map(async row => {
-      const queueId = Number(row.id);
-      const declaredSent = Number(row.recipientCount || 0);
+  // Resolve categories in memory first (cheap), then batch inbox stats only
+  // for the filtered/paginated slice.
+  const classified = (rows || []).map(row => {
+    const category = resolveAnalyticsCategory(
+      row.actionType,
+      row.title,
+      row.category,
+    );
+    return {...row, resolvedCategory: category};
+  });
 
-      let readCount = 0;
-      let actualInboxCount = 0;
+  const generalRows = classified.filter(r => r.resolvedCategory === 'general');
+  const birthdayRows = classified.filter(r => r.resolvedCategory === 'birthday');
+  const ordersRows = classified.filter(r => r.resolvedCategory === 'orders');
 
-      // Only count inbox rows linked to this queue id — never fuzzy title match
-      // (that was inflating Overall Delivered into tens of thousands).
-      try {
-        const stats = await mysql.query<any[]>(
-          `
-          SELECT
-            COUNT(*) AS total_inbox,
-            COALESCE(SUM(CASE WHEN is_read = 1 THEN 1 ELSE 0 END), 0) AS read_count
-          FROM notifications
-          WHERE (
-            extra_data LIKE ?
-            OR extra_data LIKE ?
-          )
-          `,
-          [`%"broadcastId":${queueId}%`, `%"queuedId":${queueId}%`],
-        );
-        if (stats?.length) {
-          actualInboxCount = Number(stats[0].total_inbox || 0);
-          readCount = Number(stats[0].read_count || 0);
-        }
-      } catch (err) {
-        console.warn('Analytics stats query failed for queue item', queueId, err);
-      }
+  let filtered = classified;
+  if (filter === 'general') {
+    filtered = generalRows;
+  } else if (filter === 'birthday' || filter === 'specific') {
+    filtered = birthdayRows;
+  } else if (filter === 'orders' || filter === 'order') {
+    filtered = ordersRows;
+  }
 
-      // Prefer declared recipient_count; use linked inbox count only when declared is 0.
-      const sentCount =
-        declaredSent > 0
-          ? declaredSent
-          : actualInboxCount > 0
-            ? actualInboxCount
-            : 0;
-      const safeReadCount = Math.min(readCount, sentCount || readCount);
-      const unreadCount = Math.max(0, sentCount - safeReadCount);
-      const readRate =
-        sentCount > 0 ? Math.round((safeReadCount / sentCount) * 100) : 0;
-
-      const category = resolveAnalyticsCategory(
-        row.actionType,
+  if (q) {
+    filtered = filtered.filter(row => {
+      const hay = [
         row.title,
-        row.category,
-      );
+        row.message,
+        row.targetGroup,
+        row.actionType,
+        row.resolvedCategory,
+      ]
+        .join(' ')
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
 
-      return {
-        id: queueId,
-        title: row.title,
-        message: row.message,
-        targetGroup: row.targetGroup || 'all',
-        category,
-        actionType: row.actionType || 'ADMIN_BROADCAST',
-        sentAt: toIstAnalyticsStamp(
-          row.processedAt || row.sendAt || row.createdAt,
-        ),
-        sentCount,
-        readCount: safeReadCount,
-        unreadCount,
-        readRate,
-      };
-    }),
+  const total = filtered.length;
+  const pageRows = filtered.slice(offset, offset + limit);
+  const statsById = await fetchInboxStatsForQueueIds(
+    pageRows.map(row => Number(row.id)),
   );
+  const items = pageRows.map(row => mapAnalyticsRow(row, statsById));
+
+  // Summary for active tab uses recipient_count (fast). Read totals for the
+  // current page only are exact; overall read uses recipient-based estimate
+  // when full inbox scan would be too heavy.
+  const summarySource =
+    filter === 'general'
+      ? generalRows
+      : filter === 'birthday' || filter === 'specific'
+        ? birthdayRows
+        : filter === 'orders' || filter === 'order'
+          ? ordersRows
+          : classified;
 
   let totalDelivered = 0;
-  let totalRead = 0;
-  for (const item of items) {
-    totalDelivered += item.sentCount;
-    totalRead += item.readCount;
-  }
-
-  const totalBroadcasts = items.length;
+  summarySource.forEach(row => {
+    totalDelivered += Number(row.recipientCount || 0);
+  });
+  const pageDelivered = items.reduce((sum, it) => sum + it.sentCount, 0);
+  const pageRead = items.reduce((sum, it) => sum + it.readCount, 0);
+  const estimatedRead =
+    pageDelivered > 0
+      ? Math.round((pageRead / pageDelivered) * totalDelivered)
+      : 0;
   const averageReadRate =
-    totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
-
-  const generalItems = items.filter(i => i.category === 'general');
-  const birthdayItems = items.filter(i => i.category === 'birthday');
-  const ordersItems = items.filter(i => i.category === 'orders');
-  // Legacy alias: "specific" = birthday & occasion
-  const specificItems = birthdayItems;
-
-  let filteredItems = items;
-  const filter = String(categoryFilter || '')
-    .trim()
-    .toLowerCase();
-  if (filter === 'general') {
-    filteredItems = generalItems;
-  } else if (filter === 'birthday' || filter === 'specific') {
-    filteredItems = birthdayItems;
-  } else if (filter === 'orders' || filter === 'order') {
-    filteredItems = ordersItems;
-  }
+    totalDelivered > 0 ? Math.round((estimatedRead / totalDelivered) * 100) : 0;
 
   return {
     summary: {
-      totalBroadcasts,
+      totalBroadcasts: summarySource.length,
       totalDelivered,
-      totalRead,
-      totalUnread: Math.max(0, totalDelivered - totalRead),
+      totalRead: estimatedRead,
+      totalUnread: Math.max(0, totalDelivered - estimatedRead),
       averageReadRate,
-      generalCount: generalItems.length,
-      birthdayCount: birthdayItems.length,
-      ordersCount: ordersItems.length,
-      specificCount: specificItems.length,
+      generalCount: generalRows.length,
+      birthdayCount: birthdayRows.length,
+      ordersCount: ordersRows.length,
+      specificCount: birthdayRows.length,
     },
-    items: filteredItems,
+    items,
+    page,
+    limit,
+    total,
+    hasMore: offset + items.length < total,
   };
 };
 

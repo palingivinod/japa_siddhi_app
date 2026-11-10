@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -17,48 +17,7 @@ import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrder} from './adminData';
 
-const digitsOnly = (value?: string) => String(value || '').replace(/\D/g, '');
-
-const matchesOrderSearch = (order: AdminOrder, query: string) => {
-  const q = query.trim().toLowerCase();
-  if (!q) {
-    return true;
-  }
-  const haystack = [
-    order.id,
-    order.orderNo,
-    order.customer,
-    order.product,
-    order.rewardName,
-    order.customerMobile,
-    order.mobileNumber,
-    order.mobileCountryCode,
-    order.orderType,
-    order.orderSource,
-    order.status,
-    order.remarks,
-    order.cancelReason,
-    order.cancelledBy,
-    order.userCode,
-  ]
-    .join(' ')
-    .toLowerCase();
-  if (haystack.includes(q)) {
-    return true;
-  }
-  const queryDigits = digitsOnly(q);
-  if (queryDigits.length < 2) {
-    return false;
-  }
-  const phoneDigits = digitsOnly(
-    `${order.mobileCountryCode || ''}${order.mobileNumber || order.customerMobile || ''}`,
-  );
-  return (
-    phoneDigits.includes(queryDigits) ||
-    String(order.id).includes(queryDigits) ||
-    digitsOnly(order.orderNo).includes(queryDigits)
-  );
-};
+const PAGE_SIZE = 50;
 
 export type CancelledItemFilter = 'ALL' | 'BL' | 'RK' | 'BP' | 'HB' | 'REWARD';
 
@@ -228,41 +187,75 @@ const AdminCancelledOrdersScreen = () => {
   const navigation = useNavigation<any>();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<CancelledItemFilter>('ALL');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const requestSeq = useRef(0);
 
-  const loadCancelledOrders = useCallback(async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const response = await apiService.get('/admin/orders', {
-        params: {includeAll: 'true', includeDeleted: 'true'},
-      });
-      const list = Array.isArray(response.data?.data) ? response.data.data : [];
-      const mapped = list
-        .map(mapApiOrder)
-        .filter((o: AdminOrder) => o.status === 'Cancelled')
-        .sort((a: AdminOrder, b: AdminOrder) => {
-          const aMs = new Date(String(a.createdAt || a.date || 0)).getTime();
-          const bMs = new Date(String(b.createdAt || b.date || 0)).getTime();
-          if (Number.isFinite(bMs) && Number.isFinite(aMs) && bMs !== aMs) {
-            return bMs - aMs;
-          }
-          return Number(b.id) - Number(a.id);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadCancelledOrders = useCallback(
+    async (pageToLoad: number, append: boolean) => {
+      const seq = ++requestSeq.current;
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+        setError('');
+      }
+      try {
+        const response = await apiService.get('/admin/orders', {
+          params: {
+            status: 'cancelled',
+            includeAll: 'true',
+            includeDeleted: 'true',
+            page: pageToLoad,
+            limit: PAGE_SIZE,
+            ...(debouncedSearch ? {q: debouncedSearch} : {}),
+          },
         });
-      setOrders(mapped);
-    } catch (err) {
-      setOrders([]);
-      setError(getApiError(err, 'Could not load cancelled orders.'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        const list = Array.isArray(response.data?.data) ? response.data.data : [];
+        const mapped = list
+          .map(mapApiOrder)
+          .filter((o: AdminOrder) => o.status === 'Cancelled');
+        setPage(pageToLoad);
+        setTotal(Number(response.data?.total) || mapped.length);
+        setHasMore(Boolean(response.data?.hasMore));
+        setOrders(prev => (append ? [...prev, ...mapped] : mapped));
+      } catch (err) {
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        if (!append) {
+          setOrders([]);
+          setTotal(0);
+          setHasMore(false);
+        }
+        setError(getApiError(err, 'Could not load cancelled orders.'));
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
+          setLoadingMore(false);
+        }
+      }
+    },
+    [debouncedSearch],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      loadCancelledOrders();
+      loadCancelledOrders(1, false);
     }, [loadCancelledOrders]),
   );
 
@@ -280,9 +273,8 @@ const AdminCancelledOrdersScreen = () => {
   const filteredOrders = useMemo(() => {
     return orders
       .filter(o => matchesCancelledCategory(o, activeFilter))
-      .filter(o => matchesOrderSearch(o, search))
       .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [orders, activeFilter, search]);
+  }, [orders, activeFilter]);
 
   const filterCounts = useMemo(() => {
     const counts: Record<CancelledItemFilter, number> = {
@@ -301,11 +293,11 @@ const AdminCancelledOrdersScreen = () => {
       <View style={styles.headerRow}>
         <Text style={styles.heading}>Cancelled Orders</Text>
         <View style={styles.badgeCount}>
-          <Text style={styles.badgeCountText}>{orders.length}</Text>
+          <Text style={styles.badgeCountText}>{total || orders.length}</Text>
         </View>
       </View>
       <Text style={styles.sub}>
-        All orders cancelled by devotees or administration.
+        Cancelled orders load 50 at a time. Use search or Load more for the rest.
       </Text>
 
       {/* Search Bar */}
@@ -364,7 +356,7 @@ const AdminCancelledOrdersScreen = () => {
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={loadCancelledOrders}>
+            onPress={() => loadCancelledOrders(1, false)}>
             <Text style={styles.retryText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -459,6 +451,19 @@ const AdminCancelledOrdersScreen = () => {
               </View>
             );
           })}
+          {hasMore ? (
+            <TouchableOpacity
+              style={[styles.retryBtn, loadingMore && {opacity: 0.7}]}
+              disabled={loadingMore}
+              onPress={() => loadCancelledOrders(page + 1, true)}
+              activeOpacity={0.85}>
+              {loadingMore ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <Text style={styles.retryText}>LOAD MORE</Text>
+              )}
+            </TouchableOpacity>
+          ) : null}
         </View>
       )}
 

@@ -272,83 +272,125 @@ const formatDonationsLabel = (amount: number) => {
   return `₹${Math.round(amount).toLocaleString('en-IN')}`;
 };
 
+/** Short cache so opening Dashboard does not re-scan the DB every focus. */
+let dashboardStatsCache: {at: number; payload: any} | null = null;
+const DASHBOARD_STATS_TTL_MS = 45_000;
+
+/** UTC ISO bounds for one IST calendar day (default: today). */
+const istDayUtcRange = (offsetDays = 0) => {
+  const istNow = new Date(Date.now() + IST_OFFSET_MINUTES * 60_000);
+  const startIstMs = Date.UTC(
+    istNow.getUTCFullYear(),
+    istNow.getUTCMonth(),
+    istNow.getUTCDate() + offsetDays,
+    0,
+    0,
+    0,
+    0,
+  );
+  const startUtc = new Date(startIstMs - IST_OFFSET_MINUTES * 60_000);
+  const endUtc = new Date(startUtc.getTime() + 24 * 60 * 60 * 1000);
+  return {
+    start: startUtc.toISOString(),
+    end: endUtc.toISOString(),
+  };
+};
+
 router.get('/dashboard-stats', async (_req: Request, res: Response) => {
   try {
-    const usersRows = await mysql.query<any[]>(`
-      SELECT COUNT(*) AS totalUsers
-      FROM users u
-      WHERE u.deleted_at IS NULL
-      ${demoUserSql('u')}
-    `);
+    const now = Date.now();
+    if (
+      dashboardStatsCache &&
+      now - dashboardStatsCache.at < DASHBOARD_STATS_TTL_MS
+    ) {
+      return res.json(dashboardStatsCache.payload);
+    }
 
-    const japaGlobal = await mysql.query<any[]>(`
-      SELECT total_japa_count AS totalJapa
-      FROM global_japa_counter
-      WHERE id = 1
-    `);
-
-    const japaSessions = await mysql.query<any[]>(`
-      SELECT IFNULL(SUM(session_count), 0) AS totalJapa
-      FROM japa_sessions
-      WHERE (
-        remarks IS NULL
-        OR TRIM(remarks) = ''
-        OR (
-          lower(remarks) NOT LIKE 'challenge%'
-          AND lower(remarks) NOT LIKE '%challenge japa%'
+    const {start: todayStart, end: todayEnd} = istDayUtcRange(0);
+    // Range filters (index-friendly) instead of wrapping every row in date().
+    const [
+      usersRows,
+      usersTodayRows,
+      japaGlobal,
+      japaTodayRows,
+      ordersRows,
+      donationsRows,
+    ] = await Promise.all([
+      mysql.query<any[]>(`
+        SELECT COUNT(*) AS totalUsers
+        FROM users u
+        WHERE u.deleted_at IS NULL
+        ${demoUserSql('u')}
+      `),
+      mysql.query<any[]>(
+        `
+        SELECT COUNT(*) AS usersToday
+        FROM users u
+        WHERE u.deleted_at IS NULL
+          AND u.created_at >= ?
+          AND u.created_at < ?
+          ${demoUserSql('u')}
+        `,
+        [todayStart, todayEnd],
+      ),
+      mysql.query<any[]>(`
+        SELECT total_japa_count AS totalJapa
+        FROM global_japa_counter
+        WHERE id = 1
+      `),
+      mysql.query<any[]>(
+        `
+        SELECT IFNULL(SUM(session_count), 0) AS todayJapa
+        FROM japa_sessions
+        WHERE created_at >= ?
+          AND created_at < ?
+          AND (
+            remarks IS NULL
+            OR TRIM(remarks) = ''
+            OR (
+              lower(remarks) NOT LIKE 'challenge%'
+              AND lower(remarks) NOT LIKE '%challenge japa%'
+            )
+          )
+        `,
+        [todayStart, todayEnd],
+      ),
+      mysql.query<any[]>(`
+        SELECT COUNT(*) AS totalOrders
+        FROM orders
+      `),
+      mysql.query<any[]>(`
+        SELECT IFNULL(SUM(amount), 0) AS totalDonations
+        FROM donations d
+        WHERE (
+          UPPER(IFNULL(d.payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
+          OR UPPER(IFNULL(d.donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
         )
-      )
-    `);
-
-    const engine = mysql.getEngineName() || 'sqlite';
-    const japaTodayRows = await mysql.query<any[]>(`
-      SELECT IFNULL(SUM(session_count), 0) AS todayJapa
-      FROM japa_sessions
-      WHERE ${istDay(engine, 'created_at')} = ${istToday(engine)}
-      AND (
-        remarks IS NULL
-        OR TRIM(remarks) = ''
-        OR (
-          lower(remarks) NOT LIKE 'challenge%'
-          AND lower(remarks) NOT LIKE '%challenge japa%'
-        )
-      )
-    `);
-
-    const ordersRows = await mysql.query<any[]>(`
-      SELECT COUNT(*) AS totalOrders
-      FROM orders
-    `);
-
-    const donationsRows = await mysql.query<any[]>(`
-      SELECT IFNULL(SUM(amount), 0) AS totalDonations
-      FROM donations d
-      WHERE (
-        UPPER(IFNULL(d.payment_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
-        OR UPPER(IFNULL(d.donation_status, '')) IN ('SUCCESS', 'PAID', 'COMPLETED')
-      )
-      ${demoDonationSql('d')}
-    `);
+        ${demoDonationSql('d')}
+      `),
+    ]);
 
     const users = num(usersRows?.[0]?.totalUsers);
-    const globalJapa = num(japaGlobal?.[0]?.totalJapa);
-    const sessionJapa = num(japaSessions?.[0]?.totalJapa);
-    const japa = Math.max(globalJapa, sessionJapa);
+    const usersToday = num(usersTodayRows?.[0]?.usersToday);
+    const japa = num(japaGlobal?.[0]?.totalJapa);
     const japaToday = num(japaTodayRows?.[0]?.todayJapa);
     const orders = num(ordersRows?.[0]?.totalOrders);
     const donations = num(donationsRows?.[0]?.totalDonations);
 
-    return res.json({
+    const payload = {
       success: true,
       data: {
         users,
+        usersToday,
         japa,
         japaToday,
         orders,
         donations,
         donationsLabel: formatDonationsLabel(donations),
       },
-    });
+    };
+    dashboardStatsCache = {at: now, payload};
+    return res.json(payload);
   } catch (error: any) {
     return res.status(500).json({
       success: false,
@@ -976,10 +1018,97 @@ const enrolledOnSql = (engine: string) =>
     ? `DATE_FORMAT(DATE(DATE_ADD(u.created_at, INTERVAL 330 MINUTE)), '%Y-%m-%d')`
     : `date(u.created_at, '+5 hours', '30 minutes')`;
 
-router.get('/users', async (_req: Request, res: Response) => {
+router.get('/users', async (req: Request, res: Response) => {
   try {
     const engine = mysql.getEngineName() || 'sqlite';
-    const rows = await mysql.query<any[]>(`
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const limitRaw = Number(req.query.limit);
+    // Default page size 50. Cap 200. `limit=0` / `all=1` still available for rare full dumps.
+    const wantAll =
+      String(req.query.all || '').trim() === '1' ||
+      String(req.query.limit || '').toLowerCase() === 'all';
+    const limit = wantAll
+      ? 10000
+      : Math.min(200, Math.max(1, Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 50));
+    const offset = (page - 1) * limit;
+    const q = String(req.query.q || req.query.search || '').trim();
+    const japaFilter = String(req.query.japaFilter || 'all').trim();
+    const enrolledOn = String(req.query.enrolledOn || '')
+      .trim()
+      .slice(0, 10);
+
+    const japaAgg = `
+      SELECT js.user_id AS user_id, SUM(js.session_count) AS total
+      FROM japa_sessions js
+      WHERE (
+        js.remarks IS NULL
+        OR TRIM(js.remarks) = ''
+        OR (
+          lower(js.remarks) NOT LIKE 'challenge%'
+          AND lower(js.remarks) NOT LIKE '%challenge japa%'
+        )
+      )
+      GROUP BY js.user_id
+    `;
+
+    const where: string[] = ['u.deleted_at IS NULL'];
+    const params: any[] = [];
+
+    if (q) {
+      const like = `%${q.toLowerCase()}%`;
+      const digits = q.replace(/\D/g, '');
+      where.push(`(
+        lower(IFNULL(u.full_name, '')) LIKE ?
+        OR lower(IFNULL(u.email, '')) LIKE ?
+        OR lower(IFNULL(u.user_code, '')) LIKE ?
+        OR ('' || u.id) LIKE ?
+        OR lower(IFNULL(u.mobile_number, '')) LIKE ?
+        OR lower(IFNULL(u.mobile_country_code, '') || IFNULL(u.mobile_number, '')) LIKE ?
+        ${digits.length >= 2 ? 'OR IFNULL(u.mobile_number, \'\') LIKE ? OR (\'\' || u.id) LIKE ?' : ''}
+      )`);
+      params.push(like, like, like, like, like, like);
+      if (digits.length >= 2) {
+        params.push(`%${digits}%`, `%${digits}%`);
+      }
+    }
+
+    if (enrolledOn && /^\d{4}-\d{2}-\d{2}$/.test(enrolledOn)) {
+      where.push(`${enrolledOnSql(engine)} = ?`);
+      params.push(enrolledOn);
+    }
+
+    const japaExpr = 'IFNULL(j.total, 0)';
+    if (japaFilter === '1-100') {
+      where.push(`${japaExpr} BETWEEN 1 AND 100`);
+    } else if (japaFilter === '101-500') {
+      where.push(`${japaExpr} BETWEEN 101 AND 500`);
+    } else if (japaFilter === '501-1000') {
+      where.push(`${japaExpr} BETWEEN 501 AND 1000`);
+    } else if (japaFilter === '1001-1500') {
+      where.push(`${japaExpr} BETWEEN 1001 AND 1500`);
+    } else if (japaFilter === '1501-2000') {
+      where.push(`${japaExpr} BETWEEN 1501 AND 2000`);
+    } else if (japaFilter === '2001-2500') {
+      where.push(`${japaExpr} BETWEEN 2001 AND 2500`);
+    } else if (japaFilter === 'gt-2500') {
+      where.push(`${japaExpr} > 2500`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const countRows = await mysql.query<any[]>(
+      `
+      SELECT COUNT(*) AS total
+      FROM users u
+      LEFT JOIN (${japaAgg}) j ON j.user_id = u.id
+      ${whereSql}
+      `,
+      params,
+    );
+    const total = num(countRows?.[0]?.total);
+
+    const rows = await mysql.query<any[]>(
+      `
       SELECT
         u.id,
         u.user_code AS userCode,
@@ -988,28 +1117,27 @@ router.get('/users', async (_req: Request, res: Response) => {
         u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS mobileNumber,
         u.account_status AS accountStatus,
+        u.app_version AS appVersion,
         ${enrolledOnSql(engine)} AS enrolledOn,
-        IFNULL((
-          SELECT SUM(js.session_count)
-          FROM japa_sessions js
-          WHERE js.user_id = u.id
-            AND (
-              js.remarks IS NULL
-              OR TRIM(js.remarks) = ''
-              OR (
-                lower(js.remarks) NOT LIKE 'challenge%'
-                AND lower(js.remarks) NOT LIKE '%challenge japa%'
-              )
-            )
-        ), 0) AS japaCount
+        ${japaExpr} AS japaCount
       FROM users u
-      WHERE u.deleted_at IS NULL
-      ORDER BY u.id DESC
-    `);
+      LEFT JOIN (${japaAgg}) j ON j.user_id = u.id
+      ${whereSql}
+      ORDER BY ${japaExpr} DESC, u.id DESC
+      LIMIT ?
+      OFFSET ?
+      `,
+      [...params, limit, offset],
+    );
 
+    const mapped = (rows || []).map(mapUserRow);
     return res.json({
       success: true,
-      data: (rows || []).map(mapUserRow),
+      data: mapped,
+      page,
+      limit,
+      total,
+      hasMore: offset + mapped.length < total,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -1034,12 +1162,13 @@ router.get('/users-deleted', async (_req: Request, res: Response) => {
         u.account_status AS accountStatus,
         u.deleted_at AS deletedAt,
         ${enrolledOnSql(engine)} AS enrolledOn,
-        IFNULL((
-          SELECT SUM(js.session_count)
-          FROM japa_sessions js
-          WHERE js.user_id = u.id
-        ), 0) AS japaCount
+        IFNULL(j.total, 0) AS japaCount
       FROM users u
+      LEFT JOIN (
+        SELECT user_id, SUM(session_count) AS total
+        FROM japa_sessions
+        GROUP BY user_id
+      ) j ON j.user_id = u.id
       WHERE u.deleted_at IS NOT NULL
       ORDER BY u.deleted_at DESC
       LIMIT 500
@@ -2178,7 +2307,9 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
       link: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
       extraData: req.body?.extraData,
     });
-    return res.status(result.mode === 'scheduled' ? 202 : 200).json({
+    const status =
+      result.mode === 'scheduled' || result.mode === 'sending' ? 202 : 200;
+    return res.status(status).json({
       success: true,
       message: result.message,
       data: result,
@@ -2346,7 +2477,12 @@ router.get('/notifications/analytics', async (req: Request, res: Response) => {
       typeof req.query?.category === 'string'
         ? (req.query.category as string)
         : undefined;
-    const data = await getNotificationAnalytics(category);
+    const data = await getNotificationAnalytics({
+      categoryFilter: category,
+      page: Number(req.query?.page) || 1,
+      limit: Number(req.query?.limit) || 30,
+      q: typeof req.query?.q === 'string' ? req.query.q : undefined,
+    });
     return res.json({success: true, data});
   } catch (error: any) {
     console.error('getNotificationAnalytics error:', error);
@@ -3255,16 +3391,63 @@ router.get('/orders', async (req: Request, res: Response) => {
       req.query.scope === 'history' ||
       req.query.includeAll === 'true';
 
-    const whereClause =
-      !includeDeleted && hasDeletedCol
-        ? 'WHERE COALESCE(o.deleted_from_orders, 0) = 0'
-        : '';
+    const statusFilter = String(req.query.status || '')
+      .trim()
+      .toLowerCase();
+    const wantCancelled =
+      statusFilter === 'cancelled' || statusFilter === 'canceled';
+    const pageRaw = Number(req.query.page);
+    const limitRaw = Number(req.query.limit);
+    const paginate =
+      wantCancelled ||
+      (Number.isFinite(pageRaw) && pageRaw > 0) ||
+      (Number.isFinite(limitRaw) && limitRaw > 0);
+    const page = Math.max(1, Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : 1);
+    const limit = Math.min(
+      200,
+      Math.max(1, Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 50),
+    );
+    const offset = (page - 1) * limit;
+    const q = String(req.query.q || req.query.search || '').trim();
+
+    const whereParts: string[] = [];
+    const params: any[] = [];
+    if (!includeDeleted && hasDeletedCol) {
+      whereParts.push('COALESCE(o.deleted_from_orders, 0) = 0');
+    }
+    if (wantCancelled) {
+      whereParts.push(
+        `UPPER(REPLACE(REPLACE(IFNULL(o.order_status, ''), '-', '_'), ' ', '_')) IN ('CANCELLED', 'CANCELED')`,
+      );
+    }
+    if (q) {
+      const like = `%${q.toLowerCase()}%`;
+      const digits = q.replace(/\D/g, '');
+      whereParts.push(`(
+        lower(IFNULL(o.order_number, '')) LIKE ?
+        OR lower(IFNULL(o.item_name, '')) LIKE ?
+        OR lower(IFNULL(o.remarks, '')) LIKE ?
+        OR lower(IFNULL(o.cancel_reason, '')) LIKE ?
+        OR lower(IFNULL(u.full_name, '')) LIKE ?
+        OR lower(IFNULL(u.user_code, '')) LIKE ?
+        OR lower(IFNULL(u.mobile_number, '')) LIKE ?
+        OR ('' || o.id) LIKE ?
+        ${digits.length >= 2 ? 'OR IFNULL(u.mobile_number, \'\') LIKE ? OR (\'\' || o.id) LIKE ?' : ''}
+      )`);
+      params.push(like, like, like, like, like, like, like, like);
+      if (digits.length >= 2) {
+        params.push(`%${digits}%`, `%${digits}%`);
+      }
+    }
+    const whereClause = whereParts.length
+      ? `WHERE ${whereParts.join(' AND ')}`
+      : '';
 
     const deletedSelect = hasDeletedCol
       ? 'COALESCE(o.deleted_from_orders, 0) AS deletedFromOrders'
       : '0 AS deletedFromOrders';
 
-    const rows = await mysql.query<any[]>(`
+    const selectSql = `
       SELECT
         o.id,
         o.user_id AS userId,
@@ -3308,11 +3491,49 @@ router.get('/orders', async (req: Request, res: Response) => {
       LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
       LEFT JOIN milestone_reward_claims mrc ON mrc.order_id = o.id
       ${whereClause}
-      ORDER BY o.user_id ASC, o.id DESC
-    `);
+    `;
+
+    if (!paginate) {
+      const rows = await mysql.query<any[]>(
+        `
+        ${selectSql}
+        ORDER BY o.user_id ASC, o.id DESC
+        `,
+        params,
+      );
+      return res.json({
+        success: true,
+        data: (rows || []).map(mapOrderRow),
+      });
+    }
+
+    const countRows = await mysql.query<any[]>(
+      `
+      SELECT COUNT(*) AS total
+      FROM orders o
+      LEFT JOIN users u ON u.id = o.user_id
+      ${whereClause}
+      `,
+      params,
+    );
+    const total = Number(countRows?.[0]?.total || 0);
+    const rows = await mysql.query<any[]>(
+      `
+      ${selectSql}
+      ORDER BY o.id DESC
+      LIMIT ?
+      OFFSET ?
+      `,
+      [...params, limit, offset],
+    );
+    const mapped = (rows || []).map(mapOrderRow);
     return res.json({
       success: true,
-      data: (rows || []).map(mapOrderRow),
+      data: mapped,
+      page,
+      limit,
+      total,
+      hasMore: offset + mapped.length < total,
     });
   } catch (error: any) {
     return res.status(500).json({

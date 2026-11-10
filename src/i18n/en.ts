@@ -425,6 +425,9 @@ const en = {
   deadlineDays11: '11 Days',
   deadlineDays21: '21 Days',
   deadlineDays41: '41 Days',
+  deadlineDays61: '61 Days',
+  deadlineDays91: '91 Days',
+  deadlineDays108: '108 Days',
   challengeMahashivaratri: 'Mahashivaratri Japa',
   challenge10000Japa: '10,000 Japa',
   challenge108Daily: '108 Japa Daily',
@@ -1055,7 +1058,7 @@ const en = {
     'For the remaining {{days}} days, your daily goal will be ~{{count}} Japas/day.',
   deadlineDate: 'Goal end date / Deadline',
   quickDaysHint:
-    'Select a preset duration (e.g. 7, 11, 21, 41 days) or pick a custom deadline from the calendar below.',
+    'Select a preset duration (e.g. 7, 11, 21, 41, 61, 91, 108 days) or pick a custom deadline from the calendar below.',
   pickDeadlineDate: 'Pick End Date 📅',
   dailyBreakdownTitle: 'Daily Goal Breakdown',
   tapAnywhereToChant: 'Tap anywhere to chant',

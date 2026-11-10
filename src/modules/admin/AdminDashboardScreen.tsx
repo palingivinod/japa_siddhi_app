@@ -16,6 +16,7 @@ import {ADMIN_CONTROL_ITEMS} from './adminData';
 
 type DashboardStats = {
   users: number;
+  usersToday: number;
   japa: number;
   japaToday: number;
   orders: number;
@@ -24,6 +25,7 @@ type DashboardStats = {
 
 const EMPTY_STATS: DashboardStats = {
   users: 0,
+  usersToday: 0,
   japa: 0,
   japaToday: 0,
   orders: 0,
@@ -60,6 +62,7 @@ const AdminDashboardScreen = () => {
       const data = statsRes.data?.data || {};
       setStats({
         users: Number(data.users) || 0,
+        usersToday: Number(data.usersToday) || 0,
         japa: Number(data.japa) || 0,
         japaToday: Number(data.japaToday) || 0,
         orders: Number(data.orders) || 0,
@@ -111,6 +114,7 @@ const AdminDashboardScreen = () => {
           <StatCard
             label="Users"
             value={stats.users.toLocaleString('en-IN')}
+            detail={`Today ${stats.usersToday.toLocaleString('en-IN')} new`}
           />
           <StatCard
             label="Japa"
@@ -132,7 +136,7 @@ const AdminDashboardScreen = () => {
       ) : null}
 
       <Text style={styles.section}>Admin Controls</Text>
-      <Text style={styles.hint}>Tap a row to open that module.</Text>
+      <Text style={styles.hint}>Tap a row to open that module anytime.</Text>
       {ADMIN_CONTROL_ITEMS.map(item => (
         <TouchableOpacity
           key={item.title}
@@ -160,6 +164,7 @@ const AdminDashboardScreen = () => {
           </View>
         </TouchableOpacity>
       ))}
+
       <View style={styles.bottomSpacer} />
     </AdminScreenLayout>
   );

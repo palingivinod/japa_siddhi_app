@@ -213,6 +213,11 @@ const AvailableRewardsScreen = () => {
     const outOfStock = item.inStock === false || Number(item.stock || 0) <= 0;
 
     if (outOfStock) {
+      // Marakata: admin description + OK only (no eligibility / grab while unavailable)
+      if (isMarakataShivlingName(item.name)) {
+        Alert.alert(title, description || ' ', [{text: t('ok')}]);
+        return;
+      }
       Alert.alert(
         t('outOfStockTitle') || 'Out of Stock',
         message(t('outOfStockRewardMsg') || 'This reward item is currently out of stock.'),

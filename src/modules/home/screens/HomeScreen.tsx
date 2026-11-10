@@ -39,7 +39,6 @@ import Colors from '../../../theme/colors';
 import {PLAYSTORE_URL} from '../../../constants/app';
 import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
-import MilestoneProgressCard from '../../common/MilestoneProgressCard';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
 import {istIsoDate} from '../../../utils/dateUtils';
@@ -82,7 +81,6 @@ const HomeScreen = () => {
   const [allActiveGoals, setAllActiveGoals] = useState<any[]>([]);
   const [streak, setStreak] = useState(0);
   const [challenge, setChallenge] = useState<any>(null);
-  const [milestone, setMilestone] = useState<any>(null);
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [panchangModalVisible, setPanchangModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -465,7 +463,6 @@ const HomeScreen = () => {
         setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
         setLifetime(Number(data.totalJapaCount ?? data.lifetimeCount ?? 0));
         setStreak(Number(data.streakDays ?? data.currentStreak ?? 0));
-        setMilestone(data.milestone || null);
       }
       if (goals.status === 'fulfilled') {
         const goalList: any[] = Array.isArray(goals.value.data?.data)
@@ -1217,11 +1214,6 @@ const HomeScreen = () => {
             )}
           </View>
 
-          <MilestoneProgressCard
-            milestone={milestone}
-            onPress={() => navigation.navigate('MilestoneNotifications')}
-          />
-
           <Text style={styles.section}>{t('quickActions')}</Text>
           <View style={styles.grid}>
             {visibleTiles.map(item => (
@@ -1394,30 +1386,29 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   whatsappGroupBtn: {
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'center',
+    gap: 10,
     backgroundColor: '#25D366',
-    borderRadius: 22,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
     marginTop: 4,
     marginBottom: 14,
-    shadowColor: '#128C7E',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#1EBE57',
   },
   whatsappGroupLogo: {
-    width: 18,
-    height: 18,
+    width: 22,
+    height: 22,
   },
   whatsappGroupText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 15,
+    textAlign: 'center',
   },
   meetingCardWrapper: {
     backgroundColor: '#FFFDF7',

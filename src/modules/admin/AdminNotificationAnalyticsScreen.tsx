@@ -161,103 +161,132 @@ const formatDate = (raw: string) => {
   return trimmed.replace('T', ' ').slice(0, 19);
 };
 
+const PAGE_SIZE = 30;
+
 const AdminNotificationAnalyticsScreen = () => {
   const navigation = useNavigation<any>();
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [items, setItems] = useState<NotificationAnalyticsItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState<FilterCategory>('general');
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
+  const requestSeq = React.useRef(0);
 
-  const loadAnalytics = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    setError('');
-    try {
-      // Load unfiltered list; tabs filter client-side so counts stay consistent.
-      const response = await apiService.get('/admin/notifications/analytics');
-      const data = response.data?.data || {};
-      setSummary(data.summary || null);
-      setItems(Array.isArray(data.items) ? data.items : []);
-    } catch (err) {
-      setError(getApiError(err, 'Could not load notification analytics.'));
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  React.useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  const loadAnalytics = useCallback(
+    async (opts?: {
+      isRefresh?: boolean;
+      pageToLoad?: number;
+      append?: boolean;
+      category?: FilterCategory;
+      q?: string;
+    }) => {
+      const isRefresh = Boolean(opts?.isRefresh);
+      const append = Boolean(opts?.append);
+      const pageToLoad = opts?.pageToLoad || 1;
+      const category = opts?.category || activeTab;
+      const q = opts?.q !== undefined ? opts.q : debouncedSearch;
+      const seq = ++requestSeq.current;
+      if (isRefresh) {
+        setRefreshing(true);
+      } else if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      setError('');
+      try {
+        const response = await apiService.get('/admin/notifications/analytics', {
+          params: {
+            category,
+            page: pageToLoad,
+            limit: PAGE_SIZE,
+            ...(q ? {q} : {}),
+          },
+        });
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        const data = response.data?.data || {};
+        setSummary(data.summary || null);
+        const nextItems = Array.isArray(data.items) ? data.items : [];
+        setItems(prev => (append ? [...prev, ...nextItems] : nextItems));
+        setPage(pageToLoad);
+        setTotal(Number(data.total) || nextItems.length);
+        setHasMore(Boolean(data.hasMore));
+      } catch (err) {
+        if (seq !== requestSeq.current) {
+          return;
+        }
+        if (!append) {
+          setItems([]);
+          setTotal(0);
+          setHasMore(false);
+        }
+        setError(getApiError(err, 'Could not load notification analytics.'));
+      } finally {
+        if (seq === requestSeq.current) {
+          setLoading(false);
+          setLoadingMore(false);
+          setRefreshing(false);
+        }
+      }
+    },
+    [activeTab, debouncedSearch],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      loadAnalytics();
+      loadAnalytics({pageToLoad: 1, append: false});
     }, [loadAnalytics]),
   );
+
+  React.useEffect(() => {
+    loadAnalytics({
+      pageToLoad: 1,
+      append: false,
+      category: activeTab,
+      q: debouncedSearch,
+    });
+  }, [activeTab, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleExpand = (id: number) => {
     setExpandedIds(prev => ({...prev, [id]: !prev[id]}));
   };
 
-  const categoryCounts = useMemo(() => {
-    let general = 0;
-    let birthday = 0;
-    let orders = 0;
-    for (const item of items) {
-      const cat = resolveItemCategory(item);
-      if (cat === 'orders') {
-        orders += 1;
-      } else if (cat === 'birthday') {
-        birthday += 1;
-      } else {
-        general += 1;
-      }
-    }
-    return {
-      general: summary?.generalCount ?? general,
-      birthday: summary?.birthdayCount ?? summary?.specificCount ?? birthday,
-      orders: summary?.ordersCount ?? orders,
-    };
-  }, [items, summary]);
+  const categoryCounts = useMemo(
+    () => ({
+      general: summary?.generalCount ?? 0,
+      birthday: summary?.birthdayCount ?? summary?.specificCount ?? 0,
+      orders: summary?.ordersCount ?? 0,
+    }),
+    [summary],
+  );
 
-  const tabFilteredItems = useMemo(() => {
-    return items.filter(it => resolveItemCategory(it) === activeTab);
-  }, [items, activeTab]);
+  const activeSummary = useMemo(
+    () => ({
+      totalBroadcasts: summary?.totalBroadcasts ?? 0,
+      totalDelivered: summary?.totalDelivered ?? 0,
+      totalRead: summary?.totalRead ?? 0,
+      totalUnread: summary?.totalUnread ?? 0,
+      averageReadRate: summary?.averageReadRate ?? 0,
+    }),
+    [summary],
+  );
 
-  const activeSummary = useMemo(() => {
-    let totalDelivered = 0;
-    let totalRead = 0;
-    for (const it of tabFilteredItems) {
-      totalDelivered += it.sentCount;
-      totalRead += it.readCount;
-    }
-    const totalBroadcasts = tabFilteredItems.length;
-    const averageReadRate =
-      totalDelivered > 0 ? Math.round((totalRead / totalDelivered) * 100) : 0;
-    return {
-      totalBroadcasts,
-      totalDelivered,
-      totalRead,
-      totalUnread: Math.max(0, totalDelivered - totalRead),
-      averageReadRate,
-    };
-  }, [tabFilteredItems]);
-
-  const displayedItems = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return tabFilteredItems;
-    return tabFilteredItems.filter(
-      item =>
-        String(item.title || '').toLowerCase().includes(q) ||
-        String(item.message || '').toLowerCase().includes(q) ||
-        String(item.targetGroup || '').toLowerCase().includes(q) ||
-        String(item.actionType || '').toLowerCase().includes(q),
-    );
-  }, [tabFilteredItems, search]);
+  const displayedItems = items;
 
   const summaryHeaderLabel = useMemo(() => {
     if (activeTab === 'birthday') return 'SPECIFIC (BIRTHDAY & OCCASION) STATS';
@@ -359,11 +388,10 @@ const AdminNotificationAnalyticsScreen = () => {
           autoCorrect={false}
           clearButtonMode="while-editing"
         />
-        {search.trim().length > 0 ? (
-          <Text style={styles.searchCountText}>
-            Showing {displayedItems.length} of {tabFilteredItems.length} notifications
-          </Text>
-        ) : null}
+        <Text style={styles.searchCountText}>
+          Showing {displayedItems.length.toLocaleString('en-IN')} of{' '}
+          {total.toLocaleString('en-IN')} notifications
+        </Text>
       </View>
     </View>
   );
@@ -494,7 +522,7 @@ const AdminNotificationAnalyticsScreen = () => {
           <Text style={styles.errorText}>⚠️ {error}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => loadAnalytics()}>
+            onPress={() => loadAnalytics({pageToLoad: 1, append: false})}>
             <Text style={styles.retryBtnText}>Retry</Text>
           </TouchableOpacity>
         </View>
@@ -505,12 +533,32 @@ const AdminNotificationAnalyticsScreen = () => {
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={renderEmpty}
+          ListFooterComponent={
+            hasMore ? (
+              <TouchableOpacity
+                style={styles.retryBtn}
+                disabled={loadingMore}
+                onPress={() =>
+                  loadAnalytics({pageToLoad: page + 1, append: true})
+                }>
+                {loadingMore ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.retryBtnText}>Load more</Text>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <View style={{height: 24}} />
+            )
+          }
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={() => loadAnalytics(true)}
+              onRefresh={() =>
+                loadAnalytics({isRefresh: true, pageToLoad: 1, append: false})
+              }
               tintColor={Colors.leafGreen}
               colors={[Colors.leafGreen]}
             />

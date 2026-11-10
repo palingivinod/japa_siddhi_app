@@ -155,16 +155,23 @@ const AdminNotificationsScreen = () => {
     Record<AdminSupportedLang, NotificationLangFields>
   >(defaultTranslations);
 
-  const [selectedUsers, setSelectedUsers] = useState<SelectedNotifyUser[]>(
-    () =>
-      Array.isArray(route.params?.selectedUsers)
-        ? route.params.selectedUsers
-        : [],
-  );
-  const selectedMode = selectedUsers.length > 0;
+  const incomingSelected = Array.isArray(route.params?.selectedUsers)
+    ? (route.params.selectedUsers as SelectedNotifyUser[])
+    : [];
+  const [selectedUsers, setSelectedUsers] =
+    useState<SelectedNotifyUser[]>(incomingSelected);
+  const cameFromUserManagement = useRef(incomingSelected.length > 0);
 
-  const [target, setTarget] = useState('All users');
+  const [target, setTarget] = useState(
+    incomingSelected.length > 0 ? 'Selected users' : 'All users',
+  );
+  const selectedMode = target === 'Selected users';
   const [testQuery, setTestQuery] = useState('');
+  const [userSearch, setUserSearch] = useState('');
+  const [userSearchResults, setUserSearchResults] = useState<
+    SelectedNotifyUser[]
+  >([]);
+  const [userSearching, setUserSearching] = useState(false);
   const [schedule, setSchedule] = useState('Now');
   const [scheduledAt, setScheduledAt] = useState(defaultLater);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -184,10 +191,83 @@ const AdminNotificationsScreen = () => {
 
   useEffect(() => {
     const incoming = Array.isArray(route.params?.selectedUsers)
-      ? route.params.selectedUsers
+      ? (route.params.selectedUsers as SelectedNotifyUser[])
       : [];
-    setSelectedUsers(incoming);
+    if (!incoming.length) {
+      return;
+    }
+    cameFromUserManagement.current = true;
+    setSelectedUsers(prev => {
+      const map = new Map(prev.map(u => [String(u.id), u]));
+      incoming.forEach(u => map.set(String(u.id), u));
+      return Array.from(map.values());
+    });
+    setTarget('Selected users');
   }, [route.params?.selectedUsers]);
+
+  useEffect(() => {
+    if (!selectedMode) {
+      setUserSearchResults([]);
+      return;
+    }
+    const q = userSearch.trim();
+    if (q.length < 2) {
+      setUserSearchResults([]);
+      setUserSearching(false);
+      return;
+    }
+    let cancelled = false;
+    setUserSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiService.get('/admin/users', {
+          params: {q, page: 1, limit: 20},
+        });
+        if (cancelled) {
+          return;
+        }
+        const rows = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+        setUserSearchResults(
+          rows.map((row: any) => ({
+            id: String(row.id),
+            name: String(row.name || 'Devotee'),
+            userCode: String(row.userCode || '').trim(),
+            mobile: row.mobile || '',
+            email: row.email || '',
+          })),
+        );
+      } catch {
+        if (!cancelled) {
+          setUserSearchResults([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setUserSearching(false);
+        }
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [selectedMode, userSearch]);
+
+  const addSelectedUser = (user: SelectedNotifyUser) => {
+    setSelectedUsers(prev => {
+      if (prev.some(u => String(u.id) === String(user.id))) {
+        return prev;
+      }
+      return [...prev, user];
+    });
+    setUserSearch('');
+    setUserSearchResults([]);
+  };
+
+  const removeSelectedUser = (userId: string) => {
+    setSelectedUsers(prev => prev.filter(u => String(u.id) !== String(userId)));
+  };
 
   const latestEnRef = useRef({title: '', message: ''});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -444,6 +524,9 @@ const AdminNotificationsScreen = () => {
   };
 
   const send = async () => {
+    if (sending) {
+      return;
+    }
     const primaryTitle =
       translations.en.title.trim() || translations[activeLang].title.trim();
     const primaryMessage =
@@ -463,8 +546,35 @@ const AdminNotificationsScreen = () => {
     if (selectedMode && !selectedUserIds.length) {
       Alert.alert(
         'No users selected',
-        'Go back to User Management and select users again.',
+        'Search and select at least one user to send this notification.',
       );
+      return;
+    }
+
+    const audienceLabel = selectedMode
+      ? `${selectedUserIds.length} selected user(s)`
+      : target === 'Test'
+        ? `Test → ${testQuery.trim() || 'one person'}`
+        : target;
+    const whenLabel =
+      schedule === 'Later'
+        ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
+        : 'Now';
+
+    const confirmed = await new Promise<boolean>(resolve => {
+      Alert.alert(
+        'Confirm send',
+        `Send this notification ${
+          schedule === 'Later' ? 'later' : 'now'
+        }?\n\nTo: ${audienceLabel}\nWhen: ${whenLabel}\n\nSame title + message cannot be sent again within 3 minutes.`,
+        [
+          {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+          {text: 'Send', onPress: () => resolve(true)},
+        ],
+        {cancelable: true, onDismiss: () => resolve(false)},
+      );
+    });
+    if (!confirmed) {
       return;
     }
     if (!selectedMode && target === 'Test' && !testQuery.trim()) {
@@ -510,14 +620,19 @@ const AdminNotificationsScreen = () => {
           : undefined,
       });
       const data = response.data?.data || {};
+      const isQueued = data.mode === 'sending' || data.mode === 'scheduled';
       const detail =
         response.data?.message ||
         (data.mode === 'scheduled'
           ? `Scheduled for ${data.sendAt}`
-          : `Delivered to ${data.recipientCount || 0} users`);
+          : data.mode === 'sending'
+            ? 'Delivery started in the background.'
+            : `Delivered to ${data.recipientCount || 0} users`);
       const pushLine =
-        data.mode === 'scheduled'
-          ? ''
+        data.mode === 'scheduled' || data.mode === 'sending'
+          ? data.mode === 'sending'
+            ? '\nPush + inbox are sending in the background.'
+            : ''
           : `\nPush popups: ${Number(data.pushSent || 0)}` +
             (data.pushSkipped ? `\nPush note: ${data.pushSkipped}` : '');
       const toLine = selectedMode
@@ -531,12 +646,20 @@ const AdminNotificationsScreen = () => {
           ? '\nVideo: included in popup'
           : '';
       Alert.alert(
-        data.mode === 'scheduled' ? 'Notification scheduled' : 'Notification sent',
+        data.mode === 'scheduled'
+          ? 'Notification scheduled'
+          : data.mode === 'sending'
+            ? 'Sending started'
+            : 'Notification sent',
         `${detail}${pushLine}\n\nTo: ${toLine}\nWhen: ${
           schedule === 'Later'
             ? `${formatDateLabel(scheduledAt)} ${formatTimeLabel(scheduledAt)} (IST)`
             : 'Now'
-        }${mediaLine}\n\nDevotees will receive this in their preferred language.`,
+        }${mediaLine}\n\n${
+          isQueued
+            ? 'Do not tap Send again for 3 minutes — duplicates are blocked.'
+            : 'Devotees will receive this in their preferred language.'
+        }`,
       );
       setTranslations(defaultTranslations());
       latestEnRef.current = {title: '', message: ''};
@@ -548,14 +671,41 @@ const AdminNotificationsScreen = () => {
       clearMedia();
       if (selectedMode) {
         setSelectedUsers([]);
+        setUserSearch('');
+        setUserSearchResults([]);
         navigation.setParams?.({selectedUsers: undefined});
-        navigation.navigate('AdminUsers');
+        if (cameFromUserManagement.current) {
+          cameFromUserManagement.current = false;
+          navigation.navigate('AdminUsers');
+        } else {
+          setTarget('All users');
+        }
       }
-    } catch (err) {
-      Alert.alert(
-        'Send failed',
-        getApiError(err, 'Could not send notification.'),
-      );
+    } catch (err: any) {
+      const status = Number(err?.response?.status || 0);
+      const code = String(err?.code || '');
+      const raw = String(
+        err?.response?.data?.message || err?.message || '',
+      ).toLowerCase();
+      const looksLikeTimeout =
+        code === 'ECONNABORTED' ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        raw.includes('timeout') ||
+        raw.includes('network error');
+
+      if (looksLikeTimeout) {
+        Alert.alert(
+          'Request timed out',
+          'The server may still be delivering this notification. Do not tap Send again for 3 minutes — check devotee Notifications first. Sending again can create duplicates.',
+        );
+      } else {
+        Alert.alert(
+          'Send failed',
+          getApiError(err, 'Could not send notification.'),
+        );
+      }
     } finally {
       setSending(false);
     }
@@ -572,33 +722,6 @@ const AdminNotificationsScreen = () => {
       <Text style={styles.sub}>
         Type in English, and it automatically translates into Telugu, Hindi, Tamil, and Kannada. You can switch tabs to review or edit anytime.
       </Text>
-
-      {selectedMode ? (
-        <View style={styles.selectedUsersCard}>
-          <Text style={styles.selectedUsersTitle}>
-            Sending to {selectedUsers.length} selected user
-            {selectedUsers.length === 1 ? '' : 's'}
-          </Text>
-          <Text style={styles.selectedUsersHint}>
-            From User Management — only these people will receive this
-            notification (not All / Active / Blocked).
-          </Text>
-          {selectedUsers.map(user => (
-            <View key={user.id} style={styles.selectedUserRow}>
-              <Text style={styles.selectedUserName}>{user.name}</Text>
-              <Text style={styles.selectedUserMeta}>
-                {[
-                  user.userCode || `ID ${user.id}`,
-                  user.mobile && user.mobile !== '—' ? user.mobile : '',
-                  user.email || '',
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-            </View>
-          ))}
-        </View>
-      ) : null}
 
       <View style={styles.analyticsNavRow}>
         <TouchableOpacity
@@ -763,40 +886,133 @@ const AdminNotificationsScreen = () => {
 
       <Text style={styles.sectionHeading}>Delivery Settings</Text>
 
+      <SelectField
+        label="Target Group"
+        value={target}
+        options={[
+          'All users',
+          'Active japa',
+          'Blocked',
+          'Selected users',
+          'Test',
+        ]}
+        onChange={setTarget}
+      />
+
       {selectedMode ? (
-        <View style={styles.lockedTargetBox}>
-          <Text style={styles.label}>Target Group</Text>
-          <Text style={styles.lockedTargetValue}>
-            Selected users only ({selectedUsers.length})
+        <View style={styles.selectedUsersCard}>
+          <Text style={styles.selectedUsersTitle}>
+            Selected users ({selectedUsers.length})
           </Text>
-          <Text style={styles.hint}>
-            Audience is locked to the users shown above from User Management.
+          <Text style={styles.selectedUsersHint}>
+            Search by name, phone, email, or ID. Tap a result to add. You can
+            search again and add more people, then send only to this list.
           </Text>
-        </View>
-      ) : (
-        <>
-          <SelectField
-            label="Target Group"
-            value={target}
-            options={['All users', 'Active japa', 'Blocked', 'Test']}
-            onChange={setTarget}
+          <TextInput
+            style={styles.userSearchInput}
+            value={userSearch}
+            onChangeText={setUserSearch}
+            placeholder="Search name, phone, email, or ID"
+            placeholderTextColor={Colors.placeholder}
+            autoCapitalize="none"
+            autoCorrect={false}
           />
-          {target === 'Test' ? (
-            <Field
-              label="Test person"
-              value={testQuery}
-              onChangeText={setTestQuery}
-              placeholder="Name, user id, phone, or email"
-            />
+          {userSearching ? (
+            <View style={styles.userSearchBusy}>
+              <ActivityIndicator color={Colors.templeGold} />
+            </View>
           ) : null}
-          {target === 'Test' ? (
+          {userSearch.trim().length >= 2 &&
+          !userSearching &&
+          userSearchResults.length === 0 ? (
+            <Text style={styles.hint}>No users matched that search.</Text>
+          ) : null}
+          {userSearchResults.map(user => {
+            const already = selectedUsers.some(
+              u => String(u.id) === String(user.id),
+            );
+            return (
+              <TouchableOpacity
+                key={`hit-${user.id}`}
+                style={[
+                  styles.userSearchHit,
+                  already && styles.userSearchHitDisabled,
+                ]}
+                disabled={already}
+                onPress={() => addSelectedUser(user)}
+                activeOpacity={0.85}>
+                <View style={styles.userSearchHitCopy}>
+                  <Text style={styles.selectedUserName}>{user.name}</Text>
+                  <Text style={styles.selectedUserMeta}>
+                    {[
+                      user.userCode || `ID ${user.id}`,
+                      user.mobile && user.mobile !== '—' ? user.mobile : '',
+                      user.email || '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </Text>
+                </View>
+                <Text style={styles.userSearchHitAction}>
+                  {already ? 'Added' : '+ Add'}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+          {selectedUsers.length ? (
+            <>
+              <Text style={[styles.label, {marginTop: 10}]}>
+                Will receive this notification
+              </Text>
+              {selectedUsers.map(user => (
+                <View key={user.id} style={styles.selectedUserRow}>
+                  <View style={styles.userSearchHitCopy}>
+                    <Text style={styles.selectedUserName}>{user.name}</Text>
+                    <Text style={styles.selectedUserMeta}>
+                      {[
+                        user.userCode || `ID ${user.id}`,
+                        user.mobile && user.mobile !== '—' ? user.mobile : '',
+                        user.email || '',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => removeSelectedUser(String(user.id))}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    <Text style={styles.removeUserText}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+              <TouchableOpacity
+                onPress={() => setSelectedUsers([])}
+                style={{marginTop: 6}}>
+                <Text style={styles.clearSelectionText}>Clear all selected</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
             <Text style={styles.hint}>
-              Sends only to this one person — use this to verify the notification
-              before broadcasting.
+              No users selected yet — search above and tap Add.
             </Text>
-          ) : null}
+          )}
+        </View>
+      ) : null}
+
+      {target === 'Test' ? (
+        <>
+          <Field
+            label="Test person"
+            value={testQuery}
+            onChangeText={setTestQuery}
+            placeholder="Name, user id, phone, or email"
+          />
+          <Text style={styles.hint}>
+            Sends only to this one person — use this to verify the notification
+            before broadcasting.
+          </Text>
         </>
-      )}
+      ) : null}
       <SelectField
         label="Schedule"
         value={schedule}
@@ -985,6 +1201,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.cardBorder,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   selectedUserName: {
     fontWeight: '800',
@@ -995,6 +1214,54 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: Colors.textSecondary,
     fontSize: 12,
+  },
+  userSearchInput: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 12,
+    minHeight: 46,
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    marginBottom: 8,
+  },
+  userSearchBusy: {
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  userSearchHit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 8,
+  },
+  userSearchHitDisabled: {
+    opacity: 0.55,
+  },
+  userSearchHitCopy: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  userSearchHitAction: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  removeUserText: {
+    color: Colors.error,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  clearSelectionText: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    textAlign: 'center',
   },
   lockedTargetBox: {
     marginBottom: 12,
