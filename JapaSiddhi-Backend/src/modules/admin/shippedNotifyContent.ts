@@ -1,6 +1,6 @@
 /**
  * Fixed in-app copy when an order is marked Shipped.
- * imageUrl / videoUrl: leave empty until public media URLs are provided.
+ * Shared photo collage + video for every order kind.
  */
 
 export type ShippedOrderKind =
@@ -14,21 +14,21 @@ export type ShippedNotifyContent = {
   kind: ShippedOrderKind;
   title: string;
   message: string;
-  /** Public https URL — set later when assets are hosted. */
+  /** Public https URL for in-app / push image. */
   imageUrl?: string;
-  /** Public https URL — set later when assets are hosted. */
+  /** Public https URL — set later when video asset is ready. */
   videoUrl?: string;
 };
 
-const MEDIA_BY_KIND: Record<
-  Exclude<ShippedOrderKind, 'GENERIC'>,
-  {imageUrl?: string; videoUrl?: string}
-> = {
-  // Fill these with public https URLs when ready (AiSensy / in-app media).
-  BAANALINGAM: {imageUrl: '', videoUrl: ''},
-  RAMAKOTI: {imageUrl: '', videoUrl: ''},
-  HOMA_BHASMA: {imageUrl: '', videoUrl: ''},
-  BHIRAVA: {imageUrl: '', videoUrl: ''},
+/** Same media for every shipped order (all product kinds). */
+const SHARED_SHIPPED_IMAGE_URL =
+  'https://japasiddhi.onrender.com/uploads/shipped/shipped-photo-example.jpg';
+const SHARED_SHIPPED_VIDEO_URL =
+  'https://japasiddhi.onrender.com/uploads/shipped/shipped-photo-example.mp4';
+
+const SHARED_MEDIA = {
+  imageUrl: SHARED_SHIPPED_IMAGE_URL,
+  videoUrl: SHARED_SHIPPED_VIDEO_URL,
 };
 
 const CONTENT: Record<Exclude<ShippedOrderKind, 'GENERIC'>, ShippedNotifyContent> =
@@ -38,28 +38,28 @@ const CONTENT: Record<Exclude<ShippedOrderKind, 'GENERIC'>, ShippedNotifyContent
       title: 'Your Baanalingam order has been shipped',
       message:
         'After you receive it, please send us a photo of you with the Baanalingam. This helps us confirm safe delivery.\n\nThank you for your devotion. 🙏',
-      ...MEDIA_BY_KIND.BAANALINGAM,
+      ...SHARED_MEDIA,
     },
     RAMAKOTI: {
       kind: 'RAMAKOTI',
       title: 'Your Ramakoti books have been shipped',
       message:
         'After you receive them, please send us a photo of you with the Ramakoti books. This helps us confirm delivery.\n\nThank you for continuing your Ramakoti japa. 🙏',
-      ...MEDIA_BY_KIND.RAMAKOTI,
+      ...SHARED_MEDIA,
     },
     HOMA_BHASMA: {
       kind: 'HOMA_BHASMA',
       title: 'Your Homa Bhasma order has been shipped',
       message:
         'After you receive it, please send us a photo of you with the Homa Bhasma. This helps us confirm safe delivery.\n\nThank you. 🙏',
-      ...MEDIA_BY_KIND.HOMA_BHASMA,
+      ...SHARED_MEDIA,
     },
     BHIRAVA: {
       kind: 'BHIRAVA',
       title: 'Your Bhirava Pendent has been shipped',
       message:
         'After you receive it, please send us a photo of you wearing / holding the pendant. This helps us confirm delivery.\n\nThank you. 🙏',
-      ...MEDIA_BY_KIND.BHIRAVA,
+      ...SHARED_MEDIA,
     },
   };
 
@@ -137,5 +137,6 @@ export const getShippedNotifyContent = (input: {
     kind: 'GENERIC',
     title: 'Your order has been shipped',
     message: `After you receive it, please send us a photo of you with the item (${product}). This helps us confirm safe delivery.\n\nThank you. 🙏`,
+    ...SHARED_MEDIA,
   };
 };

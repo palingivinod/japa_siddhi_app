@@ -91,6 +91,18 @@ app.use(
   }),
 );
 
+// Bundled shipped-order notify media (photo example collage, etc.).
+const bundledShipped = path.resolve(process.cwd(), 'public', 'shipped');
+app.use(
+  '/uploads/shipped',
+  express.static(bundledShipped, {
+    setHeaders: res => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    },
+  }),
+);
+
 app.use(
   '/uploads',
   express.static(uploadsRoot, {
