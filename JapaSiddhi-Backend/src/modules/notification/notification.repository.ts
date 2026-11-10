@@ -96,7 +96,7 @@ class NotificationRepository {
     this.broadcastBackfillRunning = true;
     try {
       const engine = mysql.getEngineName() || 'sqlite';
-      for (let i = 0; i < 15; i++) {
+      for (let i = 0; i < 40; i++) {
         let affected = 0;
         if (engine === 'postgres') {
           const result = await mysql.query<ResultSetHeader>(
@@ -114,7 +114,7 @@ class NotificationRepository {
                 AND extra_data <> ''
                 AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
               ORDER BY id DESC
-              LIMIT 800
+              LIMIT 2000
             ) AS batch
             WHERE n.id = batch.id
             `,
@@ -132,7 +132,7 @@ class NotificationRepository {
               AND extra_data IS NOT NULL
               AND extra_data <> ''
               AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
-            LIMIT 800
+            LIMIT 2000
             `,
           );
           affected = Number(result?.affectedRows || 0);
@@ -817,6 +817,264 @@ class NotificationRepository {
       return 0;
     }
     return 0;
+  }
+
+  /** LIKE patterns that match exact queue ids in extra_data JSON (no id 12→123). */
+  private buildQueueIdMatchSql(ids: number[]): {matchSql: string; params: any[]} {
+    const likeClauses: string[] = [];
+    const params: any[] = [];
+    for (const id of ids) {
+      likeClauses.push(
+        `(extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ? OR extra_data LIKE ?)`,
+      );
+      params.push(
+        `%"broadcastId":${id},%`,
+        `%"broadcastId":${id}}%`,
+        `%"broadcastId": ${id},%`,
+        `%"broadcastId": ${id}}%`,
+        `%"queuedId":${id},%`,
+        `%"queuedId":${id}}%`,
+        `%"queuedId": ${id},%`,
+        `%"queuedId": ${id}}%`,
+      );
+    }
+    return {matchSql: likeClauses.join(' OR '), params};
+  }
+
+  /**
+   * Fill broadcast_id only for the queue IDs on the current analytics page.
+   * One bounded scan (OR of exact id patterns) — avoids leaving older page
+   * rows at read=0 after a tiny newest-first backfill.
+   */
+  async backfillBroadcastIdsForQueueIds(queueIds: number[]): Promise<number> {
+    const ids = [...new Set(
+      (queueIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    )].slice(0, 50);
+    if (!ids.length) {
+      return 0;
+    }
+    await this.ensureBroadcastIdColumn();
+    const engine = mysql.getEngineName() || 'sqlite';
+    const {matchSql, params} = this.buildQueueIdMatchSql(ids);
+
+    try {
+      if (engine === 'postgres') {
+        const result = await mysql.query<ResultSetHeader>(
+          `
+          UPDATE notifications AS n
+          SET broadcast_id = COALESCE(
+            NULLIF(substring(n.extra_data from '"broadcastId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int,
+            NULLIF(substring(n.extra_data from '"queuedId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int
+          )
+          FROM (
+            SELECT id
+            FROM notifications
+            WHERE broadcast_id IS NULL
+              AND extra_data IS NOT NULL
+              AND extra_data <> ''
+              AND (${matchSql})
+            LIMIT 50000
+          ) AS batch
+          WHERE n.id = batch.id
+          `,
+          params,
+        );
+        return Number(result?.affectedRows || 0);
+      }
+      if (engine === 'mysql') {
+        const result = await mysql.query<ResultSetHeader>(
+          `
+          UPDATE notifications
+          SET broadcast_id = COALESCE(
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.broadcastId')) AS UNSIGNED),
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.queuedId')) AS UNSIGNED)
+          )
+          WHERE broadcast_id IS NULL
+            AND extra_data IS NOT NULL
+            AND extra_data <> ''
+            AND (${matchSql})
+          LIMIT 50000
+          `,
+          params,
+        );
+        return Number(result?.affectedRows || 0);
+      }
+
+      // sqlite fallback — small batches via app parse
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT id, extra_data AS extraData
+        FROM notifications
+        WHERE broadcast_id IS NULL
+          AND extra_data IS NOT NULL
+          AND extra_data <> ''
+          AND (${matchSql})
+        LIMIT 2000
+        `,
+        params,
+      );
+      let affected = 0;
+      const allowed = new Set(ids);
+      for (const row of rows || []) {
+        const bid = this.parseBroadcastId(row.extraData);
+        if (!bid || !allowed.has(bid)) {
+          continue;
+        }
+        await mysql.query(
+          `UPDATE notifications SET broadcast_id = ? WHERE id = ?`,
+          [bid, row.id],
+        );
+        affected += 1;
+      }
+      return affected;
+    } catch {
+      return 0;
+    }
+  }
+
+  /**
+   * Accurate read counts for a page of queue ids.
+   * Uses indexed broadcast_id plus extra_data fallback for rows not backfilled yet.
+   */
+  async countReadsForQueueIds(
+    queueIds: number[],
+  ): Promise<Map<number, number>> {
+    const ids = [...new Set(
+      (queueIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    )].slice(0, 50);
+    const out = new Map<number, number>();
+    if (!ids.length) {
+      return out;
+    }
+    await this.ensureBroadcastIdColumn();
+    const engine = mysql.getEngineName() || 'sqlite';
+    const placeholders = ids.map(() => '?').join(', ');
+
+    try {
+      // Fast path: indexed broadcast_id.
+      const indexed = await mysql.query<any[]>(
+        `
+        SELECT
+          broadcast_id AS bid,
+          SUM(CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END) AS reads
+        FROM notifications
+        WHERE broadcast_id IN (${placeholders})
+        GROUP BY broadcast_id
+        `,
+        ids,
+      );
+      for (const row of indexed || []) {
+        const bid = Number(row.bid || 0);
+        if (bid) {
+          out.set(bid, Math.max(0, Number(row.reads || 0)));
+        }
+      }
+
+      const missing = ids.filter(id => !out.has(id));
+      if (!missing.length) {
+        return out;
+      }
+
+      // Fallback for rows that still lack broadcast_id (or only have queuedId).
+      const {matchSql, params} = this.buildQueueIdMatchSql(missing);
+      if (engine === 'postgres') {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT bid, SUM(reads) AS reads
+          FROM (
+            SELECT
+              COALESCE(
+                broadcast_id,
+                NULLIF(substring(extra_data from '"broadcastId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int,
+                NULLIF(substring(extra_data from '"queuedId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int
+              ) AS bid,
+              CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END AS reads
+            FROM notifications
+            WHERE broadcast_id IN (${missing.map(() => '?').join(', ')})
+               OR (
+                 broadcast_id IS NULL
+                 AND extra_data IS NOT NULL
+                 AND extra_data <> ''
+                 AND (${matchSql})
+               )
+          ) AS matched
+          WHERE bid IN (${missing.map(() => '?').join(', ')})
+          GROUP BY bid
+          `,
+          [...missing, ...params, ...missing],
+        );
+        for (const row of rows || []) {
+          const bid = Number(row.bid || 0);
+          if (bid) {
+            out.set(bid, Math.max(0, Number(row.reads || 0)));
+          }
+        }
+      } else if (engine === 'mysql') {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT bid, SUM(reads) AS reads
+          FROM (
+            SELECT
+              COALESCE(
+                broadcast_id,
+                CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.broadcastId')) AS UNSIGNED),
+                CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.queuedId')) AS UNSIGNED)
+              ) AS bid,
+              CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END AS reads
+            FROM notifications
+            WHERE broadcast_id IN (${missing.map(() => '?').join(', ')})
+               OR (
+                 broadcast_id IS NULL
+                 AND extra_data IS NOT NULL
+                 AND extra_data <> ''
+                 AND (${matchSql})
+               )
+          ) AS matched
+          WHERE bid IN (${missing.map(() => '?').join(', ')})
+          GROUP BY bid
+          `,
+          [...missing, ...params, ...missing],
+        );
+        for (const row of rows || []) {
+          const bid = Number(row.bid || 0);
+          if (bid) {
+            out.set(bid, Math.max(0, Number(row.reads || 0)));
+          }
+        }
+      } else {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT extra_data AS extraData, IFNULL(is_read, 0) AS isRead
+          FROM notifications
+          WHERE broadcast_id IS NULL
+            AND extra_data IS NOT NULL
+            AND extra_data <> ''
+            AND (${matchSql})
+          LIMIT 20000
+          `,
+          params,
+        );
+        const allowed = new Set(missing);
+        for (const row of rows || []) {
+          const bid = this.parseBroadcastId(row.extraData);
+          if (!bid || !allowed.has(bid)) {
+            continue;
+          }
+          if (Number(row.isRead || 0) === 1) {
+            out.set(bid, (out.get(bid) || 0) + 1);
+          } else if (!out.has(bid)) {
+            out.set(bid, 0);
+          }
+        }
+      }
+    } catch {
+      // Caller falls back to stored queue.read_count.
+    }
+    return out;
   }
 }
 

@@ -48,7 +48,10 @@ import {
   writeDailyPlanSnap,
 } from '../../../utils/mantraDailyPlan';
 import {getAppVersionName} from '../../../utils/appVersion';
-import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../../utils/validators';
+import {
+  isValidProfileMobile,
+  resolveProfilePhone,
+} from '../../../utils/profilePhone';
 import {syncAppBadgeWithServer} from '../../../services/appBadge';
 
 type ActiveGoal = {
@@ -687,15 +690,11 @@ const HomeScreen = () => {
           user?.dateOfBirth || user?.date_of_birth || user?.dob || '',
         ).slice(0, 10);
         const hasValidDob = /^\d{4}-\d{2}-\d{2}$/.test(dob);
-        const phoneDigits = digitsOnly(
-          user?.mobileNumber ||
-            user?.mobile_number ||
-            user?.phoneNumber ||
-            user?.phone ||
-            '',
-        ).slice(-MOBILE_DIGITS);
-        const hasValidPhone =
-          isMobile(phoneDigits) && !/^0+$/.test(phoneDigits);
+        const phone = resolveProfilePhone(user);
+        const hasValidPhone = isValidProfileMobile(
+          phone.countryCode,
+          phone.mobile,
+        );
 
         if (role !== 'ADMIN' && (!hasValidDob || !hasValidPhone)) {
           const missing: string[] = [];
@@ -705,11 +704,14 @@ const HomeScreen = () => {
           if (!hasValidPhone) {
             missing.push('Phone number');
           }
+          const missingLabel =
+            missing.length <= 1
+              ? missing[0]
+              : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
           Alert.alert(
             (t as any)('profileDetailsRequiredTitle') ||
               'Profile details required 🙏',
-            (t as any)('profileDetailsRequiredMessage') ||
-              `Please enter your ${missing.join(' and ')} in your profile to continue.`,
+            `Please enter your ${missingLabel} in your profile to continue.`,
             [
               {
                 text: t('ok') || 'OK',

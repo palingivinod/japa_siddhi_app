@@ -337,7 +337,7 @@ const AdminNotificationsScreen = () => {
       if (!uploaded) {
         throw new Error('No image URL returned');
       }
-      setVideoUrl(null);
+      // Keep any attached video — photo + video can both be sent.
       setImageUrl(String(uploaded));
     } catch (err: any) {
       setLocalPreview(null);
@@ -380,8 +380,7 @@ const AdminNotificationsScreen = () => {
       if (!uploaded) {
         throw new Error('No video URL returned');
       }
-      setImageUrl(null);
-      setLocalPreview(null);
+      // Keep any attached photo — photo + video can both be sent.
       setVideoUrl(String(uploaded));
     } catch (err: any) {
       setVideoUrl(null);
@@ -408,10 +407,18 @@ const AdminNotificationsScreen = () => {
     }
   };
 
-  const clearMedia = () => {
+  const clearPhoto = () => {
     setImageUrl(null);
     setLocalPreview(null);
+  };
+
+  const clearVideo = () => {
     setVideoUrl(null);
+  };
+
+  const clearMedia = () => {
+    clearPhoto();
+    clearVideo();
   };
 
   const selectedUserIds = useMemo(
@@ -640,11 +647,13 @@ const AdminNotificationsScreen = () => {
         : target === 'Test'
           ? `Test → ${data.testUser || testQuery.trim()}`
           : target;
-      const mediaLine = imageUrl
-        ? '\nPhoto: included in popup'
-        : videoUrl
-          ? '\nVideo: included in popup'
-          : '';
+      const mediaBits = [
+        imageUrl ? 'Photo' : '',
+        videoUrl ? 'Video' : '',
+      ].filter(Boolean);
+      const mediaLine = mediaBits.length
+        ? `\nMedia: ${mediaBits.join(' + ')} included in popup`
+        : '';
       Alert.alert(
         data.mode === 'scheduled'
           ? 'Notification scheduled'
@@ -808,8 +817,8 @@ const AdminNotificationsScreen = () => {
 
       <Text style={styles.sectionHeading}>Upload media (optional)</Text>
       <Text style={styles.imageHint}>
-        Add a photo or video for the notification popup. You can also pick a
-        reward photo below.
+        Add a photo and/or video for the notification popup (both allowed). You
+        can also pick a reward photo below.
       </Text>
       {localPreview || imageUrl ? (
         <Image
@@ -817,6 +826,9 @@ const AdminNotificationsScreen = () => {
           style={styles.imagePreview}
           resizeMode="cover"
         />
+      ) : null}
+      {imageUrl || localPreview ? (
+        <Text style={styles.videoAttached}>Photo attached ✓</Text>
       ) : null}
       {videoUrl ? (
         <Text style={styles.videoAttached}>Video attached ✓</Text>
@@ -848,12 +860,24 @@ const AdminNotificationsScreen = () => {
         </TouchableOpacity>
       </View>
       {imageUrl || localPreview || videoUrl ? (
-        <TouchableOpacity
-          style={styles.imageBtnClear}
-          onPress={clearMedia}
-          disabled={uploadingImage || uploadingVideo || sending}>
-          <Text style={styles.imageBtnClearText}>REMOVE MEDIA</Text>
-        </TouchableOpacity>
+        <View style={styles.imageActions}>
+          {imageUrl || localPreview ? (
+            <TouchableOpacity
+              style={styles.imageBtnClear}
+              onPress={clearPhoto}
+              disabled={uploadingImage || uploadingVideo || sending}>
+              <Text style={styles.imageBtnClearText}>REMOVE PHOTO</Text>
+            </TouchableOpacity>
+          ) : null}
+          {videoUrl ? (
+            <TouchableOpacity
+              style={styles.imageBtnClear}
+              onPress={clearVideo}
+              disabled={uploadingImage || uploadingVideo || sending}>
+              <Text style={styles.imageBtnClearText}>REMOVE VIDEO</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
       {rewards.length ? (
         <View style={styles.rewardPickBox}>
@@ -863,7 +887,6 @@ const AdminNotificationsScreen = () => {
               key={item.id}
               style={styles.rewardPickRow}
               onPress={() => {
-                setVideoUrl(null);
                 setImageUrl(item.imageUrl || null);
                 setLocalPreview(null);
               }}>
@@ -1325,15 +1348,14 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   imageBtnClear: {
+    flex: 1,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: Colors.error,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
-    alignSelf: 'flex-start',
   },
   imageBtnClearText: {
     color: Colors.error,

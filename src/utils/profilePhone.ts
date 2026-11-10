@@ -49,29 +49,31 @@ export const resolveProfilePhone = (
   // Never strip leading "91" from a valid 10-digit Indian mobile
   // (e.g. 9154835659 must stay 9154835659, not 54835659).
   if (countryCode === '91') {
-    if (digits.length === MOBILE_DIGITS && /^[6-9]/.test(digits)) {
+    if (digits.length === MOBILE_DIGITS) {
+      // Keep full 10 digits even when they begin with 91.
       mobile = digits;
     } else if (
       digits.startsWith('91') &&
-      digits.length > MOBILE_DIGITS
+      digits.length >= 2 + MOBILE_DIGITS
     ) {
       // Stored as 91XXXXXXXXXX (12+) — drop country prefix only.
       const stripped = digits.slice(2);
       mobile =
-        stripped.length === MOBILE_DIGITS && /^[6-9]/.test(stripped)
+        stripped.length === MOBILE_DIGITS
           ? stripped
           : stripped.slice(-MOBILE_DIGITS);
-    } else {
+    } else if (digits.length > MOBILE_DIGITS) {
       mobile = digits.slice(-MOBILE_DIGITS);
+    } else {
+      mobile = digits;
     }
   } else if (
     digits.startsWith(countryCode) &&
-    digits.length > countryCode.length + 5
+    digits.length >= countryCode.length + MOBILE_DIGITS
   ) {
     const stripped = digits.slice(countryCode.length);
     // Keep original if stripping would leave an implausibly short number.
-    mobile =
-      stripped.length >= 6 ? stripped : digits;
+    mobile = stripped.length >= 6 ? stripped : digits;
   }
 
   return {

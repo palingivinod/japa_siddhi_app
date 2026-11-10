@@ -968,7 +968,7 @@ export const flushDueAdminNotifications = async () => {
         userIds: userIds.length ? userIds : undefined,
         bypassHours: bypass,
         imageUrl: job.imageUrl || null,
-        extraData: {queuedId: job.id},
+        extraData: {broadcastId: job.id, queuedId: job.id},
       });
       await mysql.query(
         `
@@ -1632,9 +1632,8 @@ export const getNotificationAnalytics = async (opts?: {
   q?: string;
 }) => {
   await ensureQueueTable();
-  // Indexed broadcast_id + one sync batch so first page can show real reads.
+  // Indexed broadcast_id (newest-first batch is not enough for older page rows).
   await notificationRepository.ensureBroadcastSchema().catch(() => undefined);
-  await notificationRepository.backfillBroadcastIdsOnce(800).catch(() => undefined);
 
   const page = Math.max(1, Number(opts?.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(opts?.limit) || 30));
@@ -1733,39 +1732,22 @@ export const getNotificationAnalytics = async (opts?: {
   const birthdayCount = Number(birthdayCountRows?.[0]?.c || 0);
   const ordersCount = Number(ordersCountRows?.[0]?.c || 0);
 
-  // Fast read counts via indexed notifications.broadcast_id (no extra_data LIKE).
+  // Page-scoped backfill + count (indexed broadcast_id, then extra_data fallback).
   const pageIds = (pageRows || [])
     .map(row => Number(row.id))
     .filter(id => Number.isFinite(id) && id > 0);
-  const liveReads = new Map<number, number>();
+  let liveReads = new Map<number, number>();
   if (pageIds.length) {
     try {
-      try {
-        await mysql.query(
-          `ALTER TABLE notifications ADD COLUMN broadcast_id INT NULL`,
-        );
-      } catch {
-        // Column already exists.
-      }
-      const placeholders = pageIds.map(() => '?').join(', ');
-      const readRows = await mysql.query<any[]>(
-        `
-        SELECT
-          broadcast_id AS bid,
-          SUM(CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END) AS reads
-        FROM notifications
-        WHERE broadcast_id IN (${placeholders})
-        GROUP BY broadcast_id
-        `,
-        pageIds,
-      );
-      for (const r of readRows || []) {
-        const bid = Number(r.bid || 0);
-        if (bid) {
-          liveReads.set(bid, Math.max(0, Number(r.reads || 0)));
+      for (let pass = 0; pass < 8; pass++) {
+        const filled = await notificationRepository
+          .backfillBroadcastIdsForQueueIds(pageIds)
+          .catch(() => 0);
+        if (!filled) {
+          break;
         }
       }
-      // Persist live counts so summary totals stay cheap next time.
+      liveReads = await notificationRepository.countReadsForQueueIds(pageIds);
       await Promise.all(
         [...liveReads.entries()].map(([bid, reads]) =>
           mysql
@@ -1781,7 +1763,7 @@ export const getNotificationAnalytics = async (opts?: {
         ),
       );
     } catch {
-      // Column may not exist yet on first boot; fall back to stored read_count.
+      // Fall back to stored queue.read_count.
     }
   }
 

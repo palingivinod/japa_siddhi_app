@@ -209,9 +209,24 @@ const PersonalDetailsScreen = () => {
 
   const cancelEdit = () => {
     if (route?.params?.fromHomeGate) {
+      const countryCode =
+        mobileCountry.callingCode.replace(/\D/g, '') || '91';
+      const missing: string[] = [];
+      if (!parseDob(dobText)) {
+        missing.push('Date of Birth');
+      }
+      if (!isValidProfileMobile(countryCode, mobileNumber)) {
+        missing.push('Phone number');
+      }
+      const missingLabel =
+        missing.length === 0
+          ? 'Date of Birth and Phone number'
+          : missing.length === 1
+            ? missing[0]
+            : `${missing.join(' and ')}`;
       Alert.alert(
         t('required') || 'Required',
-        'Please enter your Date of Birth and Phone number to continue.',
+        `Please enter your ${missingLabel} to continue.`,
       );
       return;
     }

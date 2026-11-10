@@ -200,7 +200,7 @@ const en = {
   mobileRequiredTitle: 'Mobile required',
   profileDetailsRequiredTitle: 'Profile details required 🙏',
   profileDetailsRequiredMessage:
-    'Please enter your Date of Birth and Phone number in your profile to continue.',
+    'Please enter the missing profile details to continue.',
   goBackEnterMobile:
     'Go back and enter your {{digits}}-digit mobile number before creating your profile.',
   passwordRequiredTitle: 'Password required',

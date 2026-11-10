@@ -1,5 +1,6 @@
 import apiService from '../../../services/apiService';
 import {PickedPhoto, isRemotePhoto} from '../../../services/profilePhoto';
+import {resolveProfilePhone} from '../../../utils/profilePhone';
 
 export interface CompleteProfileRequest {
   fullName: string;
@@ -74,31 +75,13 @@ export const mapProfile = (data: any) => {
     return null;
   }
 
-  const rawMobile =
-    data.mobileNumber ??
-    data.mobile_number ??
-    data.phoneNumber ??
-    data.phone_number ??
-    data.phone ??
-    '';
   const firebaseUid = data.firebaseUid ?? data.firebase_uid ?? '';
-  const mobileCountryCode =
-    String(
-      data.mobileCountryCode ??
-        data.mobile_country_code ??
-        '',
-    ).replace(/\D/g, '') || '91';
-  let mobileNumber = '';
-  if (!isPlaceholderMobile(firebaseUid, rawMobile)) {
-    const digits = String(rawMobile || '').replace(/\D/g, '');
-    if (digits.startsWith(mobileCountryCode) && digits.length > mobileCountryCode.length + 5) {
-      mobileNumber = digits.slice(mobileCountryCode.length);
-    } else if (mobileCountryCode === '91') {
-      mobileNumber = digits.slice(-10) || digits;
-    } else {
-      mobileNumber = digits;
-    }
-  }
+  const resolvedPhone = resolveProfilePhone(data);
+  const mobileCountryCode = resolvedPhone.countryCode || '91';
+  // Placeholder / generated mobiles are treated as missing so the profile gate asks again.
+  const mobileNumber = isPlaceholderMobile(firebaseUid, resolvedPhone.mobile)
+    ? ''
+    : resolvedPhone.mobile;
 
   return {
     id: data.id,
