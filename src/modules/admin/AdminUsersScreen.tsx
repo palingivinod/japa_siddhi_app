@@ -21,7 +21,7 @@ import {
   downloadAdminExcel,
 } from './adminExcelDownload';
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 30;
 
 const JAPA_FILTERS = [
   {label: 'All', value: 'all'},
@@ -268,7 +268,7 @@ const AdminUsersScreen = () => {
     <AdminScreenLayout title="User Management" tab="AdminUsers" showBack={false}>
       <Text style={styles.heading}>User Management</Text>
       <Text style={styles.sub}>
-        Live users from the server database (50 per page). Soft-deleted accounts
+        Live users from the server database (30 per page). Soft-deleted accounts
         can be restored with their japa history.
       </Text>
 

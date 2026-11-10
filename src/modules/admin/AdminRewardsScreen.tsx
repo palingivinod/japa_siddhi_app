@@ -23,7 +23,6 @@ import {AdminReward} from './adminData';
 import {
   checkRewardEligibility,
   getRewardRequirement,
-  sortRewardsCanonical,
 } from '../../utils/rewardContent';
 
 /** Same eligibility devotees see (API override, else name-based). */
@@ -69,7 +68,11 @@ const AdminRewardsScreen = () => {
         stock: Number(row.stock || 0),
         imageUrl: row.imageUrl || row.imagePath || null,
       }));
-      setRewards(sortRewardsCanonical<AdminReward>(mapped));
+      setRewards(
+        [...mapped].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}),
+        ),
+      );
     } catch (err) {
       setRewards([]);
       Alert.alert('Rewards', getApiError(err, 'Could not load rewards.'));

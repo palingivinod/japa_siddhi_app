@@ -1551,89 +1551,39 @@ export const syncUnqueuedBatchesToAnalytics = async () => {
   }
 };
 
-const fetchInboxStatsForQueueIds = async (queueIds: number[]) => {
-  const statsById = new Map<number, {inbox: number; read: number}>();
-  const ids = queueIds.filter(id => id > 0);
-  if (!ids.length) {
-    return statsById;
-  }
+/** Coarse SQL buckets — avoids scanning notifications.extra_data (was causing 502). */
+const ORDERS_SQL = `
+  (
+    action_type IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
+    OR IFNULL(category, '') = 'orders'
+    OR title LIKE '%Order Status%'
+    OR title LIKE '%Order Update%'
+  )
+`;
+const BIRTHDAY_SQL = `
+  (
+    action_type IN ('TODAY_BIRTHDAY', 'ADVANCE_BIRTHDAY', 'DOB_WISH')
+    OR IFNULL(category, '') IN ('birthday', 'specific')
+    OR lower(IFNULL(title, '')) LIKE '%birthday%'
+    OR lower(IFNULL(title, '')) LIKE '%jayanthi%'
+    OR lower(IFNULL(title, '')) LIKE '%vardhanti%'
+    OR lower(IFNULL(title, '')) LIKE '%occasion%'
+    OR lower(IFNULL(title, '')) LIKE '%anniversary%'
+  )
+`;
+const GENERAL_SQL = `NOT ${ORDERS_SQL} AND NOT ${BIRTHDAY_SQL}`;
 
-  // Batch OR lookups (chunks) instead of one query per broadcast.
-  const chunkSize = 40;
-  for (let i = 0; i < ids.length; i += chunkSize) {
-    const chunk = ids.slice(i, i + chunkSize);
-    const clauses: string[] = [];
-    const params: any[] = [];
-    chunk.forEach(id => {
-      clauses.push('(extra_data LIKE ? OR extra_data LIKE ?)');
-      params.push(`%"broadcastId":${id}%`, `%"queuedId":${id}%`);
-    });
-    try {
-      const rows = await mysql.query<any[]>(
-        `
-        SELECT extra_data AS extraData, is_read AS isRead
-        FROM notifications
-        WHERE ${clauses.join(' OR ')}
-        `,
-        params,
-      );
-      (rows || []).forEach(row => {
-        const extra = String(row.extraData || '');
-        const broadcastMatch = extra.match(/"broadcastId"\s*:\s*(\d+)/);
-        const queuedMatch = extra.match(/"queuedId"\s*:\s*(\d+)/);
-        const id = Number(broadcastMatch?.[1] || queuedMatch?.[1] || 0);
-        if (!id) {
-          return;
-        }
-        const prev = statsById.get(id) || {inbox: 0, read: 0};
-        prev.inbox += 1;
-        if (Number(row.isRead) === 1 || row.isRead === true) {
-          prev.read += 1;
-        }
-        statsById.set(id, prev);
-      });
-    } catch (err) {
-      console.warn('Analytics batch stats query failed', err);
-    }
+const categoryWhereSql = (filter: string) => {
+  if (filter === 'orders' || filter === 'order') {
+    return ORDERS_SQL;
   }
-  return statsById;
-};
-
-const mapAnalyticsRow = (
-  row: any,
-  statsById: Map<number, {inbox: number; read: number}>,
-) => {
-  const queueId = Number(row.id);
-  const declaredSent = Number(row.recipientCount || 0);
-  const inbox = statsById.get(queueId);
-  const actualInboxCount = Number(inbox?.inbox || 0);
-  const readCount = Number(inbox?.read || 0);
-  const sentCount =
-    declaredSent > 0 ? declaredSent : actualInboxCount > 0 ? actualInboxCount : 0;
-  const safeReadCount = Math.min(readCount, sentCount || readCount);
-  const unreadCount = Math.max(0, sentCount - safeReadCount);
-  const readRate =
-    sentCount > 0 ? Math.round((safeReadCount / sentCount) * 100) : 0;
-  const category = resolveAnalyticsCategory(
-    row.actionType,
-    row.title,
-    row.category,
-  );
-  return {
-    id: queueId,
-    title: row.title,
-    message: row.message,
-    targetGroup: row.targetGroup || 'all',
-    category,
-    actionType: row.actionType || 'ADMIN_BROADCAST',
-    sentAt: toIstAnalyticsStamp(
-      row.processedAt || row.sendAt || row.createdAt,
-    ),
-    sentCount,
-    readCount: safeReadCount,
-    unreadCount,
-    readRate,
-  };
+  if (filter === 'birthday' || filter === 'specific') {
+    return `NOT ${ORDERS_SQL} AND ${BIRTHDAY_SQL}`;
+  }
+  if (filter === 'general') {
+    return GENERAL_SQL;
+  }
+  return '1=1';
 };
 
 export const getNotificationAnalytics = async (opts?: {
@@ -1643,174 +1593,138 @@ export const getNotificationAnalytics = async (opts?: {
   q?: string;
 }) => {
   await ensureQueueTable();
-  // Do not block analytics on sync — run in background.
-  void syncUnqueuedBatchesToAnalytics().catch(() => undefined);
-
-  try {
-    await mysql.query(
-      `
-      UPDATE admin_notification_queue
-      SET category = 'general'
-      WHERE action_type IN ('SUPPORT_TICKET_REPLY', 'ADMIN_SEVA_REPLY', 'MEETING_SCHEDULED', 'MEETING_LIVE')
-        AND IFNULL(category, '') IN ('specific', 'birthday')
-      `,
-    );
-  } catch {
-    // Ignore if table/columns differ on older DBs.
-  }
 
   const page = Math.max(1, Number(opts?.page) || 1);
-  const limit = Math.min(
-    100,
-    Math.max(1, Number(opts?.limit) || 30),
-  );
+  const limit = Math.min(50, Math.max(1, Number(opts?.limit) || 30));
   const offset = (page - 1) * limit;
-  const q = String(opts?.q || '').trim().toLowerCase();
+  const q = String(opts?.q || '').trim();
   const filter = String(opts?.categoryFilter || '')
     .trim()
     .toLowerCase();
 
-  const rows = await mysql.query<any[]>(
-    `
-    SELECT * FROM (
-      (
-        SELECT
-          id,
-          title,
-          message,
-          translations,
-          target_group AS targetGroup,
-          recipient_count AS recipientCount,
-          status,
-          send_at AS sendAt,
-          processed_at AS processedAt,
-          created_at AS createdAt,
-          IFNULL(category, 'general') AS category,
-          action_type AS actionType
-        FROM admin_notification_queue
-        WHERE status IN ('SENT', 'SENDING')
-          AND IFNULL(action_type, '') NOT IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
-          AND NOT (
-            IFNULL(category, '') = 'orders'
-            OR title LIKE '%Order Status%'
-            OR title LIKE '%Order Update%'
-          )
-        ORDER BY id DESC
-        LIMIT 500
+  const baseWhere = `status IN ('SENT', 'SENDING') AND ${categoryWhereSql(filter)}`;
+  const params: any[] = [];
+  let searchSql = '';
+  if (q) {
+    const like = `%${q.toLowerCase()}%`;
+    searchSql = `
+      AND (
+        lower(IFNULL(title, '')) LIKE ?
+        OR lower(IFNULL(message, '')) LIKE ?
+        OR lower(IFNULL(target_group, '')) LIKE ?
+        OR lower(IFNULL(action_type, '')) LIKE ?
       )
-      UNION ALL
-      (
-        SELECT
-          id,
-          title,
-          message,
-          translations,
-          target_group AS targetGroup,
-          recipient_count AS recipientCount,
-          status,
-          send_at AS sendAt,
-          processed_at AS processedAt,
-          created_at AS createdAt,
-          IFNULL(category, 'general') AS category,
-          action_type AS actionType
-        FROM admin_notification_queue
-        WHERE status IN ('SENT', 'SENDING')
-          AND (
-            action_type IN ('ORDER_STATUS', 'ORDER_ADMIN_NOTE')
-            OR IFNULL(category, '') = 'orders'
-            OR title LIKE '%Order Status%'
-            OR title LIKE '%Order Update%'
-          )
-        ORDER BY id DESC
-        LIMIT 500
-      )
-    ) AS analytics_rows
-    ORDER BY id DESC
-    `,
-  );
+    `;
+    params.push(like, like, like, like);
+  }
 
-  // Resolve categories in memory first (cheap), then batch inbox stats only
-  // for the filtered/paginated slice.
-  const classified = (rows || []).map(row => {
+  const [countRows, sumRows, generalCountRows, birthdayCountRows, ordersCountRows, pageRows] =
+    await Promise.all([
+      mysql.query<any[]>(
+        `
+        SELECT COUNT(*) AS total
+        FROM admin_notification_queue
+        WHERE ${baseWhere}
+        ${searchSql}
+        `,
+        params,
+      ),
+      mysql.query<any[]>(
+        `
+        SELECT
+          COUNT(*) AS broadcasts,
+          IFNULL(SUM(IFNULL(recipient_count, 0)), 0) AS delivered
+        FROM admin_notification_queue
+        WHERE ${baseWhere}
+        ${searchSql}
+        `,
+        params,
+      ),
+      mysql.query<any[]>(`
+        SELECT COUNT(*) AS c
+        FROM admin_notification_queue
+        WHERE status IN ('SENT', 'SENDING') AND ${GENERAL_SQL}
+      `),
+      mysql.query<any[]>(`
+        SELECT COUNT(*) AS c
+        FROM admin_notification_queue
+        WHERE status IN ('SENT', 'SENDING')
+          AND NOT ${ORDERS_SQL}
+          AND ${BIRTHDAY_SQL}
+      `),
+      mysql.query<any[]>(`
+        SELECT COUNT(*) AS c
+        FROM admin_notification_queue
+        WHERE status IN ('SENT', 'SENDING') AND ${ORDERS_SQL}
+      `),
+      mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          title,
+          message,
+          target_group AS targetGroup,
+          recipient_count AS recipientCount,
+          send_at AS sendAt,
+          processed_at AS processedAt,
+          created_at AS createdAt,
+          IFNULL(category, 'general') AS category,
+          action_type AS actionType
+        FROM admin_notification_queue
+        WHERE ${baseWhere}
+        ${searchSql}
+        ORDER BY id DESC
+        LIMIT ?
+        OFFSET ?
+        `,
+        [...params, limit, offset],
+      ),
+    ]);
+
+  const total = Number(countRows?.[0]?.total || 0);
+  const totalBroadcasts = Number(sumRows?.[0]?.broadcasts || 0);
+  const totalDelivered = Number(sumRows?.[0]?.delivered || 0);
+  const generalCount = Number(generalCountRows?.[0]?.c || 0);
+  const birthdayCount = Number(birthdayCountRows?.[0]?.c || 0);
+  const ordersCount = Number(ordersCountRows?.[0]?.c || 0);
+
+  // Skip notifications.extra_data LIKE scans (full-table, caused Render 502).
+  // Delivered uses queue recipient_count; read stats show 0 until stored counters exist.
+  const items = (pageRows || []).map(row => {
+    const sentCount = Math.max(0, Number(row.recipientCount || 0));
     const category = resolveAnalyticsCategory(
       row.actionType,
       row.title,
       row.category,
     );
-    return {...row, resolvedCategory: category};
+    return {
+      id: Number(row.id),
+      title: row.title,
+      message: row.message,
+      targetGroup: row.targetGroup || 'all',
+      category,
+      actionType: row.actionType || 'ADMIN_BROADCAST',
+      sentAt: toIstAnalyticsStamp(
+        row.processedAt || row.sendAt || row.createdAt,
+      ),
+      sentCount,
+      readCount: 0,
+      unreadCount: sentCount,
+      readRate: 0,
+    };
   });
-
-  const generalRows = classified.filter(r => r.resolvedCategory === 'general');
-  const birthdayRows = classified.filter(r => r.resolvedCategory === 'birthday');
-  const ordersRows = classified.filter(r => r.resolvedCategory === 'orders');
-
-  let filtered = classified;
-  if (filter === 'general') {
-    filtered = generalRows;
-  } else if (filter === 'birthday' || filter === 'specific') {
-    filtered = birthdayRows;
-  } else if (filter === 'orders' || filter === 'order') {
-    filtered = ordersRows;
-  }
-
-  if (q) {
-    filtered = filtered.filter(row => {
-      const hay = [
-        row.title,
-        row.message,
-        row.targetGroup,
-        row.actionType,
-        row.resolvedCategory,
-      ]
-        .join(' ')
-        .toLowerCase();
-      return hay.includes(q);
-    });
-  }
-
-  const total = filtered.length;
-  const pageRows = filtered.slice(offset, offset + limit);
-  const statsById = await fetchInboxStatsForQueueIds(
-    pageRows.map(row => Number(row.id)),
-  );
-  const items = pageRows.map(row => mapAnalyticsRow(row, statsById));
-
-  // Summary for active tab uses recipient_count (fast). Read totals for the
-  // current page only are exact; overall read uses recipient-based estimate
-  // when full inbox scan would be too heavy.
-  const summarySource =
-    filter === 'general'
-      ? generalRows
-      : filter === 'birthday' || filter === 'specific'
-        ? birthdayRows
-        : filter === 'orders' || filter === 'order'
-          ? ordersRows
-          : classified;
-
-  let totalDelivered = 0;
-  summarySource.forEach(row => {
-    totalDelivered += Number(row.recipientCount || 0);
-  });
-  const pageDelivered = items.reduce((sum, it) => sum + it.sentCount, 0);
-  const pageRead = items.reduce((sum, it) => sum + it.readCount, 0);
-  const estimatedRead =
-    pageDelivered > 0
-      ? Math.round((pageRead / pageDelivered) * totalDelivered)
-      : 0;
-  const averageReadRate =
-    totalDelivered > 0 ? Math.round((estimatedRead / totalDelivered) * 100) : 0;
 
   return {
     summary: {
-      totalBroadcasts: summarySource.length,
+      totalBroadcasts,
       totalDelivered,
-      totalRead: estimatedRead,
-      totalUnread: Math.max(0, totalDelivered - estimatedRead),
-      averageReadRate,
-      generalCount: generalRows.length,
-      birthdayCount: birthdayRows.length,
-      ordersCount: ordersRows.length,
-      specificCount: birthdayRows.length,
+      totalRead: 0,
+      totalUnread: totalDelivered,
+      averageReadRate: 0,
+      generalCount,
+      birthdayCount,
+      ordersCount,
+      specificCount: birthdayCount,
     },
     items,
     page,

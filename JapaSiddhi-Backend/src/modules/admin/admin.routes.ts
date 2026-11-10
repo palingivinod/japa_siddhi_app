@@ -6270,7 +6270,7 @@ router.get('/rewards', async (req: Request, res: Response) => {
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(image_url, '') AS imageUrl
       FROM challenge_rewards
-      ORDER BY display_order ASC, id ASC
+      ORDER BY lower(name) ASC, id ASC
     `);
     return res.json({
       success: true,
