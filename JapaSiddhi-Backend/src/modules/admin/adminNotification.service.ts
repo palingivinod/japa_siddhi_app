@@ -555,8 +555,12 @@ const tryPush = async (
     // Android: data-only so JapaFirebaseMessagingService can draw MessagingStyle
     // with full-color logo on the LEFT. A system `notification` payload would
     // make the OS show only the small white icon and skip our custom tray.
-    const result = await admin.messaging().sendEachForMulticast({
-      tokens: unique.slice(0, 500),
+    // FCM multicast max is 500 — batch so meeting/all-user pushes aren't truncated.
+    const CHUNK = 500;
+    let pushSent = 0;
+    let pushFailed = 0;
+    let firstError: string | null = null;
+    const payloadBase = {
       data: {
         type: String(dataType || 'ADMIN_BROADCAST'),
         actionType: String(
@@ -568,7 +572,7 @@ const tryPush = async (
         ...safeExtra,
       },
       android: {
-        priority: 'high',
+        priority: 'high' as const,
       },
       apns: {
         headers: {
@@ -587,11 +591,23 @@ const tryPush = async (
           },
         },
       },
-    });
-    const pushSent = result.successCount || 0;
-    const pushFailed = result.failureCount || 0;
-    const firstError = (result.responses || []).find(r => !r.success)?.error
-      ?.message;
+    };
+    for (let i = 0; i < unique.length; i += CHUNK) {
+      const chunk = unique.slice(i, i + CHUNK);
+      const result = await admin.messaging().sendEachForMulticast({
+        tokens: chunk,
+        ...payloadBase,
+      });
+      pushSent += result.successCount || 0;
+      pushFailed += result.failureCount || 0;
+      if (!firstError) {
+        const err = (result.responses || []).find(r => !r.success)?.error
+          ?.message;
+        if (err) {
+          firstError = err;
+        }
+      }
+    }
     return {
       pushSent,
       pushFailed,

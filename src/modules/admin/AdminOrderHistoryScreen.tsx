@@ -86,6 +86,47 @@ const orderDateValue = (order: AdminOrder) => {
   return Number.isFinite(ms) ? ms : 0;
 };
 
+/** Order list timestamps without seconds (YYYY-MM-DD HH:mm IST wall). */
+const formatOrderWhen = (raw?: string | null): string => {
+  const str = String(raw || '').trim();
+  if (!str) {
+    return '';
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return str;
+  }
+  if (/Z$/i.test(str) || /[+-]\d{2}:\d{2}$/.test(str)) {
+    const ms = Date.parse(str.includes(' ') ? str.replace(' ', 'T') : str);
+    if (Number.isFinite(ms)) {
+      const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(new Date(ms));
+      const get = (type: string) =>
+        parts.find(part => part.type === type)?.value || '00';
+      let hour = get('hour');
+      if (hour === '24') {
+        hour = '00';
+      }
+      return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
+        'minute',
+      )}`;
+    }
+  }
+  const match = str.match(
+    /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2})?/,
+  );
+  if (match) {
+    return `${match[1]} ${match[2]}`;
+  }
+  return str.replace(/:\d{2}(?=\s|$)/, '').slice(0, 16);
+};
+
 const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter): boolean => {
   if (filterId === 'ALL') return true;
   if (filterId === 'REWARD') return order.orderGroup === 'reward';
@@ -519,7 +560,10 @@ const AdminOrderHistoryScreen = () => {
                 <Text selectable={true} style={styles.devoteeText}>Devotee: {order.customer}</Text>
                 {(order as any).createdAt || (order as any).date ? (
                   <Text selectable={true} style={styles.dateText}>
-                    Placed: {(order as any).createdAt || (order as any).date}
+                    Placed:{' '}
+                    {formatOrderWhen(
+                      (order as any).createdAt || (order as any).date,
+                    )}
                   </Text>
                 ) : null}
               </View>

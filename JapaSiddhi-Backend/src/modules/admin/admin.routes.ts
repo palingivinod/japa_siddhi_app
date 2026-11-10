@@ -3091,15 +3091,67 @@ const isNormalBaanalingamOrder = (row: any) => {
   );
 };
 
-const cleanTimestamp = (raw: any): string | null => {
-  if (!raw) return null;
-  const str = String(raw).trim();
-  if (!str) return null;
-  const match = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
-  if (match) {
-    return `${match[1]} ${match[2]}`;
+/** Format an instant as Asia/Kolkata wall clock without seconds. */
+const formatIstWallNoSeconds = (date: Date): string => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) =>
+    parts.find(part => part.type === type)?.value || '00';
+  let hour = get('hour');
+  if (hour === '24') {
+    hour = '00';
   }
-  return str.replace(/\.\d+.*$/, '').trim() || str;
+  return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get('minute')}`;
+};
+
+/**
+ * Order timestamps from Render Postgres are UTC. Convert once to IST wall
+ * (YYYY-MM-DD HH:mm) so admin UI does not show 12:xx for a 17:xx IST order.
+ */
+const cleanTimestamp = (raw: any): string | null => {
+  if (raw == null || raw === '') {
+    return null;
+  }
+  if (raw instanceof Date && Number.isFinite(raw.getTime())) {
+    return formatIstWallNoSeconds(raw);
+  }
+  const str = String(raw).trim();
+  if (!str) {
+    return null;
+  }
+  // Already tagged IST — keep wall clock, drop seconds.
+  if (/\+05:30$/.test(str)) {
+    const m = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? `${m[1]} ${m[2]}` : str.replace('T', ' ').slice(0, 16);
+  }
+  // Explicit UTC / offset → convert to IST.
+  if (/Z$/i.test(str) || /[+-]\d{2}:\d{2}$/.test(str)) {
+    const ms = Date.parse(str.includes(' ') ? str.replace(' ', 'T') : str);
+    if (Number.isFinite(ms)) {
+      return formatIstWallNoSeconds(new Date(ms));
+    }
+  }
+  // Naive "YYYY-MM-DD HH:mm[:ss]" from DB = UTC wall on Render.
+  const naive = str.match(
+    /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2}))?/,
+  );
+  if (naive) {
+    const sec = naive[3] || '00';
+    const ms = Date.parse(`${naive[1]}T${naive[2]}:${sec}Z`);
+    if (Number.isFinite(ms)) {
+      return formatIstWallNoSeconds(new Date(ms));
+    }
+    return `${naive[1]} ${naive[2]}`;
+  }
+  return str.replace(/\.\d+.*$/, '').replace('T', ' ').slice(0, 16) || null;
 };
 
 const mapOrderRow = (row: any) => {

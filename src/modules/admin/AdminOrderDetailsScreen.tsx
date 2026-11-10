@@ -75,17 +75,51 @@ const formatWhen = (raw?: string | null): string => {
   if (!str) {
     return '—';
   }
-  // Extract YYYY-MM-DD HH:mm:ss directly, removing microsecond fractions and timezone (+00 / Z)
-  const match = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
-  if (match) {
-    return `${match[1]} ${match[2]}`;
+
+  const toIstWall = (ms: number) => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date(ms));
+    const get = (type: string) =>
+      parts.find(part => part.type === type)?.value || '00';
+    let hour = get('hour');
+    if (hour === '24') {
+      hour = '00';
+    }
+    return `${get('year')}-${get('month')}-${get('day')} ${hour}:${get(
+      'minute',
+    )}`;
+  };
+
+  // Backend may already send IST wall (no zone) after cleanTimestamp fix.
+  if (/\+05:30$/.test(str)) {
+    const m = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    return m ? `${m[1]} ${m[2]}` : str.replace('T', ' ').slice(0, 16);
   }
-  const parsed = new Date(str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str);
+  if (/Z$/i.test(str) || /[+-]\d{2}:\d{2}$/.test(str)) {
+    const ms = Date.parse(str.includes(' ') ? str.replace(' ', 'T') : str);
+    if (Number.isFinite(ms)) {
+      return toIstWall(ms);
+    }
+  }
+  // Prefer backend IST wall "YYYY-MM-DD HH:mm" as-is (no second conversion).
+  const wall = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::\d{2})?/);
+  if (wall) {
+    return `${wall[1]} ${wall[2]}`;
+  }
+  const parsed = new Date(
+    str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str,
+  );
   if (!Number.isNaN(parsed.getTime())) {
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+    return toIstWall(parsed.getTime());
   }
-  return str.replace(/\.\d+.*$/, '').trim() || str;
+  return str.replace(/\.\d+.*$/, '').replace('T', ' ').slice(0, 16) || str;
 };
 
 const copyToClipboard = (text: string, label = 'Text') => {
@@ -525,7 +559,11 @@ const AdminOrderDetailsScreen = () => {
                 label="Devotee receipt"
                 value={
                   order.userReceived
-                    ? `Delivered ✓ (Confirmed by devotee${order.userReceivedAt ? ` at ${order.userReceivedAt}` : ''})`
+                    ? `Delivered ✓ (Confirmed by devotee${
+                        order.userReceivedAt
+                          ? ` at ${formatWhen(order.userReceivedAt)}`
+                          : ''
+                      })`
                     : 'Pending confirmation from devotee'
                 }
               />

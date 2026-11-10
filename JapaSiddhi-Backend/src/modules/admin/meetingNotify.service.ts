@@ -185,7 +185,8 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
         target: 'all',
         actionType: 'MEETING_SCHEDULED',
         extraData: {screen: 'Home', meetingTitle: title},
-        bypassHours: false,
+        // Class schedules should popup like LIVE — don't drop FCM in quiet hours.
+        bypassHours: true,
       });
       // New schedule → allow a fresh live-start push later.
       await appSettingsService.setSetting(LIVE_FP_KEY, '');
