@@ -2,8 +2,30 @@ import {ResultSetHeader} from 'mysql2';
 
 import mysql from '../../database/mysql';
 
+const bumpQueueReadCount = async (broadcastId: number, by = 1) => {
+  const id = Number(broadcastId || 0);
+  const delta = Math.max(0, Number(by || 0));
+  if (!id || !delta) {
+    return;
+  }
+  try {
+    await mysql.query(
+      `
+      UPDATE admin_notification_queue
+      SET read_count = IFNULL(read_count, 0) + ?
+      WHERE id = ?
+      `,
+      [delta, id],
+    );
+  } catch {
+    // Best-effort analytics counter.
+  }
+};
+
 class NotificationRepository {
   private expiresColumnReady = false;
+  private broadcastIdReady = false;
+  private broadcastBackfillRunning = false;
 
   private async ensureExpiresColumn() {
     if (this.expiresColumnReady) {
@@ -16,6 +38,138 @@ class NotificationRepository {
       );
     } catch {
       // Column already exists (SQLite / MySQL).
+    }
+    await this.ensureBroadcastIdColumn();
+  }
+
+  private async ensureBroadcastIdColumn() {
+    if (this.broadcastIdReady) {
+      return;
+    }
+    this.broadcastIdReady = true;
+    try {
+      await mysql.query(
+        `ALTER TABLE notifications ADD COLUMN broadcast_id INT NULL`,
+      );
+    } catch {
+      // Column already exists.
+    }
+    try {
+      await mysql.query(
+        `CREATE INDEX IF NOT EXISTS idx_notifications_broadcast_id ON notifications (broadcast_id)`,
+      );
+    } catch {
+      // MySQL < 8.0 may not support IF NOT EXISTS on indexes.
+      try {
+        await mysql.query(
+          `CREATE INDEX idx_notifications_broadcast_id ON notifications (broadcast_id)`,
+        );
+      } catch {
+        // Index already exists.
+      }
+    }
+    // Best-effort historical backfill (indexed reads; no analytics LIKE scans).
+    void this.kickBroadcastIdBackfill();
+  }
+
+  private parseBroadcastId(extraData: any): number {
+    if (!extraData) {
+      return 0;
+    }
+    let parsed = extraData;
+    if (typeof extraData === 'string') {
+      try {
+        parsed = JSON.parse(extraData);
+      } catch {
+        return 0;
+      }
+    }
+    const raw = parsed?.broadcastId ?? parsed?.queuedId ?? 0;
+    const id = Number(raw);
+    return Number.isFinite(id) && id > 0 ? id : 0;
+  }
+
+  private async kickBroadcastIdBackfill() {
+    if (this.broadcastBackfillRunning) {
+      return;
+    }
+    this.broadcastBackfillRunning = true;
+    try {
+      const engine = mysql.getEngineName() || 'sqlite';
+      for (let i = 0; i < 15; i++) {
+        let affected = 0;
+        if (engine === 'postgres') {
+          const result = await mysql.query<ResultSetHeader>(
+            `
+            UPDATE notifications AS n
+            SET broadcast_id = COALESCE(
+              NULLIF(substring(n.extra_data from '"broadcastId"[[:space:]]*:[[:space:]]*([0-9]+)'), '')::int,
+              NULLIF(substring(n.extra_data from '"queuedId"[[:space:]]*:[[:space:]]*([0-9]+)'), '')::int
+            )
+            FROM (
+              SELECT id
+              FROM notifications
+              WHERE broadcast_id IS NULL
+                AND extra_data IS NOT NULL
+                AND extra_data <> ''
+                AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
+              ORDER BY id DESC
+              LIMIT 800
+            ) AS batch
+            WHERE n.id = batch.id
+            `,
+          );
+          affected = Number(result?.affectedRows || 0);
+        } else if (engine === 'mysql') {
+          const result = await mysql.query<ResultSetHeader>(
+            `
+            UPDATE notifications
+            SET broadcast_id = COALESCE(
+              CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.broadcastId')) AS UNSIGNED),
+              CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.queuedId')) AS UNSIGNED)
+            )
+            WHERE broadcast_id IS NULL
+              AND extra_data IS NOT NULL
+              AND extra_data <> ''
+              AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
+            LIMIT 800
+            `,
+          );
+          affected = Number(result?.affectedRows || 0);
+        } else {
+          // sqlite: extract via app for a small recent batch
+          const rows = await mysql.query<any[]>(
+            `
+            SELECT id, extra_data AS extraData
+            FROM notifications
+            WHERE broadcast_id IS NULL
+              AND extra_data IS NOT NULL
+              AND extra_data <> ''
+              AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
+            ORDER BY id DESC
+            LIMIT 200
+            `,
+          );
+          for (const row of rows || []) {
+            const bid = this.parseBroadcastId(row.extraData);
+            if (!bid) {
+              continue;
+            }
+            await mysql.query(
+              `UPDATE notifications SET broadcast_id = ? WHERE id = ?`,
+              [bid, row.id],
+            );
+            affected += 1;
+          }
+        }
+        if (affected <= 0) {
+          break;
+        }
+      }
+    } catch {
+      // Non-blocking — analytics still uses stored queue.read_count.
+    } finally {
+      this.broadcastBackfillRunning = false;
     }
   }
 
@@ -159,6 +313,9 @@ class NotificationRepository {
   }): Promise<number> {
     await this.ensureExpiresColumn();
 
+    await this.ensureBroadcastIdColumn();
+    const broadcastId = this.parseBroadcastId(data.extraData);
+
     const result = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO notifications
@@ -170,10 +327,12 @@ class NotificationRepository {
         action_type,
         action_id,
         extra_data,
-        expires_at
+        expires_at,
+        broadcast_id
       )
       VALUES
       (
+        ?,
         ?,
         ?,
         ?,
@@ -193,6 +352,7 @@ class NotificationRepository {
         data.actionId ?? null,
         data.extraData ? JSON.stringify(data.extraData) : null,
         data.expiresAt ?? null,
+        broadcastId || null,
       ],
     );
 
@@ -285,7 +445,22 @@ class NotificationRepository {
     const nowExpr =
       engine === 'mysql' ? 'NOW()' : `datetime('now', 'localtime')`;
 
-    await mysql.query(
+    const before = await mysql.query<any[]>(
+      `
+      SELECT
+        IFNULL(is_read, 0) AS isRead,
+        broadcast_id AS broadcastId,
+        extra_data AS extraData
+      FROM notifications
+      WHERE id = ? AND user_id = ?
+      LIMIT 1
+      `,
+      [id, userId],
+    );
+    const prev = before?.[0];
+    const wasUnread = prev && Number(prev.isRead || 0) === 0;
+
+    const result = await mysql.query<ResultSetHeader>(
       `
       UPDATE notifications
       SET
@@ -318,6 +493,14 @@ class NotificationRepository {
       `,
       [id, userId],
     );
+
+    if (wasUnread && Number(result?.affectedRows || 0) > 0) {
+      const bid =
+        Number(prev?.broadcastId || 0) || this.parseBroadcastId(prev?.extraData);
+      if (bid) {
+        await bumpQueueReadCount(bid, 1);
+      }
+    }
   }
 
   async getUnreadCount(userId: number) {
@@ -515,7 +698,10 @@ class NotificationRepository {
       params.push(filters.actionId);
     }
     if (filters.broadcastId) {
-      matchClauses.push('(extra_data LIKE ? OR extra_data LIKE ?)');
+      matchClauses.push(
+        '(broadcast_id = ? OR extra_data LIKE ? OR extra_data LIKE ?)',
+      );
+      params.push(Number(filters.broadcastId));
       params.push(`%"broadcastId":${filters.broadcastId}%`);
       params.push(`%"queuedId":${filters.broadcastId}%`);
     }
@@ -524,7 +710,7 @@ class NotificationRepository {
       return;
     }
 
-    await mysql.query(
+    const result = await mysql.query<ResultSetHeader>(
       `
       UPDATE notifications
       SET
@@ -535,6 +721,11 @@ class NotificationRepository {
       `,
       params,
     );
+
+    const affected = Number(result?.affectedRows || 0);
+    if (affected > 0 && filters.broadcastId) {
+      await bumpQueueReadCount(Number(filters.broadcastId), affected);
+    }
   }
 
   async markActionAsRead(userId: number, actionType: string) {
@@ -570,6 +761,62 @@ class NotificationRepository {
       `,
       [userId],
     );
+  }
+
+  /** Ensure broadcast_id exists and kick a background backfill for analytics. */
+  async ensureBroadcastSchema(): Promise<void> {
+    await this.ensureBroadcastIdColumn();
+  }
+
+  /** Run one synchronous backfill batch so the first analytics page can show reads. */
+  async backfillBroadcastIdsOnce(limit = 800): Promise<number> {
+    await this.ensureBroadcastIdColumn();
+    const engine = mysql.getEngineName() || 'sqlite';
+    try {
+      if (engine === 'postgres') {
+        const result = await mysql.query<ResultSetHeader>(
+          `
+          UPDATE notifications AS n
+          SET broadcast_id = COALESCE(
+            NULLIF(substring(n.extra_data from '"broadcastId"[[:space:]]*:[[:space:]]*([0-9]+)'), '')::int,
+            NULLIF(substring(n.extra_data from '"queuedId"[[:space:]]*:[[:space:]]*([0-9]+)'), '')::int
+          )
+          FROM (
+            SELECT id
+            FROM notifications
+            WHERE broadcast_id IS NULL
+              AND extra_data IS NOT NULL
+              AND extra_data <> ''
+              AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
+            ORDER BY id DESC
+            LIMIT ${Math.max(1, Math.min(2000, Number(limit) || 800))}
+          ) AS batch
+          WHERE n.id = batch.id
+          `,
+        );
+        return Number(result?.affectedRows || 0);
+      }
+      if (engine === 'mysql') {
+        const result = await mysql.query<ResultSetHeader>(
+          `
+          UPDATE notifications
+          SET broadcast_id = COALESCE(
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.broadcastId')) AS UNSIGNED),
+            CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.queuedId')) AS UNSIGNED)
+          )
+          WHERE broadcast_id IS NULL
+            AND extra_data IS NOT NULL
+            AND extra_data <> ''
+            AND (extra_data LIKE '%broadcastId%' OR extra_data LIKE '%queuedId%')
+          LIMIT ${Math.max(1, Math.min(2000, Number(limit) || 800))}
+          `,
+        );
+        return Number(result?.affectedRows || 0);
+      }
+    } catch {
+      return 0;
+    }
+    return 0;
   }
 }
 

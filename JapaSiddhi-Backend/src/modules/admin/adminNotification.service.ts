@@ -2,6 +2,7 @@ import {ResultSetHeader} from 'mysql2';
 
 import mysql from '../../database/mysql';
 import {admin, isFirebaseReady} from '../../firebase/firebase';
+import notificationRepository from '../notification/notification.repository';
 import notificationService from '../notification/notification.service';
 
 export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked' | 'selected_users';
@@ -88,6 +89,13 @@ const ensureQueueTable = async () => {
   try {
     await mysql.query(
       `ALTER TABLE admin_notification_queue ADD COLUMN action_type VARCHAR(60) NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN read_count INT NOT NULL DEFAULT 0`,
     );
   } catch {
     // Column already exists.
@@ -1415,53 +1423,84 @@ export const resolveAnalyticsCategory = (
 
 /**
  * Analytics timestamps for admin UI in Asia/Kolkata.
- * DB/drivers on Render store/return UTC; convert and tag +05:30 so clients
- * do not shift the value a second time.
+ * Queue columns (send_at / processed_at) are written with nowIstStamp() —
+ * already IST wall clock. Drivers on UTC hosts often return DATETIME as a
+ * Date whose UTC fields equal that wall clock; do NOT run nowIstStamp again
+ * (that was adding +5:30 twice → e.g. 15:15 shown as 20:45).
  */
 export const toIstAnalyticsStamp = (raw: any): string => {
   if (raw == null || raw === '') {
     return '';
   }
 
-  const toTaggedIst = (date: Date) => {
-    const wall = nowIstStamp(date);
-    return `${wall.replace(' ', 'T')}+05:30`;
-  };
+  const tagWall = (year: string, time: string) =>
+    `${year}T${time}+05:30`;
+
+  const pad = (n: number) => String(n).padStart(2, '0');
 
   if (raw instanceof Date && Number.isFinite(raw.getTime())) {
-    return toTaggedIst(raw);
+    // IST wall stored in DATETIME → Date UTC components are the wall clock.
+    const wall = `${raw.getUTCFullYear()}-${pad(raw.getUTCMonth() + 1)}-${pad(
+      raw.getUTCDate(),
+    )} ${pad(raw.getUTCHours())}:${pad(raw.getUTCMinutes())}:${pad(
+      raw.getUTCSeconds(),
+    )}`;
+    const m = wall.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
+    return m ? tagWall(m[1], m[2]) : wall;
   }
+
   const str = String(raw).trim();
   if (!str) {
     return '';
   }
-  // Already tagged IST from a previous convert — keep wall clock stable.
+  // Already tagged IST — keep wall clock stable (no second shift).
   if (/\+05:30$/.test(str)) {
     const wall = str.replace('T', ' ').replace(/\+05:30$/, '').trim();
-    return `${wall.replace(' ', 'T')}+05:30`;
+    const m = wall.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/);
+    return m ? tagWall(m[1], m[2]) : `${wall.replace(' ', 'T')}+05:30`;
   }
-  if (
-    /^\d{4}-\d{2}-\d{2}T/.test(str) ||
-    /Z$/i.test(str) ||
-    /[+-]\d{2}:\d{2}$/.test(str)
-  ) {
+  // Explicit UTC / other offsets → convert once to IST wall.
+  if (/Z$/i.test(str) || /[+-]\d{2}:\d{2}$/.test(str)) {
     const ms = Date.parse(str);
     if (Number.isFinite(ms)) {
-      return toTaggedIst(new Date(ms));
+      const wall = nowIstStamp(new Date(ms));
+      const m = wall.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2})$/);
+      return m ? tagWall(m[1], m[2]) : wall;
     }
   }
-  // Naive "YYYY-MM-DD HH:mm:ss" is UTC wall-clock (e.g. 11:40 → 17:10 IST).
+  // Naive "YYYY-MM-DD HH:mm:ss" from queue = already IST wall.
   const naive = str.match(
     /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/,
   );
   if (naive) {
-    const asUtc = Date.parse(`${naive[1]}T${naive[2]}Z`);
-    if (Number.isFinite(asUtc)) {
-      return toTaggedIst(new Date(asUtc));
-    }
-    return `${naive[1]} ${naive[2]}`;
+    return tagWall(naive[1], naive[2]);
   }
   return str.replace('T', ' ').slice(0, 19);
+};
+
+/** Bump stored read counter when a devotee opens a broadcast inbox row. */
+export const incrementQueueReadCount = async (
+  broadcastId: number,
+  by = 1,
+) => {
+  const id = Number(broadcastId || 0);
+  const delta = Math.max(0, Number(by || 0));
+  if (!id || !delta) {
+    return;
+  }
+  try {
+    await ensureQueueTable();
+    await mysql.query(
+      `
+      UPDATE admin_notification_queue
+      SET read_count = IFNULL(read_count, 0) + ?
+      WHERE id = ?
+      `,
+      [delta, id],
+    );
+  } catch {
+    // Analytics counter is best-effort.
+  }
 };
 
 export const syncUnqueuedBatchesToAnalytics = async () => {
@@ -1593,6 +1632,9 @@ export const getNotificationAnalytics = async (opts?: {
   q?: string;
 }) => {
   await ensureQueueTable();
+  // Indexed broadcast_id + one sync batch so first page can show real reads.
+  await notificationRepository.ensureBroadcastSchema().catch(() => undefined);
+  await notificationRepository.backfillBroadcastIdsOnce(800).catch(() => undefined);
 
   const page = Math.max(1, Number(opts?.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(opts?.limit) || 30));
@@ -1633,7 +1675,8 @@ export const getNotificationAnalytics = async (opts?: {
         `
         SELECT
           COUNT(*) AS broadcasts,
-          IFNULL(SUM(IFNULL(recipient_count, 0)), 0) AS delivered
+          IFNULL(SUM(IFNULL(recipient_count, 0)), 0) AS delivered,
+          IFNULL(SUM(IFNULL(read_count, 0)), 0) AS total_read
         FROM admin_notification_queue
         WHERE ${baseWhere}
         ${searchSql}
@@ -1665,6 +1708,7 @@ export const getNotificationAnalytics = async (opts?: {
           message,
           target_group AS targetGroup,
           recipient_count AS recipientCount,
+          IFNULL(read_count, 0) AS readCount,
           send_at AS sendAt,
           processed_at AS processedAt,
           created_at AS createdAt,
@@ -1684,21 +1728,81 @@ export const getNotificationAnalytics = async (opts?: {
   const total = Number(countRows?.[0]?.total || 0);
   const totalBroadcasts = Number(sumRows?.[0]?.broadcasts || 0);
   const totalDelivered = Number(sumRows?.[0]?.delivered || 0);
+  let totalRead = Number(sumRows?.[0]?.total_read || 0);
   const generalCount = Number(generalCountRows?.[0]?.c || 0);
   const birthdayCount = Number(birthdayCountRows?.[0]?.c || 0);
   const ordersCount = Number(ordersCountRows?.[0]?.c || 0);
 
-  // Skip notifications.extra_data LIKE scans (full-table, caused Render 502).
-  // Delivered uses queue recipient_count; read stats show 0 until stored counters exist.
+  // Fast read counts via indexed notifications.broadcast_id (no extra_data LIKE).
+  const pageIds = (pageRows || [])
+    .map(row => Number(row.id))
+    .filter(id => Number.isFinite(id) && id > 0);
+  const liveReads = new Map<number, number>();
+  if (pageIds.length) {
+    try {
+      try {
+        await mysql.query(
+          `ALTER TABLE notifications ADD COLUMN broadcast_id INT NULL`,
+        );
+      } catch {
+        // Column already exists.
+      }
+      const placeholders = pageIds.map(() => '?').join(', ');
+      const readRows = await mysql.query<any[]>(
+        `
+        SELECT
+          broadcast_id AS bid,
+          SUM(CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END) AS reads
+        FROM notifications
+        WHERE broadcast_id IN (${placeholders})
+        GROUP BY broadcast_id
+        `,
+        pageIds,
+      );
+      for (const r of readRows || []) {
+        const bid = Number(r.bid || 0);
+        if (bid) {
+          liveReads.set(bid, Math.max(0, Number(r.reads || 0)));
+        }
+      }
+      // Persist live counts so summary totals stay cheap next time.
+      await Promise.all(
+        [...liveReads.entries()].map(([bid, reads]) =>
+          mysql
+            .query(
+              `
+              UPDATE admin_notification_queue
+              SET read_count = ?
+              WHERE id = ? AND IFNULL(read_count, 0) <> ?
+              `,
+              [reads, bid, reads],
+            )
+            .catch(() => undefined),
+        ),
+      );
+    } catch {
+      // Column may not exist yet on first boot; fall back to stored read_count.
+    }
+  }
+
   const items = (pageRows || []).map(row => {
     const sentCount = Math.max(0, Number(row.recipientCount || 0));
+    const id = Number(row.id);
+    const storedReads = Math.max(0, Number(row.readCount || 0));
+    const readCount = Math.min(
+      sentCount,
+      liveReads.has(id) ? Number(liveReads.get(id) || 0) : storedReads,
+    );
+    const unreadCount = Math.max(0, sentCount - readCount);
+    const readRate =
+      sentCount > 0 ? Math.round((readCount / sentCount) * 1000) / 10 : 0;
     const category = resolveAnalyticsCategory(
       row.actionType,
       row.title,
       row.category,
     );
     return {
-      id: Number(row.id),
+      id,
       title: row.title,
       message: row.message,
       targetGroup: row.targetGroup || 'all',
@@ -1708,19 +1812,30 @@ export const getNotificationAnalytics = async (opts?: {
         row.processedAt || row.sendAt || row.createdAt,
       ),
       sentCount,
-      readCount: 0,
-      unreadCount: sentCount,
-      readRate: 0,
+      readCount,
+      unreadCount,
+      readRate,
     };
   });
+
+  // Prefer page-synced totals when summary still shows 0 after cold deploy.
+  const pageReadSum = items.reduce((sum, item) => sum + item.readCount, 0);
+  if (totalRead <= 0 && pageReadSum > 0) {
+    totalRead = pageReadSum;
+  }
+  const totalUnread = Math.max(0, totalDelivered - totalRead);
+  const averageReadRate =
+    totalDelivered > 0
+      ? Math.round((totalRead / totalDelivered) * 1000) / 10
+      : 0;
 
   return {
     summary: {
       totalBroadcasts,
       totalDelivered,
-      totalRead: 0,
-      totalUnread: totalDelivered,
-      averageReadRate: 0,
+      totalRead,
+      totalUnread,
+      averageReadRate,
       generalCount,
       birthdayCount,
       ordersCount,
@@ -1743,5 +1858,6 @@ export default {
   mapTarget,
   nowIstStamp,
   toIstAnalyticsStamp,
+  incrementQueueReadCount,
   resolveAnalyticsCategory,
 };

@@ -130,32 +130,28 @@ const formatDate = (raw: string) => {
     )}:${get('second')}`;
   };
 
-  // Backend may already send IST with +05:30 — parse once, display wall clock.
+  // Backend already sends IST wall with +05:30 — show that clock (no second shift).
   if (/\+05:30$/.test(trimmed)) {
-    const ms = Date.parse(trimmed.includes('T') ? trimmed : trimmed.replace(' ', 'T'));
-    if (Number.isFinite(ms)) {
-      return toIstWall(ms);
-    }
+    return trimmed
+      .replace('T', ' ')
+      .replace(/\+05:30$/, '')
+      .trim()
+      .slice(0, 19);
   }
 
   const naive = trimmed.match(
     /^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2}:\d{2})/,
   );
-  const hasTz =
-    /T/.test(trimmed) ||
-    /Z$/i.test(trimmed) ||
-    /[+-]\d{2}:?\d{2}$/.test(trimmed);
-
-  let ms = NaN;
-  if (hasTz) {
-    ms = Date.parse(trimmed);
-  } else if (naive) {
-    // Old API/DB UTC wall without Z — e.g. 11:40:04 → 17:10:04 IST
-    ms = Date.parse(`${naive[1]}T${naive[2]}Z`);
+  // Naive queue stamps are already IST wall clock.
+  if (naive && !/Z$/i.test(trimmed) && !/[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    return `${naive[1]} ${naive[2]}`;
   }
 
-  if (Number.isFinite(ms)) {
-    return toIstWall(ms);
+  if (/Z$/i.test(trimmed) || /[+-]\d{2}:?\d{2}$/.test(trimmed)) {
+    const ms = Date.parse(trimmed);
+    if (Number.isFinite(ms)) {
+      return toIstWall(ms);
+    }
   }
 
   return trimmed.replace('T', ' ').slice(0, 19);
