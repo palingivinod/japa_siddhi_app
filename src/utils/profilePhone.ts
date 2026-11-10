@@ -44,13 +44,34 @@ export const resolveProfilePhone = (
     '';
   const digits = digitsOnly(String(raw || ''));
   let mobile = digits;
-  if (
+
+  // Country calling code (+91) is separate from the local number.
+  // Never strip leading "91" from a valid 10-digit Indian mobile
+  // (e.g. 9154835659 must stay 9154835659, not 54835659).
+  if (countryCode === '91') {
+    if (digits.length === MOBILE_DIGITS && /^[6-9]/.test(digits)) {
+      mobile = digits;
+    } else if (
+      digits.startsWith('91') &&
+      digits.length > MOBILE_DIGITS
+    ) {
+      // Stored as 91XXXXXXXXXX (12+) — drop country prefix only.
+      const stripped = digits.slice(2);
+      mobile =
+        stripped.length === MOBILE_DIGITS && /^[6-9]/.test(stripped)
+          ? stripped
+          : stripped.slice(-MOBILE_DIGITS);
+    } else {
+      mobile = digits.slice(-MOBILE_DIGITS);
+    }
+  } else if (
     digits.startsWith(countryCode) &&
     digits.length > countryCode.length + 5
   ) {
-    mobile = digits.slice(countryCode.length);
-  } else if (countryCode === '91') {
-    mobile = digits.slice(-MOBILE_DIGITS);
+    const stripped = digits.slice(countryCode.length);
+    // Keep original if stripping would leave an implausibly short number.
+    mobile =
+      stripped.length >= 6 ? stripped : digits;
   }
 
   return {
