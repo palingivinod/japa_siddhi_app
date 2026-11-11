@@ -315,8 +315,27 @@ class MilestoneRewardService {
     name: string;
     stock: number;
   }> {
-    const rewards = await challengeRepository.listRewards();
-    const found = (rewards || []).find((row: any) =>
+    // Prefer raw rows so we never re-insert over an admin OOS / existing Marakata.
+    try {
+      await mysql.query(
+        'ALTER TABLE challenge_rewards ADD COLUMN admin_marked_oos TINYINT(1) NOT NULL DEFAULT 0',
+      );
+    } catch {
+      // Column already exists.
+    }
+    const rawRows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        name,
+        CASE
+          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
+          ELSE stock
+        END AS stock
+      FROM challenge_rewards
+      `,
+    );
+    const found = (rawRows || []).find((row: any) =>
       isMarakataShivlingName(String(row.name || '')),
     );
     if (found) {
@@ -326,11 +345,23 @@ class MilestoneRewardService {
         stock: Number(found.stock || 0),
       };
     }
+    // First-time only — never recreate after admin marks OOS.
     await mysql.query(
-      `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
+      `INSERT INTO challenge_rewards (name, stock, is_active, display_order, admin_marked_oos) VALUES (?, ?, 1, ?, 0)`,
       [MARAKATA_SHIVLING_REWARD_NAME, 50, 9],
     );
-    const again = await challengeRepository.listRewards();
+    const again = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        name,
+        CASE
+          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
+          ELSE stock
+        END AS stock
+      FROM challenge_rewards
+      `,
+    );
     const created = (again || []).find((row: any) =>
       isMarakataShivlingName(String(row.name || '')),
     );

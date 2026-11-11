@@ -34,15 +34,9 @@ type SevaItem = {
   title: string;
   sub: string;
   route: BookingScreen;
-  freeDistribution?: boolean;
-  iniBracelets?: boolean;
 };
 
-const buildAllSevaShareText = (
-  items: SevaItem[],
-  freeDistributionLabel: string,
-  iniBraceletsLabel: string,
-) => {
+const buildAllSevaShareText = (items: SevaItem[]) => {
   const lines = [
     '🙏 Japa Siddhi – Bilva Patra Trust — Spiritual Services 🙏',
     '',
@@ -50,14 +44,7 @@ const buildAllSevaShareText = (
     '',
   ];
   items.forEach(item => {
-    let title = item.title;
-    if (item.freeDistribution) {
-      title = `${title} ${freeDistributionLabel}`;
-    }
-    if (item.iniBracelets) {
-      title = `${title} — ${iniBraceletsLabel}`;
-    }
-    lines.push(title);
+    lines.push(item.title);
     lines.push(publicBookingUrlForScreen(item.route));
     lines.push('');
   });
@@ -93,19 +80,15 @@ const SevaHubScreen = () => {
     }, []),
   );
 
-  const freeDistributionLabel =
-    t('freeDistribution') || '(Free Distribution)';
-  const iniBraceletsLabel = `${t('iniBracelets')} ${t('freeOfCost')}`;
+  const freeOfCostBracket = `(${t('freeOfCost')})`;
 
   const items = useMemo(() => {
     const all: SevaItem[] = [
       {
         icon: 'banalingam' as AppIconName,
-        title: t('tileBaanalingam'),
+        title: `${t('tileBaanalingam')} ${freeOfCostBracket}`,
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
-        freeDistribution: true,
-        iniBracelets: true,
       },
       {
         icon: 'bowl' as AppIconName,
@@ -121,38 +104,28 @@ const SevaHubScreen = () => {
       },
       {
         icon: 'ramakoti' as AppIconName,
-        title: t('tileRamakoti'),
+        title: `${t('tileRamakoti')} ${freeOfCostBracket}`,
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
-        freeDistribution: true,
-        iniBracelets: true,
       },
       {
         icon: 'homaBhasma' as AppIconName,
-        title: t('tileHomaBhasma'),
+        title: `${t('tileHomaBhasma')} ${freeOfCostBracket}`,
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
-        freeDistribution: true,
-        iniBracelets: true,
       },
       {
         icon: 'biravaPendant' as AppIconName,
-        title: t('tileBirava'),
+        title: `${t('tileBirava')} ${freeOfCostBracket}`,
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
-        freeDistribution: true,
-        iniBracelets: true,
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
-  }, [t, annadanamEnabled]);
+  }, [t, annadanamEnabled, freeOfCostBracket]);
 
   const handleShareAllSevas = async () => {
-    const message = buildAllSevaShareText(
-      items,
-      freeDistributionLabel,
-      iniBraceletsLabel,
-    );
+    const message = buildAllSevaShareText(items);
     try {
       (Clipboard as {setString?: (value: string) => void}).setString?.(message);
       if (Platform.OS === 'android') {
@@ -238,22 +211,8 @@ const SevaHubScreen = () => {
                 )}
               </View>
               <View style={styles.copy}>
-                <Text style={styles.title}>
-                  {item.title}
-                  {item.freeDistribution ? (
-                    <Text style={styles.freeDistribution}>
-                      {' '}
-                      {freeDistributionLabel}
-                    </Text>
-                  ) : null}
-                </Text>
+                <Text style={styles.title}>{item.title}</Text>
                 <Text style={styles.sub}>{item.sub}</Text>
-                {item.iniBracelets ? (
-                  <Text style={styles.iniBracelets}>
-                    {t('iniBracelets')}{' '}
-                    <Text style={styles.freeOfCost}>{t('freeOfCost')}</Text>
-                  </Text>
-                ) : null}
               </View>
             </TouchableOpacity>
           ))}
@@ -324,29 +283,11 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     includeFontPadding: true,
   },
-  freeDistribution: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
   sub: {
     marginTop: 2,
     color: '#4A3B2C',
     fontSize: 13,
     lineHeight: 18,
     includeFontPadding: true,
-  },
-  iniBracelets: {
-    marginTop: 2,
-    color: Colors.sacredBrown,
-    fontSize: 12.5,
-    lineHeight: 18,
-    fontWeight: '600',
-    includeFontPadding: true,
-  },
-  freeOfCost: {
-    fontWeight: '800',
-    color: Colors.sacredBrown,
   },
 });

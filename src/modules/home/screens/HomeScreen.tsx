@@ -368,12 +368,11 @@ const HomeScreen = () => {
         tone: 'gold' as const,
       },
       {
-        title: t('tileBaanalingam'),
+        title: `${t('tileBaanalingam')} (${t('freeOfCost')})`,
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
         icon: 'banalingam' as AppIconName,
         tone: 'green' as const,
-        iniBracelets: true,
       },
       {
         title: t('tileAnnadanam'),
@@ -397,28 +396,25 @@ const HomeScreen = () => {
         tone: 'green' as const,
       },
       {
-        title: t('tileRamakoti'),
+        title: `${t('tileRamakoti')} (${t('freeOfCost')})`,
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
         icon: 'ramakoti' as AppIconName,
         tone: 'gold' as const,
-        iniBracelets: true,
       },
       {
-        title: t('tileHomaBhasma'),
+        title: `${t('tileHomaBhasma')} (${t('freeOfCost')})`,
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
         icon: 'homaBhasma' as AppIconName,
         tone: 'green' as const,
-        iniBracelets: true,
       },
       {
-        title: t('tileBirava'),
+        title: `${t('tileBirava')} (${t('freeOfCost')})`,
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
         icon: 'biravaPendant' as AppIconName,
         tone: 'gold' as const,
-        iniBracelets: true,
       },
       {
         title: t('tileOrders'),
@@ -1244,12 +1240,6 @@ const HomeScreen = () => {
                 </View>
                 <Text style={styles.tileTitle}>{item.title}</Text>
                 <Text style={styles.tileSub}>{item.sub}</Text>
-                {(item as any).iniBracelets ? (
-                  <Text style={styles.tileIniBracelets}>
-                    {t('iniBracelets')}{' '}
-                    <Text style={styles.tileFreeOfCost}>{t('freeOfCost')}</Text>
-                  </Text>
-                ) : null}
               </TouchableOpacity>
             ))}
           </View>
@@ -1939,17 +1929,5 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     includeFontPadding: false,
     paddingBottom: 2,
-  },
-  tileIniBracelets: {
-    marginTop: 4,
-    color: Colors.sacredBrown,
-    fontSize: 12.5,
-    lineHeight: 18,
-    fontWeight: '600',
-    includeFontPadding: false,
-  },
-  tileFreeOfCost: {
-    fontWeight: '800',
-    color: Colors.sacredBrown,
   },
 });

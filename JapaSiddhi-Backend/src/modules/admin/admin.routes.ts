@@ -6186,18 +6186,40 @@ const ensureRewardColumns = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    await mysql.query(
+      'ALTER TABLE challenge_rewards ADD COLUMN admin_marked_oos TINYINT(1) NOT NULL DEFAULT 0',
+    );
+  } catch {
+    // Column already exists.
+  }
+  try {
+    // Existing stock=0 rows were admin OOS before this flag existed — keep them sticky.
+    await mysql.query(
+      `UPDATE challenge_rewards SET admin_marked_oos = 1 WHERE IFNULL(stock, 0) <= 0 AND IFNULL(admin_marked_oos, 0) = 0`,
+    );
+  } catch {
+    // Ignore backfill errors on older schemas.
+  }
 };
 const ensureRewardImageColumn = ensureRewardColumns;
 
 const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
   const path = String(row.imageUrl || row.image_url || '').trim();
+  const stock = Number(row.stock || 0);
+  const adminMarkedOos =
+    Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+  // Admin OOS sticks until admin explicitly sets In Stock (stock > 0 clears the flag).
+  const effectiveStock = adminMarkedOos ? 0 : stock;
   return {
     id: String(row.id),
     name: String(row.name || ''),
     title: String(row.name || ''),
     description: String(row.description || ''),
     eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-    stock: Number(row.stock || 0),
+    stock: effectiveStock,
+    inStock: !adminMarkedOos && effectiveStock > 0,
+    adminMarkedOos,
     active: Number(row.isActive ?? row.is_active ?? 1) === 1,
     imageUrl: absoluteUrl || path || null,
     imagePath: path || null,
@@ -6233,20 +6255,19 @@ const CANONICAL_REWARDS = [
 
 const ensureRewardSeed = async () => {
   try {
+    await ensureRewardColumns();
     const existingRows = await mysql.query<any[]>(
-      `SELECT id, name, display_order FROM challenge_rewards`,
+      `SELECT id, name, display_order, stock, IFNULL(admin_marked_oos, 0) AS adminMarkedOos FROM challenge_rewards`,
     );
     const existingList = Array.isArray(existingRows) ? existingRows : [];
-
-    await ensureRewardColumns();
 
     if (existingList.length === 0) {
       for (const item of CANONICAL_REWARDS) {
         await mysql.query(
           `
           INSERT INTO challenge_rewards
-            (name, stock, is_active, display_order, description, eligibility_criteria)
-          VALUES (?, ?, 1, ?, ?, ?)
+            (name, stock, is_active, display_order, description, eligibility_criteria, admin_marked_oos)
+          VALUES (?, ?, 1, ?, ?, ?, 0)
           `,
           [item.name, item.stock, item.order, item.description, item.eligibility],
         );
@@ -6254,7 +6275,8 @@ const ensureRewardSeed = async () => {
       return;
     }
 
-    // Match each canonical reward with existing items or insert if missing
+    // Match each canonical reward with existing items or insert if missing.
+    // Never touch stock / admin_marked_oos — OOS stays until admin sets In Stock.
     for (const item of CANONICAL_REWARDS) {
       const itemIsShivling = isMarakataShivlingRewardName(item.name);
       const match = existingList.find((r: any) => {
@@ -6271,7 +6293,7 @@ const ensureRewardSeed = async () => {
       });
 
       if (match) {
-        // Fill missing eligibility/description from canonical; keep admin overrides.
+        // Fill missing eligibility/description from canonical; keep admin stock/OOS.
         await mysql.query(
           `
           UPDATE challenge_rewards
@@ -6292,11 +6314,29 @@ const ensureRewardSeed = async () => {
           [item.name, item.order, item.description, item.eligibility, match.id],
         );
       } else {
+        // Do not re-create a reward that admin already marked OOS under a close name.
+        const oosTwin = existingList.find((r: any) => {
+          if (Number(r.adminMarkedOos || 0) !== 1 && Number(r.stock || 0) > 0) {
+            return false;
+          }
+          const rowName = String(r.name || '').toLowerCase().trim();
+          const rowIsShivling = isMarakataShivlingRewardName(rowName);
+          if (itemIsShivling !== rowIsShivling) {
+            return false;
+          }
+          return (
+            rowName === item.name.toLowerCase() ||
+            item.aliases.some(alias => rowName.includes(alias))
+          );
+        });
+        if (oosTwin) {
+          continue;
+        }
         await mysql.query(
           `
           INSERT INTO challenge_rewards
-            (name, stock, is_active, display_order, description, eligibility_criteria)
-          VALUES (?, ?, 1, ?, ?, ?)
+            (name, stock, is_active, display_order, description, eligibility_criteria, admin_marked_oos)
+          VALUES (?, ?, 1, ?, ?, ?, 0)
           `,
           [item.name, item.stock, item.order, item.description, item.eligibility],
         );
@@ -6320,7 +6360,8 @@ router.get('/rewards', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
-        IFNULL(image_url, '') AS imageUrl
+        IFNULL(image_url, '') AS imageUrl,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       ORDER BY lower(name) ASC, id ASC
     `);
@@ -6386,7 +6427,8 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
-        IFNULL(image_url, '') AS imageUrl
+        IFNULL(image_url, '') AS imageUrl,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -6397,6 +6439,16 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       return res.status(404).json({success: false, message: 'Reward not found.'});
     }
 
+    const nextStock =
+      stock === undefined ? Number(current[0].stock || 0) : stock;
+    // Out of Stock sticks until admin explicitly sets In Stock (stock > 0).
+    const nextAdminOos =
+      stock === undefined
+        ? Number(current[0].adminMarkedOos || 0)
+        : stock <= 0
+          ? 1
+          : 0;
+
     await mysql.query(
       `
       UPDATE challenge_rewards
@@ -6405,6 +6457,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         description = ?,
         eligibility_criteria = ?,
         stock = ?,
+        admin_marked_oos = ?,
         is_active = ?,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
@@ -6417,7 +6470,8 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         eligibilityCriteria !== undefined
           ? eligibilityCriteria
           : Number(current[0].eligibilityCriteria || 0),
-        stock === undefined ? Number(current[0].stock || 0) : stock,
+        nextStock,
+        nextAdminOos,
         active === undefined
           ? Number(current[0].isActive ?? 1)
           : active
@@ -6437,7 +6491,8 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
-        IFNULL(image_url, '') AS imageUrl
+        IFNULL(image_url, '') AS imageUrl,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -6564,7 +6619,8 @@ router.post('/rewards', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
-        IFNULL(image_url, '') AS imageUrl
+        IFNULL(image_url, '') AS imageUrl,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       ORDER BY id DESC
       LIMIT 1

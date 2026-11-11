@@ -478,8 +478,15 @@ class ChallengeRepository {
 
   async listRewards() {
     try {
+      try {
+        await mysql.query(
+          'ALTER TABLE challenge_rewards ADD COLUMN admin_marked_oos TINYINT(1) NOT NULL DEFAULT 0',
+        );
+      } catch {
+        // Column already exists.
+      }
       const existingRows = await mysql.query<any[]>(
-        `SELECT id, name, display_order FROM challenge_rewards`,
+        `SELECT id, name, display_order, stock, IFNULL(admin_marked_oos, 0) AS adminMarkedOos FROM challenge_rewards`,
       );
       const existingList = Array.isArray(existingRows) ? existingRows : [];
       const canonicalItems = [
@@ -526,6 +533,7 @@ class ChallengeRepository {
         );
       };
 
+      // Insert missing canonical rows only. Never overwrite stock / admin OOS.
       for (const item of canonicalItems) {
         const found = existingList.find((r: any) => {
           const rowName = String(r.name || '').toLowerCase().trim();
@@ -536,7 +544,7 @@ class ChallengeRepository {
         });
         if (!found) {
           await mysql.query(
-            `INSERT INTO challenge_rewards (name, stock, is_active, display_order) VALUES (?, ?, 1, ?)`,
+            `INSERT INTO challenge_rewards (name, stock, is_active, display_order, admin_marked_oos) VALUES (?, ?, 1, ?, 0)`,
             [item.name, item.stock, item.order],
           );
         }
@@ -550,12 +558,16 @@ class ChallengeRepository {
       SELECT
         id,
         name,
-        stock,
+        CASE
+          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
+          ELSE stock
+        END AS stock,
         is_active AS isActive,
         display_order AS displayOrder,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
-        IFNULL(image_url, '') AS imageUrl
+        IFNULL(image_url, '') AS imageUrl,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       ORDER BY display_order ASC, id ASC
       `,
@@ -624,9 +636,15 @@ class ChallengeRepository {
     await mysql.query(
       `
       UPDATE challenge_rewards
-      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+      SET stock = CASE
+            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
+            WHEN stock > 0 THEN stock - 1
+            ELSE 0
+          END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
+        AND IFNULL(admin_marked_oos, 0) = 0
+        AND stock > 0
       `,
       [rewardId],
     );
