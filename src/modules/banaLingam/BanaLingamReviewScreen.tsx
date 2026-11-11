@@ -65,11 +65,25 @@ const BanaLingamReviewScreen = () => {
       );
     } catch (error) {
       const msg = getApiError(error, t('couldNotSubmitApplication'));
+      const lower = msg.toLowerCase();
+      const isGharGhar =
+        lower.includes('ghar ghar mahadev') ||
+        lower.includes('only one shiva linga') ||
+        lower.includes('not eligible to order');
       const isPendingOrder =
-        msg.toLowerCase().includes('already one order') ||
-        msg.toLowerCase().includes('in progress') ||
-        msg.toLowerCase().includes('in review');
-      if (isPendingOrder) {
+        lower.includes('already one order') ||
+        lower.includes('in progress') ||
+        lower.includes('in review');
+      if (isGharGhar) {
+        const item = lower.includes('marakata')
+          ? t('marakataShivlingItemName') || 'Marakata Shivling'
+          : t('baanalingamItemName') || 'Baanalingam';
+        Alert.alert(
+          t('shivaLingaNotEligibleTitle') || 'Not eligible',
+          t('shivaLingaAlreadyOrderedMessage', {item}) || msg,
+          [{text: t('ok'), style: 'cancel'}],
+        );
+      } else if (isPendingOrder) {
         Alert.alert(
           t('banaLingamPendingOrderTitle'),
           t('banaLingamPendingOrderMessage'),

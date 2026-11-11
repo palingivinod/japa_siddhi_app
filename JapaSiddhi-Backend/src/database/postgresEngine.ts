@@ -1018,6 +1018,7 @@ class PostgresEngine {
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS image_url TEXT;
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS description TEXT;
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS eligibility_criteria INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_shiva_linga_reorder INTEGER NOT NULL DEFAULT 0;
       `);
     } catch {
       // Ignore migration errors if already present

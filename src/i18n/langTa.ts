@@ -52,6 +52,9 @@ export const ta: TranslationDict = {
   freeDistribution: '(இலவச விநியோகம்)',
   iniBracelets: 'இனி வளையல்கள்',
   freeOfCost: 'இலவசம்',
+  rewardAddressDisclaimerTitle: 'பொறுப்புத்துறப்பு',
+  rewardAddressDisclaimerBody:
+    'முகவரி முழுமையாகவும் தெளிவாகவும் இல்லையெனில் அறக்கட்டளை பரிசுகளை அனுப்பாது. அதிக அளவு அனுப்புதல் காரணமாக முகவரியைத் திருத்த பக்தருடன் தனிப்பட்ட தொடர்பு கொள்ளப்படாது. தெளிவான, விரிவான முகவரியை அனுப்புவது முழுவதும் பக்தரின் பொறுப்பு.',
   completeDetailsTitle: 'விவரங்களை முடிக்கவும்',
   completeDetailsSubtitle:
     'தொடர உங்கள் மொபைல் எண், பிறந்த தேதி மற்றும் திரு / திருமதி ஆகியவற்றை அளிக்கவும்.',
@@ -59,7 +62,9 @@ export const ta: TranslationDict = {
   selectMrOrMrs: 'தயவுசெய்து திரு அல்லது திருமதி தேர்வு செய்யவும்',
   enterValidIndianMobile: 'செல்லுபடியாகும் 10 இலக்க இந்திய மொபைல் எண்ணை உள்ளிடவும்',
   shippedOrderNotifyLink:
-    'இந்த ஆர்டர் குறித்து உங்களுக்கு அறிவிப்பு உள்ளது. பார்க்க இங்கே தட்டவும்.',
+    'உங்கள் ஆர்டர் குறித்து புதிய அறிவிப்பு உள்ளது\nபார்க்க இங்கே தட்டவும்',
+  shippedOrderNotifyLine1: 'உங்கள் ஆர்டர் குறித்து புதிய அறிவிப்பு உள்ளது',
+  shippedOrderNotifyLine2: 'பார்க்க இங்கே தட்டவும்',
   shippedOrderConfirmCopy:
     'ஆர்டர் கிடைத்ததை உறுதிப்படுத்தவும். உறுதிப்படுத்தும் வரை புதிய ஆர்டர் செய்ய முடியாது.',
   yesIReceivedMyOrder: 'ஆம், என் ஆர்டர் கிடைத்தது',
@@ -583,7 +588,7 @@ export const ta: TranslationDict = {
     'தயவுசெய்து உங்கள் குடும்பப் பெயர்கள் மற்றும் கோத்திரத்தை உள்ளிடவும்',
   generalCommentsPlaceholder:
     'ஏதேனும் சிறப்பு கோரிக்கைகள் அல்லது குறிப்புகளை உள்ளிடவும் (விருப்பத்திற்குரியது)',
-  tileMonthlySupport: 'மாதாந்திர உதவி (இப்போதே தானம் செய்யுங்கள்)',
+  tileMonthlySupport: 'மாதாந்திர தானம்',
   tileMonthlySupportSub: 'ஆன்மீக ஆதரவு',
   perMonth: '/ மாதம்',
   monthlySupportNote:

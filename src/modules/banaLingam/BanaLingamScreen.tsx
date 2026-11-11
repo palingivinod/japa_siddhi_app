@@ -86,20 +86,39 @@ const BanaLingamScreen = () => {
         }
 
         const allOrders = ordersRes?.data?.data || [];
-        const undeliveredOrder = allOrders.find((ord: any) => {
+        const isBanaOrder = (ord: any) => {
           const type = String(ord.orderType || '').toUpperCase();
           const name = String(ord.itemName || '').toLowerCase();
           const num = String(ord.orderNumber || '').toUpperCase();
-          const isBana =
+          return (
             type === 'BANA_LINGAM' ||
             name.includes('baanalingam') ||
             name.includes('banalingam') ||
             num.startsWith('BL-') ||
-            num.startsWith('#BL-');
-          const status = String(ord.orderStatus || ord.status || '').toUpperCase();
-          const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
-          return isBana && !isFinished;
+            num.startsWith('#BL-')
+          );
+        };
+        const isMarakataOrder = (ord: any) => {
+          const name = String(ord.itemName || '').toLowerCase();
+          return (
+            (name.includes('marakata') || name.includes('marakatha')) &&
+            (name.includes('shiv') || name.includes('ling'))
+          );
+        };
+        const statusOf = (ord: any) =>
+          String(ord.orderStatus || ord.status || '').toUpperCase();
+
+        const undeliveredOrder = allOrders.find((ord: any) => {
+          const status = statusOf(ord);
+          return isBanaOrder(ord) && status !== 'DELIVERED' && status !== 'CANCELLED';
         });
+        // Lifetime lock: any non-cancelled Baanalingam / Marakata (Ghar Ghar Mahadev).
+        const lifetimeBana = allOrders.find(
+          (ord: any) => isBanaOrder(ord) && statusOf(ord) !== 'CANCELLED',
+        );
+        const lifetimeMarakata = allOrders.find(
+          (ord: any) => isMarakataOrder(ord) && statusOf(ord) !== 'CANCELLED',
+        );
 
         if (undeliveredOrder) {
           setHasActiveOrder(true);
@@ -117,6 +136,24 @@ const BanaLingamScreen = () => {
                 style: 'cancel',
               },
             ],
+          );
+        } else if (
+          (lifetimeBana || lifetimeMarakata) &&
+          !Boolean(
+            (profile as any)?.allowShivaLingaReorder ||
+              (profile as any)?.allow_shiva_linga_reorder,
+          )
+        ) {
+          setHasActiveOrder(true);
+          setActiveOrder(lifetimeBana || lifetimeMarakata);
+          const item = lifetimeBana
+            ? t('baanalingamItemName') || 'Baanalingam'
+            : t('marakataShivlingItemName') || 'Marakata Shivling';
+          Alert.alert(
+            t('shivaLingaNotEligibleTitle') || 'Not eligible',
+            t('shivaLingaAlreadyOrderedMessage', {item}) ||
+              `You have already ordered/received ${item}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.`,
+            [{text: t('ok'), style: 'cancel'}],
           );
         } else {
           setHasActiveOrder(false);

@@ -52,6 +52,9 @@ export const kn: TranslationDict = {
   freeDistribution: '(ಉಚಿತ ವಿತರಣೆ)',
   iniBracelets: 'ಇನಿ ಬ್ರೇಸ್‌ಲೆಟ್‌ಗಳು',
   freeOfCost: 'ಉಚಿತ',
+  rewardAddressDisclaimerTitle: 'ಹಕ್ಕುತ್ಯಾಗ',
+  rewardAddressDisclaimerBody:
+    'ವಿಳಾಸವು ಪೂರ್ಣ ಮತ್ತು ಸ್ಪಷ್ಟವಾಗಿ ನೀಡದಿದ್ದರೆ ಟ್ರಸ್ಟ್ ಬಹುಮಾನಗಳನ್ನು ಕಳುಹಿಸುವುದಿಲ್ಲ. ಹೆಚ್ಚಿನ ಪ್ರಮಾಣದ ಕಳುಹಿಸುವಿಕೆಯಿಂದಾಗಿ ವಿಳಾಸ ಸರಿಪಡಿಸಲು ಭಕ್ತರೊಂದಿಗೆ ವೈಯಕ್ತಿಕ ಸಂಪರ್ಕ ಮಾಡಲಾಗುವುದಿಲ್ಲ. ಸ್ಪಷ್ಟ ಮತ್ತು ವಿವರವಾದ ವಿಳಾಸ ಕಳುಹಿಸುವುದು ಸಂಪೂರ್ಣವಾಗಿ ಭಕ್ತರ ಜವಾಬ್ದಾರಿ.',
   completeDetailsTitle: 'ವಿವರಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ',
   completeDetailsSubtitle:
     'ಮುಂದುವರಿಸಲು ದಯವಿಟ್ಟು ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ, ಜನ್ಮ ದಿನಾಂಕ ಮತ್ತು ಶ್ರೀ / ಶ್ರೀಮತಿ ಆಯ್ಕೆಮಾಡಿ.',
@@ -59,7 +62,9 @@ export const kn: TranslationDict = {
   selectMrOrMrs: 'ದಯವಿಟ್ಟು ಶ್ರೀ ಅಥವಾ ಶ್ರೀಮತಿ ಆಯ್ಕೆಮಾಡಿ',
   enterValidIndianMobile: 'ದಯವಿಟ್ಟು 10 ಅಂಕಿಯ ಮಾನ್ಯ ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ',
   shippedOrderNotifyLink:
-    'ಈ ಆರ್ಡರ್ ಬಗ್ಗೆ ನಿಮಗೆ ಒಂದು ಅಧಿಸೂಚನೆ ಇದೆ. ನೋಡಲು ಇಲ್ಲಿ ಟ್ಯಾಪ್ ಮಾಡಿ.',
+    'ನಿಮ್ಮ ಆರ್ಡರ್ ಬಗ್ಗೆ ಹೊಸ ಅಧಿಸೂಚನೆ ಇದೆ\nನೋಡಲು ಇಲ್ಲಿ ಟ್ಯಾಪ್ ಮಾಡಿ',
+  shippedOrderNotifyLine1: 'ನಿಮ್ಮ ಆರ್ಡರ್ ಬಗ್ಗೆ ಹೊಸ ಅಧಿಸೂಚನೆ ಇದೆ',
+  shippedOrderNotifyLine2: 'ನೋಡಲು ಇಲ್ಲಿ ಟ್ಯಾಪ್ ಮಾಡಿ',
   shippedOrderConfirmCopy:
     'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಆರ್ಡರ್ ಸಿಕ್ಕಿದೆಯೆಂದು ದೃಢೀಕರಿಸಿ. ದೃಢೀಕರಿಸುವವರೆಗೆ ನೀವು ಹೊಸ ಆರ್ಡರ್ ಮಾಡಲಾಗುವುದಿಲ್ಲ.',
   yesIReceivedMyOrder: 'ಹೌದು, ನನ್ನ ಆರ್ಡರ್ ಸಿಕ್ಕಿದೆ',
@@ -582,7 +587,7 @@ export const kn: TranslationDict = {
     'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಕುಟುಂಬದ ಹೆಸರುಗಳು ಮತ್ತು ಗೋತ್ರವನ್ನು ನಮೂದಿಸಿ',
   generalCommentsPlaceholder:
     'ಯಾವುದೇ ವಿಶೇಷ ವಿನಂತಿಗಳು ಅಥವಾ ಟಿಪ್ಪಣಿಗಳನ್ನು ನಮೂದಿಸಿ (ಐಚ್ಛಿಕ)',
-  tileMonthlySupport: 'ಮಾಸಿಕ ಸಹಾಯ (ಈಗಲೇ ದಾನ ಮಾಡಿ)',
+  tileMonthlySupport: 'ಮಾಸಿಕ ದಾನ',
   tileMonthlySupportSub: 'ಆಧ್ಯಾತ್ಮಿಕ ಬೆಂಬಲ',
   perMonth: '/ ತಿಂಗಳಿಗೆ',
   monthlySupportNote:

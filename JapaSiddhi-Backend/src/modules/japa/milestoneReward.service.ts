@@ -470,8 +470,14 @@ class MilestoneRewardService {
   async claimMarakataShivling(userId: number, rewardId: number, delivery: MilestoneDelivery) {
     await this.ensureTable();
     await this.ensureRelativeBaselineTable();
+    const {
+      default: shivaLingaEligibilityService,
+    } = await import('../orders/shivaLingaEligibility.service');
+    const {allowReorder} =
+      await shivaLingaEligibilityService.assertCanOrderMarakata(userId);
+
     const status = await this.getMarakataShivlingStatus(userId);
-    if (status.claimed) {
+    if (status.claimed && !allowReorder) {
       return {
         alreadySubmitted: true,
         target: MARAKATA_SHIVLING_CLAIM_TARGET,
@@ -503,6 +509,7 @@ class MilestoneRewardService {
     }
 
     // Same cancel-retry rules as other milestone rewards (user or admin cancel).
+    // Admin "allow shiva linga reorder" grants another chance after the usual 2.
     return this.claimRelativeWithTarget(
       userId,
       MARAKATA_SHIVLING_CLAIM_TARGET,
@@ -510,6 +517,7 @@ class MilestoneRewardService {
       rewardId,
       String(reward.name || MARAKATA_SHIVLING_REWARD_NAME),
       delivery,
+      {adminReorderAllowed: allowReorder},
     );
   }
 
@@ -520,6 +528,7 @@ class MilestoneRewardService {
     rewardId: number,
     rewardName: string,
     delivery: MilestoneDelivery,
+    options?: {adminReorderAllowed?: boolean},
   ) {
     const existing = await mysql.query<any[]>(
       `
@@ -541,12 +550,17 @@ class MilestoneRewardService {
 
     const existingClaim = existing?.[0];
     let isRetry = false;
+    const adminReorder = Boolean(options?.adminReorderAllowed);
 
     if (existingClaim?.orderId) {
       const orderStatus = String(existingClaim.orderStatus || '').toUpperCase();
       const retryCount = Number(existingClaim.retryCount || 0);
-      // Active / delivered → blocked. Cancelled once (user or admin) → 1 retry. Retry used → blocked.
-      if (orderStatus !== 'CANCELLED') {
+      // Active (not cancelled / not delivered) → always blocked.
+      if (
+        orderStatus !== 'CANCELLED' &&
+        orderStatus !== 'DELIVERED' &&
+        orderStatus !== ''
+      ) {
         return {
           alreadySubmitted: true,
           target: claimTarget,
@@ -556,7 +570,8 @@ class MilestoneRewardService {
           orderNumber: String(existingClaim.orderNumber || ''),
         };
       }
-      if (retryCount >= 1) {
+      // Delivered → blocked unless admin toggle allows another order.
+      if (orderStatus === 'DELIVERED' && !adminReorder) {
         return {
           alreadySubmitted: true,
           target: claimTarget,
@@ -566,7 +581,24 @@ class MilestoneRewardService {
           orderNumber: String(existingClaim.orderNumber || ''),
         };
       }
-      isRetry = true;
+      // Cancelled: default 1 retry (2 chances). Admin toggle unlocks further retries.
+      if (orderStatus === 'CANCELLED' && retryCount >= 1 && !adminReorder) {
+        return {
+          alreadySubmitted: true,
+          target: claimTarget,
+          title,
+          rewardName: String(existingClaim.rewardName || ''),
+          orderId: Number(existingClaim.orderId),
+          orderNumber: String(existingClaim.orderNumber || ''),
+        };
+      }
+      if (orderStatus === 'DELIVERED' && adminReorder) {
+        isRetry = true;
+      } else if (orderStatus === 'CANCELLED') {
+        isRetry = true;
+      } else if (adminReorder) {
+        isRetry = true;
+      }
     }
 
     const stockRows = await mysql.query<any[]>(

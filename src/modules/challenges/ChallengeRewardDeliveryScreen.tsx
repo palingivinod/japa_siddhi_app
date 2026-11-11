@@ -27,6 +27,7 @@ import {
 } from '../../utils/profilePhone';
 import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import {CountryItem} from '../../constants/countries';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 
 const ChallengeRewardDeliveryScreen = () => {
   const navigation = useNavigation<any>();
@@ -46,6 +47,7 @@ const ChallengeRewardDeliveryScreen = () => {
   const [pinCode, setPinCode] = useState('');
   const [detectingPin, setDetectingPin] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -163,35 +165,45 @@ const ChallengeRewardDeliveryScreen = () => {
       Alert.alert(t('rewards'), t('missingChallengeDetails'));
       return;
     }
-    setSaving(true);
-    try {
-      const response = await apiService.post(
-        `/challenges/${challengeId}/rewards/delivery`,
-        {
-          fullName: fullName.trim(),
-          mobile: mobile.trim(),
-          mobileCountryCode: countryCode,
-          address: address.trim(),
-          city: city.trim(),
-          state: state.trim(),
-          pinCode: pinCode.trim(),
-        },
-      );
-      const data = response.data?.data || {};
-      navigation.replace('ChallengeRewardOrderCreated', {
-        id: challengeId,
-        rewardName: data.rewardName || rewardName,
-        orderId: data.orderId,
-        orderNumber: data.orderNumber,
-      });
-    } catch (err) {
-      Alert.alert(
-        t('deliveryTitle'),
-        getApiError(err, t('couldNotSaveDelivery')),
-      );
-    } finally {
-      setSaving(false);
+    const placeDelivery = async () => {
+      setDisclaimerAccepted(true);
+      setSaving(true);
+      try {
+        const response = await apiService.post(
+          `/challenges/${challengeId}/rewards/delivery`,
+          {
+            fullName: fullName.trim(),
+            mobile: mobile.trim(),
+            mobileCountryCode: countryCode,
+            address: address.trim(),
+            city: city.trim(),
+            state: state.trim(),
+            pinCode: pinCode.trim(),
+          },
+        );
+        const data = response.data?.data || {};
+        navigation.replace('ChallengeRewardOrderCreated', {
+          id: challengeId,
+          rewardName: data.rewardName || rewardName,
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+        });
+      } catch (err) {
+        Alert.alert(
+          t('deliveryTitle'),
+          getApiError(err, t('couldNotSaveDelivery')),
+        );
+      } finally {
+        setSaving(false);
+      }
+    };
+    if (disclaimerAccepted) {
+      placeDelivery();
+      return;
     }
+    promptRewardAddressDisclaimer(t, () => {
+      placeDelivery();
+    });
   };
 
   return (

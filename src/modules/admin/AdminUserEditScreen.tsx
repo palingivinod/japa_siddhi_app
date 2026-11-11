@@ -73,6 +73,7 @@ const AdminUserEditScreen = () => {
   const [anniversaryDate, setAnniversaryDate] = useState('');
   const [gothram, setGothram] = useState('');
   const [nakshatram, setNakshatram] = useState('');
+  const [allowShivaLingaReorder, setAllowShivaLingaReorder] = useState(false);
 
   const loadUser = useCallback(async () => {
     if (!userId) {
@@ -101,6 +102,7 @@ const AdminUserEditScreen = () => {
       setAnniversaryDate(String(data.anniversaryDate || ''));
       setGothram(String(data.gothram || ''));
       setNakshatram(String(data.nakshatram || ''));
+      setAllowShivaLingaReorder(Boolean(data.allowShivaLingaReorder));
     } catch (err) {
       Alert.alert('Error', getApiError(err, 'Could not load user.'));
     } finally {
@@ -143,6 +145,7 @@ const AdminUserEditScreen = () => {
         anniversaryDate: anniversaryDate.trim(),
         gothram: gothram.trim(),
         nakshatram: nakshatram.trim(),
+        allowShivaLingaReorder,
       });
       Alert.alert('Saved', 'User updated successfully.', [
         {
@@ -205,6 +208,42 @@ const AdminUserEditScreen = () => {
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          <Text style={styles.section}>Shiva Linga orders</Text>
+          <Text style={styles.toggleHint}>
+            Default Off. First-time users can order one (Baanalingam or Marakata).
+            Turn On only to allow another order after Ghar Ghar Mahadev lock.
+          </Text>
+          <View style={styles.statusRow}>
+            <TouchableOpacity
+              style={[
+                styles.statusChip,
+                !allowShivaLingaReorder && styles.statusChipOn,
+              ]}
+              onPress={() => setAllowShivaLingaReorder(false)}>
+              <Text
+                style={[
+                  styles.statusText,
+                  !allowShivaLingaReorder && styles.statusTextOn,
+                ]}>
+                Reorder Off
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.statusChip,
+                allowShivaLingaReorder && styles.statusChipOn,
+              ]}
+              onPress={() => setAllowShivaLingaReorder(true)}>
+              <Text
+                style={[
+                  styles.statusText,
+                  allowShivaLingaReorder && styles.statusTextOn,
+                ]}>
+                Allow reorder
+              </Text>
+            </TouchableOpacity>
           </View>
 
           <Text style={styles.section}>Personal</Text>
@@ -307,6 +346,13 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     fontSize: 14,
+  },
+  toggleHint: {
+    marginBottom: 10,
+    color: Colors.textSecondary,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
   },
   centerBox: {paddingVertical: 24, alignItems: 'center'},
   field: {marginBottom: 12},

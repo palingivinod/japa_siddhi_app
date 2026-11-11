@@ -52,6 +52,9 @@ export const mr: TranslationDict = {
   freeDistribution: '(मोफत वितरण)',
   iniBracelets: 'इनि ब्रेसलेट्स',
   freeOfCost: 'मोफत',
+  rewardAddressDisclaimerTitle: 'अस्वीकरण',
+  rewardAddressDisclaimerBody:
+    'ट्रस्टला पत्ता पूर्ण आणि स्पष्ट नसल्याचे आढळल्यास ट्रस्ट बक्षिसे पाठवणार नाही. मोठ्या प्रमाणात पाठवण्यामुळे पत्ता दुरुस्त करण्यासाठी भक्ताशी वैयक्तिक संपर्क केला जाणार नाही. स्पष्ट आणि तपशीलवार पत्ता पाठवणे ही पूर्णतः भक्ताची जबाबदारी आहे.',
   completeDetailsTitle: 'तपशील पूर्ण करा',
   completeDetailsSubtitle:
     'पुढे जाण्यासाठी कृपया मोबाइल नंबर, जन्म तारीख आणि श्री / श्रीमती निवडा.',
@@ -59,7 +62,9 @@ export const mr: TranslationDict = {
   selectMrOrMrs: 'कृपया श्री किंवा श्रीमती निवडा',
   enterValidIndianMobile: 'कृपया 10 अंकी वैध भारतीय मोबाइल नंबर टाका',
   shippedOrderNotifyLink:
-    'या ऑर्डरबद्दल तुम्हाला एक सूचना आहे. पाहण्यासाठी येथे टॅप करा.',
+    'तुमच्या ऑर्डरबद्दल नवीन सूचना आहे\nपाहण्यासाठी येथे टॅप करा',
+  shippedOrderNotifyLine1: 'तुमच्या ऑर्डरबद्दल नवीन सूचना आहे',
+  shippedOrderNotifyLine2: 'पाहण्यासाठी येथे टॅप करा',
   shippedOrderConfirmCopy:
     'कृपया ऑर्डर मिळाल्याची पुष्टी करा. पुष्टी होईपर्यंत नवीन ऑर्डर देता येणार नाही.',
   yesIReceivedMyOrder: 'होय, माझा ऑर्डर मिळाला',
@@ -570,7 +575,7 @@ export const mr: TranslationDict = {
   commentsRequired: 'कृपया टिप्पण्या प्रविष्ट करा.',
   generalCommentsPlaceholder:
     'कोणत्याही विशेष विनंत्या किंवा टिप्पण्या प्रविष्ट करा (पर्यायी)',
-  tileMonthlySupport: 'मासिक मदत (आताच दान करा)',
+  tileMonthlySupport: 'मासिक दान',
   tileMonthlySupportSub: 'आध्यात्मिक सहकार्य',
   perMonth: '/ महिना',
   monthlySupportNote:

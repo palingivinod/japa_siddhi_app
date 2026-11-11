@@ -1,6 +1,8 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -79,6 +81,31 @@ const ShippedOrderConfirmPanel = ({
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [opening, setOpening] = useState(false);
+  const blink = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(blink, {
+          toValue: 0.42,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(blink, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => {
+      loop.stop();
+      blink.setValue(1);
+    };
+  }, [blink]);
 
   const openNotification = async () => {
     if (opening) {
@@ -93,7 +120,7 @@ const ShippedOrderConfirmPanel = ({
   };
 
   return (
-    <View style={styles.panel}>
+    <Animated.View style={[styles.panel, {opacity: blink}]}>
       <TouchableOpacity
         activeOpacity={0.75}
         onPress={openNotification}
@@ -102,10 +129,15 @@ const ShippedOrderConfirmPanel = ({
         {opening ? (
           <ActivityIndicator color={Colors.templeGold} size="small" />
         ) : (
-          <Text style={styles.notifyLink}>
-            {t('shippedOrderNotifyLink') ||
-              'You have a notification about this order. Please tap here to view it.'}
-          </Text>
+          <View style={styles.notifyLines}>
+            <Text style={styles.notifyLink}>
+              {t('shippedOrderNotifyLine1') ||
+                'You have a new notification about your order'}
+            </Text>
+            <Text style={[styles.notifyLink, styles.notifyLinkLine2]}>
+              {t('shippedOrderNotifyLine2') || 'please tap here to view'}
+            </Text>
+          </View>
         )}
       </TouchableOpacity>
 
@@ -134,7 +166,7 @@ const ShippedOrderConfirmPanel = ({
           </Text>
         </TouchableOpacity>
       )}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -150,16 +182,26 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   notifyLinkWrap: {
-    marginBottom: 10,
-    minHeight: 22,
+    marginTop: 6,
+    marginBottom: 14,
+    minHeight: 44,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notifyLines: {
+    alignItems: 'center',
+    width: '100%',
   },
   notifyLink: {
     color: Colors.templeGold,
     fontWeight: '800',
     fontSize: 14,
     lineHeight: 20,
+    textAlign: 'center',
     textDecorationLine: 'underline',
+  },
+  notifyLinkLine2: {
+    marginTop: 4,
   },
   confirmCopy: {
     color: Colors.sacredBrown,

@@ -52,6 +52,9 @@ export const or: TranslationDict = {
   freeDistribution: '(ମାଗଣା ବିତରଣ)',
   iniBracelets: 'ଇନି ବ୍ରେସଲେଟ୍',
   freeOfCost: 'ମାଗଣା',
+  rewardAddressDisclaimerTitle: 'ଡିସକ୍ଲେମର୍',
+  rewardAddressDisclaimerBody:
+    'ଠିକଣା ସମ୍ପୂର୍ଣ୍ଣ ଓ ସ୍ପଷ୍ଟ ନ ଥିଲେ ଟ୍ରଷ୍ଟ ପୁରସ୍କାର ପଠାଇବ ନାହିଁ। ଅଧିକ ପରିମାଣରେ ପଠାଇବା ଯୋଗୁଁ ଠିକଣା ସଂଶୋଧନ ପାଇଁ ଭକ୍ତଙ୍କ ସହ ବ୍ୟକ୍ତିଗତ ଯୋଗାଯୋଗ କରାଯିବ ନାହିଁ। ସ୍ପଷ୍ଟ ଓ ବିସ୍ତୃତ ଠିକଣା ପଠାଇବା ସମ୍ପୂର୍ଣ୍ଣ ଭକ୍ତଙ୍କ ଦାୟିତ୍ୱ।',
   completeDetailsTitle: 'ବିବରଣୀ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ',
   completeDetailsSubtitle:
     'ଆଗକୁ ବଢ଼ିବା ପାଇଁ ଦୟାକରି ମୋବାଇଲ୍ ନମ୍ବର, ଜନ୍ମ ତାରିଖ ଏବଂ ଶ୍ରୀ / ଶ୍ରୀମତୀ ବାଛନ୍ତୁ।',
@@ -59,7 +62,9 @@ export const or: TranslationDict = {
   selectMrOrMrs: 'ଦୟାକରି ଶ୍ରୀ କିମ୍ବା ଶ୍ରୀମତୀ ବାଛନ୍ତୁ',
   enterValidIndianMobile: 'ଦୟାକରି 10 ଅଙ୍କର ବୈଧ ଭାରତୀୟ ମୋବାଇଲ୍ ନମ୍ବର ଦିଅନ୍ତୁ',
   shippedOrderNotifyLink:
-    'ଏହି ଅର୍ଡର ବିଷୟରେ ଆପଣଙ୍କ ପାଇଁ ଏକ ବିଜ୍ଞପ୍ତି ଅଛି। ଦେଖିବାକୁ ଏଠାରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+    'ଆପଣଙ୍କ ଅର୍ଡର ବିଷୟରେ ନୂଆ ବିଜ୍ଞପ୍ତି ଅଛି\nଦେଖିବାକୁ ଏଠାରେ ଟ୍ୟାପ୍ କରନ୍ତୁ',
+  shippedOrderNotifyLine1: 'ଆପଣଙ୍କ ଅର୍ଡର ବିଷୟରେ ନୂଆ ବିଜ୍ଞପ୍ତି ଅଛି',
+  shippedOrderNotifyLine2: 'ଦେଖିବାକୁ ଏଠାରେ ଟ୍ୟାପ୍ କରନ୍ତୁ',
   shippedOrderConfirmCopy:
     'ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ ଯେ ଆପଣ ଅର୍ଡର ପାଇଛନ୍ତି। ନିଶ୍ଚିତ ନ କରିବା ପର୍ଯ୍ୟନ୍ତ ନୂଆ ଅର୍ଡର କରିପାରିବେ ନାହିଁ।',
   yesIReceivedMyOrder: 'ହଁ, ମୋ ଅର୍ଡର ମିଳିଛି',
@@ -572,7 +577,7 @@ export const or: TranslationDict = {
   commentsRequired: 'ଦୟାକରି ମନ୍ତବ୍ୟ ଲେଖନ୍ତୁ।',
   generalCommentsPlaceholder:
     'କୌଣସି ବିଶେଷ ଅନୁରୋଧ କିମ୍ବା ମନ୍ତବ୍ୟ ଲେଖନ୍ତୁ (ଇଚ୍ଛାଧୀନ)',
-  tileMonthlySupport: 'ମାସିକ ସହାୟତା (ବର୍ତ୍ତମାନ ଦାନ କରନ୍ତୁ)',
+  tileMonthlySupport: 'ମାସିକ ଦାନ',
   tileMonthlySupportSub: 'ଆଧ୍ୟାତ୍ମିକ ସମର୍ଥନ',
   perMonth: '/ ମାସ',
   monthlySupportNote:

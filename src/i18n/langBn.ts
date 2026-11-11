@@ -52,6 +52,9 @@ export const bn: TranslationDict = {
   freeDistribution: '(বিনামূল্যে বিতরণ)',
   iniBracelets: 'ইনি ব্রেসলেট',
   freeOfCost: 'বিনামূল্যে',
+  rewardAddressDisclaimerTitle: 'দাবিত্যাগ',
+  rewardAddressDisclaimerBody:
+    'ঠিকানা পূর্ণ ও স্পষ্টভাবে না লেখা থাকলে ট্রাস্ট পুরস্কার পাঠাবে না। বিপুল পরিমাণ পাঠানোর কারণে ঠিকানা সংশোধনের জন্য ভক্তের সঙ্গে ব্যক্তিগত যোগাযোগ করা হবে না। স্পষ্ট ও বিস্তারিত ঠিকানা পাঠানো সম্পূর্ণভাবে ভক্তের দায়িত্ব।',
   completeDetailsTitle: 'বিবরণ সম্পূর্ণ করুন',
   completeDetailsSubtitle:
     'এগোতে আপনার মোবাইল নম্বর, জন্ম তারিখ এবং শ্রী / শ্রীমতি দিন।',
@@ -59,7 +62,9 @@ export const bn: TranslationDict = {
   selectMrOrMrs: 'অনুগ্রহ করে শ্রী অথবা শ্রীমতি বেছে নিন',
   enterValidIndianMobile: 'অনুগ্রহ করে ১০ সংখ্যার বৈধ ভারতীয় মোবাইল নম্বর দিন',
   shippedOrderNotifyLink:
-    'এই অর্ডার সম্পর্কে আপনার একটি বিজ্ঞপ্তি আছে। দেখতে এখানে ট্যাপ করুন।',
+    'আপনার অর্ডার সম্পর্কে একটি নতুন বিজ্ঞপ্তি আছে\nদেখতে এখানে ট্যাপ করুন',
+  shippedOrderNotifyLine1: 'আপনার অর্ডার সম্পর্কে একটি নতুন বিজ্ঞপ্তি আছে',
+  shippedOrderNotifyLine2: 'দেখতে এখানে ট্যাপ করুন',
   shippedOrderConfirmCopy:
     'অনুগ্রহ করে নিশ্চিত করুন যে আপনি অর্ডার পেয়েছেন। নিশ্চিত না করা পর্যন্ত নতুন অর্ডার করা যাবে না।',
   yesIReceivedMyOrder: 'হ্যাঁ, আমার অর্ডার পেয়েছি',
@@ -570,7 +575,7 @@ export const bn: TranslationDict = {
   commentsRequired: 'অনুগ্রহ করে মন্তব্য লিখুন।',
   generalCommentsPlaceholder:
     'কোনো বিশেষ অনুরোধ বা মন্তব্য লিখুন (ঐচ্ছিক)',
-  tileMonthlySupport: 'মাসিক সহায়তা (এখনই দান করুন)',
+  tileMonthlySupport: 'মাসিক দান',
   tileMonthlySupportSub: 'আধ্যাত্মিক সহায়তা',
   perMonth: '/ মাস',
   monthlySupportNote:

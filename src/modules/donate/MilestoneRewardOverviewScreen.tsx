@@ -6,6 +6,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import PrimaryButton from '../common/PrimaryButton';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 import ScreenLayout from '../common/ScreenLayout';
 
 const Row = ({label, value}: {label: string; value: string}) => (
@@ -24,6 +25,9 @@ const MilestoneRewardOverviewScreen = () => {
   const {t} = useLanguage();
   const [saving, setSaving] = useState(false);
   const params = route.params || {};
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(
+    Boolean(params.rewardAddressDisclaimerAccepted),
+  );
   const target = Number(params.target || 0);
   const rewardId = Number(params.rewardId || 0);
   const rewardName = String(params.rewardName || 'Reward');
@@ -36,47 +40,74 @@ const MilestoneRewardOverviewScreen = () => {
       Alert.alert(t('rewards'), t('missingRewardDetails'));
       return;
     }
-    setSaving(true);
-    try {
-      const payload = {
-        rewardId,
-        fullName: params.fullName,
-        mobile: params.mobile,
-        mobileCountryCode: params.mobileCountryCode || '91',
-        address: params.address,
-        city: params.city,
-        state: params.state,
-        pinCode: params.pinCode,
-      };
-      const response = isMarakataClaim
-        ? await apiService.post(
-            '/japa/relative-rewards/marakata-shivling',
-            payload,
-          )
-        : await apiService.post(`/japa/milestones/${target}/reward`, payload);
-      const data = response.data?.data || {};
-      const orderNumber = String(data.orderNumber || '');
-      Alert.alert(
-        t('rewardSubmittedTitle'),
-        orderNumber
-          ? t('rewardOrderSentNumber', {order: orderNumber})
-          : t('rewardOrderSent'),
-        [
-          {
-            text: t('ok'),
-            onPress: () =>
-              navigation.navigate(
-                isMarakataClaim ? 'AvailableRewards' : 'MilestoneNotifications',
-              ),
-          },
-        ],
-        {cancelable: false},
-      );
-    } catch (error) {
-      Alert.alert(t('rewards'), getApiError(error, t('couldNotSubmitReward')));
-    } finally {
-      setSaving(false);
+    const placeOrder = async () => {
+      setDisclaimerAccepted(true);
+      setSaving(true);
+      try {
+        const payload = {
+          rewardId,
+          fullName: params.fullName,
+          mobile: params.mobile,
+          mobileCountryCode: params.mobileCountryCode || '91',
+          address: params.address,
+          city: params.city,
+          state: params.state,
+          pinCode: params.pinCode,
+        };
+        const response = isMarakataClaim
+          ? await apiService.post(
+              '/japa/relative-rewards/marakata-shivling',
+              payload,
+            )
+          : await apiService.post(`/japa/milestones/${target}/reward`, payload);
+        const data = response.data?.data || {};
+        const orderNumber = String(data.orderNumber || '');
+        Alert.alert(
+          t('rewardSubmittedTitle'),
+          orderNumber
+            ? t('rewardOrderSentNumber', {order: orderNumber})
+            : t('rewardOrderSent'),
+          [
+            {
+              text: t('ok'),
+              onPress: () =>
+                navigation.navigate(
+                  isMarakataClaim
+                    ? 'AvailableRewards'
+                    : 'MilestoneNotifications',
+                ),
+            },
+          ],
+          {cancelable: false},
+        );
+      } catch (error) {
+        const msg = getApiError(error, t('couldNotSubmitReward'));
+        const lower = msg.toLowerCase();
+        if (
+          lower.includes('ghar ghar mahadev') ||
+          lower.includes('only one shiva linga') ||
+          lower.includes('not eligible to order')
+        ) {
+          const item = lower.includes('baanalingam') || lower.includes('banalingam')
+            ? t('baanalingamItemName') || 'Baanalingam'
+            : t('marakataShivlingItemName') || 'Marakata Shivling';
+          Alert.alert(
+            t('shivaLingaNotEligibleTitle') || 'Not eligible',
+            t('shivaLingaAlreadyOrderedMessage', {item}) || msg,
+          );
+        } else {
+          Alert.alert(t('rewards'), msg);
+        }
+      } finally {
+        setSaving(false);
+      }
+    };
+    // Address screen already showed this once for this order flow.
+    if (disclaimerAccepted) {
+      placeOrder();
+      return;
     }
+    promptRewardAddressDisclaimer(t, placeOrder);
   };
 
   return (

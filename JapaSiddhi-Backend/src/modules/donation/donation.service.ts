@@ -412,13 +412,10 @@ class DonationService {
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
 
     if (kind === 'BANA_LINGAM') {
-      const activeBanaOrder = await orderRepository.findActiveOrderForKind(userId, 'BANA_LINGAM');
-      if (activeBanaOrder) {
-        throw new AppError(
-          `Already one Baanalingam order (${activeBanaOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
-          400,
-        );
-      }
+      const {
+        default: shivaLingaEligibilityService,
+      } = await import('../orders/shivaLingaEligibility.service');
+      await shivaLingaEligibilityService.assertCanOrderBaanalingam(userId);
 
       itemName = 'Baanalingam';
       orderType = 'BANA_LINGAM';

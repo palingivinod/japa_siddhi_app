@@ -26,6 +26,7 @@ import {
 } from '../../utils/profilePhone';
 import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import {CountryItem} from '../../constants/countries';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 
 const Field = ({
   label,
@@ -65,6 +66,9 @@ const MilestoneRewardAddressScreen = () => {
   const rewardId = Number(route.params?.rewardId || 0);
   const rewardName = String(route.params?.rewardName || 'Reward');
   const claimKind = String(route.params?.claimKind || '');
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(
+    Boolean(route.params?.rewardAddressDisclaimerAccepted),
+  );
 
   const [fullName, setFullName] = useState('');
   const [mobileCountry, setMobileCountry] = useState<CountryItem>(
@@ -187,19 +191,28 @@ const MilestoneRewardAddressScreen = () => {
       Alert.alert(t('required'), t('pinCodeMandatory'));
       return;
     }
-    navigation.navigate('MilestoneRewardOverview', {
-      target,
-      rewardId,
-      rewardName,
-      claimKind: claimKind || undefined,
-      fullName: fullName.trim(),
-      mobile: mobile.trim(),
-      mobileCountryCode: countryCode,
-      address: address.trim(),
-      city: city.trim(),
-      state: stateName.trim(),
-      pinCode: pinCode.trim(),
-    });
+    const goOverview = () => {
+      setDisclaimerAccepted(true);
+      navigation.navigate('MilestoneRewardOverview', {
+        target,
+        rewardId,
+        rewardName,
+        claimKind: claimKind || undefined,
+        rewardAddressDisclaimerAccepted: true,
+        fullName: fullName.trim(),
+        mobile: mobile.trim(),
+        mobileCountryCode: countryCode,
+        address: address.trim(),
+        city: city.trim(),
+        state: stateName.trim(),
+        pinCode: pinCode.trim(),
+      });
+    };
+    if (disclaimerAccepted) {
+      goOverview();
+      return;
+    }
+    promptRewardAddressDisclaimer(t, goOverview);
   };
 
   return (

@@ -938,6 +938,9 @@ const mapUserRow = (row: any) => {
       row.anniversaryDate != null ? String(row.anniversaryDate) : '',
     gothram: row.gothram != null ? String(row.gothram) : '',
     nakshatram: row.nakshatram != null ? String(row.nakshatram) : '',
+    allowShivaLingaReorder:
+      Number(row.allowShivaLingaReorder ?? row.allow_shiva_linga_reorder ?? 0) ===
+      1,
   };
 };
 
@@ -962,6 +965,7 @@ const userDetailSelect = `
     u.anniversary_date AS anniversaryDate,
     u.gothram,
     u.nakshatram,
+    IFNULL(u.allow_shiva_linga_reorder, 0) AS allowShivaLingaReorder,
     s.name AS stateName,
     ci.name AS cityName,
     IFNULL((
@@ -991,6 +995,7 @@ const ensureAdminUserProfileColumns = async () => {
     `ALTER TABLE users ADD COLUMN spouse_name TEXT`,
     `ALTER TABLE users ADD COLUMN spouse_dob TEXT`,
     `ALTER TABLE users ADD COLUMN anniversary_date TEXT`,
+    `ALTER TABLE users ADD COLUMN allow_shiva_linga_reorder INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of alters) {
     try {
@@ -1340,6 +1345,13 @@ router.put('/users/:id', async (req: Request, res: Response) => {
     const anniversaryDate = String(req.body?.anniversaryDate || '').trim();
     const gothram = String(req.body?.gothram || '').trim();
     const nakshatram = String(req.body?.nakshatram || '').trim();
+    const allowShivaLingaReorderRaw = req.body?.allowShivaLingaReorder;
+    const allowShivaLingaReorder =
+      allowShivaLingaReorderRaw === undefined
+        ? undefined
+        : allowShivaLingaReorderRaw === true ||
+          allowShivaLingaReorderRaw === 1 ||
+          allowShivaLingaReorderRaw === '1';
 
     let accountStatus: string | null = null;
     if (statusInput === 'BLOCKED' || statusInput === 'ACTIVE') {
@@ -1364,6 +1376,7 @@ router.put('/users/:id', async (req: Request, res: Response) => {
       anniversaryDate ||
       gothram ||
       nakshatram ||
+      allowShivaLingaReorder !== undefined ||
       req.body?.address === '' ||
       req.body?.postalCode === '' ||
       req.body?.pinCode === '' ||
@@ -1406,6 +1419,10 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         anniversary_date = ?,
         gothram = ?,
         nakshatram = ?,
+        allow_shiva_linga_reorder = CASE
+          WHEN ? IS NOT NULL THEN ?
+          ELSE allow_shiva_linga_reorder
+        END,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
@@ -1432,6 +1449,8 @@ router.put('/users/:id', async (req: Request, res: Response) => {
         anniversaryDate || null,
         gothram || null,
         nakshatram || null,
+        allowShivaLingaReorder === undefined ? null : allowShivaLingaReorder ? 1 : 0,
+        allowShivaLingaReorder === undefined ? null : allowShivaLingaReorder ? 1 : 0,
         userId,
       ],
     );

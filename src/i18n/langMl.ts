@@ -52,6 +52,9 @@ export const ml: TranslationDict = {
   freeDistribution: '(സൗജന്യ വിതരണം)',
   iniBracelets: 'ഇനി ബ്രേസ്‌ലെറ്റുകൾ',
   freeOfCost: 'സൗജന്യം',
+  rewardAddressDisclaimerTitle: 'നിരാകരണം',
+  rewardAddressDisclaimerBody:
+    'വിലാസം പൂർണ്ണവും വ്യക്തവുമായി നൽകിയിട്ടില്ലെങ്കിൽ ട്രസ്റ്റ് റിവാർഡുകൾ അയയ്ക്കില്ല. വലിയ അളവിലുള്ള അയയ്ക്കലുകൾ കാരണം വിലാസം തിരുത്താൻ ഭക്തനുമായി വ്യക്തിപരമായി ബന്ധപ്പെടില്ല. വ്യക്തവും വിശദവുമായ വിലാസം അയയ്ക്കുന്നത് പൂർണ്ണമായും ഭക്തന്റെ ഉത്തരവാദിത്തമാണ്.',
   completeDetailsTitle: 'വിവരങ്ങൾ പൂർത്തിയാക്കുക',
   completeDetailsSubtitle:
     'തുടരാൻ ദയവായി നിങ്ങളുടെ മൊബൈൽ നമ്പർ, ജനനത്തീയതി, ശ്രീ / ശ്രീമതി തിരഞ്ഞെടുക്കുക.',
@@ -59,7 +62,9 @@ export const ml: TranslationDict = {
   selectMrOrMrs: 'ദയവായി ശ്രീ അല്ലെങ്കിൽ ശ്രീമതി തിരഞ്ഞെടുക്കുക',
   enterValidIndianMobile: 'സാധുവായ 10 അക്ക ഇന്ത്യൻ മൊബൈൽ നമ്പർ നൽകുക',
   shippedOrderNotifyLink:
-    'ഈ ഓർഡറിനെക്കുറിച്ച് നിങ്ങൾക്ക് ഒരു അറിയിപ്പ് ഉണ്ട്. കാണാൻ ഇവിടെ ടാപ്പ് ചെയ്യുക.',
+    'നിങ്ങളുടെ ഓർഡറിനെക്കുറിച്ച് പുതിയ അറിയിപ്പ് ഉണ്ട്\nകാണാൻ ഇവിടെ ടാപ്പ് ചെയ്യുക',
+  shippedOrderNotifyLine1: 'നിങ്ങളുടെ ഓർഡറിനെക്കുറിച്ച് പുതിയ അറിയിപ്പ് ഉണ്ട്',
+  shippedOrderNotifyLine2: 'കാണാൻ ഇവിടെ ടാപ്പ് ചെയ്യുക',
   shippedOrderConfirmCopy:
     'ഓർഡർ ലഭിച്ചെന്ന് സ്ഥിരീകരിക്കുക. സ്ഥിരീകരിക്കുന്നത് വരെ പുതിയ ഓർഡർ നൽകാനാകില്ല.',
   yesIReceivedMyOrder: 'അതെ, എന്റെ ഓർഡർ ലഭിച്ചു',
@@ -568,7 +573,7 @@ export const ml: TranslationDict = {
   commentsRequired: 'ദയവായി അഭിപ്രായങ്ങൾ നൽകുക.',
   generalCommentsPlaceholder:
     'പ്രത്യേക അഭ്യർത്ഥനകളോ കുറിപ്പുകളോ നൽകുക (ഓപ്ഷണൽ)',
-  tileMonthlySupport: 'പ്രതിമാസ സഹായം (ഇപ്പോൾ തന്നെ സംഭാവന ചെയ്യുക)',
+  tileMonthlySupport: 'പ്രതിമാസ ദാനം',
   tileMonthlySupportSub: 'ആത്മീയ പിന്തുണ',
   perMonth: '/ മാസം',
   monthlySupportNote:

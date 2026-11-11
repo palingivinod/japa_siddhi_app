@@ -14,10 +14,27 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
+import {resolveProfilePhone} from '../../utils/profilePhone';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminOrder} from './adminData';
 
 const digitsOnly = (value?: string) => String(value || '').replace(/\D/g, '');
+
+/** Show +91 98765… once — never “91 +91 …” when customerMobile already has country code. */
+const formatOrderPhoneDisplay = (order: AdminOrder) => {
+  const rawLocal = String(order.mobileNumber || order.customerMobile || '').trim();
+  if (!rawLocal) {
+    return '';
+  }
+  const resolved = resolveProfilePhone({
+    mobileCountryCode: order.mobileCountryCode || '91',
+    mobileNumber: rawLocal,
+  });
+  if (!resolved.mobile) {
+    return rawLocal;
+  }
+  return `+${resolved.countryCode} ${resolved.mobile}`;
+};
 
 const matchesOrderSearch = (order: AdminOrder, query: string) => {
   const q = query.trim().toLowerCase();
@@ -519,10 +536,7 @@ const AdminOrderHistoryScreen = () => {
 
       {/* Order Cards */}
       {filteredOrders.map(order => {
-        const mobile =
-          order.customerMobile || order.mobileNumber
-            ? `${order.mobileCountryCode || ''} ${order.customerMobile || order.mobileNumber || ''}`.trim()
-            : '';
+        const mobile = formatOrderPhoneDisplay(order);
 
         return (
           <TouchableOpacity

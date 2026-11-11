@@ -342,7 +342,15 @@ const en = {
   tileBiravaSub: 'Request a Pendent',
   freeDistribution: '(Free Distribution)',
   iniBracelets: 'Ini Bracelets',
-  freeOfCost: 'free of cost',
+  freeOfCost: 'Free of cost',
+  rewardAddressDisclaimerTitle: 'Disclaimer',
+  rewardAddressDisclaimerBody:
+    'If the Trust has found that the address is not fully and clearly mentioned, the Trust will refrain from sending the rewards.  No communication with the devotee will be taken up personally to make the address correct keeping in view of the voluminous out flows.  It is the whole responsibility of the devotee to send clear and detail address',
+  shivaLingaNotEligibleTitle: 'Not eligible',
+  shivaLingaAlreadyOrderedMessage:
+    'You have already ordered/received {{item}}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.',
+  baanalingamItemName: 'Baanalingam',
+  marakataShivlingItemName: 'Marakata Shivling',
   completeDetailsTitle: 'Complete Details',
   completeDetailsSubtitle:
     'Please provide your phone number, Date of Birth, and Mr or Mrs to continue.',
@@ -350,7 +358,9 @@ const en = {
   selectMrOrMrs: 'Please select Mr or Mrs',
   enterValidIndianMobile: 'Enter a valid 10-digit Indian mobile number',
   shippedOrderNotifyLink:
-    'You have a notification about this order. Please tap here to view it.',
+    'You have a new notification about your order\nplease tap here to view',
+  shippedOrderNotifyLine1: 'You have a new notification about your order',
+  shippedOrderNotifyLine2: 'please tap here to view',
   shippedOrderConfirmCopy:
     'Please confirm that you have received your order. Until you confirm, you will not be able to place a new order.',
   yesIReceivedMyOrder: 'YES, I RECEIVED MY ORDER',
@@ -362,7 +372,11 @@ const en = {
   yesIReceivedIt: 'Yes, I Received It',
   sortBy: 'SORT BY',
   sortByUserId: 'User ID',
+  sortByUserIdAsc: 'User ID (Ascending)',
+  sortByUserIdDesc: 'User ID (Descending)',
   sortByDate: 'Date',
+  sortByDateRecent: 'Date (Recent)',
+  sortByDateOldest: 'Date (Oldest)',
   notificationAnalyticsSub10d:
     'Last 10 days — delivery and read stats (General / Specific / Orders).',
   biravaPendant: 'Bhirava Pendent',
@@ -859,7 +873,7 @@ const en = {
   homamCommentsPlaceholder: 'Please enter your family names and gotram',
   generalCommentsPlaceholder:
     'Enter any special requests or comments (optional)',
-  tileMonthlySupport: 'Monthly Support (Donate here now)',
+  tileMonthlySupport: 'Monthly Donation',
   tileMonthlySupportSub: 'Support spiritual',
   monthlySupportThankYouTitle: 'Thank You! Your Monthly Support is Confirmed',
   monthlySupportThankYouSub:

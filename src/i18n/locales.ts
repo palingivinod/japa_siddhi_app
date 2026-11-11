@@ -63,6 +63,14 @@ export const hi: TranslationDict = {
   freeDistribution: '(निःशुल्क वितरण)',
   iniBracelets: 'इनि ब्रेसलेट्स',
   freeOfCost: 'निःशुल्क',
+  rewardAddressDisclaimerTitle: 'अस्वीकरण',
+  rewardAddressDisclaimerBody:
+    'यदि ट्रस्ट को पता चले कि पता पूर्ण और स्पष्ट रूप से नहीं लिखा गया है, तो ट्रस्ट पुरस्कार भेजने से परहेज करेगा। बड़ी संख्या में भेजने के कारण पता सुधारने के लिए भक्त से व्यक्तिगत संपर्क नहीं किया जाएगा। स्पष्ट और विस्तृत पता भेजना पूरी तरह भक्त की जिम्मेदारी है।',
+  shivaLingaNotEligibleTitle: 'पात्र नहीं',
+  shivaLingaAlreadyOrderedMessage:
+    'आप पहले ही {{item}} ऑर्डर/प्राप्त कर चुके हैं। घर घर महादेव का भाव है कि प्रत्येक घर के लिए केवल एक शिवलिंग — इसलिए आप इसे ऑर्डर करने के पात्र नहीं हैं।',
+  baanalingamItemName: 'बाणलिंगम',
+  marakataShivlingItemName: 'मरकत शिवलिंग',
   completeDetailsTitle: 'विवरण पूरा करें',
   completeDetailsSubtitle:
     'जारी रखने के लिए कृपया अपना मोबाइल नंबर, जन्म तिथि और श्री / श्रीमती चुनें।',
@@ -70,7 +78,9 @@ export const hi: TranslationDict = {
   selectMrOrMrs: 'कृपया श्री या श्रीमती चुनें',
   enterValidIndianMobile: 'कृपया 10 अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें',
   shippedOrderNotifyLink:
-    'इस ऑर्डर के बारे में आपके लिए एक सूचना है। देखने के लिए यहाँ टैप करें।',
+    'आपके ऑर्डर के बारे में एक नई सूचना है\nदेखने के लिए यहाँ टैप करें',
+  shippedOrderNotifyLine1: 'आपके ऑर्डर के बारे में एक नई सूचना है',
+  shippedOrderNotifyLine2: 'देखने के लिए यहाँ टैप करें',
   shippedOrderConfirmCopy:
     'कृपया पुष्टि करें कि आपको ऑर्डर मिल गया है। पुष्टि करने तक आप नया ऑर्डर नहीं दे पाएँगे।',
   yesIReceivedMyOrder: 'हाँ, मुझे मेरा ऑर्डर मिल गया',
@@ -612,7 +622,7 @@ export const hi: TranslationDict = {
   homamCommentsPlaceholder: 'कृपया अपने परिवार के नाम और गोत्र दर्ज करें',
   generalCommentsPlaceholder:
     'कोई विशेष अनुरोध या टिप्पणी दर्ज करें (वैकल्पिक)',
-  tileMonthlySupport: 'मासिक सहायता (अभी दान करें)',
+  tileMonthlySupport: 'मासिक दान',
   tileMonthlySupportSub: 'आध्यात्मिक सहयोग',
   perMonth: '/ माह',
   monthlySupportNote:
@@ -1105,6 +1115,14 @@ export const te: TranslationDict = {
   freeDistribution: '(ఉచిత పంపిణీ)',
   iniBracelets: 'ఇని బ్రేస్‌లెట్స్',
   freeOfCost: 'ఉచితం',
+  rewardAddressDisclaimerTitle: 'డిస్క్లైమర్',
+  rewardAddressDisclaimerBody:
+    'చిరునామా పూర్తిగా, స్పష్టంగా ఇవ్వకపోతే ట్రస్ట్ రివార్డులు పంపదు. అధిక సంఖ్యలో పంపకాలు ఉన్నందున చిరునామా సరిదిద్దడానికి భక్తునితో వ్యక్తిగతంగా సంప్రదించబడదు. స్పష్టమైన, వివరమైన చిరునామా పంపడం పూర్తిగా భక్తుని బాధ్యత.',
+  shivaLingaNotEligibleTitle: 'అర్హత లేదు',
+  shivaLingaAlreadyOrderedMessage:
+    'మీరు ఇప్పటికే {{item}} ఆర్డర్/స్వీకరించారు. ఘర్ ఘర్ మహాదేవ్ భావన ప్రకారం ప్రతి ఇంటికి ఒకే ఒక శివలింగం — కాబట్టి మీరు దీన్ని ఆర్డర్ చేయడానికి అర్హులు కాదు.',
+  baanalingamItemName: 'బాణలింగం',
+  marakataShivlingItemName: 'మరకత శివలింగం',
   completeDetailsTitle: 'వివరాలు పూర్తి చేయండి',
   completeDetailsSubtitle:
     'కొనసాగించడానికి దయచేసి మీ మొబైల్ నంబర్, పుట్టిన తేదీ మరియు శ్రీ / శ్రీమతి ఎంచుకోండి.',
@@ -1112,7 +1130,9 @@ export const te: TranslationDict = {
   selectMrOrMrs: 'దయచేసి శ్రీ లేదా శ్రీమతి ఎంచుకోండి',
   enterValidIndianMobile: 'దయచేసి 10 అంకెల చెల్లుబాటు అయ్యే భారతీయ మొబైల్ నంబర్ ఇవ్వండి',
   shippedOrderNotifyLink:
-    'ఈ ఆర్డర్ గురించి మీకు ఒక నోటిఫికేషన్ ఉంది. చూడటానికి ఇక్కడ నొక్కండి.',
+    'మీ ఆర్డర్ గురించి కొత్త నోటిఫికేషన్ ఉంది\nచూడటానికి ఇక్కడ నొక్కండి',
+  shippedOrderNotifyLine1: 'మీ ఆర్డర్ గురించి కొత్త నోటిఫికేషన్ ఉంది',
+  shippedOrderNotifyLine2: 'చూడటానికి ఇక్కడ నొక్కండి',
   shippedOrderConfirmCopy:
     'దయచేసి మీ ఆర్డర్ అందినట్లు నిర్ధారించండి. నిర్ధారించే వరకు మీరు కొత్త ఆర్డర్ చేయలేరు.',
   yesIReceivedMyOrder: 'అవును, నా ఆర్డర్ అందింది',
@@ -1566,7 +1586,7 @@ export const te: TranslationDict = {
   homamCommentsPlaceholder: 'దయచేసి మీ కుటుంబ పేర్లు మరియు గోత్రం నమోదు చేయండి',
   generalCommentsPlaceholder:
     'ఏవైనా ప్రత్యేక అభ్యర్థనలు లేదా వ్యాఖ్యలను నమోదు చేయండి (ఐచ్ఛికం)',
-  tileMonthlySupport: 'నెలవారీ సహాయం (ఇప్పుడే సహాయం చేయండి)',
+  tileMonthlySupport: 'నెలవారీ దానం',
   tileMonthlySupportSub: 'ఆధ్యాత్మిక సేవలకు సహాయం',
   perMonth: '/ నెలకు',
   monthlySupportNote:

@@ -721,24 +721,28 @@ const AdminOrdersScreen = () => {
         <Text style={styles.itemFilterHeader}>
           {t('sortBy') || 'SORT BY'}
         </Text>
-        <View style={styles.typeBar}>
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sortScroll}>
           {(
             [
               {
                 id: 'userIdAsc' as const,
-                label: t('sortByUserIdAsc') || 'User ID (Ascending)',
+                label: t('sortByUserIdAsc'),
               },
               {
                 id: 'userIdDesc' as const,
-                label: t('sortByUserIdDesc') || 'User ID (Descending)',
+                label: t('sortByUserIdDesc'),
               },
               {
                 id: 'dateRecent' as const,
-                label: t('sortByDateRecent') || 'Date (Recent)',
+                label: t('sortByDateRecent'),
               },
               {
                 id: 'dateOldest' as const,
-                label: t('sortByDateOldest') || 'Date (Oldest)',
+                label: t('sortByDateOldest'),
               },
             ] as const
           ).map(item => (
@@ -746,6 +750,7 @@ const AdminOrdersScreen = () => {
               key={item.id}
               style={[
                 styles.tabButton,
+                styles.sortChip,
                 sortMode === item.id && styles.tabButtonActive,
               ]}
               onPress={() => setSortMode(item.id)}>
@@ -758,7 +763,7 @@ const AdminOrdersScreen = () => {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       </View>
 
       {orderType === 'reward' ? (
@@ -1220,6 +1225,16 @@ const styles = StyleSheet.create({
   },
   sortBox: {
     marginBottom: 4,
+  },
+  sortScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 12,
+    paddingBottom: 12,
+  },
+  sortChip: {
+    flexShrink: 0,
   },
   rewardFilterBox: {
     marginBottom: 12,

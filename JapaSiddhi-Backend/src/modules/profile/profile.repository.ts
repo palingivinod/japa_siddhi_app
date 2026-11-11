@@ -27,6 +27,16 @@ export const ensureRegionColumn = async () => {
   }
 };
 
+const ensureShivaLingaReorderColumn = async () => {
+  try {
+    await mysql.query(
+      `ALTER TABLE users ADD COLUMN allow_shiva_linga_reorder INTEGER NOT NULL DEFAULT 0`,
+    );
+  } catch {
+    // The column is already on the table.
+  }
+};
+
 class ProfileRepository {
 
 
@@ -37,6 +47,7 @@ class ProfileRepository {
 
     await ensurePostalColumn();
     await ensureRegionColumn();
+    await ensureShivaLingaReorderColumn();
     const rows =
       await mysql.query<any[]>(
         `
@@ -102,6 +113,8 @@ class ProfileRepository {
           u.region,
 
           u.profile_completed AS profileCompleted,
+
+          IFNULL(u.allow_shiva_linga_reorder, 0) AS allowShivaLingaReorder,
 
           u.role
 
