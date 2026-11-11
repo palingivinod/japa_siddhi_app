@@ -24,10 +24,7 @@ import {
   MARAKATA_SHIVLING_EXTRA_JAPAS,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
-import {
-  MARAKATA_SHIVLING_REWARD_NAME,
-  resolveMarakataUnlockTarget,
-} from '../../utils/marakataShivling';
+import {resolveMarakataUnlockTarget} from '../../utils/marakataShivling';
 
 type RewardItem = {
   id: number | string;
@@ -38,26 +35,6 @@ type RewardItem = {
   eligibilityCriteria?: number;
   emoji?: string;
 };
-
-// Name-only catalog for sorting/matching. Stock always comes from the API —
-// never invent In Stock or Out of Stock from this list.
-const DEFAULT_REWARDS: RewardItem[] = [
-  {id: 1, name: 'Rudrakshi Mala', inStock: true},
-  {id: 2, name: 'Tulasi Mala', inStock: true},
-  {id: 3, name: 'Pasupu Mala', inStock: true},
-  {id: 4, name: 'Sandal Wood Mala', inStock: true},
-  {id: 5, name: 'Karungali Mala', inStock: true},
-  {id: 6, name: 'Spatik Mala', inStock: true},
-  {id: 7, name: 'Green Agate', inStock: true},
-  {id: 8, name: 'Yellow Agate', inStock: true},
-  {id: 9, name: MARAKATA_SHIVLING_REWARD_NAME, inStock: true},
-  {
-    id: 10,
-    name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
-    inStock: true,
-  },
-  {id: 11, name: 'Spiritual Reward', inStock: true},
-];
 
 const AvailableRewardsScreen = () => {
   const navigation = useNavigation<any>();
