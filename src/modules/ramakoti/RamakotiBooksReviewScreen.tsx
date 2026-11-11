@@ -8,20 +8,23 @@ import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 
 const RamakotiBooksReviewScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
   const [saving, setSaving] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const params = route.params || {};
   const address = String(params.address || '').trim();
 
-  const placeOrder = async () => {
+  const submitOrder = async () => {
     if (!address) {
       Alert.alert(t('ramakotiSeva'), t('addAddressInProfile'));
       return;
     }
+    setDisclaimerAccepted(true);
     setSaving(true);
     try {
       const response = await apiService.post('/donations/checkout', {
@@ -76,6 +79,14 @@ const RamakotiBooksReviewScreen = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const placeOrder = () => {
+    if (disclaimerAccepted) {
+      submitOrder();
+      return;
+    }
+    promptRewardAddressDisclaimer(t, submitOrder);
   };
 
   return (

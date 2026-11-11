@@ -345,7 +345,7 @@ const en = {
   freeOfCost: 'Free of cost',
   rewardAddressDisclaimerTitle: 'Disclaimer',
   rewardAddressDisclaimerBody:
-    'If the Trust has found that the address is not fully and clearly mentioned, the Trust will refrain from sending the rewards.  No communication with the devotee will be taken up personally to make the address correct keeping in view of the voluminous out flows.  It is the whole responsibility of the devotee to send clear and detail address',
+    'If the Trust has found that the address is not fully and clearly mentioned, the Trust will refrain from sending the rewards / orders.  No communication with the devotee will be taken up personally to make the address correct keeping in view of the voluminous out flows.  It is the whole responsibility of the devotee to send clear and detail address',
   shivaLingaNotEligibleTitle: 'Not eligible',
   shivaLingaAlreadyOrderedMessage:
     'You have already ordered/received {{item}}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.',
@@ -358,9 +358,9 @@ const en = {
   selectMrOrMrs: 'Please select Mr or Mrs',
   enterValidIndianMobile: 'Enter a valid 10-digit Indian mobile number',
   shippedOrderNotifyLink:
-    'You have a new notification about your order\nplease tap here to view',
+    'You have a new notification about your order\nplease click here to view',
   shippedOrderNotifyLine1: 'You have a new notification about your order',
-  shippedOrderNotifyLine2: 'please tap here to view',
+  shippedOrderNotifyLine2: 'please click here to view',
   shippedOrderConfirmCopy:
     'Please confirm that you have received your order. Until you confirm, you will not be able to place a new order.',
   yesIReceivedMyOrder: 'YES, I RECEIVED MY ORDER',

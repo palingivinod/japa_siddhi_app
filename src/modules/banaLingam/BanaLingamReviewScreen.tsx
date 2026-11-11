@@ -9,12 +9,14 @@ import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 
 const BanaLingamReviewScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
   const [saving, setSaving] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const params = route.params || {};
   const address = String(params.address || '').trim();
   const hasAddress = address.length > 0;
@@ -27,11 +29,12 @@ const BanaLingamReviewScreen = () => {
     return val;
   };
 
-  const placeOrder = async () => {
+  const submitOrder = async () => {
     if (!hasAddress) {
       Alert.alert(t('baanalingamSeva'), t('addAddressBeforeApplication'));
       return;
     }
+    setDisclaimerAccepted(true);
     setSaving(true);
     try {
       await saveDeliveryAddress(address);
@@ -43,8 +46,6 @@ const BanaLingamReviewScreen = () => {
         city: params.city || undefined,
         state: params.state || undefined,
         pinCode: params.pinCode || undefined,
-        nakshatram: params.nakshatram,
-        gothram: params.gothram,
         purpose: params.purpose,
         comments: params.comments?.trim() || undefined,
         remarks: [
@@ -106,6 +107,14 @@ const BanaLingamReviewScreen = () => {
     }
   };
 
+  const placeOrder = () => {
+    if (disclaimerAccepted) {
+      submitOrder();
+      return;
+    }
+    promptRewardAddressDisclaimer(t, submitOrder);
+  };
+
   return (
     <ScreenLayout title={t('applicationOverview')} showBack tab="SevaHub">
       <MenuCard
@@ -142,26 +151,6 @@ const BanaLingamReviewScreen = () => {
             <View style={styles.row}>
               <Text style={styles.label}>{t('purpose')}</Text>
               <Text style={styles.value}>{getPurposeLabel(params.purpose)}</Text>
-            </View>
-          </>
-        ) : null}
-
-        {params.gothram ? (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.label}>{t('gothram')}</Text>
-              <Text style={styles.value}>{params.gothram}</Text>
-            </View>
-          </>
-        ) : null}
-
-        {params.nakshatram ? (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.row}>
-              <Text style={styles.label}>{t('nakshatram')}</Text>
-              <Text style={styles.value}>{params.nakshatram}</Text>
             </View>
           </>
         ) : null}

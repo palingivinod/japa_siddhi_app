@@ -42,8 +42,6 @@ const BanaLingamScreen = () => {
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
-  const [gothram, setGothram] = useState('');
-  const [nakshatram, setNakshatram] = useState('');
   const [purpose, setPurpose] = useState('For Home pooja');
   const [comments, setComments] = useState('');
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
@@ -185,12 +183,6 @@ const BanaLingamScreen = () => {
               : phone,
           );
         }
-        if (profile?.gothram || stored?.gothram) {
-          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
-        }
-        if (profile?.nakshatram || stored?.nakshatram) {
-          setNakshatram(current => current || String(profile?.nakshatram || stored?.nakshatram || ''));
-        }
         setSavedAddresses(addresses);
         if (route.params?.selectedAddress) {
           setAddress(route.params.selectedAddress);
@@ -268,8 +260,6 @@ const BanaLingamScreen = () => {
       city: parsed.city,
       state: parsed.state,
       pinCode: parsed.pinCode,
-      gothram,
-      nakshatram,
       purpose,
       comments: comments.trim(),
     });
@@ -394,18 +384,6 @@ const BanaLingamScreen = () => {
         })}
       </View>
 
-      <FormField
-        label="Gothram"
-        placeholder="Optional"
-        value={gothram}
-        onChangeText={setGothram}
-      />
-      <FormField
-        label="Nakshatram"
-        placeholder="Optional"
-        value={nakshatram}
-        onChangeText={setNakshatram}
-      />
       <Text style={styles.label}>{t('purpose')} *</Text>
       <SelectField
         value={purpose}

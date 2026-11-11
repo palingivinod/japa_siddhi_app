@@ -130,12 +130,16 @@ const ShippedOrderConfirmPanel = ({
           <ActivityIndicator color={Colors.templeGold} size="small" />
         ) : (
           <View style={styles.notifyLines}>
-            <Text style={styles.notifyLink}>
+            <Text
+              style={[styles.notifyLink, styles.notifyLinkLine1]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.82}>
               {t('shippedOrderNotifyLine1') ||
                 'You have a new notification about your order'}
             </Text>
             <Text style={[styles.notifyLink, styles.notifyLinkLine2]}>
-              {t('shippedOrderNotifyLine2') || 'please tap here to view'}
+              {t('shippedOrderNotifyLine2') || 'please click here to view'}
             </Text>
           </View>
         )}
@@ -195,10 +199,14 @@ const styles = StyleSheet.create({
   notifyLink: {
     color: Colors.templeGold,
     fontWeight: '800',
-    fontSize: 14,
-    lineHeight: 20,
+    fontSize: 13.5,
+    lineHeight: 19,
     textAlign: 'center',
     textDecorationLine: 'underline',
+    width: '100%',
+  },
+  notifyLinkLine1: {
+    paddingHorizontal: 2,
   },
   notifyLinkLine2: {
     marginTop: 4,

@@ -9,6 +9,7 @@ import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
 
 const SevaRequestReviewScreen = () => {
@@ -17,15 +18,17 @@ const SevaRequestReviewScreen = () => {
   const {t} = useLanguage();
   const request = sevaRequestFromRoute(String(route.name || ''));
   const [saving, setSaving] = useState(false);
+  const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const params = route.params || {};
   const address = String(params.address || '').trim();
   const hasAddress = address.length > 0;
 
-  const placeOrder = async () => {
+  const submitOrder = async () => {
     if (!hasAddress) {
       Alert.alert(t(request.titleKey), t('addAddressBeforeApplication'));
       return;
     }
+    setDisclaimerAccepted(true);
     setSaving(true);
     try {
       await saveDeliveryAddress(address);
@@ -78,6 +81,14 @@ const SevaRequestReviewScreen = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const placeOrder = () => {
+    if (disclaimerAccepted) {
+      submitOrder();
+      return;
+    }
+    promptRewardAddressDisclaimer(t, submitOrder);
   };
 
   return (
