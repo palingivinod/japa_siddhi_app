@@ -515,11 +515,19 @@ const AdminOrderDetailsScreen = () => {
   const delivery = order?.delivery || {};
   const addressText = String(delivery.address || '').trim();
   const pinInAddress = /\b\d{6}\b/.test(addressText);
-  const fullAddress = pinInAddress
+  const addressLines = pinInAddress
     ? addressText
     : [addressText, delivery.region, delivery.city, delivery.state, delivery.pinCode]
         .filter(Boolean)
         .join(', ');
+  const deliveryName = String(delivery.fullName || order?.customer || '').trim();
+  const deliveryPhone = String(
+    delivery.mobile || order?.customerMobile || '',
+  ).trim();
+  // Full address includes name + phone so admin can long-press / copy once.
+  const fullAddress = [deliveryName, deliveryPhone, addressLines]
+    .filter(Boolean)
+    .join('\n');
 
   return (
     <AdminScreenLayout title="Order Details" tab="AdminOrders" showBack>
