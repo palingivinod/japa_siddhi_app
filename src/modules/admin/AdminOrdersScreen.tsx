@@ -103,7 +103,11 @@ const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
   {id: 'reward', label: 'Rewards'},
 ];
 
-type OrderSortMode = 'userId' | 'date';
+type OrderSortMode =
+  | 'userIdAsc'
+  | 'userIdDesc'
+  | 'dateRecent'
+  | 'dateOldest';
 
 const orderDateValue = (order: AdminOrder) => {
   const raw = order.createdAt || order.userReceivedAt || '';
@@ -114,6 +118,9 @@ const orderDateValue = (order: AdminOrder) => {
   // Fallback: higher order id ≈ newer when date missing.
   return Number(order.id) || 0;
 };
+
+const orderUserIdValue = (order: AdminOrder) =>
+  order.userId != null ? Number(order.userId) : 999999999;
 
 export type ProductFilterType = 'ALL' | 'RK' | 'BP' | 'HB' | 'BL';
 
@@ -282,7 +289,7 @@ const AdminOrdersScreen = () => {
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [itemFilter, setItemFilter] = useState<ProductFilterType>('ALL');
   const [rewardFilter, setRewardFilter] = useState('ALL');
-  const [sortMode, setSortMode] = useState<OrderSortMode>('userId');
+  const [sortMode, setSortMode] = useState<OrderSortMode>('userIdAsc');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -574,17 +581,20 @@ const AdminOrdersScreen = () => {
         : itemFilteredOrders.filter(o => o.status === tab);
 
     return [...list].sort((a, b) => {
-      if (sortMode === 'date') {
-        const d = orderDateValue(b) - orderDateValue(a); // newest first
+      if (sortMode === 'dateRecent' || sortMode === 'dateOldest') {
+        const d =
+          sortMode === 'dateRecent'
+            ? orderDateValue(b) - orderDateValue(a)
+            : orderDateValue(a) - orderDateValue(b);
         if (d !== 0) {
           return d;
         }
         return Number(b.id) - Number(a.id);
       }
-      const uA = a.userId != null ? a.userId : 999999999;
-      const uB = b.userId != null ? b.userId : 999999999;
+      const uA = orderUserIdValue(a);
+      const uB = orderUserIdValue(b);
       if (uA !== uB) {
-        return uA - uB; // ASC by User ID
+        return sortMode === 'userIdDesc' ? uB - uA : uA - uB;
       }
       return Number(b.id) - Number(a.id);
     });
@@ -714,8 +724,22 @@ const AdminOrdersScreen = () => {
         <View style={styles.typeBar}>
           {(
             [
-              {id: 'userId' as const, label: t('sortByUserId') || 'User ID'},
-              {id: 'date' as const, label: t('sortByDate') || 'Date'},
+              {
+                id: 'userIdAsc' as const,
+                label: t('sortByUserIdAsc') || 'User ID (Ascending)',
+              },
+              {
+                id: 'userIdDesc' as const,
+                label: t('sortByUserIdDesc') || 'User ID (Descending)',
+              },
+              {
+                id: 'dateRecent' as const,
+                label: t('sortByDateRecent') || 'Date (Recent)',
+              },
+              {
+                id: 'dateOldest' as const,
+                label: t('sortByDateOldest') || 'Date (Oldest)',
+              },
             ] as const
           ).map(item => (
             <TouchableOpacity
