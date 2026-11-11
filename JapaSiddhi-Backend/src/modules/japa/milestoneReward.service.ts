@@ -318,7 +318,7 @@ class MilestoneRewardService {
     // Prefer raw rows so we never re-insert over an admin OOS / existing Marakata.
     try {
       await mysql.query(
-        'ALTER TABLE challenge_rewards ADD COLUMN admin_marked_oos TINYINT(1) NOT NULL DEFAULT 0',
+        'ALTER TABLE challenge_rewards ADD COLUMN admin_marked_oos INTEGER NOT NULL DEFAULT 0',
       );
     } catch {
       // Column already exists.

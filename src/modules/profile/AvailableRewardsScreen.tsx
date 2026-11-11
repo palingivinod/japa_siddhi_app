@@ -39,25 +39,24 @@ type RewardItem = {
   emoji?: string;
 };
 
-// Offline/API-fallback catalog only — never invent "In Stock".
-// Real stock comes from the API; admin OOS must win until admin sets In Stock.
+// Name-only catalog for sorting/matching. Stock always comes from the API —
+// never invent In Stock or Out of Stock from this list.
 const DEFAULT_REWARDS: RewardItem[] = [
-  {id: 1, name: 'Rudrakshi Mala', inStock: false, stock: 0},
-  {id: 2, name: 'Tulasi Mala', inStock: false, stock: 0},
-  {id: 3, name: 'Pasupu Mala', inStock: false, stock: 0},
-  {id: 4, name: 'Sandal Wood Mala', inStock: false, stock: 0},
-  {id: 5, name: 'Karungali Mala', inStock: false, stock: 0},
-  {id: 6, name: 'Spatik Mala', inStock: false, stock: 0},
-  {id: 7, name: 'Green Agate', inStock: false, stock: 0},
-  {id: 8, name: 'Yellow Agate', inStock: false, stock: 0},
-  {id: 9, name: MARAKATA_SHIVLING_REWARD_NAME, inStock: false, stock: 0},
+  {id: 1, name: 'Rudrakshi Mala', inStock: true},
+  {id: 2, name: 'Tulasi Mala', inStock: true},
+  {id: 3, name: 'Pasupu Mala', inStock: true},
+  {id: 4, name: 'Sandal Wood Mala', inStock: true},
+  {id: 5, name: 'Karungali Mala', inStock: true},
+  {id: 6, name: 'Spatik Mala', inStock: true},
+  {id: 7, name: 'Green Agate', inStock: true},
+  {id: 8, name: 'Yellow Agate', inStock: true},
+  {id: 9, name: MARAKATA_SHIVLING_REWARD_NAME, inStock: true},
   {
     id: 10,
     name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)',
-    inStock: false,
-    stock: 0,
+    inStock: true,
   },
-  {id: 11, name: 'Spiritual Reward', inStock: false, stock: 0},
+  {id: 11, name: 'Spiritual Reward', inStock: true},
 ];
 
 const AvailableRewardsScreen = () => {
@@ -147,44 +146,15 @@ const AvailableRewardsScreen = () => {
           })
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
 
-        // Only fill missing catalog names for display — keep them OOS until API says otherwise.
-        const missingCanonical = DEFAULT_REWARDS.filter(def => {
-          const defLower = def.name.toLowerCase();
-          return !mapped.some((m: any) => {
-            const mLower = String(m.name || '').toLowerCase();
-            if (isMarakataShivlingName(def.name)) {
-              return isMarakataShivlingName(m.name);
-            }
-            if (defLower.includes('sree chakra') || defLower.includes('sri chakra')) {
-              return (
-                !isMarakataShivlingName(m.name) &&
-                (mLower.includes('marakatha') ||
-                  mLower.includes('green jade') ||
-                  mLower.includes('sri chakra') ||
-                  mLower.includes('sree chakra') ||
-                  (mLower.includes('aventurine') && mLower.includes('chakra')))
-              );
-            }
-            return (
-              mLower === defLower ||
-              (defLower.includes('sandal') &&
-                (mLower.includes('sandal') || mLower.includes('chandan'))) ||
-              (defLower.includes('spiritual reward') &&
-                mLower.includes('spiritual reward'))
-            );
-          });
-        });
-
-        const combined = [...mapped, ...missingCanonical];
-        setRewards(
-          combined.length > 0 ? sortRewardsCanonical(combined) : DEFAULT_REWARDS,
-        );
+        setRewards(sortRewardsCanonical(mapped));
       } else {
-        setRewards(DEFAULT_REWARDS);
+        setRewards([]);
+        setError(t('unableToLoadRewards') || 'Unable to load rewards.');
       }
     } catch (err) {
       setRawError(err);
-      setRewards(DEFAULT_REWARDS);
+      setRewards([]);
+      setError(t('unableToLoadRewards') || 'Unable to load rewards.');
       try {
         const stored = await getStoredUser();
         const locked = await resolveMarakataUnlockTarget(

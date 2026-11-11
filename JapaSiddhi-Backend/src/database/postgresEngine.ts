@@ -449,6 +449,7 @@ CREATE TABLE IF NOT EXISTS challenge_rewards (
   description TEXT,
   eligibility_criteria INTEGER NOT NULL DEFAULT 0,
   stock INTEGER NOT NULL DEFAULT 0,
+  admin_marked_oos INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1,
   display_order INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT,
@@ -1013,6 +1014,10 @@ class PostgresEngine {
         ALTER TABLE donations ADD COLUMN IF NOT EXISTS admin_reply TEXT;
         ALTER TABLE donations ADD COLUMN IF NOT EXISTS admin_replied_at TEXT;
         ALTER TABLE customer_care ADD COLUMN IF NOT EXISTS admin_reply TEXT;
+        ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS admin_marked_oos INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS image_url TEXT;
+        ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS description TEXT;
+        ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS eligibility_criteria INTEGER NOT NULL DEFAULT 0;
       `);
     } catch {
       // Ignore migration errors if already present
