@@ -12,6 +12,7 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import SelectField from '../common/SelectField';
 import AdminScreenLayout from './AdminScreenLayout';
@@ -101,6 +102,18 @@ const TYPE_FILTERS: Array<{id: 'normal' | 'reward'; label: string}> = [
   {id: 'normal', label: 'Normal'},
   {id: 'reward', label: 'Rewards'},
 ];
+
+type OrderSortMode = 'userId' | 'date';
+
+const orderDateValue = (order: AdminOrder) => {
+  const raw = order.createdAt || order.userReceivedAt || '';
+  const ms = new Date(String(raw)).getTime();
+  if (Number.isFinite(ms) && ms > 0) {
+    return ms;
+  }
+  // Fallback: higher order id ≈ newer when date missing.
+  return Number(order.id) || 0;
+};
 
 export type ProductFilterType = 'ALL' | 'RK' | 'BP' | 'HB' | 'BL';
 
@@ -262,12 +275,14 @@ const normalizeRewardKey = (value?: string) =>
 
 const AdminOrdersScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [catalogRewardNames, setCatalogRewardNames] = useState<string[]>([]);
   const [tab, setTab] = useState('All');
   const [orderType, setOrderType] = useState<'normal' | 'reward'>('normal');
   const [itemFilter, setItemFilter] = useState<ProductFilterType>('ALL');
   const [rewardFilter, setRewardFilter] = useState('ALL');
+  const [sortMode, setSortMode] = useState<OrderSortMode>('userId');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -311,6 +326,7 @@ const AdminOrdersScreen = () => {
         adminNoteAt: String(row.adminNoteAt || ''),
         cancelReason: row.cancelReason || '',
         cancelledBy: row.cancelledBy || '',
+        createdAt: String(row.createdAt || '').trim(),
         userId: Number(row.userId || 0) || null,
         userCode: String(row.userCode || '').trim(),
         userReceived: Boolean(row.userReceived ?? row.user_received),
@@ -558,14 +574,21 @@ const AdminOrdersScreen = () => {
         : itemFilteredOrders.filter(o => o.status === tab);
 
     return [...list].sort((a, b) => {
+      if (sortMode === 'date') {
+        const d = orderDateValue(b) - orderDateValue(a); // newest first
+        if (d !== 0) {
+          return d;
+        }
+        return Number(b.id) - Number(a.id);
+      }
       const uA = a.userId != null ? a.userId : 999999999;
       const uB = b.userId != null ? b.userId : 999999999;
       if (uA !== uB) {
-        return uA - uB; // ASC order by User ID
+        return uA - uB; // ASC by User ID
       }
       return Number(b.id) - Number(a.id);
     });
-  }, [itemFilteredOrders, tab]);
+  }, [itemFilteredOrders, tab, sortMode]);
 
   const tabCount = (tabId: string) => {
     if (tabId === 'All') return orderCounts.all;
@@ -682,6 +705,36 @@ const AdminOrdersScreen = () => {
             </Text>
           </TouchableOpacity>
         ))}
+      </View>
+
+      <View style={styles.sortBox}>
+        <Text style={styles.itemFilterHeader}>
+          {t('sortBy') || 'SORT BY'}
+        </Text>
+        <View style={styles.typeBar}>
+          {(
+            [
+              {id: 'userId' as const, label: t('sortByUserId') || 'User ID'},
+              {id: 'date' as const, label: t('sortByDate') || 'Date'},
+            ] as const
+          ).map(item => (
+            <TouchableOpacity
+              key={item.id}
+              style={[
+                styles.tabButton,
+                sortMode === item.id && styles.tabButtonActive,
+              ]}
+              onPress={() => setSortMode(item.id)}>
+              <Text
+                style={[
+                  styles.tabButtonText,
+                  sortMode === item.id && styles.tabButtonTextActive,
+                ]}>
+                {item.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {orderType === 'reward' ? (
@@ -1140,6 +1193,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     marginBottom: 12,
+  },
+  sortBox: {
+    marginBottom: 4,
   },
   rewardFilterBox: {
     marginBottom: 12,

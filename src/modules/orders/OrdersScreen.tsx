@@ -19,6 +19,7 @@ import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
 import ScreenLayout from '../common/ScreenLayout';
+import ShippedOrderConfirmPanel from './ShippedOrderConfirmPanel';
 
 const TABS: Array<{id: string; key: TranslationKey}> = [
   {id: 'All', key: 'orderTabAll'},
@@ -182,12 +183,13 @@ const OrdersScreen = () => {
 
   const confirmReceived = (orderItem: any) => {
     Alert.alert(
-      'Confirm Delivery',
-      'Have you received your order package safely?',
+      t('confirmDeliveryTitle') || 'Confirm Delivery',
+      t('confirmDeliveryMsg') ||
+        'Have you received your order package safely?',
       [
         {text: t('cancel') || 'Cancel', style: 'cancel'},
         {
-          text: 'Yes, I Received It',
+          text: t('yesIReceivedIt') || 'Yes, I Received It',
           style: 'default',
           onPress: async () => {
             setConfirmingId(orderItem.id);
@@ -196,13 +198,22 @@ const OrdersScreen = () => {
               setOrders(prev =>
                 prev.map(o =>
                   o.id === orderItem.id
-                    ? {...o, userReceived: true, user_received: 1}
+                    ? {
+                        ...o,
+                        userReceived: true,
+                        user_received: 1,
+                        orderStatus: 'DELIVERED',
+                        status: 'DELIVERED',
+                      }
                     : o,
                 ),
               );
               setShowPlayStoreFeedback(true);
             } catch (err) {
-              Alert.alert('Error', getApiError(err, 'Could not confirm order receipt.'));
+              Alert.alert(
+                t('required') || 'Error',
+                getApiError(err, t('orderReceivedFailed')),
+              );
             } finally {
               setConfirmingId(null);
             }
@@ -254,79 +265,90 @@ const OrdersScreen = () => {
         const isBirava = itemText.includes('birava') || itemText.includes('bp0');
         const rawStatus = statusOf(item);
         const isDelivered = isDeliveredStatus(rawStatus);
+        const isShipped = isShippedStatus(rawStatus);
         const userReceived = Boolean(item.userReceived || item.user_received);
         const canCancel = !rawStatus.includes('deliver') && !rawStatus.includes('cancel');
         const canDelete = isDeliveredStatus(rawStatus) || isCancelledStatus(rawStatus);
 
         return (
           <View key={item.id} style={styles.card}>
-            <View style={styles.dot}>
-              {isBaanalingam ? (
-                <AppIcon name="banalingam" size={30} />
-              ) : isRamakoti ? (
-                <AppIcon name="ramakoti" size={30} />
-              ) : isHoma ? (
-                <AppIcon name="homaBhasma" size={30} />
-              ) : isBirava ? (
-                <AppIcon name="biravaPendant" size={30} />
-              ) : (
-                <Text style={styles.emoji}>📦</Text>
-              )}
-            </View>
-            <View style={styles.copy}>
-              <Text style={styles.name}>
-                {item.orderNumber || `Order #${item.id}`}
-              </Text>
-              <Text style={styles.meta}>
-                {tt(String(item.itemName || item.productName || item.donationType || t('seva')))}{' '}
-                • {formatStatus(String(item.orderStatus || item.status || ''), t)}
-              </Text>
-            </View>
-            <View style={styles.actions}>
-              {isDelivered && !userReceived ? (
+            <View style={styles.cardTop}>
+              <View style={styles.dot}>
+                {isBaanalingam ? (
+                  <AppIcon name="banalingam" size={30} />
+                ) : isRamakoti ? (
+                  <AppIcon name="ramakoti" size={30} />
+                ) : isHoma ? (
+                  <AppIcon name="homaBhasma" size={30} />
+                ) : isBirava ? (
+                  <AppIcon name="biravaPendant" size={30} />
+                ) : (
+                  <Text style={styles.emoji}>📦</Text>
+                )}
+              </View>
+              <View style={styles.copy}>
+                <Text style={styles.name}>
+                  {item.orderNumber || `Order #${item.id}`}
+                </Text>
+                <Text style={styles.meta}>
+                  {tt(
+                    String(
+                      item.itemName ||
+                        item.productName ||
+                        item.donationType ||
+                        t('seva'),
+                    ),
+                  )}{' '}
+                  • {formatStatus(String(item.orderStatus || item.status || ''), t)}
+                </Text>
+              </View>
+              <View style={styles.actions}>
+                {isDelivered && userReceived ? (
+                  <View style={styles.receivedBadge}>
+                    <Text style={styles.receivedBadgeText}>✓ Received</Text>
+                  </View>
+                ) : null}
+                {canCancel ? (
+                  <TouchableOpacity
+                    style={styles.cancel}
+                    onPress={() => {
+                      setCancelTarget(item);
+                      setReason('');
+                      setCancelError('');
+                    }}>
+                    <Text style={styles.cancelText}>{t('cancelOrder')}</Text>
+                  </TouchableOpacity>
+                ) : null}
+                {canDelete ? (
+                  <TouchableOpacity
+                    style={styles.delete}
+                    disabled={deletingId === item.id}
+                    onPress={() => confirmDelete(item)}>
+                    <Text style={styles.deleteText}>
+                      {deletingId === item.id ? t('loading') : t('delete')}
+                    </Text>
+                  </TouchableOpacity>
+                ) : null}
                 <TouchableOpacity
-                  style={styles.receivedBtn}
-                  disabled={confirmingId === item.id}
-                  onPress={() => confirmReceived(item)}>
-                  <Text style={styles.receivedBtnText}>
-                    {confirmingId === item.id ? t('loading') : 'I received my order'}
-                  </Text>
+                  style={styles.view}
+                  onPress={() =>
+                    navigation.navigate('OrderDetails', {
+                      id: item.id,
+                      order: item,
+                    })
+                  }>
+                  <Text style={styles.viewText}>{t('view')}</Text>
                 </TouchableOpacity>
-              ) : null}
-              {isDelivered && userReceived ? (
-                <View style={styles.receivedBadge}>
-                  <Text style={styles.receivedBadgeText}>✓ Received</Text>
-                </View>
-              ) : null}
-              {canCancel ? (
-                <TouchableOpacity
-                  style={styles.cancel}
-                  onPress={() => {
-                    setCancelTarget(item);
-                    setReason('');
-                    setCancelError('');
-                  }}>
-                  <Text style={styles.cancelText}>{t('cancelOrder')}</Text>
-                </TouchableOpacity>
-              ) : null}
-              {canDelete ? (
-                <TouchableOpacity
-                  style={styles.delete}
-                  disabled={deletingId === item.id}
-                  onPress={() => confirmDelete(item)}>
-                  <Text style={styles.deleteText}>
-                    {deletingId === item.id ? t('loading') : t('delete')}
-                  </Text>
-                </TouchableOpacity>
-              ) : null}
-              <TouchableOpacity
-                style={styles.view}
-                onPress={() =>
-                  navigation.navigate('OrderDetails', {id: item.id, order: item})
-                }>
-                <Text style={styles.viewText}>{t('view')}</Text>
-              </TouchableOpacity>
+              </View>
             </View>
+            {isShipped ? (
+              <ShippedOrderConfirmPanel
+                orderId={item.id}
+                userReceived={userReceived}
+                confirming={confirmingId === item.id}
+                onConfirm={() => confirmReceived(item)}
+              />
+            ) : null}
           </View>
         );
       })}
@@ -402,6 +424,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: Colors.cardBorder,
+  },
+  cardTop: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -432,19 +456,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     flexWrap: 'wrap',
     gap: 8,
-  },
-  receivedBtn: {
-    backgroundColor: '#DCFCE7',
-    borderColor: '#16A34A',
-    borderWidth: 1,
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-  },
-  receivedBtnText: {
-    color: '#15803D',
-    fontWeight: '800',
-    fontSize: 12,
   },
   receivedBadge: {
     backgroundColor: '#F0FDF4',

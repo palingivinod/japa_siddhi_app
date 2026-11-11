@@ -50,6 +50,30 @@ export const or: TranslationDict = {
   tileBirava: 'ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ',
   tileBiravaSub: 'ପେଣ୍ଡାଣ୍ଟ ଅନୁରୋଧ',
   freeDistribution: '(ମାଗଣା ବିତରଣ)',
+  iniBracelets: 'ଇନି ବ୍ରେସଲେଟ୍',
+  freeOfCost: 'ମାଗଣା',
+  completeDetailsTitle: 'ବିବରଣୀ ସମ୍ପୂର୍ଣ୍ଣ କରନ୍ତୁ',
+  completeDetailsSubtitle:
+    'ଆଗକୁ ବଢ଼ିବା ପାଇଁ ଦୟାକରି ମୋବାଇଲ୍ ନମ୍ବର, ଜନ୍ମ ତାରିଖ ଏବଂ ଶ୍ରୀ / ଶ୍ରୀମତୀ ବାଛନ୍ତୁ।',
+  mrOrMrs: 'ଶ୍ରୀ କିମ୍ବା ଶ୍ରୀମତୀ',
+  selectMrOrMrs: 'ଦୟାକରି ଶ୍ରୀ କିମ୍ବା ଶ୍ରୀମତୀ ବାଛନ୍ତୁ',
+  enterValidIndianMobile: 'ଦୟାକରି 10 ଅଙ୍କର ବୈଧ ଭାରତୀୟ ମୋବାଇଲ୍ ନମ୍ବର ଦିଅନ୍ତୁ',
+  shippedOrderNotifyLink:
+    'ଏହି ଅର୍ଡର ବିଷୟରେ ଆପଣଙ୍କ ପାଇଁ ଏକ ବିଜ୍ଞପ୍ତି ଅଛି। ଦେଖିବାକୁ ଏଠାରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+  shippedOrderConfirmCopy:
+    'ଦୟାକରି ନିଶ୍ଚିତ କରନ୍ତୁ ଯେ ଆପଣ ଅର୍ଡର ପାଇଛନ୍ତି। ନିଶ୍ଚିତ ନ କରିବା ପର୍ଯ୍ୟନ୍ତ ନୂଆ ଅର୍ଡର କରିପାରିବେ ନାହିଁ।',
+  yesIReceivedMyOrder: 'ହଁ, ମୋ ଅର୍ଡର ମିଳିଛି',
+  youConfirmedReceivingOrder: '✓ ଆପଣ ଅର୍ଡର ପାଇଥିବା ନିଶ୍ଚିତ କରିଛନ୍ତି',
+  youConfirmedReceivingOrderPackage:
+    '✓ ଆପଣ ଏହି ଅର୍ଡର ପ୍ୟାକେଜ୍ ପାଇଥିବା ନିଶ୍ଚିତ କରିଛନ୍ତି',
+  confirmDeliveryTitle: 'ଡେଲିଭରୀ ନିଶ୍ଚିତକରଣ',
+  confirmDeliveryMsg: 'ଆପଣଙ୍କ ଅର୍ଡର ପ୍ୟାକେଜ୍ ସୁରକ୍ଷିତ ଭାବେ ମିଳିଛି କି?',
+  yesIReceivedIt: 'ହଁ, ମିଳିଛି',
+  sortBy: 'ସଜାନ୍ତୁ',
+  sortByUserId: 'ୟୁଜର୍ ID',
+  sortByDate: 'ତାରିଖ',
+  notificationAnalyticsSub10d:
+    'ଗତ 10 ଦିନ — ଡେଲିଭରୀ ଏବଂ ରିଡ୍ ପରିସଂଖ୍ୟାନ (ସାଧାରଣ / ବିଶେଷ / ଅର୍ଡର)।',
   biravaPendant: 'ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ',
   biravaPendantSub:
     'ଗୋଟିଏ ପାଖରେ କାଳ ଭିରାଭ ଏବଂ ଅନ୍ୟ ପାଖରେ ଶ୍ରୀ ଚକ୍ର ଥିବା ଲକେଟ ପିନ୍ଧିଲେ ଅଶୁଭ ଶକ୍ତିର ପ୍ରବେଶ ରୋକାଯାଏ। ଏହି ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ ମାଗଣାରେ ମିଳିବ।',

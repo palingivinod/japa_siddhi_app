@@ -61,6 +61,30 @@ export const hi: TranslationDict = {
   tileBirava: 'भिरावा पेंडेंट',
   tileBiravaSub: 'पेंडेंट का अनुरोध',
   freeDistribution: '(निःशुल्क वितरण)',
+  iniBracelets: 'इनि ब्रेसलेट्स',
+  freeOfCost: 'निःशुल्क',
+  completeDetailsTitle: 'विवरण पूरा करें',
+  completeDetailsSubtitle:
+    'जारी रखने के लिए कृपया अपना मोबाइल नंबर, जन्म तिथि और श्री / श्रीमती चुनें।',
+  mrOrMrs: 'श्री या श्रीमती',
+  selectMrOrMrs: 'कृपया श्री या श्रीमती चुनें',
+  enterValidIndianMobile: 'कृपया 10 अंकों का वैध भारतीय मोबाइल नंबर दर्ज करें',
+  shippedOrderNotifyLink:
+    'इस ऑर्डर के बारे में आपके लिए एक सूचना है। देखने के लिए यहाँ टैप करें।',
+  shippedOrderConfirmCopy:
+    'कृपया पुष्टि करें कि आपको ऑर्डर मिल गया है। पुष्टि करने तक आप नया ऑर्डर नहीं दे पाएँगे।',
+  yesIReceivedMyOrder: 'हाँ, मुझे मेरा ऑर्डर मिल गया',
+  youConfirmedReceivingOrder: '✓ आपने ऑर्डर प्राप्त करने की पुष्टि कर दी है',
+  youConfirmedReceivingOrderPackage:
+    '✓ आपने इस ऑर्डर पैकेज की प्राप्ति की पुष्टि कर दी है',
+  confirmDeliveryTitle: 'डिलीवरी की पुष्टि',
+  confirmDeliveryMsg: 'क्या आपको अपना ऑर्डर पैकेज सुरक्षित मिल गया है?',
+  yesIReceivedIt: 'हाँ, मुझे मिल गया',
+  sortBy: 'क्रमबद्ध करें',
+  sortByUserId: 'यूज़र ID',
+  sortByDate: 'तारीख',
+  notificationAnalyticsSub10d:
+    'पिछले 10 दिन — डिलीवरी और रीड आँकड़े (सामान्य / विशिष्ट / ऑर्डर)।',
   biravaPendant: 'भिरावा पेंडेंट',
   biravaPendantSub:
     'काला भिरावा एक ओर और श्री चक्र दूसरी ओर वाला लॉकेट पहनने से बुरी शक्तियों का प्रवेश रुकता है। यह भिरावा पेंडेंट आपको निःशुल्क मिलेगा।',
@@ -1079,6 +1103,30 @@ export const te: TranslationDict = {
   tileBirava: 'భైరవ పెండెంట్',
   tileBiravaSub: 'పెండెంట్ అభ్యర్థన',
   freeDistribution: '(ఉచిత పంపిణీ)',
+  iniBracelets: 'ఇని బ్రేస్‌లెట్స్',
+  freeOfCost: 'ఉచితం',
+  completeDetailsTitle: 'వివరాలు పూర్తి చేయండి',
+  completeDetailsSubtitle:
+    'కొనసాగించడానికి దయచేసి మీ మొబైల్ నంబర్, పుట్టిన తేదీ మరియు శ్రీ / శ్రీమతి ఎంచుకోండి.',
+  mrOrMrs: 'శ్రీ లేదా శ్రీమతి',
+  selectMrOrMrs: 'దయచేసి శ్రీ లేదా శ్రీమతి ఎంచుకోండి',
+  enterValidIndianMobile: 'దయచేసి 10 అంకెల చెల్లుబాటు అయ్యే భారతీయ మొబైల్ నంబర్ ఇవ్వండి',
+  shippedOrderNotifyLink:
+    'ఈ ఆర్డర్ గురించి మీకు ఒక నోటిఫికేషన్ ఉంది. చూడటానికి ఇక్కడ నొక్కండి.',
+  shippedOrderConfirmCopy:
+    'దయచేసి మీ ఆర్డర్ అందినట్లు నిర్ధారించండి. నిర్ధారించే వరకు మీరు కొత్త ఆర్డర్ చేయలేరు.',
+  yesIReceivedMyOrder: 'అవును, నా ఆర్డర్ అందింది',
+  youConfirmedReceivingOrder: '✓ మీరు ఆర్డర్ అందినట్లు నిర్ధారించారు',
+  youConfirmedReceivingOrderPackage:
+    '✓ మీరు ఈ ఆర్డర్ ప్యాకేజీ అందినట్లు నిర్ధారించారు',
+  confirmDeliveryTitle: 'డెలివరీ నిర్ధారణ',
+  confirmDeliveryMsg: 'మీ ఆర్డర్ ప్యాకేజీ సురక్షితంగా అందిందా?',
+  yesIReceivedIt: 'అవును, అందింది',
+  sortBy: 'క్రమం',
+  sortByUserId: 'యూజర్ ID',
+  sortByDate: 'తేదీ',
+  notificationAnalyticsSub10d:
+    'గత 10 రోజులు — డెలివరీ మరియు రీడ్ గణాంకాలు (సాధారణ / ప్రత్యేక / ఆర్డర్లు).',
   biravaPendant: 'భైరవ పెండెంట్',
   biravaPendantSub:
     'ఒక వైపు కాల భైరవ, మరో వైపు శ్రీ చక్రం ఉన్న లాకెట్ ధరించడం దుష్ట శక్తుల ప్రవేశాన్ని అడ్డుకుంటుంది. ఈ భైరవ పెండెంట్ మీకు ఉచితంగా లభిస్తుంది.',

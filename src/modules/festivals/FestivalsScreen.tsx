@@ -17,6 +17,7 @@ import {
   festivalDateLabel,
   festivalName,
   formatPanchangDisplayDate,
+  getPanchangForToday,
   PanchangPayload,
 } from '../../services/panchang';
 import Colors from '../../theme/colors';
@@ -46,14 +47,14 @@ const FestivalsScreen = () => {
     setRawError(null);
     Promise.allSettled([
       apiService.get('/festivals'),
-      apiService.get('/festivals/panchang', {params: {lang: language}}),
+      getPanchangForToday(language),
     ])
       .then(([response, panchangRes]) => {
         if (response.status === 'fulfilled') {
           setFestivals(response.value.data.data ?? []);
         }
-        if (panchangRes.status === 'fulfilled' && panchangRes.value.data.data) {
-          setPanchang(panchangRes.value.data.data);
+        if (panchangRes.status === 'fulfilled' && panchangRes.value) {
+          setPanchang(panchangRes.value);
         } else if (
           panchangRes.status === 'rejected' &&
           response.status === 'rejected'

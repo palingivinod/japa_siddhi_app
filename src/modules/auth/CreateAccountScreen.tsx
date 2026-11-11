@@ -1,8 +1,6 @@
 import React, {useState} from 'react';
 import {
-  ActivityIndicator,
   Alert,
-  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -18,7 +16,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService from '../../services/apiService';
-import {clearSession} from '../../services/session';
+import {clearSession, saveSession, getValidSession} from '../../services/session';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
 import CountrySelector from './components/CountrySelector';
 import countries, {CountryItem} from '../../constants/countries';
@@ -29,6 +27,10 @@ import ProfileApi from './services/profileApi';
 import AuthLoadingOverlay, {
   waitForLoadingPaint,
 } from './components/AuthLoadingOverlay';
+import GoogleCompleteDetailsModal, {
+  googleAccountNeedsDetails,
+  GoogleDetailsPayload,
+} from './components/GoogleCompleteDetailsModal';
 
 const defaultIndia: CountryItem =
   countries.find(c => c.code === 'IN') || {
@@ -94,12 +96,9 @@ const CreateAccountScreen = () => {
   const [title, setTitle] = useState<'Mr' | 'Mrs' | ''>('');
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
-  // Google signup post-step fields (if DOB / Title needed)
+  // Google signup post-step (phone + DOB + Mr/Mrs)
   const [showGoogleDetailsModal, setShowGoogleDetailsModal] = useState(false);
-  const [googleDobText, setGoogleDobText] = useState('');
-  const [googleDobIso, setGoogleDobIso] = useState('');
-  const [showGoogleDobPicker, setShowGoogleDobPicker] = useState(false);
-  const [googleTitle, setGoogleTitle] = useState<'Mr' | 'Mrs' | ''>('');
+  const [googleUser, setGoogleUser] = useState<any>(null);
   const [googleSaving, setGoogleSaving] = useState(false);
 
   const handleGoogleSignup = async () => {
@@ -111,20 +110,15 @@ const CreateAccountScreen = () => {
     try {
       const signedIn = await signInWithGoogle();
       const user = signedIn.user || {};
-      const userDob = String(user.dateOfBirth || user.date_of_birth || user.dob || '').slice(0, 10);
-      const userGender = String(user.gender || '').trim();
 
-      // If user already has both DOB and Gender/Title, smoothly go to Home
-      if (userDob && /^\d{4}-\d{2}-\d{2}$/.test(userDob) && (userGender === 'Male' || userGender === 'Female')) {
+      // Returning Google users with phone + DOB + title go straight Home.
+      if (!googleAccountNeedsDetails(user)) {
         resetAuthGate();
         await resetToHomeAfterAuth(navigation);
         return;
       }
 
-      // Prompt for Date of Birth and Mr / Mrs
-      setGoogleDobIso(userDob);
-      setGoogleDobText(formatDobDisplay(userDob));
-      setGoogleTitle(userGender === 'Female' ? 'Mrs' : userGender === 'Male' ? 'Mr' : '');
+      setGoogleUser(user);
       setShowGoogleDetailsModal(true);
     } catch (error: any) {
       const message = explainGoogleSignInError(error);
@@ -137,23 +131,26 @@ const CreateAccountScreen = () => {
     }
   };
 
-  const submitGoogleDetails = async () => {
-    const parsed = parseDob(googleDobText) || googleDobIso;
-    if (!parsed) {
-      Alert.alert(t('required') || 'Required', t('enterDateOfBirth') || 'Please enter Date of Birth');
-      return;
-    }
-    if (!googleTitle) {
-      Alert.alert(t('required') || 'Required', 'Please select Mr or Mrs');
-      return;
-    }
-
+  const submitGoogleDetails = async (payload: GoogleDetailsPayload) => {
     setGoogleSaving(true);
     try {
-      await ProfileApi.updateProfile({
-        dateOfBirth: parsed,
-        gender: googleTitle === 'Mrs' ? 'Female' : 'Male',
+      const updated = await ProfileApi.updateProfile({
+        dateOfBirth: payload.dateOfBirth,
+        gender: payload.gender,
+        mobileCountryCode: payload.mobileCountryCode,
+        mobileNumber: payload.mobileNumber,
       });
+      const session = await getValidSession();
+      if (session.token) {
+        await saveSession(session.token, {
+          ...(session.user || {}),
+          ...(updated || {}),
+          dateOfBirth: payload.dateOfBirth,
+          gender: payload.gender,
+          mobileCountryCode: payload.mobileCountryCode,
+          mobileNumber: payload.mobileNumber,
+        });
+      }
       setShowGoogleDetailsModal(false);
       resetAuthGate();
       await resetToHomeAfterAuth(navigation);
@@ -475,116 +472,12 @@ const CreateAccountScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Google Details Modal (Date of Birth and Mr / Mrs) */}
-      <Modal
+      <GoogleCompleteDetailsModal
         visible={showGoogleDetailsModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => {}}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Complete Details</Text>
-            <Text style={styles.modalSubtitle}>
-              Please provide your Date of Birth and select Mr or Mrs to continue.
-            </Text>
-
-            {/* Google Date of Birth */}
-            <Text style={styles.label}>{t('dateOfBirth') || 'Date of Birth'} *</Text>
-            <View style={styles.dobRow}>
-              <TextInput
-                style={[styles.input, styles.dobInput]}
-                value={googleDobText}
-                onChangeText={value => {
-                  const masked = maskDob(value);
-                  setGoogleDobText(masked);
-                  const parsed = parseDob(masked);
-                  if (parsed) {
-                    setGoogleDobIso(parsed);
-                  }
-                }}
-                placeholder={t('dobFormatPlaceholder') || 'DD-MM-YYYY'}
-                placeholderTextColor={Colors.placeholder}
-                keyboardType="number-pad"
-                maxLength={10}
-              />
-              <TouchableOpacity
-                style={styles.dobButton}
-                onPress={() => setShowGoogleDobPicker(true)}>
-                <Text style={styles.dobButtonText}>📅</Text>
-              </TouchableOpacity>
-            </View>
-            <DatePickerModal
-              visible={showGoogleDobPicker}
-              value={(() => {
-                const picked = parseDob(googleDobText) || googleDobIso;
-                return picked
-                  ? new Date(
-                      Number(picked.slice(0, 4)),
-                      Number(picked.slice(5, 7)) - 1,
-                      Number(picked.slice(8, 10)),
-                    )
-                  : new Date(1995, 0, 1);
-              })()}
-              maximumDate={new Date()}
-              onCancel={() => setShowGoogleDobPicker(false)}
-              onConfirm={selected => {
-                const month = String(selected.getMonth() + 1).padStart(2, '0');
-                const day = String(selected.getDate()).padStart(2, '0');
-                const iso = `${selected.getFullYear()}-${month}-${day}`;
-                setGoogleDobIso(iso);
-                setGoogleDobText(formatDobDisplay(iso));
-                setShowGoogleDobPicker(false);
-              }}
-            />
-
-            {/* Google Mr or Mrs */}
-            <Text style={styles.label}>Mr or Mrs *</Text>
-            <View style={styles.titleRow}>
-              <TouchableOpacity
-                style={[
-                  styles.titleBtn,
-                  googleTitle === 'Mr' && styles.titleBtnActive,
-                ]}
-                onPress={() => setGoogleTitle('Mr')}
-                activeOpacity={0.85}>
-                <Text
-                  style={[
-                    styles.titleBtnText,
-                    googleTitle === 'Mr' && styles.titleBtnTextActive,
-                  ]}>
-                  Mr
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.titleBtn,
-                  googleTitle === 'Mrs' && styles.titleBtnActive,
-                ]}
-                onPress={() => setGoogleTitle('Mrs')}
-                activeOpacity={0.85}>
-                <Text
-                  style={[
-                    styles.titleBtnText,
-                    googleTitle === 'Mrs' && styles.titleBtnTextActive,
-                  ]}>
-                  Mrs
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{marginTop: 20}}>
-              {googleSaving ? (
-                <ActivityIndicator color={Colors.templeGold} size="large" />
-              ) : (
-                <PrimaryButton
-                  title="CONTINUE TO HOME"
-                  onPress={submitGoogleDetails}
-                />
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
+        saving={googleSaving}
+        initialUser={googleUser}
+        onSubmit={submitGoogleDetails}
+      />
     </ScreenLayout>
   );
 };
@@ -774,33 +667,5 @@ const styles = StyleSheet.create({
     color: Colors.templeGold,
     fontWeight: '800',
     fontSize: 15,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: Colors.white,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 4},
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-    marginBottom: 4,
-  },
-  modalSubtitle: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-    lineHeight: 20,
   },
 });

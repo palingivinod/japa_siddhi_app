@@ -12,6 +12,7 @@ import {
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 
@@ -161,6 +162,7 @@ const PAGE_SIZE = 30;
 
 const AdminNotificationAnalyticsScreen = () => {
   const navigation = useNavigation<any>();
+  const {t} = useLanguage();
   const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
   const [items, setItems] = useState<NotificationAnalyticsItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -296,7 +298,8 @@ const AdminNotificationAnalyticsScreen = () => {
         <View style={styles.titleCopy}>
           <Text style={styles.heading}>Notification Analytics</Text>
           <Text style={styles.sub}>
-            Real-time delivery and read stats for sent notifications.
+            {t('notificationAnalyticsSub10d') ||
+              'Last 10 days — delivery and read stats (General / Specific / Orders).'}
           </Text>
         </View>
         <TouchableOpacity

@@ -50,6 +50,30 @@ export const kn: TranslationDict = {
   tileBirava: 'ಭಿರವ ಪೆಂಡೆಂಟ್',
   tileBiravaSub: 'ಪೆಂಡೆಂಟ್ ಕೇಳಿ',
   freeDistribution: '(ಉಚಿತ ವಿತರಣೆ)',
+  iniBracelets: 'ಇನಿ ಬ್ರೇಸ್‌ಲೆಟ್‌ಗಳು',
+  freeOfCost: 'ಉಚಿತ',
+  completeDetailsTitle: 'ವಿವರಗಳನ್ನು ಪೂರ್ಣಗೊಳಿಸಿ',
+  completeDetailsSubtitle:
+    'ಮುಂದುವರಿಸಲು ದಯವಿಟ್ಟು ನಿಮ್ಮ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ, ಜನ್ಮ ದಿನಾಂಕ ಮತ್ತು ಶ್ರೀ / ಶ್ರೀಮತಿ ಆಯ್ಕೆಮಾಡಿ.',
+  mrOrMrs: 'ಶ್ರೀ ಅಥವಾ ಶ್ರೀಮತಿ',
+  selectMrOrMrs: 'ದಯವಿಟ್ಟು ಶ್ರೀ ಅಥವಾ ಶ್ರೀಮತಿ ಆಯ್ಕೆಮಾಡಿ',
+  enterValidIndianMobile: 'ದಯವಿಟ್ಟು 10 ಅಂಕಿಯ ಮಾನ್ಯ ಭಾರತೀಯ ಮೊಬೈಲ್ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ',
+  shippedOrderNotifyLink:
+    'ಈ ಆರ್ಡರ್ ಬಗ್ಗೆ ನಿಮಗೆ ಒಂದು ಅಧಿಸೂಚನೆ ಇದೆ. ನೋಡಲು ಇಲ್ಲಿ ಟ್ಯಾಪ್ ಮಾಡಿ.',
+  shippedOrderConfirmCopy:
+    'ದಯವಿಟ್ಟು ನಿಮ್ಮ ಆರ್ಡರ್ ಸಿಕ್ಕಿದೆಯೆಂದು ದೃಢೀಕರಿಸಿ. ದೃಢೀಕರಿಸುವವರೆಗೆ ನೀವು ಹೊಸ ಆರ್ಡರ್ ಮಾಡಲಾಗುವುದಿಲ್ಲ.',
+  yesIReceivedMyOrder: 'ಹೌದು, ನನ್ನ ಆರ್ಡರ್ ಸಿಕ್ಕಿದೆ',
+  youConfirmedReceivingOrder: '✓ ನೀವು ಆರ್ಡರ್ ಸಿಕ್ಕಿದ್ದನ್ನು ದೃಢೀಕರಿಸಿದ್ದೀರಿ',
+  youConfirmedReceivingOrderPackage:
+    '✓ ನೀವು ಈ ಆರ್ಡರ್ ಪ್ಯಾಕೇಜ್ ಸಿಕ್ಕಿದ್ದನ್ನು ದೃಢೀಕರಿಸಿದ್ದೀರಿ',
+  confirmDeliveryTitle: 'ಡೆಲಿವರಿ ದೃಢೀಕರಣ',
+  confirmDeliveryMsg: 'ನಿಮ್ಮ ಆರ್ಡರ್ ಪ್ಯಾಕೇಜ್ ಸುರಕ್ಷಿತವಾಗಿ ಸಿಕ್ಕಿದೆಯೇ?',
+  yesIReceivedIt: 'ಹೌದು, ಸಿಕ್ಕಿದೆ',
+  sortBy: 'ವಿಂಗಡಿಸಿ',
+  sortByUserId: 'ಬಳಕೆದಾರ ID',
+  sortByDate: 'ದಿನಾಂಕ',
+  notificationAnalyticsSub10d:
+    'ಕಳೆದ 10 ದಿನಗಳು — ಡೆಲಿವರಿ ಮತ್ತು ರೀಡ್ ಅಂಕಿಅಂಶಗಳು (ಸಾಮಾನ್ಯ / ನಿರ್ದಿಷ್ಟ / ಆರ್ಡರ್‌ಗಳು).',
   biravaPendant: 'ಭಿರವ ಪೆಂಡೆಂಟ್',
   biravaPendantSub:
     'ಒಂದು ಬದಿಯಲ್ಲಿ ಕಾಲ ಭಿರವ ಮತ್ತು ಇನ್ನೊಂದು ಬದಿಯಲ್ಲಿ ಶ್ರೀ ಚಕ್ರ ಇರುವ ಲಾಕೆಟ್ ಧರಿಸುವುದು ದುಷ್ಟ ಶಕ್ತಿಗಳ ಪ್ರವೇಶವನ್ನು ತಡೆಯುತ್ತದೆ. ಈ ಭಿರವ ಪೆಂಡೆಂಟ್ ನಿಮಗೆ ಉಚಿತವಾಗಿ ಸಿಗುತ್ತದೆ.',

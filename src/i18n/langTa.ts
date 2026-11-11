@@ -50,6 +50,30 @@ export const ta: TranslationDict = {
   tileBirava: 'பீரவா பதக்கம்',
   tileBiravaSub: 'பதக்கம் கோருங்கள்',
   freeDistribution: '(இலவச விநியோகம்)',
+  iniBracelets: 'இனி வளையல்கள்',
+  freeOfCost: 'இலவசம்',
+  completeDetailsTitle: 'விவரங்களை முடிக்கவும்',
+  completeDetailsSubtitle:
+    'தொடர உங்கள் மொபைல் எண், பிறந்த தேதி மற்றும் திரு / திருமதி ஆகியவற்றை அளிக்கவும்.',
+  mrOrMrs: 'திரு அல்லது திருமதி',
+  selectMrOrMrs: 'தயவுசெய்து திரு அல்லது திருமதி தேர்வு செய்யவும்',
+  enterValidIndianMobile: 'செல்லுபடியாகும் 10 இலக்க இந்திய மொபைல் எண்ணை உள்ளிடவும்',
+  shippedOrderNotifyLink:
+    'இந்த ஆர்டர் குறித்து உங்களுக்கு அறிவிப்பு உள்ளது. பார்க்க இங்கே தட்டவும்.',
+  shippedOrderConfirmCopy:
+    'ஆர்டர் கிடைத்ததை உறுதிப்படுத்தவும். உறுதிப்படுத்தும் வரை புதிய ஆர்டர் செய்ய முடியாது.',
+  yesIReceivedMyOrder: 'ஆம், என் ஆர்டர் கிடைத்தது',
+  youConfirmedReceivingOrder: '✓ ஆர்டர் கிடைத்ததை உறுதிசெய்துள்ளீர்கள்',
+  youConfirmedReceivingOrderPackage:
+    '✓ இந்த ஆர்டர் பாக்கேஜ் கிடைத்ததை உறுதிசெய்துள்ளீர்கள்',
+  confirmDeliveryTitle: 'டெலிவரி உறுதிப்படுத்தல்',
+  confirmDeliveryMsg: 'உங்கள் ஆர்டர் பாக்கேஜ் பாதுகாப்பாக கிடைத்ததா?',
+  yesIReceivedIt: 'ஆம், கிடைத்தது',
+  sortBy: 'வரிசைப்படுத்து',
+  sortByUserId: 'பயனர் ID',
+  sortByDate: 'தேதி',
+  notificationAnalyticsSub10d:
+    'கடந்த 10 நாட்கள் — டெலிவரி மற்றும் வாசிப்பு புள்ளிவிவரங்கள் (பொது / சிறப்பு / ஆர்டர்கள்).',
   biravaPendant: 'பீரவா பதக்கம்',
   biravaPendantSub:
     'ஒரு பக்கத்தில் கால பீரவா, மறுபக்கத்தில் ஸ்ரீ சக்ரா உள்ள லாக்கெட்டை அணிவது தீய சக்திகள் உட்புகுவதைத் தடுக்கும். இந்த பீரவா பதக்கம் இலவசமாகக் கிடைக்கும்.',

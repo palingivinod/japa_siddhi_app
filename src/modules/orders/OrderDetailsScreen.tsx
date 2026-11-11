@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -16,10 +17,12 @@ import MenuCard from '../common/MenuCard';
 import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import ShippedOrderConfirmPanel from './ShippedOrderConfirmPanel';
 
 const OrderDetailsScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
+  const {t} = useLanguage();
   const [item, setItem] = useState<any>(route.params?.order || null);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -51,18 +54,25 @@ const OrderDetailsScreen = () => {
   }, [id]);
 
   const rawStatus = String(item?.orderStatus || item?.status || '').toLowerCase();
-  const isDelivered = rawStatus.includes('deliver') && !rawStatus.includes('out for delivery');
+  const isDelivered =
+    rawStatus.includes('deliver') && !rawStatus.includes('out for delivery');
+  const isShipped =
+    !isDelivered &&
+    (rawStatus.includes('ship') ||
+      rawStatus.includes('out for delivery') ||
+      rawStatus.includes('transit'));
   const userReceived = Boolean(item?.userReceived || item?.user_received);
   const canDelete = rawStatus.includes('deliver') || rawStatus.includes('cancel');
 
   const confirmReceived = () => {
     Alert.alert(
-      'Confirm Delivery',
-      'Have you received your order package safely?',
+      t('confirmDeliveryTitle') || 'Confirm Delivery',
+      t('confirmDeliveryMsg') ||
+        'Have you received your order package safely?',
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: t('cancel') || 'Cancel', style: 'cancel'},
         {
-          text: 'Yes, I Received It',
+          text: t('yesIReceivedIt') || 'Yes, I Received It',
           style: 'default',
           onPress: async () => {
             if (!id) return;
@@ -73,10 +83,15 @@ const OrderDetailsScreen = () => {
                 ...prev,
                 userReceived: true,
                 user_received: 1,
+                orderStatus: 'DELIVERED',
+                status: 'DELIVERED',
               }));
               setShowPlayStoreFeedback(true);
             } catch (err) {
-              Alert.alert('Error', getApiError(err, 'Could not confirm order receipt.'));
+              Alert.alert(
+                t('required') || 'Error',
+                getApiError(err, t('orderReceivedFailed')),
+              );
             } finally {
               setConfirmingReceived(false);
             }
@@ -163,20 +178,19 @@ const OrderDetailsScreen = () => {
         title="TRACK ORDER"
         onPress={() => navigation.navigate('OrderTracking', {id, order: item})}
       />
-      {isDelivered && !userReceived ? (
-        <TouchableOpacity
-          style={styles.receivedBtn}
-          onPress={confirmReceived}
-          disabled={confirmingReceived}>
-          <Text style={styles.receivedBtnText}>
-            {confirmingReceived ? 'CONFIRMING...' : 'I RECEIVED MY ORDER'}
-          </Text>
-        </TouchableOpacity>
+      {isShipped ? (
+        <ShippedOrderConfirmPanel
+          orderId={id}
+          userReceived={userReceived}
+          confirming={confirmingReceived}
+          onConfirm={confirmReceived}
+        />
       ) : null}
       {isDelivered && userReceived ? (
         <View style={styles.receivedNotice}>
           <Text style={styles.receivedNoticeText}>
-            ✓ You confirmed receiving this order package
+            {t('youConfirmedReceivingOrderPackage') ||
+              '✓ You confirmed receiving this order package'}
           </Text>
         </View>
       ) : null}
@@ -228,21 +242,6 @@ const styles = StyleSheet.create({
   },
   stepDateSoon: {color: Colors.textSecondary, fontWeight: '600'},
   gap: {height: 16},
-  receivedBtn: {
-    marginTop: 12,
-    backgroundColor: '#DCFCE7',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1.5,
-    borderColor: '#16A34A',
-  },
-  receivedBtnText: {
-    color: '#15803D',
-    fontWeight: '800',
-    fontSize: 15,
-  },
   receivedNotice: {
     marginTop: 12,
     backgroundColor: '#F0FDF4',

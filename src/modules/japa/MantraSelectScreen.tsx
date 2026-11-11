@@ -1,5 +1,12 @@
 import React, {useEffect, useState} from 'react';
-import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
+import {
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -198,73 +205,81 @@ const MantraSelectScreen = () => {
   };
 
   return (
-    <ScreenLayout title={t('selectMantra')} showBack tab="JapaHub">
-      {picking ? (
-        <>
-          <Text style={styles.hint}>{t('selectCategoryForMantra')}</Text>
-          {groups.map(group => {
-            const open = openCode === group.code;
-            return (
-              <View key={group.code} style={styles.section}>
-                <TouchableOpacity
-                  style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
-                  activeOpacity={0.8}
-                  onPress={() =>
-                    setOpenCode(current =>
-                      current === group.code ? null : group.code,
-                    )
-                  }>
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      open && styles.categoryTextOpen,
-                    ]}>
-                    {categoryTitle(group, t)}
-                  </Text>
-                </TouchableOpacity>
-                {open ? (
-                  group.items.length > 0 ? (
-                    <View style={styles.chipRow}>{group.items.map(renderChip)}</View>
-                  ) : (
-                    <Text style={styles.empty}>{t('noMantrasInCategory')}</Text>
-                  )
-                ) : null}
-              </View>
-            );
-          })}
-          {unassigned.length > 0 ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
-              <View style={styles.chipRow}>{unassigned.map(renderChip)}</View>
-            </View>
-          ) : null}
-        </>
-      ) : (
-        <View style={styles.selectedContainer}>
-          <Text style={styles.hint}>{t('yourSelectedMantra')}</Text>
-          <View style={[styles.chip, styles.chipActive, styles.selectedChip]}>
-            <Text
-              style={[
-                styles.chipText,
-                styles.chipTextActive,
-                styles.selectedChipText,
-              ]}>
-              {localizedChosen || tt(chosenName)}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.changeBtn}
-            onPress={() => setPicking(true)}>
-            <Text style={styles.changeText}>{t('changeMantra')}</Text>
-          </TouchableOpacity>
-        </View>
-      )}
+    <ScreenLayout title={t('selectMantra')} showBack tab="JapaHub" scroll={false}>
+      {/* Frozen at top so devotees always see Set Goal while browsing mantras. */}
       <View style={styles.buttonContainer}>
-        <PrimaryButton
-          title={t('setGoalBtn')}
-          onPress={handleSetGoal}
-        />
+        <PrimaryButton title={t('setGoalBtn')} onPress={handleSetGoal} />
       </View>
+      <ScrollView
+        style={styles.listScroll}
+        contentContainerStyle={styles.listContent}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        {picking ? (
+          <>
+            <Text style={styles.hint}>{t('selectCategoryForMantra')}</Text>
+            {groups.map(group => {
+              const open = openCode === group.code;
+              return (
+                <View key={group.code} style={styles.section}>
+                  <TouchableOpacity
+                    style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      setOpenCode(current =>
+                        current === group.code ? null : group.code,
+                      )
+                    }>
+                    <Text
+                      style={[
+                        styles.categoryText,
+                        open && styles.categoryTextOpen,
+                      ]}>
+                      {categoryTitle(group, t)}
+                    </Text>
+                  </TouchableOpacity>
+                  {open ? (
+                    group.items.length > 0 ? (
+                      <View style={styles.chipRow}>
+                        {group.items.map(renderChip)}
+                      </View>
+                    ) : (
+                      <Text style={styles.empty}>{t('noMantrasInCategory')}</Text>
+                    )
+                  ) : null}
+                </View>
+              );
+            })}
+            {unassigned.length > 0 ? (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  {t('mantraCatUnassigned')}
+                </Text>
+                <View style={styles.chipRow}>{unassigned.map(renderChip)}</View>
+              </View>
+            ) : null}
+          </>
+        ) : (
+          <View style={styles.selectedContainer}>
+            <Text style={styles.hint}>{t('yourSelectedMantra')}</Text>
+            <View style={[styles.chip, styles.chipActive, styles.selectedChip]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  styles.chipTextActive,
+                  styles.selectedChipText,
+                ]}>
+                {localizedChosen || tt(chosenName)}
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={styles.changeBtn}
+              onPress={() => setPicking(true)}>
+              <Text style={styles.changeText}>{t('changeMantra')}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
     </ScreenLayout>
   );
 };
@@ -368,6 +383,12 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
   buttonContainer: {
-    marginTop: 10,
+    marginBottom: 12,
+  },
+  listScroll: {
+    flex: 1,
+  },
+  listContent: {
+    paddingBottom: 24,
   },
 });

@@ -402,9 +402,16 @@ const NotificationsScreen = () => {
       const visible = rawList.filter(
         (item: any) => !clearedSet.has(String(item.id)),
       );
-      setItems(visible);
-      const unreadCount = visible.filter((item: any) => !item.isRead).length;
-      setAppBadgeCount(unreadCount).catch(() => undefined);
+      // Opening the inbox counts as reading everything — clear dots + badge immediately.
+      const hasUnread = visible.some((item: any) => !item.isRead);
+      const shown = hasUnread
+        ? visible.map((item: any) => ({...item, isRead: true}))
+        : visible;
+      setItems(shown);
+      setAppBadgeCount(0).catch(() => undefined);
+      if (hasUnread) {
+        apiService.put('/notifications/read-all').catch(() => undefined);
+      }
     } catch (err) {
         setRawError(err);
       setError(getApiError(err, t('couldNotLoadMilestones')));

@@ -665,8 +665,27 @@ class NotificationRepository {
     return rows[0] ?? null;
   }
 
-    async markAllAsRead(userId: number): Promise<void> {
+  async markAllAsRead(userId: number): Promise<void> {
     await this.ensureExpiresColumn();
+
+    // Capture unread broadcast ids before flip so analytics read_count stays accurate.
+    let unreadRows: any[] = [];
+    try {
+      unreadRows = await mysql.query<any[]>(
+        `
+        SELECT
+          broadcast_id AS broadcastId,
+          extra_data AS extraData
+        FROM notifications
+        WHERE user_id = ?
+          AND is_read = 0
+        `,
+        [userId],
+      );
+    } catch {
+      unreadRows = [];
+    }
+
     await mysql.query(
       `
       UPDATE notifications
@@ -678,6 +697,19 @@ class NotificationRepository {
       `,
       [userId],
     );
+
+    const byBroadcast = new Map<number, number>();
+    for (const row of unreadRows || []) {
+      const bid =
+        Number(row?.broadcastId || 0) || this.parseBroadcastId(row?.extraData);
+      if (!bid) {
+        continue;
+      }
+      byBroadcast.set(bid, (byBroadcast.get(bid) || 0) + 1);
+    }
+    for (const [bid, count] of byBroadcast) {
+      await bumpQueueReadCount(bid, count);
+    }
   }
 
   async markMatchingAsRead(

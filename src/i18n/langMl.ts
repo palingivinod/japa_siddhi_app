@@ -50,6 +50,30 @@ export const ml: TranslationDict = {
   tileBirava: 'ഭിരവ പെൻഡന്റ്',
   tileBiravaSub: 'പെൻഡന്റ് അഭ്യർത്ഥിക്കുക',
   freeDistribution: '(സൗജന്യ വിതരണം)',
+  iniBracelets: 'ഇനി ബ്രേസ്‌ലെറ്റുകൾ',
+  freeOfCost: 'സൗജന്യം',
+  completeDetailsTitle: 'വിവരങ്ങൾ പൂർത്തിയാക്കുക',
+  completeDetailsSubtitle:
+    'തുടരാൻ ദയവായി നിങ്ങളുടെ മൊബൈൽ നമ്പർ, ജനനത്തീയതി, ശ്രീ / ശ്രീമതി തിരഞ്ഞെടുക്കുക.',
+  mrOrMrs: 'ശ്രീ അല്ലെങ്കിൽ ശ്രീമതി',
+  selectMrOrMrs: 'ദയവായി ശ്രീ അല്ലെങ്കിൽ ശ്രീമതി തിരഞ്ഞെടുക്കുക',
+  enterValidIndianMobile: 'സാധുവായ 10 അക്ക ഇന്ത്യൻ മൊബൈൽ നമ്പർ നൽകുക',
+  shippedOrderNotifyLink:
+    'ഈ ഓർഡറിനെക്കുറിച്ച് നിങ്ങൾക്ക് ഒരു അറിയിപ്പ് ഉണ്ട്. കാണാൻ ഇവിടെ ടാപ്പ് ചെയ്യുക.',
+  shippedOrderConfirmCopy:
+    'ഓർഡർ ലഭിച്ചെന്ന് സ്ഥിരീകരിക്കുക. സ്ഥിരീകരിക്കുന്നത് വരെ പുതിയ ഓർഡർ നൽകാനാകില്ല.',
+  yesIReceivedMyOrder: 'അതെ, എന്റെ ഓർഡർ ലഭിച്ചു',
+  youConfirmedReceivingOrder: '✓ നിങ്ങൾ ഓർഡർ ലഭിച്ചതായി സ്ഥിരീകരിച്ചു',
+  youConfirmedReceivingOrderPackage:
+    '✓ നിങ്ങൾ ഈ ഓർഡർ പാക്കേജ് ലഭിച്ചതായി സ്ഥിരീകരിച്ചു',
+  confirmDeliveryTitle: 'ഡെലിവറി സ്ഥിരീകരണം',
+  confirmDeliveryMsg: 'നിങ്ങളുടെ ഓർഡർ പാക്കേജ് സുരക്ഷിതമായി ലഭിച്ചോ?',
+  yesIReceivedIt: 'അതെ, ലഭിച്ചു',
+  sortBy: 'ക്രമീകരിക്കുക',
+  sortByUserId: 'യൂസർ ID',
+  sortByDate: 'തീയതി',
+  notificationAnalyticsSub10d:
+    'കഴിഞ്ഞ 10 ദിവസം — ഡെലിവറി, റീഡ് സ്ഥിതിവിവരക്കണക്കുകൾ (പൊതു / പ്രത്യേക / ഓർഡറുകൾ).',
   biravaPendant: 'ഭിരവ പെൻഡന്റ്',
   biravaPendantSub:
     'ഒരു വശത്ത് കാല ഭിരവനും മറുവശത്ത് ശ്രീ ചക്രവും ഉള്ള ലോക്കറ്റ് ധരിക്കുന്നത് ദുഷ്ടശക്തികൾ കടക്കുന്നത് തടയും. ഈ ഭിരവ പെൻഡന്റ് സൗജന്യമായി ലഭിക്കും.',

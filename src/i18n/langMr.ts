@@ -50,6 +50,30 @@ export const mr: TranslationDict = {
   tileBirava: 'भिरावा पेंडंट',
   tileBiravaSub: 'पेंडंटची विनंती',
   freeDistribution: '(मोफत वितरण)',
+  iniBracelets: 'इनि ब्रेसलेट्स',
+  freeOfCost: 'मोफत',
+  completeDetailsTitle: 'तपशील पूर्ण करा',
+  completeDetailsSubtitle:
+    'पुढे जाण्यासाठी कृपया मोबाइल नंबर, जन्म तारीख आणि श्री / श्रीमती निवडा.',
+  mrOrMrs: 'श्री किंवा श्रीमती',
+  selectMrOrMrs: 'कृपया श्री किंवा श्रीमती निवडा',
+  enterValidIndianMobile: 'कृपया 10 अंकी वैध भारतीय मोबाइल नंबर टाका',
+  shippedOrderNotifyLink:
+    'या ऑर्डरबद्दल तुम्हाला एक सूचना आहे. पाहण्यासाठी येथे टॅप करा.',
+  shippedOrderConfirmCopy:
+    'कृपया ऑर्डर मिळाल्याची पुष्टी करा. पुष्टी होईपर्यंत नवीन ऑर्डर देता येणार नाही.',
+  yesIReceivedMyOrder: 'होय, माझा ऑर्डर मिळाला',
+  youConfirmedReceivingOrder: '✓ तुम्ही ऑर्डर मिळाल्याची पुष्टी केली आहे',
+  youConfirmedReceivingOrderPackage:
+    '✓ तुम्ही हा ऑर्डर पॅकेज मिळाल्याची पुष्टी केली आहे',
+  confirmDeliveryTitle: 'डिलिव्हरी पुष्टीकरण',
+  confirmDeliveryMsg: 'तुमचा ऑर्डर पॅकेज सुरक्षितपणे मिळाला का?',
+  yesIReceivedIt: 'होय, मिळाला',
+  sortBy: 'क्रमवारी',
+  sortByUserId: 'युजर ID',
+  sortByDate: 'तारीख',
+  notificationAnalyticsSub10d:
+    'मागील 10 दिवस — डिलिव्हरी आणि रीड आकडेवारी (सामान्य / विशेष / ऑर्डर).',
   biravaPendant: 'भिरावा पेंडंट',
   biravaPendantSub:
     'एका बाजूला काळभिराव आणि दुसऱ्या बाजूला श्री चक्र असलेले लॉकेट घालणे वाईट शक्तींचा प्रवेश रोखते. हे भिरावा पेंडंट मोफत मिळेल.',

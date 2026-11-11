@@ -340,7 +340,31 @@ const en = {
     'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
-  freeDistribution: '(free distribution)',
+  freeDistribution: '(Free Distribution)',
+  iniBracelets: 'Ini Bracelets',
+  freeOfCost: 'free of cost',
+  completeDetailsTitle: 'Complete Details',
+  completeDetailsSubtitle:
+    'Please provide your phone number, Date of Birth, and Mr or Mrs to continue.',
+  mrOrMrs: 'Mr or Mrs',
+  selectMrOrMrs: 'Please select Mr or Mrs',
+  enterValidIndianMobile: 'Enter a valid 10-digit Indian mobile number',
+  shippedOrderNotifyLink:
+    'You have a notification about this order. Please tap here to view it.',
+  shippedOrderConfirmCopy:
+    'Please confirm that you have received your order. Until you confirm, you will not be able to place a new order.',
+  yesIReceivedMyOrder: 'YES, I RECEIVED MY ORDER',
+  youConfirmedReceivingOrder: '✓ You confirmed receiving this order',
+  youConfirmedReceivingOrderPackage:
+    '✓ You confirmed receiving this order package',
+  confirmDeliveryTitle: 'Confirm Delivery',
+  confirmDeliveryMsg: 'Have you received your order package safely?',
+  yesIReceivedIt: 'Yes, I Received It',
+  sortBy: 'SORT BY',
+  sortByUserId: 'User ID',
+  sortByDate: 'Date',
+  notificationAnalyticsSub10d:
+    'Last 10 days — delivery and read stats (General / Specific / Orders).',
   biravaPendant: 'Bhirava Pendent',
   biravaPendantSub:
     'Wearing a locket with Kaala Bhirava on one side and the Sri Chakra on the other helps prevent evil forces from entering. You will get this Bhirava Pendent free of charge.',

@@ -50,6 +50,30 @@ export const bn: TranslationDict = {
   tileBirava: 'ভীরাভা পেন্ডেন্ট',
   tileBiravaSub: 'পেন্ডেন্টের অনুরোধ',
   freeDistribution: '(বিনামূল্যে বিতরণ)',
+  iniBracelets: 'ইনি ব্রেসলেট',
+  freeOfCost: 'বিনামূল্যে',
+  completeDetailsTitle: 'বিবরণ সম্পূর্ণ করুন',
+  completeDetailsSubtitle:
+    'এগোতে আপনার মোবাইল নম্বর, জন্ম তারিখ এবং শ্রী / শ্রীমতি দিন।',
+  mrOrMrs: 'শ্রী অথবা শ্রীমতি',
+  selectMrOrMrs: 'অনুগ্রহ করে শ্রী অথবা শ্রীমতি বেছে নিন',
+  enterValidIndianMobile: 'অনুগ্রহ করে ১০ সংখ্যার বৈধ ভারতীয় মোবাইল নম্বর দিন',
+  shippedOrderNotifyLink:
+    'এই অর্ডার সম্পর্কে আপনার একটি বিজ্ঞপ্তি আছে। দেখতে এখানে ট্যাপ করুন।',
+  shippedOrderConfirmCopy:
+    'অনুগ্রহ করে নিশ্চিত করুন যে আপনি অর্ডার পেয়েছেন। নিশ্চিত না করা পর্যন্ত নতুন অর্ডার করা যাবে না।',
+  yesIReceivedMyOrder: 'হ্যাঁ, আমার অর্ডার পেয়েছি',
+  youConfirmedReceivingOrder: '✓ আপনি অর্ডার পাওয়ার বিষয়টি নিশ্চিত করেছেন',
+  youConfirmedReceivingOrderPackage:
+    '✓ আপনি এই অর্ডার প্যাকেজ পাওয়ার বিষয়টি নিশ্চিত করেছেন',
+  confirmDeliveryTitle: 'ডেলিভারি নিশ্চিতকরণ',
+  confirmDeliveryMsg: 'আপনার অর্ডার প্যাকেজ নিরাপদে পেয়েছেন কি?',
+  yesIReceivedIt: 'হ্যাঁ, পেয়েছি',
+  sortBy: 'সাজান',
+  sortByUserId: 'ইউজার ID',
+  sortByDate: 'তারিখ',
+  notificationAnalyticsSub10d:
+    'গতছ ১০ দিন — ডেলিভারি ও রিড পরিসংখ্যান (সাধারণ / বিশেষ / অর্ডার)।',
   biravaPendant: 'ভীরাভা পেন্ডেন্ট',
   biravaPendantSub:
     'এক পাশে কাল ভীরাভ এবং অন্য পাশে শ্রী চক্র থাকা লকেট পরলে অশুভ শক্তির প্রবেশ আটকায়। এই ভীরাভা পেন্ডেন্ট বিনামূল্যে পাবেন।',

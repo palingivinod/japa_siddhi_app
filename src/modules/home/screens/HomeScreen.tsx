@@ -28,6 +28,7 @@ import {
   festivalDateLabel,
   festivalName,
   formatPanchangDisplayDate,
+  getPanchangForToday,
   PanchangPayload,
 } from '../../../services/panchang';
 import {useTabSwipe} from '../../../navigation/useTabSwipe';
@@ -372,6 +373,7 @@ const HomeScreen = () => {
         route: 'BanaLingam',
         icon: 'banalingam' as AppIconName,
         tone: 'green' as const,
+        iniBracelets: true,
       },
       {
         title: t('tileAnnadanam'),
@@ -400,6 +402,7 @@ const HomeScreen = () => {
         route: 'RamakotiBooks',
         icon: 'ramakoti' as AppIconName,
         tone: 'gold' as const,
+        iniBracelets: true,
       },
       {
         title: t('tileHomaBhasma'),
@@ -407,6 +410,7 @@ const HomeScreen = () => {
         route: 'HomaBhasma',
         icon: 'homaBhasma' as AppIconName,
         tone: 'green' as const,
+        iniBracelets: true,
       },
       {
         title: t('tileBirava'),
@@ -414,6 +418,7 @@ const HomeScreen = () => {
         route: 'BiravaPendant',
         icon: 'biravaPendant' as AppIconName,
         tone: 'gold' as const,
+        iniBracelets: true,
       },
       {
         title: t('tileOrders'),
@@ -453,7 +458,7 @@ const HomeScreen = () => {
         apiService.get('/japa/summary'),
         apiService.get('/japa-goals'),
         apiService.get('/challenges'),
-        apiService.get('/festivals/panchang', {params: {lang: language}}),
+        getPanchangForToday(language),
         apiService.get('/banners/active', {
           params: {module: 'Home', lang: language || 'en'},
         }),
@@ -614,8 +619,8 @@ const HomeScreen = () => {
         const list = challenges.value.data.data ?? [];
         setChallenge(list.find((item: any) => item.joined) || list[0] || null);
       }
-      if (panchangRes.status === 'fulfilled' && panchangRes.value.data.data) {
-        setPanchang(panchangRes.value.data.data);
+      if (panchangRes.status === 'fulfilled' && panchangRes.value) {
+        setPanchang(panchangRes.value);
       }
       if (bannersRes.status === 'fulfilled') {
         const rows = Array.isArray(bannersRes.value.data?.data)
@@ -1239,6 +1244,12 @@ const HomeScreen = () => {
                 </View>
                 <Text style={styles.tileTitle}>{item.title}</Text>
                 <Text style={styles.tileSub}>{item.sub}</Text>
+                {(item as any).iniBracelets ? (
+                  <Text style={styles.tileIniBracelets}>
+                    {t('iniBracelets')}{' '}
+                    <Text style={styles.tileFreeOfCost}>{t('freeOfCost')}</Text>
+                  </Text>
+                ) : null}
               </TouchableOpacity>
             ))}
           </View>
@@ -1928,5 +1939,17 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     includeFontPadding: false,
     paddingBottom: 2,
+  },
+  tileIniBracelets: {
+    marginTop: 4,
+    color: Colors.sacredBrown,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+    includeFontPadding: false,
+  },
+  tileFreeOfCost: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
   },
 });

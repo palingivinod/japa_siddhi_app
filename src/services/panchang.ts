@@ -1,3 +1,10 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {TranslationKey} from '../i18n/en';
+import {istIsoDate} from '../utils/dateUtils';
+import apiService from './apiService';
+import {translatePanchangValue} from './panchangTerms';
+
 export type ChoghadiyaPeriod = {
   name: string;
   period: 'day' | 'night';
@@ -72,8 +79,83 @@ export const emptyPanchang = (): PanchangPayload => ({
   choghadiya: {current: null, periods: []},
 });
 
-import {TranslationKey} from '../i18n/en';
-import {translatePanchangValue} from './panchangTerms';
+type PanchangDayCache = {
+  istDay: string;
+  lang: string;
+  data: PanchangPayload;
+};
+
+const panchangCacheKey = (lang: string) =>
+  `panchang_day_v1_${String(lang || 'en').toLowerCase()}`;
+
+/** Read today's cached panchang for this language (IST calendar day). */
+export const readPanchangDayCache = async (
+  lang: string,
+): Promise<PanchangPayload | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(panchangCacheKey(lang));
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as PanchangDayCache;
+    const todayIst = istIsoDate();
+    if (
+      parsed?.istDay === todayIst &&
+      String(parsed?.lang || '').toLowerCase() ===
+        String(lang || 'en').toLowerCase() &&
+      parsed?.data &&
+      typeof parsed.data === 'object'
+    ) {
+      return parsed.data;
+    }
+  } catch {
+    // Ignore corrupt cache — fetch fresh below.
+  }
+  return null;
+};
+
+const writePanchangDayCache = async (
+  lang: string,
+  data: PanchangPayload,
+) => {
+  try {
+    const payload: PanchangDayCache = {
+      istDay: istIsoDate(),
+      lang: String(lang || 'en').toLowerCase(),
+      data,
+    };
+    await AsyncStorage.setItem(
+      panchangCacheKey(lang),
+      JSON.stringify(payload),
+    );
+  } catch {
+    // Best-effort local cache.
+  }
+};
+
+/**
+ * First open of the IST day → hit API and store.
+ * Later opens same IST day → return local cache (no request).
+ * Language change uses a separate cache slot.
+ */
+export const getPanchangForToday = async (
+  lang: string,
+): Promise<PanchangPayload> => {
+  const language = String(lang || 'en').toLowerCase() || 'en';
+  const cached = await readPanchangDayCache(language);
+  if (cached) {
+    return cached;
+  }
+  const response = await apiService.get('/festivals/panchang', {
+    params: {lang: language},
+  });
+  const data = response.data?.data;
+  if (!data || typeof data !== 'object') {
+    throw new Error('Panchangam data missing from API.');
+  }
+  await writePanchangDayCache(language, data);
+  return data as PanchangPayload;
+};
 
 const DAY_KEYS: TranslationKey[] = [
   'daySun',

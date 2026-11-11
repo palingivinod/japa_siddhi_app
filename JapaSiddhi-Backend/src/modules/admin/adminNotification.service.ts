@@ -1641,6 +1641,16 @@ const categoryWhereSql = (filter: string) => {
   return '1=1';
 };
 
+/** Inclusive IST calendar window for notification analytics (today + prior days). */
+const ANALYTICS_WINDOW_DAYS = 10;
+
+const analyticsWindowStartIst = () => {
+  const ms =
+    Date.now() - (ANALYTICS_WINDOW_DAYS - 1) * 24 * 60 * 60 * 1000;
+  const stamp = nowIstStamp(new Date(ms));
+  return `${stamp.slice(0, 10)} 00:00:00`;
+};
+
 export const getNotificationAnalytics = async (opts?: {
   categoryFilter?: string;
   page?: number;
@@ -1658,9 +1668,12 @@ export const getNotificationAnalytics = async (opts?: {
   const filter = String(opts?.categoryFilter || '')
     .trim()
     .toLowerCase();
+  const sinceIst = analyticsWindowStartIst();
+  // Queue stamps are IST wall clock via nowIstStamp() — compare as strings/datetimes.
+  const windowSql = `IFNULL(processed_at, IFNULL(send_at, created_at)) >= ?`;
 
-  const baseWhere = `status IN ('SENT', 'SENDING') AND ${categoryWhereSql(filter)}`;
-  const params: any[] = [];
+  const baseWhere = `status IN ('SENT', 'SENDING') AND ${windowSql} AND ${categoryWhereSql(filter)}`;
+  const params: any[] = [sinceIst];
   let searchSql = '';
   if (q) {
     const like = `%${q.toLowerCase()}%`;
@@ -1674,6 +1687,8 @@ export const getNotificationAnalytics = async (opts?: {
     `;
     params.push(like, like, like, like);
   }
+
+  const windowStatusWhere = `status IN ('SENT', 'SENDING') AND ${windowSql}`;
 
   const [countRows, sumRows, generalCountRows, birthdayCountRows, ordersCountRows, pageRows] =
     await Promise.all([
@@ -1698,23 +1713,32 @@ export const getNotificationAnalytics = async (opts?: {
         `,
         params,
       ),
-      mysql.query<any[]>(`
+      mysql.query<any[]>(
+        `
         SELECT COUNT(*) AS c
         FROM admin_notification_queue
-        WHERE status IN ('SENT', 'SENDING') AND ${GENERAL_SQL}
-      `),
-      mysql.query<any[]>(`
+        WHERE ${windowStatusWhere} AND ${GENERAL_SQL}
+        `,
+        [sinceIst],
+      ),
+      mysql.query<any[]>(
+        `
         SELECT COUNT(*) AS c
         FROM admin_notification_queue
-        WHERE status IN ('SENT', 'SENDING')
+        WHERE ${windowStatusWhere}
           AND NOT ${ORDERS_SQL}
           AND ${BIRTHDAY_SQL}
-      `),
-      mysql.query<any[]>(`
+        `,
+        [sinceIst],
+      ),
+      mysql.query<any[]>(
+        `
         SELECT COUNT(*) AS c
         FROM admin_notification_queue
-        WHERE status IN ('SENT', 'SENDING') AND ${ORDERS_SQL}
-      `),
+        WHERE ${windowStatusWhere} AND ${ORDERS_SQL}
+        `,
+        [sinceIst],
+      ),
       mysql.query<any[]>(
         `
         SELECT
@@ -1844,6 +1868,8 @@ export const getNotificationAnalytics = async (opts?: {
     limit,
     total,
     hasMore: offset + items.length < total,
+    windowDays: ANALYTICS_WINDOW_DAYS,
+    sinceIst,
   };
 };
 

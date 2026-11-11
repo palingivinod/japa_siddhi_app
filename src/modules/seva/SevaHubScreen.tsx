@@ -35,11 +35,13 @@ type SevaItem = {
   sub: string;
   route: BookingScreen;
   freeDistribution?: boolean;
+  iniBracelets?: boolean;
 };
 
 const buildAllSevaShareText = (
   items: SevaItem[],
   freeDistributionLabel: string,
+  iniBraceletsLabel: string,
 ) => {
   const lines = [
     '🙏 Japa Siddhi – Bilva Patra Trust — Spiritual Services 🙏',
@@ -48,11 +50,14 @@ const buildAllSevaShareText = (
     '',
   ];
   items.forEach(item => {
-    lines.push(
-      item.freeDistribution
-        ? `${item.title} ${freeDistributionLabel}`
-        : item.title,
-    );
+    let title = item.title;
+    if (item.freeDistribution) {
+      title = `${title} ${freeDistributionLabel}`;
+    }
+    if (item.iniBracelets) {
+      title = `${title} — ${iniBraceletsLabel}`;
+    }
+    lines.push(title);
     lines.push(publicBookingUrlForScreen(item.route));
     lines.push('');
   });
@@ -89,7 +94,8 @@ const SevaHubScreen = () => {
   );
 
   const freeDistributionLabel =
-    t('freeDistribution') || '(free distribution)';
+    t('freeDistribution') || '(Free Distribution)';
+  const iniBraceletsLabel = `${t('iniBracelets')} ${t('freeOfCost')}`;
 
   const items = useMemo(() => {
     const all: SevaItem[] = [
@@ -99,6 +105,7 @@ const SevaHubScreen = () => {
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
         freeDistribution: true,
+        iniBracelets: true,
       },
       {
         icon: 'bowl' as AppIconName,
@@ -118,6 +125,7 @@ const SevaHubScreen = () => {
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
         freeDistribution: true,
+        iniBracelets: true,
       },
       {
         icon: 'homaBhasma' as AppIconName,
@@ -125,6 +133,7 @@ const SevaHubScreen = () => {
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
         freeDistribution: true,
+        iniBracelets: true,
       },
       {
         icon: 'biravaPendant' as AppIconName,
@@ -132,13 +141,18 @@ const SevaHubScreen = () => {
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
         freeDistribution: true,
+        iniBracelets: true,
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
   }, [t, annadanamEnabled]);
 
   const handleShareAllSevas = async () => {
-    const message = buildAllSevaShareText(items, freeDistributionLabel);
+    const message = buildAllSevaShareText(
+      items,
+      freeDistributionLabel,
+      iniBraceletsLabel,
+    );
     try {
       (Clipboard as {setString?: (value: string) => void}).setString?.(message);
       if (Platform.OS === 'android') {
@@ -234,6 +248,12 @@ const SevaHubScreen = () => {
                   ) : null}
                 </Text>
                 <Text style={styles.sub}>{item.sub}</Text>
+                {item.iniBracelets ? (
+                  <Text style={styles.iniBracelets}>
+                    {t('iniBracelets')}{' '}
+                    <Text style={styles.freeOfCost}>{t('freeOfCost')}</Text>
+                  </Text>
+                ) : null}
               </View>
             </TouchableOpacity>
           ))}
@@ -305,9 +325,9 @@ const styles = StyleSheet.create({
     includeFontPadding: true,
   },
   freeDistribution: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '800',
     color: Colors.sacredBrown,
   },
   sub: {
@@ -316,5 +336,17 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     includeFontPadding: true,
+  },
+  iniBracelets: {
+    marginTop: 2,
+    color: Colors.sacredBrown,
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '600',
+    includeFontPadding: true,
+  },
+  freeOfCost: {
+    fontWeight: '800',
+    color: Colors.sacredBrown,
   },
 });
