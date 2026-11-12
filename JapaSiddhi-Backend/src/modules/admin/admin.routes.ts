@@ -3862,6 +3862,146 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * One-time / ops: send photo+video shipped notify to current SHIPPED orders
+ * that do not already have a media-style shipped ORDER_STATUS notification.
+ * Body: { dryRun?: boolean, limit?: number }
+ */
+router.post('/orders/shipped-notify-backfill', async (req: Request, res: Response) => {
+  try {
+    const dryRun = Boolean(req.body?.dryRun ?? req.query?.dryRun === 'true');
+    const limitRaw = Number(req.body?.limit ?? req.query?.limit ?? 500);
+    const limit = Math.min(
+      500,
+      Math.max(1, Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 500),
+    );
+
+    const shippedRows = await mysql.query<any[]>(
+      `
+      SELECT
+        o.id,
+        o.user_id AS userId,
+        o.order_number AS orderNo,
+        o.order_type AS orderType,
+        o.item_name AS product,
+        o.remarks,
+        o.order_status AS orderStatus
+      FROM orders o
+      WHERE UPPER(REPLACE(REPLACE(IFNULL(o.order_status, ''), '-', '_'), ' ', '_')) = 'SHIPPED'
+        AND COALESCE(o.deleted_by_user, 0) = 0
+      ORDER BY o.id ASC
+      LIMIT ${limit}
+      `,
+    );
+
+    const alreadyHasMediaNotify = async (orderId: number, userId: number) => {
+      try {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT id
+          FROM notifications
+          WHERE user_id = ?
+            AND UPPER(IFNULL(action_type, '')) = 'ORDER_STATUS'
+            AND action_id = ?
+            AND (
+              IFNULL(extra_data, '') LIKE '%shippedKind%'
+              OR IFNULL(extra_data, '') LIKE '%"videoUrl"%'
+              OR IFNULL(extra_data, '') LIKE '%videoUrl%'
+              OR lower(IFNULL(title, '')) LIKE '%has been shipped%'
+            )
+          LIMIT 1
+          `,
+          [userId, orderId],
+        );
+        return Boolean(rows?.length);
+      } catch {
+        return false;
+      }
+    };
+
+    const {resolveShippedOrderKind} = await import('./shippedNotifyContent');
+
+    const summary: Record<string, number> = {};
+    const sent: any[] = [];
+    const skipped: any[] = [];
+    const failed: any[] = [];
+
+    for (const row of shippedRows || []) {
+      const orderId = Number(row.id || 0);
+      const userId = Number(row.userId || row.user_id || 0);
+      const orderNo = String(row.orderNo || row.order_number || `#${orderId}`);
+      const orderType = String(row.orderType || row.order_type || '');
+      const product = String(row.product || row.item_name || 'Item');
+      const kind = resolveShippedOrderKind({
+        orderType,
+        orderNo,
+        product,
+        remarks: row.remarks,
+      });
+      summary[kind] = (summary[kind] || 0) + 1;
+
+      if (!orderId || !userId) {
+        failed.push({orderId, orderNo, reason: 'missing user/order id'});
+        continue;
+      }
+
+      if (await alreadyHasMediaNotify(orderId, userId)) {
+        skipped.push({orderId, orderNo, userId, kind, reason: 'already_notified'});
+        continue;
+      }
+
+      if (dryRun) {
+        sent.push({orderId, orderNo, userId, kind, dryRun: true});
+        continue;
+      }
+
+      try {
+        await notifyUserOrderStatus({
+          orderId,
+          userId,
+          orderNo,
+          product,
+          orderType,
+          remarks: row.remarks,
+          dbStatus: 'SHIPPED',
+        });
+        sent.push({orderId, orderNo, userId, kind});
+      } catch (err: any) {
+        failed.push({
+          orderId,
+          orderNo,
+          userId,
+          kind,
+          reason: err?.message || 'notify failed',
+        });
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: dryRun
+        ? 'Dry run complete — no notifications sent.'
+        : 'Shipped photo/video notify backfill finished.',
+      data: {
+        dryRun,
+        shippedScanned: (shippedRows || []).length,
+        wouldSendOrSent: sent.length,
+        skippedAlreadyNotified: skipped.length,
+        failed: failed.length,
+        byKindScanned: summary,
+        sent,
+        skipped,
+        failed,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to run shipped notify backfill.',
+    });
+  }
+});
+
 router.put('/orders/:id/cancel', async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
