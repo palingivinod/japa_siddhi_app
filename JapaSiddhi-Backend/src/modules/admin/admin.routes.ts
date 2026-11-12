@@ -3987,11 +3987,11 @@ router.post('/orders/shipped-notify-backfill', async (req: Request, res: Respons
         shippedScanned: (shippedRows || []).length,
         wouldSendOrSent: sent.length,
         skippedAlreadyNotified: skipped.length,
-        failed: failed.length,
+        failedCount: failed.length,
         byKindScanned: summary,
         sent,
         skipped,
-        failed,
+        failedItems: failed,
       },
     });
   } catch (error: any) {
