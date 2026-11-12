@@ -86,8 +86,12 @@ const BanaLingamScreen = () => {
         const allOrders = ordersRes?.data?.data || [];
         const isBanaOrder = (ord: any) => {
           const type = String(ord.orderType || '').toUpperCase();
-          const name = String(ord.itemName || '').toLowerCase();
-          const num = String(ord.orderNumber || '').toUpperCase();
+          const name = String(
+            ord.itemName || ord.product || ord.rewardName || '',
+          ).toLowerCase();
+          const num = String(
+            ord.orderNumber || ord.orderNo || '',
+          ).toUpperCase();
           return (
             type === 'BANA_LINGAM' ||
             name.includes('baanalingam') ||
@@ -97,25 +101,40 @@ const BanaLingamScreen = () => {
           );
         };
         const isMarakataOrder = (ord: any) => {
-          const name = String(ord.itemName || '').toLowerCase();
+          const name = String(
+            ord.itemName || ord.product || ord.rewardName || '',
+          ).toLowerCase();
           return (
             (name.includes('marakata') || name.includes('marakatha')) &&
             (name.includes('shiv') || name.includes('ling'))
           );
         };
         const statusOf = (ord: any) =>
-          String(ord.orderStatus || ord.status || '').toUpperCase();
+          String(ord.orderStatus || ord.status || '')
+            .toUpperCase()
+            .replace(/[-\s]/g, '_');
 
         const undeliveredOrder = allOrders.find((ord: any) => {
           const status = statusOf(ord);
-          return isBanaOrder(ord) && status !== 'DELIVERED' && status !== 'CANCELLED';
+          return (
+            isBanaOrder(ord) &&
+            status !== 'DELIVERED' &&
+            status !== 'CANCELLED' &&
+            status !== 'CANCELED'
+          );
         });
         // Lifetime lock: any non-cancelled Baanalingam / Marakata (Ghar Ghar Mahadev).
         const lifetimeBana = allOrders.find(
-          (ord: any) => isBanaOrder(ord) && statusOf(ord) !== 'CANCELLED',
+          (ord: any) =>
+            isBanaOrder(ord) &&
+            statusOf(ord) !== 'CANCELLED' &&
+            statusOf(ord) !== 'CANCELED',
         );
         const lifetimeMarakata = allOrders.find(
-          (ord: any) => isMarakataOrder(ord) && statusOf(ord) !== 'CANCELLED',
+          (ord: any) =>
+            isMarakataOrder(ord) &&
+            statusOf(ord) !== 'CANCELLED' &&
+            statusOf(ord) !== 'CANCELED',
         );
 
         if (undeliveredOrder) {

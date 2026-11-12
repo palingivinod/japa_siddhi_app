@@ -677,30 +677,50 @@ class OrderRepository {
       return null;
     }
 
-    try {
-      const rows = await mysql.query<any[]>(
+    // Ensure column exists first — never fail-open (old catch→null allowed reorders).
+    await this.ensureUserDeletedColumn();
+
+    const selectActive = async (withDeletedFilter: boolean) => {
+      const deletedSql = withDeletedFilter
+        ? 'AND COALESCE(deleted_by_user, 0) = 0'
+        : '';
+      return mysql.query<any[]>(
         `
         SELECT id, order_number AS orderNumber, order_status AS orderStatus
         FROM orders
         WHERE user_id = ?
           AND ${whereClause}
-          AND COALESCE(deleted_by_user, 0) = 0
-          AND upper(order_status) NOT IN ('DELIVERED', 'CANCELLED')
+          ${deletedSql}
+          AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+              NOT IN ('DELIVERED', 'CANCELLED', 'CANCELED')
         ORDER BY id DESC
         LIMIT 1
         `,
         [userId],
       );
+    };
 
-      if (rows && rows.length > 0) {
-        return {
-          id: rows[0].id,
-          orderNumber: rows[0].orderNumber || `#${rows[0].id}`,
-          orderStatus: rows[0].orderStatus,
-        };
-      }
+    let rows: any[] = [];
+    try {
+      rows = (await selectActive(true)) || [];
     } catch {
-      // ignore
+      // Column/SQL edge case: still check without deleted filter (fail closed on total failure).
+      try {
+        rows = (await selectActive(false)) || [];
+      } catch (error: any) {
+        throw new Error(
+          error?.message ||
+            'Unable to verify existing orders. Please try again.',
+        );
+      }
+    }
+
+    if (rows && rows.length > 0) {
+      return {
+        id: rows[0].id,
+        orderNumber: rows[0].orderNumber || `#${rows[0].id}`,
+        orderStatus: rows[0].orderStatus,
+      };
     }
 
     return null;
