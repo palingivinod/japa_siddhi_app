@@ -56,10 +56,21 @@ const AdminRewardStockScreen = () => {
   const [stock, setStock] = useState(
     Math.max(0, Number(route.params?.stock ?? 0)),
   );
+  const [adminMarkedOos, setAdminMarkedOos] = useState(
+    route.params?.adminMarkedOos === true ||
+      route.params?.adminMarkedOos === 1 ||
+      route.params?.inStock === false,
+  );
+  const [unlockMode, setUnlockMode] = useState<'fixed' | 'relative'>(
+    String(route.params?.unlockMode || '').toLowerCase() === 'relative'
+      ? 'relative'
+      : 'fixed',
+  );
   const [saving, setSaving] = useState(false);
   const [stockBusy, setStockBusy] = useState(false);
   const [loading, setLoading] = useState(!route.params?.name && Boolean(rewardId));
-  const inStock = stock > 0;
+  // Qty is a label only — availability is the admin In/Out toggle.
+  const inStock = !adminMarkedOos;
 
   useEffect(() => {
     if (!rewardId) {
@@ -94,6 +105,17 @@ const AdminRewardStockScreen = () => {
           setImageUrl(match.imageUrl);
         }
         setStock(Math.max(0, Number(match.stock || 0)));
+        setAdminMarkedOos(
+          match.adminMarkedOos === true ||
+            match.adminMarkedOos === 1 ||
+            match.inStock === false,
+        );
+        setUnlockMode(
+          String(match.unlockMode || match.unlock_mode || '')
+            .toLowerCase() === 'relative'
+            ? 'relative'
+            : 'fixed',
+        );
       })
       .catch(err => {
         Alert.alert('Rewards', getApiError(err, 'Could not load reward.'));
@@ -113,25 +135,40 @@ const AdminRewardStockScreen = () => {
       Alert.alert('Missing reward', 'Reward id is required.');
       return;
     }
-    const nextStock = nextInStock ? (stock > 0 ? stock : 50) : 0;
     if (nextInStock === inStock) {
       return;
     }
-    setStockBusy(true);
-    try {
-      await apiService.put(`/admin/rewards/${rewardId}`, {
-        stock: nextStock,
-        active: true,
-      });
-      setStock(nextStock);
-    } catch (err) {
-      Alert.alert(
-        'Stock',
-        getApiError(err, 'Could not update stock status.'),
-      );
-    } finally {
-      setStockBusy(false);
-    }
+    Alert.alert(
+      nextInStock ? 'Mark In Stock?' : 'Mark Out of Stock?',
+      nextInStock
+        ? 'Devotees can grab this reward even if the qty number is 0 (number is only a label).'
+        : 'It stays unavailable until you mark In Stock again.',
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: nextInStock ? 'Mark In Stock' : 'Out of Stock',
+          style: nextInStock ? 'default' : 'destructive',
+          onPress: async () => {
+            setStockBusy(true);
+            try {
+              await apiService.put(`/admin/rewards/${rewardId}`, {
+                inStock: nextInStock,
+                adminMarkedOos: !nextInStock,
+                active: true,
+              });
+              setAdminMarkedOos(!nextInStock);
+            } catch (err) {
+              Alert.alert(
+                'Stock',
+                getApiError(err, 'Could not update stock status.'),
+              );
+            } finally {
+              setStockBusy(false);
+            }
+          },
+        },
+      ],
+    );
   };
 
   const pickImage = async () => {
@@ -175,7 +212,11 @@ const AdminRewardStockScreen = () => {
         title,
         description: desc,
         eligibilityCriteria: eligibility,
+        unlockMode,
         stock,
+        // Keep availability as the toggle — do not let qty=0 flip OOS on save.
+        inStock: !adminMarkedOos,
+        adminMarkedOos,
         active: true,
       });
 
@@ -259,7 +300,11 @@ const AdminRewardStockScreen = () => {
           </View>
 
           <View style={styles.field}>
-            <Text style={styles.label}>Eligibility Criteria (Japa Count)</Text>
+            <Text style={styles.label}>
+              {unlockMode === 'relative'
+                ? 'Extra japa count (Present + N)'
+                : 'Eligibility Criteria (Japa Count)'}
+            </Text>
             <TextInput
               style={styles.input}
               value={eligibilityCriteria}
@@ -274,8 +319,8 @@ const AdminRewardStockScreen = () => {
             <Text style={styles.label}>Stock Status</Text>
             <Text style={styles.stockHint}>
               {inStock
-                ? `In Stock (${stock.toLocaleString('en-IN')}) — devotees can grab if eligible.`
-                : 'Out of Stock — devotees cannot grab this reward.'}
+                ? `In Stock — devotees can grab if eligible. Qty label: ${stock.toLocaleString('en-IN')} (does not block claims).`
+                : `Out of Stock — devotees cannot grab. Qty label: ${stock.toLocaleString('en-IN')}.`}
             </Text>
             <View style={styles.stockRow}>
               <TouchableOpacity

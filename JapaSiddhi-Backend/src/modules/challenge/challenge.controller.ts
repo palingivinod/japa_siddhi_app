@@ -274,16 +274,27 @@ class ChallengeController {
       const rows = await challengeRepository.listRewards();
       return apiResponse.success(res, 'Available rewards fetched', {
         rewards: (rows || []).map((row: any) => {
-          const stock = Number(row.stock || 0);
+          const adminMarkedOos =
+            Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+          const stock = Math.max(0, Number(row.stock || 0));
+          const unlockMode = String(row.unlockMode || row.unlock_mode || 'fixed')
+            .trim()
+            .toLowerCase();
           return {
             id: Number(row.id),
             name: String(row.name || ''),
             stock,
-            inStock: stock > 0,
+            // Qty is a label only — availability is admin In/Out toggle.
+            inStock: !adminMarkedOos,
+            adminMarkedOos,
             description: String(row.description || ''),
             eligibilityCriteria: Number(
               row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
             ),
+            unlockMode:
+              unlockMode === 'relative' || unlockMode === 'present'
+                ? 'relative'
+                : 'fixed',
             imageUrl: row.imageUrl || null,
           };
         }),

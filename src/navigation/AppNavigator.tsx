@@ -53,6 +53,7 @@ import MilestoneRewardSelectScreen from '../modules/donate/MilestoneRewardSelect
 import MilestoneRewardAddressScreen from '../modules/donate/MilestoneRewardAddressScreen';
 import MilestoneRewardOverviewScreen from '../modules/donate/MilestoneRewardOverviewScreen';
 import MarakataShivlingClaimScreen from '../modules/profile/MarakataShivlingClaimScreen';
+import RelativeRewardClaimScreen from '../modules/profile/RelativeRewardClaimScreen';
 import GeneralAnnadanamScreen from '../modules/donate/GeneralAnnadanamScreen';
 import DonationFormScreen from '../modules/donate/DonationFormScreen';
 import MonthlySupportScreen from '../modules/home/screens/MonthlySupportScreen';
@@ -304,6 +305,14 @@ export type RootStackParamList = {
   MarakataShivlingClaim:
     | {rewardId?: number | string; rewardName?: string}
     | undefined;
+  RelativeRewardClaim:
+    | {
+        rewardId?: number | string;
+        rewardName?: string;
+        extraJapas?: number;
+        unlockTarget?: number;
+      }
+    | undefined;
   GeneralAnnadanam: undefined;
   DonationForm: any;
   DonationPayment: any;
@@ -517,6 +526,7 @@ const ProtectedMilestoneRewardSelect = withAuth(MilestoneRewardSelectScreen);
 const ProtectedMilestoneRewardAddress = withAuth(MilestoneRewardAddressScreen);
 const ProtectedMilestoneRewardOverview = withAuth(MilestoneRewardOverviewScreen);
 const ProtectedMarakataShivlingClaim = withAuth(MarakataShivlingClaimScreen);
+const ProtectedRelativeRewardClaim = withAuth(RelativeRewardClaimScreen);
 const ProtectedGeneralAnnadanam = withAuth(GeneralAnnadanamScreen);
 const ProtectedDonationForm = withAuth(DonationFormScreen);
 const ProtectedMonthlySupport = withAuth(MonthlySupportScreen);
@@ -766,6 +776,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="MarakataShivlingClaim"
           component={ProtectedMarakataShivlingClaim}
+        />
+        <Stack.Screen
+          name="RelativeRewardClaim"
+          component={ProtectedRelativeRewardClaim}
         />
         <Stack.Screen
           name="GeneralAnnadanam"

@@ -212,8 +212,19 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
 /**
  * Poller: when scheduled meeting start time is reached, notify all users once.
  */
+/** Persist "Show on Home" off after 8:30 PM IST (keeps link for next class). */
+export const checkAndAutoOffMeeting = async () => {
+  try {
+    return await appSettingsService.enforceMeetingAutoOffIfNeeded();
+  } catch (error) {
+    console.warn('Meeting auto-off failed:', error);
+    return {toggledOff: false};
+  }
+};
+
 export const checkAndNotifyMeetingLive = async () => {
   try {
+    await checkAndAutoOffMeeting();
     const meeting = await appSettingsService.getMeetingConfig();
     if (!meeting.enabled || !String(meeting.link || '').trim()) {
       return {sent: false, reason: 'disabled_or_no_link'};

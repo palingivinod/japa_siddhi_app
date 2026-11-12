@@ -355,6 +355,79 @@ class JapaController {
     }
   }
 
+  async listRelativeRewards(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await milestoneRewardService.listRelativeRewardStatuses(userId);
+      return apiResponse.success(res, 'Relative rewards status', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
+  async getRelativeReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const rewardId = Number(req.params.rewardId);
+      if (!rewardId) {
+        return apiResponse.error(res, 'Invalid reward id', 400);
+      }
+      const result = await milestoneRewardService.getRelativeRewardStatus(
+        userId,
+        rewardId,
+      );
+      return apiResponse.success(res, 'Relative reward status', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
+  async claimRelativeReward(req: Request, res: Response, next: NextFunction) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const rewardId = Number(req.params.rewardId || req.body?.rewardId);
+      if (!rewardId) {
+        return apiResponse.error(res, 'Invalid reward id', 400);
+      }
+      const result = await milestoneRewardService.claimRelativeReward(
+        userId,
+        rewardId,
+        {
+          fullName: String(req.body?.fullName || ''),
+          mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
+          mobileCountryCode: String(
+            req.body?.mobileCountryCode || req.body?.countryCode || '91',
+          ),
+          address: String(req.body?.address || ''),
+          city: String(req.body?.city || ''),
+          state: String(req.body?.state || ''),
+          pinCode: String(req.body?.pinCode || req.body?.postalCode || ''),
+        },
+      );
+      return apiResponse.success(res, 'Relative reward submitted', result);
+    } catch (error: any) {
+      if (error?.message) {
+        return apiResponse.error(res, error.message, 400);
+      }
+      next(error);
+    }
+  }
+
   async claimMarakataShivlingReward(
     req: Request,
     res: Response,

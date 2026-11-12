@@ -325,7 +325,7 @@ const AdminMeetingScreen = () => {
         </Text>
         <Text style={styles.sub}>
           {t('meetingManagementSub') ||
-            'Configure Google Meet or live class details. When enabled, this appears directly below Panchangam on the user home screen.'}
+            'Configure Google Meet or live class details. When enabled, this appears directly below Panchangam on the user home screen. After 8:30 PM IST it auto-turns off so users cannot see the class link.'}
         </Text>
 
         {loading ? (

@@ -57,7 +57,10 @@ export type AdminReward = {
   name: string;
   description?: string;
   eligibilityCriteria?: number;
+  unlockMode?: 'fixed' | 'relative';
   stock?: number;
+  inStock?: boolean;
+  adminMarkedOos?: boolean;
   imageUrl?: string | null;
 };
 

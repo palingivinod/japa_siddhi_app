@@ -585,8 +585,17 @@ class OrderRepository {
         [id],
       );
       if (claimRows?.length && claimRows[0].rewardId) {
+        // Never restock when admin marked Out of Stock.
         await mysql.query(
-          'UPDATE challenge_rewards SET stock = stock + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          `
+          UPDATE challenge_rewards
+          SET stock = CASE
+                WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+                ELSE stock + 1
+              END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          `,
           [claimRows[0].rewardId],
         );
       }

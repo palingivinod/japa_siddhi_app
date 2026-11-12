@@ -2,6 +2,27 @@ import mysql from '../../database/mysql';
 
 let tableReady = false;
 
+/** Class card auto-hides for users after this IST wall-clock time (20:30). */
+export const MEETING_AUTO_OFF_IST_MINUTES = 20 * 60 + 30;
+
+/** Current IST hour*60+minute from a UTC instant (default: now). */
+export const getIstMinutesOfDay = (date = new Date()): number => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(date);
+  const hour = Number(parts.find(p => p.type === 'hour')?.value || 0);
+  const minute = Number(parts.find(p => p.type === 'minute')?.value || 0);
+  // en-GB can yield "24" for midnight in some engines — normalize.
+  const h = hour === 24 ? 0 : hour;
+  return h * 60 + minute;
+};
+
+export const isPastMeetingAutoOffIst = (date = new Date()): boolean =>
+  getIstMinutesOfDay(date) >= MEETING_AUTO_OFF_IST_MINUTES;
+
 const ensureSettingsTable = async () => {
   if (tableReady) {
     return;
@@ -154,6 +175,34 @@ class AppSettingsService {
         updatedAt: new Date().toISOString(),
       }),
     );
+  }
+
+  /**
+   * After 8:30 PM IST, flip the admin "Show on Home" toggle off and persist.
+   * Title/link/schedule are kept so admin can re-enable next class day.
+   */
+  async enforceMeetingAutoOffIfNeeded(
+    date = new Date(),
+  ): Promise<{toggledOff: boolean}> {
+    if (!isPastMeetingAutoOffIst(date)) {
+      return {toggledOff: false};
+    }
+    const current = await this.getMeetingConfig();
+    if (!current.enabled) {
+      return {toggledOff: false};
+    }
+    await this.setMeetingConfig({enabled: false});
+    return {toggledOff: true};
+  }
+
+  /** Public Home/Classes payload — never exposes join link after 8:30 PM IST. */
+  async getPublicMeetingConfig(date = new Date()) {
+    await this.enforceMeetingAutoOffIfNeeded(date);
+    const meeting = await this.getMeetingConfig();
+    if (isPastMeetingAutoOffIst(date)) {
+      return {...meeting, enabled: false};
+    }
+    return meeting;
   }
 }
 

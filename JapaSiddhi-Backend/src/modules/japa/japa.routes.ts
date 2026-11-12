@@ -89,6 +89,24 @@ router.post(
   japaController.claimMarakataShivlingReward,
 );
 
+router.get(
+  '/relative-rewards',
+  authenticate,
+  japaController.listRelativeRewards,
+);
+
+router.get(
+  '/relative-rewards/id/:rewardId',
+  authenticate,
+  japaController.getRelativeReward,
+);
+
+router.post(
+  '/relative-rewards/id/:rewardId',
+  authenticate,
+  japaController.claimRelativeReward,
+);
+
 router.post(
   '/reference',
   authenticate,

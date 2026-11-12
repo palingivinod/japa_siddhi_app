@@ -25,8 +25,20 @@ import {
   getRewardRequirement,
 } from '../../utils/rewardContent';
 
+type RewardTab = 'fixed' | 'relative';
+
 /** Same eligibility devotees see (API override, else name-based). */
-const displayEligibility = (name: string, apiCriteria?: number) => {
+const displayEligibility = (
+  name: string,
+  apiCriteria?: number,
+  unlockMode?: string,
+) => {
+  if (unlockMode === 'relative') {
+    const extra = Number(apiCriteria || 0);
+    return extra > 0
+      ? `Present + ${extra.toLocaleString('en-IN')} Japas`
+      : 'Present + count';
+  }
   const elig = checkRewardEligibility(
     name,
     0,
@@ -41,6 +53,7 @@ const displayEligibility = (name: string, apiCriteria?: number) => {
 
 const AdminRewardsScreen = () => {
   const navigation = useNavigation<any>();
+  const [tab, setTab] = useState<RewardTab>('fixed');
   const [rewards, setRewards] = useState<AdminReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState('');
@@ -60,14 +73,26 @@ const AdminRewardsScreen = () => {
     try {
       const response = await apiService.get('/admin/rewards');
       const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-      const mapped = rows.map((row: any) => ({
-        id: String(row.id),
-        name: String(row.name || ''),
-        description: String(row.description || ''),
-        eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-        stock: Number(row.stock || 0),
-        imageUrl: row.imageUrl || row.imagePath || null,
-      }));
+      const mapped = rows.map((row: any) => {
+        const unlockMode =
+          String(row.unlockMode || row.unlock_mode || 'fixed').toLowerCase() ===
+          'relative'
+            ? 'relative'
+            : 'fixed';
+        return {
+          id: String(row.id),
+          name: String(row.name || ''),
+          description: String(row.description || ''),
+          eligibilityCriteria: Number(
+            row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+          ),
+          unlockMode: unlockMode as 'fixed' | 'relative',
+          stock: Number(row.stock || 0),
+          inStock: row.inStock !== false && !row.adminMarkedOos,
+          adminMarkedOos: Boolean(row.adminMarkedOos),
+          imageUrl: row.imageUrl || row.imagePath || null,
+        };
+      });
       setRewards(
         [...mapped].sort((a, b) =>
           a.name.localeCompare(b.name, undefined, {sensitivity: 'base'}),
@@ -115,7 +140,24 @@ const AdminRewardsScreen = () => {
     const parsed = rawElig ? parseInt(rawElig, 10) : 0;
     const fromName = title ? getRewardRequirement(title).count : 0;
     const eligibility =
-      Number.isFinite(parsed) && parsed > 0 ? parsed : fromName > 0 ? fromName : 0;
+      Number.isFinite(parsed) && parsed > 0
+        ? parsed
+        : tab === 'relative'
+          ? 0
+          : fromName > 0
+            ? fromName
+            : 0;
+    if (!title || !desc) {
+      Alert.alert('Rewards', 'Title and description are required.');
+      return;
+    }
+    if (tab === 'relative' && eligibility <= 0) {
+      Alert.alert(
+        'Rewards',
+        'Enter the extra japa count (present + N), e.g. 3000.',
+      );
+      return;
+    }
 
     setSaving(true);
     try {
@@ -124,6 +166,7 @@ const AdminRewardsScreen = () => {
         title,
         description: desc,
         eligibilityCriteria: eligibility,
+        unlockMode: tab,
       });
 
       const createdId = res.data?.data?.id;
@@ -153,6 +196,12 @@ const AdminRewardsScreen = () => {
       setSaving(false);
     }
   };
+
+  const visibleRewards = rewards.filter(item =>
+    tab === 'relative'
+      ? item.unlockMode === 'relative'
+      : item.unlockMode !== 'relative',
+  );
 
   const uploadImage = async (item: AdminReward) => {
     try {
@@ -235,12 +284,44 @@ const AdminRewardsScreen = () => {
       <Text style={styles.heading}>Configure Rewards</Text>
       <Text style={styles.section}>Reward choices & eligibility.</Text>
       <Text style={styles.hint}>
-        Configure spiritual rewards with title, description, and eligibility criteria.
-        Upload a photo for each reward.
+        Fixed = lifetime japa target. Present + Count = each devotee’s current
+        total + the extra count you set (like Marakata + 3000).
       </Text>
 
+      <View style={styles.tabRow}>
+        <TouchableOpacity
+          style={[styles.tabChip, tab === 'fixed' && styles.tabChipOn]}
+          onPress={() => {
+            setTab('fixed');
+            setShowAdd(false);
+          }}
+          activeOpacity={0.85}>
+          <Text style={[styles.tabChipText, tab === 'fixed' && styles.tabChipTextOn]}>
+            Fixed targets
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabChip, tab === 'relative' && styles.tabChipOn]}
+          onPress={() => {
+            setTab('relative');
+            setShowAdd(false);
+          }}
+          activeOpacity={0.85}>
+          <Text
+            style={[styles.tabChipText, tab === 'relative' && styles.tabChipTextOn]}>
+            Present + Count
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       <PrimaryButton
-        title={showAdd ? 'CANCEL' : 'ADD REWARD'}
+        title={
+          showAdd
+            ? 'CANCEL'
+            : tab === 'relative'
+              ? 'ADD PRESENT + COUNT REWARD'
+              : 'ADD REWARD'
+        }
         onPress={() => setShowAdd(current => !current)}
       />
       <View style={styles.gap} />
@@ -287,15 +368,25 @@ const AdminRewardsScreen = () => {
             numberOfLines={3}
           />
 
-          <Text style={styles.label}>Eligibility Criteria (Japa Count)</Text>
+          <Text style={styles.label}>
+            {tab === 'relative'
+              ? 'Extra japa count (Present + N)'
+              : 'Eligibility Criteria (Japa Count)'}
+          </Text>
           <TextInput
             style={styles.input}
             value={newEligibility}
             onChangeText={setNewEligibility}
             keyboardType="number-pad"
-            placeholder="e.g. 5000, 30000"
+            placeholder={tab === 'relative' ? 'e.g. 3000, 5000' : 'e.g. 5000, 30000'}
             placeholderTextColor={Colors.placeholder}
           />
+          {tab === 'relative' ? (
+            <Text style={styles.relativeHint}>
+              Devotee unlocks at their present total + this number. Each user gets
+              their own personal target.
+            </Text>
+          ) : null}
 
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
@@ -307,8 +398,9 @@ const AdminRewardsScreen = () => {
 
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
 
-      {rewards.map(item => {
+      {visibleRewards.map(item => {
         const photo = resolveMediaUrl(item.imageUrl);
+        const inStock = item.inStock !== false && !item.adminMarkedOos;
         return (
           <View key={item.id} style={styles.card}>
             {photo ? (
@@ -321,19 +413,25 @@ const AdminRewardsScreen = () => {
             <View style={styles.copy}>
               <Text style={styles.name}>{item.name}</Text>
               <View style={styles.eligibilityRow}>
-                <Text style={styles.eligibilityLabel}>Eligibility:</Text>
+                <Text style={styles.eligibilityLabel}>
+                  {tab === 'relative' ? 'Unlock:' : 'Eligibility:'}
+                </Text>
                 <Text style={styles.eligibilityValue}>
-                  {displayEligibility(item.name, item.eligibilityCriteria)}
+                  {displayEligibility(
+                    item.name,
+                    item.eligibilityCriteria,
+                    item.unlockMode,
+                  )}
                 </Text>
               </View>
               <Text
                 style={[
                   styles.stockStatus,
-                  (item.stock || 0) > 0
-                    ? styles.stockStatusOn
-                    : styles.stockStatusOff,
+                  inStock ? styles.stockStatusOn : styles.stockStatusOff,
                 ]}>
-                {(item.stock || 0) > 0 ? 'In Stock' : 'Out of Stock'}
+                {inStock
+                  ? `In Stock · qty ${Number(item.stock || 0).toLocaleString('en-IN')}`
+                  : 'Out of Stock'}
               </Text>
               {item.description ? (
                 <Text style={styles.desc} numberOfLines={2}>
@@ -363,6 +461,9 @@ const AdminRewardsScreen = () => {
                       eligibilityCriteria: resolved > 0 ? resolved : undefined,
                       imageUrl: item.imageUrl,
                       stock: item.stock,
+                      unlockMode: item.unlockMode,
+                      adminMarkedOos: item.adminMarkedOos,
+                      inStock: item.inStock,
                     });
                   }}
                   hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
@@ -382,8 +483,12 @@ const AdminRewardsScreen = () => {
         );
       })}
 
-      {!loading && rewards.length === 0 ? (
-        <Text style={styles.empty}>No rewards configured yet.</Text>
+      {!loading && visibleRewards.length === 0 ? (
+        <Text style={styles.empty}>
+          {tab === 'relative'
+            ? 'No present + count rewards yet. Add one above.'
+            : 'No fixed-target rewards configured yet.'}
+        </Text>
       ) : null}
 
       <View style={styles.gap} />
@@ -418,6 +523,39 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     fontSize: 13,
     lineHeight: 18,
+  },
+  tabRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  tabChip: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  tabChipOn: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#E8F5E9',
+  },
+  tabChipText: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  tabChipTextOn: {
+    color: Colors.leafGreen,
+  },
+  relativeHint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginBottom: 12,
+    marginTop: -4,
   },
   gap: {height: 12},
   addCard: {

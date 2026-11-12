@@ -45,8 +45,27 @@ export const isMarakataShivlingName = (rewardName: string): boolean => {
 export const MARAKATA_SHIVLING_EXTRA_JAPAS = 3000;
 /** Sentinel claim key — not a real japa milestone count. */
 export const MARAKATA_SHIVLING_CLAIM_TARGET = 900003;
+/** Generic relative (present+N) claim keys start here + rewardId. */
+export const RELATIVE_CLAIM_TARGET_BASE = 910000;
 export const MARAKATA_SHIVLING_REWARD_NAME =
   'Marakata Shivling (Green Aventurine)';
+
+export const isRelativeUnlockMode = (raw: any): boolean => {
+  const mode = String(raw || '')
+    .trim()
+    .toLowerCase();
+  return mode === 'relative' || mode === 'present' || mode === 'present_plus';
+};
+
+export const relativeRewardKey = (rewardId: number, rewardName: string) =>
+  isMarakataShivlingName(rewardName)
+    ? 'marakata_shivling'
+    : `reward_${Number(rewardId) || 0}`;
+
+export const relativeClaimTarget = (rewardId: number, rewardName: string) =>
+  isMarakataShivlingName(rewardName)
+    ? MARAKATA_SHIVLING_CLAIM_TARGET
+    : RELATIVE_CLAIM_TARGET_BASE + Number(rewardId);
 
 const rewardJapaRequirement = (name: string) => {
   const lower = String(name || '').toLowerCase();
@@ -270,13 +289,24 @@ class MilestoneRewardService {
       claimed: claimed.includes(milestone.target),
       isRetry,
       rewards: (rewards || [])
-        .filter((row: any) => !isMarakataShivlingName(String(row.name || '')))
-        .map((row: any) => ({
-          id: Number(row.id),
-          name: String(row.name || ''),
-          stock: Number(row.stock || 0),
-          inStock: Number(row.stock || 0) > 0,
-        })),
+        .filter((row: any) => {
+          const name = String(row.name || '');
+          return (
+            !isMarakataShivlingName(name) &&
+            !isRelativeUnlockMode(row.unlockMode)
+          );
+        })
+        .map((row: any) => {
+          const adminMarkedOos =
+            Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+          return {
+            id: Number(row.id),
+            name: String(row.name || ''),
+            stock: Math.max(0, Number(row.stock || 0)),
+            inStock: !adminMarkedOos,
+            adminMarkedOos,
+          };
+        }),
     };
   }
 
@@ -314,6 +344,7 @@ class MilestoneRewardService {
     id: number;
     name: string;
     stock: number;
+    adminMarkedOos: boolean;
   }> {
     // Prefer raw rows so we never re-insert over an admin OOS / existing Marakata.
     try {
@@ -323,15 +354,14 @@ class MilestoneRewardService {
     } catch {
       // Column already exists.
     }
+    // Stock qty is a label only — never force it to 0 from admin_marked_oos.
     const rawRows = await mysql.query<any[]>(
       `
       SELECT
         id,
         name,
-        CASE
-          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
-          ELSE stock
-        END AS stock
+        IFNULL(stock, 0) AS stock,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       `,
     );
@@ -343,22 +373,21 @@ class MilestoneRewardService {
         id: Number(found.id),
         name: String(found.name),
         stock: Number(found.stock || 0),
+        adminMarkedOos: Number(found.adminMarkedOos || 0) === 1,
       };
     }
     // First-time only — never recreate after admin marks OOS.
     await mysql.query(
-      `INSERT INTO challenge_rewards (name, stock, is_active, display_order, admin_marked_oos) VALUES (?, ?, 1, ?, 0)`,
-      [MARAKATA_SHIVLING_REWARD_NAME, 50, 9],
+      `INSERT INTO challenge_rewards (name, stock, is_active, display_order, eligibility_criteria, unlock_mode, admin_marked_oos) VALUES (?, ?, 1, ?, ?, 'relative', 0)`,
+      [MARAKATA_SHIVLING_REWARD_NAME, 50, 9, MARAKATA_SHIVLING_EXTRA_JAPAS],
     );
     const again = await mysql.query<any[]>(
       `
       SELECT
         id,
         name,
-        CASE
-          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
-          ELSE stock
-        END AS stock
+        IFNULL(stock, 0) AS stock,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       `,
     );
@@ -371,46 +400,74 @@ class MilestoneRewardService {
     return {
       id: Number(created.id),
       name: String(created.name),
+      adminMarkedOos: Number(created.adminMarkedOos || 0) === 1,
       stock: Number(created.stock || 0),
     };
   }
 
   async getMarakataShivlingStatus(userId: number) {
+    const reward = await this.ensureMarakataRewardRow();
+    return this.getRelativeRewardStatus(userId, reward.id);
+  }
+
+  /** Present + N status for any relative unlock_mode reward (incl. Marakata). */
+  async getRelativeRewardStatus(userId: number, rewardId: number) {
     await this.ensureTable();
     await this.ensureRelativeBaselineTable();
-    const reward = await this.ensureMarakataRewardRow();
+    const reward = await challengeRepository.getRewardById(rewardId);
+    if (!reward) {
+      throw new Error('Reward not found');
+    }
+    const rewardName = String(reward.name || '');
+    const isRelative =
+      isRelativeUnlockMode(reward.unlockMode) ||
+      isMarakataShivlingName(rewardName);
+    if (!isRelative) {
+      throw new Error('This reward is not a present + count reward.');
+    }
+    const extraJapas = Math.max(
+      0,
+      Number(reward.eligibilityCriteria || 0) ||
+        (isMarakataShivlingName(rewardName) ? MARAKATA_SHIVLING_EXTRA_JAPAS : 0),
+    );
+    if (extraJapas <= 0) {
+      throw new Error('Present + count reward is missing an extra japa count.');
+    }
+
     const total = await japaRepository.getUserMilestoneJapa(userId);
+    const rewardKey = relativeRewardKey(rewardId, rewardName);
+    const claimTarget = relativeClaimTarget(rewardId, rewardName);
     const existingBaseline = await mysql.query<any[]>(
       `
       SELECT baseline, unlock_target AS unlockTarget
       FROM relative_reward_baselines
-      WHERE user_id = ? AND reward_key = 'marakata_shivling'
+      WHERE user_id = ? AND reward_key = ?
       LIMIT 1
       `,
-      [userId],
+      [userId, rewardKey],
     );
     let baseline = Number(existingBaseline?.[0]?.baseline);
     let unlockTarget = Number(existingBaseline?.[0]?.unlockTarget);
     if (!(baseline >= 0) || !(unlockTarget > 0)) {
       baseline = Math.max(0, Number(total) || 0);
-      unlockTarget = baseline + MARAKATA_SHIVLING_EXTRA_JAPAS;
+      unlockTarget = baseline + extraJapas;
       try {
         await mysql.query(
           `
           INSERT INTO relative_reward_baselines (user_id, reward_key, baseline, unlock_target)
-          VALUES (?, 'marakata_shivling', ?, ?)
+          VALUES (?, ?, ?, ?)
           `,
-          [userId, baseline, unlockTarget],
+          [userId, rewardKey, baseline, unlockTarget],
         );
       } catch {
         const again = await mysql.query<any[]>(
           `
           SELECT baseline, unlock_target AS unlockTarget
           FROM relative_reward_baselines
-          WHERE user_id = ? AND reward_key = 'marakata_shivling'
+          WHERE user_id = ? AND reward_key = ?
           LIMIT 1
           `,
-          [userId],
+          [userId, rewardKey],
         );
         baseline = Number(again?.[0]?.baseline ?? baseline);
         unlockTarget = Number(again?.[0]?.unlockTarget ?? unlockTarget);
@@ -430,10 +487,9 @@ class MilestoneRewardService {
       WHERE c.user_id = ? AND c.milestone_target = ?
       LIMIT 1
       `,
-      [userId, MARAKATA_SHIVLING_CLAIM_TARGET],
+      [userId, claimTarget],
     );
     const claim = claimedRows?.[0];
-    // Same as other rewards: 1 grab; if order cancelled (user or admin) and retry unused → 1 more chance.
     let claimed = false;
     let isRetryAvailable = false;
     if (claim?.orderId) {
@@ -446,25 +502,94 @@ class MilestoneRewardService {
         claimed = true;
       }
     }
-    const stock = Number(reward.stock || 0);
+    const adminMarkedOos = Number(reward.adminMarkedOos || 0) === 1;
+    const stock = Math.max(0, Number(reward.stock || 0));
+    const inStock = !adminMarkedOos;
 
     return {
-      rewardId: reward.id,
-      rewardName: reward.name,
+      rewardId: Number(reward.id),
+      rewardName,
+      unlockMode: 'relative' as const,
       total,
       baseline,
       unlockTarget,
       target: unlockTarget,
-      extraJapas: MARAKATA_SHIVLING_EXTRA_JAPAS,
+      claimTarget,
+      extraJapas,
       eligible: total >= unlockTarget,
       remaining: Math.max(0, unlockTarget - total),
       claimed,
       isRetry: isRetryAvailable,
       stock,
-      inStock: stock > 0,
+      inStock,
+      adminMarkedOos,
       orderId: claim?.orderId ? Number(claim.orderId) : null,
       orderNumber: claim?.orderNumber ? String(claim.orderNumber) : null,
     };
+  }
+
+  async listRelativeRewardStatuses(userId: number) {
+    await this.ensureRelativeBaselineTable();
+    const rows = await challengeRepository.listRewards();
+    const relativeRows = (rows || []).filter((row: any) => {
+      const name = String(row.name || '');
+      return (
+        isRelativeUnlockMode(row.unlockMode) || isMarakataShivlingName(name)
+      );
+    });
+    const out: any[] = [];
+    for (const row of relativeRows) {
+      try {
+        out.push(await this.getRelativeRewardStatus(userId, Number(row.id)));
+      } catch {
+        // Skip misconfigured rows.
+      }
+    }
+    return {total: await japaRepository.getUserMilestoneJapa(userId), rewards: out};
+  }
+
+  async claimRelativeReward(
+    userId: number,
+    rewardId: number,
+    delivery: MilestoneDelivery,
+  ) {
+    const reward = await challengeRepository.getRewardById(rewardId);
+    if (!reward) {
+      throw new Error('Reward not found');
+    }
+    if (isMarakataShivlingName(String(reward.name || ''))) {
+      return this.claimMarakataShivling(userId, rewardId, delivery);
+    }
+
+    const status = await this.getRelativeRewardStatus(userId, rewardId);
+    if (status.claimed) {
+      return {
+        alreadySubmitted: true,
+        target: status.claimTarget,
+        title: status.rewardName,
+        rewardName: status.rewardName,
+        orderId: status.orderId,
+        orderNumber: status.orderNumber,
+      };
+    }
+    if (status.inStock === false || Number(reward.adminMarkedOos || 0) === 1) {
+      throw new Error('This reward item is currently out of stock.');
+    }
+    if (Number(status.total) < Number(status.unlockTarget)) {
+      const remaining = Number(status.unlockTarget) - Number(status.total);
+      throw new Error(
+        `This reward unlocks at ${Number(status.unlockTarget).toLocaleString()} Japas (present + ${Number(status.extraJapas).toLocaleString()}). You need ${remaining.toLocaleString()} more Japas.`,
+      );
+    }
+
+    return this.claimRelativeWithTarget(
+      userId,
+      status.claimTarget,
+      `${status.rewardName} (present + ${status.extraJapas})`,
+      rewardId,
+      status.rewardName,
+      delivery,
+    );
   }
 
   async claimMarakataShivling(userId: number, rewardId: number, delivery: MilestoneDelivery) {
@@ -495,7 +620,10 @@ class MilestoneRewardService {
     if (Number(rewardId) !== Number(status.rewardId)) {
       throw new Error('Invalid Marakata Shivling reward');
     }
-    if (Number(reward.stock || 0) <= 0) {
+    if (
+      Number(reward.adminMarkedOos || 0) === 1 ||
+      status.inStock === false
+    ) {
       throw new Error('This reward item is currently out of stock.');
     }
 
@@ -602,10 +730,15 @@ class MilestoneRewardService {
     }
 
     const stockRows = await mysql.query<any[]>(
-      `SELECT stock FROM challenge_rewards WHERE id = ? LIMIT 1`,
+      `
+      SELECT IFNULL(admin_marked_oos, 0) AS adminMarkedOos
+      FROM challenge_rewards
+      WHERE id = ?
+      LIMIT 1
+      `,
       [rewardId],
     );
-    if (Number(stockRows?.[0]?.stock || 0) <= 0) {
+    if (Number(stockRows?.[0]?.adminMarkedOos || 0) === 1) {
       throw new Error('This reward item is currently out of stock.');
     }
 
@@ -777,9 +910,14 @@ class MilestoneRewardService {
     await mysql.query(
       `
       UPDATE challenge_rewards
-      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+      SET stock = CASE
+            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+            WHEN stock > 0 THEN stock - 1
+            ELSE 0
+          END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
+        AND IFNULL(admin_marked_oos, 0) = 0
       `,
       [rewardId],
     );
@@ -910,7 +1048,7 @@ class MilestoneRewardService {
         'Marakata Shivling is claimed from Available Rewards after present japas + 3000.',
       );
     }
-    if (Number(reward.stock || 0) <= 0) {
+    if (Number(reward.adminMarkedOos || 0) === 1) {
       throw new Error('This reward item is currently out of stock.');
     }
     const required = rewardJapaRequirement(String(reward.name || ''));
@@ -1090,9 +1228,14 @@ class MilestoneRewardService {
     await mysql.query(
       `
       UPDATE challenge_rewards
-      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+      SET stock = CASE
+            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+            WHEN stock > 0 THEN stock - 1
+            ELSE 0
+          END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
+        AND IFNULL(admin_marked_oos, 0) = 0
       `,
       [rewardId],
     );

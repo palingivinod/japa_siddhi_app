@@ -62,25 +62,28 @@ const ChallengeRewardSelectScreen = () => {
           sortRewardsCanonical<RewardItem>(
             rawList.map((row: any) => {
               const stock = Number(row.stock || 0);
+              const adminOos =
+                row.adminMarkedOos === true ||
+                row.adminMarkedOos === 1 ||
+                row.admin_marked_oos === 1;
               return {
                 id: Number(row.id),
                 name: String(row.name || ''),
                 stock,
-                inStock:
-                  row.inStock === false
-                    ? false
-                    : row.inStock === true
-                      ? true
-                      : stock > 0,
+                // Qty is a label — unavailable only when admin marked OOS.
+                inStock: !(adminOos || row.inStock === false),
                 description: row.description,
                 eligibilityCriteria: Number(
                   row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
                 ),
+                unlockMode: String(row.unlockMode || row.unlock_mode || 'fixed'),
               };
             }).filter(
-              (row: RewardItem) =>
+              (row: RewardItem & {unlockMode?: string}) =>
                 row.name &&
                 !isMarakataShivlingName(row.name) &&
+                String((row as any).unlockMode || '').toLowerCase() !==
+                  'relative' &&
                 (isCanonicalReward(row.name) || Boolean(row.id)),
             ),
           ),
@@ -126,7 +129,7 @@ const ChallengeRewardSelectScreen = () => {
     if (deliverySubmitted) {
       return;
     }
-    if (item.inStock === false || Number(item.stock || 0) <= 0) {
+    if (item.inStock === false) {
       Alert.alert(
         t('outOfStockTitle') || 'Out of Stock',
         t('outOfStockRewardMsg') ||

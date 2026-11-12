@@ -485,6 +485,13 @@ class ChallengeRepository {
       } catch {
         // Column already exists.
       }
+      try {
+        await mysql.query(
+          `ALTER TABLE challenge_rewards ADD COLUMN unlock_mode TEXT NOT NULL DEFAULT 'fixed'`,
+        );
+      } catch {
+        // Column already exists.
+      }
       const existingRows = await mysql.query<any[]>(
         `SELECT id, name, display_order, stock, IFNULL(admin_marked_oos, 0) AS adminMarkedOos FROM challenge_rewards`,
       );
@@ -553,19 +560,19 @@ class ChallengeRepository {
       // ignore seed error
     }
 
+    // Stock qty is a label only — never force it to 0 from admin_marked_oos.
+
     return mysql.query<any[]>(
       `
       SELECT
         id,
         name,
-        CASE
-          WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
-          ELSE stock
-        END AS stock,
+        IFNULL(stock, 0) AS stock,
         is_active AS isActive,
         display_order AS displayOrder,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -580,8 +587,11 @@ class ChallengeRepository {
       SELECT
         id,
         name,
-        stock,
-        is_active AS isActive
+        IFNULL(stock, 0) AS stock,
+        is_active AS isActive,
+        IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -633,18 +643,18 @@ class ChallengeRepository {
       `,
       [challengeId, userId, rewardId, rewardName],
     );
+    // Qty is a label/counter — decrement when > 0, but never block claims on 0.
     await mysql.query(
       `
       UPDATE challenge_rewards
       SET stock = CASE
-            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN 0
+            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
             WHEN stock > 0 THEN stock - 1
             ELSE 0
           END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
         AND IFNULL(admin_marked_oos, 0) = 0
-        AND stock > 0
       `,
       [rewardId],
     );
@@ -671,7 +681,10 @@ class ChallengeRepository {
       await mysql.query(
         `
         UPDATE challenge_rewards
-        SET stock = stock + 1,
+        SET stock = CASE
+              WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+              ELSE stock + 1
+            END,
             updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
         `,
@@ -681,9 +694,14 @@ class ChallengeRepository {
     await mysql.query(
       `
       UPDATE challenge_rewards
-      SET stock = CASE WHEN stock > 0 THEN stock - 1 ELSE 0 END,
+      SET stock = CASE
+            WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+            WHEN stock > 0 THEN stock - 1
+            ELSE 0
+          END,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
+        AND IFNULL(admin_marked_oos, 0) = 0
       `,
       [newRewardId],
     );

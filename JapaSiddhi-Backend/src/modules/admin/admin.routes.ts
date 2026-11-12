@@ -4052,8 +4052,17 @@ router.put('/orders/:id/cancel', async (req: Request, res: Response) => {
         [id],
       );
       if (claimRows?.length && claimRows[0].rewardId) {
+        // Never restock when admin marked Out of Stock.
         await mysql.query(
-          'UPDATE challenge_rewards SET stock = stock + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+          `
+          UPDATE challenge_rewards
+          SET stock = CASE
+                WHEN IFNULL(admin_marked_oos, 0) = 1 THEN stock
+                ELSE stock + 1
+              END,
+              updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+          `,
           [claimRows[0].rewardId],
         );
       }
@@ -6354,31 +6363,68 @@ const ensureRewardColumns = async () => {
     // Column already exists.
   }
   try {
-    // Existing stock=0 rows were admin OOS before this flag existed — keep them sticky.
     await mysql.query(
-      `UPDATE challenge_rewards SET admin_marked_oos = 1 WHERE IFNULL(stock, 0) <= 0 AND IFNULL(admin_marked_oos, 0) = 0`,
+      `ALTER TABLE challenge_rewards ADD COLUMN unlock_mode TEXT NOT NULL DEFAULT 'fixed'`,
     );
   } catch {
-    // Ignore backfill errors on older schemas.
+    // Column already exists.
   }
+  // Heal Marakata Shivling into relative present+ mode (extra from eligibility).
+  try {
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET
+        unlock_mode = 'relative',
+        eligibility_criteria = CASE
+          WHEN IFNULL(eligibility_criteria, 0) > 0 THEN eligibility_criteria
+          ELSE 3000
+        END
+      WHERE (
+        lower(name) LIKE '%marakata%shivling%'
+        OR lower(name) LIKE '%marakatha%shivling%'
+        OR (lower(name) LIKE '%aventurine%' AND lower(name) LIKE '%shivling%')
+      )
+        AND lower(name) NOT LIKE '%chakra%'
+        AND lower(name) NOT LIKE '%chakram%'
+        AND lower(name) NOT LIKE '%yantra%'
+      `,
+    );
+  } catch {
+    // Non-fatal.
+  }
+  // NOTE: Do NOT auto-set admin_marked_oos from stock=0.
+  // Stock number is a label/counter only; availability is admin In/Out toggle.
 };
 const ensureRewardImageColumn = ensureRewardColumns;
 
+const normalizeUnlockMode = (raw: any): 'fixed' | 'relative' => {
+  const mode = String(raw || '')
+    .trim()
+    .toLowerCase();
+  return mode === 'relative' || mode === 'present' || mode === 'present_plus'
+    ? 'relative'
+    : 'fixed';
+};
+
 const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
   const path = String(row.imageUrl || row.image_url || '').trim();
-  const stock = Number(row.stock || 0);
+  const stock = Math.max(0, Number(row.stock || 0));
   const adminMarkedOos =
     Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
-  // Admin OOS sticks until admin explicitly sets In Stock (stock > 0 clears the flag).
-  const effectiveStock = adminMarkedOos ? 0 : stock;
+  const unlockMode = normalizeUnlockMode(
+    row.unlockMode ?? row.unlock_mode ?? 'fixed',
+  );
+  // Availability = admin toggle only. Stock qty is informational.
   return {
     id: String(row.id),
     name: String(row.name || ''),
     title: String(row.name || ''),
     description: String(row.description || ''),
     eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
-    stock: effectiveStock,
-    inStock: !adminMarkedOos && effectiveStock > 0,
+    unlockMode,
+    stock,
+    inStock: !adminMarkedOos,
     adminMarkedOos,
     active: Number(row.isActive ?? row.is_active ?? 1) === 1,
     imageUrl: absoluteUrl || path || null,
@@ -6416,6 +6462,7 @@ const CANONICAL_REWARDS = [
 const ensureRewardSeed = async () => {
   try {
     await ensureRewardColumns();
+    // Stock qty is a label only — never force it to 0 from admin_marked_oos.
     const existingRows = await mysql.query<any[]>(
       `SELECT id, name, display_order, stock, IFNULL(admin_marked_oos, 0) AS adminMarkedOos FROM challenge_rewards`,
     );
@@ -6520,6 +6567,7 @@ router.get('/rewards', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -6570,12 +6618,22 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
             ) || 0,
           )
         : undefined;
+    const unlockModeRaw =
+      req.body?.unlockMode ?? req.body?.unlock_mode;
+    const unlockMode =
+      unlockModeRaw !== undefined
+        ? normalizeUnlockMode(unlockModeRaw)
+        : undefined;
     const active =
       req.body?.active === undefined
         ? undefined
         : req.body.active === true ||
           req.body.active === 1 ||
           req.body.active === '1';
+    const inStockRaw = req.body?.inStock;
+    const adminOosRaw = req.body?.adminMarkedOos;
+    const hasInStockFlag =
+      inStockRaw !== undefined || adminOosRaw !== undefined;
 
     await ensureRewardImageColumn();
     const current = await mysql.query<any[]>(
@@ -6587,6 +6645,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -6601,13 +6660,26 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
 
     const nextStock =
       stock === undefined ? Number(current[0].stock || 0) : stock;
-    // Out of Stock sticks until admin explicitly sets In Stock (stock > 0).
-    const nextAdminOos =
-      stock === undefined
-        ? Number(current[0].adminMarkedOos || 0)
-        : stock <= 0
-          ? 1
-          : 0;
+    // Availability is the admin In/Out toggle only. Stock qty is a label/counter.
+    let nextAdminOos = Number(current[0].adminMarkedOos || 0);
+    if (hasInStockFlag) {
+      if (adminOosRaw !== undefined) {
+        nextAdminOos =
+          adminOosRaw === true ||
+          adminOosRaw === 1 ||
+          adminOosRaw === '1'
+            ? 1
+            : 0;
+      } else {
+        nextAdminOos =
+          inStockRaw === false ||
+          inStockRaw === 0 ||
+          inStockRaw === '0'
+            ? 1
+            : 0;
+      }
+    }
+    // Stock qty alone never flips availability — it is a label/counter only.
 
     await mysql.query(
       `
@@ -6616,6 +6688,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         name = ?,
         description = ?,
         eligibility_criteria = ?,
+        unlock_mode = ?,
         stock = ?,
         admin_marked_oos = ?,
         is_active = ?,
@@ -6630,6 +6703,9 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         eligibilityCriteria !== undefined
           ? eligibilityCriteria
           : Number(current[0].eligibilityCriteria || 0),
+        unlockMode !== undefined
+          ? unlockMode
+          : normalizeUnlockMode(current[0].unlockMode),
         nextStock,
         nextAdminOos,
         active === undefined
@@ -6651,6 +6727,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -6755,12 +6832,21 @@ router.post('/rewards', async (req: Request, res: Response) => {
         req.body?.eligibilityCriteria ?? req.body?.eligibility_criteria ?? 0,
       ) || 0,
     );
+    const unlockMode = normalizeUnlockMode(
+      req.body?.unlockMode ?? req.body?.unlock_mode ?? 'fixed',
+    );
+    if (unlockMode === 'relative' && eligibilityCriteria <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Present + Count rewards need an extra japa count (> 0).',
+      });
+    }
     const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
     await mysql.query(
       `
       INSERT INTO challenge_rewards
-        (name, stock, is_active, display_order, description, eligibility_criteria)
-      VALUES (?, ?, 1, ?, ?, ?)
+        (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode)
+      VALUES (?, ?, 1, ?, ?, ?, ?)
       `,
       [
         name,
@@ -6768,6 +6854,7 @@ router.post('/rewards', async (req: Request, res: Response) => {
         Number(req.body?.displayOrder || 99),
         description || null,
         eligibilityCriteria,
+        unlockMode,
       ],
     );
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
@@ -6779,6 +6866,7 @@ router.post('/rewards', async (req: Request, res: Response) => {
         is_active AS isActive,
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+        IFNULL(unlock_mode, 'fixed') AS unlockMode,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -7858,6 +7946,8 @@ router.post('/seva-donations/notify', async (req: Request, res: Response) => {
 router.get('/meeting', async (_req: Request, res: Response) => {
   try {
     const appSettingsService = (await import('./appSettings.service')).default;
+    // Keep admin toggle in sync: after 8:30 PM IST auto-off persists.
+    await appSettingsService.enforceMeetingAutoOffIfNeeded();
     const meeting = await appSettingsService.getMeetingConfig();
     return res.json({
       success: true,
@@ -7873,10 +7963,16 @@ router.get('/meeting', async (_req: Request, res: Response) => {
 
 router.put('/meeting', async (req: Request, res: Response) => {
   try {
-    const appSettingsService = (await import('./appSettings.service')).default;
+    const appSettingsMod = await import('./appSettings.service');
+    const appSettingsService = appSettingsMod.default;
     const {enabled, title, link, time, scheduledAt} = req.body || {};
+    const wantsEnabled = enabled !== undefined ? Boolean(enabled) : undefined;
+    const pastCutoff = appSettingsMod.isPastMeetingAutoOffIst();
+    // After 8:30 PM IST, do not allow publishing the class card again tonight.
+    const nextEnabled =
+      wantsEnabled === true && pastCutoff ? false : wantsEnabled;
     const updated = await appSettingsService.setMeetingConfig({
-      enabled: enabled !== undefined ? Boolean(enabled) : undefined,
+      enabled: nextEnabled,
       title: typeof title === 'string' ? title : undefined,
       link: typeof link === 'string' ? link : undefined,
       time: typeof time === 'string' ? time : undefined,
@@ -7888,7 +7984,10 @@ router.put('/meeting', async (req: Request, res: Response) => {
       .catch(() => undefined);
     return res.json({
       success: true,
-      message: 'Meeting configuration updated successfully.',
+      message:
+        wantsEnabled === true && pastCutoff
+          ? 'Saved, but Show on Home stays off after 8:30 PM IST. Enable again tomorrow.'
+          : 'Meeting configuration updated successfully.',
       data: updated,
     });
   } catch (error: any) {

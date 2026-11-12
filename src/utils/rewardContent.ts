@@ -944,17 +944,25 @@ export const checkRewardEligibility = (
   const req = getRewardRequirement(rewardName, lang);
   const count = Number(userJapaCount) || 0;
 
-  // Marakata Shivling: present + 3000 (locked target from baseline helper)
-  if (isMarakataShivlingName(rewardName)) {
+  // Present + N (Marakata or admin relative rewards): locked personal target.
+  const isRelativeTrack =
+    isMarakataShivlingName(rewardName) ||
+    (typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0);
+  if (isRelativeTrack) {
+    const extra =
+      typeof customEligibilityCriteria === 'number' &&
+      customEligibilityCriteria > 0
+        ? customEligibilityCriteria
+        : MARAKATA_SHIVLING_EXTRA_JAPAS;
     const targetCount =
       typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0
         ? relativeTargetOverride
-        : count + MARAKATA_SHIVLING_EXTRA_JAPAS;
+        : count + extra;
     const isEligible = count >= targetCount;
     const remainingJapas = isEligible ? 0 : Math.max(0, targetCount - count);
     return {
       requiredJapas: targetCount,
-      requiredLabel: `${targetCount.toLocaleString('en-IN')} (${count.toLocaleString('en-IN')} + ${MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN')})`,
+      requiredLabel: `${targetCount.toLocaleString('en-IN')} (${count.toLocaleString('en-IN')} + ${extra.toLocaleString('en-IN')})`,
       isEligible,
       remainingJapas,
     };

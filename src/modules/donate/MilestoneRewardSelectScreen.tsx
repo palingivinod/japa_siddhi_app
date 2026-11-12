@@ -57,25 +57,33 @@ const MilestoneRewardSelectScreen = () => {
           sortRewardsCanonical<RewardItem>(
             rawList.map((row: any) => {
               const stock = Number(row.stock || 0);
+              const adminOos =
+                row.adminMarkedOos === true ||
+                row.adminMarkedOos === 1 ||
+                row.adminMarkedOos === '1' ||
+                row.admin_marked_oos === 1 ||
+                row.admin_marked_oos === '1';
+              const outOfStock =
+                adminOos ||
+                row.inStock === false ||
+                row.inStock === 0 ||
+                row.inStock === '0';
               return {
                 id: Number(row.id),
                 name: String(row.name || ''),
                 stock,
-                inStock:
-                  row.inStock === false
-                    ? false
-                    : row.inStock === true
-                      ? true
-                      : stock > 0,
+                inStock: !outOfStock,
                 description: row.description,
                 eligibilityCriteria: Number(
                   row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
                 ),
+                unlockMode: String(row.unlockMode || row.unlock_mode || 'fixed'),
               };
             }).filter(
-              (row: RewardItem) =>
+              (row: any) =>
                 row.name &&
                 !isMarakataShivlingName(row.name) &&
+                String(row.unlockMode || '').toLowerCase() !== 'relative' &&
                 (isCanonicalReward(row.name) || Boolean(row.id)),
             ),
           ),
@@ -102,7 +110,7 @@ const MilestoneRewardSelectScreen = () => {
     if (claimed || !reached) {
       return;
     }
-    if (item.inStock === false || Number(item.stock || 0) <= 0) {
+    if (item.inStock === false) {
       Alert.alert(
         t('outOfStockTitle') || 'Out of Stock',
         t('outOfStockRewardMsg') ||
@@ -171,8 +179,7 @@ const MilestoneRewardSelectScreen = () => {
             language,
           );
           const localized = getLocalizedReward(item.name, language);
-          const outOfStock =
-            item.inStock === false || Number(item.stock || 0) <= 0;
+          const outOfStock = item.inStock === false;
           const isLocked = !eligibility.isEligible || outOfStock;
           return (
             <TouchableOpacity

@@ -9,7 +9,8 @@ router.get('/', authenticate, HomeController.getHome);
 
 router.get('/meeting', async (_req: Request, res: Response) => {
   try {
-    const meeting = await appSettingsService.getMeetingConfig();
+    // After 8:30 PM IST the class card auto-toggles off for app + website users.
+    const meeting = await appSettingsService.getPublicMeetingConfig();
     return res.json({
       success: true,
       data: meeting,

@@ -199,6 +199,34 @@ const HomeScreen = () => {
     outputRange: [2, 3.5],
   });
 
+  // After 8:30 PM IST hide class card even if this session loaded before cutoff.
+  useEffect(() => {
+    const isPastAutoOff = () => {
+      try {
+        const parts = new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        }).formatToParts(new Date());
+        const hourRaw = Number(parts.find(p => p.type === 'hour')?.value || 0);
+        const minute = Number(parts.find(p => p.type === 'minute')?.value || 0);
+        const hour = hourRaw === 24 ? 0 : hourRaw;
+        return hour * 60 + minute >= 20 * 60 + 30;
+      } catch {
+        return false;
+      }
+    };
+    const tick = () => {
+      if (isPastAutoOff()) {
+        setActiveMeeting(null);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   // Calculate live ticking countdown to scheduled meeting time
   useEffect(() => {
     if (!activeMeeting || !activeMeeting.enabled) {

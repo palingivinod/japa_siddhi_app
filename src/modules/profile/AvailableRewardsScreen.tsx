@@ -33,6 +33,7 @@ type RewardItem = {
   inStock?: boolean;
   description?: string;
   eligibilityCriteria?: number;
+  unlockMode?: 'fixed' | 'relative';
   emoji?: string;
 };
 
@@ -42,6 +43,9 @@ const AvailableRewardsScreen = () => {
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [userTotalJapas, setUserTotalJapas] = useState(0);
   const [marakataTarget, setMarakataTarget] = useState(0);
+  const [relativeTargets, setRelativeTargets] = useState<
+    Record<string, {unlockTarget: number; extraJapas: number}>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
@@ -54,20 +58,24 @@ const AvailableRewardsScreen = () => {
       const stored = await getStoredUser();
       const userId = stored?.id || stored?.userId || 'anon';
 
-      const [response, milestoneRes, marakataRes] = await Promise.all([
-        apiService
-          .get('/challenges/rewards')
-          .catch(() => apiService.get('/admin/rewards')),
-        apiService.get('/japa/milestones').catch(() => null),
-        apiService
-          .get('/japa/relative-rewards/marakata-shivling')
-          .catch(() => null),
-      ]);
+      const [response, milestoneRes, marakataRes, relativeRes] =
+        await Promise.all([
+          apiService
+            .get('/challenges/rewards')
+            .catch(() => apiService.get('/admin/rewards')),
+          apiService.get('/japa/milestones').catch(() => null),
+          apiService
+            .get('/japa/relative-rewards/marakata-shivling')
+            .catch(() => null),
+          apiService.get('/japa/relative-rewards').catch(() => null),
+        ]);
 
       const milestoneData = milestoneRes?.data?.data || {};
       const marakataData = marakataRes?.data?.data || {};
+      const relativeData = relativeRes?.data?.data || {};
       const total = Number(
-        marakataData.total ||
+        relativeData.total ||
+          marakataData.total ||
           milestoneData.total ||
           milestoneData.milestoneTotal ||
           0,
@@ -81,6 +89,25 @@ const AvailableRewardsScreen = () => {
           undefined,
       );
       setMarakataTarget(locked);
+
+      const targetMap: Record<
+        string,
+        {unlockTarget: number; extraJapas: number}
+      > = {};
+      const relativeList = Array.isArray(relativeData.rewards)
+        ? relativeData.rewards
+        : [];
+      relativeList.forEach((row: any) => {
+        const id = String(row.rewardId || row.id || '');
+        if (!id) {
+          return;
+        }
+        targetMap[id] = {
+          unlockTarget: Number(row.unlockTarget || row.target || 0),
+          extraJapas: Number(row.extraJapas || 0),
+        };
+      });
+      setRelativeTargets(targetMap);
 
       const raw =
         response.data?.data?.rewards ||
@@ -99,26 +126,31 @@ const AvailableRewardsScreen = () => {
               row.adminMarkedOos === 1 ||
               row.adminMarkedOos === '1' ||
               row.admin_marked_oos === 1 ||
-              row.admin_marked_oos === '1';
-            const explicitInStock =
-              row.inStock === true ||
-              row.inStock === 1 ||
-              row.inStock === '1';
+              row.admin_marked_oos === '1' ||
+              row.admin_marked_oos === true;
+            // Qty is a label only — unavailable only when admin marked Out of Stock.
             const explicitOut =
               adminOos ||
               row.inStock === false ||
               row.inStock === 0 ||
               row.inStock === '0';
+            const unlockMode =
+              String(row.unlockMode || row.unlock_mode || '')
+                .toLowerCase() === 'relative' ||
+              isMarakataShivlingName(String(row.name || ''))
+                ? 'relative'
+                : 'fixed';
             return {
               id: row.id,
               name: String(row.name || ''),
-              stock: explicitOut ? 0 : stock,
-              inStock: explicitOut ? false : explicitInStock ? true : stock > 0,
+              stock,
+              inStock: !explicitOut,
               emoji: row.emoji,
               description: row.description,
               eligibilityCriteria: Number(
                 row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
               ),
+              unlockMode: unlockMode as 'fixed' | 'relative',
             };
           })
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
@@ -153,14 +185,37 @@ const AvailableRewardsScreen = () => {
     }, [load]),
   );
 
-  const eligibilityFor = (item: RewardItem) =>
-    checkRewardEligibility(
+  const relativeMetaFor = (item: RewardItem) => {
+    const fromMap = relativeTargets[String(item.id)];
+    if (fromMap?.unlockTarget) {
+      return fromMap;
+    }
+    if (isMarakataShivlingName(item.name)) {
+      return {
+        unlockTarget: marakataTarget,
+        extraJapas:
+          Number(item.eligibilityCriteria || 0) || MARAKATA_SHIVLING_EXTRA_JAPAS,
+      };
+    }
+    const extra = Number(item.eligibilityCriteria || 0);
+    return {
+      unlockTarget: extra > 0 ? userTotalJapas + extra : 0,
+      extraJapas: extra,
+    };
+  };
+
+  const eligibilityFor = (item: RewardItem) => {
+    const isRelative =
+      item.unlockMode === 'relative' || isMarakataShivlingName(item.name);
+    const meta = isRelative ? relativeMetaFor(item) : null;
+    return checkRewardEligibility(
       item.name,
       userTotalJapas,
       language,
       item.eligibilityCriteria,
-      isMarakataShivlingName(item.name) ? marakataTarget : undefined,
+      isRelative ? meta?.unlockTarget : undefined,
     );
+  };
 
   const handleCardPress = (item: RewardItem, localized: any) => {
     const eligibility = eligibilityFor(item);
@@ -168,11 +223,13 @@ const AvailableRewardsScreen = () => {
     const title = localized.title || tt(item.name);
     const message = (line: string) =>
       description ? `${description}\n\n${line}` : line;
-    const outOfStock = item.inStock === false || Number(item.stock || 0) <= 0;
+    const outOfStock = item.inStock === false;
+    const isRelative =
+      item.unlockMode === 'relative' || isMarakataShivlingName(item.name);
 
     if (outOfStock) {
-      // Marakata: admin description + OK only (no eligibility / grab while unavailable)
-      if (isMarakataShivlingName(item.name)) {
+      // Relative rewards: admin description + OK only while unavailable
+      if (isRelative) {
         Alert.alert(title, description || ' ', [{text: t('ok')}]);
         return;
       }
@@ -184,14 +241,21 @@ const AvailableRewardsScreen = () => {
       return;
     }
 
-    if (isMarakataShivlingName(item.name)) {
-      const lockedLine = t('marakataUnlockRule', {
-        present: userTotalJapas.toLocaleString('en-IN'),
-        extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN'),
-        target: (marakataTarget || eligibility.requiredJapas).toLocaleString(
-          'en-IN',
-        ),
-      });
+    if (isRelative) {
+      const meta = relativeMetaFor(item);
+      const extra =
+        meta.extraJapas ||
+        Number(item.eligibilityCriteria || 0) ||
+        MARAKATA_SHIVLING_EXTRA_JAPAS;
+      const lockedLine =
+        t('marakataUnlockRule', {
+          present: userTotalJapas.toLocaleString('en-IN'),
+          extra: extra.toLocaleString('en-IN'),
+          target: (meta.unlockTarget || eligibility.requiredJapas).toLocaleString(
+            'en-IN',
+          ),
+        }) ||
+        `Unlocks at present (${userTotalJapas.toLocaleString('en-IN')}) + ${extra.toLocaleString('en-IN')} = ${(meta.unlockTarget || eligibility.requiredJapas).toLocaleString('en-IN')} Japas.`;
       if (!eligibility.isEligible) {
         Alert.alert(
           title,
@@ -213,11 +277,21 @@ const AvailableRewardsScreen = () => {
           {text: t('ok')},
           {
             text: t('clickHereToGrabReward'),
-            onPress: () =>
-              navigation.navigate('MarakataShivlingClaim', {
+            onPress: () => {
+              if (isMarakataShivlingName(item.name)) {
+                navigation.navigate('MarakataShivlingClaim', {
+                  rewardId: item.id,
+                  rewardName: item.name,
+                });
+                return;
+              }
+              navigation.navigate('RelativeRewardClaim', {
                 rewardId: item.id,
                 rewardName: item.name,
-              }),
+                extraJapas: extra,
+                unlockTarget: meta.unlockTarget,
+              });
+            },
           },
         ],
       );
@@ -278,8 +352,7 @@ const AvailableRewardsScreen = () => {
         {rewards.map(item => {
           const localized = getLocalizedReward(item.name, language);
           const eligibility = eligibilityFor(item);
-          const outOfStock =
-            item.inStock === false || Number(item.stock || 0) <= 0;
+          const outOfStock = item.inStock === false;
           const isLocked = !eligibility.isEligible || outOfStock;
 
           return (

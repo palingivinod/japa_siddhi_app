@@ -87,9 +87,14 @@ const MarakataShivlingClaimScreen = () => {
         serverRewardName = String(data.rewardName || serverRewardName);
         serverClaimed = Boolean(data.claimed);
         setIsRetry(Boolean(data.isRetry));
-        if (data.inStock === false || Number(data.stock || 0) <= 0) {
+        // Stock qty is a label only — unavailable only when admin marked OOS.
+        if (
+          data.adminMarkedOos === true ||
+          data.adminMarkedOos === 1 ||
+          data.inStock === false
+        ) {
           serverInStock = false;
-        } else if (data.inStock === true || Number(data.stock || 0) > 0) {
+        } else {
           serverInStock = true;
         }
       } catch {

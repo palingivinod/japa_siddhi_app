@@ -1045,7 +1045,9 @@ export const startNotificationReminderScheduler = () => {
   setTimeout(() => {
     runReminderSweep().catch(() => undefined);
     import('../admin/meetingNotify.service')
-      .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
+      .then(({checkAndNotifyMeetingLive, checkAndAutoOffMeeting}) =>
+        Promise.all([checkAndAutoOffMeeting(), checkAndNotifyMeetingLive()]),
+      )
       .catch(() => undefined);
   }, 15_000);
   reminderTimer = setInterval(() => {
@@ -1064,7 +1066,9 @@ export const startNotificationReminderScheduler = () => {
         )
         .catch(() => undefined);
       import('../admin/meetingNotify.service')
-        .then(({checkAndNotifyMeetingLive}) => checkAndNotifyMeetingLive())
+        .then(({checkAndNotifyMeetingLive, checkAndAutoOffMeeting}) =>
+          Promise.all([checkAndAutoOffMeeting(), checkAndNotifyMeetingLive()]),
+        )
         .catch(() => undefined);
       import('./advanceBirthdayReminder.service')
         .then(({checkAndRunScheduledBirthdaySweeps}) =>

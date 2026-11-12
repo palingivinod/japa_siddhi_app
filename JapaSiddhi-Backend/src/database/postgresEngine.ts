@@ -448,6 +448,7 @@ CREATE TABLE IF NOT EXISTS challenge_rewards (
   name TEXT NOT NULL,
   description TEXT,
   eligibility_criteria INTEGER NOT NULL DEFAULT 0,
+  unlock_mode TEXT NOT NULL DEFAULT 'fixed',
   stock INTEGER NOT NULL DEFAULT 0,
   admin_marked_oos INTEGER NOT NULL DEFAULT 0,
   is_active INTEGER NOT NULL DEFAULT 1,
@@ -1018,6 +1019,7 @@ class PostgresEngine {
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS image_url TEXT;
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS description TEXT;
         ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS eligibility_criteria INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE challenge_rewards ADD COLUMN IF NOT EXISTS unlock_mode TEXT NOT NULL DEFAULT 'fixed';
         ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_shiva_linga_reorder INTEGER NOT NULL DEFAULT 0;
       `);
     } catch {
