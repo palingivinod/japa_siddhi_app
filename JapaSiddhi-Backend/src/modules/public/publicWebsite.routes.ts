@@ -16,7 +16,7 @@ const num = (value: unknown) => {
  * Public read-only payload for japasiddhi.com.
  * Safe fields only — no auth, no PII, no admin actions.
  */
-router.get('/website', async (_req: Request, res: Response) => {
+router.get('/website', async (req: Request, res: Response) => {
   try {
     const [challengeRows, rewardRows, usersRows, japaGlobal, japaSessions] =
       await Promise.all([
@@ -59,12 +59,21 @@ router.get('/website', async (_req: Request, res: Response) => {
       rewardName: String(row.rewardName || ''),
     }));
 
-    const rewards = (rewardRows || []).map((row: any) => ({
-      id: Number(row.id),
-      name: String(row.name || ''),
-      inStock: num(row.stock) > 0,
-      // Public site only needs availability, not exact warehouse stock.
-    }));
+    const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+    const rewards = (rewardRows || []).map((row: any) => {
+      const adminMarkedOos =
+        Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+      const rawImage = String(row.imageUrl || row.image_url || '').trim();
+      return {
+        id: Number(row.id),
+        // Exact admin title — do not remap to catalog names.
+        name: String(row.name || ''),
+        description: String(row.description || ''),
+        imageUrl: rawImage ? absoluteMediaUrl(req, rawImage) : null,
+        // Availability = admin In/Out toggle (qty is label only).
+        inStock: !adminMarkedOos,
+      };
+    });
 
     const users = num(usersRows?.[0]?.totalUsers);
     const globalJapa = num(japaGlobal?.[0]?.totalJapa);
