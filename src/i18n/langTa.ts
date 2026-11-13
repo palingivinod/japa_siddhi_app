@@ -154,6 +154,7 @@ export const ta: TranslationDict = {
   todaysPanchangam: 'இன்றைய பஞ்சாங்கம்',
   panchangam: 'பஞ்சாங்கம்',
   panchangMeta: 'இன்றைய Nakshatram, திதி மற்றும் பஞ்சாங்கம்.',
+  labelRitu: 'ருது',
   labelNakshatra: 'நட்சத்திரம்',
   labelTithi: 'திதி',
   labelVara: 'வாரம்',

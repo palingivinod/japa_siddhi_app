@@ -34,8 +34,28 @@ const PanchangDetails = ({panchang, compact}: Props) => {
   ]
     .filter(Boolean)
     .join(' · ');
+  const rituName = [
+    panchang.ritu?.vedicName || panchang.ritu?.name,
+    panchang.ritu?.name &&
+    panchang.ritu?.vedicName &&
+    panchang.ritu.name !== panchang.ritu.vedicName
+      ? panchang.ritu.name
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   const items: PanchangItem[] = [
+    ...(rituName
+      ? [
+          {
+            key: 'ritu',
+            label: t('labelRitu') || 'RUTHUVU',
+            text: rituName,
+            wide: true,
+          } as PanchangItem,
+        ]
+      : []),
     {
       key: 'nakshatra',
       label: t('labelNakshatra'),

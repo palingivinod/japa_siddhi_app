@@ -170,6 +170,12 @@ export type PanchangResult = {
   auspiciousTimings?: {
     amruthaGadiyalu: Array<{startTime: string; endTime: string}>;
   };
+  ritu?: {
+    name: string;
+    vedicName: string;
+    drikName?: string;
+    drikVedicName?: string;
+  };
 };
 
 const toRad = (deg: number) => (deg * Math.PI) / 180;

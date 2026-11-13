@@ -118,6 +118,28 @@ const environment = {
 
   VEDICORBIT_LANG: process.env.VEDICORBIT_LANG || 'en',
 
+  // Prokerala Astrology API (primary panchang / ritu; server-side only)
+  PROKERALA_CLIENT_ID: String(process.env.PROKERALA_CLIENT_ID || '').trim(),
+
+  PROKERALA_CLIENT_SECRET: String(
+    process.env.PROKERALA_CLIENT_SECRET || '',
+  ).trim(),
+
+  PROKERALA_LAT: Number(
+    process.env.PROKERALA_LAT || process.env.VEDICORBIT_LAT || 17.385,
+  ),
+
+  PROKERALA_LON: Number(
+    process.env.PROKERALA_LON || process.env.VEDICORBIT_LON || 78.4867,
+  ),
+
+  PROKERALA_TIMEZONE:
+    process.env.PROKERALA_TIMEZONE ||
+    process.env.VEDICORBIT_TIMEZONE ||
+    'Asia/Kolkata',
+
+  PROKERALA_AYANAMSA: Number(process.env.PROKERALA_AYANAMSA || 1),
+
   DEV_LOGIN_EMAIL:
     process.env.DEV_LOGIN_EMAIL || 'test@japasiddhi.local',
 

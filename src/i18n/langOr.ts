@@ -154,6 +154,7 @@ export const or: TranslationDict = {
   todaysPanchangam: 'ଆଜିର ପଞ୍ଜିକା',
   panchangam: 'ପଞ୍ଜିକା',
   panchangMeta: 'ଆଜିର ନକ୍ଷତ୍ର, ତିଥି ଓ ପଞ୍ଜିକା।',
+  labelRitu: 'ଋତୁ',
   labelNakshatra: 'ନକ୍ଷତ୍ର',
   labelTithi: 'ତିଥି',
   labelVara: 'ବାର',

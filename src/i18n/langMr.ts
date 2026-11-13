@@ -154,6 +154,7 @@ export const mr: TranslationDict = {
   todaysPanchangam: 'आजचे पंचांग',
   panchangam: 'पंचांग',
   panchangMeta: 'आजचे नक्षत्र, तिथी आणि पंचांग.',
+  labelRitu: 'ऋतू',
   labelNakshatra: 'नक्षत्र',
   labelTithi: 'तिथी',
   labelVara: 'वार',

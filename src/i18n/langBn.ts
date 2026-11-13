@@ -154,6 +154,7 @@ export const bn: TranslationDict = {
   todaysPanchangam: 'আজকের পঞ্জিকা',
   panchangam: 'পঞ্জিকা',
   panchangMeta: 'আজকের নক্ষত্র, তিথি ও পঞ্জিকা।',
+  labelRitu: 'ঋতু',
   labelNakshatra: 'নক্ষত্র',
   labelTithi: 'তিথি',
   labelVara: 'বার',

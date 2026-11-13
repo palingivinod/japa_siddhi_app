@@ -154,6 +154,7 @@ export const ml: TranslationDict = {
   todaysPanchangam: 'ഇന്നത്തെ പഞ്ചാംഗം',
   panchangam: 'പഞ്ചാംഗം',
   panchangMeta: 'ഇന്നത്തെ Nakshatram, തിഥി, പഞ്ചാംഗം.',
+  labelRitu: 'ഋതു',
   labelNakshatra: 'നക്ഷത്രം',
   labelTithi: 'തിഥി',
   labelVara: 'വാരം',

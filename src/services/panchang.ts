@@ -58,6 +58,12 @@ export type PanchangPayload = {
   auspiciousTimings?: {
     amruthaGadiyalu: Array<{startTime: string; endTime: string}>;
   };
+  ritu?: {
+    name?: string;
+    vedicName?: string;
+    drikName?: string;
+    drikVedicName?: string;
+  };
 };
 
 export const emptyPanchang = (): PanchangPayload => ({
@@ -86,7 +92,7 @@ type PanchangDayCache = {
 };
 
 const panchangCacheKey = (lang: string) =>
-  `panchang_day_v1_${String(lang || 'en').toLowerCase()}`;
+  `panchang_day_v2_${String(lang || 'en').toLowerCase()}`;
 
 /** Read today's cached panchang for this language (IST calendar day). */
 export const readPanchangDayCache = async (

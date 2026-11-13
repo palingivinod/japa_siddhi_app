@@ -268,6 +268,7 @@ const en = {
   todaysPanchangam: "Today's Panchangam",
   panchangam: 'Panchangam',
   panchangMeta: 'Nakshatra, tithi and panchangam for today.',
+  labelRitu: 'RUTHUVU',
   labelNakshatra: 'NAKSHATRA',
   labelTithi: 'TITHI',
   labelVara: 'VARA',

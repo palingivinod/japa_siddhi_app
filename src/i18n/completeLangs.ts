@@ -153,6 +153,7 @@ export const kn: TranslationDict = {
   todaysPanchangam: 'ಇಂದಿನ ಪಂಚಾಂಗ',
   panchangam: 'ಪಂಚಾಂಗ',
   panchangMeta: 'ಇಂದಿನ ನಕ್ಷತ್ರ, ತಿಥಿ ಮತ್ತು ಪಂಚಾಂಗ.',
+  labelRitu: 'ಋತು',
   labelNakshatra: 'ನಕ್ಷತ್ರ',
   labelTithi: 'ತಿಥಿ',
   labelVara: 'ವಾರ',
