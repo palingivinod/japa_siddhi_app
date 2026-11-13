@@ -581,10 +581,15 @@ const GoalSelectScreen = () => {
           }}
         />
 
-        <View style={styles.buttonSpacing}>
-          <PrimaryButton title={t('startJapa')} onPress={start} disabled={saving} />
-        </View>
       </ScrollView>
+
+      <View style={styles.startBar}>
+        <PrimaryButton
+          title={saving ? t('loading') : t('startJapa')}
+          onPress={start}
+          disabled={saving}
+        />
+      </View>
     </ScreenLayout>
   );
 };
@@ -593,7 +598,7 @@ export default GoalSelectScreen;
 
 const styles = StyleSheet.create({
   flex: {flex: 1},
-  scrollContent: {paddingBottom: 140},
+  scrollContent: {paddingBottom: 16},
   modeTabs: {
     flexDirection: 'row',
     backgroundColor: '#FFF8EE',
@@ -859,8 +864,11 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 16,
   },
-  buttonSpacing: {
-    marginTop: 6,
-    marginBottom: 20,
+  startBar: {
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
+    backgroundColor: Colors.background,
   },
 });

@@ -18,7 +18,7 @@ export const bn: TranslationDict = {
   enterPersonName: 'যাঁর জন্য, তাঁর নাম লিখুন।',
   addSpouseInProfile: 'ব্যক্তিগত বিবরণে সঙ্গীর নাম যোগ করুন। বার্ষিকী সেই নাম নেবে।',
   occasionBirthday: 'জন্মদিন',
-  occasionAnniversary: 'বার্ষিকী',
+  occasionAnniversary: 'বিবাহ বার্ষিকী',
   occasionJayanthi: 'জয়ন্তী',
   occasionVardhanti: 'বর্ধন্তী',
   occasionPuja: 'পূজা সম্পর্কিত',

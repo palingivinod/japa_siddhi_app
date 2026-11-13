@@ -18,7 +18,7 @@ export const ta: TranslationDict = {
   enterPersonName: 'யாருக்காக என்ற பெயரை எழுதுங்கள்.',
   addSpouseInProfile: 'தனிப்பட்ட விவரங்களில் துணையின் பெயரைச் சேர்க்கவும். ஆண்டுவிழா அந்தப் பெயரை எடுக்கும்.',
   occasionBirthday: 'பிறந்தநாள்',
-  occasionAnniversary: 'ஆண்டுவிழா',
+  occasionAnniversary: 'திருமண ஆண்டுவிழா',
   occasionJayanthi: 'ஜயந்தி',
   occasionVardhanti: 'வர்தந்தி',
   occasionPuja: 'பூஜை தொடர்பானது',

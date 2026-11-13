@@ -38,6 +38,7 @@ const GeneralAnnadanamScreen = () => {
   const [personName, setPersonName] = useState('');
   const [gender, setGender] = useState('');
   const [spouseName, setSpouseName] = useState('');
+  const [profileHasSpouse, setProfileHasSpouse] = useState(false);
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
   const [gothram, setGothram] = useState('');
@@ -51,10 +52,13 @@ const GeneralAnnadanamScreen = () => {
   const genderKey = gender.trim().toLowerCase();
   const anniversaryRelation =
     genderKey === 'female' ? 'Husband' : genderKey === 'male' ? 'Wife' : '';
+  const anniversaryForWhom =
+    anniversaryRelation ||
+    (forWhom === 'Husband' || forWhom === 'Wife' ? forWhom : '');
   const needsPersonName = forWhom.length > 0 && forWhom !== 'Self' && occasion !== 'Anniversary';
   const personReady =
     occasion === 'Anniversary'
-      ? anniversaryRelation.length > 0 && spouseName.trim().length >= 2
+      ? anniversaryForWhom.length > 0 && spouseName.trim().length >= 2
       : forWhom === 'Self' || (needsPersonName && personName.trim().length >= 2);
   const detailsReady =
     fullName.trim().length >= 2 &&
@@ -107,7 +111,18 @@ const GeneralAnnadanamScreen = () => {
             setComments(current => current || savedComments);
           }
           setGender(String(profile?.gender || stored?.gender || ''));
-          setSpouseName(String(profile?.spouseName || stored?.spouseName || stored?.spouse_name || ''));
+          const profileSpouse = String(
+            profile?.spouseName ||
+              stored?.spouseName ||
+              stored?.spouse_name ||
+              '',
+          ).trim();
+          if (profileSpouse.length >= 2) {
+            setSpouseName(profileSpouse);
+            setProfileHasSpouse(true);
+          } else {
+            setProfileHasSpouse(false);
+          }
           setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
           setNakshatram(
             current =>
@@ -129,7 +144,9 @@ const GeneralAnnadanamScreen = () => {
     if (occasion !== 'Anniversary') {
       return;
     }
-    setForWhom(anniversaryRelation);
+    if (anniversaryRelation) {
+      setForWhom(anniversaryRelation);
+    }
     setPersonName(spouseName.trim());
   }, [occasion, anniversaryRelation, spouseName]);
 
@@ -158,8 +175,17 @@ const GeneralAnnadanamScreen = () => {
       return;
     }
     if (occasion === 'Anniversary') {
-      if (!anniversaryRelation || spouseName.trim().length < 2) {
-        Alert.alert(t('validationTitle'), t('addSpouseInProfile'));
+      if (spouseName.trim().length < 2) {
+        Alert.alert(
+          t('validationTitle'),
+          t('spouseNameRequired') ||
+            t('enterSpouseNameMarried') ||
+            'Spouse name is required.',
+        );
+        return;
+      }
+      if (!anniversaryForWhom) {
+        Alert.alert(t('validationTitle'), t('selectForWhom'));
         return;
       }
     } else if (!forWhom) {
@@ -190,7 +216,7 @@ const GeneralAnnadanamScreen = () => {
       purpose: occasion,
       occasion,
       preferDate,
-      forWhom: occasion === 'Anniversary' ? anniversaryRelation : forWhom,
+      forWhom: occasion === 'Anniversary' ? anniversaryForWhom : forWhom,
       personName:
         (occasion === 'Anniversary'
           ? spouseName
@@ -311,15 +337,42 @@ const GeneralAnnadanamScreen = () => {
             options={occasions}
           />
           {occasion === 'Anniversary' ? (
-            spouseName.trim().length >= 2 && anniversaryRelation ? (
-              <Text style={styles.picked}>
-                {t('forWhom')}: {t(anniversaryRelation === 'Wife' ? 'forWhomWife' : 'forWhomHusband')}
-                {'\n'}
-                {t('personNameLabel')}: {spouseName.trim()}
-              </Text>
-            ) : (
-              <Text style={styles.pickedWarn}>{t('addSpouseInProfile')}</Text>
-            )
+            <>
+              {profileHasSpouse && spouseName.trim().length >= 2 ? (
+                <Text style={styles.picked}>
+                  {anniversaryForWhom
+                    ? `${t('forWhom')}: ${t(
+                        anniversaryForWhom === 'Wife'
+                          ? 'forWhomWife'
+                          : 'forWhomHusband',
+                      )}\n`
+                    : ''}
+                  {t('personNameLabel')}: {spouseName.trim()}
+                </Text>
+              ) : (
+                <FormField
+                  label={`${t('spouseName')} *`}
+                  placeholder={t('spouseName')}
+                  value={spouseName}
+                  onChangeText={setSpouseName}
+                />
+              )}
+              {!anniversaryRelation ? (
+                <>
+                  <Text style={styles.label}>{t('forWhom')} *</Text>
+                  <SelectField
+                    value={forWhom}
+                    onChange={setForWhom}
+                    placeholder={t('selectShort')}
+                    title={t('forWhom')}
+                    options={[
+                      {label: t('forWhomHusband'), value: 'Husband'},
+                      {label: t('forWhomWife'), value: 'Wife'},
+                    ]}
+                  />
+                </>
+              ) : null}
+            </>
           ) : occasion ? (
             <>
               <Text style={styles.label}>{t('forWhom')} *</Text>

@@ -18,7 +18,7 @@ export const kn: TranslationDict = {
   enterPersonName: 'ಯಾರಿಗಾಗಿ ಎಂದು ಆ ಹೆಸರನ್ನು ಬರೆಯಿರಿ.',
   addSpouseInProfile: 'ವೈಯಕ್ತಿಕ ವಿವರಗಳಲ್ಲಿ ಸಂಗಾತಿಯ ಹೆಸರನ್ನು ಸೇರಿಸಿ. ವಾರ್ಷಿಕೋತ್ಸವ ಅದನ್ನು ತೆಗೆದುಕೊಳ್ಳುತ್ತದೆ.',
   occasionBirthday: 'ಜನ್ಮದಿನ',
-  occasionAnniversary: 'ವಾರ್ಷಿಕೋತ್ಸವ',
+  occasionAnniversary: 'ವಿವಾಹ ವಾರ್ಷಿಕೋತ್ಸವ',
   occasionJayanthi: 'ಜಯಂತಿ',
   occasionVardhanti: 'ವರ್ಧಂತಿ',
   occasionPuja: 'ಪೂಜೆಗೆ ಸಂಬಂಧಿಸಿದ',

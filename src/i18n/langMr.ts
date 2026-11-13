@@ -18,7 +18,7 @@ export const mr: TranslationDict = {
   enterPersonName: 'ज्यांच्यासाठी आहे त्यांचे नाव लिहा.',
   addSpouseInProfile: 'वैयक्तिक तपशीलात जोडीदाराचे नाव जोडा. वर्धापनदिन ते नाव घेते.',
   occasionBirthday: 'वाढदिवस',
-  occasionAnniversary: 'वर्धापनदिन',
+  occasionAnniversary: 'लग्न वर्धापनदिन',
   occasionJayanthi: 'जयंती',
   occasionVardhanti: 'वर्धंती',
   occasionPuja: 'पूजा संबंधित',

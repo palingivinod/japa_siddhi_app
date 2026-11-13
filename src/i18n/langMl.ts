@@ -18,7 +18,7 @@ export const ml: TranslationDict = {
   enterPersonName: 'ആർക്കുവേണ്ടിയാണോ ആ പേര് എഴുതുക.',
   addSpouseInProfile: 'വ്യക്തിഗത വിവരങ്ങളിൽ പങ്കാളിയുടെ പേര് ചേർക്കുക. വാർഷികം ആ പേര് എടുക്കും.',
   occasionBirthday: 'ജന്മദിനം',
-  occasionAnniversary: 'വാർഷികം',
+  occasionAnniversary: 'വിവാഹ വാർഷികം',
   occasionJayanthi: 'ജയന്തി',
   occasionVardhanti: 'വർധന്തി',
   occasionPuja: 'പൂജയുമായി ബന്ധപ്പെട്ടത്',
