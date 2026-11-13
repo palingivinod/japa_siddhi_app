@@ -6879,21 +6879,33 @@ router.post('/rewards', async (req: Request, res: Response) => {
         ? absoluteMediaUrl(req, rows[0].imageUrl)
         : null,
     );
-    try {
-      const {notifyAdminContentCreated} = await import(
-        './adminNotification.service'
-      );
-      await notifyAdminContentCreated({
-        kind: 'reward',
-        id: mapped.id,
-        name: mapped.name || name,
-      });
-    } catch (err) {
-      console.warn('Reward create notify failed:', err);
+    // Opt-in only — creating rewards no longer auto-broadcasts to all users.
+    const notifyUsers =
+      req.body?.notifyUsers === true ||
+      req.body?.notifyUsers === 1 ||
+      req.body?.notifyUsers === '1' ||
+      req.body?.notify_users === true ||
+      req.body?.notify_users === 1 ||
+      req.body?.notify_users === '1';
+    if (notifyUsers) {
+      try {
+        const {notifyAdminContentCreated} = await import(
+          './adminNotification.service'
+        );
+        await notifyAdminContentCreated({
+          kind: 'reward',
+          id: mapped.id,
+          name: mapped.name || name,
+        });
+      } catch (err) {
+        console.warn('Reward create notify failed:', err);
+      }
     }
     return res.status(201).json({
       success: true,
-      message: 'Reward created successfully.',
+      message: notifyUsers
+        ? 'Reward created and users notified.'
+        : 'Reward created (no user notification sent).',
       data: mapped,
     });
   } catch (error: any) {

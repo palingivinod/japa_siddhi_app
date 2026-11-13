@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -61,6 +62,7 @@ const AdminRewardsScreen = () => {
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
   const [newEligibility, setNewEligibility] = useState('');
+  const [notifyUsers, setNotifyUsers] = useState(false);
   const [newImage, setNewImage] = useState<{
     uri: string;
     type?: string;
@@ -167,6 +169,8 @@ const AdminRewardsScreen = () => {
         description: desc,
         eligibilityCriteria: eligibility,
         unlockMode: tab,
+        // Off by default so test creates do not push all users.
+        notifyUsers,
       });
 
       const createdId = res.data?.data?.id;
@@ -187,6 +191,7 @@ const AdminRewardsScreen = () => {
       setNewTitle('');
       setNewDescription('');
       setNewEligibility('');
+      setNotifyUsers(false);
       setNewImage(null);
       setShowAdd(false);
       await load();
@@ -388,6 +393,22 @@ const AdminRewardsScreen = () => {
             </Text>
           ) : null}
 
+          <View style={styles.notifyRow}>
+            <View style={styles.notifyCopy}>
+              <Text style={styles.label}>Notify all users</Text>
+              <Text style={styles.relativeHint}>
+                Leave OFF while testing. Turn ON only when you want a “New Reward”
+                push to everyone.
+              </Text>
+            </View>
+            <Switch
+              value={notifyUsers}
+              onValueChange={setNotifyUsers}
+              trackColor={{false: '#D1D5DB', true: Colors.leafGreen}}
+              thumbColor={Colors.white}
+            />
+          </View>
+
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={addReward}
@@ -556,6 +577,15 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 12,
     marginTop: -4,
+  },
+  notifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  notifyCopy: {
+    flex: 1,
   },
   gap: {height: 12},
   addCard: {
