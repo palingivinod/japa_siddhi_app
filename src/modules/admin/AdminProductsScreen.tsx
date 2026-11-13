@@ -161,13 +161,13 @@ const AdminProductsScreen = () => {
   };
 
   return (
-    <AdminScreenLayout title="Product Management" tab="AdminDashboard" showBack>
-      <Text style={styles.heading}>Product Management</Text>
+    <AdminScreenLayout title="Seva Hub Stock" tab="AdminDashboard" showBack>
+      <Text style={styles.heading}>Seva Hub Stock</Text>
       <Text style={styles.sub}>
-        Manage seva offering stock and other spiritual products.
+        Mark Seva Hub offerings In Stock or Out of Stock for devotees.
       </Text>
 
-      <Text style={styles.section}>Seva offerings stock</Text>
+      <Text style={styles.section}>Seva Hub offerings</Text>
       <Text style={styles.hint}>
         Mark Baanalingam, Ramakoti Books, Homa Bhasma, and Bhirava Pendant Out of
         Stock. Users still see the tab title with “Out of Stock” under it; tap

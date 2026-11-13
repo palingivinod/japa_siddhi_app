@@ -4,6 +4,7 @@ import {
   Alert,
   Image,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
@@ -68,6 +69,7 @@ const AdminRewardStockScreen = () => {
   );
   const [saving, setSaving] = useState(false);
   const [stockBusy, setStockBusy] = useState(false);
+  const [notifyUsers, setNotifyUsers] = useState(false);
   const [loading, setLoading] = useState(!route.params?.name && Boolean(rewardId));
   // Qty is a label only — availability is the admin In/Out toggle.
   const inStock = !adminMarkedOos;
@@ -216,8 +218,10 @@ const AdminRewardStockScreen = () => {
         stock,
         // Keep availability as the toggle — do not let qty=0 flip OOS on save.
         inStock: !adminMarkedOos,
-        adminMarkedOos,
+        adminMarkedOos: !!adminMarkedOos,
         active: true,
+        // Off by default — turn ON only to broadcast after edit.
+        notifyUsers,
       });
 
       if (newImage?.uri) {
@@ -230,9 +234,13 @@ const AdminRewardStockScreen = () => {
         await apiService.post(`/admin/rewards/${rewardId}/image`, formData);
       }
 
-      Alert.alert('Reward updated', `${title} details saved successfully.`, [
-        {text: 'OK', onPress: () => navigation.goBack()},
-      ]);
+      Alert.alert(
+        'Reward updated',
+        notifyUsers
+          ? `${title} saved and users notified.`
+          : `${title} details saved successfully.`,
+        [{text: 'OK', onPress: () => navigation.goBack()}],
+      );
     } catch (err) {
       Alert.alert('Update failed', getApiError(err, 'Could not update reward.'));
     } finally {
@@ -360,6 +368,22 @@ const AdminRewardStockScreen = () => {
             </View>
           </View>
 
+          <View style={styles.notifyRow}>
+            <View style={styles.notifyCopy}>
+              <Text style={styles.label}>Notify all users</Text>
+              <Text style={styles.stockHint}>
+                Leave OFF while testing. Turn ON only when you want a push about
+                this updated reward.
+              </Text>
+            </View>
+            <Switch
+              value={notifyUsers}
+              onValueChange={setNotifyUsers}
+              trackColor={{false: '#D1D5DB', true: Colors.leafGreen}}
+              thumbColor={Colors.white}
+            />
+          </View>
+
           <View style={styles.gap} />
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
@@ -386,6 +410,16 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  notifyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+    paddingVertical: 4,
+  },
+  notifyCopy: {
+    flex: 1,
   },
   imagePickerBtn: {
     borderWidth: 1.5,

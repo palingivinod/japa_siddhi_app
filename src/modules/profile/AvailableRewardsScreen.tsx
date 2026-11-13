@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +13,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import AppIcon from '../../components/icons/AppIcon';
 import apiService from '../../services/apiService';
+import {resolveMediaUrl} from '../../services/profilePhoto';
 import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -34,6 +36,7 @@ type RewardItem = {
   description?: string;
   eligibilityCriteria?: number;
   unlockMode?: 'fixed' | 'relative';
+  imageUrl?: string | null;
   emoji?: string;
 };
 
@@ -151,6 +154,7 @@ const AvailableRewardsScreen = () => {
                 row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
               ),
               unlockMode: unlockMode as 'fixed' | 'relative',
+              imageUrl: row.imageUrl || row.image_url || null,
             };
           })
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
@@ -228,14 +232,12 @@ const AvailableRewardsScreen = () => {
       item.unlockMode === 'relative' || isMarakataShivlingName(item.name);
 
     if (outOfStock) {
-      // Relative rewards: admin description + OK only while unavailable
-      if (isRelative) {
-        Alert.alert(title, description || ' ', [{text: t('ok')}]);
-        return;
-      }
+      // OOS: description (or short OOS note) only — no present+N / count line.
       Alert.alert(
-        t('outOfStockTitle') || 'Out of Stock',
-        message(t('outOfStockRewardMsg') || 'This reward item is currently out of stock.'),
+        title,
+        description ||
+          t('outOfStockRewardMsg') ||
+          'This reward item is currently out of stock.',
         [{text: t('ok')}],
       );
       return;
@@ -363,13 +365,22 @@ const AvailableRewardsScreen = () => {
               onPress={() => handleCardPress(item, localized)}>
               <View style={styles.cardHeader}>
                 <View style={[styles.dot, isLocked && styles.dotLocked]}>
-                  {localized.imageName ? (
-                    <AppIcon name={localized.imageName} size={48} />
-                  ) : (
-                    <Text style={styles.emoji}>
-                      {item.emoji || localized.emoji}
-                    </Text>
-                  )}
+                  {(() => {
+                    const photo = resolveMediaUrl(item.imageUrl);
+                    if (photo) {
+                      return (
+                        <Image source={{uri: photo}} style={styles.photo} />
+                      );
+                    }
+                    if (localized.imageName) {
+                      return <AppIcon name={localized.imageName} size={48} />;
+                    }
+                    return (
+                      <Text style={styles.emoji}>
+                        {item.emoji || localized.emoji}
+                      </Text>
+                    );
+                  })()}
                 </View>
                 <View style={styles.headerInfo}>
                   <Text style={styles.rewardName}>
@@ -400,22 +411,28 @@ const AvailableRewardsScreen = () => {
                 {item.description || localized.description || tt(item.description || '')}
               </Text>
               {outOfStock ? (
-                <Text style={styles.remainingHint}>
-                  {t('outOfStockRewardMsg') ||
-                    'This reward item is currently out of stock.'}
-                </Text>
+                // OOS: description + badge only — no present+N / count line.
+                null
               ) : !eligibility.isEligible ? (
                 <Text style={styles.remainingHint}>
-                  {isMarakataShivlingName(item.name)
-                    ? t('marakataUnlockRule', {
-                        present: userTotalJapas.toLocaleString('en-IN'),
-                        extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString(
-                          'en-IN',
-                        ),
-                        target: (
-                          marakataTarget || eligibility.requiredJapas
-                        ).toLocaleString('en-IN'),
-                      })
+                  {item.unlockMode === 'relative' ||
+                  isMarakataShivlingName(item.name)
+                    ? (() => {
+                        const meta = relativeMetaFor(item);
+                        const extra =
+                          meta.extraJapas ||
+                          Number(item.eligibilityCriteria || 0) ||
+                          MARAKATA_SHIVLING_EXTRA_JAPAS;
+                        const target =
+                          meta.unlockTarget ||
+                          eligibility.requiredJapas ||
+                          userTotalJapas + extra;
+                        return t('marakataUnlockRule', {
+                          present: userTotalJapas.toLocaleString('en-IN'),
+                          extra: extra.toLocaleString('en-IN'),
+                          target: target.toLocaleString('en-IN'),
+                        });
+                      })()
                     : t('unlocksAt', {target: eligibility.requiredLabel}) ||
                       `Unlocks at ${eligibility.requiredLabel}`}
                   {'\n'}
@@ -519,6 +536,11 @@ const styles = StyleSheet.create({
   },
   emoji: {
     fontSize: 24,
+  },
+  photo: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
   },
   headerInfo: {
     flex: 1,

@@ -303,7 +303,7 @@ const PrivateJapaScreen = () => {
       Alert.alert(
         t('japaCalmnessTitle') || 'Chant with calmness',
         t('japaCalmnessBody') ||
-          'Dear devotee, please chant with calmness and devotion. Do not rush. Count each japa carefully with mindfulness.',
+          "Mantra Japa is not for number of counts, you feel the vibration, the calmness, let your Blood pressure comes down to normal, your blood sugar will down if you are relaxed in the mantra japa, it is stress free, it is for longevity, to stay healthy. Your Japa should turn into Tapasya. Your inhale and exhale should be in line of your mantra japa.\n\nDon't run for numbers, do for your inner calmness. This Japasiddhi app should increase your life span\n\nAchieve this, Live long, Stay healthy",
         [{text: t('ok') || 'OK', onPress: openChant}],
         {cancelable: false},
       );

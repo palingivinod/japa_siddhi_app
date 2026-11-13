@@ -80,6 +80,7 @@ export const ADMIN_CONTROL_ITEMS: Array<{
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
   {title: 'Challenge Management', route: 'AdminChallenges'},
   {title: 'Configure Rewards', route: 'AdminRewards'},
+  {title: 'Seva Hub Stock', route: 'AdminProducts'},
   {title: 'Notification Management', route: 'AdminNotifications'},
   {title: 'Banner Management', route: 'AdminBanners'},
   {title: 'Orders', route: 'AdminOrders'},

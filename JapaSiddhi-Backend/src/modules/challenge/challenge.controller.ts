@@ -271,6 +271,7 @@ class ChallengeController {
 
   async listAvailableRewards(req: Request, res: Response, next: NextFunction) {
     try {
+      const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
       const rows = await challengeRepository.listRewards();
       return apiResponse.success(res, 'Available rewards fetched', {
         rewards: (rows || []).map((row: any) => {
@@ -280,6 +281,7 @@ class ChallengeController {
           const unlockMode = String(row.unlockMode || row.unlock_mode || 'fixed')
             .trim()
             .toLowerCase();
+          const rawImage = String(row.imageUrl || row.image_url || '').trim();
           return {
             id: Number(row.id),
             name: String(row.name || ''),
@@ -295,7 +297,7 @@ class ChallengeController {
               unlockMode === 'relative' || unlockMode === 'present'
                 ? 'relative'
                 : 'fixed',
-            imageUrl: row.imageUrl || null,
+            imageUrl: rawImage ? absoluteMediaUrl(req, rawImage) : null,
           };
         }),
       });

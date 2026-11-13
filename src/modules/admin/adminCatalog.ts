@@ -58,6 +58,14 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     status: 'done',
   },
   {
+    id: '09c',
+    title: 'Seva Hub Stock',
+    route: 'AdminProducts',
+    status: 'done',
+    notes:
+      'In/Out of Stock for Baanalingam, Ramakoti Books, Homa Bhasma, Bhirava Pendant',
+  },
+  {
     id: '10',
     title: 'Notification Management',
     route: 'AdminNotifications',

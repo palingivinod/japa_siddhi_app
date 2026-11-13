@@ -6681,6 +6681,20 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
     }
     // Stock qty alone never flips availability — it is a label/counter only.
 
+    const nextName = name !== undefined ? name : current[0].name;
+    const nextDescription =
+      description !== undefined
+        ? description
+        : String(current[0].description || '');
+    const nextEligibility =
+      eligibilityCriteria !== undefined
+        ? eligibilityCriteria
+        : Number(current[0].eligibilityCriteria || 0);
+    const nextUnlockMode =
+      unlockMode !== undefined
+        ? unlockMode
+        : normalizeUnlockMode(current[0].unlockMode);
+
     await mysql.query(
       `
       UPDATE challenge_rewards
@@ -6696,16 +6710,10 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       WHERE id = ?
       `,
       [
-        name !== undefined ? name : current[0].name,
-        description !== undefined
-          ? description
-          : String(current[0].description || ''),
-        eligibilityCriteria !== undefined
-          ? eligibilityCriteria
-          : Number(current[0].eligibilityCriteria || 0),
-        unlockMode !== undefined
-          ? unlockMode
-          : normalizeUnlockMode(current[0].unlockMode),
+        nextName,
+        nextDescription,
+        nextEligibility,
+        nextUnlockMode,
         nextStock,
         nextAdminOos,
         active === undefined
@@ -6716,6 +6724,35 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         id,
       ],
     );
+
+    // When Present+N extra changes, recompute locked unlock_target = baseline + new N.
+    const prevEligibility = Number(current[0].eligibilityCriteria || 0);
+    const isRelativeReward =
+      nextUnlockMode === 'relative' ||
+      isMarakataShivlingRewardName(String(nextName || ''));
+    if (
+      isRelativeReward &&
+      nextEligibility > 0 &&
+      eligibilityCriteria !== undefined &&
+      nextEligibility !== prevEligibility
+    ) {
+      try {
+        const {relativeRewardKey} = await import(
+          '../japa/milestoneReward.service'
+        );
+        const rewardKey = relativeRewardKey(id, String(nextName || ''));
+        await mysql.query(
+          `
+          UPDATE relative_reward_baselines
+          SET unlock_target = baseline + ?
+          WHERE reward_key = ?
+          `,
+          [nextEligibility, rewardKey],
+        );
+      } catch (err) {
+        console.warn('Relative baseline unlock_target refresh failed:', err);
+      }
+    }
 
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
     const rows = await mysql.query<any[]>(
@@ -6736,15 +6773,41 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       `,
       [id],
     );
+    const mapped = mapRewardRow(
+      rows[0],
+      rows[0]?.imageUrl
+        ? absoluteMediaUrl(req, rows[0].imageUrl)
+        : null,
+    );
+
+    const notifyUsers =
+      req.body?.notifyUsers === true ||
+      req.body?.notifyUsers === 1 ||
+      req.body?.notifyUsers === '1' ||
+      req.body?.notify_users === true ||
+      req.body?.notify_users === 1 ||
+      req.body?.notify_users === '1';
+    if (notifyUsers) {
+      try {
+        const {notifyAdminContentCreated} = await import(
+          './adminNotification.service'
+        );
+        await notifyAdminContentCreated({
+          kind: 'reward',
+          id: mapped.id,
+          name: mapped.name || String(nextName || ''),
+        });
+      } catch (err) {
+        console.warn('Reward update notify failed:', err);
+      }
+    }
+
     return res.json({
       success: true,
-      message: 'Reward updated successfully.',
-      data: mapRewardRow(
-        rows[0],
-        rows[0]?.imageUrl
-          ? absoluteMediaUrl(req, rows[0].imageUrl)
-          : null,
-      ),
+      message: notifyUsers
+        ? 'Reward updated and users notified.'
+        : 'Reward updated successfully.',
+      data: mapped,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -6842,11 +6905,12 @@ router.post('/rewards', async (req: Request, res: Response) => {
       });
     }
     const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
+    // New rewards start In Stock (admin_marked_oos=0). Qty label may be 0.
     await mysql.query(
       `
       INSERT INTO challenge_rewards
-        (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode)
-      VALUES (?, ?, 1, ?, ?, ?, ?)
+        (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode, admin_marked_oos)
+      VALUES (?, ?, 1, ?, ?, ?, ?, 0)
       `,
       [
         name,

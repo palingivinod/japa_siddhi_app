@@ -79,9 +79,24 @@ const PanchangDetails = ({panchang, compact}: Props) => {
   ];
 
   if (!compact) {
+    const moonRashi = translatePanchangValue(panchang.moonRashi, language);
+    const sunRashi = translatePanchangValue(panchang.sunRashi, language);
+    // Prokerala daily panchang has no rashi — hide empties; show when API provides them.
+    if (moonRashi) {
+      items.push({
+        key: 'moon',
+        label: t('labelMoonRashi'),
+        text: moonRashi,
+      });
+    }
+    if (sunRashi) {
+      items.push({
+        key: 'sun',
+        label: t('labelSunRashi'),
+        text: sunRashi,
+      });
+    }
     items.push(
-      {key: 'moon', label: t('labelMoonRashi'), text: shown(panchang.moonRashi)},
-      {key: 'sun', label: t('labelSunRashi'), text: shown(panchang.sunRashi)},
       {key: 'sunrise', label: t('labelSunrise'), text: value(panchang.sunrise)},
       {key: 'sunset', label: t('labelSunset'), text: value(panchang.sunset)},
       {
