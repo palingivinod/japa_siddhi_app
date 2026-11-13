@@ -93,6 +93,19 @@ const STATUS_FILTERS: Array<{id: HistoryStatusFilter; label: string}> = [
   {id: 'DELIVERED', label: 'Delivered'},
 ];
 
+type HistorySortMode =
+  | 'userIdAsc'
+  | 'userIdDesc'
+  | 'dateRecent'
+  | 'dateOldest';
+
+const HISTORY_SORT_TABS: Array<{id: HistorySortMode; label: string}> = [
+  {id: 'userIdAsc', label: 'User ID (Ascending)'},
+  {id: 'userIdDesc', label: 'User ID (Descending)'},
+  {id: 'dateRecent', label: 'Date (Recent)'},
+  {id: 'dateOldest', label: 'Date (Oldest)'},
+];
+
 const orderDateValue = (order: AdminOrder) => {
   const raw =
     order.userReceivedAt ||
@@ -100,8 +113,16 @@ const orderDateValue = (order: AdminOrder) => {
     order.date ||
     '';
   const ms = new Date(String(raw)).getTime();
-  return Number.isFinite(ms) ? ms : 0;
+  if (Number.isFinite(ms) && ms > 0) {
+    return ms;
+  }
+  return Number(order.id) || 0;
 };
+
+const orderUserIdValue = (order: AdminOrder) =>
+  order.userId != null && Number(order.userId) > 0
+    ? Number(order.userId)
+    : 999999999;
 
 /** Order list timestamps without seconds (YYYY-MM-DD HH:mm IST wall). */
 const formatOrderWhen = (raw?: string | null): string => {
@@ -285,6 +306,7 @@ const AdminOrderHistoryScreen = () => {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<HistoryItemFilter>('ALL');
   const [statusFilter, setStatusFilter] = useState<HistoryStatusFilter>('ALL');
+  const [sortMode, setSortMode] = useState<HistorySortMode>('dateRecent');
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadDeliveredOrders = useCallback(async () => {
@@ -311,6 +333,10 @@ const AdminOrderHistoryScreen = () => {
           mobileNumber: String(row.mobileNumber || '').trim(),
           remarks: row.remarks || '',
           createdAt: row.createdAt || '',
+          userId:
+            row.userId != null && Number(row.userId) > 0
+              ? Number(row.userId)
+              : null,
           userReceived: Boolean(row.userReceived ?? row.user_received),
           userReceivedAt: row.userReceivedAt || row.user_received_at || '',
         }))
@@ -380,8 +406,25 @@ const AdminOrderHistoryScreen = () => {
         (statusFilter === 'DELIVERED' && order.status === 'Delivered');
       return matchesSearch && matchesCategory && matchesStatus;
     });
-    return list.sort((a, b) => orderDateValue(b) - orderDateValue(a));
-  }, [orders, search, categoryFilter, statusFilter]);
+    return [...list].sort((a, b) => {
+      if (sortMode === 'dateRecent' || sortMode === 'dateOldest') {
+        const d =
+          sortMode === 'dateRecent'
+            ? orderDateValue(b) - orderDateValue(a)
+            : orderDateValue(a) - orderDateValue(b);
+        if (d !== 0) {
+          return d;
+        }
+        return Number(b.id) - Number(a.id);
+      }
+      const uA = orderUserIdValue(a);
+      const uB = orderUserIdValue(b);
+      if (uA !== uB) {
+        return sortMode === 'userIdDesc' ? uB - uA : uA - uB;
+      }
+      return Number(b.id) - Number(a.id);
+    });
+  }, [orders, search, categoryFilter, statusFilter, sortMode]);
 
   const categoryCounts = useMemo(() => {
     return {
@@ -435,6 +478,35 @@ const AdminOrderHistoryScreen = () => {
         <View style={styles.deliveredPill}>
           <Text style={styles.deliveredPillText}>📦 Shipped & Delivered</Text>
         </View>
+      </View>
+
+      {/* Sort — same options as Active Orders */}
+      <View style={styles.sortBox}>
+        <Text style={styles.sortHeader}>SORT BY</Text>
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.sortScroll}>
+          {HISTORY_SORT_TABS.map(item => {
+            const active = sortMode === item.id;
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={[styles.sortChip, active && styles.sortChipActive]}
+                activeOpacity={0.8}
+                onPress={() => setSortMode(item.id)}>
+                <Text
+                  style={[
+                    styles.sortChipText,
+                    active && styles.sortChipTextActive,
+                  ]}>
+                  {item.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Status Filter: All / Shipped / Delivered */}
@@ -725,6 +797,44 @@ const styles = StyleSheet.create({
     color: '#15803D',
     fontWeight: '800',
     fontSize: 12,
+  },
+  sortBox: {
+    marginBottom: 10,
+  },
+  sortHeader: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  sortScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingRight: 12,
+    paddingBottom: 4,
+  },
+  sortChip: {
+    flexShrink: 0,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  sortChipActive: {
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
+  },
+  sortChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  sortChipTextActive: {
+    color: Colors.white,
   },
   categoryContainer: {
     marginBottom: 14,
