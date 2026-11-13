@@ -23,4 +23,19 @@ router.get('/meeting', async (_req: Request, res: Response) => {
   }
 });
 
+router.get('/seva-offerings-stock', async (_req: Request, res: Response) => {
+  try {
+    const stock = await appSettingsService.getSevaOfferingsStock();
+    return res.json({
+      success: true,
+      data: stock,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to fetch seva offering stock.',
+    });
+  }
+});
+
 export default router;

@@ -144,6 +144,9 @@ export const mr: TranslationDict = {
   beginYourJapa: 'तुमचा जप सुरू करा',
   bannerSubtitle: 'जप, अन्नदान आणि आध्यात्मिक सहभागासाठी डिजिटल जागा.',
   startChanting: 'जप सुरू करा',
+  japaCalmnessTitle: 'शांतपणे जप करा',
+  japaCalmnessBody:
+    'प्रिय भक्तांनो, कृपया शांती आणि भक्तीने जप करा. घाई करू नका. प्रत्येक जप काळजीपूर्वक आणि एकाग्रतेने मोजा.',
   todayFestival: 'आज · सण',
   todayPanchangam: 'आज · पंचांग',
   sharePanchangam: 'शेअर',

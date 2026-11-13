@@ -159,6 +159,9 @@ export const hi: TranslationDict = {
   beginYourJapa: 'अपना जप शुरू करें',
   bannerSubtitle: 'जप, अन्नदान और आध्यात्मिक भागीदारी के लिए डिजिटल स्थान।',
   startChanting: 'जप शुरू करें',
+  japaCalmnessTitle: 'शांति से जप करें',
+  japaCalmnessBody:
+    'प्रिय भक्त, कृपया शांति और भक्ति से जप करें। जल्दबाजी न करें। प्रत्येक जप को सावधानी और एकाग्रता से गिनें।',
   todayFestival: 'आज · त्योहार',
   todayPanchangam: 'आज · पंचांग',
   sharePanchangam: 'शेयर',
@@ -1211,6 +1214,9 @@ export const te: TranslationDict = {
   beginYourJapa: 'మీ జపం ప్రారంభించండి',
   bannerSubtitle: 'జపం, అన్నదానం మరియు ఆధ్యాత్మిక భాగస్వామ్యానికి డిజిటల్ స్థలం.',
   startChanting: 'జపం ప్రారంభించండి',
+  japaCalmnessTitle: 'ప్రశాంతంగా జపం చేయండి',
+  japaCalmnessBody:
+    'ప్రియ భక్తులారా, దయచేసి ప్రశాంతంగా, భక్తితో జపం చేయండి. తొందరపడకండి. ప్రతి జపాన్ని జాగ్రత్తగా, ఏకాగ్రతతో లెక్కించండి.',
   todayFestival: 'ఈరోజు · పండుగ',
   todayPanchangam: 'ఈరోజు · పంచాంగం',
   sharePanchangam: 'షేర్',

@@ -144,6 +144,9 @@ export const or: TranslationDict = {
   beginYourJapa: 'ଆପଣଙ୍କ ଜପ ଆରମ୍ଭ କରନ୍ତୁ',
   bannerSubtitle: 'ଜପ, ଅନ୍ନଦାନ ଓ ଆଧ୍ୟାତ୍ମିକ ଅଂଶଗ୍ରହଣ ପାଇଁ ଏକ ଡିଜିଟାଲ୍ ସ୍ଥାନ।',
   startChanting: 'ଜପ ଆରମ୍ଭ କରନ୍ତୁ',
+  japaCalmnessTitle: 'ଶାନ୍ତିରେ ଜପ କରନ୍ତୁ',
+  japaCalmnessBody:
+    'ପ୍ରିୟ ଭକ୍ତ, ଦୟାକରି ଶାନ୍ତି ଓ ଭକ୍ତିରେ ଜପ କରନ୍ତୁ। ତରାବର କରନ୍ତୁ ନାହିଁ। ପ୍ରତ୍ୟେକ ଜପକୁ ଧ୍ୟାନ ସହିତ ଗଣନା କରନ୍ତୁ।',
   todayFestival: 'ଆଜି · ଉତ୍ସବ',
   todayPanchangam: 'ଆଜି · ପଞ୍ଜିକା',
   sharePanchangam: 'ସେୟାର',

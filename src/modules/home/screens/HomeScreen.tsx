@@ -48,6 +48,11 @@ import {
   resolveMantraDailyTarget,
   writeDailyPlanSnap,
 } from '../../../utils/mantraDailyPlan';
+import {
+  isSevaOfferingInStock,
+  isSevaStockRoute,
+  SevaOfferingsStockMap,
+} from '../../../utils/sevaOfferingsStock';
 import {getAppVersionName} from '../../../utils/appVersion';
 import {
   isValidProfileMobile,
@@ -385,11 +390,13 @@ const HomeScreen = () => {
     campaigns: true,
     any: true,
   });
+  const [sevaStock, setSevaStock] = useState<SevaOfferingsStockMap>({});
 
   const tiles = useMemo(
     () => [
       {
         title: t('tileJapaChanting'),
+        itemName: t('tileJapaChanting'),
         sub: t('tileJapaSub'),
         route: 'JapaHub',
         icon: 'prayer' as AppIconName,
@@ -397,6 +404,7 @@ const HomeScreen = () => {
       },
       {
         title: `${t('tileBaanalingam')} (${t('freeOfCost')})`,
+        itemName: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
         icon: 'banalingam' as AppIconName,
@@ -404,6 +412,7 @@ const HomeScreen = () => {
       },
       {
         title: t('tileAnnadanam'),
+        itemName: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
         icon: 'bowl' as AppIconName,
@@ -411,6 +420,7 @@ const HomeScreen = () => {
       },
       {
         title: t('tileMonthlySupport'),
+        itemName: t('tileMonthlySupport'),
         sub: t('tileMonthlySupportSub'),
         route: 'MonthlySupport',
         icon: 'bowl' as AppIconName,
@@ -418,6 +428,7 @@ const HomeScreen = () => {
       },
       {
         title: t('tileNithyaHomam'),
+        itemName: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
         icon: 'flame' as AppIconName,
@@ -425,6 +436,7 @@ const HomeScreen = () => {
       },
       {
         title: `${t('tileRamakoti')} (${t('freeOfCost')})`,
+        itemName: t('tileRamakoti'),
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
         icon: 'ramakoti' as AppIconName,
@@ -432,6 +444,7 @@ const HomeScreen = () => {
       },
       {
         title: `${t('tileHomaBhasma')} (${t('freeOfCost')})`,
+        itemName: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
         icon: 'homaBhasma' as AppIconName,
@@ -439,6 +452,7 @@ const HomeScreen = () => {
       },
       {
         title: `${t('tileBirava')} (${t('freeOfCost')})`,
+        itemName: t('tileBirava'),
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
         icon: 'biravaPendant' as AppIconName,
@@ -446,6 +460,7 @@ const HomeScreen = () => {
       },
       {
         title: t('tileOrders'),
+        itemName: t('tileOrders'),
         sub: t('tileOrdersSub'),
         route: 'Orders',
         icon: 'box' as AppIconName,
@@ -453,6 +468,7 @@ const HomeScreen = () => {
       },
       {
         title: t('tileCustomerCare'),
+        itemName: t('tileCustomerCare'),
         sub: t('tileCustomerCareSub'),
         route: 'CustomerCare',
         icon: 'care' as AppIconName,
@@ -478,6 +494,7 @@ const HomeScreen = () => {
         annadanamRes,
         todayTotalsRes,
         meetingRes,
+        sevaStockRes,
       ] = await Promise.allSettled([
         apiService.get('/japa/summary'),
         apiService.get('/japa-goals'),
@@ -489,6 +506,7 @@ const HomeScreen = () => {
         apiService.get('/annadanam/visibility'),
         apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
         apiService.get('/home/meeting'),
+        apiService.get('/home/seva-offerings-stock'),
       ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
@@ -680,6 +698,9 @@ const HomeScreen = () => {
         }
       } else {
         setActiveMeeting(null);
+      }
+      if (sevaStockRes.status === 'fulfilled') {
+        setSevaStock(sevaStockRes.value?.data?.data || {});
       }
     } catch (error) {
       console.log('Home summary unavailable', error);
@@ -1247,29 +1268,51 @@ const HomeScreen = () => {
 
           <Text style={styles.section}>{t('quickActions')}</Text>
           <View style={styles.grid}>
-            {visibleTiles.map(item => (
-              <TouchableOpacity
-                key={item.route}
-                style={styles.tile}
-                activeOpacity={0.85}
-                onPress={() => navigation.navigate(item.route)}>
-                <View
-                  style={[
-                    styles.tileIcon,
-                    item.tone === 'green'
-                      ? styles.tileIconGreen
-                      : styles.tileIconGold,
-                  ]}>
-                  <AppIcon
-                    name={item.icon}
-                    size={48}
-                    color={Colors.sacredBrown}
-                  />
-                </View>
-                <Text style={styles.tileTitle}>{item.title}</Text>
-                <Text style={styles.tileSub}>{item.sub}</Text>
-              </TouchableOpacity>
-            ))}
+            {visibleTiles.map(item => {
+              const outOfStock =
+                isSevaStockRoute(item.route) &&
+                !isSevaOfferingInStock(sevaStock, item.route);
+              return (
+                <TouchableOpacity
+                  key={item.route}
+                  style={styles.tile}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    if (outOfStock) {
+                      Alert.alert(
+                        t('outOfStockTitle') || 'Out of Stock',
+                        t('sevaItemOutOfStockSoon', {item: item.itemName}) ||
+                          `${item.itemName} is not available right now. It will be in stock soon.`,
+                        [{text: t('ok') || 'OK'}],
+                      );
+                      return;
+                    }
+                    navigation.navigate(item.route);
+                  }}>
+                  <View
+                    style={[
+                      styles.tileIcon,
+                      item.tone === 'green'
+                        ? styles.tileIconGreen
+                        : styles.tileIconGold,
+                    ]}>
+                    <AppIcon
+                      name={item.icon}
+                      size={48}
+                      color={Colors.sacredBrown}
+                    />
+                  </View>
+                  <Text style={styles.tileTitle}>{item.title}</Text>
+                  {outOfStock ? (
+                    <Text style={styles.tileOos}>
+                      {t('outOfStockTitle') || 'Out of Stock'}
+                    </Text>
+                  ) : (
+                    <Text style={styles.tileSub}>{item.sub}</Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           {/* After all Our Services tiles */}
@@ -1955,6 +1998,15 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14.5,
     lineHeight: 22,
+    includeFontPadding: false,
+    paddingBottom: 2,
+  },
+  tileOos: {
+    marginTop: 4,
+    color: '#B45309',
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontWeight: '700',
     includeFontPadding: false,
     paddingBottom: 2,
   },

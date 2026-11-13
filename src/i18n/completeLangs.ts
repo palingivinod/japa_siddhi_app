@@ -143,6 +143,9 @@ export const kn: TranslationDict = {
   beginYourJapa: 'ನಿಮ್ಮ ಜಪ ಪ್ರಾರಂಭಿಸಿ',
   bannerSubtitle: 'ಜಪ, ಅನ್ನದಾನ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಭಾಗವಹಿಸುವಿಕೆಗೆ ಡಿಜಿಟಲ್ ಸ್ಥಳ.',
   startChanting: 'ಜಪ ಪ್ರಾರಂಭಿಸಿ',
+  japaCalmnessTitle: 'ಶಾಂತಿಯಿಂದ ಜಪ ಮಾಡಿ',
+  japaCalmnessBody:
+    'ಪ್ರಿಯ ಭಕ್ತರೇ, ದಯವಿಟ್ಟು ಶಾಂತಿ ಮತ್ತು ಭಕ್ತಿಯಿಂದ ಜಪ ಮಾಡಿ. ಆತುರಪಡಬೇಡಿ. ಪ್ರತಿ ಜಪವನ್ನು ಎಚ್ಚರಿಕೆಯಿಂದ, ಏಕಾಗ್ರತೆಯಿಂದ ಎಣಿಸಿ.',
   todayFestival: 'ಇಂದು · ಹಬ್ಬ',
   todayPanchangam: 'ಇಂದು · ಪಂಚಾಂಗ',
   sharePanchangam: 'ಹಂಚಿ',

@@ -204,6 +204,59 @@ class AppSettingsService {
     }
     return meeting;
   }
+
+  /** Fixed seva offerings that can be marked In/Out of Stock from admin. */
+  static readonly SEVA_OFFERING_KEYS = [
+    'BanaLingam',
+    'RamakotiBooks',
+    'HomaBhasma',
+    'BiravaPendant',
+  ] as const;
+
+  async getSevaOfferingsStock(): Promise<Record<string, {inStock: boolean}>> {
+    const defaults: Record<string, {inStock: boolean}> = {};
+    for (const key of AppSettingsService.SEVA_OFFERING_KEYS) {
+      defaults[key] = {inStock: true};
+    }
+    const raw = await this.getSetting('seva_offerings_stock', '');
+    if (!raw) {
+      return defaults;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      const out = {...defaults};
+      for (const key of AppSettingsService.SEVA_OFFERING_KEYS) {
+        const row = parsed?.[key];
+        if (row && typeof row === 'object') {
+          out[key] = {
+            inStock:
+              row.inStock === false ||
+              row.inStock === 0 ||
+              row.inStock === '0'
+                ? false
+                : true,
+          };
+        }
+      }
+      return out;
+    } catch {
+      return defaults;
+    }
+  }
+
+  async setSevaOfferingStock(
+    key: string,
+    inStock: boolean,
+  ): Promise<Record<string, {inStock: boolean}>> {
+    const allowed = AppSettingsService.SEVA_OFFERING_KEYS as readonly string[];
+    if (!allowed.includes(key)) {
+      throw new Error('Invalid seva offering key.');
+    }
+    const current = await this.getSevaOfferingsStock();
+    current[key] = {inStock: Boolean(inStock)};
+    await this.setSetting('seva_offerings_stock', JSON.stringify(current));
+    return current;
+  }
 }
 
 export default new AppSettingsService();

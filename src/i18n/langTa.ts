@@ -144,6 +144,9 @@ export const ta: TranslationDict = {
   beginYourJapa: 'உங்கள் ஜபத்தைத் தொடங்குங்கள்',
   bannerSubtitle: 'ஜபம், Annadanam மற்றும் ஆன்மீக பங்கேற்புக்கான டிஜிட்டல் இடம்.',
   startChanting: 'ஜபம் தொடங்கு',
+  japaCalmnessTitle: 'அமைதியுடன் ஜபம் செய்யுங்கள்',
+  japaCalmnessBody:
+    'அன்புள்ள பக்தரே, தயவுசெய்து அமைதியுடனும் பக்தியுடனும் ஜபம் செய்யுங்கள். அவசரப்படாதீர்கள். ஒவ்வொரு ஜபத்தையும் கவனத்துடன் எண்ணுங்கள்.',
   todayFestival: 'இன்று · திருவிழா',
   todayPanchangam: 'இன்று · பஞ்சாங்கம்',
   sharePanchangam: 'பகிர்',

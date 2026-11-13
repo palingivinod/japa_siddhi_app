@@ -244,22 +244,31 @@ const GoalSelectScreen = () => {
       }
       startingRef.current = false;
       setSaving(false);
-      navigation.navigate('Chant', {
-        mode: route.params?.mode || 'community',
-        mantraId: route.params?.mantraId,
-        privateMantra: route.params?.privateMantra,
-        personalMantraId: route.params?.personalMantraId,
-        goal: finalGoal,
-        totalGoal: finalGoal,
-        goalType: 'date',
-        endDate: formatDate(endDate),
-        dailyTarget: finalDailyTarget,
-        japaGoalId: createdGoalId,
-        challengeId,
-        initialCount: route.params?.initialCount,
-        durationMs: 2500,
-        remainingDays,
-      });
+      const openChant = () => {
+        navigation.navigate('Chant', {
+          mode: route.params?.mode || 'community',
+          mantraId: route.params?.mantraId,
+          privateMantra: route.params?.privateMantra,
+          personalMantraId: route.params?.personalMantraId,
+          goal: finalGoal,
+          totalGoal: finalGoal,
+          goalType: 'date',
+          endDate: formatDate(endDate),
+          dailyTarget: finalDailyTarget,
+          japaGoalId: createdGoalId,
+          challengeId,
+          initialCount: route.params?.initialCount,
+          durationMs: 2500,
+          remainingDays,
+        });
+      };
+      Alert.alert(
+        t('japaCalmnessTitle') || 'Chant with calmness',
+        t('japaCalmnessBody') ||
+          'Dear devotee, please chant with calmness and devotion. Do not rush. Count each japa carefully with mindfulness.',
+        [{text: t('ok') || 'OK', onPress: openChant}],
+        {cancelable: false},
+      );
     }, 120);
   };
 

@@ -1,5 +1,6 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -285,18 +286,27 @@ const PrivateJapaScreen = () => {
 
       setSaving(false);
       startingRef.current = false;
-      navigation.navigate('Chant', {
-        mode: 'private',
-        privateMantra: name,
-        personalMantraId,
-        goal: finalGoal,
-        totalGoal: finalGoal,
-        dailyTarget: finalDailyTarget,
-        japaGoalId: createdGoalId,
-        goalType: 'date',
-        endDate: formatDate(endDate),
-        remainingDays: remDays,
-      });
+      const openChant = () => {
+        navigation.navigate('Chant', {
+          mode: 'private',
+          privateMantra: name,
+          personalMantraId,
+          goal: finalGoal,
+          totalGoal: finalGoal,
+          dailyTarget: finalDailyTarget,
+          japaGoalId: createdGoalId,
+          goalType: 'date',
+          endDate: formatDate(endDate),
+          remainingDays: remDays,
+        });
+      };
+      Alert.alert(
+        t('japaCalmnessTitle') || 'Chant with calmness',
+        t('japaCalmnessBody') ||
+          'Dear devotee, please chant with calmness and devotion. Do not rush. Count each japa carefully with mindfulness.',
+        [{text: t('ok') || 'OK', onPress: openChant}],
+        {cancelable: false},
+      );
     }, 120);
   };
 

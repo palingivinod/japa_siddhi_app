@@ -258,6 +258,9 @@ const en = {
   bannerSubtitle:
     'A digital space for Japa, Anna Santharpana and spiritual participation.',
   startChanting: 'Start Chanting',
+  japaCalmnessTitle: 'Chant with calmness',
+  japaCalmnessBody:
+    'Dear devotee, please chant with calmness and devotion. Do not rush. Count each japa carefully with mindfulness.',
   todayFestival: 'TODAY · FESTIVAL',
   todayPanchangam: 'TODAY · PANCHANGAM',
   sharePanchangam: 'SHARE',
@@ -1147,6 +1150,8 @@ const en = {
     'You have already grabbed Marakata Shivling. It can be claimed only once.',
   outOfStockTitle: 'Out of Stock',
   outOfStockRewardMsg: 'This reward item is currently out of stock.',
+  sevaItemOutOfStockSoon:
+    '{{item}} is not available right now. It will be in stock soon.',
   chooseInStockReward: 'Choose an in-stock reward to continue.',
   couldNotLoadRewards: 'Could not load rewards.',
   rewardAlreadySubmitted: 'This milestone reward is already submitted.',

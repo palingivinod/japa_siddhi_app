@@ -144,6 +144,9 @@ export const ml: TranslationDict = {
   beginYourJapa: 'നിങ്ങളുടെ ജപം ആരംഭിക്കുക',
   bannerSubtitle: 'ജപം, Annadanam, ആത്മീയ പങ്കാളിത്തത്തിനുള്ള ഡിജിറ്റൽ സ്ഥലം.',
   startChanting: 'ജപം ആരംഭിക്കുക',
+  japaCalmnessTitle: 'ശാന്തമായി ജപിക്കുക',
+  japaCalmnessBody:
+    'പ്രിയ ഭക്തരേ, ദയവായി ശാന്തതയോടും ഭക്തിയോടും കൂടി ജപിക്കുക. തിരക്കുകൂട്ടരുത്. ഓരോ ജപവും ശ്രദ്ധയോടെ എണ്ണുക.',
   todayFestival: 'ഇന്ന് · ഉത്സവം',
   todayPanchangam: 'ഇന്ന് · പഞ്ചാംഗം',
   sharePanchangam: 'പങ്കിടുക',

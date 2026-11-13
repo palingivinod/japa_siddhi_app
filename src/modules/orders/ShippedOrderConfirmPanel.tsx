@@ -81,31 +81,41 @@ const ShippedOrderConfirmPanel = ({
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [opening, setOpening] = useState(false);
-  const blink = useRef(new Animated.Value(1)).current;
+  // Soft amber/gold pulse (not green) so the shipped notify card is easy to spot.
+  const blink = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(blink, {
-          toValue: 0.42,
-          duration: 700,
+          toValue: 1,
+          duration: 750,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
         Animated.timing(blink, {
-          toValue: 1,
-          duration: 700,
+          toValue: 0,
+          duration: 750,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: false,
         }),
       ]),
     );
     loop.start();
     return () => {
       loop.stop();
-      blink.setValue(1);
+      blink.setValue(0);
     };
   }, [blink]);
+
+  const panelBg = blink.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#FFF4E5', '#FFD89A'],
+  });
+  const panelBorder = blink.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#F0C98A', '#E0A84A'],
+  });
 
   const openNotification = async () => {
     if (opening) {
@@ -120,7 +130,14 @@ const ShippedOrderConfirmPanel = ({
   };
 
   return (
-    <Animated.View style={[styles.panel, {opacity: blink}]}>
+    <Animated.View
+      style={[
+        styles.panel,
+        {
+          backgroundColor: panelBg,
+          borderColor: panelBorder,
+        },
+      ]}>
       <TouchableOpacity
         activeOpacity={0.75}
         onPress={openNotification}
@@ -179,10 +196,8 @@ export default ShippedOrderConfirmPanel;
 const styles = StyleSheet.create({
   panel: {
     marginTop: 12,
-    backgroundColor: '#FFF8EE',
     borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
+    borderWidth: 1.5,
     padding: 14,
   },
   notifyLinkWrap: {

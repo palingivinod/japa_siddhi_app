@@ -7172,6 +7172,62 @@ router.delete('/products/:id', async (req: Request, res: Response) => {
   }
 });
 
+const SEVA_OFFERING_LABELS: Record<string, string> = {
+  BanaLingam: 'Baanalingam',
+  RamakotiBooks: 'Ramakoti Books',
+  HomaBhasma: 'Homa Bhasma',
+  BiravaPendant: 'Bhirava Pendant',
+};
+
+router.get('/seva-offerings-stock', async (_req: Request, res: Response) => {
+  try {
+    const appSettingsService = (await import('./appSettings.service')).default;
+    const stock = await appSettingsService.getSevaOfferingsStock();
+    const data = Object.keys(stock).map(key => ({
+      key,
+      name: SEVA_OFFERING_LABELS[key] || key,
+      inStock: stock[key]?.inStock !== false,
+    }));
+    return res.json({success: true, data});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load seva offering stock.',
+    });
+  }
+});
+
+router.put('/seva-offerings-stock/:key', async (req: Request, res: Response) => {
+  try {
+    const key = String(req.params.key || '').trim();
+    const appSettingsService = (await import('./appSettings.service')).default;
+    const inStockRaw = req.body?.inStock;
+    const inStock =
+      !(
+        inStockRaw === false ||
+        inStockRaw === 0 ||
+        inStockRaw === '0'
+      );
+    const stock = await appSettingsService.setSevaOfferingStock(key, inStock);
+    return res.json({
+      success: true,
+      message: `${SEVA_OFFERING_LABELS[key] || key}: ${
+        inStock ? 'In Stock' : 'Out of Stock'
+      }`,
+      data: Object.keys(stock).map(k => ({
+        key: k,
+        name: SEVA_OFFERING_LABELS[k] || k,
+        inStock: stock[k]?.inStock !== false,
+      })),
+    });
+  } catch (error: any) {
+    return res.status(400).json({
+      success: false,
+      message: error?.message || 'Unable to update seva offering stock.',
+    });
+  }
+});
+
 router.get('/feedback', async (req: Request, res: Response) => {
   try {
     const feedbackService = (await import('../feedback/feedback.service'))

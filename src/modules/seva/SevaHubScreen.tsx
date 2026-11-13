@@ -25,6 +25,11 @@ import {
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {
+  isSevaOfferingInStock,
+  isSevaStockRoute,
+  SevaOfferingsStockMap,
+} from '../../utils/sevaOfferingsStock';
 import AppHeader from '../common/AppHeader';
 import BottomTabs from '../common/BottomTabs';
 
@@ -32,6 +37,8 @@ type SevaItem = {
   icon?: AppIconName;
   emoji?: string;
   title: string;
+  /** Short name for OOS popup (without free-of-cost suffix). */
+  itemName: string;
   sub: string;
   route: BookingScreen;
 };
@@ -57,6 +64,7 @@ const SevaHubScreen = () => {
   const navigation = useNavigation<any>();
   const {t} = useLanguage();
   const [annadanamEnabled, setAnnadanamEnabled] = useState(true);
+  const [sevaStock, setSevaStock] = useState<SevaOfferingsStockMap>({});
   const tabSwipe = useTabSwipe('SevaHub');
 
   useFocusEffect(
@@ -74,6 +82,18 @@ const SevaHubScreen = () => {
             setAnnadanamEnabled(true);
           }
         });
+      apiService
+        .get('/home/seva-offerings-stock')
+        .then(response => {
+          if (active) {
+            setSevaStock(response.data?.data || {});
+          }
+        })
+        .catch(() => {
+          if (active) {
+            setSevaStock({});
+          }
+        });
       return () => {
         active = false;
       };
@@ -87,42 +107,64 @@ const SevaHubScreen = () => {
       {
         icon: 'banalingam' as AppIconName,
         title: `${t('tileBaanalingam')} ${freeOfCostBracket}`,
+        itemName: t('tileBaanalingam'),
         sub: t('tileBaanalingamSub'),
         route: 'BanaLingam',
       },
       {
         icon: 'bowl' as AppIconName,
         title: t('tileAnnadanam'),
+        itemName: t('tileAnnadanam'),
         sub: t('tileAnnadanamSub'),
         route: 'Donate',
       },
       {
         icon: 'flame' as AppIconName,
         title: t('tileNithyaHomam'),
+        itemName: t('tileNithyaHomam'),
         sub: t('tileNithyaHomamSub'),
         route: 'NithyaHomam',
       },
       {
         icon: 'ramakoti' as AppIconName,
         title: `${t('tileRamakoti')} ${freeOfCostBracket}`,
+        itemName: t('tileRamakoti'),
         sub: t('tileRamakotiSub'),
         route: 'RamakotiBooks',
       },
       {
         icon: 'homaBhasma' as AppIconName,
         title: `${t('tileHomaBhasma')} ${freeOfCostBracket}`,
+        itemName: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
       },
       {
         icon: 'biravaPendant' as AppIconName,
         title: `${t('tileBirava')} ${freeOfCostBracket}`,
+        itemName: t('tileBirava'),
         sub: t('tileBiravaSub'),
         route: 'BiravaPendant',
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
   }, [t, annadanamEnabled, freeOfCostBracket]);
+
+  const onSevaPress = (item: SevaItem) => {
+    if (
+      isSevaStockRoute(item.route) &&
+      !isSevaOfferingInStock(sevaStock, item.route)
+    ) {
+      Alert.alert(
+        t('outOfStockTitle') || 'Out of Stock',
+        t('sevaItemOutOfStockSoon', {item: item.itemName}) ||
+          `${item.itemName} is not available right now. It will be in stock soon.`,
+        [{text: t('ok') || 'OK'}],
+      );
+      return;
+    }
+    navigation.navigate(item.route);
+  };
 
   const handleShareAllSevas = async () => {
     const message = buildAllSevaShareText(items);
@@ -193,29 +235,38 @@ const SevaHubScreen = () => {
               <Text style={styles.shareLink}>{t('share') || 'Share'}</Text>
             </TouchableOpacity>
           </View>
-          {items.map(item => (
-            <TouchableOpacity
-              key={item.route}
-              style={styles.card}
-              activeOpacity={0.85}
-              onPress={() => navigation.navigate(item.route)}>
-              <View style={styles.dot}>
-                {item.emoji ? (
-                  <Text style={styles.emoji}>{item.emoji}</Text>
-                ) : (
-                  <AppIcon
-                    name={item.icon || 'bowl'}
-                    size={44}
-                    color={Colors.sacredBrown}
-                  />
-                )}
-              </View>
-              <View style={styles.copy}>
-                <Text style={styles.title}>{item.title}</Text>
-                <Text style={styles.sub}>{item.sub}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {items.map(item => {
+            const outOfStock =
+              isSevaStockRoute(item.route) &&
+              !isSevaOfferingInStock(sevaStock, item.route);
+            return (
+              <TouchableOpacity
+                key={item.route}
+                style={styles.card}
+                activeOpacity={0.85}
+                onPress={() => onSevaPress(item)}>
+                <View style={styles.dot}>
+                  {item.emoji ? (
+                    <Text style={styles.emoji}>{item.emoji}</Text>
+                  ) : (
+                    <AppIcon
+                      name={item.icon || 'bowl'}
+                      size={44}
+                      color={Colors.sacredBrown}
+                    />
+                  )}
+                </View>
+                <View style={styles.copy}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  {outOfStock ? (
+                    <Text style={styles.oos}>{t('outOfStockTitle') || 'Out of Stock'}</Text>
+                  ) : (
+                    <Text style={styles.sub}>{item.sub}</Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
       </View>
       <BottomTabs active="SevaHub" />
@@ -288,6 +339,14 @@ const styles = StyleSheet.create({
     color: '#4A3B2C',
     fontSize: 13,
     lineHeight: 18,
+    includeFontPadding: true,
+  },
+  oos: {
+    marginTop: 2,
+    color: '#B45309',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '700',
     includeFontPadding: true,
   },
 });
