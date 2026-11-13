@@ -40,6 +40,55 @@ type RewardItem = {
   emoji?: string;
 };
 
+const RewardThumb = ({
+  imageUrl,
+  imageName,
+  emoji,
+  locked,
+}: {
+  imageUrl?: string | null;
+  imageName?: string;
+  emoji?: string;
+  locked?: boolean;
+}) => {
+  const photo = resolveMediaUrl(imageUrl);
+  const [loading, setLoading] = useState(Boolean(photo));
+  const [failed, setFailed] = useState(false);
+
+  if (photo && !failed) {
+    return (
+      <View style={[styles.dot, locked && styles.dotLocked]}>
+        {loading ? (
+          <ActivityIndicator
+            size="small"
+            color={Colors.templeGold}
+            style={styles.photoLoader}
+          />
+        ) : null}
+        <Image
+          source={{uri: photo, cache: 'force-cache'}}
+          style={[styles.photo, loading && styles.photoHidden]}
+          onLoadStart={() => setLoading(true)}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setFailed(true);
+          }}
+        />
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.dot, locked && styles.dotLocked]}>
+      {imageName ? (
+        <AppIcon name={imageName as any} size={48} />
+      ) : (
+        <Text style={styles.emoji}>{emoji || '🎁'}</Text>
+      )}
+    </View>
+  );
+};
+
 const AvailableRewardsScreen = () => {
   const navigation = useNavigation<any>();
   const {t, tt, language} = useLanguage();
@@ -160,6 +209,13 @@ const AvailableRewardsScreen = () => {
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
 
         setRewards(sortRewardsCanonical(mapped));
+        // Prefetch admin photos so thumbs appear faster on scroll.
+        mapped.forEach(row => {
+          const uri = resolveMediaUrl(row.imageUrl);
+          if (uri) {
+            Image.prefetch(uri).catch(() => undefined);
+          }
+        });
       } else {
         setRewards([]);
         setError(t('unableToLoadRewards') || 'Unable to load rewards.');
@@ -224,7 +280,9 @@ const AvailableRewardsScreen = () => {
   const handleCardPress = (item: RewardItem, localized: any) => {
     const eligibility = eligibilityFor(item);
     const description = String(item.description || localized.description || '').trim();
-    const title = localized.title || tt(item.name);
+    const title = localized.matched
+      ? localized.title || tt(item.name)
+      : String(item.name || localized.title || '').trim();
     const message = (line: string) =>
       description ? `${description}\n\n${line}` : line;
     const outOfStock = item.inStock === false;
@@ -364,27 +422,17 @@ const AvailableRewardsScreen = () => {
               activeOpacity={0.85}
               onPress={() => handleCardPress(item, localized)}>
               <View style={styles.cardHeader}>
-                <View style={[styles.dot, isLocked && styles.dotLocked]}>
-                  {(() => {
-                    const photo = resolveMediaUrl(item.imageUrl);
-                    if (photo) {
-                      return (
-                        <Image source={{uri: photo}} style={styles.photo} />
-                      );
-                    }
-                    if (localized.imageName) {
-                      return <AppIcon name={localized.imageName} size={48} />;
-                    }
-                    return (
-                      <Text style={styles.emoji}>
-                        {item.emoji || localized.emoji}
-                      </Text>
-                    );
-                  })()}
-                </View>
+                <RewardThumb
+                  imageUrl={item.imageUrl}
+                  imageName={localized.matched ? localized.imageName : undefined}
+                  emoji={item.emoji || localized.emoji}
+                  locked={isLocked}
+                />
                 <View style={styles.headerInfo}>
                   <Text style={styles.rewardName}>
-                    {localized.title || tt(item.name)}
+                    {localized.matched
+                      ? localized.title || tt(item.name)
+                      : String(item.name || localized.title || '').trim()}
                   </Text>
                   {outOfStock ? (
                     <View style={styles.badgeRow}>
@@ -541,6 +589,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
+  },
+  photoHidden: {
+    opacity: 0,
+  },
+  photoLoader: {
+    position: 'absolute',
+    zIndex: 1,
   },
   headerInfo: {
     flex: 1,

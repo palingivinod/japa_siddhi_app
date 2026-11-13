@@ -720,10 +720,27 @@ const REWARD_LOCALIZATIONS: Array<{
 export const getLocalizedReward = (
   rawName: string,
   lang: string = 'en',
-): {title: string; description: string; emoji: string; imageName?: AppIconName} => {
+): {
+  title: string;
+  description: string;
+  emoji: string;
+  imageName?: AppIconName;
+  matched: boolean;
+} => {
   const name = String(rawName || '').trim();
   const matched = REWARD_LOCALIZATIONS.find(item => item.match(name));
-  const content = matched ? matched.content : FALLBACK_CONTENT;
+  // Custom admin rewards (e.g. "test") must keep their own title — do not
+  // fall back to "Spiritual Reward" catalog copy.
+  if (!matched) {
+    return {
+      title: name || 'Reward',
+      description: '',
+      emoji: '🎁',
+      imageName: undefined,
+      matched: false,
+    };
+  }
+  const content = matched.content;
 
   const title =
     content.title[lang] ||
@@ -737,7 +754,7 @@ export const getLocalizedReward = (
   const emoji = content.emoji;
   const imageName = content.imageName;
 
-  return {title, description, emoji, imageName};
+  return {title, description, emoji, imageName, matched: true};
 };
 
 export interface RewardEligibility {
