@@ -358,6 +358,8 @@ router.get('/dashboard-stats', async (_req: Request, res: Response) => {
       mysql.query<any[]>(`
         SELECT COUNT(*) AS totalOrders
         FROM orders
+        WHERE UPPER(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+          NOT IN ('SHIPPED', 'DELIVERED')
       `),
       mysql.query<any[]>(`
         SELECT IFNULL(SUM(amount), 0) AS totalDonations

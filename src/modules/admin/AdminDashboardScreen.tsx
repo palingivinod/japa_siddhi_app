@@ -122,7 +122,7 @@ const AdminDashboardScreen = () => {
             detail={`Today ${stats.japaToday.toLocaleString('en-IN')}`}
           />
           <StatCard
-            label="Orders"
+            label="Orders (not shipped)"
             value={stats.orders.toLocaleString('en-IN')}
           />
           <StatCard label="Donations" value={stats.donationsLabel} />
