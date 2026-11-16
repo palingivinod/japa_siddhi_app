@@ -67,7 +67,29 @@ export const isMarakataShivlingName = (rewardName: string): boolean => {
 };
 
 /** Extra japas needed from the devotee's present count for Marakata Shivling. */
-export const MARAKATA_SHIVLING_EXTRA_JAPAS = 3000;
+export const MARAKATA_SHIVLING_EXTRA_JAPAS = 8000;
+
+/** Narmada Baanalingam — fresher 5k / old present + 5k (relative). */
+export const BAANALINGAM_EXTRA_JAPAS = 5000;
+
+export const isBaanalingamRewardName = (rewardName: string): boolean => {
+  const lower = String(rewardName || '').toLowerCase();
+  if (!lower) {
+    return false;
+  }
+  if (isMarakataShivlingName(rewardName)) {
+    return false;
+  }
+  if (lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+    return false;
+  }
+  return (
+    lower.includes('baanalingam') ||
+    lower.includes('banalingam') ||
+    lower.includes('bana lingam') ||
+    (lower.includes('narmada') && lower.includes('ling'))
+  );
+};
 
 const REWARD_LOCALIZATIONS: Array<{
   match: (name: string) => boolean;
@@ -642,16 +664,9 @@ const REWARD_LOCALIZATIONS: Array<{
     },
   },
 
-  // 14. Baanalingam / Shiva Lingam
+  // 14. Baanalingam / Narmada Baanalingam (not Marakata)
   {
-    match: name => {
-      const lower = name.toLowerCase();
-      return (
-        lower.includes('lingam') ||
-        lower.includes('shiva') ||
-        lower.includes('baanalingam')
-      );
-    },
+    match: name => isBaanalingamRewardName(name),
     content: {
       emoji: '🕉️',
       title: {
@@ -869,11 +884,18 @@ export const getRewardRequirement = (
   ) {
     return {count: 1000000, label: reqText.ten};
   }
-  // Marakata Shivling => present count + 3000 (resolved in checkRewardEligibility)
+  // Marakata Shivling => present count + 8000 (resolved in checkRewardEligibility)
   if (isMarakataShivlingName(rewardName)) {
     return {
       count: MARAKATA_SHIVLING_EXTRA_JAPAS,
       label: `present + ${MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN')}`,
+    };
+  }
+  // Narmada Baanalingam => present count + 5000 (resolved in checkRewardEligibility)
+  if (isBaanalingamRewardName(rewardName)) {
+    return {
+      count: BAANALINGAM_EXTRA_JAPAS,
+      label: `present + ${BAANALINGAM_EXTRA_JAPAS.toLocaleString('en-IN')}`,
     };
   }
   // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) => 5,00,000 Japas (5 Lakhs)
@@ -961,16 +983,20 @@ export const checkRewardEligibility = (
   const req = getRewardRequirement(rewardName, lang);
   const count = Number(userJapaCount) || 0;
 
-  // Present + N (Marakata or admin relative rewards): locked personal target.
+  // Present + N (Marakata / Baanalingam / admin relative): locked personal target.
   const isRelativeTrack =
     isMarakataShivlingName(rewardName) ||
+    isBaanalingamRewardName(rewardName) ||
     (typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0);
   if (isRelativeTrack) {
+    const fallbackExtra = isBaanalingamRewardName(rewardName)
+      ? BAANALINGAM_EXTRA_JAPAS
+      : MARAKATA_SHIVLING_EXTRA_JAPAS;
     const extra =
       typeof customEligibilityCriteria === 'number' &&
       customEligibilityCriteria > 0
         ? customEligibilityCriteria
-        : MARAKATA_SHIVLING_EXTRA_JAPAS;
+        : fallbackExtra;
     const targetCount =
       typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0
         ? relativeTargetOverride
@@ -1014,23 +1040,24 @@ export const checkRewardEligibility = (
  * 6. Spatik Mala (1 Lakh eligibility)
  * 7. Green Agate (2 Lakhs eligibility)
  * 8. Yellow Agate (2 Lakhs eligibility)
- * 9. Marakata Shivling (present + 3000)
- * 10. Marakatha Sri Chakram (5 Lakhs eligibility)
- * 11. Spiritual Reward (10 Lakhs eligibility)
+ * 4. Narmada Baanalingam (present + 5000)
+ * 5. Sandalwood Mala (30k)
+ * … Marakata Shivling (present + 8000)
  */
 export const getRewardSortRank = (rewardName: string): number => {
   const lower = String(rewardName || '').toLowerCase();
   if (lower.includes('rudraksh')) return 1;
   if (lower.includes('tulasi') || lower.includes('tulsi')) return 2;
   if (lower.includes('pasupu') || lower.includes('turmeric') || lower.includes('haldi')) return 3;
-  if (lower.includes('sandal') || lower.includes('chandan')) return 4;
+  if (isBaanalingamRewardName(rewardName)) return 4;
+  if (lower.includes('sandal') || lower.includes('chandan')) return 5;
   if (
     lower.includes('karungali') ||
     lower.includes('ebony') ||
     lower.includes('black wood') ||
     lower.includes('sacred japa mala')
   ) {
-    return 5;
+    return 6;
   }
   if (
     lower.includes('spatik') ||
@@ -1040,22 +1067,22 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('స్పటిక') ||
     lower.includes('स्फटिक')
   ) {
-    return 6;
+    return 7;
   }
   if (
     lower.includes('green agate') ||
     (lower.includes('green') && (lower.includes('agate') || lower.includes('hakik')))
   ) {
-    return 7;
+    return 8;
   }
   if (
     lower.includes('yellow agate') ||
     (lower.includes('yellow') && (lower.includes('agate') || lower.includes('hakik')))
   ) {
-    return 8;
+    return 9;
   }
   if (isMarakataShivlingName(rewardName)) {
-    return 9;
+    return 10;
   }
   if (
     lower.includes('marakatha') ||
@@ -1072,7 +1099,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('జేడ్') ||
     lower.includes('जेड')
   ) {
-    return 10;
+    return 11;
   }
   if (
     lower.includes('spiritual reward') ||
@@ -1082,7 +1109,7 @@ export const getRewardSortRank = (rewardName: string): number => {
     lower.includes('ఆధ్యాత్మిక బహుమతి') ||
     lower.includes('आध्यात्मिक उपहार')
   ) {
-    return 11;
+    return 12;
   }
   return 99;
 };

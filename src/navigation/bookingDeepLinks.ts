@@ -75,7 +75,7 @@ export const BOOKING_DEEP_LINKS: BookingEntry[] = [
   },
   {
     screen: 'HomaBhasma',
-    title: 'Homa Bhasma',
+    title: 'Homa Bhasmam',
     aliases: ['homa-bhasma', 'homabhasma', 'bhasma'],
   },
   {
@@ -85,8 +85,16 @@ export const BOOKING_DEEP_LINKS: BookingEntry[] = [
   },
   {
     screen: 'ShivakotiBooks',
-    title: 'Shivakoti Books',
-    aliases: ['shivakoti', 'shivakoti-books', 'shivakotibooks'],
+    title: 'Siva Koti Books',
+    aliases: [
+      'shivakoti',
+      'shivakoti-books',
+      'shivakotibooks',
+      'siva-koti',
+      'siva-koti-books',
+      'sivakoti',
+      'sivakoti-books',
+    ],
   },
   {
     screen: 'GouMayaBhasma',

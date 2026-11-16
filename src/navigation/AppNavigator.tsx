@@ -112,6 +112,7 @@ import AdminForgotPasswordScreen from '../modules/admin/AdminForgotPasswordScree
 import AdminDashboardScreen from '../modules/admin/AdminDashboardScreen';
 import AdminAccountsScreen from '../modules/admin/AdminAccountsScreen';
 import AdminUsersScreen from '../modules/admin/AdminUsersScreen';
+import AdminUserLookupScreen from '../modules/admin/AdminUserLookupScreen';
 import AdminUserDetailsScreen from '../modules/admin/AdminUserDetailsScreen';
 import AdminUserEditScreen from '../modules/admin/AdminUserEditScreen';
 import AdminJapaScreen from '../modules/admin/AdminJapaScreen';
@@ -384,6 +385,7 @@ export type RootStackParamList = {
   AdminDashboard: undefined;
   AdminAccounts: undefined;
   AdminUsers: undefined;
+  AdminUserLookup: undefined;
   AdminUserDetails: {userId?: string} | undefined;
   AdminUserEdit: {userId?: string} | undefined;
   AdminJapa: undefined;
@@ -588,6 +590,7 @@ const ProtectedAdminForgotPassword = AdminForgotPasswordScreen;
 const ProtectedAdminDashboard = withAdminAuth(AdminDashboardScreen);
 const ProtectedAdminAccounts = withAdminAuth(AdminAccountsScreen);
 const ProtectedAdminUsers = withAdminAuth(AdminUsersScreen);
+const ProtectedAdminUserLookup = withAdminAuth(AdminUserLookupScreen);
 const ProtectedAdminUserDetails = withAdminAuth(AdminUserDetailsScreen);
 const ProtectedAdminUserEdit = withAdminAuth(AdminUserEditScreen);
 const ProtectedAdminJapa = withAdminAuth(AdminJapaScreen);
@@ -894,6 +897,10 @@ const AppNavigator = () => {
           component={ProtectedAdminAccounts}
         />
         <Stack.Screen name="AdminUsers" component={ProtectedAdminUsers} />
+        <Stack.Screen
+          name="AdminUserLookup"
+          component={ProtectedAdminUserLookup}
+        />
         <Stack.Screen
           name="AdminUserDetails"
           component={ProtectedAdminUserDetails}

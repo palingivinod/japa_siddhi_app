@@ -90,7 +90,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   spatikaMala: require('../../assets/images/spatika_mala.png'),
   sandalwoodMala: require('../../assets/images/sandalwood_mala.png'),
   tulasiMala: require('../../assets/images/tulasi_mala.png'),
-  homaBhasma: require('../../assets/images/festival_annadanam.png'),
+  homaBhasma: require('../../assets/images/homa_bhasmam_icon.jpg'),
   biravaPendant: require('../../assets/images/birava_pendant.jpg'),
   ramakoti: require('../../assets/images/ramakoti_icon.jpg'),
   shivakoti: require('../../assets/images/shivakoti_icon.png'),

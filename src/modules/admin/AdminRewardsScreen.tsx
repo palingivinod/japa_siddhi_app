@@ -290,7 +290,7 @@ const AdminRewardsScreen = () => {
       <Text style={styles.section}>Reward choices & eligibility.</Text>
       <Text style={styles.hint}>
         Fixed = lifetime japa target. Present + Count = each devotee’s current
-        total + the extra count you set (like Marakata + 3000).
+        total + the extra count you set (like Marakata + 8000).
       </Text>
 
       <View style={styles.tabRow}>

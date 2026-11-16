@@ -90,7 +90,7 @@ const HISTORY_FILTERS: Array<{id: HistoryItemFilter; label: string}> = [
   {id: 'ALL', label: 'All Orders'},
   {id: 'BL', label: 'Baanalingam'},
   {id: 'RK', label: 'Ramakoti'},
-  {id: 'SK', label: 'Shivakoti'},
+  {id: 'SK', label: 'Siva Koti'},
   {id: 'BP', label: 'Bhirava Pendant'},
   {id: 'HB', label: 'Homa Bhasmam'},
   {id: 'GM', label: 'Pooja Bhasmam'},
@@ -218,7 +218,11 @@ const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter):
       type === 'SHIVAKOTI_BOOKS' ||
       type.includes('SHIVAKOTI') ||
       prod.includes('shivakoti') ||
-      remarks.includes('shivakoti')
+      prod.includes('siva koti') ||
+      prod.includes('sivakoti') ||
+      remarks.includes('shivakoti') ||
+      remarks.includes('siva koti') ||
+      remarks.includes('sivakoti')
     );
   }
   if (filterId === 'GM') {
@@ -320,6 +324,8 @@ const orderGroupOf = (row: any): AdminOrder['orderGroup'] => {
     product.includes('homa bhasma') ||
     product.includes('birava') ||
     product.includes('shivakoti') ||
+    product.includes('siva koti') ||
+    product.includes('sivakoti') ||
     product.includes('gou maya') ||
     product.includes('pooja bhasmam') ||
     product.includes('pooja bhasma')

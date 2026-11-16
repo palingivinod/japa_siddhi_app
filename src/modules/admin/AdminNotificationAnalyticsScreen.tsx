@@ -21,6 +21,8 @@ export type NotificationAnalyticsRecipient = {
   userCode?: string;
   name: string;
   isRead?: boolean | null;
+  city?: string;
+  phone?: string;
 };
 
 export type NotificationAnalyticsItem = {
@@ -532,6 +534,10 @@ const AdminNotificationAnalyticsScreen = () => {
               recipients.map(person => {
                 const code = String(person.userCode || '').trim();
                 const uidLabel = code || `UID ${person.userId}`;
+                const city = String(person.city || '').trim();
+                const phone = String(person.phone || '').trim();
+                const showOrderContact =
+                  itemCategory === 'orders' && (city || phone);
                 const readLabel =
                   person.isRead === true
                     ? 'Read'
@@ -550,6 +556,11 @@ const AdminNotificationAnalyticsScreen = () => {
                         {uidLabel}
                         {code && person.userId ? ` · #${person.userId}` : ''}
                       </Text>
+                      {showOrderContact ? (
+                        <Text style={styles.recipientMeta}>
+                          {[phone, city].filter(Boolean).join(' · ')}
+                        </Text>
+                      ) : null}
                     </View>
                     {readLabel ? (
                       <Text

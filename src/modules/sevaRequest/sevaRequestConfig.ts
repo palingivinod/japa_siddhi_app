@@ -79,6 +79,8 @@ const matchBirava = (type: string, name: string, num: string) =>
 const matchShivakoti = (type: string, name: string, num: string) =>
   type === 'SHIVAKOTI_BOOKS' ||
   name.includes('shivakoti') ||
+  name.includes('siva koti') ||
+  name.includes('sivakoti') ||
   num.startsWith('SK') ||
   num.startsWith('#SK');
 

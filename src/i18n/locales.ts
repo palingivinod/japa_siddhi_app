@@ -53,17 +53,17 @@ export const hi: TranslationDict = {
   ramakotiIntro: 'डिलीवरी के लिए रामाकोटि पुस्तकें मँगवाएँ।',
   ramakotiRegisterNote:
     'नोट: हर महीने 2–3 पुस्तकें पुस्तक पूरा होने के निकट भेजी जाएंगी, या हर महीने के अंत में आप रामाकोटि पुस्तकों के लिए फिर से पंजीकरण कर सकते हैं।',
-  tileHomaBhasma: 'होम भस्म',
-  tileHomaBhasmaSub: 'हवन भस्म का अनुरोध',
-  homaBhasma: 'होम भस्म',
+  tileHomaBhasma: 'होम भस्मम्',
+  tileHomaBhasmaSub: 'हवन भस्मम् का अनुरोध',
+  homaBhasma: 'होम भस्मम्',
   homaBhasmaDesc:
     'आपको पवित्र हवन भस्म निःशुल्क मिलेगी। यह सारी नकारात्मक ऊर्जा हटाती है और एक शक्तिशाली आध्यात्मिक ढाल बनकर शरीर में प्रवेश करने वाली बुरी शक्तियों को रोकती है।',
-  tileShivakoti: 'शिवाकोटि पुस्तकें',
+  tileShivakoti: 'शिव कोटि पुस्तकें',
   tileShivakotiSub: 'पुस्तक का अनुरोध',
-  shivakotiBooks: 'शिवाकोटि पुस्तकें',
-  shivakotiBooksIntro: 'डिलीवरी के लिए शिवाकोटि पुस्तकें निःशुल्क मँगवाएँ।',
+  shivakotiBooks: 'शिव कोटि पुस्तकें',
+  shivakotiBooksIntro: 'डिलीवरी के लिए शिव कोटि पुस्तकें निःशुल्क मँगवाएँ।',
   shivakotiRegisterNote:
-    'नोट: हर महीने 2–3 पुस्तकें पुस्तक पूरा होने के निकट भेजी जाएंगी, या हर महीने के अंत में आप शिवाकोटि पुस्तकों के लिए फिर से पंजीकरण कर सकते हैं।',
+    'नोट: हर महीने 2–3 पुस्तकें पुस्तक पूरा होने के निकट भेजी जाएंगी, या हर महीने के अंत में आप शिव कोटि पुस्तकों के लिए फिर से पंजीकरण कर सकते हैं।',
   tileGouMayaBhasma: 'पूजा भस्म',
   tileGouMayaBhasmaSub: 'पूजा भस्म का अनुरोध',
   gouMayaBhasma: 'पूजा भस्म',
@@ -80,6 +80,14 @@ export const hi: TranslationDict = {
   rewardAddressDisclaimerBody:
     'यदि ट्रस्ट को पता चले कि पता पूर्ण और स्पष्ट रूप से नहीं लिखा गया है, तो ट्रस्ट पुरस्कार / ऑर्डर भेजने से परहेज करेगा। बड़ी संख्या में भेजने के कारण पता सुधारने के लिए भक्त से व्यक्तिगत संपर्क नहीं किया जाएगा। स्पष्ट और विस्तृत पता भेजना पूरी तरह भक्त की जिम्मेदारी है।',
   shivaLingaNotEligibleTitle: 'पात्र नहीं',
+  baanalingamMarkataWarning:
+    'यदि आप बाणलिंगम ऑर्डर करते हैं तो आपको मरकत शिवलिंग नहीं मिलेगा। यदि आपको मरकत शिवलिंग चाहिए, तो इस नर्मदा बाणलिंगम को छोड़ें और present + 8k जप करके मरकत शिवलिंग लें।',
+  baanalingamSevaEligibilityMessage:
+    'आप इसे 5,000 जप या present + 5,000 जप के बाद ले सकते हैं।',
+  baanalingamAlreadyOrderedShort:
+    'आप इसे ऑर्डर नहीं कर सकते क्योंकि आप पहले ही बाणलिंगम ऑर्डर/प्राप्त कर चुके हैं।',
+  continueAnyway: 'आगे बढ़ें',
+  skipForNow: 'अभी छोड़ें',
   shivaLingaAlreadyOrderedMessage:
     'आप पहले ही {{item}} ऑर्डर/प्राप्त कर चुके हैं। घर घर महादेव का भाव है कि प्रत्येक घर के लिए केवल एक शिवलिंग — इसलिए आप इसे ऑर्डर करने के पात्र नहीं हैं।',
   baanalingamItemName: 'बाणलिंगम',
@@ -234,15 +242,15 @@ export const hi: TranslationDict = {
   ramakotiPendingOrderTitle: 'रामकोटि ऑर्डर समीक्षाधीन है',
   ramakotiPendingOrderMessage:
     'पहले से एक रामकोटि पुस्तकों का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
-  homaBhasmaPendingOrderTitle: 'होम भस्म ऑर्डर समीक्षाधीन है',
+  homaBhasmaPendingOrderTitle: 'होम भस्मम् ऑर्डर समीक्षाधीन है',
   homaBhasmaPendingOrderMessage:
-    'पहले से एक होम भस्म का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+    'पहले से एक होम भस्मम् का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
   biravaPendingOrderTitle: 'भैरव लॉकेट ऑर्डर समीक्षाधीन है',
   biravaPendingOrderMessage:
     'पहले से एक भैरव लॉकेट का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
-  shivakotiPendingOrderTitle: 'शिवाकोटि ऑर्डर समीक्षाधीन है',
+  shivakotiPendingOrderTitle: 'शिव कोटि ऑर्डर समीक्षाधीन है',
   shivakotiPendingOrderMessage:
-    'पहले से एक शिवाकोटि पुस्तकों का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+    'पहले से एक शिव कोटि पुस्तकों का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
   gouMayaPendingOrderTitle: 'पूजा भस्म ऑर्डर समीक्षाधीन है',
   gouMayaPendingOrderMessage:
     'पहले से एक पूजा भस्म का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
@@ -1128,17 +1136,17 @@ export const te: TranslationDict = {
   ramakotiIntro: 'డెలివరీ కోసం రామకోటి పుస్తకాలు అభ్యర్థించండి.',
   ramakotiRegisterNote:
     'గమనిక: ప్రతి నెలా  2–3 పుస్తకాలు పంపబడతాయి,పుస్తకం పూర్తికి దగ్గరగా  ఉన్న లేదా ప్రతి నెల చివరలో మీరు రామకోటి పుస్తకాల కోసం మళ్లీ నమోదు చేసుకోవచ్చు.',
-  tileHomaBhasma: 'హోమ భస్మ',
-  tileHomaBhasmaSub: 'హవన భస్మ అభ్యర్థన',
-  homaBhasma: 'హోమ భస్మ',
+  tileHomaBhasma: 'హోమ భస్మం',
+  tileHomaBhasmaSub: 'హవన భస్మం అభ్యర్థన',
+  homaBhasma: 'హోమ భస్మం',
   homaBhasmaDesc:
     'పవిత్ర హవన భస్మ ఉచితంగా అందుతుంది. ఇది ప్రతికూల శక్తిని తొలగించి, శరీరంలోకి ప్రవేశించే దుష్ట శక్తులను అడ్డుకునే శక్తివంతమైన ఆధ్యాత్మిక కవచంగా పనిచేస్తుంది.',
-  tileShivakoti: 'శివకోటి పుస్తకాలు',
+  tileShivakoti: 'శివ కోటి పుస్తకాలు',
   tileShivakotiSub: 'పుస్తకం కోరండి',
-  shivakotiBooks: 'శివకోటి పుస్తకాలు',
-  shivakotiBooksIntro: 'డెలివరీ కోసం శివకోటి పుస్తకాలను ఉచితంగా అభ్యర్థించండి.',
+  shivakotiBooks: 'శివ కోటి పుస్తకాలు',
+  shivakotiBooksIntro: 'డెలివరీ కోసం శివ కోటి పుస్తకాలను ఉచితంగా అభ్యర్థించండి.',
   shivakotiRegisterNote:
-    'గమనిక: ప్రతి నెలా 2–3 పుస్తకాలు పంపబడతాయి, పుస్తకం పూర్తికి దగ్గరగా ఉన్న లేదా ప్రతి నెల చివరలో మీరు శివకోటి పుస్తకాల కోసం మళ్లీ నమోదు చేసుకోవచ్చు.',
+    'గమనిక: ప్రతి నెలా 2–3 పుస్తకాలు పంపబడతాయి, పుస్తకం పూర్తికి దగ్గరగా ఉన్న లేదా ప్రతి నెల చివరలో మీరు శివ కోటి పుస్తకాల కోసం మళ్లీ నమోదు చేసుకోవచ్చు.',
   tileGouMayaBhasma: 'పూజ భస్మం',
   tileGouMayaBhasmaSub: 'పూజ భస్మం అభ్యర్థన',
   gouMayaBhasma: 'పూజ భస్మం',
@@ -1155,6 +1163,14 @@ export const te: TranslationDict = {
   rewardAddressDisclaimerBody:
     'చిరునామా పూర్తిగా, స్పష్టంగా ఇవ్వకపోతే ట్రస్ట్ రివార్డులు / ఆర్డర్లు పంపదు. అధిక సంఖ్యలో పంపకాలు ఉన్నందున చిరునామా సరిదిద్దడానికి భక్తునితో వ్యక్తిగతంగా సంప్రదించబడదు. స్పష్టమైన, వివరమైన చిరునామా పంపడం పూర్తిగా భక్తుని బాధ్యత.',
   shivaLingaNotEligibleTitle: 'అర్హత లేదు',
+  baanalingamMarkataWarning:
+    'మీరు బాణలింగం ఆర్డర్ చేస్తే మరకత శివలింగం రాదు. మరకత శివలింగం కావాలంటే ఈ నర్మదా బాణలింగాన్ని వదిలి present + 8k జపాలు చేసి మరకత శివలింగం తీసుకోండి.',
+  baanalingamSevaEligibilityMessage:
+    'మీరు దీన్ని 5,000 జపాలు లేదా present + 5,000 జపాలు తర్వాత తీసుకోవచ్చు.',
+  baanalingamAlreadyOrderedShort:
+    'మీరు ఇప్పటికే బాణలింగం ఆర్డర్/స్వీకరించారు కాబట్టి మళ్లీ ఆర్డర్ చేయలేరు.',
+  continueAnyway: 'కొనసాగించండి',
+  skipForNow: 'ఇప్పుడు వదిలేయండి',
   shivaLingaAlreadyOrderedMessage:
     'మీరు ఇప్పటికే {{item}} ఆర్డర్/స్వీకరించారు. ఘర్ ఘర్ మహాదేవ్ భావన ప్రకారం ప్రతి ఇంటికి ఒకే ఒక శివలింగం — కాబట్టి మీరు దీన్ని ఆర్డర్ చేయడానికి అర్హులు కాదు.',
   baanalingamItemName: 'బాణలింగం',
@@ -1315,9 +1331,9 @@ export const te: TranslationDict = {
   biravaPendingOrderTitle: 'భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది',
   biravaPendingOrderMessage:
     'ఇప్పటికే భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
-  shivakotiPendingOrderTitle: 'శివకోటి ఆర్డర్ పరిశీలనలో ఉంది',
+  shivakotiPendingOrderTitle: 'శివ కోటి ఆర్డర్ పరిశీలనలో ఉంది',
   shivakotiPendingOrderMessage:
-    'ఇప్పటికే శివకోటి పుస్తకాల ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+    'ఇప్పటికే శివ కోటి పుస్తకాల ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
   gouMayaPendingOrderTitle: 'పూజ భస్మం ఆర్డర్ పరిశీలనలో ఉంది',
   gouMayaPendingOrderMessage:
     'ఇప్పటికే పూజ భస్మం ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
@@ -2376,8 +2392,11 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Ramakoti Books': 'tileRamakoti',
   Ramakoti: 'tileRamakoti',
   'Homa Bhasma': 'tileHomaBhasma',
+  'Homa Bhasmam': 'tileHomaBhasma',
   'Shivakoti Books': 'tileShivakoti',
   Shivakoti: 'tileShivakoti',
+  'Siva Koti Books': 'tileShivakoti',
+  'Siva Koti': 'tileShivakoti',
   'Gou Maya Bhasma': 'tileGouMayaBhasma',
   'Pooja Bhasmam': 'tileGouMayaBhasma',
   'Pooja Bhasma': 'tileGouMayaBhasma',

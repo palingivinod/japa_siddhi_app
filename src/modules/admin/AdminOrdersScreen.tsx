@@ -131,7 +131,7 @@ export const ITEM_FILTERS: Array<{
 }> = [
   {id: 'ALL', code: 'ALL', label: 'All Items'},
   {id: 'RK', code: 'RK', label: 'Ramakoti'},
-  {id: 'SK', code: 'SK', label: 'Shivakoti'},
+  {id: 'SK', code: 'SK', label: 'Siva Koti'},
   {id: 'BP', code: 'BP', label: 'Bhirava Pendant'},
   {id: 'HB', code: 'HB', label: 'Homa Bhasmam'},
   {id: 'GM', code: 'GM', label: 'Pooja Bhasmam'},
@@ -180,7 +180,11 @@ const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): bool
       type === 'SHIVAKOTI_BOOKS' ||
       type.includes('SHIVAKOTI') ||
       prod.includes('shivakoti') ||
-      remarks.includes('shivakoti')
+      prod.includes('siva koti') ||
+      prod.includes('sivakoti') ||
+      remarks.includes('shivakoti') ||
+      remarks.includes('siva koti') ||
+      remarks.includes('sivakoti')
     );
   }
   if (filterId === 'GM') {
@@ -279,6 +283,8 @@ const orderGroupOf = (row: {
     product.includes('homa bhasma') ||
     product.includes('birava') ||
     product.includes('shivakoti') ||
+    product.includes('siva koti') ||
+    product.includes('sivakoti') ||
     product.includes('gou maya') ||
     product.includes('pooja bhasmam') ||
     product.includes('pooja bhasma')
@@ -711,7 +717,7 @@ const AdminOrdersScreen = () => {
                     : itemFilter === 'BP'
                       ? '🛡️ Bhirava Pendant'
                       : itemFilter === 'HB'
-                        ? '🔥 Homa Bhasma'
+                        ? '🔥 Homa Bhasmam'
                         : '🪨 Baanalingam'}
             </Text>
           </View>

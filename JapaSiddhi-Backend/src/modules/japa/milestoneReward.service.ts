@@ -17,7 +17,7 @@ export type MilestoneDelivery = {
   pinCode: string;
 };
 
-/** Distinct from Marakata Sree Chakra — relative present+3000 claim. */
+/** Distinct from Marakata Sree Chakra — relative present+8000 claim. */
 export const isMarakataShivlingName = (rewardName: string): boolean => {
   const lower = String(rewardName || '').toLowerCase();
   if (!lower) {
@@ -42,7 +42,28 @@ export const isMarakataShivlingName = (rewardName: string): boolean => {
   return (isMarakata && isShivling) || isGreenAventurineShivling;
 };
 
-export const MARAKATA_SHIVLING_EXTRA_JAPAS = 3000;
+export const MARAKATA_SHIVLING_EXTRA_JAPAS = 8000;
+/** Narmada Baanalingam — fresher 5k / old present + 5k. */
+export const BAANALINGAM_EXTRA_JAPAS = 5000;
+
+export const isBaanalingamRewardName = (rewardName: string): boolean => {
+  const lower = String(rewardName || '').toLowerCase();
+  if (!lower) {
+    return false;
+  }
+  if (isMarakataShivlingName(rewardName)) {
+    return false;
+  }
+  if (lower.includes('chakra') || lower.includes('chakram') || lower.includes('yantra')) {
+    return false;
+  }
+  return (
+    lower.includes('baanalingam') ||
+    lower.includes('banalingam') ||
+    lower.includes('bana lingam') ||
+    (lower.includes('narmada') && lower.includes('ling'))
+  );
+};
 /** Sentinel claim key — not a real japa milestone count. */
 export const MARAKATA_SHIVLING_CLAIM_TARGET = 900003;
 /** Generic relative (present+N) claim keys start here + rewardId. */
@@ -76,8 +97,8 @@ const rewardJapaRequirement = (name: string) => {
   ) {
     return 1000000;
   }
-  // Marakata Shivling uses relative present+3000 (handled in claimMarakataShivling)
-  if (isMarakataShivlingName(name)) {
+  // Marakata / Baanalingam use relative present+N (handled in relative claim)
+  if (isMarakataShivlingName(name) || isBaanalingamRewardName(name)) {
     return 0;
   }
   if (
@@ -421,14 +442,19 @@ class MilestoneRewardService {
     const rewardName = String(reward.name || '');
     const isRelative =
       isRelativeUnlockMode(reward.unlockMode) ||
-      isMarakataShivlingName(rewardName);
+      isMarakataShivlingName(rewardName) ||
+      isBaanalingamRewardName(rewardName);
     if (!isRelative) {
       throw new Error('This reward is not a present + count reward.');
     }
+    const fallbackExtra = isMarakataShivlingName(rewardName)
+      ? MARAKATA_SHIVLING_EXTRA_JAPAS
+      : isBaanalingamRewardName(rewardName)
+        ? BAANALINGAM_EXTRA_JAPAS
+        : 0;
     const extraJapas = Math.max(
       0,
-      Number(reward.eligibilityCriteria || 0) ||
-        (isMarakataShivlingName(rewardName) ? MARAKATA_SHIVLING_EXTRA_JAPAS : 0),
+      Number(reward.eligibilityCriteria || 0) || fallbackExtra,
     );
     if (extraJapas <= 0) {
       throw new Error('Present + count reward is missing an extra japa count.');
@@ -534,7 +560,9 @@ class MilestoneRewardService {
     const relativeRows = (rows || []).filter((row: any) => {
       const name = String(row.name || '');
       return (
-        isRelativeUnlockMode(row.unlockMode) || isMarakataShivlingName(name)
+        isRelativeUnlockMode(row.unlockMode) ||
+        isMarakataShivlingName(name) ||
+        isBaanalingamRewardName(name)
       );
     });
     const out: any[] = [];
@@ -559,6 +587,13 @@ class MilestoneRewardService {
     }
     if (isMarakataShivlingName(String(reward.name || ''))) {
       return this.claimMarakataShivling(userId, rewardId, delivery);
+    }
+
+    if (isBaanalingamRewardName(String(reward.name || ''))) {
+      const {
+        default: shivaLingaEligibilityService,
+      } = await import('../orders/shivaLingaEligibility.service');
+      await shivaLingaEligibilityService.assertCanOrderBaanalingam(userId);
     }
 
     const status = await this.getRelativeRewardStatus(userId, rewardId);
@@ -641,7 +676,7 @@ class MilestoneRewardService {
     return this.claimRelativeWithTarget(
       userId,
       MARAKATA_SHIVLING_CLAIM_TARGET,
-      'Marakata Shivling (present + 3000)',
+      'Marakata Shivling (present + 8000)',
       rewardId,
       String(reward.name || MARAKATA_SHIVLING_REWARD_NAME),
       delivery,

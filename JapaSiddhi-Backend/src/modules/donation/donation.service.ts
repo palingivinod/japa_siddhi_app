@@ -438,12 +438,12 @@ class DonationService {
       const activeHbOrder = await orderRepository.findActiveOrderForKind(userId, 'HOMA_BHASMA');
       if (activeHbOrder) {
         throw new AppError(
-          `Already one Homa Bhasma order (${activeHbOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          `Already one Homa Bhasmam order (${activeHbOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
           400,
         );
       }
 
-      itemName = 'Homa Bhasma';
+      itemName = 'Homa Bhasmam';
       orderType = 'HOMA_BHASMA';
     } else if (kind === 'BIRAVA_PENDANT') {
       const activeBpOrder = await orderRepository.findActiveOrderForKind(userId, 'BIRAVA_PENDANT');
@@ -463,12 +463,12 @@ class DonationService {
       );
       if (activeSkOrder) {
         throw new AppError(
-          `Already one Shivakoti Books order (${activeSkOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          `Already one Siva Koti Books order (${activeSkOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
           400,
         );
       }
 
-      itemName = 'Shivakoti Books';
+      itemName = 'Siva Koti Books';
       orderType = 'SHIVAKOTI_BOOKS';
     } else if (kind === 'GOU_MAYA_BHASMA') {
       const activeGmOrder = await orderRepository.findActiveOrderForKind(

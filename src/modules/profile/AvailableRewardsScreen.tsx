@@ -19,8 +19,10 @@ import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 import {
+  BAANALINGAM_EXTRA_JAPAS,
   checkRewardEligibility,
   getLocalizedReward,
+  isBaanalingamRewardName,
   isCanonicalReward,
   isMarakataShivlingName,
   MARAKATA_SHIVLING_EXTRA_JAPAS,
@@ -189,7 +191,8 @@ const AvailableRewardsScreen = () => {
             const unlockMode =
               String(row.unlockMode || row.unlock_mode || '')
                 .toLowerCase() === 'relative' ||
-              isMarakataShivlingName(String(row.name || ''))
+              isMarakataShivlingName(String(row.name || '')) ||
+              isBaanalingamRewardName(String(row.name || ''))
                 ? 'relative'
                 : 'fixed';
             return {
@@ -257,6 +260,14 @@ const AvailableRewardsScreen = () => {
           Number(item.eligibilityCriteria || 0) || MARAKATA_SHIVLING_EXTRA_JAPAS,
       };
     }
+    if (isBaanalingamRewardName(item.name)) {
+      const extra =
+        Number(item.eligibilityCriteria || 0) || BAANALINGAM_EXTRA_JAPAS;
+      return {
+        unlockTarget: userTotalJapas + extra,
+        extraJapas: extra,
+      };
+    }
     const extra = Number(item.eligibilityCriteria || 0);
     return {
       unlockTarget: extra > 0 ? userTotalJapas + extra : 0,
@@ -266,7 +277,9 @@ const AvailableRewardsScreen = () => {
 
   const eligibilityFor = (item: RewardItem) => {
     const isRelative =
-      item.unlockMode === 'relative' || isMarakataShivlingName(item.name);
+      item.unlockMode === 'relative' ||
+      isMarakataShivlingName(item.name) ||
+      isBaanalingamRewardName(item.name);
     const meta = isRelative ? relativeMetaFor(item) : null;
     return checkRewardEligibility(
       item.name,
@@ -287,7 +300,10 @@ const AvailableRewardsScreen = () => {
       description ? `${description}\n\n${line}` : line;
     const outOfStock = item.inStock === false;
     const isRelative =
-      item.unlockMode === 'relative' || isMarakataShivlingName(item.name);
+      item.unlockMode === 'relative' ||
+      isMarakataShivlingName(item.name) ||
+      isBaanalingamRewardName(item.name);
+    const isBaanalingam = isBaanalingamRewardName(item.name);
 
     if (outOfStock) {
       // OOS: description (or short OOS note) only — no present+N / count line.
@@ -306,7 +322,9 @@ const AvailableRewardsScreen = () => {
       const extra =
         meta.extraJapas ||
         Number(item.eligibilityCriteria || 0) ||
-        MARAKATA_SHIVLING_EXTRA_JAPAS;
+        (isBaanalingam
+          ? BAANALINGAM_EXTRA_JAPAS
+          : MARAKATA_SHIVLING_EXTRA_JAPAS);
       const lockedLine =
         t('marakataUnlockRule', {
           present: userTotalJapas.toLocaleString('en-IN'),
@@ -328,32 +346,46 @@ const AvailableRewardsScreen = () => {
         );
         return;
       }
+      const goGrab = () => {
+        if (isMarakataShivlingName(item.name)) {
+          navigation.navigate('MarakataShivlingClaim', {
+            rewardId: item.id,
+            rewardName: item.name,
+          });
+          return;
+        }
+        navigation.navigate('RelativeRewardClaim', {
+          rewardId: item.id,
+          rewardName: item.name,
+          extraJapas: extra,
+          unlockTarget: meta.unlockTarget,
+        });
+      };
       Alert.alert(
         title,
         message(
-          `${lockedLine}\n\n${t('marakataEligibleHint') || t('youAreEligibleForReward')}`,
+          `${lockedLine}\n\n${
+            isBaanalingam
+              ? t('baanalingamMarkataWarning') ||
+                'If you order Baanalingam you cannot get Markata Shivalinga. If you want Markata Shivalinga, skip this Narmada Baanalingam and do present + 8k to get Markata Shivalinga.'
+              : t('marakataEligibleHint') || t('youAreEligibleForReward')
+          }`,
         ),
-        [
-          {text: t('ok')},
-          {
-            text: t('clickHereToGrabReward'),
-            onPress: () => {
-              if (isMarakataShivlingName(item.name)) {
-                navigation.navigate('MarakataShivlingClaim', {
-                  rewardId: item.id,
-                  rewardName: item.name,
-                });
-                return;
-              }
-              navigation.navigate('RelativeRewardClaim', {
-                rewardId: item.id,
-                rewardName: item.name,
-                extraJapas: extra,
-                unlockTarget: meta.unlockTarget,
-              });
-            },
-          },
-        ],
+        isBaanalingam
+          ? [
+              {text: t('skipForNow') || 'Skip', style: 'cancel'},
+              {
+                text: t('continueAnyway') || 'Continue',
+                onPress: goGrab,
+              },
+            ]
+          : [
+              {text: t('ok')},
+              {
+                text: t('clickHereToGrabReward'),
+                onPress: goGrab,
+              },
+            ],
       );
       return;
     }
@@ -464,13 +496,16 @@ const AvailableRewardsScreen = () => {
               ) : !eligibility.isEligible ? (
                 <Text style={styles.remainingHint}>
                   {item.unlockMode === 'relative' ||
-                  isMarakataShivlingName(item.name)
+                  isMarakataShivlingName(item.name) ||
+                  isBaanalingamRewardName(item.name)
                     ? (() => {
                         const meta = relativeMetaFor(item);
                         const extra =
                           meta.extraJapas ||
                           Number(item.eligibilityCriteria || 0) ||
-                          MARAKATA_SHIVLING_EXTRA_JAPAS;
+                          (isBaanalingamRewardName(item.name)
+                            ? BAANALINGAM_EXTRA_JAPAS
+                            : MARAKATA_SHIVLING_EXTRA_JAPAS);
                         const target =
                           meta.unlockTarget ||
                           eligibility.requiredJapas ||

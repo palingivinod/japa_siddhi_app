@@ -25,6 +25,7 @@ import {
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import apiService from '../../services/apiService';
 import Colors from '../../theme/colors';
+import {gateBaanalingamSevaPress} from '../../utils/baanalingamSevaGate';
 import {
   isSevaOfferingInStock,
   isSevaStockRoute,
@@ -175,6 +176,13 @@ const SevaHubScreen = () => {
           `${item.itemName} is not available right now. It will be in stock soon.`,
         [{text: t('ok') || 'OK'}],
       );
+      return;
+    }
+    if (item.route === 'BanaLingam') {
+      void gateBaanalingamSevaPress({
+        t,
+        onAllow: () => navigation.navigate(item.route),
+      });
       return;
     }
     navigation.navigate(item.route);

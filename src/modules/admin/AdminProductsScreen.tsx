@@ -87,7 +87,7 @@ const AdminProductsScreen = () => {
 
       <Text style={styles.section}>Seva Hub offerings</Text>
       <Text style={styles.hint}>
-        Mark Baanalingam, Ramakoti Books, Shivakoti Books, Homa Bhasma, Pooja
+        Mark Baanalingam, Ramakoti Books, Siva Koti Books, Homa Bhasmam, Pooja
         Bhasmam, and Bhirava Pendant Out of Stock. Users still see the tab title
         with “Out of Stock” under it; tap shows a popup and does not open the
         form.

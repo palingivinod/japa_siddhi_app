@@ -21,6 +21,12 @@ export const ADMIN_FRAMES: AdminFrame[] = [
   },
   {id: '03', title: 'User Management', route: 'AdminUsers', status: 'done'},
   {
+    id: '03b',
+    title: 'User Lookup',
+    route: 'AdminUserLookup',
+    status: 'done',
+  },
+  {
     id: '04',
     title: 'User Details',
     route: 'AdminUserDetails',
@@ -63,7 +69,7 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     route: 'AdminProducts',
     status: 'done',
     notes:
-      'In/Out of Stock for Baanalingam, Ramakoti Books, Shivakoti Books, Homa Bhasma, Pooja Bhasmam, Bhirava Pendant',
+      'In/Out of Stock for Baanalingam, Ramakoti Books, Siva Koti Books, Homa Bhasmam, Pooja Bhasmam, Bhirava Pendant',
   },
   {
     id: '10',

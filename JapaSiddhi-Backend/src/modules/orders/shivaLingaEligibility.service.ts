@@ -41,7 +41,7 @@ class ShivaLingaEligibilityService {
   }
 
   /** Any non-cancelled Baanalingam order (including delivered / shipped / review). */
-  async hasLifetimeBaanalingam(userId: number): Promise<boolean> {
+  async hasActiveBaanalingam(userId: number): Promise<boolean> {
     if (!userId) {
       return false;
     }
@@ -72,7 +72,7 @@ class ShivaLingaEligibilityService {
   }
 
   /** Any non-cancelled Marakata Shivling order / claim. */
-  async hasLifetimeMarakata(userId: number): Promise<boolean> {
+  async hasActiveMarakata(userId: number): Promise<boolean> {
     if (!userId) {
       return false;
     }
@@ -136,10 +136,10 @@ class ShivaLingaEligibilityService {
       return;
     }
 
-    if (await this.hasLifetimeBaanalingam(userId)) {
+    if (await this.hasActiveBaanalingam(userId)) {
       throw new AppError(gharGharMessage(BAANALINGAM_LABEL), 400);
     }
-    if (await this.hasLifetimeMarakata(userId)) {
+    if (await this.hasActiveMarakata(userId)) {
       throw new AppError(gharGharMessage(MARAKATA_SHIVLING_LABEL), 400);
     }
   }
@@ -150,8 +150,11 @@ class ShivaLingaEligibilityService {
       return {allowReorder: true};
     }
 
-    if (await this.hasLifetimeBaanalingam(userId)) {
+    if (await this.hasActiveBaanalingam(userId)) {
       throw new Error(gharGharMessage(BAANALINGAM_LABEL));
+    }
+    if (await this.hasActiveMarakata(userId)) {
+      throw new Error(gharGharMessage(MARAKATA_SHIVLING_LABEL));
     }
     return {allowReorder: false};
   }

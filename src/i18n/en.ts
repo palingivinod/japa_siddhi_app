@@ -321,15 +321,15 @@ const en = {
   ramakotiPendingOrderTitle: 'Ramakoti Books Order In Review',
   ramakotiPendingOrderMessage:
     'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
-  homaBhasmaPendingOrderTitle: 'Homa Bhasma Order In Review',
+  homaBhasmaPendingOrderTitle: 'Homa Bhasmam Order In Review',
   homaBhasmaPendingOrderMessage:
-    'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.',
+    'Already one Homa Bhasmam order is in review. You can order another once your previous order is delivered.',
   biravaPendingOrderTitle: 'Bhirava Pendant Order In Review',
   biravaPendingOrderMessage:
     'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.',
-  shivakotiPendingOrderTitle: 'Shivakoti Books Order In Review',
+  shivakotiPendingOrderTitle: 'Siva Koti Books Order In Review',
   shivakotiPendingOrderMessage:
-    'Already one Shivakoti Books order is in review. You can order another once your previous order is delivered.',
+    'Already one Siva Koti Books order is in review. You can order another once your previous order is delivered.',
   gouMayaPendingOrderTitle: 'Pooja Bhasmam Order In Review',
   gouMayaPendingOrderMessage:
     'Already one Pooja Bhasmam order is in review. You can order another once your previous order is delivered.',
@@ -343,17 +343,17 @@ const en = {
   ramakotiIntro: 'Request Ramakoti books for delivery.',
   ramakotiRegisterNote:
     'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Ramakoti books.',
-  tileHomaBhasma: 'Homa Bhasma',
-  tileHomaBhasmaSub: 'Request havan bhasma',
-  homaBhasma: 'Homa Bhasma',
+  tileHomaBhasma: 'Homa Bhasmam',
+  tileHomaBhasmaSub: 'Request havan bhasmam',
+  homaBhasma: 'Homa Bhasmam',
   homaBhasmaDesc:
-    'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
-  tileShivakoti: 'Shivakoti Books',
+    'You will receive the holy havan bhasmam free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
+  tileShivakoti: 'Siva Koti Books',
   tileShivakotiSub: 'Request a book',
-  shivakotiBooks: 'Shivakoti Books',
-  shivakotiBooksIntro: 'Request Shivakoti books for delivery free of charge.',
+  shivakotiBooks: 'Siva Koti Books',
+  shivakotiBooksIntro: 'Request Siva Koti books for delivery free of charge.',
   shivakotiRegisterNote:
-    'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Shivakoti books.',
+    'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Siva Koti books.',
   tileGouMayaBhasma: 'Pooja Bhasmam',
   tileGouMayaBhasmaSub: 'Request Pooja Bhasmam',
   gouMayaBhasma: 'Pooja Bhasmam',
@@ -374,6 +374,14 @@ const en = {
     'You have already ordered/received {{item}}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.',
   baanalingamItemName: 'Baanalingam',
   marakataShivlingItemName: 'Marakata Shivling',
+  baanalingamMarkataWarning:
+    'If you order Baanalingam you cannot get Markata Shivalinga. If you want Markata Shivalinga, skip this Narmada Baanalingam and do present + 8k to get Markata Shivalinga.',
+  baanalingamSevaEligibilityMessage:
+    'You can grab this after 5,000 Japas or present + 5,000 Japas.',
+  baanalingamAlreadyOrderedShort:
+    'You are not able to order this because you already ordered/received Baanalingam.',
+  continueAnyway: 'Continue',
+  skipForNow: 'Skip',
   completeDetailsTitle: 'Complete Details',
   completeDetailsSubtitle:
     'Please provide your phone number, Date of Birth, and Mr or Mrs to continue.',

@@ -53,7 +53,7 @@ const fallbackHome: HomeResponse = {
     },
     {
       id: 6,
-      title: 'Homa Bhasma',
+      title: 'Homa Bhasmam',
       description: 'Request havan bhasma',
       icon: 'homa_bhasma',
       route: 'HOMA_BHASMA',

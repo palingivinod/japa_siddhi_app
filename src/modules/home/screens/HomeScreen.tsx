@@ -48,6 +48,7 @@ import {
   resolveMantraDailyTarget,
   writeDailyPlanSnap,
 } from '../../../utils/mantraDailyPlan';
+import {gateBaanalingamSevaPress} from '../../../utils/baanalingamSevaGate';
 import {
   isSevaOfferingInStock,
   isSevaStockRoute,
@@ -1301,6 +1302,13 @@ const HomeScreen = () => {
                           `${item.itemName} is not available right now. It will be in stock soon.`,
                         [{text: t('ok') || 'OK'}],
                       );
+                      return;
+                    }
+                    if (item.route === 'BanaLingam') {
+                      void gateBaanalingamSevaPress({
+                        t,
+                        onAllow: () => navigation.navigate(item.route),
+                      });
                       return;
                     }
                     navigation.navigate(item.route);

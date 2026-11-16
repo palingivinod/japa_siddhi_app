@@ -11,7 +11,7 @@ export const MARAKATA_SHIVLING_REWARD_NAME =
 const storageKey = (userId: string | number) =>
   `marakata_shivling_unlock_${userId || 'anon'}`;
 
-/** Lock present+3000 the first time this devotee sees the reward. */
+/** Lock present+8000 the first time this devotee sees the reward. */
 export const resolveMarakataUnlockTarget = async (
   userId: string | number,
   presentCount: number,

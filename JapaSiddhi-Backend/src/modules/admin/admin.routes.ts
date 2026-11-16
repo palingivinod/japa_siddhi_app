@@ -1314,6 +1314,181 @@ router.get('/users/:id', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * User Lookup — search devotees (A→Z) with full details + all orders.
+ * Query: q (name / uid / phone / email / user code)
+ */
+router.get('/user-lookup', async (req: Request, res: Response) => {
+  try {
+    await ensureAdminUserProfileColumns();
+    await ensureOrderCancelColumns().catch(() => undefined);
+    await ensureOrderDeletedColumn().catch(() => undefined);
+
+    const q = String(req.query.q || req.query.search || '').trim();
+    if (q.length < 2) {
+      return res.json({
+        success: true,
+        data: {users: [], query: q},
+        message: 'Enter at least 2 characters to search.',
+      });
+    }
+
+    const like = `%${q.toLowerCase()}%`;
+    const digits = q.replace(/\D/g, '');
+    const whereParts = [
+      'u.deleted_at IS NULL',
+      `(
+        lower(IFNULL(u.full_name, '')) LIKE ?
+        OR lower(IFNULL(u.email, '')) LIKE ?
+        OR lower(IFNULL(u.user_code, '')) LIKE ?
+        OR ('' || u.id) LIKE ?
+        OR lower(IFNULL(u.mobile_number, '')) LIKE ?
+        OR lower(IFNULL(u.mobile_country_code, '') || IFNULL(u.mobile_number, '')) LIKE ?
+        ${digits.length >= 2 ? 'OR IFNULL(u.mobile_number, \'\') LIKE ? OR (\'\' || u.id) LIKE ?' : ''}
+      )`,
+    ];
+    const params: any[] = [like, like, like, like, like, like];
+    if (digits.length >= 2) {
+      params.push(`%${digits}%`, `%${digits}%`);
+    }
+
+    const userRows = await mysql.query<any[]>(
+      `
+      ${userDetailSelect}
+      WHERE ${whereParts.join(' AND ')}
+      ORDER BY lower(IFNULL(u.full_name, '')) ASC, u.id ASC
+      LIMIT 40
+      `,
+      params,
+    );
+
+    const users = (userRows || []).map(mapUserRow);
+    const userIds = users
+      .map(u => Number(u.id))
+      .filter(id => Number.isFinite(id) && id > 0);
+
+    const ordersByUser = new Map<number, any[]>();
+    if (userIds.length) {
+      const placeholders = userIds.map(() => '?').join(',');
+      const orderRows = await mysql.query<any[]>(
+        `
+        SELECT
+          o.id,
+          o.user_id AS userId,
+          o.order_number AS orderNumber,
+          o.order_type AS orderType,
+          o.order_source AS orderSource,
+          o.item_name AS itemName,
+          o.quantity,
+          o.order_status AS orderStatus,
+          o.payment_status AS paymentStatus,
+          o.remarks,
+          o.created_at AS createdAt,
+          COALESCE(
+            NULLIF(TRIM(crc.reward_name), ''),
+            NULLIF(TRIM(mrc.reward_name), ''),
+            ''
+          ) AS rewardName
+        FROM orders o
+        LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
+        LEFT JOIN milestone_reward_claims mrc ON mrc.order_id = o.id
+        WHERE o.user_id IN (${placeholders})
+          AND COALESCE(o.deleted_by_user, 0) = 0
+        ORDER BY o.id DESC
+        `,
+        userIds,
+      );
+
+      for (const row of orderRows || []) {
+        const uid = Number(row.userId || 0);
+        if (!uid) continue;
+        const list = ordersByUser.get(uid) || [];
+        list.push(row);
+        ordersByUser.set(uid, list);
+      }
+    }
+
+    const normalizeStatus = (raw: string) => {
+      const value = String(raw || '')
+        .trim()
+        .toUpperCase()
+        .replace(/[-\s]+/g, '_');
+      if (value === 'UNDER_REVIEW' || value === 'PENDING') return 'Under Review';
+      if (value === 'SHIPPED' || value === 'DISPATCHED') return 'Shipped';
+      if (value === 'DELIVERED' || value === 'COMPLETED') return 'Delivered';
+      if (value === 'CANCELLED' || value === 'CANCELED') return 'Cancelled';
+      return value ? value.replace(/_/g, ' ') : 'Unknown';
+    };
+
+    const data = users.map(user => {
+      const uid = Number(user.id);
+      const orders = (ordersByUser.get(uid) || []).map(row => {
+        const status = normalizeStatus(row.orderStatus);
+        const itemName = String(
+          row.rewardName || row.itemName || row.orderType || 'Order',
+        ).trim();
+        return {
+          id: String(row.id),
+          orderNumber: String(row.orderNumber || ''),
+          itemName,
+          orderType: String(row.orderType || ''),
+          orderSource: String(row.orderSource || ''),
+          quantity: Number(row.quantity || 1),
+          status,
+          paymentStatus: String(row.paymentStatus || ''),
+          createdAt: row.createdAt || null,
+          remarks: String(row.remarks || ''),
+        };
+      });
+
+      // Duplicate = same item name appears more than once (non-cancelled).
+      const activeItemCounts = new Map<string, number>();
+      for (const order of orders) {
+        if (order.status === 'Cancelled') continue;
+        const key = order.itemName.toLowerCase();
+        activeItemCounts.set(key, (activeItemCounts.get(key) || 0) + 1);
+      }
+      const ordersWithFlags = orders.map(order => ({
+        ...order,
+        isDuplicate:
+          order.status !== 'Cancelled' &&
+          (activeItemCounts.get(order.itemName.toLowerCase()) || 0) > 1,
+      }));
+
+      const summary = {
+        total: ordersWithFlags.length,
+        underReview: ordersWithFlags.filter(o => o.status === 'Under Review')
+          .length,
+        shipped: ordersWithFlags.filter(o => o.status === 'Shipped').length,
+        delivered: ordersWithFlags.filter(o => o.status === 'Delivered').length,
+        cancelled: ordersWithFlags.filter(o => o.status === 'Cancelled').length,
+        duplicates: ordersWithFlags.filter(o => o.isDuplicate).length,
+      };
+
+      return {
+        ...user,
+        orderSummary: summary,
+        orders: ordersWithFlags,
+      };
+    });
+
+    return res.json({
+      success: true,
+      data: {
+        query: q,
+        users: data,
+        total: data.length,
+      },
+    });
+  } catch (error: any) {
+    console.error('user-lookup error:', error);
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to run user lookup.',
+    });
+  }
+});
+
 router.put('/users/:id', async (req: Request, res: Response) => {
   try {
     const userId = Number(req.params.id);
@@ -3114,6 +3289,8 @@ const isNormalBaanalingamOrder = (row: any) => {
     item.includes('homa bhasma') ||
     item.includes('birava') ||
     item.includes('shivakoti') ||
+    item.includes('siva koti') ||
+    item.includes('sivakoti') ||
     item.includes('gou maya') ||
     item.includes('pooja bhasmam') ||
     item.includes('pooja bhasma')
@@ -6379,17 +6556,14 @@ const ensureRewardColumns = async () => {
   } catch {
     // Column already exists.
   }
-  // Heal Marakata Shivling into relative present+ mode (extra from eligibility).
+  // Heal Marakata Shivling into relative present+8000 mode.
   try {
     await mysql.query(
       `
       UPDATE challenge_rewards
       SET
         unlock_mode = 'relative',
-        eligibility_criteria = CASE
-          WHEN IFNULL(eligibility_criteria, 0) > 0 THEN eligibility_criteria
-          ELSE 3000
-        END
+        eligibility_criteria = 8000
       WHERE (
         lower(name) LIKE '%marakata%shivling%'
         OR lower(name) LIKE '%marakatha%shivling%'
@@ -6400,6 +6574,46 @@ const ensureRewardColumns = async () => {
         AND lower(name) NOT LIKE '%yantra%'
       `,
     );
+  } catch {
+    // Non-fatal.
+  }
+  // Heal / seed Narmada Baanalingam as relative present+5000 reward.
+  try {
+    const banaRows = await mysql.query<any[]>(
+      `
+      SELECT id, name
+      FROM challenge_rewards
+      WHERE (
+        lower(name) LIKE '%baanalingam%'
+        OR lower(name) LIKE '%banalingam%'
+        OR (lower(name) LIKE '%narmada%' AND lower(name) LIKE '%ling%')
+      )
+        AND lower(name) NOT LIKE '%marakata%'
+        AND lower(name) NOT LIKE '%marakatha%'
+      LIMIT 5
+      `,
+    );
+    if (Array.isArray(banaRows) && banaRows.length) {
+      for (const row of banaRows) {
+        await mysql.query(
+          `
+          UPDATE challenge_rewards
+          SET unlock_mode = 'relative', eligibility_criteria = 5000
+          WHERE id = ?
+          `,
+          [row.id],
+        );
+      }
+    } else {
+      await mysql.query(
+        `
+        INSERT INTO challenge_rewards
+          (name, stock, is_active, display_order, eligibility_criteria, unlock_mode, admin_marked_oos)
+        VALUES (?, 50, 1, 4, 5000, 'relative', 0)
+        `,
+        ['Narmada Baanalingam'],
+      );
+    }
   } catch {
     // Non-fatal.
   }
@@ -6459,14 +6673,15 @@ const CANONICAL_REWARDS = [
   {name: 'Rudrakshi Mala', stock: 50, order: 1, eligibility: 5000, description: 'Sacred Rudraksha bead mala for spiritual protection, inner peace, and focused daily mantra japa.', aliases: ['rudraksh']},
   {name: 'Tulasi Mala', stock: 50, order: 2, eligibility: 5000, description: 'Sacred Tulasi bead mala revered for heart-centered devotion, calm awareness, and Vishnu / Krishna worship.', aliases: ['tulasi', 'tulsi']},
   {name: 'Pasupu Mala', stock: 50, order: 3, eligibility: 5000, description: 'Traditional consecrated turmeric (Haldi) bead mala attracting divine grace, positivity, and obstacle removal.', aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
-  {name: 'Sandal Wood Mala', stock: 50, order: 4, eligibility: 30000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
-  {name: 'Karungali Mala', stock: 50, order: 5, eligibility: 50000, description: 'Authentic dense black ebony wood beads renowned for shielding against negative energies and victory in sadhana.', aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
-  {name: 'Spatik Mala', stock: 50, order: 6, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
-  {name: 'Green Agate', stock: 50, order: 7, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},
-  {name: 'Yellow Agate', stock: 50, order: 8, eligibility: 200000, description: 'Bright yellow agate gemstone beads fostering courage, knowledge, intellect, and divine auspiciousness.', aliases: ['yellow agate', 'yellow hakik']},
-  {name: 'Marakata Shivling (Green Aventurine)', stock: 50, order: 9, eligibility: 3000, description: 'Sacred Shiva Lingam carved from green aventurine. Significance: inner peace, emotional balance, prosperity, heart-chakra harmony, growth, optimism, and positive spiritual energy.', aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga']},
-  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 10, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri', 'marakata sree', 'marakatha sri']},
-  {name: 'Spiritual Reward', stock: 50, order: 11, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
+  {name: 'Narmada Baanalingam', stock: 50, order: 4, eligibility: 5000, unlockMode: 'relative', description: 'Self-manifested sacred stone from the holy Narmada River. Fresher: 5,000 Japas. Existing devotees: present + 5,000. Choosing this means you cannot claim Markata Shivalinga.', aliases: ['baanalingam', 'banalingam', 'narmada', 'bana lingam']},
+  {name: 'Sandal Wood Mala', stock: 50, order: 5, eligibility: 30000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
+  {name: 'Karungali Mala', stock: 50, order: 6, eligibility: 50000, description: 'Authentic dense black ebony wood beads renowned for shielding against negative energies and victory in sadhana.', aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
+  {name: 'Spatik Mala', stock: 50, order: 7, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
+  {name: 'Green Agate', stock: 50, order: 8, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},
+  {name: 'Yellow Agate', stock: 50, order: 9, eligibility: 200000, description: 'Bright yellow agate gemstone beads fostering courage, knowledge, intellect, and divine auspiciousness.', aliases: ['yellow agate', 'yellow hakik']},
+  {name: 'Marakata Shivling (Green Aventurine)', stock: 50, order: 10, eligibility: 8000, unlockMode: 'relative', description: 'Sacred Shiva Lingam carved from green aventurine. Fresher: 8,000 Japas. Existing devotees: present + 8,000. Not available if you already ordered Baanalingam.', aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga']},
+  {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 11, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri', 'marakata sree', 'marakatha sri']},
+  {name: 'Spiritual Reward', stock: 50, order: 12, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];
 
 const ensureRewardSeed = async () => {
@@ -6480,13 +6695,22 @@ const ensureRewardSeed = async () => {
 
     if (existingList.length === 0) {
       for (const item of CANONICAL_REWARDS) {
+        const unlockMode =
+          (item as any).unlockMode === 'relative' ? 'relative' : 'fixed';
         await mysql.query(
           `
           INSERT INTO challenge_rewards
-            (name, stock, is_active, display_order, description, eligibility_criteria, admin_marked_oos)
-          VALUES (?, ?, 1, ?, ?, ?, 0)
+            (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode, admin_marked_oos)
+          VALUES (?, ?, 1, ?, ?, ?, ?, 0)
           `,
-          [item.name, item.stock, item.order, item.description, item.eligibility],
+          [
+            item.name,
+            item.stock,
+            item.order,
+            item.description,
+            item.eligibility,
+            unlockMode,
+          ],
         );
       }
       return;
@@ -7249,9 +7473,9 @@ router.delete('/products/:id', async (req: Request, res: Response) => {
 const SEVA_OFFERING_LABELS: Record<string, string> = {
   BanaLingam: 'Baanalingam',
   RamakotiBooks: 'Ramakoti Books',
-  HomaBhasma: 'Homa Bhasma',
+  HomaBhasma: 'Homa Bhasmam',
   BiravaPendant: 'Bhirava Pendant',
-  ShivakotiBooks: 'Shivakoti Books',
+  ShivakotiBooks: 'Siva Koti Books',
   GouMayaBhasma: 'Pooja Bhasmam',
 };
 

@@ -1658,11 +1658,29 @@ type AnalyticsRecipient = {
   userCode: string;
   name: string;
   isRead: boolean | null;
+  city?: string;
+  phone?: string;
+};
+
+type AnalyticsUserLabel = {
+  userCode: string;
+  name: string;
+  city: string;
+  phone: string;
+};
+
+const formatAnalyticsPhone = (countryCode?: unknown, mobile?: unknown) => {
+  const digits = String(mobile || '').replace(/\D/g, '');
+  if (!digits) {
+    return '';
+  }
+  const cc = String(countryCode || '').replace(/\D/g, '') || '91';
+  return `+${cc}${digits}`;
 };
 
 const loadUserLabelsByIds = async (
   userIds: number[],
-): Promise<Map<number, {userCode: string; name: string}>> => {
+): Promise<Map<number, AnalyticsUserLabel>> => {
   const ids = [
     ...new Set(
       (userIds || [])
@@ -1670,7 +1688,7 @@ const loadUserLabelsByIds = async (
         .filter(id => Number.isFinite(id) && id > 0),
     ),
   ];
-  const out = new Map<number, {userCode: string; name: string}>();
+  const out = new Map<number, AnalyticsUserLabel>();
   if (!ids.length) {
     return out;
   }
@@ -1681,8 +1699,12 @@ const loadUserLabelsByIds = async (
       SELECT
         u.id AS userId,
         IFNULL(u.user_code, '') AS userCode,
-        IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name
+        IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name,
+        IFNULL(ci.name, '') AS city,
+        IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+        IFNULL(u.mobile_number, '') AS mobileNumber
       FROM users u
+      LEFT JOIN cities ci ON u.city_id = ci.id
       WHERE u.id IN (${placeholders})
       `,
       ids,
@@ -1693,6 +1715,8 @@ const loadUserLabelsByIds = async (
       out.set(userId, {
         userCode: String(row.userCode || '').trim(),
         name: String(row.name || 'Devotee').trim() || 'Devotee',
+        city: String(row.city || '').trim(),
+        phone: formatAnalyticsPhone(row.mobileCountryCode, row.mobileNumber),
       });
     }
   } catch (err) {
@@ -1703,10 +1727,15 @@ const loadUserLabelsByIds = async (
 
 /**
  * Resolve who each analytics broadcast went to (UID + name).
+ * For order notifications also include city + phone.
  * Prefer notification rows (includes read flag); fall back to queued recipient_ids.
  */
 const loadAnalyticsRecipients = async (
-  pageRows: Array<{id: number; recipientIds?: unknown}>,
+  pageRows: Array<{
+    id: number;
+    recipientIds?: unknown;
+    includeContact?: boolean;
+  }>,
 ): Promise<
   Map<
     number,
@@ -1758,11 +1787,37 @@ const loadAnalyticsRecipients = async (
     console.warn('loadAnalyticsRecipients counts failed:', err);
   }
 
+  const contactById = new Map<number, boolean>();
+  for (const row of pageRows || []) {
+    const id = Number(row.id);
+    if (id) {
+      contactById.set(id, Boolean(row.includeContact));
+    }
+  }
+
   try {
     await Promise.all(
       queueIds.map(async broadcastId => {
+        const includeContact = contactById.get(broadcastId) === true;
         const rows = await mysql.query<any[]>(
+          includeContact
+            ? `
+          SELECT
+            n.user_id AS userId,
+            IFNULL(n.is_read, 0) AS isRead,
+            IFNULL(u.user_code, '') AS userCode,
+            IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name,
+            IFNULL(ci.name, '') AS city,
+            IFNULL(u.mobile_country_code, '') AS mobileCountryCode,
+            IFNULL(u.mobile_number, '') AS mobileNumber
+          FROM notifications n
+          LEFT JOIN users u ON u.id = n.user_id
+          LEFT JOIN cities ci ON u.city_id = ci.id
+          WHERE n.broadcast_id = ?
+          ORDER BY u.full_name ASC, n.user_id ASC
+          LIMIT ?
           `
+            : `
           SELECT
             n.user_id AS userId,
             IFNULL(n.is_read, 0) AS isRead,
@@ -1780,12 +1835,20 @@ const loadAnalyticsRecipients = async (
         for (const row of rows || []) {
           const userId = Number(row.userId || 0);
           if (!userId || list.some(item => item.userId === userId)) continue;
-          list.push({
+          const person: AnalyticsRecipient = {
             userId,
             userCode: String(row.userCode || '').trim(),
             name: String(row.name || 'Devotee').trim() || 'Devotee',
             isRead: Number(row.isRead || 0) === 1,
-          });
+          };
+          if (includeContact) {
+            person.city = String(row.city || '').trim();
+            person.phone = formatAnalyticsPhone(
+              row.mobileCountryCode,
+              row.mobileNumber,
+            );
+          }
+          list.push(person);
         }
         if (list.length) {
           byBroadcast.set(broadcastId, list);
@@ -1834,6 +1897,7 @@ const loadAnalyticsRecipients = async (
     const id = Number(row.id);
     if (!id || out.has(id)) continue;
     const ids = parseRecipientIds(row.recipientIds);
+    const includeContact = Boolean(row.includeContact);
     if (!ids.length) {
       out.set(id, {
         recipients: [],
@@ -1844,12 +1908,17 @@ const loadAnalyticsRecipients = async (
     }
     const recipients: AnalyticsRecipient[] = ids.map(userId => {
       const label = labels.get(userId);
-      return {
+      const person: AnalyticsRecipient = {
         userId,
         userCode: label?.userCode || '',
         name: label?.name || `User #${userId}`,
         isRead: null,
       };
+      if (includeContact) {
+        person.city = label?.city || '';
+        person.phone = label?.phone || '';
+      }
+      return person;
     });
     out.set(id, {
       recipients: recipients.slice(0, ANALYTICS_RECIPIENT_PREVIEW_LIMIT),
@@ -2027,7 +2096,15 @@ export const getNotificationAnalytics = async (opts?: {
     }
   >();
   try {
-    recipientMap = await loadAnalyticsRecipients(pageRows || []);
+    recipientMap = await loadAnalyticsRecipients(
+      (pageRows || []).map(row => ({
+        id: Number(row.id),
+        recipientIds: row.recipientIds,
+        includeContact:
+          resolveAnalyticsCategory(row.actionType, row.title, row.category) ===
+          'orders',
+      })),
+    );
   } catch (err) {
     console.warn('analytics recipients enrich failed:', err);
   }

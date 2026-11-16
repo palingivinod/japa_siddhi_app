@@ -61,16 +61,16 @@ const CONTENT: Record<Exclude<ShippedOrderKind, 'GENERIC'>, ShippedNotifyContent
     },
     SHIVAKOTI: {
       kind: 'SHIVAKOTI',
-      title: 'Your Shivakoti books have been shipped',
+      title: 'Your Siva Koti books have been shipped',
       message:
-        'After you receive them, please send us a photo of you with the Shivakoti books. This helps us confirm delivery.\n\nThank you for your devotion. 🙏',
+        'After you receive them, please send us a photo of you with the Siva Koti books. This helps us confirm delivery.\n\nThank you for your devotion. 🙏',
       ...media(RAMAKOTI_IMAGE_URL),
     },
     HOMA_BHASMA: {
       kind: 'HOMA_BHASMA',
-      title: 'Your Homa Bhasma order has been shipped',
+      title: 'Your Homa Bhasmam order has been shipped',
       message:
-        'After you receive it, please send us a photo of you with the Homa Bhasma. This helps us confirm safe delivery.\n\nThank you. 🙏',
+        'After you receive it, please send us a photo of you with the Homa Bhasmam. This helps us confirm safe delivery.\n\nThank you. 🙏',
       ...media(REWARDS_IMAGE_URL),
     },
     GOU_MAYA_BHASMA: {
@@ -115,7 +115,9 @@ export const resolveShippedOrderKind = (input: {
     type === 'SHIVAKOTI_BOOKS' ||
     type.includes('SHIVAKOTI') ||
     number.startsWith('SK') ||
-    hay.includes('shivakoti')
+    hay.includes('shivakoti') ||
+    hay.includes('siva koti') ||
+    hay.includes('sivakoti')
   ) {
     return 'SHIVAKOTI';
   }

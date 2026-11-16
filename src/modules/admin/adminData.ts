@@ -97,6 +97,7 @@ const ADMIN_CONTROL_ITEMS_RAW: Array<{
   {title: 'Seva Hub Stock', route: 'AdminProducts'},
   {title: 'Support Tickets', route: 'AdminSupport'},
   {title: 'User Demographics', route: 'AdminUserDemographics'},
+  {title: 'User Lookup', route: 'AdminUserLookup'},
   {title: 'User Management', route: 'AdminUsers'},
 ];
 

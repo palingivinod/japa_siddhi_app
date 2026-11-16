@@ -711,9 +711,11 @@ class OrderRepository {
       whereClause = `(order_type = 'RAMAKOTI_BOOKS' OR lower(item_name) LIKE '%ramakoti%' OR order_number LIKE 'RK%' OR order_number LIKE '#RK%')`;
     } else if (
       k === 'SHIVAKOTI_BOOKS' ||
-      k.includes('SHIVAKOTI')
+      k.includes('SHIVAKOTI') ||
+      k.includes('SIVA_KOTI') ||
+      k.includes('SIVAKOTI')
     ) {
-      whereClause = `(order_type = 'SHIVAKOTI_BOOKS' OR lower(item_name) LIKE '%shivakoti%' OR order_number LIKE 'SK%' OR order_number LIKE '#SK%')`;
+      whereClause = `(order_type = 'SHIVAKOTI_BOOKS' OR lower(item_name) LIKE '%shivakoti%' OR lower(item_name) LIKE '%siva koti%' OR lower(item_name) LIKE '%sivakoti%' OR order_number LIKE 'SK%' OR order_number LIKE '#SK%')`;
     } else if (
       k === 'GOU_MAYA_BHASMA' ||
       k.includes('GOU_MAYA') ||

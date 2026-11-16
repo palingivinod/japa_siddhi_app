@@ -111,8 +111,8 @@ const PACKS: Record<LandingLang, LandingPack> = {
         subtitle: 'Open Japa Siddhi for Ramakoti.',
       },
       homaBhasma: {
-        title: 'Homa Bhasma',
-        subtitle: 'Open Japa Siddhi for Homa Bhasma.',
+        title: 'Homa Bhasmam',
+        subtitle: 'Open Japa Siddhi for Homa Bhasmam.',
       },
       birava: {
         title: 'Bhairava Pendant',
