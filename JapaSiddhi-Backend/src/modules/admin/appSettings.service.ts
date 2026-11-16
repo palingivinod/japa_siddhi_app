@@ -211,6 +211,8 @@ class AppSettingsService {
     'RamakotiBooks',
     'HomaBhasma',
     'BiravaPendant',
+    'ShivakotiBooks',
+    'GouMayaBhasma',
   ] as const;
 
   async getSevaOfferingsStock(): Promise<Record<string, {inStock: boolean}>> {

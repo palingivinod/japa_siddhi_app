@@ -1,8 +1,10 @@
 import React, {useCallback, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -14,6 +16,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import apiService from '../../services/apiService';
+import {playIntroVideo} from '../../services/introVideos';
 import {
   getLatestSelectedAddress,
   loadSavedAddresses,
@@ -39,6 +42,17 @@ const BIRAVA_PHOTOS = [
   require('../../assets/images/birava_pendant.jpg'),
   require('../../assets/images/birava_pendant_back.jpg'),
 ];
+const SHIVAKOTI_PHOTOS = [require('../../assets/images/shivakoti_icon.png')];
+const POOJA_BHASMAM_POSTER = require('../../assets/images/gou_maya_bhasma_icon.jpg');
+/** Bundled in android/app/src/main/res/raw/pooja_bhasmam.mp4 */
+const POOJA_BHASMAM_ANDROID_URI =
+  'android.resource://com.japasiddhi/raw/pooja_bhasmam';
+
+const photosForRequest = (kind: string) => {
+  if (kind === 'BIRAVA_PENDANT') return BIRAVA_PHOTOS;
+  if (kind === 'SHIVAKOTI_BOOKS') return SHIVAKOTI_PHOTOS;
+  return [];
+};
 
 const SevaRequestScreen = () => {
   const navigation = useNavigation<any>();
@@ -54,8 +68,40 @@ const SevaRequestScreen = () => {
   const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
   const [largePhoto, setLargePhoto] = useState<number | null>(null);
+  const [videoOpening, setVideoOpening] = useState(false);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
+  const photos = photosForRequest(request.kind);
+  const pendingTitle =
+    t(request.pendingTitleKey) ||
+    t('banaLingamPendingOrderTitle') ||
+    'Order In Review';
+  const pendingMessage = t(request.pendingMessageKey) || pendingTitle;
+
+  const openPoojaVideo = async () => {
+    if (videoOpening) {
+      return;
+    }
+    setVideoOpening(true);
+    try {
+      if (Platform.OS !== 'android') {
+        Alert.alert(
+          t(request.titleKey),
+          t('introVideoPlayError') || 'Could not play this video.',
+        );
+        return;
+      }
+      const ok = await playIntroVideo(POOJA_BHASMAM_ANDROID_URI);
+      if (!ok) {
+        Alert.alert(
+          t(request.titleKey),
+          t('introVideoPlayError') || 'Could not play this video.',
+        );
+      }
+    } finally {
+      setVideoOpening(false);
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -76,20 +122,7 @@ const SevaRequestScreen = () => {
           const type = String(ord.orderType || '').toUpperCase();
           const name = String(ord.itemName || '').toLowerCase();
           const num = String(ord.orderNumber || '').toUpperCase();
-          const isMatch =
-            request.kind === 'HOMA_BHASMA'
-              ? type === 'HOMA_BHASMA' ||
-                name.includes('homa') ||
-                name.includes('bhasma') ||
-                num.startsWith('HB') ||
-                num.startsWith('#HB')
-              : type === 'BIRAVA_PENDANT' ||
-                name.includes('birava') ||
-                name.includes('bhirava') ||
-                name.includes('pendant') ||
-                name.includes('pendent') ||
-                num.startsWith('BP') ||
-                num.startsWith('#BP');
+          const isMatch = request.matchOrder(type, name, num);
           const status = String(ord.orderStatus || ord.status || '').toUpperCase();
           const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
           return isMatch && !isFinished;
@@ -98,17 +131,7 @@ const SevaRequestScreen = () => {
         if (undeliveredOrder) {
           setHasActiveOrder(true);
           setActiveOrder(undeliveredOrder);
-          const title =
-            request.kind === 'HOMA_BHASMA'
-              ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
-              : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review';
-          const msg =
-            request.kind === 'HOMA_BHASMA'
-              ? t('homaBhasmaPendingOrderMessage') ||
-                'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
-              : t('biravaPendingOrderMessage') ||
-                'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.';
-          Alert.alert(title, msg, [
+          Alert.alert(pendingTitle, pendingMessage, [
             {
               text: t('myOrders') || 'My Orders',
               onPress: () => navigation.navigate('Orders'),
@@ -168,17 +191,7 @@ const SevaRequestScreen = () => {
 
   const submit = async () => {
     if (hasActiveOrder) {
-      const title =
-        request.kind === 'HOMA_BHASMA'
-          ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
-          : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review';
-      const msg =
-        request.kind === 'HOMA_BHASMA'
-          ? t('homaBhasmaPendingOrderMessage') ||
-            'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
-          : t('biravaPendingOrderMessage') ||
-            'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.';
-      Alert.alert(title, msg, [
+      Alert.alert(pendingTitle, pendingMessage, [
         {
           text: t('myOrders') || 'My Orders',
           onPress: () => navigation.navigate('Orders'),
@@ -237,18 +250,8 @@ const SevaRequestScreen = () => {
         <View style={styles.pendingOrderBanner}>
           <Text style={styles.pendingOrderIcon}>⏳</Text>
           <View style={styles.pendingOrderTextCol}>
-            <Text style={styles.pendingOrderTitle}>
-              {request.kind === 'HOMA_BHASMA'
-                ? t('homaBhasmaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'
-                : t('biravaPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review'}
-            </Text>
-            <Text style={styles.pendingOrderDesc}>
-              {request.kind === 'HOMA_BHASMA'
-                ? t('homaBhasmaPendingOrderMessage') ||
-                  'Already one Homa Bhasma order is in review. You can order another once your previous order is delivered.'
-                : t('biravaPendingOrderMessage') ||
-                  'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.'}
-            </Text>
+            <Text style={styles.pendingOrderTitle}>{pendingTitle}</Text>
+            <Text style={styles.pendingOrderDesc}>{pendingMessage}</Text>
             {activeOrder?.orderNumber ? (
               <Text style={styles.pendingOrderNum}>
                 {t('orderDetails') || 'Order Details'}: {activeOrder.orderNumber}
@@ -257,9 +260,34 @@ const SevaRequestScreen = () => {
           </View>
         </View>
       ) : null}
-      {request.kind === 'BIRAVA_PENDANT' ? (
+      {request.showVideo ? (
+        <TouchableOpacity
+          style={styles.videoThumbWrap}
+          activeOpacity={0.85}
+          onPress={() => void openPoojaVideo()}
+          disabled={videoOpening}>
+          <Image
+            source={POOJA_BHASMAM_POSTER}
+            style={styles.videoThumb}
+            resizeMode="cover"
+          />
+          <View style={styles.videoPlayOverlay}>
+            {videoOpening ? (
+              <ActivityIndicator color={Colors.white} />
+            ) : (
+              <Text style={styles.videoPlayIcon}>▶</Text>
+            )}
+            <Text style={styles.videoPlayLabel}>
+              {videoOpening
+                ? t('loading') || 'Opening…'
+                : t('playVideo') || 'Tap to play video'}
+            </Text>
+          </View>
+        </TouchableOpacity>
+      ) : null}
+      {request.showPhotos && photos.length > 0 ? (
         <View style={styles.photos}>
-          {BIRAVA_PHOTOS.map((photo, index) => (
+          {photos.map((photo, index) => (
             <TouchableOpacity
               key={index}
               style={styles.thumbWrap}
@@ -284,6 +312,9 @@ const SevaRequestScreen = () => {
           ) : null}
         </TouchableOpacity>
       </Modal>
+      {request.registerNoteKey ? (
+        <Text style={styles.registerNote}>{t(request.registerNoteKey)}</Text>
+      ) : null}
       <FormField
         label={t('nameLabel')}
         placeholder={t('fullName')}
@@ -467,6 +498,36 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  videoThumbWrap: {
+    height: 160,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  videoThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  videoPlayIcon: {
+    color: Colors.white,
+    fontSize: 34,
+    fontWeight: '800',
+  },
+  videoPlayLabel: {
+    color: Colors.white,
+    fontSize: 13,
+    fontWeight: '700',
+  },
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.82)',
@@ -541,6 +602,19 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Colors.white,
     textAlign: 'center',
+  },
+  registerNote: {
+    color: '#8A4104',
+    fontSize: 13,
+    fontWeight: '700',
+    lineHeight: 19,
+    marginBottom: 12,
+    backgroundColor: '#FFF4E5',
+    borderWidth: 1,
+    borderColor: '#E8C48A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   addressRedNote: {
     color: '#D32F2F',

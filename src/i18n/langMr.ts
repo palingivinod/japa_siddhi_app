@@ -47,6 +47,17 @@ export const mr: TranslationDict = {
   homaBhasma: 'होम भस्म',
   homaBhasmaDesc:
     'पवित्र हवन भस्म मोफत मिळेल. हे सर्व नकारात्मक ऊर्जा काढते आणि शरीरात प्रवेश करणाऱ्या वाईट शक्तींना रोखणारे शक्तिशाली आध्यात्मिक कवच बनते.',
+  tileShivakoti: 'शिवाकोटी पुस्तके',
+  tileShivakotiSub: 'पुस्तकाची विनंती',
+  shivakotiBooks: 'शिवाकोटी पुस्तके',
+  shivakotiBooksIntro: 'डिलिव्हरीसाठी शिवाकोटी पुस्तके मोफत मागवा.',
+  shivakotiRegisterNote:
+    'टीप: दर महिन्याला पुस्तक पूर्ण होण्याच्या जवळ २–३ पुस्तके पाठवली जातील, किंवा दर महिन्याच्या शेवटी तुम्ही शिवाकोटी पुस्तकांसाठी पुन्हा नोंदणी करू शकता.',
+  tileGouMayaBhasma: 'पूजा भस्म',
+  tileGouMayaBhasmaSub: 'पूजा भस्माची विनंती',
+  gouMayaBhasma: 'पूजा भस्म',
+  gouMayaBhasmaDesc:
+    'पवित्र पूजा भस्म मोफत मिळेल — आध्यात्मिक शुद्धीकरण आणि संरक्षणासाठी.',
   tileBirava: 'भिरावा पेंडंट',
   tileBiravaSub: 'पेंडंटची विनंती',
   freeDistribution: '(मोफत वितरण)',
@@ -203,6 +214,12 @@ export const mr: TranslationDict = {
   banaLingamPendingOrderTitle: 'ऑर्डर पुनरावलोकनात आहे',
   banaLingamPendingOrderMessage:
     'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
+  shivakotiPendingOrderTitle: 'शिवाकोटी ऑर्डर पुनरावलोकनात आहे',
+  shivakotiPendingOrderMessage:
+    'आधीच एक शिवाकोटी पुस्तकांचा ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
+  gouMayaPendingOrderTitle: 'पूजा भस्म ऑर्डर पुनरावलोकनात आहे',
+  gouMayaPendingOrderMessage:
+    'आधीच एक पूजा भस्म ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पण करा',
   tileNithyaHomam: 'नित्य होम',

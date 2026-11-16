@@ -4,6 +4,8 @@ export const SEVA_STOCK_ROUTES = [
   'RamakotiBooks',
   'HomaBhasma',
   'BiravaPendant',
+  'ShivakotiBooks',
+  'GouMayaBhasma',
 ] as const;
 
 export type SevaStockRoute = (typeof SEVA_STOCK_ROUTES)[number];
@@ -22,6 +24,10 @@ export const sevaStockKeyForRoute = (route: string): string | null => {
       return 'HomaBhasma';
     case 'BiravaPendant':
       return 'BiravaPendant';
+    case 'ShivakotiBooks':
+      return 'ShivakotiBooks';
+    case 'GouMayaBhasma':
+      return 'GouMayaBhasma';
     default:
       return null;
   }

@@ -47,6 +47,17 @@ export const bn: TranslationDict = {
   homaBhasma: 'হোম ভস্ম',
   homaBhasmaDesc:
     'পবিত্র হবন ভস্ম বিনামূল্যে পাবেন। এটি সব নেতিবাচক শক্তি দূর করে এবং দেহে প্রবেশ করা অশুভ শক্তিকে ঠেকানোর শক্তিশালী আধ্যাত্মিক ঢাল হিসেবে কাজ করে।',
+  tileShivakoti: 'শিবকোটি বই',
+  tileShivakotiSub: 'বইয়ের অনুরোধ',
+  shivakotiBooks: 'শিবকোটি বই',
+  shivakotiBooksIntro: 'ডেলিভারির জন্য শিবকোটি বই বিনামূল্যে অনুরোধ করুন।',
+  shivakotiRegisterNote:
+    'নোট: প্রতি মাসে বই শেষ হওয়ার কাছাকাছি ২–৩টি বই পাঠানো হবে, অথবা প্রতি মাসের শেষে আপনি আবার শিবকোটি বইয়ের জন্য নিবন্ধন করতে পারেন।',
+  tileGouMayaBhasma: 'পূজা ভস্ম',
+  tileGouMayaBhasmaSub: 'পূজা ভস্মের অনুরোধ',
+  gouMayaBhasma: 'পূজা ভস্ম',
+  gouMayaBhasmaDesc:
+    'পবিত্র পূজা ভস্ম বিনামূল্যে পাবেন — আধ্যাত্মিক শুদ্ধিকরণ ও সুরক্ষার জন্য।',
   tileBirava: 'ভীরাভা পেন্ডেন্ট',
   tileBiravaSub: 'পেন্ডেন্টের অনুরোধ',
   freeDistribution: '(বিনামূল্যে বিতরণ)',
@@ -203,6 +214,12 @@ export const bn: TranslationDict = {
   banaLingamPendingOrderTitle: 'অর্ডার পর্যালোচনাধীন রয়েছে',
   banaLingamPendingOrderMessage:
     'ইতিমধ্যে একটি অর্ডার পর্যালোচনাধীন রয়েছে। আপনার আগের অর্ডার বিতরণ হওয়ার পরে আপনি অন্যটি অর্ডার করতে পারেন।',
+  shivakotiPendingOrderTitle: 'শিবকোটি অর্ডার পর্যালোচনাধীন রয়েছে',
+  shivakotiPendingOrderMessage:
+    'ইতিমধ্যে একটি শিবকোটি বইয়ের অর্ডার পর্যালোচনাধীন রয়েছে। আপনার আগের অর্ডার বিতরণ হওয়ার পরে আপনি অন্যটি অর্ডার করতে পারেন।',
+  gouMayaPendingOrderTitle: 'পূজা ভস্ম অর্ডার পর্যালোচনাধীন রয়েছে',
+  gouMayaPendingOrderMessage:
+    'ইতিমধ্যে একটি পূজা ভস্ম অর্ডার পর্যালোচনাধীন রয়েছে। আপনার আগের অর্ডার বিতরণ হওয়ার পরে আপনি অন্যটি অর্ডার করতে পারেন।',
   tileAnnadanam: 'অন্নদান',
   tileAnnadanamSub: 'অন্ন সেবা অর্পণ করুন',
   tileNithyaHomam: 'নিত্য হোম',

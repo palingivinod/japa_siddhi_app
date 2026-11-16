@@ -19,6 +19,8 @@ export type BookingScreen =
   | 'RamakotiBooks'
   | 'HomaBhasma'
   | 'BiravaPendant'
+  | 'ShivakotiBooks'
+  | 'GouMayaBhasma'
   | 'SevaHub'
   | 'Festivals';
 
@@ -80,6 +82,23 @@ export const BOOKING_DEEP_LINKS: BookingEntry[] = [
     screen: 'BiravaPendant',
     title: 'Birava Pendant',
     aliases: ['birava', 'birava-pendant', 'biravapendant'],
+  },
+  {
+    screen: 'ShivakotiBooks',
+    title: 'Shivakoti Books',
+    aliases: ['shivakoti', 'shivakoti-books', 'shivakotibooks'],
+  },
+  {
+    screen: 'GouMayaBhasma',
+    title: 'Pooja Bhasmam',
+    aliases: [
+      'pooja-bhasmam',
+      'pooja-bhasma',
+      'gou-maya-bhasma',
+      'goumaya-bhasma',
+      'goumaya',
+      'gou-maya',
+    ],
   },
   {
     screen: 'SevaHub',

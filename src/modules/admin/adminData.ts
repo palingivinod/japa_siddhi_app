@@ -71,34 +71,39 @@ export type AdminDashboardStats = {
   donationsLabel: string;
 };
 
-export const ADMIN_CONTROL_ITEMS: Array<{
+const ADMIN_CONTROL_ITEMS_RAW: Array<{
   title: string;
   route?: string;
 }> = [
-  {title: 'User Management', route: 'AdminUsers'},
-  {title: 'Japa Management', route: 'AdminJapa'},
+  {title: 'Analytics Dashboard', route: 'AdminAnalyticsDashboard'},
+  {title: 'Autopay Requests', route: 'AdminAutopayRequests'},
+  {title: 'Banner Management', route: 'AdminBanners'},
+  {title: 'Cancelled Orders', route: 'AdminCancelledOrders'},
+  {title: 'Challenge Analytics', route: 'AdminChallengeAnalytics'},
   {title: 'Challenge Creation', route: 'AdminChallengeCreate'},
   {title: 'Challenge Management', route: 'AdminChallenges'},
   {title: 'Configure Rewards', route: 'AdminRewards'},
-  {title: 'Seva Hub Stock', route: 'AdminProducts'},
-  {title: 'Notification Management', route: 'AdminNotifications'},
-  {title: 'Banner Management', route: 'AdminBanners'},
-  {title: 'Orders', route: 'AdminOrders'},
-  {title: 'Cancelled Orders', route: 'AdminCancelledOrders'},
-  {title: 'Order History', route: 'AdminOrderHistory'},
-  {title: 'Autopay Requests', route: 'AdminAutopayRequests'},
-  {title: 'Meeting Management', route: 'AdminMeeting'},
-  {title: 'Payments', route: 'AdminPayments'},
-  {title: 'Support Tickets', route: 'AdminSupport'},
-  {title: 'Feedback', route: 'AdminFeedback'},
-  {title: 'Analytics Dashboard', route: 'AdminAnalyticsDashboard'},
-  {title: 'User Demographics', route: 'AdminUserDemographics'},
-  {title: 'Japa Analytics', route: 'AdminJapaAnalytics'},
-  {title: 'Challenge Analytics', route: 'AdminChallengeAnalytics'},
   {title: 'Donation Analytics', route: 'AdminDonationAnalytics'},
+  {title: 'Feedback', route: 'AdminFeedback'},
   {title: 'Festival Analytics', route: 'AdminFestivalAnalytics'},
+  {title: 'Japa Analytics', route: 'AdminJapaAnalytics'},
+  {title: 'Japa Management', route: 'AdminJapa'},
+  {title: 'Meeting Management', route: 'AdminMeeting'},
   {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
+  {title: 'Notification Management', route: 'AdminNotifications'},
+  {title: 'Order History', route: 'AdminOrderHistory'},
+  {title: 'Orders', route: 'AdminOrders'},
+  {title: 'Payments', route: 'AdminPayments'},
+  {title: 'Seva Hub Stock', route: 'AdminProducts'},
+  {title: 'Support Tickets', route: 'AdminSupport'},
+  {title: 'User Demographics', route: 'AdminUserDemographics'},
+  {title: 'User Management', route: 'AdminUsers'},
 ];
+
+/** Admin dashboard modules — always A→Z by title. */
+export const ADMIN_CONTROL_ITEMS = [...ADMIN_CONTROL_ITEMS_RAW].sort((a, b) =>
+  a.title.localeCompare(b.title, undefined, {sensitivity: 'base'}),
+);
 
 export const ADMIN_USERS: AdminUser[] = [];
 

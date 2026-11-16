@@ -327,6 +327,12 @@ const en = {
   biravaPendingOrderTitle: 'Bhirava Pendant Order In Review',
   biravaPendingOrderMessage:
     'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.',
+  shivakotiPendingOrderTitle: 'Shivakoti Books Order In Review',
+  shivakotiPendingOrderMessage:
+    'Already one Shivakoti Books order is in review. You can order another once your previous order is delivered.',
+  gouMayaPendingOrderTitle: 'Pooja Bhasmam Order In Review',
+  gouMayaPendingOrderMessage:
+    'Already one Pooja Bhasmam order is in review. You can order another once your previous order is delivered.',
   tileAnnadanam: 'Anna Santharpana',
   tileAnnadanamSub: 'Offer Anna Santharpana',
   tileNithyaHomam: 'Nithya Homam',
@@ -342,6 +348,17 @@ const en = {
   homaBhasma: 'Homa Bhasma',
   homaBhasmaDesc:
     'You will receive the holy havan bhasma free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
+  tileShivakoti: 'Shivakoti Books',
+  tileShivakotiSub: 'Request a book',
+  shivakotiBooks: 'Shivakoti Books',
+  shivakotiBooksIntro: 'Request Shivakoti books for delivery free of charge.',
+  shivakotiRegisterNote:
+    'Note: Every month, 2–3 books will be sent as you near completion of the book, or at the end of every month you can register again for Shivakoti books.',
+  tileGouMayaBhasma: 'Pooja Bhasmam',
+  tileGouMayaBhasmaSub: 'Request Pooja Bhasmam',
+  gouMayaBhasma: 'Pooja Bhasmam',
+  gouMayaBhasmaDesc:
+    'You will receive sacred Pooja Bhasmam free of charge for spiritual purification and protection.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
   freeDistribution: '(Free Distribution)',

@@ -122,7 +122,7 @@ const orderDateValue = (order: AdminOrder) => {
 const orderUserIdValue = (order: AdminOrder) =>
   order.userId != null ? Number(order.userId) : 999999999;
 
-export type ProductFilterType = 'ALL' | 'RK' | 'BP' | 'HB' | 'BL';
+export type ProductFilterType = 'ALL' | 'RK' | 'SK' | 'BP' | 'HB' | 'GM' | 'BL';
 
 export const ITEM_FILTERS: Array<{
   id: ProductFilterType;
@@ -131,8 +131,10 @@ export const ITEM_FILTERS: Array<{
 }> = [
   {id: 'ALL', code: 'ALL', label: 'All Items'},
   {id: 'RK', code: 'RK', label: 'Ramakoti'},
+  {id: 'SK', code: 'SK', label: 'Shivakoti'},
   {id: 'BP', code: 'BP', label: 'Bhirava Pendant'},
   {id: 'HB', code: 'HB', label: 'Homa Bhasmam'},
+  {id: 'GM', code: 'GM', label: 'Pooja Bhasmam'},
   {id: 'BL', code: 'BL', label: 'Baanalingam'},
 ];
 
@@ -171,17 +173,49 @@ const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): bool
       remarks.includes('pendant')
     );
   }
+  if (filterId === 'SK') {
+    return (
+      num.startsWith('#SK') ||
+      num.startsWith('SK') ||
+      type === 'SHIVAKOTI_BOOKS' ||
+      type.includes('SHIVAKOTI') ||
+      prod.includes('shivakoti') ||
+      remarks.includes('shivakoti')
+    );
+  }
+  if (filterId === 'GM') {
+    return (
+      num.startsWith('#GM') ||
+      num.startsWith('GM') ||
+      type === 'GOU_MAYA_BHASMA' ||
+      type.includes('GOU_MAYA') ||
+      prod.includes('gou maya') ||
+      prod.includes('goumaya') ||
+      prod.includes('pooja bhasmam') ||
+      prod.includes('pooja bhasma') ||
+      remarks.includes('gou maya') ||
+      remarks.includes('pooja bhasmam')
+    );
+  }
   if (filterId === 'HB') {
+    if (
+      type === 'GOU_MAYA_BHASMA' ||
+      prod.includes('gou maya') ||
+      prod.includes('goumaya') ||
+      prod.includes('pooja bhasmam') ||
+      prod.includes('pooja bhasma') ||
+      num.startsWith('GM') ||
+      num.startsWith('#GM')
+    ) {
+      return false;
+    }
     return (
       num.startsWith('#HB') ||
       num.startsWith('HB') ||
-      num.includes('HB') ||
       type === 'HOMA_BHASMA' ||
-      type.includes('BHASMA') ||
-      prod.includes('homa') ||
-      prod.includes('bhasma') ||
-      remarks.includes('homa') ||
-      remarks.includes('bhasma')
+      (prod.includes('homa') && prod.includes('bhasma')) ||
+      prod.includes('bhasmam') ||
+      (remarks.includes('homa') && remarks.includes('bhasma'))
     );
   }
   if (filterId === 'BL') {
@@ -231,15 +265,23 @@ const orderGroupOf = (row: {
     type === 'RAMAKOTI_BOOKS' ||
     type === 'HOMA_BHASMA' ||
     type === 'BIRAVA_PENDANT' ||
+    type === 'SHIVAKOTI_BOOKS' ||
+    type === 'GOU_MAYA_BHASMA' ||
     number.startsWith('BL-') ||
     number.startsWith('RK') ||
     number.startsWith('HB') ||
     number.startsWith('BP') ||
+    number.startsWith('SK') ||
+    number.startsWith('GM') ||
     product.includes('baanalingam') ||
     product.includes('banalingam') ||
     product.includes('ramakoti') ||
     product.includes('homa bhasma') ||
-    product.includes('birava')
+    product.includes('birava') ||
+    product.includes('shivakoti') ||
+    product.includes('gou maya') ||
+    product.includes('pooja bhasmam') ||
+    product.includes('pooja bhasma')
   ) {
     return 'normal';
   }
@@ -530,8 +572,10 @@ const AdminOrdersScreen = () => {
     return {
       ALL: typedOrders.length,
       RK: typedOrders.filter(o => matchesItemFilter(o, 'RK')).length,
+      SK: typedOrders.filter(o => matchesItemFilter(o, 'SK')).length,
       BP: typedOrders.filter(o => matchesItemFilter(o, 'BP')).length,
       HB: typedOrders.filter(o => matchesItemFilter(o, 'HB')).length,
+      GM: typedOrders.filter(o => matchesItemFilter(o, 'GM')).length,
       BL: typedOrders.filter(o => matchesItemFilter(o, 'BL')).length,
     };
   }, [typedOrders]);

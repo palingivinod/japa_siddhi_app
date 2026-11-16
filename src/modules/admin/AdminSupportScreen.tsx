@@ -25,6 +25,7 @@ type TicketRow = {
   screenshotUrl?: string | null;
   adminReply?: string | null;
   status: string;
+  createdAt?: string | null;
 };
 
 const statusLabel = (status: string) => {
@@ -36,6 +37,27 @@ const statusLabel = (status: string) => {
     return 'In progress';
   }
   return 'Open';
+};
+
+/** Raised date/time in IST (no seconds). */
+const formatRaisedAt = (raw?: string | null) => {
+  const str = String(raw || '').trim();
+  if (!str) return '';
+  const ms = Date.parse(str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str);
+  if (!Number.isFinite(ms)) {
+    return str.slice(0, 16);
+  }
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).formatToParts(new Date(ms));
+  const get = (type: string) => parts.find(p => p.type === type)?.value || '';
+  return `${get('day')} ${get('month')} ${get('year')}, ${get('hour')}:${get('minute')} ${get('dayPeriod')}`;
 };
 
 const AdminSupportScreen = () => {
@@ -63,6 +85,7 @@ const AdminSupportScreen = () => {
           screenshotUrl: row.screenshotUrl || null,
           adminReply: row.adminReply || null,
           status: String(row.status || 'OPEN').toUpperCase(),
+          createdAt: row.createdAt || row.created_at || null,
         })),
       );
       setDrafts(prev => {
@@ -198,6 +221,10 @@ const AdminSupportScreen = () => {
                 </TouchableOpacity>
               </View>
             </View>
+            <Text style={styles.meta}>
+              Raised:{' '}
+              {formatRaisedAt(item.createdAt) || '—'}
+            </Text>
             <Text style={styles.meta}>
               User ID: {item.userId != null ? String(item.userId) : '—'}
             </Text>

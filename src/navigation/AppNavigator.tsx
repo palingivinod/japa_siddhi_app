@@ -373,6 +373,10 @@ export type RootStackParamList = {
   HomaBhasmaReview: any;
   BiravaPendant: undefined;
   BiravaPendantReview: any;
+  ShivakotiBooks: undefined;
+  ShivakotiBooksReview: any;
+  GouMayaBhasma: undefined;
+  GouMayaBhasmaReview: any;
   DonationConfirmation: any;
   AdminHub: undefined;
   AdminLogin: undefined;
@@ -835,6 +839,10 @@ const AppNavigator = () => {
         <Stack.Screen name="HomaBhasmaReview" component={ProtectedSevaRequestReview} />
         <Stack.Screen name="BiravaPendant" component={ProtectedSevaRequest} />
         <Stack.Screen name="BiravaPendantReview" component={ProtectedSevaRequestReview} />
+        <Stack.Screen name="ShivakotiBooks" component={ProtectedSevaRequest} />
+        <Stack.Screen name="ShivakotiBooksReview" component={ProtectedSevaRequestReview} />
+        <Stack.Screen name="GouMayaBhasma" component={ProtectedSevaRequest} />
+        <Stack.Screen name="GouMayaBhasmaReview" component={ProtectedSevaRequestReview} />
         <Stack.Screen name="BanaLingamPayment" component={ProtectedCheckout} />
         <Stack.Screen
           name="PaymentConfirmation"

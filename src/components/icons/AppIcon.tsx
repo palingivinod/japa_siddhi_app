@@ -47,7 +47,9 @@ export type AppIconName =
   | 'tulasiMala'
   | 'homaBhasma'
   | 'biravaPendant'
-  | 'ramakoti';
+  | 'ramakoti'
+  | 'shivakoti'
+  | 'gouMayaBhasma';
 
 interface Props {
   name: AppIconName;
@@ -91,6 +93,8 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   homaBhasma: require('../../assets/images/festival_annadanam.png'),
   biravaPendant: require('../../assets/images/birava_pendant.jpg'),
   ramakoti: require('../../assets/images/ramakoti_icon.jpg'),
+  shivakoti: require('../../assets/images/shivakoti_icon.png'),
+  gouMayaBhasma: require('../../assets/images/gou_maya_bhasma_icon.jpg'),
   // person/profile/seva/japa/orders intentionally omitted — line icons for tabs
 };
 

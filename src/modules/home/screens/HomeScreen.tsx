@@ -443,12 +443,28 @@ const HomeScreen = () => {
         tone: 'gold' as const,
       },
       {
+        title: `${t('tileShivakoti')} (${t('freeOfCost')})`,
+        itemName: t('tileShivakoti'),
+        sub: t('tileShivakotiSub'),
+        route: 'ShivakotiBooks',
+        icon: 'shivakoti' as AppIconName,
+        tone: 'green' as const,
+      },
+      {
         title: `${t('tileHomaBhasma')} (${t('freeOfCost')})`,
         itemName: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
         icon: 'homaBhasma' as AppIconName,
         tone: 'green' as const,
+      },
+      {
+        title: `${t('tileGouMayaBhasma')} (${t('freeOfCost')})`,
+        itemName: t('tileGouMayaBhasma'),
+        sub: t('tileGouMayaBhasmaSub'),
+        route: 'GouMayaBhasma',
+        icon: 'gouMayaBhasma' as AppIconName,
+        tone: 'gold' as const,
       },
       {
         title: `${t('tileBirava')} (${t('freeOfCost')})`,

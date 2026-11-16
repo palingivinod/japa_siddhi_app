@@ -58,6 +58,17 @@ export const hi: TranslationDict = {
   homaBhasma: 'होम भस्म',
   homaBhasmaDesc:
     'आपको पवित्र हवन भस्म निःशुल्क मिलेगी। यह सारी नकारात्मक ऊर्जा हटाती है और एक शक्तिशाली आध्यात्मिक ढाल बनकर शरीर में प्रवेश करने वाली बुरी शक्तियों को रोकती है।',
+  tileShivakoti: 'शिवाकोटि पुस्तकें',
+  tileShivakotiSub: 'पुस्तक का अनुरोध',
+  shivakotiBooks: 'शिवाकोटि पुस्तकें',
+  shivakotiBooksIntro: 'डिलीवरी के लिए शिवाकोटि पुस्तकें निःशुल्क मँगवाएँ।',
+  shivakotiRegisterNote:
+    'नोट: हर महीने 2–3 पुस्तकें पुस्तक पूरा होने के निकट भेजी जाएंगी, या हर महीने के अंत में आप शिवाकोटि पुस्तकों के लिए फिर से पंजीकरण कर सकते हैं।',
+  tileGouMayaBhasma: 'पूजा भस्म',
+  tileGouMayaBhasmaSub: 'पूजा भस्म का अनुरोध',
+  gouMayaBhasma: 'पूजा भस्म',
+  gouMayaBhasmaDesc:
+    'आपको पवित्र पूजा भस्म निःशुल्क मिलेगी — आध्यात्मिक शुद्धिकरण और सुरक्षा के लिए।',
   tileBirava: 'भिरावा पेंडेंट',
   tileBiravaSub: 'पेंडेंट का अनुरोध',
   freeDistribution: '(निःशुल्क वितरण)',
@@ -227,6 +238,12 @@ export const hi: TranslationDict = {
   biravaPendingOrderTitle: 'भैरव लॉकेट ऑर्डर समीक्षाधीन है',
   biravaPendingOrderMessage:
     'पहले से एक भैरव लॉकेट का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  shivakotiPendingOrderTitle: 'शिवाकोटि ऑर्डर समीक्षाधीन है',
+  shivakotiPendingOrderMessage:
+    'पहले से एक शिवाकोटि पुस्तकों का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  gouMayaPendingOrderTitle: 'पूजा भस्म ऑर्डर समीक्षाधीन है',
+  gouMayaPendingOrderMessage:
+    'पहले से एक पूजा भस्म का ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पित करें',
   tileNithyaHomam: 'नित्य होम',
@@ -1114,6 +1131,17 @@ export const te: TranslationDict = {
   homaBhasma: 'హోమ భస్మ',
   homaBhasmaDesc:
     'పవిత్ర హవన భస్మ ఉచితంగా అందుతుంది. ఇది ప్రతికూల శక్తిని తొలగించి, శరీరంలోకి ప్రవేశించే దుష్ట శక్తులను అడ్డుకునే శక్తివంతమైన ఆధ్యాత్మిక కవచంగా పనిచేస్తుంది.',
+  tileShivakoti: 'శివకోటి పుస్తకాలు',
+  tileShivakotiSub: 'పుస్తకం కోరండి',
+  shivakotiBooks: 'శివకోటి పుస్తకాలు',
+  shivakotiBooksIntro: 'డెలివరీ కోసం శివకోటి పుస్తకాలను ఉచితంగా అభ్యర్థించండి.',
+  shivakotiRegisterNote:
+    'గమనిక: ప్రతి నెలా 2–3 పుస్తకాలు పంపబడతాయి, పుస్తకం పూర్తికి దగ్గరగా ఉన్న లేదా ప్రతి నెల చివరలో మీరు శివకోటి పుస్తకాల కోసం మళ్లీ నమోదు చేసుకోవచ్చు.',
+  tileGouMayaBhasma: 'పూజ భస్మం',
+  tileGouMayaBhasmaSub: 'పూజ భస్మం అభ్యర్థన',
+  gouMayaBhasma: 'పూజ భస్మం',
+  gouMayaBhasmaDesc:
+    'పవిత్ర పూజ భస్మం ఉచితంగా అందుతుంది — ఆధ్యాత్మిక శుద్ధి మరియు రక్షణ కోసం.',
   tileBirava: 'భైరవ పెండెంట్',
   tileBiravaSub: 'పెండెంట్ అభ్యర్థన',
   freeDistribution: '(ఉచిత పంపిణీ)',
@@ -1283,6 +1311,12 @@ export const te: TranslationDict = {
   biravaPendingOrderTitle: 'భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది',
   biravaPendingOrderMessage:
     'ఇప్పటికే భైరవ లాకెట్ ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  shivakotiPendingOrderTitle: 'శివకోటి ఆర్డర్ పరిశీలనలో ఉంది',
+  shivakotiPendingOrderMessage:
+    'ఇప్పటికే శివకోటి పుస్తకాల ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  gouMayaPendingOrderTitle: 'పూజ భస్మం ఆర్డర్ పరిశీలనలో ఉంది',
+  gouMayaPendingOrderMessage:
+    'ఇప్పటికే పూజ భస్మం ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
   tileAnnadanam: 'అన్న సంతర్పణ',
   tileAnnadanamSub: 'అన్న సేవ అర్పించండి',
   tileNithyaHomam: 'నిత్య హోమం',
@@ -2335,6 +2369,17 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   'Offer Anna Santharpana': 'offerAnnadanam',
   'Milestone reminders': 'milestoneReminders',
   Baanalingam: 'tileBaanalingam',
+  'Ramakoti Books': 'tileRamakoti',
+  Ramakoti: 'tileRamakoti',
+  'Homa Bhasma': 'tileHomaBhasma',
+  'Shivakoti Books': 'tileShivakoti',
+  Shivakoti: 'tileShivakoti',
+  'Gou Maya Bhasma': 'tileGouMayaBhasma',
+  'Pooja Bhasmam': 'tileGouMayaBhasma',
+  'Pooja Bhasma': 'tileGouMayaBhasma',
+  'Bhirava Pendent': 'tileBirava',
+  'Bhirava Pendant': 'tileBirava',
+  'Birava Pendant': 'tileBirava',
   'Japa Siddhi Design System': 'designSystem',
   'Your Japas': 'yourJapas',
   'Ongoing Japas': 'ongoingJapas',

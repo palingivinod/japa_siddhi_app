@@ -6,7 +6,9 @@
 export type ShippedOrderKind =
   | 'BAANALINGAM'
   | 'RAMAKOTI'
+  | 'SHIVAKOTI'
   | 'HOMA_BHASMA'
+  | 'GOU_MAYA_BHASMA'
   | 'BHIRAVA'
   | 'GENERIC';
 
@@ -57,11 +59,25 @@ const CONTENT: Record<Exclude<ShippedOrderKind, 'GENERIC'>, ShippedNotifyContent
         'After you receive them, please send us a photo of you with the Ramakoti books. This helps us confirm delivery.\n\nThank you for continuing your Ramakoti japa. 🙏',
       ...media(RAMAKOTI_IMAGE_URL),
     },
+    SHIVAKOTI: {
+      kind: 'SHIVAKOTI',
+      title: 'Your Shivakoti books have been shipped',
+      message:
+        'After you receive them, please send us a photo of you with the Shivakoti books. This helps us confirm delivery.\n\nThank you for your devotion. 🙏',
+      ...media(RAMAKOTI_IMAGE_URL),
+    },
     HOMA_BHASMA: {
       kind: 'HOMA_BHASMA',
       title: 'Your Homa Bhasma order has been shipped',
       message:
         'After you receive it, please send us a photo of you with the Homa Bhasma. This helps us confirm safe delivery.\n\nThank you. 🙏',
+      ...media(REWARDS_IMAGE_URL),
+    },
+    GOU_MAYA_BHASMA: {
+      kind: 'GOU_MAYA_BHASMA',
+      title: 'Your Pooja Bhasmam order has been shipped',
+      message:
+        'After you receive it, please send us a photo of you with the Pooja Bhasmam. This helps us confirm safe delivery.\n\nThank you. 🙏',
       ...media(REWARDS_IMAGE_URL),
     },
     BHIRAVA: {
@@ -96,11 +112,29 @@ export const resolveShippedOrderKind = (input: {
     return 'RAMAKOTI';
   }
   if (
+    type === 'SHIVAKOTI_BOOKS' ||
+    type.includes('SHIVAKOTI') ||
+    number.startsWith('SK') ||
+    hay.includes('shivakoti')
+  ) {
+    return 'SHIVAKOTI';
+  }
+  if (
+    type === 'GOU_MAYA_BHASMA' ||
+    type.includes('GOU_MAYA') ||
+    number.startsWith('GM') ||
+    hay.includes('gou maya') ||
+    hay.includes('goumaya') ||
+    hay.includes('pooja bhasmam') ||
+    hay.includes('pooja bhasma')
+  ) {
+    return 'GOU_MAYA_BHASMA';
+  }
+  if (
     type === 'HOMA_BHASMA' ||
-    type.includes('BHASMA') ||
     number.startsWith('HB') ||
-    hay.includes('homa') ||
-    hay.includes('bhasma')
+    (hay.includes('homa') && hay.includes('bhasma')) ||
+    hay.includes('bhasmam')
   ) {
     return 'HOMA_BHASMA';
   }

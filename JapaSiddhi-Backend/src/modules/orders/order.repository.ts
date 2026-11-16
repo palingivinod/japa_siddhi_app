@@ -12,6 +12,42 @@ import {
 
 class OrderRepository {
   private statusEventsReady = false;
+  private orderTypesReady = false;
+
+  /**
+   * Free-seva types grow over time. Prefer VARCHAR so new kinds do not require
+   * another ENUM ALTER; fall back to expanding ENUM if VARCHAR modify fails.
+   */
+  async ensureOrderTypeEnum(): Promise<void> {
+    if (this.orderTypesReady) {
+      return;
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE orders MODIFY COLUMN order_type VARCHAR(64) NOT NULL`,
+      );
+    } catch {
+      try {
+        await mysql.query(`
+          ALTER TABLE orders
+          MODIFY COLUMN order_type ENUM(
+            'BANA_LINGAM',
+            'RAMAKOTI_BOOKS',
+            'HOMA_BHASMA',
+            'BIRAVA_PENDANT',
+            'SHIVAKOTI_BOOKS',
+            'GOU_MAYA_BHASMA',
+            'SPIRITUAL_PRODUCT',
+            'ANNADANAM',
+            'NITHYA_HOMAM'
+          ) NOT NULL
+        `);
+      } catch {
+        // Already widened, or non-MySQL engine.
+      }
+    }
+    this.orderTypesReady = true;
+  }
 
   async ensureUserDeletedColumn(): Promise<void> {
     for (const sql of [
@@ -300,6 +336,7 @@ class OrderRepository {
   ): Promise<number> {
 
     const initialStatus: OrderStatus = data.orderStatus || 'UNDER_REVIEW';
+    await this.ensureOrderTypeEnum();
 
     const result =
       await mysql.query<ResultSetHeader>(
@@ -672,8 +709,22 @@ class OrderRepository {
       whereClause = `(order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%' OR order_number LIKE 'BL-%' OR order_number LIKE '#BL-%')`;
     } else if (k === 'RAMAKOTI_BOOKS' || k.includes('RAMAKOTI')) {
       whereClause = `(order_type = 'RAMAKOTI_BOOKS' OR lower(item_name) LIKE '%ramakoti%' OR order_number LIKE 'RK%' OR order_number LIKE '#RK%')`;
-    } else if (k === 'HOMA_BHASMA' || k.includes('BHASMA')) {
-      whereClause = `(order_type = 'HOMA_BHASMA' OR lower(item_name) LIKE '%homa%bhasma%' OR lower(item_name) LIKE '%bhasmam%' OR order_number LIKE 'HB%' OR order_number LIKE '#HB%')`;
+    } else if (
+      k === 'SHIVAKOTI_BOOKS' ||
+      k.includes('SHIVAKOTI')
+    ) {
+      whereClause = `(order_type = 'SHIVAKOTI_BOOKS' OR lower(item_name) LIKE '%shivakoti%' OR order_number LIKE 'SK%' OR order_number LIKE '#SK%')`;
+    } else if (
+      k === 'GOU_MAYA_BHASMA' ||
+      k.includes('GOU_MAYA') ||
+      k.includes('GOUMAYA')
+    ) {
+      whereClause = `(order_type = 'GOU_MAYA_BHASMA' OR lower(item_name) LIKE '%gou%maya%' OR lower(item_name) LIKE '%goumaya%' OR lower(item_name) LIKE '%pooja%bhasma%' OR order_number LIKE 'GM%' OR order_number LIKE '#GM%')`;
+    } else if (
+      k === 'HOMA_BHASMA' ||
+      (k.includes('HOMA') && k.includes('BHASMA'))
+    ) {
+      whereClause = `(order_type = 'HOMA_BHASMA' OR (lower(item_name) LIKE '%homa%' AND lower(item_name) LIKE '%bhasma%') OR lower(item_name) LIKE '%bhasmam%' OR order_number LIKE 'HB%' OR order_number LIKE '#HB%')`;
     } else if (
       k === 'BIRAVA_PENDANT' ||
       k.includes('PENDANT') ||

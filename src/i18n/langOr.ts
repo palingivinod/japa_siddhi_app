@@ -47,6 +47,17 @@ export const or: TranslationDict = {
   homaBhasma: 'ହୋମ ଭସ୍ମ',
   homaBhasmaDesc:
     'ପବିତ୍ର ହବନ ଭସ୍ମ ମାଗଣାରେ ମିଳିବ। ଏହା ସମସ୍ତ ନକାରାତ୍ମକ ଶକ୍ତି ଦୂର କରି, ଶରୀରରେ ପ୍ରବେଶ କରୁଥିବା ଅଶୁଭ ଶକ୍ତିକୁ ରୋକୁଥିବା ଶକ୍ତିଶାଳୀ ଆଧ୍ୟାତ୍ମିକ ଢାଲ ଭାବେ କାମ କରେ।',
+  tileShivakoti: 'ଶିବକୋଟି ବହି',
+  tileShivakotiSub: 'ବହି ପାଇଁ ଅନୁରୋଧ',
+  shivakotiBooks: 'ଶିବକୋଟି ବହି',
+  shivakotiBooksIntro: 'ଡେଲିଭରି ପାଇଁ ଶିବକୋଟି ବହି ମାଗଣାରେ ଅନୁରୋଧ କରନ୍ତୁ।',
+  shivakotiRegisterNote:
+    'ନୋଟ୍: ପ୍ରତି ମାସରେ ବହି ସମାପ୍ତି ନିକଟରେ ୨–୩ଟି ବହି ପଠାଯିବ, କିମ୍ବା ପ୍ରତି ମାସ ଶେଷରେ ଆପଣ ଶିବକୋଟି ବହି ପାଇଁ ପୁନର୍ବାର ପଞ୍ଜୀକରଣ କରିପାରିବେ।',
+  tileGouMayaBhasma: 'ପୂଜା ଭସ୍ମ',
+  tileGouMayaBhasmaSub: 'ପୂଜା ଭସ୍ମ ଅନୁରୋଧ',
+  gouMayaBhasma: 'ପୂଜା ଭସ୍ମ',
+  gouMayaBhasmaDesc:
+    'ପବିତ୍ର ପୂଜା ଭସ୍ମ ମାଗଣାରେ ମିଳିବ — ଆଧ୍ୟାତ୍ମିକ ଶୁଦ୍ଧିକରଣ ଓ ସୁରକ୍ଷା ପାଇଁ।',
   tileBirava: 'ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ',
   tileBiravaSub: 'ପେଣ୍ଡାଣ୍ଟ ଅନୁରୋଧ',
   freeDistribution: '(ମାଗଣା ବିତରଣ)',
@@ -203,6 +214,12 @@ export const or: TranslationDict = {
   banaLingamPendingOrderTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
   banaLingamPendingOrderMessage:
     'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
+  shivakotiPendingOrderTitle: 'ଶିବକୋଟି ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
+  shivakotiPendingOrderMessage:
+    'ପୂର୍ବରୁ ଗୋଟିଏ ଶିବକୋଟି ବହି ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
+  gouMayaPendingOrderTitle: 'ପୂଜା ଭସ୍ମ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
+  gouMayaPendingOrderMessage:
+    'ପୂର୍ବରୁ ଗୋଟିଏ ପୂଜା ଭସ୍ମ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
   tileAnnadanam: 'ଅନ୍ନଦାନ',
   tileAnnadanamSub: 'ଅନ୍ନ ସେବା ଅର୍ପଣ କରନ୍ତୁ',
   tileNithyaHomam: 'ନିତ୍ୟ ହୋମ',

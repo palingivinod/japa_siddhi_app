@@ -47,6 +47,17 @@ export const kn: TranslationDict = {
   homaBhasma: 'ಹೋಮ ಭಸ್ಮ',
   homaBhasmaDesc:
     'ಪವಿತ್ರ ಹವನ ಭಸ್ಮ ಉಚಿತವಾಗಿ ಸಿಗುತ್ತದೆ. ಇದು ಎಲ್ಲಾ ಋಣಾತ್ಮಕ ಶಕ್ತಿಯನ್ನು ತೆಗೆದು, ದೇಹಕ್ಕೆ ಪ್ರವೇಶಿಸುವ ದುಷ್ಟ ಶಕ್ತಿಗಳನ್ನು ತಡೆಯುವ ಪ್ರಬಲ ಆಧ್ಯಾತ್ಮಿಕ ಗುರಾಣಿಯಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ.',
+  tileShivakoti: 'ಶಿವಕೋಟಿ ಪುಸ್ತಕಗಳು',
+  tileShivakotiSub: 'ಪುಸ್ತಕವನ್ನು ಕೇಳಿ',
+  shivakotiBooks: 'ಶಿವಕೋಟಿ ಪುಸ್ತಕಗಳು',
+  shivakotiBooksIntro: 'ತಲುಪಿಸಲು ಶಿವಕೋಟಿ ಪುಸ್ತಕಗಳನ್ನು ಉಚಿತವಾಗಿ ಕೇಳಿ.',
+  shivakotiRegisterNote:
+    'ಗಮನಿಸಿ: ಪ್ರತಿ ತಿಂಗಳು ಪುಸ್ತಕ ಪೂರ್ಣಗೊಳ್ಳುವ ಹಂತದಲ್ಲಿ 2–3 ಪುಸ್ತಕಗಳನ್ನು ಕಳುಹಿಸಲಾಗುತ್ತದೆ, ಅಥವಾ ಪ್ರತಿ ತಿಂಗಳ ಅಂತ್ಯದಲ್ಲಿ ನೀವು ಶಿವಕೋಟಿ ಪುಸ್ತಕಗಳಿಗೆ ಮತ್ತೆ ನೋಂದಾಯಿಸಬಹುದು.',
+  tileGouMayaBhasma: 'ಪೂಜಾ ಭಸ್ಮ',
+  tileGouMayaBhasmaSub: 'ಪೂಜಾ ಭಸ್ಮ ಕೇಳಿ',
+  gouMayaBhasma: 'ಪೂಜಾ ಭಸ್ಮ',
+  gouMayaBhasmaDesc:
+    'ಪವಿತ್ರ ಪೂಜಾ ಭಸ್ಮ ಉಚಿತವಾಗಿ ಸಿಗುತ್ತದೆ — ಆಧ್ಯಾತ್ಮಿಕ ಶುದ್ಧೀಕರಣ ಮತ್ತು ರಕ್ಷಣೆಗಾಗಿ.',
   tileBirava: 'ಭಿರವ ಪೆಂಡೆಂಟ್',
   tileBiravaSub: 'ಪೆಂಡೆಂಟ್ ಕೇಳಿ',
   freeDistribution: '(ಉಚಿತ ವಿತರಣೆ)',
@@ -202,6 +213,12 @@ export const kn: TranslationDict = {
   banaLingamPendingOrderTitle: 'ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
   banaLingamPendingOrderMessage:
     'ಈಗಾಗಲೇ ಒಂದು ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ನಿಮ್ಮ ಹಿಂದಿನ ಆರ್ಡರ್ ತಲುಪಿದ ನಂತರ ನೀವು ಇನ್ನೊಂದನ್ನು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
+  shivakotiPendingOrderTitle: 'ಶಿವಕೋಟಿ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
+  shivakotiPendingOrderMessage:
+    'ಈಗಾಗಲೇ ಒಂದು ಶಿವಕೋಟಿ ಪುಸ್ತಕಗಳ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ನಿಮ್ಮ ಹಿಂದಿನ ಆರ್ಡರ್ ತಲುಪಿದ ನಂತರ ನೀವು ಇನ್ನೊಂದನ್ನು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
+  gouMayaPendingOrderTitle: 'ಪೂಜಾ ಭಸ್ಮ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
+  gouMayaPendingOrderMessage:
+    'ಈಗಾಗಲೇ ಒಂದು ಪೂಜಾ ಭಸ್ಮ ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ನಿಮ್ಮ ಹಿಂದಿನ ಆರ್ಡರ್ ತಲುಪಿದ ನಂತರ ನೀವು ಇನ್ನೊಂದನ್ನು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
   tileAnnadanam: 'ಅನ್ನದಾನ',
   tileAnnadanamSub: 'ಅನ್ನ ಸೇವೆ ಅರ್ಪಿಸಿ',
   tileNithyaHomam: 'ನಿತ್ಯ ಹೋಮ',

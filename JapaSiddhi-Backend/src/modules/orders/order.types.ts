@@ -3,6 +3,8 @@ export type OrderType =
   | 'RAMAKOTI_BOOKS'
   | 'HOMA_BHASMA'
   | 'BIRAVA_PENDANT'
+  | 'SHIVAKOTI_BOOKS'
+  | 'GOU_MAYA_BHASMA'
   | 'SPIRITUAL_PRODUCT'
   | 'ANNADANAM'
   | 'NITHYA_HOMAM';

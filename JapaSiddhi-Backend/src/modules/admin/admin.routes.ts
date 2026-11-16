@@ -3100,15 +3100,23 @@ const isNormalBaanalingamOrder = (row: any) => {
     type === 'RAMAKOTI_BOOKS' ||
     type === 'HOMA_BHASMA' ||
     type === 'BIRAVA_PENDANT' ||
+    type === 'SHIVAKOTI_BOOKS' ||
+    type === 'GOU_MAYA_BHASMA' ||
     number.startsWith('BL-') ||
     number.startsWith('RK') ||
     number.startsWith('HB') ||
     number.startsWith('BP') ||
+    number.startsWith('SK') ||
+    number.startsWith('GM') ||
     item.includes('baanalingam') ||
     item.includes('banalingam') ||
     item.includes('ramakoti') ||
     item.includes('homa bhasma') ||
-    item.includes('birava')
+    item.includes('birava') ||
+    item.includes('shivakoti') ||
+    item.includes('gou maya') ||
+    item.includes('pooja bhasmam') ||
+    item.includes('pooja bhasma')
   );
 };
 
@@ -7243,6 +7251,8 @@ const SEVA_OFFERING_LABELS: Record<string, string> = {
   RamakotiBooks: 'Ramakoti Books',
   HomaBhasma: 'Homa Bhasma',
   BiravaPendant: 'Bhirava Pendant',
+  ShivakotiBooks: 'Shivakoti Books',
+  GouMayaBhasma: 'Pooja Bhasmam',
 };
 
 router.get('/seva-offerings-stock', async (_req: Request, res: Response) => {

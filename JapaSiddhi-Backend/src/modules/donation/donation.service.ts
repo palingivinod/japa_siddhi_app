@@ -341,7 +341,9 @@ class DonationService {
       kind === 'BANA_LINGAM' ||
       kind === 'RAMAKOTI_BOOKS' ||
       kind === 'HOMA_BHASMA' ||
-      kind === 'BIRAVA_PENDANT';
+      kind === 'BIRAVA_PENDANT' ||
+      kind === 'SHIVAKOTI_BOOKS' ||
+      kind === 'GOU_MAYA_BHASMA';
 
     const addressText = String(data.address || '').trim();
     const parsedAddress = parseCityStateFromAddress(addressText);
@@ -407,6 +409,8 @@ class DonationService {
       | 'RAMAKOTI_BOOKS'
       | 'HOMA_BHASMA'
       | 'BIRAVA_PENDANT'
+      | 'SHIVAKOTI_BOOKS'
+      | 'GOU_MAYA_BHASMA'
       | 'ANNADANAM'
       | 'NITHYA_HOMAM' = 'ANNADANAM';
     let donationType: 'ANNADANAM' | 'GENERAL' | 'NITHYA_HOMAM' = 'ANNADANAM';
@@ -452,6 +456,34 @@ class DonationService {
 
       itemName = 'Bhirava Pendent';
       orderType = 'BIRAVA_PENDANT';
+    } else if (kind === 'SHIVAKOTI_BOOKS') {
+      const activeSkOrder = await orderRepository.findActiveOrderForKind(
+        userId,
+        'SHIVAKOTI_BOOKS',
+      );
+      if (activeSkOrder) {
+        throw new AppError(
+          `Already one Shivakoti Books order (${activeSkOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+
+      itemName = 'Shivakoti Books';
+      orderType = 'SHIVAKOTI_BOOKS';
+    } else if (kind === 'GOU_MAYA_BHASMA') {
+      const activeGmOrder = await orderRepository.findActiveOrderForKind(
+        userId,
+        'GOU_MAYA_BHASMA',
+      );
+      if (activeGmOrder) {
+        throw new AppError(
+          `Already one Pooja Bhasmam order (${activeGmOrder.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+          400,
+        );
+      }
+
+      itemName = 'Pooja Bhasmam';
+      orderType = 'GOU_MAYA_BHASMA';
     } else if (kind === 'NITHYA_HOMAM') {
       itemName = 'Nithya Homam';
       orderType = 'NITHYA_HOMAM';
@@ -468,7 +500,9 @@ class DonationService {
       kind === 'BANA_LINGAM' ||
       kind === 'RAMAKOTI_BOOKS' ||
       kind === 'HOMA_BHASMA' ||
-      kind === 'BIRAVA_PENDANT';
+      kind === 'BIRAVA_PENDANT' ||
+      kind === 'SHIVAKOTI_BOOKS' ||
+      kind === 'GOU_MAYA_BHASMA';
 
     if (!isRequestOrder) {
       const donation = await this.create(userId, {
@@ -501,6 +535,8 @@ class DonationService {
       kind === 'RAMAKOTI_BOOKS' ||
       kind === 'HOMA_BHASMA' ||
       kind === 'BIRAVA_PENDANT' ||
+      kind === 'SHIVAKOTI_BOOKS' ||
+      kind === 'GOU_MAYA_BHASMA' ||
       kind === 'BANA_LINGAM'
         ? deliveryLines
         : remarks || `Paid ₹${amount} via UPI QR`;
@@ -511,7 +547,11 @@ class DonationService {
           ? 'HB'
           : kind === 'BIRAVA_PENDANT'
             ? 'BP'
-            : undefined;
+            : kind === 'SHIVAKOTI_BOOKS'
+              ? 'SK'
+              : kind === 'GOU_MAYA_BHASMA'
+                ? 'GM'
+                : undefined;
     const order = await orderService.create({
       userId,
       orderType,
@@ -572,7 +612,9 @@ class DonationService {
     if (
       (kind === 'RAMAKOTI_BOOKS' ||
         kind === 'HOMA_BHASMA' ||
-        kind === 'BIRAVA_PENDANT') &&
+        kind === 'BIRAVA_PENDANT' ||
+        kind === 'SHIVAKOTI_BOOKS' ||
+        kind === 'GOU_MAYA_BHASMA') &&
       addressText
     ) {
       await profileRepository.saveAddress(userId, addressText);

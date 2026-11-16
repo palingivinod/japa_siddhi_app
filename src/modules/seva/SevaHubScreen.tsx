@@ -133,11 +133,25 @@ const SevaHubScreen = () => {
         route: 'RamakotiBooks',
       },
       {
+        icon: 'shivakoti' as AppIconName,
+        title: `${t('tileShivakoti')} ${freeOfCostBracket}`,
+        itemName: t('tileShivakoti'),
+        sub: t('tileShivakotiSub'),
+        route: 'ShivakotiBooks',
+      },
+      {
         icon: 'homaBhasma' as AppIconName,
         title: `${t('tileHomaBhasma')} ${freeOfCostBracket}`,
         itemName: t('tileHomaBhasma'),
         sub: t('tileHomaBhasmaSub'),
         route: 'HomaBhasma',
+      },
+      {
+        icon: 'gouMayaBhasma' as AppIconName,
+        title: `${t('tileGouMayaBhasma')} ${freeOfCostBracket}`,
+        itemName: t('tileGouMayaBhasma'),
+        sub: t('tileGouMayaBhasmaSub'),
+        route: 'GouMayaBhasma',
       },
       {
         icon: 'biravaPendant' as AppIconName,

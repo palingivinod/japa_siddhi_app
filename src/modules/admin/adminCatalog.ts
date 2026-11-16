@@ -63,7 +63,7 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     route: 'AdminProducts',
     status: 'done',
     notes:
-      'In/Out of Stock for Baanalingam, Ramakoti Books, Homa Bhasma, Bhirava Pendant',
+      'In/Out of Stock for Baanalingam, Ramakoti Books, Shivakoti Books, Homa Bhasma, Pooja Bhasmam, Bhirava Pendant',
   },
   {
     id: '10',

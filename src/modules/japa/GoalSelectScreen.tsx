@@ -244,31 +244,22 @@ const GoalSelectScreen = () => {
       }
       startingRef.current = false;
       setSaving(false);
-      const openChant = () => {
-        navigation.navigate('Chant', {
-          mode: route.params?.mode || 'community',
-          mantraId: route.params?.mantraId,
-          privateMantra: route.params?.privateMantra,
-          personalMantraId: route.params?.personalMantraId,
-          goal: finalGoal,
-          totalGoal: finalGoal,
-          goalType: 'date',
-          endDate: formatDate(endDate),
-          dailyTarget: finalDailyTarget,
-          japaGoalId: createdGoalId,
-          challengeId,
-          initialCount: route.params?.initialCount,
-          durationMs: 2500,
-          remainingDays,
-        });
-      };
-      Alert.alert(
-        t('japaCalmnessTitle') || 'Chant with calmness',
-        t('japaCalmnessBody') ||
-          "Mantra Japa is not for number of counts, you feel the vibration, the calmness, let your Blood pressure comes down to normal, your blood sugar will down if you are relaxed in the mantra japa, it is stress free, it is for longevity, to stay healthy. Your Japa should turn into Tapasya. Your inhale and exhale should be in line of your mantra japa.\n\nDon't run for numbers, do for your inner calmness. This Japasiddhi app should increase your life span\n\nAchieve this, Live long, Stay healthy",
-        [{text: t('ok') || 'OK', onPress: openChant}],
-        {cancelable: false},
-      );
+      navigation.navigate('Chant', {
+        mode: route.params?.mode || 'community',
+        mantraId: route.params?.mantraId,
+        privateMantra: route.params?.privateMantra,
+        personalMantraId: route.params?.personalMantraId,
+        goal: finalGoal,
+        totalGoal: finalGoal,
+        goalType: 'date',
+        endDate: formatDate(endDate),
+        dailyTarget: finalDailyTarget,
+        japaGoalId: createdGoalId,
+        challengeId,
+        initialCount: route.params?.initialCount,
+        durationMs: 2500,
+        remainingDays,
+      });
     }, 120);
   };
 
