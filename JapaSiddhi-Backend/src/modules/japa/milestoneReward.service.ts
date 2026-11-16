@@ -465,7 +465,7 @@ class MilestoneRewardService {
 
     const loadClaimFlags = async () => {
       const claimedRows = await mysql.query<any[]>(
-        \
+        `
         SELECT
           c.id,
           c.order_id AS orderId,
@@ -476,7 +476,7 @@ class MilestoneRewardService {
         LEFT JOIN orders o ON o.id = c.order_id
         WHERE c.user_id = ? AND c.milestone_target = ?
         LIMIT 1
-        \,
+        `,
         [userId, claimTarget],
       );
       const claim = claimedRows?.[0];
@@ -539,12 +539,12 @@ class MilestoneRewardService {
 
     const rewardKey = relativeRewardKey(rewardId, rewardName);
     const existingBaseline = await mysql.query<any[]>(
-      \
+      `
       SELECT baseline, unlock_target AS unlockTarget
       FROM relative_reward_baselines
       WHERE user_id = ? AND reward_key = ?
       LIMIT 1
-      \,
+      `,
       [userId, rewardKey],
     );
     let baseline = Number(existingBaseline?.[0]?.baseline);
@@ -554,20 +554,20 @@ class MilestoneRewardService {
       unlockTarget = baseline + extraJapas;
       try {
         await mysql.query(
-          \
+          `
           INSERT INTO relative_reward_baselines (user_id, reward_key, baseline, unlock_target)
           VALUES (?, ?, ?, ?)
-          \,
+          `,
           [userId, rewardKey, baseline, unlockTarget],
         );
       } catch {
         const again = await mysql.query<any[]>(
-          \
+          `
           SELECT baseline, unlock_target AS unlockTarget
           FROM relative_reward_baselines
           WHERE user_id = ? AND reward_key = ?
           LIMIT 1
-          \,
+          `,
           [userId, rewardKey],
         );
         baseline = Number(again?.[0]?.baseline ?? baseline);
