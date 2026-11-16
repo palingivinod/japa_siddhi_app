@@ -1643,12 +1643,222 @@ const categoryWhereSql = (filter: string) => {
 
 /** Inclusive IST calendar window for notification analytics (today + prior days). */
 const ANALYTICS_WINDOW_DAYS = 10;
+/** Cap names shown per broadcast so large "all" sends stay readable. */
+const ANALYTICS_RECIPIENT_PREVIEW_LIMIT = 40;
 
 const analyticsWindowStartIst = () => {
   const ms =
     Date.now() - (ANALYTICS_WINDOW_DAYS - 1) * 24 * 60 * 60 * 1000;
   const stamp = nowIstStamp(new Date(ms));
   return `${stamp.slice(0, 10)} 00:00:00`;
+};
+
+type AnalyticsRecipient = {
+  userId: number;
+  userCode: string;
+  name: string;
+  isRead: boolean | null;
+};
+
+const loadUserLabelsByIds = async (
+  userIds: number[],
+): Promise<Map<number, {userCode: string; name: string}>> => {
+  const ids = [
+    ...new Set(
+      (userIds || [])
+        .map(id => Number(id))
+        .filter(id => Number.isFinite(id) && id > 0),
+    ),
+  ];
+  const out = new Map<number, {userCode: string; name: string}>();
+  if (!ids.length) {
+    return out;
+  }
+  const placeholders = ids.map(() => '?').join(',');
+  try {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        u.id AS userId,
+        IFNULL(u.user_code, '') AS userCode,
+        IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name
+      FROM users u
+      WHERE u.id IN (${placeholders})
+      `,
+      ids,
+    );
+    for (const row of rows || []) {
+      const userId = Number(row.userId || 0);
+      if (!userId) continue;
+      out.set(userId, {
+        userCode: String(row.userCode || '').trim(),
+        name: String(row.name || 'Devotee').trim() || 'Devotee',
+      });
+    }
+  } catch (err) {
+    console.warn('loadUserLabelsByIds failed:', err);
+  }
+  return out;
+};
+
+/**
+ * Resolve who each analytics broadcast went to (UID + name).
+ * Prefer notification rows (includes read flag); fall back to queued recipient_ids.
+ */
+const loadAnalyticsRecipients = async (
+  pageRows: Array<{id: number; recipientIds?: unknown}>,
+): Promise<
+  Map<
+    number,
+    {
+      recipients: AnalyticsRecipient[];
+      recipientTotal: number;
+      recipientsTruncated: boolean;
+    }
+  >
+> => {
+  const out = new Map<
+    number,
+    {
+      recipients: AnalyticsRecipient[];
+      recipientTotal: number;
+      recipientsTruncated: boolean;
+    }
+  >();
+  const queueIds = (pageRows || [])
+    .map(row => Number(row.id))
+    .filter(id => Number.isFinite(id) && id > 0);
+  if (!queueIds.length) {
+    return out;
+  }
+
+  const totals = new Map<number, number>();
+  const byBroadcast = new Map<number, AnalyticsRecipient[]>();
+  const placeholders = queueIds.map(() => '?').join(',');
+
+  try {
+    const countRows = await mysql.query<any[]>(
+      `
+      SELECT
+        broadcast_id AS broadcastId,
+        COUNT(DISTINCT user_id) AS total
+      FROM notifications
+      WHERE broadcast_id IN (${placeholders})
+      GROUP BY broadcast_id
+      `,
+      queueIds,
+    );
+    for (const row of countRows || []) {
+      const broadcastId = Number(row.broadcastId || 0);
+      if (broadcastId) {
+        totals.set(broadcastId, Math.max(0, Number(row.total || 0)));
+      }
+    }
+  } catch (err) {
+    console.warn('loadAnalyticsRecipients counts failed:', err);
+  }
+
+  try {
+    await Promise.all(
+      queueIds.map(async broadcastId => {
+        const rows = await mysql.query<any[]>(
+          `
+          SELECT
+            n.user_id AS userId,
+            IFNULL(n.is_read, 0) AS isRead,
+            IFNULL(u.user_code, '') AS userCode,
+            IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name
+          FROM notifications n
+          LEFT JOIN users u ON u.id = n.user_id
+          WHERE n.broadcast_id = ?
+          ORDER BY u.full_name ASC, n.user_id ASC
+          LIMIT ?
+          `,
+          [broadcastId, ANALYTICS_RECIPIENT_PREVIEW_LIMIT],
+        );
+        const list: AnalyticsRecipient[] = [];
+        for (const row of rows || []) {
+          const userId = Number(row.userId || 0);
+          if (!userId || list.some(item => item.userId === userId)) continue;
+          list.push({
+            userId,
+            userCode: String(row.userCode || '').trim(),
+            name: String(row.name || 'Devotee').trim() || 'Devotee',
+            isRead: Number(row.isRead || 0) === 1,
+          });
+        }
+        if (list.length) {
+          byBroadcast.set(broadcastId, list);
+        }
+      }),
+    );
+  } catch (err) {
+    console.warn('loadAnalyticsRecipients preview failed:', err);
+  }
+
+  const fallbackIdSet = new Set<number>();
+  for (const row of pageRows || []) {
+    const id = Number(row.id);
+    if (!id) continue;
+    const fromNotes = byBroadcast.get(id) || [];
+    if (fromNotes.length) {
+      const recipientTotal = Math.max(totals.get(id) || 0, fromNotes.length);
+      out.set(id, {
+        recipients: fromNotes,
+        recipientTotal,
+        recipientsTruncated: recipientTotal > fromNotes.length,
+      });
+      continue;
+    }
+    for (const uid of parseRecipientIds(row.recipientIds)) {
+      fallbackIdSet.add(uid);
+    }
+  }
+
+  if (!fallbackIdSet.size) {
+    for (const row of pageRows || []) {
+      const id = Number(row.id);
+      if (id && !out.has(id)) {
+        out.set(id, {
+          recipients: [],
+          recipientTotal: 0,
+          recipientsTruncated: false,
+        });
+      }
+    }
+    return out;
+  }
+
+  const labels = await loadUserLabelsByIds([...fallbackIdSet]);
+  for (const row of pageRows || []) {
+    const id = Number(row.id);
+    if (!id || out.has(id)) continue;
+    const ids = parseRecipientIds(row.recipientIds);
+    if (!ids.length) {
+      out.set(id, {
+        recipients: [],
+        recipientTotal: 0,
+        recipientsTruncated: false,
+      });
+      continue;
+    }
+    const recipients: AnalyticsRecipient[] = ids.map(userId => {
+      const label = labels.get(userId);
+      return {
+        userId,
+        userCode: label?.userCode || '',
+        name: label?.name || `User #${userId}`,
+        isRead: null,
+      };
+    });
+    out.set(id, {
+      recipients: recipients.slice(0, ANALYTICS_RECIPIENT_PREVIEW_LIMIT),
+      recipientTotal: recipients.length,
+      recipientsTruncated: recipients.length > ANALYTICS_RECIPIENT_PREVIEW_LIMIT,
+    });
+  }
+
+  return out;
 };
 
 export const getNotificationAnalytics = async (opts?: {
@@ -1746,6 +1956,7 @@ export const getNotificationAnalytics = async (opts?: {
           title,
           message,
           target_group AS targetGroup,
+          recipient_ids AS recipientIds,
           recipient_count AS recipientCount,
           IFNULL(read_count, 0) AS readCount,
           send_at AS sendAt,
@@ -1807,6 +2018,20 @@ export const getNotificationAnalytics = async (opts?: {
     }
   }
 
+  let recipientMap = new Map<
+    number,
+    {
+      recipients: AnalyticsRecipient[];
+      recipientTotal: number;
+      recipientsTruncated: boolean;
+    }
+  >();
+  try {
+    recipientMap = await loadAnalyticsRecipients(pageRows || []);
+  } catch (err) {
+    console.warn('analytics recipients enrich failed:', err);
+  }
+
   const items = (pageRows || []).map(row => {
     const sentCount = Math.max(0, Number(row.recipientCount || 0));
     const id = Number(row.id);
@@ -1823,6 +2048,7 @@ export const getNotificationAnalytics = async (opts?: {
       row.title,
       row.category,
     );
+    const recipientInfo = recipientMap.get(id);
     return {
       id,
       title: row.title,
@@ -1837,6 +2063,11 @@ export const getNotificationAnalytics = async (opts?: {
       readCount,
       unreadCount,
       readRate,
+      recipients: recipientInfo?.recipients || [],
+      recipientTotal:
+        recipientInfo?.recipientTotal ??
+        Math.max(0, Number(row.recipientCount || 0)),
+      recipientsTruncated: Boolean(recipientInfo?.recipientsTruncated),
     };
   });
 

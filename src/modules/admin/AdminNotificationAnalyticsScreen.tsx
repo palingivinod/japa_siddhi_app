@@ -16,6 +16,13 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
 
+export type NotificationAnalyticsRecipient = {
+  userId: number;
+  userCode?: string;
+  name: string;
+  isRead?: boolean | null;
+};
+
 export type NotificationAnalyticsItem = {
   id: number;
   title: string;
@@ -28,6 +35,9 @@ export type NotificationAnalyticsItem = {
   readCount: number;
   unreadCount: number;
   readRate: number;
+  recipients?: NotificationAnalyticsRecipient[];
+  recipientTotal?: number;
+  recipientsTruncated?: boolean;
 };
 
 export type AnalyticsSummary = {
@@ -173,6 +183,9 @@ const AdminNotificationAnalyticsScreen = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeTab, setActiveTab] = useState<FilterCategory>('general');
   const [expandedIds, setExpandedIds] = useState<Record<number, boolean>>({});
+  const [expandedRecipients, setExpandedRecipients] = useState<
+    Record<number, boolean>
+  >({});
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [hasMore, setHasMore] = useState(false);
@@ -262,6 +275,10 @@ const AdminNotificationAnalyticsScreen = () => {
 
   const toggleExpand = (id: number) => {
     setExpandedIds(prev => ({...prev, [id]: !prev[id]}));
+  };
+
+  const toggleRecipients = (id: number) => {
+    setExpandedRecipients(prev => ({...prev, [id]: !prev[id]}));
   };
 
   const categoryCounts = useMemo(
@@ -397,7 +414,14 @@ const AdminNotificationAnalyticsScreen = () => {
 
   const renderItem = ({item}: {item: NotificationAnalyticsItem}) => {
     const isExpanded = Boolean(expandedIds[item.id]);
+    const showRecipients = Boolean(expandedRecipients[item.id]);
     const itemCategory = resolveItemCategory(item);
+    const recipients = Array.isArray(item.recipients) ? item.recipients : [];
+    const recipientTotal = Math.max(
+      Number(item.recipientTotal || 0),
+      recipients.length,
+      Number(item.sentCount || 0),
+    );
 
     return (
       <View style={styles.card}>
@@ -486,6 +510,70 @@ const AdminNotificationAnalyticsScreen = () => {
             <Text style={styles.statLabel}>📈 Read Rate</Text>
           </View>
         </View>
+
+        <TouchableOpacity
+          style={styles.recipientsToggle}
+          activeOpacity={0.75}
+          onPress={() => toggleRecipients(item.id)}>
+          <Text style={styles.recipientsToggleText}>
+            {showRecipients
+              ? 'Hide recipients ▲'
+              : `Show recipients (${recipientTotal.toLocaleString('en-IN')}) ▼`}
+          </Text>
+        </TouchableOpacity>
+
+        {showRecipients ? (
+          <View style={styles.recipientsBox}>
+            {recipients.length === 0 ? (
+              <Text style={styles.recipientEmpty}>
+                Recipient names not available for this batch yet.
+              </Text>
+            ) : (
+              recipients.map(person => {
+                const code = String(person.userCode || '').trim();
+                const uidLabel = code || `UID ${person.userId}`;
+                const readLabel =
+                  person.isRead === true
+                    ? 'Read'
+                    : person.isRead === false
+                      ? 'Unread'
+                      : null;
+                return (
+                  <View
+                    key={`${item.id}-${person.userId}`}
+                    style={styles.recipientRow}>
+                    <View style={styles.recipientCopy}>
+                      <Text style={styles.recipientName}>
+                        {person.name || 'Devotee'}
+                      </Text>
+                      <Text style={styles.recipientMeta}>
+                        {uidLabel}
+                        {code && person.userId ? ` · #${person.userId}` : ''}
+                      </Text>
+                    </View>
+                    {readLabel ? (
+                      <Text
+                        style={[
+                          styles.recipientRead,
+                          person.isRead
+                            ? styles.recipientReadOn
+                            : styles.recipientReadOff,
+                        ]}>
+                        {readLabel}
+                      </Text>
+                    ) : null}
+                  </View>
+                );
+              })
+            )}
+            {item.recipientsTruncated ? (
+              <Text style={styles.recipientMore}>
+                Showing first {recipients.length.toLocaleString('en-IN')} of{' '}
+                {recipientTotal.toLocaleString('en-IN')} recipients.
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
       </View>
     );
   };
@@ -850,6 +938,63 @@ const styles = StyleSheet.create({
     width: 1,
     height: 24,
     backgroundColor: '#E5E7EB',
+  },
+  recipientsToggle: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingVertical: 4,
+  },
+  recipientsToggleText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  recipientsBox: {
+    marginTop: 6,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  recipientRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 7,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E5E7EB',
+    gap: 8,
+  },
+  recipientCopy: {flex: 1},
+  recipientName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  recipientMeta: {
+    marginTop: 2,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  recipientRead: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  recipientReadOn: {color: '#15803D'},
+  recipientReadOff: {color: '#6B7280'},
+  recipientEmpty: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    paddingVertical: 6,
+  },
+  recipientMore: {
+    marginTop: 8,
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: '600',
   },
   emptyBox: {
     alignItems: 'center',
