@@ -57,7 +57,9 @@ export const kn: TranslationDict = {
   tileGouMayaBhasmaSub: 'ಪೂಜಾ ಭಸ್ಮ ಕೇಳಿ',
   gouMayaBhasma: 'ಪೂಜಾ ಭಸ್ಮ',
   gouMayaBhasmaDesc:
-    'ಪವಿತ್ರ ಪೂಜಾ ಭಸ್ಮ ಉಚಿತವಾಗಿ ಸಿಗುತ್ತದೆ — ಆಧ್ಯಾತ್ಮಿಕ ಶುದ್ಧೀಕರಣ ಮತ್ತು ರಕ್ಷಣೆಗಾಗಿ.',
+    'ಪೂಜೆ, ಅಭಿಷೇಕ ಮತ್ತು ಅಲಂಕಾರಕ್ಕಾಗಿ ಭಸ್ಮ. ಈ ಭಸ್ಮವನ್ನು ದೇಸಿ ಹಸುವಿನ ಸಗಣಿಯಿಂದ ತಯಾರಿಸಲಾಗುತ್ತದೆ.',
+  gouMayaRegisterNote:
+    'ಗಮನಿಸಿ: ಭಸ್ಮ ಮುಗಿಯುವ ಹಂತದಲ್ಲಿ ಮತ್ತೆ ವಿನಂತಿಸಲು ಈ ಬುಕಿಂಗ್ ಮಾಡಿ.',
   tileBirava: 'ಭಿರವ ಪೆಂಡೆಂಟ್',
   tileBiravaSub: 'ಪೆಂಡೆಂಟ್ ಕೇಳಿ',
   freeDistribution: '(ಉಚಿತ ವಿತರಣೆ)',

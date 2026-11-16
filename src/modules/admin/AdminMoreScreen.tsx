@@ -14,33 +14,17 @@ type MoreLink = {
   params?: Record<string, string>;
 };
 
-const MORE_LINKS: MoreLink[] = [
-  {
-    title: 'Anna Santharpana',
-    route: 'AdminSevaDetailList',
-    params: {type: 'ANNADANAM', title: 'Anna Santharpana'},
-    sub: 'Food offering bookings & prefer dates',
-  },
-  {
-    title: 'Nithya Homam',
-    route: 'AdminSevaDetailList',
-    params: {type: 'NITHYA_HOMAM', title: 'Nithya Homam'},
-    sub: 'Homam offerings, gotram & prefer dates',
-  },
+const MORE_LINKS_RAW: MoreLink[] = [
   {
     title: 'Add Admin',
     route: 'AdminAccounts',
     sub: 'Create login credentials for another admin',
   },
   {
-    title: 'User Reports',
-    route: 'AdminUsers',
-    sub: 'Users and demographics',
-  },
-  {
-    title: 'Japa Reports',
-    route: 'AdminJapaAnalytics',
-    sub: 'Japa counts by mantra and period',
+    title: 'Anna Santharpana',
+    route: 'AdminSevaDetailList',
+    params: {type: 'ANNADANAM', title: 'Anna Santharpana'},
+    sub: 'Food offering bookings & prefer dates',
   },
   {
     title: 'Challenge Reports',
@@ -53,16 +37,37 @@ const MORE_LINKS: MoreLink[] = [
     sub: 'Birthdays and occasions',
   },
   {
-    title: 'Rewards Reports',
-    route: 'AdminRewards',
-    sub: 'Rewards catalog and Excel',
+    title: 'Japa Reports',
+    route: 'AdminJapaAnalytics',
+    sub: 'Japa counts by mantra and period',
+  },
+  {
+    title: 'Nithya Homam',
+    route: 'AdminSevaDetailList',
+    params: {type: 'NITHYA_HOMAM', title: 'Nithya Homam'},
+    sub: 'Homam offerings, gotram & prefer dates',
   },
   {
     title: 'Region analytics',
     route: 'AdminRegionAnalytics',
     sub: 'People, japa count, and mantras by place',
   },
+  {
+    title: 'Rewards Reports',
+    route: 'AdminRewards',
+    sub: 'Rewards catalog and Excel',
+  },
+  {
+    title: 'User Reports',
+    route: 'AdminUsers',
+    sub: 'Users and demographics',
+  },
 ];
+
+/** Admin More buttons — always A→Z by title. Sign out stays last. */
+const MORE_LINKS = [...MORE_LINKS_RAW].sort((a, b) =>
+  a.title.localeCompare(b.title, undefined, {sensitivity: 'base'}),
+);
 
 const AdminMoreScreen = () => {
   const navigation = useNavigation<any>();

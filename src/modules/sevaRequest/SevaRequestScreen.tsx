@@ -64,8 +64,6 @@ const SevaRequestScreen = () => {
   const [address, setAddress] = useState('');
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
-  const [gothram, setGothram] = useState('');
-  const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
   const [largePhoto, setLargePhoto] = useState<number | null>(null);
   const [videoOpening, setVideoOpening] = useState(false);
@@ -161,14 +159,6 @@ const SevaRequestScreen = () => {
             current => current || digitsOnly(String(phone)).slice(-MOBILE_DIGITS),
           );
         }
-        if (profile?.gothram || stored?.gothram) {
-          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
-        }
-        if (profile?.nakshatram || stored?.nakshatram) {
-          setNakshatram(
-            current => current || String(profile?.nakshatram || stored?.nakshatram || ''),
-          );
-        }
         setSavedAddresses(addresses);
         if (route.params?.selectedAddress) {
           setAddress(route.params.selectedAddress);
@@ -234,8 +224,6 @@ const SevaRequestScreen = () => {
       city: parsed.city,
       state: parsed.state,
       pinCode: parsed.pinCode,
-      gothram,
-      nakshatram,
       comments: comments.trim(),
     });
   };
@@ -377,13 +365,6 @@ const SevaRequestScreen = () => {
           {t('flatDoorStreetAreaNote')}
         </Text>
       </View>
-      <FormField label="Gothram" placeholder="Optional" value={gothram} onChangeText={setGothram} />
-      <FormField
-        label="Nakshatram"
-        placeholder="Optional"
-        value={nakshatram}
-        onChangeText={setNakshatram}
-      />
       <FormField
         label={t('comments')}
         placeholder={t('generalCommentsPlaceholder')}

@@ -68,7 +68,9 @@ export const hi: TranslationDict = {
   tileGouMayaBhasmaSub: 'पूजा भस्म का अनुरोध',
   gouMayaBhasma: 'पूजा भस्म',
   gouMayaBhasmaDesc:
-    'आपको पवित्र पूजा भस्म निःशुल्क मिलेगी — आध्यात्मिक शुद्धिकरण और सुरक्षा के लिए।',
+    'पूजा, अभिषेक और अलंकारम के लिए भस्म। यह भस्म देसी गौ गोबर से बनाई जाती है।',
+  gouMayaRegisterNote:
+    'नोट: भस्म पूरा होने के निकट होने पर फिर से अनुरोध के लिए यह बुकिंग करें।',
   tileBirava: 'भिरावा पेंडेंट',
   tileBiravaSub: 'पेंडेंट का अनुरोध',
   freeDistribution: '(निःशुल्क वितरण)',
@@ -1141,7 +1143,9 @@ export const te: TranslationDict = {
   tileGouMayaBhasmaSub: 'పూజ భస్మం అభ్యర్థన',
   gouMayaBhasma: 'పూజ భస్మం',
   gouMayaBhasmaDesc:
-    'పవిత్ర పూజ భస్మం ఉచితంగా అందుతుంది — ఆధ్యాత్మిక శుద్ధి మరియు రక్షణ కోసం.',
+    'పూజ, అభిషేకం మరియు అలంకారం కోసం భస్మం. ఈ భస్మం దేశి ఆవు పేడ నుండి తయారు చేయబడుతుంది.',
+  gouMayaRegisterNote:
+    'గమనిక: భస్మం పూర్తికి దగ్గరగా ఉన్నప్పుడు మళ్లీ అభ్యర్థించడానికి ఈ బుకింగ్ చేయండి.',
   tileBirava: 'భైరవ పెండెంట్',
   tileBiravaSub: 'పెండెంట్ అభ్యర్థన',
   freeDistribution: '(ఉచిత పంపిణీ)',

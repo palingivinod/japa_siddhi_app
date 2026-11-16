@@ -57,7 +57,9 @@ export const mr: TranslationDict = {
   tileGouMayaBhasmaSub: 'पूजा भस्माची विनंती',
   gouMayaBhasma: 'पूजा भस्म',
   gouMayaBhasmaDesc:
-    'पवित्र पूजा भस्म मोफत मिळेल — आध्यात्मिक शुद्धीकरण आणि संरक्षणासाठी.',
+    'पूजा, अभिषेक आणि अलंकारमसाठी भस्म. हे भस्म देशी गायीच्या शेणापासून बनवले जाते.',
+  gouMayaRegisterNote:
+    'टीप: भस्म संपत आल्यावर पुन्हा विनंती करण्यासाठी ही बुकिंग करा.',
   tileBirava: 'भिरावा पेंडंट',
   tileBiravaSub: 'पेंडंटची विनंती',
   freeDistribution: '(मोफत वितरण)',

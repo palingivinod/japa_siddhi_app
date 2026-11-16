@@ -57,7 +57,9 @@ export const or: TranslationDict = {
   tileGouMayaBhasmaSub: 'ପୂଜା ଭସ୍ମ ଅନୁରୋଧ',
   gouMayaBhasma: 'ପୂଜା ଭସ୍ମ',
   gouMayaBhasmaDesc:
-    'ପବିତ୍ର ପୂଜା ଭସ୍ମ ମାଗଣାରେ ମିଳିବ — ଆଧ୍ୟାତ୍ମିକ ଶୁଦ୍ଧିକରଣ ଓ ସୁରକ୍ଷା ପାଇଁ।',
+    'ପୂଜା, ଅଭିଷେକ ଓ ଅଲଙ୍କାର ପାଇଁ ଭସ୍ମ। ଏହି ଭସ୍ମ ଦେଶୀ ଗାଈ ଗୋବରରୁ ତିଆରି ହୁଏ।',
+  gouMayaRegisterNote:
+    'ନୋଟ୍: ଭସ୍ମ ସମାପ୍ତି ନିକଟରେ ପୁନର୍ବାର ଅନୁରୋଧ କରିବାକୁ ଏହି ବୁକିଙ୍ଗ କରନ୍ତୁ।',
   tileBirava: 'ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ',
   tileBiravaSub: 'ପେଣ୍ଡାଣ୍ଟ ଅନୁରୋଧ',
   freeDistribution: '(ମାଗଣା ବିତରଣ)',

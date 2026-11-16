@@ -57,7 +57,9 @@ export const bn: TranslationDict = {
   tileGouMayaBhasmaSub: 'পূজা ভস্মের অনুরোধ',
   gouMayaBhasma: 'পূজা ভস্ম',
   gouMayaBhasmaDesc:
-    'পবিত্র পূজা ভস্ম বিনামূল্যে পাবেন — আধ্যাত্মিক শুদ্ধিকরণ ও সুরক্ষার জন্য।',
+    'পূজা, অভিষেক ও অলংকারের জন্য ভস্ম। এই ভস্ম দেশী গরুর গোবর থেকে তৈরি হয়।',
+  gouMayaRegisterNote:
+    'নোট: ভস্ম শেষ হওয়ার কাছাকাছি আবার অনুরোধ করতে এই বুকিং করুন।',
   tileBirava: 'ভীরাভা পেন্ডেন্ট',
   tileBiravaSub: 'পেন্ডেন্টের অনুরোধ',
   freeDistribution: '(বিনামূল্যে বিতরণ)',

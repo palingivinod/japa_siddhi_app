@@ -358,7 +358,9 @@ const en = {
   tileGouMayaBhasmaSub: 'Request Pooja Bhasmam',
   gouMayaBhasma: 'Pooja Bhasmam',
   gouMayaBhasmaDesc:
-    'You will receive sacred Pooja Bhasmam free of charge for spiritual purification and protection.',
+    'Bhasma for doing pooja, abhishekam and alankaram. Bhasma is manufactured from desi cow dung.',
+  gouMayaRegisterNote:
+    'Note: To request again, book this when you are nearing completion of the Bhasmam.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
   freeDistribution: '(Free Distribution)',
