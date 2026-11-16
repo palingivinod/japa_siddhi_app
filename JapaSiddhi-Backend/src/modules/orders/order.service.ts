@@ -19,10 +19,14 @@ class OrderService {
 
     const {numberPrefix, ...order} = data;
 
-    if (order.userId && order.orderType) {
-      const activeOrder = await orderRepository.findActiveOrderForKind(
+    // Product orders: one open (non-delivered) order blocks all new product orders.
+    // Homam / Annadanam seva rows are excluded.
+    const orderType = String(order.orderType || '').toUpperCase();
+    const isSevaRow =
+      orderType === 'NITHYA_HOMAM' || orderType === 'ANNADANAM';
+    if (order.userId && order.orderType && !isSevaRow) {
+      const activeOrder = await orderRepository.findAnyActiveProductOrder(
         order.userId,
-        order.orderType,
       );
       if (activeOrder) {
         throw new AppError(

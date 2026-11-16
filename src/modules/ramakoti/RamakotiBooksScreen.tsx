@@ -65,27 +65,22 @@ const RamakotiBooksScreen = () => {
         }
 
         const allOrders = ordersRes?.data?.data || [];
-        const undeliveredOrder = allOrders.find((ord: any) => {
-          const type = String(ord.orderType || '').toUpperCase();
-          const name = String(ord.itemName || '').toLowerCase();
-          const num = String(ord.orderNumber || '').toUpperCase();
-          const isRk =
-            type === 'RAMAKOTI_BOOKS' ||
-            name.includes('ramakoti') ||
-            num.startsWith('RK') ||
-            num.startsWith('#RK');
-          const status = String(ord.orderStatus || ord.status || '').toUpperCase();
-          const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
-          return isRk && !isFinished;
-        });
+        const {findOpenProductOrder} = await import(
+          '../../utils/openProductOrderGate'
+        );
+        const undeliveredOrder = findOpenProductOrder(allOrders);
 
         if (undeliveredOrder) {
           setHasActiveOrder(true);
           setActiveOrder(undeliveredOrder);
           Alert.alert(
-            t('ramakotiPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review',
-            t('ramakotiPendingOrderMessage') ||
-              'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
+            t('openOrderBlockTitle') ||
+              t('ramakotiPendingOrderTitle') ||
+              t('banaLingamPendingOrderTitle') ||
+              'Order In Review',
+            t('openOrderBlockMessage') ||
+              t('ramakotiPendingOrderMessage') ||
+              'Already one order is in review. You can order another once your previous order is delivered.',
             [
               {
                 text: t('myOrders') || 'My Orders',
@@ -139,9 +134,13 @@ const RamakotiBooksScreen = () => {
   const submit = async () => {
     if (hasActiveOrder) {
       Alert.alert(
-        t('ramakotiPendingOrderTitle') || t('banaLingamPendingOrderTitle') || 'Order In Review',
-        t('ramakotiPendingOrderMessage') ||
-          'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
+        t('openOrderBlockTitle') ||
+          t('ramakotiPendingOrderTitle') ||
+          t('banaLingamPendingOrderTitle') ||
+          'Order In Review',
+        t('openOrderBlockMessage') ||
+          t('ramakotiPendingOrderMessage') ||
+          'Already one order is in review. You can order another once your previous order is delivered.',
         [
           {
             text: t('myOrders') || 'My Orders',

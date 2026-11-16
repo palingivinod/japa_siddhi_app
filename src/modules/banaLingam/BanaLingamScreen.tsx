@@ -114,15 +114,11 @@ const BanaLingamScreen = () => {
             .toUpperCase()
             .replace(/[-\s]/g, '_');
 
-        const undeliveredOrder = allOrders.find((ord: any) => {
-          const status = statusOf(ord);
-          return (
-            isBanaOrder(ord) &&
-            status !== 'DELIVERED' &&
-            status !== 'CANCELLED' &&
-            status !== 'CANCELED'
-          );
-        });
+        const {findOpenProductOrder} = await import(
+          '../../utils/openProductOrderGate'
+        );
+        // Any undelivered product order blocks new orders globally.
+        const undeliveredOrder = findOpenProductOrder(allOrders);
         // Lifetime lock: any non-cancelled Baanalingam / Marakata (Ghar Ghar Mahadev).
         const lifetimeBana = allOrders.find(
           (ord: any) =>
@@ -141,8 +137,8 @@ const BanaLingamScreen = () => {
           setHasActiveOrder(true);
           setActiveOrder(undeliveredOrder);
           Alert.alert(
-            t('banaLingamPendingOrderTitle'),
-            t('banaLingamPendingOrderMessage'),
+            t('openOrderBlockTitle') || t('banaLingamPendingOrderTitle'),
+            t('openOrderBlockMessage') || t('banaLingamPendingOrderMessage'),
             [
               {
                 text: t('myOrders'),
@@ -230,8 +226,8 @@ const BanaLingamScreen = () => {
   const submit = async () => {
     if (hasActiveOrder) {
       Alert.alert(
-        t('banaLingamPendingOrderTitle'),
-        t('banaLingamPendingOrderMessage'),
+        t('openOrderBlockTitle') || t('banaLingamPendingOrderTitle'),
+        t('openOrderBlockMessage') || t('banaLingamPendingOrderMessage'),
         [
           {
             text: t('myOrders'),
@@ -308,10 +304,10 @@ const BanaLingamScreen = () => {
           <Text style={styles.pendingOrderIcon}>⏳</Text>
           <View style={styles.pendingOrderTextCol}>
             <Text style={styles.pendingOrderTitle}>
-              {t('banaLingamPendingOrderTitle')}
+              {t('openOrderBlockTitle') || t('banaLingamPendingOrderTitle')}
             </Text>
             <Text style={styles.pendingOrderDesc}>
-              {t('banaLingamPendingOrderMessage')}
+              {t('openOrderBlockMessage') || t('banaLingamPendingOrderMessage')}
             </Text>
             {activeOrder?.orderNumber ? (
               <Text style={styles.pendingOrderNum}>
@@ -429,7 +425,7 @@ const BanaLingamScreen = () => {
       <PrimaryButton
         title={
           hasActiveOrder
-            ? t('banaLingamPendingOrderTitle')
+            ? t('openOrderBlockTitle') || t('banaLingamPendingOrderTitle')
             : fullName.trim() &&
                 isMobile(mobile) &&
                 address.trim() &&

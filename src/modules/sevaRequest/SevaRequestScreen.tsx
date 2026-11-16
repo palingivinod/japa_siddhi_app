@@ -116,29 +116,29 @@ const SevaRequestScreen = () => {
         }
 
         const allOrders = ordersRes?.data?.data || [];
-        const undeliveredOrder = allOrders.find((ord: any) => {
-          const type = String(ord.orderType || '').toUpperCase();
-          const name = String(ord.itemName || '').toLowerCase();
-          const num = String(ord.orderNumber || '').toUpperCase();
-          const isMatch = request.matchOrder(type, name, num);
-          const status = String(ord.orderStatus || ord.status || '').toUpperCase();
-          const isFinished = status === 'DELIVERED' || status === 'CANCELLED';
-          return isMatch && !isFinished;
-        });
+        const {findOpenProductOrder} = await import(
+          '../../utils/openProductOrderGate'
+        );
+        // Any undelivered product order blocks every new product order.
+        const undeliveredOrder = findOpenProductOrder(allOrders);
 
         if (undeliveredOrder) {
           setHasActiveOrder(true);
           setActiveOrder(undeliveredOrder);
-          Alert.alert(pendingTitle, pendingMessage, [
-            {
-              text: t('myOrders') || 'My Orders',
-              onPress: () => navigation.navigate('Orders'),
-            },
-            {
-              text: t('ok') || 'OK',
-              style: 'cancel',
-            },
-          ]);
+          Alert.alert(
+            t('openOrderBlockTitle') || pendingTitle,
+            t('openOrderBlockMessage') || pendingMessage,
+            [
+              {
+                text: t('myOrders') || 'My Orders',
+                onPress: () => navigation.navigate('Orders'),
+              },
+              {
+                text: t('ok') || 'OK',
+                style: 'cancel',
+              },
+            ],
+          );
         } else {
           setHasActiveOrder(false);
           setActiveOrder(null);
@@ -181,16 +181,20 @@ const SevaRequestScreen = () => {
 
   const submit = async () => {
     if (hasActiveOrder) {
-      Alert.alert(pendingTitle, pendingMessage, [
-        {
-          text: t('myOrders') || 'My Orders',
-          onPress: () => navigation.navigate('Orders'),
-        },
-        {
-          text: t('ok') || 'OK',
-          style: 'cancel',
-        },
-      ]);
+      Alert.alert(
+        t('openOrderBlockTitle') || pendingTitle,
+        t('openOrderBlockMessage') || pendingMessage,
+        [
+          {
+            text: t('myOrders') || 'My Orders',
+            onPress: () => navigation.navigate('Orders'),
+          },
+          {
+            text: t('ok') || 'OK',
+            style: 'cancel',
+          },
+        ],
+      );
       return;
     }
     if (!fullName.trim() || !mobile.trim() || !address.trim()) {

@@ -120,13 +120,10 @@ class ShivaLingaEligibilityService {
   }
 
   async assertCanOrderBaanalingam(userId: number) {
-    const active = await orderRepository.findActiveOrderForKind(
-      userId,
-      'BANA_LINGAM',
-    );
-    if (active) {
+    const activeAny = await orderRepository.findAnyActiveProductOrder(userId);
+    if (activeAny) {
       throw new AppError(
-        `Already one Baanalingam order (${active.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+        `Already one order (${activeAny.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
         400,
       );
     }
@@ -145,6 +142,14 @@ class ShivaLingaEligibilityService {
   }
 
   async assertCanOrderMarakata(userId: number) {
+    const activeAny = await orderRepository.findAnyActiveProductOrder(userId);
+    if (activeAny) {
+      throw new AppError(
+        `Already one order (${activeAny.orderNumber}) is in progress. You can order another once your previous order is delivered.`,
+        400,
+      );
+    }
+
     const allowReorder = await this.isReorderAllowed(userId);
     if (allowReorder) {
       return {allowReorder: true};

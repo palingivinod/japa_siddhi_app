@@ -697,6 +697,67 @@ class OrderRepository {
 
   }
 
+  /**
+   * Any undelivered product order (blocks new product orders globally).
+   * Excludes Nithya Homam / Annadanam seva rows.
+   */
+  async findAnyActiveProductOrder(
+    userId: number,
+  ): Promise<{id: number; orderNumber: string; orderStatus: string; orderType?: string} | null> {
+    if (!userId) {
+      return null;
+    }
+    await this.ensureUserDeletedColumn();
+
+    const selectActive = async (withDeletedFilter: boolean) => {
+      const deletedSql = withDeletedFilter
+        ? 'AND COALESCE(deleted_by_user, 0) = 0'
+        : '';
+      return mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          order_number AS orderNumber,
+          order_status AS orderStatus,
+          order_type AS orderType
+        FROM orders
+        WHERE user_id = ?
+          AND UPPER(IFNULL(order_type, '')) NOT IN ('NITHYA_HOMAM', 'ANNADANAM')
+          ${deletedSql}
+          AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+              NOT IN ('DELIVERED', 'CANCELLED', 'CANCELED')
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [userId],
+      );
+    };
+
+    let rows: any[] = [];
+    try {
+      rows = (await selectActive(true)) || [];
+    } catch {
+      try {
+        rows = (await selectActive(false)) || [];
+      } catch (error: any) {
+        throw new Error(
+          error?.message ||
+            'Unable to verify existing orders. Please try again.',
+        );
+      }
+    }
+
+    if (rows && rows.length > 0) {
+      return {
+        id: rows[0].id,
+        orderNumber: rows[0].orderNumber || `#${rows[0].id}`,
+        orderStatus: rows[0].orderStatus,
+        orderType: rows[0].orderType,
+      };
+    }
+    return null;
+  }
+
   async findActiveOrderForKind(
     userId: number,
     kind: string,

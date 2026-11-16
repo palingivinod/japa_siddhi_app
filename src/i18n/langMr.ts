@@ -213,15 +213,18 @@ export const mr: TranslationDict = {
   tileJapaSub: 'सुरू करा किंवा सुरू ठेवा',
   tileBaanalingam: 'बाणलिंग',
   tileBaanalingamSub: 'अर्ज / ऑर्डर',
+  openOrderBlockTitle: 'ऑर्डर पुनरावलोकनात आहे',
+  openOrderBlockMessage:
+    'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
   banaLingamPendingOrderTitle: 'ऑर्डर पुनरावलोकनात आहे',
   banaLingamPendingOrderMessage:
     'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
-  shivakotiPendingOrderTitle: 'शिव कोटी ऑर्डर पुनरावलोकनात आहे',
+  shivakotiPendingOrderTitle: 'ऑर्डर पुनरावलोकनात आहे',
   shivakotiPendingOrderMessage:
-    'आधीच एक शिव कोटी पुस्तकांचा ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
-  gouMayaPendingOrderTitle: 'पूजा भस्म ऑर्डर पुनरावलोकनात आहे',
+    'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
+  gouMayaPendingOrderTitle: 'ऑर्डर पुनरावलोकनात आहे',
   gouMayaPendingOrderMessage:
-    'आधीच एक पूजा भस्म ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
+    'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पण करा',
   tileNithyaHomam: 'नित्य होम',

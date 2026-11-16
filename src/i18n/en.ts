@@ -322,24 +322,27 @@ const en = {
   tileJapaSub: 'Start or resume',
   tileBaanalingam: 'Baanalingam',
   tileBaanalingamSub: 'Apply / order',
+  openOrderBlockTitle: 'Order In Review',
+  openOrderBlockMessage:
+    'Already one order is in review. You can order another once your previous order is delivered.',
   banaLingamPendingOrderTitle: 'Order In Review',
   banaLingamPendingOrderMessage:
     'Already one order is in review. You can order another once your previous order is delivered.',
-  ramakotiPendingOrderTitle: 'Ramakoti Books Order In Review',
+  ramakotiPendingOrderTitle: 'Order In Review',
   ramakotiPendingOrderMessage:
-    'Already one Ramakoti Books order is in review. You can order another once your previous order is delivered.',
-  homaBhasmaPendingOrderTitle: 'Homa Bhasmam Order In Review',
+    'Already one order is in review. You can order another once your previous order is delivered.',
+  homaBhasmaPendingOrderTitle: 'Order In Review',
   homaBhasmaPendingOrderMessage:
-    'Already one Homa Bhasmam order is in review. You can order another once your previous order is delivered.',
-  biravaPendingOrderTitle: 'Bhirava Pendant Order In Review',
+    'Already one order is in review. You can order another once your previous order is delivered.',
+  biravaPendingOrderTitle: 'Order In Review',
   biravaPendingOrderMessage:
-    'Already one Bhirava Pendant order is in review. You can order another once your previous order is delivered.',
-  shivakotiPendingOrderTitle: 'Siva Koti Books Order In Review',
+    'Already one order is in review. You can order another once your previous order is delivered.',
+  shivakotiPendingOrderTitle: 'Order In Review',
   shivakotiPendingOrderMessage:
-    'Already one Siva Koti Books order is in review. You can order another once your previous order is delivered.',
-  gouMayaPendingOrderTitle: 'Pooja Bhasmam Order In Review',
+    'Already one order is in review. You can order another once your previous order is delivered.',
+  gouMayaPendingOrderTitle: 'Order In Review',
   gouMayaPendingOrderMessage:
-    'Already one Pooja Bhasmam order is in review. You can order another once your previous order is delivered.',
+    'Already one order is in review. You can order another once your previous order is delivered.',
   tileAnnadanam: 'Anna Santharpana',
   tileAnnadanamSub: 'Offer Anna Santharpana',
   tileNithyaHomam: 'Nithya Homam',

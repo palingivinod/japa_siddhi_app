@@ -213,6 +213,9 @@ export const ml: TranslationDict = {
   tileJapaSub: 'ആരംഭിക്കുക അല്ലെങ്കിൽ തുടരുക',
   tileBaanalingam: 'Baanalingam',
   tileBaanalingamSub: 'അപേക്ഷ / ഓർഡർ',
+  openOrderBlockTitle: 'ഓർഡർ അവലോകനത്തിലാണ്',
+  openOrderBlockMessage:
+    'ഇതിനകം ഒരു ഓർഡർ അവലോകനത്തിലാണ്. മുമ്പത്തെ ഓർഡർ ഡെലിവർ ചെയ്ത ശേഷം നിങ്ങൾക്ക് മറ്റൊന്ന് ഓർഡർ ചെയ്യാം.',
   banaLingamPendingOrderTitle: 'ഓർഡർ അവലോകനത്തിലാണ്',
   banaLingamPendingOrderMessage:
     'ഇതിനകം ഒരു ഓർഡർ അവലോകനത്തിലാണ്. നിങ്ങളുടെ മുൻ ഓർഡർ ഡെലിവറി ചെയ്ത ശേഷം നിങ്ങൾക്ക് മറ്റൊന്ന് ഓർഡർ ചെയ്യാം.',

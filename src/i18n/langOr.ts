@@ -213,15 +213,18 @@ export const or: TranslationDict = {
   tileJapaSub: 'ଆରମ୍ଭ କିମ୍ବା ଜାରି ରଖନ୍ତୁ',
   tileBaanalingam: 'ବାଣଲିଙ୍ଗ',
   tileBaanalingamSub: 'ଆବେଦନ / ଅର୍ଡର',
+  openOrderBlockTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
+  openOrderBlockMessage:
+    'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
   banaLingamPendingOrderTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
   banaLingamPendingOrderMessage:
     'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
-  shivakotiPendingOrderTitle: 'ଶିବ କୋଟି ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
+  shivakotiPendingOrderTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
   shivakotiPendingOrderMessage:
-    'ପୂର୍ବରୁ ଗୋଟିଏ ଶିବ କୋଟି ବହି ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
-  gouMayaPendingOrderTitle: 'ପୂଜା ଭସ୍ମ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
+    'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
+  gouMayaPendingOrderTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
   gouMayaPendingOrderMessage:
-    'ପୂର୍ବରୁ ଗୋଟିଏ ପୂଜା ଭସ୍ମ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
+    'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
   tileAnnadanam: 'ଅନ୍ନଦାନ',
   tileAnnadanamSub: 'ଅନ୍ନ ସେବା ଅର୍ପଣ କରନ୍ତୁ',
   tileNithyaHomam: 'ନିତ୍ୟ ହୋମ',
