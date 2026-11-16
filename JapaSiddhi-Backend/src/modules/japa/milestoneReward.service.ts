@@ -17,7 +17,7 @@ export type MilestoneDelivery = {
   pinCode: string;
 };
 
-/** Distinct from Marakata Sree Chakra — relative present+8000 claim. */
+/** Distinct from Marakata Sree Chakra — absolute 8000 claim. */
 export const isMarakataShivlingName = (rewardName: string): boolean => {
   const lower = String(rewardName || '').toLowerCase();
   if (!lower) {
@@ -43,7 +43,7 @@ export const isMarakataShivlingName = (rewardName: string): boolean => {
 };
 
 export const MARAKATA_SHIVLING_EXTRA_JAPAS = 8000;
-/** Narmada Baanalingam — fresher 5k / old present + 5k. */
+/** Narmada Baanalingam — absolute 5k. */
 export const BAANALINGAM_EXTRA_JAPAS = 5000;
 
 export const isBaanalingamRewardName = (rewardName: string): boolean => {
@@ -97,9 +97,12 @@ const rewardJapaRequirement = (name: string) => {
   ) {
     return 1000000;
   }
-  // Marakata / Baanalingam use relative present+N (handled in relative claim)
-  if (isMarakataShivlingName(name) || isBaanalingamRewardName(name)) {
-    return 0;
+  // Absolute unlocks (not present+)
+  if (isMarakataShivlingName(name)) {
+    return MARAKATA_SHIVLING_EXTRA_JAPAS;
+  }
+  if (isBaanalingamRewardName(name)) {
+    return BAANALINGAM_EXTRA_JAPAS;
   }
   if (
     lower.includes('marakatha') ||
@@ -399,7 +402,7 @@ class MilestoneRewardService {
     }
     // First-time only — never recreate after admin marks OOS.
     await mysql.query(
-      `INSERT INTO challenge_rewards (name, stock, is_active, display_order, eligibility_criteria, unlock_mode, admin_marked_oos) VALUES (?, ?, 1, ?, ?, 'relative', 0)`,
+      `INSERT INTO challenge_rewards (name, stock, is_active, display_order, eligibility_criteria, unlock_mode, admin_marked_oos) VALUES (?, ?, 1, ?, ?, 'fixed', 0)`,
       [MARAKATA_SHIVLING_REWARD_NAME, 50, 9, MARAKATA_SHIVLING_EXTRA_JAPAS],
     );
     const again = await mysql.query<any[]>(
@@ -431,7 +434,10 @@ class MilestoneRewardService {
     return this.getRelativeRewardStatus(userId, reward.id);
   }
 
-  /** Present + N status for any relative unlock_mode reward (incl. Marakata). */
+  /**
+   * Status for relative rewards OR absolute Baanalingam (5k) / Marakata (8k).
+   * Baanalingam & Marakata no longer use present+ baselines.
+   */
   async getRelativeRewardStatus(userId: number, rewardId: number) {
     await this.ensureTable();
     await this.ensureRelativeBaselineTable();
@@ -440,36 +446,105 @@ class MilestoneRewardService {
       throw new Error('Reward not found');
     }
     const rewardName = String(reward.name || '');
+    const isLingamAbsolute =
+      isMarakataShivlingName(rewardName) || isBaanalingamRewardName(rewardName);
     const isRelative =
-      isRelativeUnlockMode(reward.unlockMode) ||
-      isMarakataShivlingName(rewardName) ||
-      isBaanalingamRewardName(rewardName);
+      isRelativeUnlockMode(reward.unlockMode) || isLingamAbsolute;
     if (!isRelative) {
       throw new Error('This reward is not a present + count reward.');
     }
-    const fallbackExtra = isMarakataShivlingName(rewardName)
+
+    const fallbackAbsolute = isMarakataShivlingName(rewardName)
       ? MARAKATA_SHIVLING_EXTRA_JAPAS
       : isBaanalingamRewardName(rewardName)
         ? BAANALINGAM_EXTRA_JAPAS
         : 0;
-    const extraJapas = Math.max(
-      0,
-      Number(reward.eligibilityCriteria || 0) || fallbackExtra,
-    );
+    const configured = Math.max(0, Number(reward.eligibilityCriteria || 0));
+    const total = await japaRepository.getUserMilestoneJapa(userId);
+    const claimTarget = relativeClaimTarget(rewardId, rewardName);
+
+    const loadClaimFlags = async () => {
+      const claimedRows = await mysql.query<any[]>(
+        \
+        SELECT
+          c.id,
+          c.order_id AS orderId,
+          c.order_number AS orderNumber,
+          COALESCE(c.retry_count, 0) AS retryCount,
+          o.order_status AS orderStatus
+        FROM milestone_reward_claims c
+        LEFT JOIN orders o ON o.id = c.order_id
+        WHERE c.user_id = ? AND c.milestone_target = ?
+        LIMIT 1
+        \,
+        [userId, claimTarget],
+      );
+      const claim = claimedRows?.[0];
+      let claimed = false;
+      let isRetryAvailable = false;
+      if (claim?.orderId) {
+        const status = String(claim.orderStatus || '').toUpperCase();
+        const retryCount = Number(claim.retryCount || 0);
+        if (status === 'CANCELLED' && retryCount === 0) {
+          claimed = false;
+          isRetryAvailable = true;
+        } else {
+          claimed = true;
+        }
+      }
+      return {claim, claimed, isRetryAvailable};
+    };
+
+    // Absolute 5k / 8k for Baanalingam & Marakata — ignore old relative baselines.
+    if (isLingamAbsolute) {
+      const unlockTarget = configured > 0 ? configured : fallbackAbsolute;
+      let {claim, claimed, isRetryAvailable} = await loadClaimFlags();
+      const {
+        default: shivaLingaEligibilityService,
+      } = await import('../orders/shivaLingaEligibility.service');
+      if (await shivaLingaEligibilityService.hasActiveBaanalingam(userId)) {
+        claimed = true;
+      }
+      if (await shivaLingaEligibilityService.hasActiveMarakata(userId)) {
+        claimed = true;
+      }
+      const adminMarkedOos = Number(reward.adminMarkedOos || 0) === 1;
+      const stock = Math.max(0, Number(reward.stock || 0));
+      return {
+        rewardId: Number(reward.id),
+        rewardName,
+        unlockMode: 'fixed' as const,
+        total,
+        baseline: 0,
+        unlockTarget,
+        target: unlockTarget,
+        claimTarget,
+        extraJapas: unlockTarget,
+        eligible: total >= unlockTarget && !claimed,
+        remaining: Math.max(0, unlockTarget - total),
+        claimed,
+        isRetry: isRetryAvailable,
+        stock,
+        inStock: !adminMarkedOos,
+        adminMarkedOos,
+        orderId: claim?.orderId ? Number(claim.orderId) : null,
+        orderNumber: claim?.orderNumber ? String(claim.orderNumber) : null,
+      };
+    }
+
+    const extraJapas = configured > 0 ? configured : fallbackAbsolute;
     if (extraJapas <= 0) {
       throw new Error('Present + count reward is missing an extra japa count.');
     }
 
-    const total = await japaRepository.getUserMilestoneJapa(userId);
     const rewardKey = relativeRewardKey(rewardId, rewardName);
-    const claimTarget = relativeClaimTarget(rewardId, rewardName);
     const existingBaseline = await mysql.query<any[]>(
-      `
+      \
       SELECT baseline, unlock_target AS unlockTarget
       FROM relative_reward_baselines
       WHERE user_id = ? AND reward_key = ?
       LIMIT 1
-      `,
+      \,
       [userId, rewardKey],
     );
     let baseline = Number(existingBaseline?.[0]?.baseline);
@@ -479,20 +554,20 @@ class MilestoneRewardService {
       unlockTarget = baseline + extraJapas;
       try {
         await mysql.query(
-          `
+          \
           INSERT INTO relative_reward_baselines (user_id, reward_key, baseline, unlock_target)
           VALUES (?, ?, ?, ?)
-          `,
+          \,
           [userId, rewardKey, baseline, unlockTarget],
         );
       } catch {
         const again = await mysql.query<any[]>(
-          `
+          \
           SELECT baseline, unlock_target AS unlockTarget
           FROM relative_reward_baselines
           WHERE user_id = ? AND reward_key = ?
           LIMIT 1
-          `,
+          \,
           [userId, rewardKey],
         );
         baseline = Number(again?.[0]?.baseline ?? baseline);
@@ -500,34 +575,7 @@ class MilestoneRewardService {
       }
     }
 
-    const claimedRows = await mysql.query<any[]>(
-      `
-      SELECT
-        c.id,
-        c.order_id AS orderId,
-        c.order_number AS orderNumber,
-        COALESCE(c.retry_count, 0) AS retryCount,
-        o.order_status AS orderStatus
-      FROM milestone_reward_claims c
-      LEFT JOIN orders o ON o.id = c.order_id
-      WHERE c.user_id = ? AND c.milestone_target = ?
-      LIMIT 1
-      `,
-      [userId, claimTarget],
-    );
-    const claim = claimedRows?.[0];
-    let claimed = false;
-    let isRetryAvailable = false;
-    if (claim?.orderId) {
-      const status = String(claim.orderStatus || '').toUpperCase();
-      const retryCount = Number(claim.retryCount || 0);
-      if (status === 'CANCELLED' && retryCount === 0) {
-        claimed = false;
-        isRetryAvailable = true;
-      } else {
-        claimed = true;
-      }
-    }
+    const {claim, claimed, isRetryAvailable} = await loadClaimFlags();
     const adminMarkedOos = Number(reward.adminMarkedOos || 0) === 1;
     const stock = Math.max(0, Number(reward.stock || 0));
     const inStock = !adminMarkedOos;
@@ -612,15 +660,25 @@ class MilestoneRewardService {
     }
     if (Number(status.total) < Number(status.unlockTarget)) {
       const remaining = Number(status.unlockTarget) - Number(status.total);
+      const absoluteLingam =
+        isMarakataShivlingName(status.rewardName) ||
+        isBaanalingamRewardName(status.rewardName);
       throw new Error(
-        `This reward unlocks at ${Number(status.unlockTarget).toLocaleString()} Japas (present + ${Number(status.extraJapas).toLocaleString()}). You need ${remaining.toLocaleString()} more Japas.`,
+        absoluteLingam
+          ? `This reward unlocks at ${Number(status.unlockTarget).toLocaleString()} Japas. You need ${remaining.toLocaleString()} more Japas.`
+          : `This reward unlocks at ${Number(status.unlockTarget).toLocaleString()} Japas (present + ${Number(status.extraJapas).toLocaleString()}). You need ${remaining.toLocaleString()} more Japas.`,
       );
     }
 
+    const absoluteLingam =
+      isMarakataShivlingName(status.rewardName) ||
+      isBaanalingamRewardName(status.rewardName);
     return this.claimRelativeWithTarget(
       userId,
       status.claimTarget,
-      `${status.rewardName} (present + ${status.extraJapas})`,
+      absoluteLingam
+        ? `${status.rewardName} (${Number(status.unlockTarget).toLocaleString()} Japas)`
+        : `${status.rewardName} (present + ${status.extraJapas})`,
       rewardId,
       status.rewardName,
       delivery,
@@ -667,7 +725,7 @@ class MilestoneRewardService {
     if (total < unlockTarget) {
       const remaining = unlockTarget - total;
       throw new Error(
-        `This reward unlocks at ${unlockTarget.toLocaleString()} Japas (present + ${MARAKATA_SHIVLING_EXTRA_JAPAS}). You need ${remaining.toLocaleString()} more Japas.`,
+        `This reward unlocks at ${unlockTarget.toLocaleString()} Japas. You need ${remaining.toLocaleString()} more Japas.`,
       );
     }
 
@@ -676,7 +734,7 @@ class MilestoneRewardService {
     return this.claimRelativeWithTarget(
       userId,
       MARAKATA_SHIVLING_CLAIM_TARGET,
-      'Marakata Shivling (present + 8000)',
+      `Marakata Shivling (${unlockTarget.toLocaleString()} Japas)`,
       rewardId,
       String(reward.name || MARAKATA_SHIVLING_REWARD_NAME),
       delivery,

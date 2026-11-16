@@ -3,6 +3,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -19,13 +21,13 @@ import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 import {
-  BAANALINGAM_EXTRA_JAPAS,
+  BAANALINGAM_JAPAS,
   checkRewardEligibility,
   getLocalizedReward,
   isBaanalingamRewardName,
   isCanonicalReward,
   isMarakataShivlingName,
-  MARAKATA_SHIVLING_EXTRA_JAPAS,
+  MARAKATA_SHIVLING_JAPAS,
   sortRewardsCanonical,
 } from '../../utils/rewardContent';
 import {resolveMarakataUnlockTarget} from '../../utils/marakataShivling';
@@ -103,6 +105,12 @@ const AvailableRewardsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+  const [hasBaanalingamOrder, setHasBaanalingamOrder] = useState(false);
+  const [hasMarakataOrder, setHasMarakataOrder] = useState(false);
+  const [banaPopupStep, setBanaPopupStep] = useState<0 | 1 | 2>(0);
+  const [pendingBanaItem, setPendingBanaItem] = useState<RewardItem | null>(
+    null,
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -112,7 +120,7 @@ const AvailableRewardsScreen = () => {
       const stored = await getStoredUser();
       const userId = stored?.id || stored?.userId || 'anon';
 
-      const [response, milestoneRes, marakataRes, relativeRes] =
+      const [response, milestoneRes, marakataRes, relativeRes, ordersRes] =
         await Promise.all([
           apiService
             .get('/challenges/rewards')
@@ -122,7 +130,51 @@ const AvailableRewardsScreen = () => {
             .get('/japa/relative-rewards/marakata-shivling')
             .catch(() => null),
           apiService.get('/japa/relative-rewards').catch(() => null),
+          apiService.get('/orders').catch(() => null),
         ]);
+
+      const orderRows = Array.isArray(ordersRes?.data?.data)
+        ? ordersRes.data.data
+        : Array.isArray(ordersRes?.data)
+          ? ordersRes.data
+          : [];
+      const activeOrders = orderRows.filter((row: any) => {
+        const status = String(
+          row?.orderStatus || row?.order_status || '',
+        ).toUpperCase();
+        return status !== 'CANCELLED' && status !== 'CANCELED';
+      });
+      setHasBaanalingamOrder(
+        activeOrders.some((row: any) => {
+          const type = String(row?.orderType || row?.order_type || '').toUpperCase();
+          const name = String(
+            row?.itemName || row?.item_name || row?.product || '',
+          ).toLowerCase();
+          const num = String(row?.orderNumber || row?.order_number || '');
+          return (
+            type === 'BANA_LINGAM' ||
+            name.includes('baanalingam') ||
+            name.includes('banalingam') ||
+            num.startsWith('BL-') ||
+            num.startsWith('#BL-')
+          );
+        }),
+      );
+      setHasMarakataOrder(
+        activeOrders.some((row: any) => {
+          const name = String(
+            row?.itemName || row?.item_name || row?.product || '',
+          ).toLowerCase();
+          if (name.includes('chakra') || name.includes('yantra')) {
+            return false;
+          }
+          return (
+            ((name.includes('marakata') || name.includes('marakatha')) &&
+              (name.includes('shiv') || name.includes('ling'))) ||
+            (name.includes('aventurine') && name.includes('shiv'))
+          );
+        }),
+      );
 
       const milestoneData = milestoneRes?.data?.data || {};
       const marakataData = marakataRes?.data?.data || {};
@@ -188,23 +240,32 @@ const AvailableRewardsScreen = () => {
               row.inStock === false ||
               row.inStock === 0 ||
               row.inStock === '0';
+            const name = String(row.name || '');
+            // Baanalingam / Markata are absolute fixed unlocks (5k / 8k).
             const unlockMode =
-              String(row.unlockMode || row.unlock_mode || '')
-                .toLowerCase() === 'relative' ||
-              isMarakataShivlingName(String(row.name || '')) ||
-              isBaanalingamRewardName(String(row.name || ''))
-                ? 'relative'
-                : 'fixed';
+              isMarakataShivlingName(name) || isBaanalingamRewardName(name)
+                ? 'fixed'
+                : String(row.unlockMode || row.unlock_mode || '')
+                      .toLowerCase() === 'relative'
+                  ? 'relative'
+                  : 'fixed';
+            let eligibilityCriteria = Number(
+              row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+            );
+            if (isBaanalingamRewardName(name) && eligibilityCriteria <= 0) {
+              eligibilityCriteria = BAANALINGAM_JAPAS;
+            }
+            if (isMarakataShivlingName(name) && eligibilityCriteria <= 0) {
+              eligibilityCriteria = MARAKATA_SHIVLING_JAPAS;
+            }
             return {
               id: row.id,
-              name: String(row.name || ''),
+              name,
               stock,
               inStock: !explicitOut,
               emoji: row.emoji,
               description: row.description,
-              eligibilityCriteria: Number(
-                row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
-              ),
+              eligibilityCriteria,
               unlockMode: unlockMode as 'fixed' | 'relative',
               imageUrl: row.imageUrl || row.image_url || null,
             };
@@ -235,7 +296,7 @@ const AvailableRewardsScreen = () => {
         );
         setMarakataTarget(locked);
       } catch {
-        setMarakataTarget(MARAKATA_SHIVLING_EXTRA_JAPAS);
+        setMarakataTarget(MARAKATA_SHIVLING_JAPAS);
       }
     } finally {
       setLoading(false);
@@ -253,21 +314,6 @@ const AvailableRewardsScreen = () => {
     if (fromMap?.unlockTarget) {
       return fromMap;
     }
-    if (isMarakataShivlingName(item.name)) {
-      return {
-        unlockTarget: marakataTarget,
-        extraJapas:
-          Number(item.eligibilityCriteria || 0) || MARAKATA_SHIVLING_EXTRA_JAPAS,
-      };
-    }
-    if (isBaanalingamRewardName(item.name)) {
-      const extra =
-        Number(item.eligibilityCriteria || 0) || BAANALINGAM_EXTRA_JAPAS;
-      return {
-        unlockTarget: userTotalJapas + extra,
-        extraJapas: extra,
-      };
-    }
     const extra = Number(item.eligibilityCriteria || 0);
     return {
       unlockTarget: extra > 0 ? userTotalJapas + extra : 0,
@@ -276,22 +322,56 @@ const AvailableRewardsScreen = () => {
   };
 
   const eligibilityFor = (item: RewardItem) => {
-    const isRelative =
-      item.unlockMode === 'relative' ||
-      isMarakataShivlingName(item.name) ||
-      isBaanalingamRewardName(item.name);
+    // Markata never unlocks if Baanalingam already ordered (even at 8k).
+    if (isMarakataShivlingName(item.name) && hasBaanalingamOrder) {
+      return {
+        requiredJapas: MARAKATA_SHIVLING_JAPAS,
+        requiredLabel: '8,000 (8k)',
+        isEligible: false,
+        remainingJapas: 0,
+        blockedByBaanalingam: true as const,
+      };
+    }
+    if (isBaanalingamRewardName(item.name) && hasMarakataOrder) {
+      return {
+        requiredJapas: BAANALINGAM_JAPAS,
+        requiredLabel: '5,000',
+        isEligible: false,
+        remainingJapas: 0,
+        blockedByMarakata: true as const,
+      };
+    }
+    const isRelative = item.unlockMode === 'relative';
     const meta = isRelative ? relativeMetaFor(item) : null;
+    const criteria =
+      Number(item.eligibilityCriteria || 0) ||
+      (isBaanalingamRewardName(item.name)
+        ? BAANALINGAM_JAPAS
+        : isMarakataShivlingName(item.name)
+          ? MARAKATA_SHIVLING_JAPAS
+          : 0);
     return checkRewardEligibility(
       item.name,
       userTotalJapas,
       language,
-      item.eligibilityCriteria,
+      criteria,
       isRelative ? meta?.unlockTarget : undefined,
     );
   };
 
+  const openBanaOrderForm = (item: RewardItem) => {
+    setBanaPopupStep(0);
+    setPendingBanaItem(null);
+    navigation.navigate('BanaLingam');
+  };
+
   const handleCardPress = (item: RewardItem, localized: any) => {
-    const eligibility = eligibilityFor(item);
+    const eligibility = eligibilityFor(item) as ReturnType<
+      typeof checkRewardEligibility
+    > & {
+      blockedByBaanalingam?: boolean;
+      blockedByMarakata?: boolean;
+    };
     const description = String(item.description || localized.description || '').trim();
     const title = localized.matched
       ? localized.title || tt(item.name)
@@ -299,14 +379,11 @@ const AvailableRewardsScreen = () => {
     const message = (line: string) =>
       description ? `${description}\n\n${line}` : line;
     const outOfStock = item.inStock === false;
-    const isRelative =
-      item.unlockMode === 'relative' ||
-      isMarakataShivlingName(item.name) ||
-      isBaanalingamRewardName(item.name);
+    const isRelative = item.unlockMode === 'relative';
     const isBaanalingam = isBaanalingamRewardName(item.name);
+    const isMarakata = isMarakataShivlingName(item.name);
 
     if (outOfStock) {
-      // OOS: description (or short OOS note) only — no present+N / count line.
       Alert.alert(
         title,
         description ||
@@ -317,14 +394,34 @@ const AvailableRewardsScreen = () => {
       return;
     }
 
+    if (eligibility.blockedByBaanalingam) {
+      Alert.alert(
+        title,
+        message(
+          t('marakataBlockedByBaanalingam') ||
+            'You already ordered/received Baanalingam, so Markata Shivalinga is not available — even at 8,000 Japas.',
+        ),
+        [{text: t('ok')}],
+      );
+      return;
+    }
+    if (eligibility.blockedByMarakata) {
+      Alert.alert(
+        title,
+        message(
+          t('shivaLingaAlreadyOrderedMessage', {
+            item: t('marakataShivlingItemName') || 'Marakata Shivling',
+          }) ||
+            'You have already ordered/received Marakata Shivling, so you are not eligible to order Baanalingam.',
+        ),
+        [{text: t('ok')}],
+      );
+      return;
+    }
+
     if (isRelative) {
       const meta = relativeMetaFor(item);
-      const extra =
-        meta.extraJapas ||
-        Number(item.eligibilityCriteria || 0) ||
-        (isBaanalingam
-          ? BAANALINGAM_EXTRA_JAPAS
-          : MARAKATA_SHIVLING_EXTRA_JAPAS);
+      const extra = meta.extraJapas || Number(item.eligibilityCriteria || 0);
       const lockedLine =
         t('marakataUnlockRule', {
           present: userTotalJapas.toLocaleString('en-IN'),
@@ -346,47 +443,19 @@ const AvailableRewardsScreen = () => {
         );
         return;
       }
-      const goGrab = () => {
-        if (isMarakataShivlingName(item.name)) {
-          navigation.navigate('MarakataShivlingClaim', {
-            rewardId: item.id,
-            rewardName: item.name,
-          });
-          return;
-        }
-        navigation.navigate('RelativeRewardClaim', {
-          rewardId: item.id,
-          rewardName: item.name,
-          extraJapas: extra,
-          unlockTarget: meta.unlockTarget,
-        });
-      };
-      Alert.alert(
-        title,
-        message(
-          `${lockedLine}\n\n${
-            isBaanalingam
-              ? t('baanalingamMarkataWarning') ||
-                'If you order Baanalingam you cannot get Markata Shivalinga. If you want Markata Shivalinga, skip this Narmada Baanalingam and do present + 8k to get Markata Shivalinga.'
-              : t('marakataEligibleHint') || t('youAreEligibleForReward')
-          }`,
-        ),
-        isBaanalingam
-          ? [
-              {text: t('skipForNow') || 'Skip', style: 'cancel'},
-              {
-                text: t('continueAnyway') || 'Continue',
-                onPress: goGrab,
-              },
-            ]
-          : [
-              {text: t('ok')},
-              {
-                text: t('clickHereToGrabReward'),
-                onPress: goGrab,
-              },
-            ],
-      );
+      Alert.alert(title, message(t('youAreEligibleForReward')), [
+        {text: t('ok')},
+        {
+          text: t('clickHereToGrabReward'),
+          onPress: () =>
+            navigation.navigate('RelativeRewardClaim', {
+              rewardId: item.id,
+              rewardName: item.name,
+              extraJapas: extra,
+              unlockTarget: meta.unlockTarget,
+            }),
+        },
+      ]);
       return;
     }
 
@@ -403,6 +472,28 @@ const AvailableRewardsScreen = () => {
       );
       return;
     }
+
+    if (isBaanalingam) {
+      setPendingBanaItem(item);
+      setBanaPopupStep(1);
+      return;
+    }
+
+    if (isMarakata) {
+      Alert.alert(title, message(t('youAreEligibleForReward')), [
+        {text: t('ok')},
+        {
+          text: t('clickHereToGrabReward'),
+          onPress: () =>
+            navigation.navigate('MarakataShivlingClaim', {
+              rewardId: item.id,
+              rewardName: item.name,
+            }),
+        },
+      ]);
+      return;
+    }
+
     Alert.alert(title, message(t('youAreEligibleForReward')), [
       {text: t('ok')},
       {
@@ -490,45 +581,126 @@ const AvailableRewardsScreen = () => {
               <Text style={styles.description}>
                 {item.description || localized.description || tt(item.description || '')}
               </Text>
-              {outOfStock ? (
-                // OOS: description + badge only — no present+N / count line.
-                null
-              ) : !eligibility.isEligible ? (
+              {outOfStock ? null : !eligibility.isEligible ? (
                 <Text style={styles.remainingHint}>
-                  {item.unlockMode === 'relative' ||
-                  isMarakataShivlingName(item.name) ||
-                  isBaanalingamRewardName(item.name)
-                    ? (() => {
-                        const meta = relativeMetaFor(item);
-                        const extra =
-                          meta.extraJapas ||
-                          Number(item.eligibilityCriteria || 0) ||
-                          (isBaanalingamRewardName(item.name)
-                            ? BAANALINGAM_EXTRA_JAPAS
-                            : MARAKATA_SHIVLING_EXTRA_JAPAS);
-                        const target =
-                          meta.unlockTarget ||
-                          eligibility.requiredJapas ||
-                          userTotalJapas + extra;
-                        return t('marakataUnlockRule', {
-                          present: userTotalJapas.toLocaleString('en-IN'),
-                          extra: extra.toLocaleString('en-IN'),
-                          target: target.toLocaleString('en-IN'),
-                        });
-                      })()
-                    : t('unlocksAt', {target: eligibility.requiredLabel}) ||
-                      `Unlocks at ${eligibility.requiredLabel}`}
-                  {'\n'}
-                  {t('needMoreJapasReward', {
-                    count: eligibility.remainingJapas.toLocaleString('en-IN'),
-                  }) ||
-                    `Need ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward`}
+                  {(eligibility as any).blockedByBaanalingam
+                    ? t('marakataBlockedByBaanalingam') ||
+                      'Already ordered Baanalingam — Markata Shivalinga is not available.'
+                    : (eligibility as any).blockedByMarakata
+                      ? t('shivaLingaAlreadyOrderedMessage', {
+                          item:
+                            t('marakataShivlingItemName') || 'Marakata Shivling',
+                        })
+                      : item.unlockMode === 'relative'
+                        ? (() => {
+                            const meta = relativeMetaFor(item);
+                            const extra =
+                              meta.extraJapas ||
+                              Number(item.eligibilityCriteria || 0);
+                            const target =
+                              meta.unlockTarget ||
+                              eligibility.requiredJapas ||
+                              userTotalJapas + extra;
+                            return t('marakataUnlockRule', {
+                              present: userTotalJapas.toLocaleString('en-IN'),
+                              extra: extra.toLocaleString('en-IN'),
+                              target: target.toLocaleString('en-IN'),
+                            });
+                          })()
+                        : t('unlocksAt', {target: eligibility.requiredLabel}) ||
+                          `Unlocks at ${eligibility.requiredLabel}`}
+                  {!(eligibility as any).blockedByBaanalingam &&
+                  !(eligibility as any).blockedByMarakata ? (
+                    <>
+                      {'\n'}
+                      {t('needMoreJapasReward', {
+                        count: eligibility.remainingJapas.toLocaleString('en-IN'),
+                      }) ||
+                        `Need ${eligibility.remainingJapas.toLocaleString()} more Japas to grab this reward`}
+                    </>
+                  ) : null}
                 </Text>
               ) : null}
             </TouchableOpacity>
           );
         })}
       </View>
+
+      <Modal
+        visible={banaPopupStep > 0}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setBanaPopupStep(0);
+          setPendingBanaItem(null);
+        }}>
+        <View style={styles.popupBackdrop}>
+          <View style={styles.popupCard}>
+            <ScrollView
+              style={styles.popupScroll}
+              showsVerticalScrollIndicator={false}>
+              {banaPopupStep === 1 ? (
+                <>
+                  <Text style={styles.popupTitle}>
+                    {t('baanalingamEligibilityNoteTitle') ||
+                      'Note: Reward Eligibility – Important'}
+                  </Text>
+                  <Text style={styles.popupBody}>
+                    {t('baanalingamEligibilityNoteBody') ||
+                      t('baanalingamMarkataWarning')}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.popupPrimaryBtn}
+                    activeOpacity={0.85}
+                    onPress={() => setBanaPopupStep(2)}>
+                    <Text style={styles.popupPrimaryBtnText}>
+                      {t('ok') || 'OK'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.popupTitle}>
+                    {t('baanalingamTeamAdviceTitle') ||
+                      'Note: An Advice by Team Japa Siddhi'}
+                  </Text>
+                  <Text style={styles.popupAdviceBody}>
+                    {t('baanalingamTeamAdviceBody')}
+                  </Text>
+                  <View style={styles.popupBtnRow}>
+                    <TouchableOpacity
+                      style={styles.popupSecondaryBtn}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        setBanaPopupStep(0);
+                        setPendingBanaItem(null);
+                      }}>
+                      <Text style={styles.popupSecondaryBtnText}>
+                        {t('goBack') || t('skipForNow') || 'Back'}
+                      </Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.popupPrimaryBtn}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        if (pendingBanaItem) {
+                          openBanaOrderForm(pendingBanaItem);
+                        } else {
+                          setBanaPopupStep(0);
+                          navigation.navigate('BanaLingam');
+                        }
+                      }}>
+                      <Text style={styles.popupPrimaryBtnText}>
+                        {t('continueAnyway') || 'Continue'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -701,5 +873,81 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     overflow: 'hidden',
     includeFontPadding: true,
+  },
+  popupBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26, 18, 9, 0.65)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  popupCard: {
+    backgroundColor: '#FFFDF9',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: Colors.templeGold,
+    maxHeight: '88%',
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+  },
+  popupScroll: {
+    flexGrow: 0,
+  },
+  popupTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 12,
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  popupBody: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.sacredBrown,
+    lineHeight: 22,
+    marginBottom: 16,
+  },
+  popupAdviceBody: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    lineHeight: 23,
+    marginBottom: 16,
+    backgroundColor: '#F0F7EC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#C5DDB8',
+  },
+  popupBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  popupPrimaryBtn: {
+    flex: 1,
+    backgroundColor: Colors.templeGold,
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  popupPrimaryBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 15,
+  },
+  popupSecondaryBtn: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    paddingVertical: 13,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+  },
+  popupSecondaryBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
   },
 });

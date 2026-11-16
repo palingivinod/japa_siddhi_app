@@ -135,9 +135,29 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     action === 'GOAL_COMPLETED' ||
     action === 'DAILY_GOAL_COMPLETED' ||
     action === 'CHALLENGE_COMPLETED' ||
+    action === 'LINGAM_ADVICE' ||
     action === 'SUPPORT_TICKET_REPLY' ||
     action === 'SYSTEM'
   ) {
+    if (action === 'LINGAM_ADVICE' || data.kind === 'lingam_advice') {
+      try {
+        const {getStoredUser} = await import('../services/session');
+        const {dismissLingamAdviceBanner} = await import(
+          '../utils/lingamAdviceBanner'
+        );
+        const stored = await getStoredUser();
+        const userId = stored?.id || stored?.userId || 'anon';
+        const milestone = Number(data.actionId || data.milestone || 0);
+        if (milestone) {
+          await dismissLingamAdviceBanner(userId, milestone);
+        } else {
+          await dismissLingamAdviceBanner(userId, 5000);
+          await dismissLingamAdviceBanner(userId, 8000);
+        }
+      } catch {
+        // ignore
+      }
+    }
     navigateTo(
       'Notifications',
       notificationId ? {highlightId: notificationId} : undefined,

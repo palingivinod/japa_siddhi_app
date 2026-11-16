@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useState} from 'react';
 import {Alert, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
@@ -14,9 +14,11 @@ import {
   getSavedFormComments,
   saveFormComments,
 } from '../../utils/savedFormComments';
+import {
+  getNithyaHomamDakshina,
+  isNithyaHomamTieredMonth,
+} from '../../utils/nithyaHomamDakshina';
 import {MOBILE_DIGITS, digitsOnly, isMobile} from '../../utils/validators';
-
-const HOMAM_AMOUNT = 500;
 
 const HomamEnrollScreen = () => {
   const navigation = useNavigation<any>();
@@ -27,10 +29,16 @@ const HomamEnrollScreen = () => {
   const [nakshatram, setNakshatram] = useState('');
   const [purpose, setPurpose] = useState('');
   const [comments, setComments] = useState('');
+  const [dakshina, setDakshina] = useState(() => getNithyaHomamDakshina());
+  const [tieredMonth, setTieredMonth] = useState(() =>
+    isNithyaHomamTieredMonth(),
+  );
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      setDakshina(getNithyaHomamDakshina());
+      setTieredMonth(isNithyaHomamTieredMonth());
       const load = async () => {
         try {
           const [stored, profile, savedComments] = await Promise.all([
@@ -69,6 +77,11 @@ const HomamEnrollScreen = () => {
     }, []),
   );
 
+  const amountLabel = useMemo(
+    () => `₹${dakshina.toLocaleString('en-IN')}`,
+    [dakshina],
+  );
+
   const continuePay = async () => {
     const cleanName = fullName.trim();
     const cleanMobile = digitsOnly(mobile);
@@ -104,8 +117,12 @@ const HomamEnrollScreen = () => {
     const trimmedComments = comments.trim();
     void saveFormComments('nithya_homam', trimmedComments);
 
+    // Recompute at pay time so IST day/month cannot go stale on an open screen.
+    const payAmount = getNithyaHomamDakshina();
+    setDakshina(payAmount);
+
     await startAppPayment({
-      amount: HOMAM_AMOUNT,
+      amount: payAmount,
       purpose: `Nithya Homam: ${cleanPurpose}`.slice(0, 80),
       seva: 'Nithya Homam',
       name: cleanName,
@@ -172,12 +189,40 @@ const HomamEnrollScreen = () => {
       />
       <View style={styles.amountCard}>
         <Text style={styles.amountLabel}>{t('nithyaHomam') || 'Nithya Homam'}</Text>
-        <Text style={styles.amountValue}>₹{HOMAM_AMOUNT.toLocaleString('en-IN')}</Text>
+        <Text style={styles.amountValue}>{amountLabel}</Text>
       </View>
+      {tieredMonth ? (
+        <View style={styles.dakshinaCard}>
+          <Text style={styles.dakshinaTitle}>
+            {t('homamDakshinaThisMonthTitle') || 'Enrollment dakshina this month'}
+          </Text>
+          <Text style={styles.dakshinaLine}>
+            {t('homamDakshina1to10') ||
+              '₹500 if you enroll from the 1st to the 10th'}
+          </Text>
+          <Text style={styles.dakshinaLine}>
+            {t('homamDakshina11to20') ||
+              '₹300 if you enroll from the 11th to the 20th'}
+          </Text>
+          <Text style={styles.dakshinaLine}>
+            {t('homamDakshinaAfter20') ||
+              '₹200 if you enroll after the 20th'}
+          </Text>
+          <Text style={styles.dakshinaToday}>
+            {t('homamDakshinaToday', {
+              amount: dakshina.toLocaleString('en-IN'),
+            })}
+          </Text>
+          <Text style={styles.dakshinaNext}>
+            {t('homamDakshinaNextMonth') ||
+              'From next month, the pooja dakshina will be ₹500 per month'}
+          </Text>
+        </View>
+      ) : null}
       <PrimaryButton
         title={
           detailsReady
-            ? `${t('continueToPayment')} (₹${HOMAM_AMOUNT.toLocaleString('en-IN')})`
+            ? `${t('continueToPayment')} (${amountLabel})`
             : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
         }
         onPress={continuePay}
@@ -196,7 +241,7 @@ const styles = StyleSheet.create({
   },
   amountCard: {
     marginTop: 8,
-    marginBottom: 14,
+    marginBottom: 10,
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderRadius: 14,
@@ -216,5 +261,40 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontSize: 22,
     fontWeight: '800',
+  },
+  dakshinaCard: {
+    marginBottom: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+  },
+  dakshinaTitle: {
+    color: Colors.leafGreen,
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  dakshinaLine: {
+    color: Colors.sacredBrown,
+    fontSize: 13.5,
+    fontWeight: '600',
+    lineHeight: 20,
+    marginBottom: 2,
+  },
+  dakshinaToday: {
+    marginTop: 10,
+    color: Colors.sacredBrown,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  dakshinaNext: {
+    marginTop: 6,
+    color: Colors.textSecondary,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

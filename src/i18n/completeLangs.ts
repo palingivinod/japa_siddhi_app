@@ -668,6 +668,13 @@ export const kn: TranslationDict = {
   enrollAgain: 'ಮತ್ತೆ ನೋಂದಾಯಿಸಿ',
   dailySacredHomam: 'ನಿತ್ಯ ಪವಿತ್ರ ಹೋಮ',
   enrollNithyaHomam: 'ನಿತ್ಯ ಹೋಮದಲ್ಲಿ ಭಾಗವಹಿಸಲು ನೋಂದಾಯಿಸಿ.',
+  homamDakshinaThisMonthTitle: 'ಈ ತಿಂಗಳ ನೋಂದಣಿ ದಕ್ಷಿಣೆ',
+  homamDakshina1to10: '₹500 ನೀವು 1 ರಿಂದ 10ರೊಳಗೆ ನೋಂದಾಯಿಸಿದರೆ',
+  homamDakshina11to20: '₹300 ನೀವು 11 ರಿಂದ 20ರೊಳಗೆ ನೋಂದಾಯಿಸಿದರೆ',
+  homamDakshinaAfter20: '₹200 ನೀವು 20ರ ನಂತರ ನೋಂದಾಯಿಸಿದರೆ',
+  homamDakshinaToday: 'ಇಂದಿನ ನಿಮ್ಮ ದಕ್ಷಿಣೆ: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'ಮುಂದಿನ ತಿಂಗಳಿನಿಂದ ಪೂಜಾ ದಕ್ಷಿಣೆ ತಿಂಗಳಿಗೆ ₹500 ಆಗುತ್ತದೆ',
   benefitsLabel: 'ಪ್ರಯೋಜನಗಳು',
   benefitDailySankalpam: 'ದೈನಂದಿನ ಸಂಕಲ್ಪ',
   benefitSpiritualParticipation: 'ಆಧ್ಯಾತ್ಮಿಕ ಪಾಲ್ಗೊಳ್ಳುವಿಕೆ',

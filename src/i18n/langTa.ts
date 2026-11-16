@@ -669,6 +669,13 @@ export const ta: TranslationDict = {
   enrollAgain: 'மீண்டும் பதிவு செய்',
   dailySacredHomam: 'தினசரி புனித Homam',
   enrollNithyaHomam: 'நித்ய Homam-ல் பங்கேற்க பதிவு செய்யவும்.',
+  homamDakshinaThisMonthTitle: 'இந்த மாத சேர்க்கை தட்சிணை',
+  homamDakshina1to10: '₹500 நீங்கள் 1 முதல் 10 தேதிக்குள் சேர்ந்தால்',
+  homamDakshina11to20: '₹300 நீங்கள் 11 முதல் 20 தேதிக்குள் சேர்ந்தால்',
+  homamDakshinaAfter20: '₹200 நீங்கள் 20 தேதிக்குப் பிறகு சேர்ந்தால்',
+  homamDakshinaToday: 'இன்றைய உங்கள் தட்சிணை: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'அடுத்த மாதம் முதல் பூஜை தட்சிணை மாதத்திற்கு ₹500 ஆகும்',
   benefitsLabel: 'நன்மைகள்',
   benefitDailySankalpam: 'தினசரி சங்கல்பம்',
   benefitSpiritualParticipation: 'ஆன்மீக பங்கேற்பு',

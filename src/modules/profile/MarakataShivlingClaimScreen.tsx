@@ -20,7 +20,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
-  MARAKATA_SHIVLING_EXTRA_JAPAS,
+  MARAKATA_SHIVLING_JAPAS,
 } from '../../utils/rewardContent';
 import {
   MARAKATA_SHIVLING_CLAIM_TARGET,
@@ -143,8 +143,7 @@ const MarakataShivlingClaimScreen = () => {
     rewardName,
     totalJapas,
     language,
-    undefined,
-    unlockTarget,
+    unlockTarget || MARAKATA_SHIVLING_JAPAS,
   );
 
   const toggleSankalp = (index: number) => {
@@ -173,13 +172,13 @@ const MarakataShivlingClaimScreen = () => {
     if (!eligibility.isEligible) {
       Alert.alert(
         localized.title || rewardName,
-        t('marakataNotEligibleYet', {
-          present: totalJapas.toLocaleString('en-IN'),
-          target: unlockTarget.toLocaleString('en-IN'),
-          remaining: eligibility.remainingJapas.toLocaleString('en-IN'),
-          extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN'),
+        t('youAreNotEligibleReward', {
+          count: totalJapas.toLocaleString('en-IN'),
+          required: (unlockTarget || MARAKATA_SHIVLING_JAPAS).toLocaleString(
+            'en-IN',
+          ),
         }) ||
-          `You can grab this after present + ${MARAKATA_SHIVLING_EXTRA_JAPAS} Japas.`,
+          `You can grab this after ${MARAKATA_SHIVLING_JAPAS.toLocaleString('en-IN')} Japas.`,
       );
       return;
     }
@@ -227,12 +226,12 @@ const MarakataShivlingClaimScreen = () => {
           <>
             <View style={styles.infoBox}>
               <Text style={styles.infoText}>
-                {t('marakataUnlockRule', {
-                  present: totalJapas.toLocaleString('en-IN'),
-                  extra: MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN'),
-                  target: unlockTarget.toLocaleString('en-IN'),
+                {t('unlocksAt', {
+                  target: (unlockTarget || MARAKATA_SHIVLING_JAPAS).toLocaleString(
+                    'en-IN',
+                  ),
                 }) ||
-                  `You can grab this reward after your present japa count + ${MARAKATA_SHIVLING_EXTRA_JAPAS} (${totalJapas.toLocaleString('en-IN')} + ${MARAKATA_SHIVLING_EXTRA_JAPAS} = ${unlockTarget.toLocaleString('en-IN')}).`}
+                  `Unlocks at ${(unlockTarget || MARAKATA_SHIVLING_JAPAS).toLocaleString('en-IN')} Japas.`}
               </Text>
               {eligibility.isEligible ? (
                 <Text style={styles.eligibleText}>

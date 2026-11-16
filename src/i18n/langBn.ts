@@ -656,6 +656,13 @@ export const bn: TranslationDict = {
   enrollAgain: 'আবার নথিভুক্ত হন',
   dailySacredHomam: 'দৈনিক পবিত্র হোম',
   enrollNithyaHomam: 'নিত্য হোমে অংশগ্রহণের জন্য নথিভুক্ত হন।',
+  homamDakshinaThisMonthTitle: 'এই মাসের নথিভুক্তি দক্ষিণা',
+  homamDakshina1to10: '₹500 যদি আপনি ১ থেকে ১০ তারিখের মধ্যে নথিভুক্ত হন',
+  homamDakshina11to20: '₹300 যদি আপনি ১১ থেকে ২০ তারিখের মধ্যে নথিভুক্ত হন',
+  homamDakshinaAfter20: '₹200 যদি আপনি ২০ তারিখের পরে নথিভুক্ত হন',
+  homamDakshinaToday: 'আজকের আপনার দক্ষিণা: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'পরের মাস থেকে পূজার দক্ষিণা মাসে ₹500 হবে',
   trackLive: 'লাইভ ট্র্যাক করুন',
   trackOrderBtn: 'অর্ডার ট্র্যাক করুন',
   viewOrder: 'অর্ডার দেখুন',

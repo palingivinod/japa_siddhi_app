@@ -656,6 +656,13 @@ export const mr: TranslationDict = {
   enrollAgain: 'पुन्हा नोंदणी करा',
   dailySacredHomam: 'दैनिक पवित्र होम',
   enrollNithyaHomam: 'नित्य होम सहभागासाठी नोंदणी करा.',
+  homamDakshinaThisMonthTitle: 'या महिन्याची नोंदणी दक्षिणा',
+  homamDakshina1to10: '₹500 जर तुम्ही १ ते १० तारखेपर्यंत नोंदणी केली',
+  homamDakshina11to20: '₹300 जर तुम्ही ११ ते २० तारखेपर्यंत नोंदणी केली',
+  homamDakshinaAfter20: '₹200 जर तुम्ही २० तारखेनंतर नोंदणी केली',
+  homamDakshinaToday: 'आजची तुमची दक्षिणा: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'पुढच्या महिन्यापासून पूजा दक्षिणा दरमहा ₹500 असेल',
   trackLive: 'लाइव्ह ट्रॅक करा',
   trackOrderBtn: 'ऑर्डर ट्रॅक करा',
   viewOrder: 'ऑर्डर पहा',

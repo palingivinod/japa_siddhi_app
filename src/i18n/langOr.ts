@@ -658,6 +658,13 @@ export const or: TranslationDict = {
   enrollAgain: 'ପୁଣି ନାମ ଲେଖାନ୍ତୁ',
   dailySacredHomam: 'ଦୈନିକ ପବିତ୍ର ହୋମ',
   enrollNithyaHomam: 'ନିତ୍ୟ ହୋମ ଅଂଶଗ୍ରହଣ ପାଇଁ ନାମ ଲେଖାନ୍ତୁ।',
+  homamDakshinaThisMonthTitle: 'ଏହି ମାସର ନାମାଙ୍କନ ଦକ୍ଷିଣା',
+  homamDakshina1to10: '₹500 ଯଦି ଆପଣ 1 ରୁ 10 ତାରିଖ ମଧ୍ୟରେ ନାମ ଲେଖନ୍ତି',
+  homamDakshina11to20: '₹300 ଯଦି ଆପଣ 11 ରୁ 20 ତାରିଖ ମଧ୍ୟରେ ନାମ ଲେଖନ୍ତି',
+  homamDakshinaAfter20: '₹200 ଯଦି ଆପଣ 20 ତାରିଖ ପରେ ନାମ ଲେଖନ୍ତି',
+  homamDakshinaToday: 'ଆଜି ଆପଣଙ୍କ ଦକ୍ଷିଣା: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'ଆସନ୍ତା ମାସରୁ ପୂଜା ଦକ୍ଷିଣା ମାସକୁ ₹500 ହେବ',
   trackLive: 'ଲାଇଭ୍ ଟ୍ରାକ୍',
   trackOrderBtn: 'ଅର୍ଡର ଟ୍ରାକ୍',
   viewOrder: 'ଅର୍ଡର ଦେଖନ୍ତୁ',

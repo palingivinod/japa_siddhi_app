@@ -16,6 +16,7 @@ import {
   SPIRITUAL_MILESTONES,
 } from './japa.milestones';
 import milestoneRewardService from './milestoneReward.service';
+import {ensureLingamAdviceNotifications} from './lingamAdviceNotification';
 
 const MILESTONE_ACTION = 'JAPA_MILESTONE';
 
@@ -276,6 +277,18 @@ class JapaService {
           previousTotal,
           milestoneTotal,
         );
+
+    if (!challengeId) {
+      try {
+        await ensureLingamAdviceNotifications(
+          userId,
+          previousTotal,
+          milestoneTotal,
+        );
+      } catch (lingamAdviceErr) {
+        console.warn('Lingam advice notification error:', lingamAdviceErr);
+      }
+    }
 
     // Annadanam milestone popup check
     let annadanamMilestone: number | null = null;

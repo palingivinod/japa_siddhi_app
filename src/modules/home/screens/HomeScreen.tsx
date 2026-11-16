@@ -1308,6 +1308,8 @@ const HomeScreen = () => {
                       void gateBaanalingamSevaPress({
                         t,
                         onAllow: () => navigation.navigate(item.route),
+                        onAlreadyOrderedOk: () =>
+                          navigation.navigate('SevaHub'),
                       });
                       return;
                     }

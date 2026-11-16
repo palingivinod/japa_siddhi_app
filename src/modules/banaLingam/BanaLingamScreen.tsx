@@ -170,7 +170,12 @@ const BanaLingamScreen = () => {
             t('shivaLingaNotEligibleTitle') || 'Not eligible',
             t('shivaLingaAlreadyOrderedMessage', {item}) ||
               `You have already ordered/received ${item}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.`,
-            [{text: t('ok'), style: 'cancel'}],
+            [
+              {
+                text: t('ok'),
+                onPress: () => navigation.navigate('SevaHub'),
+              },
+            ],
           );
         } else {
           setHasActiveOrder(false);

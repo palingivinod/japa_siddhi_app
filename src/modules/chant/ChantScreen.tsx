@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Vibration,
   View,
 } from 'react-native';
 
@@ -926,6 +927,12 @@ const ChantScreen = () => {
       dailyGoalCompletedShownRef.current = true;
       setDailyGoalCompletedShown(true);
       setShowDailyGoalModal(true);
+      // Short pulse so devotee feels daily goal completion while chanting.
+      try {
+        Vibration.vibrate([0, 220, 120, 220]);
+      } catch {
+        // Vibration is optional — never block chanting.
+      }
     }
   };
 

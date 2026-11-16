@@ -1,7 +1,8 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,9 +14,16 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
+import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import {calcDaysRemaining} from '../../utils/dailyGoal';
 import {istIsoDate} from '../../utils/dateUtils';
+import {
+  dismissLingamAdviceBanner,
+  isLingamAdviceBannerDismissed,
+  isLingamAdviceNotification,
+  lingamAdviceMilestone,
+} from '../../utils/lingamAdviceBanner';
 import {
   readDailyPlanSnaps,
   resolveMantraDailyTarget,
@@ -63,6 +71,33 @@ const YourJapasScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [lingamBanner, setLingamBanner] = useState<{
+    id: string;
+    milestone: number;
+  } | null>(null);
+  const blinkAnim = useRef(new Animated.Value(0.35)).current;
+
+  useEffect(() => {
+    if (!lingamBanner) {
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(blinkAnim, {
+          toValue: 1,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+        Animated.timing(blinkAnim, {
+          toValue: 0.35,
+          duration: 700,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [lingamBanner, blinkAnim]);
 
   const getSourceBadge = (type: JapaSourceType) => {
     switch (type) {
@@ -285,6 +320,33 @@ const YourJapasScreen = () => {
       });
 
       setJapas(items);
+
+      // Blinking banner for unread lingam-advice notification (5k / 8k).
+      try {
+        const stored = await getStoredUser();
+        const userId = stored?.id || stored?.userId || 'anon';
+        const notesRes = await apiService.get('/notifications').catch(() => null);
+        const notes = Array.isArray(notesRes?.data?.data)
+          ? notesRes.data.data
+          : [];
+        const advice = notes.find((row: any) => isLingamAdviceNotification(row));
+        if (advice) {
+          const milestone = lingamAdviceMilestone(advice) || 5000;
+          const dismissed = await isLingamAdviceBannerDismissed(
+            userId,
+            milestone,
+          );
+          setLingamBanner(
+            dismissed
+              ? null
+              : {id: String(advice.id), milestone},
+          );
+        } else {
+          setLingamBanner(null);
+        }
+      } catch {
+        setLingamBanner(null);
+      }
     } catch (error) {
       console.log('Error loading active japas', error);
     } finally {
@@ -392,6 +454,31 @@ const YourJapasScreen = () => {
             colors={[Colors.templeGold]}
           />
         }>
+        {lingamBanner ? (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={async () => {
+              const stored = await getStoredUser();
+              const userId = stored?.id || stored?.userId || 'anon';
+              await dismissLingamAdviceBanner(userId, lingamBanner.milestone);
+              setLingamBanner(null);
+              navigation.navigate('Notifications', {
+                highlightId: lingamBanner.id,
+              });
+            }}>
+            <Animated.View
+              style={[styles.lingamAdviceBanner, {opacity: blinkAnim}]}>
+              <Text style={styles.lingamAdviceBannerText}>
+                {lingamBanner.milestone >= 8000
+                  ? t('lingamAdviceBanner8k') ||
+                    'You have a notification for your 8,000 Japa completion — tap to open'
+                  : t('lingamAdviceBanner5k') ||
+                    'You have a notification for your 5,000 Japa completion — tap to open'}
+              </Text>
+            </Animated.View>
+          </TouchableOpacity>
+        ) : null}
+
         {/* Top Header Card with Quick Add */}
         <View style={styles.topBanner}>
           <View style={styles.topCopy}>
@@ -640,6 +727,23 @@ export default YourJapasScreen;
 const styles = StyleSheet.create({
   flex: {flex: 1},
   scrollContent: {paddingBottom: 36},
+  lingamAdviceBanner: {
+    backgroundColor: '#FEF3C7',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    marginTop: 2,
+  },
+  lingamAdviceBannerText: {
+    color: '#92400E',
+    fontWeight: '800',
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+  },
   topBanner: {
     flexDirection: 'row',
     alignItems: 'center',

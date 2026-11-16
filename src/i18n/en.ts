@@ -310,6 +310,13 @@ const en = {
   enrollDailyHomam: 'Enroll for daily homam',
   participateHomam: 'Participate in Nithya Homam with your name and gothram.',
   enrollNow: 'Enroll Now →',
+  homamDakshinaThisMonthTitle: 'Enrollment dakshina this month',
+  homamDakshina1to10: '₹500 if you enroll from the 1st to the 10th',
+  homamDakshina11to20: '₹300 if you enroll from the 11th to the 20th',
+  homamDakshinaAfter20: '₹200 if you enroll after the 20th',
+  homamDakshinaToday: 'Your dakshina today: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'From next month, the pooja dakshina will be ₹500 per month',
   quickActions: 'Our Services',
   tileJapaChanting: 'Japa',
   tileJapaSub: 'Start or resume',
@@ -375,13 +382,25 @@ const en = {
   baanalingamItemName: 'Baanalingam',
   marakataShivlingItemName: 'Marakata Shivling',
   baanalingamMarkataWarning:
-    'If you order Baanalingam you cannot get Markata Shivalinga. If you want Markata Shivalinga, skip this Narmada Baanalingam and do present + 8k to get Markata Shivalinga.',
-  baanalingamSevaEligibilityMessage:
-    'You can grab this after 5,000 Japas or present + 5,000 Japas.',
+    'If you choose the Baanalinga as your reward at 5,000 Japa counts, you will not be eligible to receive the Markata Shivalinga at the 8,000 Japa milestone later.\n\nIf you wish to receive the Markata Shivalinga at 8,000 Japa counts, you must skip the Baanalinga reward available at the 5,000 Japa milestone now.',
+  baanalingamEligibilityNoteTitle: 'Note: Reward Eligibility – Important',
+  baanalingamEligibilityNoteBody:
+    'If you choose the Baanalinga as your reward at 5,000 Japa counts, you will not be eligible to receive the Markata Shivalinga at the 8,000 Japa milestone later.\n\nIf you wish to receive the Markata Shivalinga at 8,000 Japa counts, you must skip the Baanalinga reward available at the 5,000 Japa milestone now.',
+  baanalingamTeamAdviceTitle: 'Note: An Advice by Team Japa Siddhi',
+  baanalingamTeamAdviceBody:
+    "Don't get carried away by YouTube reels and social media trends or let them influence your preference for a Markata Shivalinga. Narmadeshwar Shivalinga is our first choice to send, as it holds its own unique importance, sacred history and spiritual significance throughout our Puranas, epics and ancient spiritual knowledge.\n\nWe encourage you to opt for the Narmadeshwar Shivalinga, understand its divine significance and experience the true essence of devotion, faith and spiritual connection.\n\nChoose tradition, not trend. Receive the Narmadeshwar Shivalinga with devotion.",
+  baanalingamSevaEligibilityMessage: 'You can grab this after 5,000 Japas.',
   baanalingamAlreadyOrderedShort:
     'You are not able to order this because you already ordered/received Baanalingam.',
+  marakataBlockedByBaanalingam:
+    'You already ordered/received Baanalingam, so Markata Shivalinga is not available — even at 8,000 Japas.',
+  lingamAdviceBanner5k:
+    'You have a notification for your 5,000 Japa completion — tap to open',
+  lingamAdviceBanner8k:
+    'You have a notification for your 8,000 Japa completion — tap to open',
   continueAnyway: 'Continue',
-  skipForNow: 'Skip',
+  skipForNow: 'Back',
+  goBack: 'Back',
   completeDetailsTitle: 'Complete Details',
   completeDetailsSubtitle:
     'Please provide your phone number, Date of Birth, and Mr or Mrs to continue.',

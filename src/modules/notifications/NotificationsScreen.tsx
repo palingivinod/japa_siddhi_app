@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {useFocusEffect, useRoute} from '@react-navigation/native';
+import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
@@ -21,7 +21,13 @@ import ApiErrorPanel from '../common/ApiErrorPanel';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedNotification} from '../../utils/localizedContent';
+import {
+  dismissLingamAdviceBanner,
+  isLingamAdviceNotification,
+  lingamAdviceMilestone,
+} from '../../utils/lingamAdviceBanner';
 import {resolveMediaUrl} from '../../services/profilePhoto';
+import {getStoredUser} from '../../services/session';
 import {clearAppBadge, setAppBadgeCount} from '../../services/appBadge';
 import {playIntroVideo} from '../../services/introVideos';
 
@@ -369,8 +375,22 @@ const NotificationCardVideo: React.FC<{uri: string}> = ({uri}) => {
   );
 };
 
+const dismissLingamBannerForItem = async (item: any) => {
+  if (!isLingamAdviceNotification(item)) {
+    return;
+  }
+  try {
+    const stored = await getStoredUser();
+    const userId = stored?.id || stored?.userId || 'anon';
+    await dismissLingamAdviceBanner(userId, lingamAdviceMilestone(item) || 5000);
+  } catch {
+    // ignore
+  }
+};
+
 const NotificationsScreen = () => {
   const route = useRoute<any>();
+  const navigation = useNavigation<any>();
   const {t, tt, language} = useLanguage();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -412,6 +432,12 @@ const NotificationsScreen = () => {
       if (hasUnread) {
         apiService.put('/notifications/read-all').catch(() => undefined);
       }
+      // Opening notifications dismisses the Your Japas lingam-advice banner.
+      shown.forEach((row: any) => {
+        if (isLingamAdviceNotification(row)) {
+          void dismissLingamBannerForItem(row);
+        }
+      });
     } catch (err) {
         setRawError(err);
       setError(getApiError(err, t('couldNotLoadMilestones')));
@@ -440,6 +466,7 @@ const NotificationsScreen = () => {
 
     if (matched) {
       setHighlightedId(String(matched.id));
+      void dismissLingamBannerForItem(matched);
       if (highlightTimerRef.current) {
         clearTimeout(highlightTimerRef.current);
       }
@@ -495,11 +522,15 @@ const NotificationsScreen = () => {
       // ignore
     }
 
-    // Completions: stay on this screen.
+    void dismissLingamBannerForItem(item);
+
+    // Completions / lingam advice: stay on this screen (Grab Reward CTA below).
     if (
       action === 'GOAL_COMPLETED' ||
       action === 'DAILY_GOAL_COMPLETED' ||
-      action === 'CHALLENGE_COMPLETED'
+      action === 'CHALLENGE_COMPLETED' ||
+      action === 'LINGAM_ADVICE' ||
+      isLingamAdviceNotification(item)
     ) {
       return;
     }
@@ -539,6 +570,7 @@ const NotificationsScreen = () => {
    */
   const deleteSingleNotification = async (item: any) => {
     const itemId = String(item.id);
+    void dismissLingamBannerForItem(item);
     setItems(current => current.filter(row => row.id !== item.id));
     const remainingUnread = items.filter(
       row => row.id !== item.id && !row.isRead,
@@ -579,6 +611,11 @@ const NotificationsScreen = () => {
           style: 'destructive',
           onPress: async () => {
             const currentIds = items.map(item => String(item.id));
+            items.forEach(row => {
+              if (isLingamAdviceNotification(row)) {
+                void dismissLingamBannerForItem(row);
+              }
+            });
             setItems([]);
             clearAppBadge().catch(() => undefined);
             try {
@@ -790,6 +827,19 @@ const NotificationsScreen = () => {
                           });
                         }}>
                         <Text style={styles.openLinkBtnText}>🔗 Open Link</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                    {isLingamAdviceNotification(item) ? (
+                      <TouchableOpacity
+                        style={styles.grabRewardBtn}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          void dismissLingamBannerForItem(item);
+                          navigation.navigate('AvailableRewards');
+                        }}>
+                        <Text style={styles.grabRewardBtnText}>
+                          {t('clickHereToGrabReward') || 'Grab your reward'}
+                        </Text>
                       </TouchableOpacity>
                     ) : null}
                   </>
@@ -1223,6 +1273,21 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     fontSize: 13,
     fontWeight: '700',
+  },
+  grabRewardBtn: {
+    marginTop: 12,
+    marginBottom: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.templeGold || '#C9A227',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  grabRewardBtnText: {
+    color: '#1A1208',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.2,
   },
   paragraphsBlock: {
     marginTop: 4,

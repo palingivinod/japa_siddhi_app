@@ -66,11 +66,15 @@ export const isMarakataShivlingName = (rewardName: string): boolean => {
   return (isMarakata && isShivling) || isGreenAventurineShivling;
 };
 
-/** Extra japas needed from the devotee's present count for Marakata Shivling. */
-export const MARAKATA_SHIVLING_EXTRA_JAPAS = 8000;
+/** Absolute japa unlock for Marakata Shivling (not present+). */
+export const MARAKATA_SHIVLING_JAPAS = 8000;
+/** @deprecated use MARAKATA_SHIVLING_JAPAS — kept for older imports */
+export const MARAKATA_SHIVLING_EXTRA_JAPAS = MARAKATA_SHIVLING_JAPAS;
 
-/** Narmada Baanalingam — fresher 5k / old present + 5k (relative). */
-export const BAANALINGAM_EXTRA_JAPAS = 5000;
+/** Absolute japa unlock for Narmada Baanalingam (not present+). */
+export const BAANALINGAM_JAPAS = 5000;
+/** @deprecated use BAANALINGAM_JAPAS — kept for older imports */
+export const BAANALINGAM_EXTRA_JAPAS = BAANALINGAM_JAPAS;
 
 export const isBaanalingamRewardName = (rewardName: string): boolean => {
   const lower = String(rewardName || '').toLowerCase();
@@ -893,18 +897,18 @@ export const getRewardRequirement = (
   ) {
     return {count: 1000000, label: reqText.ten};
   }
-  // Marakata Shivling => present count + 8000 (resolved in checkRewardEligibility)
+  // Marakata Shivling => absolute 8,000 Japas
   if (isMarakataShivlingName(rewardName)) {
     return {
-      count: MARAKATA_SHIVLING_EXTRA_JAPAS,
-      label: `present + ${MARAKATA_SHIVLING_EXTRA_JAPAS.toLocaleString('en-IN')}`,
+      count: MARAKATA_SHIVLING_JAPAS,
+      label: '8,000 (8k)',
     };
   }
-  // Narmada Baanalingam => present count + 5000 (resolved in checkRewardEligibility)
+  // Narmada Baanalingam => absolute 5,000 Japas (with Rudraksha/Tulasi/Pasupu)
   if (isBaanalingamRewardName(rewardName)) {
     return {
-      count: BAANALINGAM_EXTRA_JAPAS,
-      label: `present + ${BAANALINGAM_EXTRA_JAPAS.toLocaleString('en-IN')}`,
+      count: BAANALINGAM_JAPAS,
+      label: reqText.first,
     };
   }
   // Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra) => 5,00,000 Japas (5 Lakhs)
@@ -992,29 +996,22 @@ export const checkRewardEligibility = (
   const req = getRewardRequirement(rewardName, lang);
   const count = Number(userJapaCount) || 0;
 
-  // Present + N (Marakata / Baanalingam / admin relative): locked personal target.
-  const isRelativeTrack =
-    isMarakataShivlingName(rewardName) ||
-    isBaanalingamRewardName(rewardName) ||
-    (typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0);
-  if (isRelativeTrack) {
-    const fallbackExtra = isBaanalingamRewardName(rewardName)
-      ? BAANALINGAM_EXTRA_JAPAS
-      : MARAKATA_SHIVLING_EXTRA_JAPAS;
+  // Admin relative present+N only (Baanalingam / Markata are absolute 5k / 8k).
+  if (typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0) {
     const extra =
       typeof customEligibilityCriteria === 'number' &&
       customEligibilityCriteria > 0
         ? customEligibilityCriteria
-        : fallbackExtra;
-    const targetCount =
-      typeof relativeTargetOverride === 'number' && relativeTargetOverride > 0
-        ? relativeTargetOverride
-        : count + extra;
+        : 0;
+    const targetCount = relativeTargetOverride;
     const isEligible = count >= targetCount;
     const remainingJapas = isEligible ? 0 : Math.max(0, targetCount - count);
     return {
       requiredJapas: targetCount,
-      requiredLabel: `${targetCount.toLocaleString('en-IN')} (${count.toLocaleString('en-IN')} + ${extra.toLocaleString('en-IN')})`,
+      requiredLabel:
+        extra > 0
+          ? `${targetCount.toLocaleString('en-IN')} (${count.toLocaleString('en-IN')} + ${extra.toLocaleString('en-IN')})`
+          : `${targetCount.toLocaleString('en-IN')} Japas`,
       isEligible,
       remainingJapas,
     };
@@ -1044,11 +1041,10 @@ export const checkRewardEligibility = (
  * 1. Rudraksha Mala / Rudrakshi Mala
  * 2. Tulasi Mala
  * 3. Pasupu Mala
- * 4. Narmada Baanalingam (present + 5000)
- * 5. Sandalwood Mala (75k eligibility; admin can override)
- * 6. Karungali Mala (50k eligibility)
- * 7. Spatik Mala (1 Lakh eligibility)
- * … Marakata Shivling (present + 8000)
+ * 4. Narmada Baanalingam (absolute 5,000)
+ * 5. Marakata Shivling (absolute 8,000)
+ * 6. Sandalwood Mala (75k; admin can override)
+ * 7. Karungali Mala (50k)
  */
 export const getRewardSortRank = (rewardName: string): number => {
   const lower = String(rewardName || '').toLowerCase();

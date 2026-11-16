@@ -13,6 +13,10 @@ import {
   verifyWebhookSignature,
 } from './razorpay.service';
 import {buildPaymentReceiptPdf} from './paymentReceiptPdf';
+import {
+  getNithyaHomamDakshina,
+  isNithyaHomamNote,
+} from './nithyaHomamDakshina';
 
 const router = Router();
 
@@ -30,7 +34,13 @@ router.post('/order', async (req: Request, res: Response) => {
     if (!razorpayReady()) {
       return apiResponse.error(res, 'Online payment is not set up yet.', 503);
     }
-    const rupees = Number(req.body?.amountRupees);
+    const name = String(req.body?.name || '').trim().slice(0, 80);
+    const phone = String(req.body?.phone || '').replace(/\D/g, '').slice(0, 15);
+    const note = String(req.body?.note || 'Seva offering').trim().slice(0, 80);
+    // Nithya Homam: lock Razorpay amount to IST day-based dakshina (client cannot underpay).
+    const rupees = isNithyaHomamNote(note)
+      ? getNithyaHomamDakshina()
+      : Number(req.body?.amountRupees);
     const paise = rupeesToPaise(rupees);
     if (!amountAllowed(paise)) {
       return apiResponse.error(
@@ -39,9 +49,6 @@ router.post('/order', async (req: Request, res: Response) => {
         400,
       );
     }
-    const name = String(req.body?.name || '').trim().slice(0, 80);
-    const phone = String(req.body?.phone || '').replace(/\D/g, '').slice(0, 15);
-    const note = String(req.body?.note || 'Seva offering').trim().slice(0, 80);
     const source = String(req.body?.source || 'website').trim().slice(0, 40);
     const preferDate = String(req.body?.preferDate || '').trim().slice(0, 10);
     const occasion = String(req.body?.occasion || '').trim().slice(0, 40);

@@ -6556,13 +6556,13 @@ const ensureRewardColumns = async () => {
   } catch {
     // Column already exists.
   }
-  // Heal Marakata Shivling into relative present+8000 mode.
+  // Heal Marakata Shivling to absolute 8,000 Japas (no present+).
   try {
     await mysql.query(
       `
       UPDATE challenge_rewards
       SET
-        unlock_mode = 'relative',
+        unlock_mode = 'fixed',
         eligibility_criteria = 8000
       WHERE (
         lower(name) LIKE '%marakata%shivling%'
@@ -6593,7 +6593,7 @@ const ensureRewardColumns = async () => {
   } catch {
     // Non-fatal.
   }
-  // Heal / seed Narmada Baanalingam as relative present+5000 reward.
+  // Heal / seed Narmada Baanalingam as absolute 5,000 Japas (no present+).
   try {
     const banaRows = await mysql.query<any[]>(
       `
@@ -6614,7 +6614,7 @@ const ensureRewardColumns = async () => {
         await mysql.query(
           `
           UPDATE challenge_rewards
-          SET unlock_mode = 'relative', eligibility_criteria = 5000
+          SET unlock_mode = 'fixed', eligibility_criteria = 5000
           WHERE id = ?
           `,
           [row.id],
@@ -6625,7 +6625,7 @@ const ensureRewardColumns = async () => {
         `
         INSERT INTO challenge_rewards
           (name, stock, is_active, display_order, eligibility_criteria, unlock_mode, admin_marked_oos)
-        VALUES (?, 50, 1, 4, 5000, 'relative', 0)
+        VALUES (?, 50, 1, 4, 5000, 'fixed', 0)
         `,
         ['Narmada Baanalingam'],
       );
@@ -6689,13 +6689,13 @@ const CANONICAL_REWARDS = [
   {name: 'Rudrakshi Mala', stock: 50, order: 1, eligibility: 5000, description: 'Sacred Rudraksha bead mala for spiritual protection, inner peace, and focused daily mantra japa.', aliases: ['rudraksh']},
   {name: 'Tulasi Mala', stock: 50, order: 2, eligibility: 5000, description: 'Sacred Tulasi bead mala revered for heart-centered devotion, calm awareness, and Vishnu / Krishna worship.', aliases: ['tulasi', 'tulsi']},
   {name: 'Pasupu Mala', stock: 50, order: 3, eligibility: 5000, description: 'Traditional consecrated turmeric (Haldi) bead mala attracting divine grace, positivity, and obstacle removal.', aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
-  {name: 'Narmada Baanalingam', stock: 50, order: 4, eligibility: 5000, unlockMode: 'relative', description: 'Self-manifested sacred stone from the holy Narmada River. Fresher: 5,000 Japas. Existing devotees: present + 5,000. Choosing this means you cannot claim Markata Shivalinga.', aliases: ['baanalingam', 'banalingam', 'narmada', 'bana lingam']},
+  {name: 'Narmada Baanalingam', stock: 50, order: 4, eligibility: 5000, unlockMode: 'fixed', description: 'Self-manifested sacred stone from the holy Narmada River. Unlocks at 5,000 Japas. Choosing this means you cannot claim Markata Shivalinga at 8,000.', aliases: ['baanalingam', 'banalingam', 'narmada', 'bana lingam']},
   {name: 'Sandal Wood Mala', stock: 50, order: 5, eligibility: 75000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
   {name: 'Karungali Mala', stock: 50, order: 6, eligibility: 50000, description: 'Authentic dense black ebony wood beads renowned for shielding against negative energies and victory in sadhana.', aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
   {name: 'Spatik Mala', stock: 50, order: 7, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
   {name: 'Green Agate', stock: 50, order: 8, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},
   {name: 'Yellow Agate', stock: 50, order: 9, eligibility: 200000, description: 'Bright yellow agate gemstone beads fostering courage, knowledge, intellect, and divine auspiciousness.', aliases: ['yellow agate', 'yellow hakik']},
-  {name: 'Marakata Shivling (Green Aventurine)', stock: 50, order: 10, eligibility: 8000, unlockMode: 'relative', description: 'Sacred Shiva Lingam carved from green aventurine. Fresher: 8,000 Japas. Existing devotees: present + 8,000. Not available if you already ordered Baanalingam.', aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga']},
+  {name: 'Marakata Shivling (Green Aventurine)', stock: 50, order: 10, eligibility: 8000, unlockMode: 'fixed', description: 'Sacred Shiva Lingam carved from green aventurine. Unlocks at absolute 8,000 Japas. Not available if you already ordered Baanalingam.', aliases: ['marakata shivling', 'marakatha shivling', 'shivling', 'shivalinga']},
   {name: 'Green Jade / Aventurine Sree Chakra (Marakata Sree Chakra)', stock: 50, order: 11, eligibility: 500000, description: 'Sacred Maha Meru Sree Chakra carved in authentic natural green jade stone for immense spiritual and material abundance.', aliases: ['green jade', 'sree chakra', 'sri chakram', 'sri chakra', 'sri yantra', 'emerald sri', 'marakata sree', 'marakatha sri']},
   {name: 'Spiritual Reward', stock: 50, order: 12, eligibility: 1000000, description: 'Sacred consecrated spiritual offering infused with positive divine energy, peace, and spiritual auspiciousness.', aliases: ['spiritual reward', 'spiritual offering', 'spiritual product']},
 ];

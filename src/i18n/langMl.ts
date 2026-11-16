@@ -654,6 +654,13 @@ export const ml: TranslationDict = {
   enrollAgain: 'വീണ്ടും രജിസ്റ്റർ ചെയ്യുക',
   dailySacredHomam: 'ദൈനംദിന പവിത്ര Homam',
   enrollNithyaHomam: 'നിത്യ Homam-ൽ പങ്കെടുക്കാൻ രജിസ്റ്റർ ചെയ്യുക.',
+  homamDakshinaThisMonthTitle: 'ഈ മാസത്തെ എൻറോൾമെന്റ് ദക്ഷിണ',
+  homamDakshina1to10: '₹500 നിങ്ങൾ 1 മുതൽ 10 വരെ എൻറോൾ ചെയ്താൽ',
+  homamDakshina11to20: '₹300 നിങ്ങൾ 11 മുതൽ 20 വരെ എൻറോൾ ചെയ്താൽ',
+  homamDakshinaAfter20: '₹200 നിങ്ങൾ 20-ന് ശേഷം എൻറോൾ ചെയ്താൽ',
+  homamDakshinaToday: 'ഇന്നത്തെ നിങ്ങളുടെ ദക്ഷിണ: ₹{{amount}}',
+  homamDakshinaNextMonth:
+    'അടുത്ത മാസം മുതൽ പൂജ ദക്ഷിണ മാസത്തിൽ ₹500 ആയിരിക്കും',
   trackLive: 'ലൈവ് ട്രാക്ക് ചെയ്യുക',
   trackOrderBtn: 'ഓർഡർ ട്രാക്ക് ചെയ്യുക',
   viewOrder: 'ഓർഡർ കാണുക',
