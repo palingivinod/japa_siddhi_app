@@ -6577,6 +6577,22 @@ const ensureRewardColumns = async () => {
   } catch {
     // Non-fatal.
   }
+  // Soft-heal Sandal Wood / Chandan from old 30k default → 75k (do not overwrite other admin values).
+  try {
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET eligibility_criteria = 75000
+      WHERE (
+        lower(name) LIKE '%sandal%'
+        OR lower(name) LIKE '%chandan%'
+      )
+        AND IFNULL(eligibility_criteria, 0) IN (0, 30000)
+      `,
+    );
+  } catch {
+    // Non-fatal.
+  }
   // Heal / seed Narmada Baanalingam as relative present+5000 reward.
   try {
     const banaRows = await mysql.query<any[]>(
@@ -6674,7 +6690,7 @@ const CANONICAL_REWARDS = [
   {name: 'Tulasi Mala', stock: 50, order: 2, eligibility: 5000, description: 'Sacred Tulasi bead mala revered for heart-centered devotion, calm awareness, and Vishnu / Krishna worship.', aliases: ['tulasi', 'tulsi']},
   {name: 'Pasupu Mala', stock: 50, order: 3, eligibility: 5000, description: 'Traditional consecrated turmeric (Haldi) bead mala attracting divine grace, positivity, and obstacle removal.', aliases: ['pasupu', 'turmeric', 'haldi', 'pasupu kommuka maa', 'pasupu kommula mala']},
   {name: 'Narmada Baanalingam', stock: 50, order: 4, eligibility: 5000, unlockMode: 'relative', description: 'Self-manifested sacred stone from the holy Narmada River. Fresher: 5,000 Japas. Existing devotees: present + 5,000. Choosing this means you cannot claim Markata Shivalinga.', aliases: ['baanalingam', 'banalingam', 'narmada', 'bana lingam']},
-  {name: 'Sandal Wood Mala', stock: 50, order: 5, eligibility: 30000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
+  {name: 'Sandal Wood Mala', stock: 50, order: 5, eligibility: 75000, description: 'Pure fragrant sandalwood beads providing cooling energy, mental serenity, and focused meditation.', aliases: ['sandal wood', 'sandalwood', 'chandan', 'chandana', 'sandal']},
   {name: 'Karungali Mala', stock: 50, order: 6, eligibility: 50000, description: 'Authentic dense black ebony wood beads renowned for shielding against negative energies and victory in sadhana.', aliases: ['karungali', 'ebony', 'sacred japa mala', 'sacred mala', 'black wood']},
   {name: 'Spatik Mala', stock: 50, order: 7, eligibility: 100000, description: 'Natural clear quartz crystal (Sphatik) beads known for radiating soothing cooling energy and mental tranquility.', aliases: ['spatik', 'sphatik', 'crystal', 'quartz', 'spatika']},
   {name: 'Green Agate', stock: 50, order: 8, eligibility: 200000, description: 'Natural green agate bead gemstone known for harmony, emotional healing, and prosperity in spiritual pursuit.', aliases: ['green agate', 'green hakik']},

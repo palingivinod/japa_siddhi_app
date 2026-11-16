@@ -136,7 +136,7 @@ const rewardJapaRequirement = (name: string) => {
     return 50000;
   }
   if (lower.includes('sandal') || lower.includes('chandan')) {
-    return 30000;
+    return 75000;
   }
   if (
     lower.includes('rudraksh') ||

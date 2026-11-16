@@ -544,15 +544,19 @@ class ChallengeService {
       }
     }
 
-    // Sandal Wood / Chandan Mala requires 30,000 Japas (30k)
+    // Sandal Wood / Chandan Mala — default 75k; admin eligibilityCriteria overrides
     if (
       rewardNameLower.includes('sandal') ||
       rewardNameLower.includes('chandan')
     ) {
-      if (userTotalJapa < 30000) {
-        const remaining = 30000 - userTotalJapa;
+      const sandalNeed = Math.max(
+        0,
+        Number(reward.eligibilityCriteria || 0) || 75000,
+      );
+      if (userTotalJapa < sandalNeed) {
+        const remaining = sandalNeed - userTotalJapa;
         throw new Error(
-          `This reward is available after 30,000 Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
+          `This reward is available after ${sandalNeed.toLocaleString()} Japas. You need ${remaining.toLocaleString()} more Japas to grab this reward.`,
         );
       }
     }
