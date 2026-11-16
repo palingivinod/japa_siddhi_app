@@ -64,7 +64,7 @@ const PHOTO: Partial<Record<AppIconName, any>> = {
   mala: require('../../assets/images/antharanga_japa.png'),
   trophy: require('../../assets/images/achievements.webp'),
   chart: require('../../assets/images/myprogress.webp'),
-  banalingam: require('../../assets/images/shiva_linga.png'),
+  banalingam: require('../../assets/images/bana_linga_icon.png'),
   bowl: require('../../assets/images/donation.webp'),
   flame: require('../../assets/images/festivals.webp'),
   prayer: require('../../assets/images/chant.webp'),

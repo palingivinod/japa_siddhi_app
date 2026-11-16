@@ -669,6 +669,7 @@ const REWARD_LOCALIZATIONS: Array<{
     match: name => isBaanalingamRewardName(name),
     content: {
       emoji: '🕉️',
+      imageName: 'banalingam',
       title: {
         en: 'Narmada Baanalingam',
         te: 'నర్మదా బాణలింగం',
