@@ -504,6 +504,7 @@ class JapaService {
       byMantra,
       milestoneTotal,
       adminDailyGoal,
+      dailyCountRows,
     ] = await Promise.all([
       japaRepository.getUserTotalJapa(userId),
       japaRepository.getTodayJapa(userId),
@@ -513,6 +514,7 @@ class JapaService {
       japaRepository.getMantraTotals(userId),
       japaRepository.getUserMilestoneJapa(userId),
       appSettingsService.getDailyGoal(),
+      japaRepository.getDailyCountRows(userId),
     ]);
 
     return {
@@ -521,7 +523,8 @@ class JapaService {
       weeklyJapaCount,
       monthlyJapaCount,
       globalJapaCount,
-      streakDays: (await this.getStreakStats(userId)).current,
+      streakDays: this.streakFromCounts(this.countsFromDailyRows(dailyCountRows))
+        .current,
       byMantra,
       milestoneTotal,
       milestone: buildMilestoneProgress(milestoneTotal),
@@ -634,6 +637,56 @@ class JapaService {
     return counts;
   }
 
+  private countsFromDailyRows(
+    rows: Array<{day: string; sessionCount: number}>,
+  ) {
+    const counts: Record<string, number> = {};
+    (rows || []).forEach(item => {
+      const day = String(item.day || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+        return;
+      }
+      counts[day] = (counts[day] || 0) + Number(item.sessionCount || 0);
+    });
+    return counts;
+  }
+
+  private streakFromCounts(counts: Record<string, number>) {
+    const days = Object.keys(counts).sort();
+    const daySet = new Set(days);
+    const today = this.istDay(new Date());
+    let current = 0;
+    for (let i = 0; i < 400; i += 1) {
+      const day = this.shiftIsoDay(today, -i);
+      if (daySet.has(day)) {
+        current += 1;
+      } else if (i === 0) {
+        continue;
+      } else {
+        break;
+      }
+    }
+    let best = 0;
+    let run = 0;
+    let previous = '';
+    days.forEach(day => {
+      if (!previous) {
+        run = 1;
+      } else {
+        run = this.shiftIsoDay(previous, 1) === day ? run + 1 : 1;
+      }
+      best = Math.max(best, run);
+      previous = day;
+    });
+    const year = today.slice(0, 4);
+    return {
+      current,
+      best,
+      thisYear: days.filter(day => day.startsWith(year)).length,
+      activeDays: days.length,
+    };
+  }
+
   private fillDays(
     days: number,
     counts: Record<string, number>,
@@ -695,59 +748,38 @@ class JapaService {
   }
 
   async getStreakStats(userId: number) {
-    const rows = await japaRepository.getSessionRows(userId);
-    const counts = this.dailyCounts(rows);
-    const days = Object.keys(counts).sort();
-    const daySet = new Set(days);
-    const today = this.istDay(new Date());
-    let current = 0;
-    for (let i = 0; i < 400; i += 1) {
-      const day = this.shiftIsoDay(today, -i);
-      if (daySet.has(day)) {
-        current += 1;
-      } else if (i === 0) {
-        continue;
-      } else {
-        break;
-      }
-    }
-    let best = 0;
-    let run = 0;
-    let previous = '';
-    days.forEach(day => {
-      if (!previous) {
-        run = 1;
-      } else {
-        run = this.shiftIsoDay(previous, 1) === day ? run + 1 : 1;
-      }
-      best = Math.max(best, run);
-      previous = day;
-    });
-    const year = today.slice(0, 4);
-    return {
-      current,
-      best,
-      thisYear: days.filter(day => day.startsWith(year)).length,
-      activeDays: days.length,
-    };
+    const rows = await japaRepository.getDailyCountRows(userId);
+    return this.streakFromCounts(this.countsFromDailyRows(rows));
   }
 
   async getAnalytics(userId: number, targetYear?: number) {
-    const [summary, weekly, goals, sessionRows, streak, byMantra] =
-      await Promise.all([
-      this.getSummary(userId),
-      japaRepository.getWeeklyBreakdown(userId),
+    // Avoid getSummary here: it re-fetched mantra totals + streak (full session
+    // scan) on top of the same work below, which made weekly/monthly feel slow.
+    const [
+      totalJapaCount,
+      todayJapaCount,
+      weeklyJapaCount,
+      monthlyJapaCount,
+      milestoneTotal,
+      goals,
+      dailyCountRows,
+      byMantra,
+    ] = await Promise.all([
+      japaRepository.getUserTotalJapa(userId),
+      japaRepository.getTodayJapa(userId),
+      japaRepository.getWeekJapa(userId),
+      japaRepository.getMonthJapa(userId),
+      japaRepository.getUserMilestoneJapa(userId),
       japaGoalRepository.getUserGoals(userId),
-        japaRepository.getSessionRows(userId),
-      this.getStreakStats(userId),
-        Promise.all([
-          japaRepository.getMantraTotals(userId, 'all'),
-          japaRepository.getMantraTotals(userId, 'today'),
-          japaRepository.getMantraTotals(userId, 'week'),
-          japaRepository.getMantraTotals(userId, 'month'),
-          japaRepository.getMantraTotals(userId, 'year'),
-        ]),
-      ]);
+      japaRepository.getDailyCountRows(userId),
+      Promise.all([
+        japaRepository.getMantraTotals(userId, 'all'),
+        japaRepository.getMantraTotals(userId, 'today'),
+        japaRepository.getMantraTotals(userId, 'week'),
+        japaRepository.getMantraTotals(userId, 'month'),
+        japaRepository.getMantraTotals(userId, 'year'),
+      ]),
+    ]);
 
     const [
       byMantraAll,
@@ -757,12 +789,18 @@ class JapaService {
       byMantraYear,
     ] = byMantra;
 
-    const counts = this.dailyCounts(sessionRows);
-    const currentYear = Number(this.istDay(new Date()).slice(0, 4)) || new Date().getFullYear();
+    const counts = this.countsFromDailyRows(dailyCountRows);
+    const streak = this.streakFromCounts(counts);
+    const currentYear =
+      Number(this.istDay(new Date()).slice(0, 4)) || new Date().getFullYear();
     const sessionYears = Object.keys(counts)
       .map(day => Number(day.slice(0, 4)))
       .filter(y => !isNaN(y) && y > 2000);
-    const yearSet = new Set<number>([currentYear, currentYear - 1, ...sessionYears]);
+    const yearSet = new Set<number>([
+      currentYear,
+      currentYear - 1,
+      ...sessionYears,
+    ]);
     const availableYears = Array.from(yearSet).sort((a, b) => b - a);
     const selectedYear = targetYear || currentYear;
 
@@ -779,24 +817,28 @@ class JapaService {
     const monthValues = monthTrend.map(item => item.value);
     const weekTotal = weekValues.reduce((sum, value) => sum + value, 0);
     const monthTotal = monthValues.reduce((sum, value) => sum + value, 0);
+    const weeklyRaw = weekTrend.map(item => ({
+      day: item.label,
+      count: item.value,
+    }));
     const goalList = goals || [];
     const completedGoals = goalList.filter((item: any) =>
       ['COMPLETED', 'completed', 1, '1'].includes(item.status),
     ).length;
     const insight = this.insightFor(
-      summary.totalJapaCount,
+      totalJapaCount,
       streak.current,
-      summary.todayJapaCount,
+      todayJapaCount,
     );
     const milestones = SPIRITUAL_MILESTONES.filter(
-      item => Number(summary.milestoneTotal || 0) >= item.target,
+      item => Number(milestoneTotal || 0) >= item.target,
     ).length;
     return {
       overview: {
         stats: [
           {
             label: 'TOTAL COMPLETED JAPAS',
-            value: summary.totalJapaCount.toLocaleString(),
+            value: totalJapaCount.toLocaleString(),
           },
           {
             label: 'DAYS WITH JAPA',
@@ -815,7 +857,7 @@ class JapaService {
       },
       daily: {
         stats: [
-          {label: 'TODAY', value: summary.todayJapaCount.toLocaleString()},
+          {label: 'TODAY', value: todayJapaCount.toLocaleString()},
           {
             label: 'AVG / DAY',
             value: String(Math.round(weekTotal / 7) || 0),
@@ -830,12 +872,12 @@ class JapaService {
         stats: [
           {
             label: 'THIS WEEK',
-            value: (summary.weeklyJapaCount || weekTotal).toLocaleString(),
+            value: (weeklyJapaCount || weekTotal).toLocaleString(),
           },
           {
             label: 'AVG / DAY',
             value: String(
-              Math.round((summary.weeklyJapaCount || weekTotal) / 7) || 0,
+              Math.round((weeklyJapaCount || weekTotal) / 7) || 0,
             ),
           },
           {
@@ -851,21 +893,19 @@ class JapaService {
         stats: [
           {
             label: 'THIS MONTH',
-            value: (summary.monthlyJapaCount || monthTotal).toLocaleString(),
+            value: (monthlyJapaCount || monthTotal).toLocaleString(),
           },
           {
             label: 'AVG / DAY',
             value: String(
-              Math.round((summary.monthlyJapaCount || monthTotal) / 30) || 0,
+              Math.round((monthlyJapaCount || monthTotal) / 30) || 0,
             ),
           },
           {
             label: 'GOAL RATE',
             value: `${Math.min(
               100,
-              Math.round(
-                ((summary.monthlyJapaCount || monthTotal) / 10800) * 100,
-              ),
+              Math.round(((monthlyJapaCount || monthTotal) / 10800) * 100),
             )}%`,
           },
         ],
@@ -877,7 +917,7 @@ class JapaService {
         stats: [
           {
             label: 'TOTAL COMPLETED JAPAS',
-            value: summary.totalJapaCount.toLocaleString(),
+            value: totalJapaCount.toLocaleString(),
           },
           {
             label: 'DAYS WITH JAPA',
@@ -919,8 +959,8 @@ class JapaService {
         byMantra: byMantraYear,
       },
       byMantra: byMantraAll,
-      weeklyRaw: weekly,
-      milestone: summary.milestone || buildMilestoneProgress(summary.milestoneTotal || 0),
+      weeklyRaw,
+      milestone: buildMilestoneProgress(milestoneTotal || 0),
     };
   }
 

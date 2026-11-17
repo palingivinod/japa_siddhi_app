@@ -349,6 +349,31 @@ class JapaRepository {
     }));
   }
 
+  /** One row per IST day — much cheaper than pulling every session for charts/streaks. */
+  async getDailyCountRows(userId: number) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const dayExpr = isMysql
+      ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE))`
+      : `DATE(created_at, '+5 hours', '30 minutes')`;
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        ${dayExpr} AS day,
+        COALESCE(SUM(session_count), 0) AS sessionCount
+      FROM japa_sessions
+      WHERE user_id = ?
+      ${EXCLUDE_CHALLENGE_REMARKS}
+      GROUP BY ${dayExpr}
+      ORDER BY ${dayExpr} ASC
+      `,
+      [userId],
+    );
+    return (rows || []).map(item => ({
+      day: String(item.day || '').slice(0, 10),
+      sessionCount: this.toCount(item.sessionCount ?? item.session_count),
+    }));
+  }
+
   async getRangeJapa(userId: number, fromSql: string) {
     const isMysql = mysql.getEngineName() === 'mysql';
     const condition = isMysql

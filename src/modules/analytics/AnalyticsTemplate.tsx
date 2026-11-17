@@ -60,6 +60,38 @@ const NEXT: Record<Period, {titleKey: TranslationKey; route: string}> = {
   streak: {titleKey: 'backToJapa', route: 'JapaHub'},
 };
 
+/** Shared across Daily/Weekly/Monthly so tabbing screens does not refetch. */
+let analyticsCache: {year: number; data: any; at: number} | null = null;
+const ANALYTICS_CACHE_MS = 60_000;
+
+const applyAnalyticsPayload = (
+  all: any,
+  period: Period,
+  setters: {
+    setData: (value: any) => void;
+    setAvailableYears: (years: number[]) => void;
+    setSelectedYear: (year: number) => void;
+  },
+) => {
+  const periodData = all[period] || all.overview || {};
+  setters.setData({
+    ...periodData,
+    byMantra: periodData.byMantra || all.byMantra || [],
+    milestone: all.milestone || periodData.milestone || null,
+  });
+  const years =
+    periodData.availableYears || all.overview?.availableYears || [];
+  if (years && years.length > 0) {
+    setters.setAvailableYears(years);
+  } else {
+    const cur = new Date().getFullYear();
+    setters.setAvailableYears([cur, cur - 1, cur - 2]);
+  }
+  if (periodData.selectedYear) {
+    setters.setSelectedYear(periodData.selectedYear);
+  }
+};
+
 const AnalyticsTemplate = ({
   title,
   period,
@@ -82,34 +114,40 @@ const AnalyticsTemplate = ({
   const showYearSelector = period === 'overview' || period === 'lifetime';
 
   const load = useCallback(
-    (yearToFetch?: number) => {
-      setLoading(true);
+    (yearToFetch?: number, force = false) => {
       setError('');
       setRawError(null);
       const targetYear = yearToFetch || selectedYear;
+      const cached =
+        analyticsCache &&
+        analyticsCache.year === targetYear &&
+        Date.now() - analyticsCache.at < ANALYTICS_CACHE_MS
+          ? analyticsCache.data
+          : null;
+
+      if (cached && !force) {
+        applyAnalyticsPayload(cached, period, {
+          setData,
+          setAvailableYears,
+          setSelectedYear,
+        });
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
       apiService
         .get('/japa/analytics', {
           params: targetYear ? {year: targetYear} : undefined,
         })
         .then(response => {
           const all = response.data.data || {};
-          const periodData = all[period] || all.overview || {};
-          setData({
-            ...periodData,
-            byMantra: periodData.byMantra || all.byMantra || [],
-            milestone: all.milestone || periodData.milestone || null,
+          analyticsCache = {year: targetYear, data: all, at: Date.now()};
+          applyAnalyticsPayload(all, period, {
+            setData,
+            setAvailableYears,
+            setSelectedYear,
           });
-          const years =
-            periodData.availableYears || all.overview?.availableYears || [];
-          if (years && years.length > 0) {
-            setAvailableYears(years);
-          } else {
-            const cur = new Date().getFullYear();
-            setAvailableYears([cur, cur - 1, cur - 2]);
-          }
-          if (periodData.selectedYear) {
-            setSelectedYear(periodData.selectedYear);
-          }
         })
         .catch(err => {
           setRawError(err);
@@ -136,7 +174,11 @@ const AnalyticsTemplate = ({
     <ScreenLayout title={title} showBack tab="JapaHub">
       {loading ? <ActivityIndicator color={Colors.templeGold} /> : null}
       {error ? (
-        <ApiErrorPanel error={error} rawError={rawError} onRetry={() => load()} />
+        <ApiErrorPanel
+          error={error}
+          rawError={rawError}
+          onRetry={() => load(undefined, true)}
+        />
       ) : null}
       {data ? (
         <View>
