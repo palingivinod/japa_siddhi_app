@@ -106,6 +106,20 @@ export const saveDeliveryAddress = async (address: string): Promise<string[]> =>
       .filter(Boolean);
     const merged = unique([...remote, ...local]);
     await writeLocal(merged);
+    // Also fill Personal Details address / PIN so profile blanks clear.
+    try {
+      const {parseDeliveryAddress} = await import('../utils/deliveryAddress');
+      const parsed = parseDeliveryAddress(next);
+      const ProfileApi = (await import('../modules/auth/services/profileApi'))
+        .default;
+      await ProfileApi.updateProfile({
+        address: next,
+        postalCode: parsed.pinCode || undefined,
+        region: parsed.street || undefined,
+      });
+    } catch {
+      // Address list save already succeeded.
+    }
     return merged;
   } catch {
     return local;

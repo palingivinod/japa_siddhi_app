@@ -64,6 +64,32 @@ export const isBaanalingamRewardName = (rewardName: string): boolean => {
     (lower.includes('narmada') && lower.includes('ling'))
   );
 };
+
+/** Seva Hub Baanalingam stock — drives Narmada Baanalingam reward availability. */
+export const isSevaBaanalingamInStock = async (): Promise<boolean> => {
+  try {
+    const appSettingsService = (await import('../admin/appSettings.service'))
+      .default;
+    const stock = await appSettingsService.getSevaOfferingsStock();
+    return stock.BanaLingam?.inStock !== false;
+  } catch {
+    return true;
+  }
+};
+
+/**
+ * If Seva Hub Baanalingam is Out of Stock, force matching rewards OOS too.
+ */
+export const resolveBaanalingamRewardStock = async (
+  rewardName: string,
+  adminMarkedOos: boolean,
+): Promise<{adminMarkedOos: boolean; inStock: boolean}> => {
+  let oos = Boolean(adminMarkedOos);
+  if (isBaanalingamRewardName(rewardName) && !(await isSevaBaanalingamInStock())) {
+    oos = true;
+  }
+  return {adminMarkedOos: oos, inStock: !oos};
+};
 /** Sentinel claim key — not a real japa milestone count. */
 export const MARAKATA_SHIVLING_CLAIM_TARGET = 900003;
 /** Generic relative (present+N) claim keys start here + rewardId. */
@@ -305,6 +331,34 @@ class MilestoneRewardService {
       String(claimRows[0].orderStatus || '').toUpperCase() === 'CANCELLED' &&
       Number(claimRows[0].retryCount || 0) === 0
     );
+    const mappedRewards = (rewards || [])
+      .filter((row: any) => {
+        const name = String(row.name || '');
+        return (
+          !isMarakataShivlingName(name) &&
+          !isRelativeUnlockMode(row.unlockMode)
+        );
+      })
+      .map((row: any) => {
+        const adminMarkedOos =
+          Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+        return {
+          id: Number(row.id),
+          name: String(row.name || ''),
+          stock: Math.max(0, Number(row.stock || 0)),
+          inStock: !adminMarkedOos,
+          adminMarkedOos,
+        };
+      });
+    // Overlay Seva Hub Baanalingam OOS onto matching reward rows.
+    const sevaBanaInStock = await isSevaBaanalingamInStock();
+    const rewardsOut = !sevaBanaInStock
+      ? mappedRewards.map((row: any) =>
+          isBaanalingamRewardName(String(row.name || ''))
+            ? {...row, inStock: false, adminMarkedOos: true}
+            : row,
+        )
+      : mappedRewards;
     return {
       target: milestone.target,
       title: milestone.title,
@@ -312,25 +366,7 @@ class MilestoneRewardService {
       reached: total >= milestone.target,
       claimed: claimed.includes(milestone.target),
       isRetry,
-      rewards: (rewards || [])
-        .filter((row: any) => {
-          const name = String(row.name || '');
-          return (
-            !isMarakataShivlingName(name) &&
-            !isRelativeUnlockMode(row.unlockMode)
-          );
-        })
-        .map((row: any) => {
-          const adminMarkedOos =
-            Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
-          return {
-            id: Number(row.id),
-            name: String(row.name || ''),
-            stock: Math.max(0, Number(row.stock || 0)),
-            inStock: !adminMarkedOos,
-            adminMarkedOos,
-          };
-        }),
+      rewards: rewardsOut,
     };
   }
 
@@ -508,7 +544,10 @@ class MilestoneRewardService {
       if (await shivaLingaEligibilityService.hasActiveMarakata(userId)) {
         claimed = true;
       }
-      const adminMarkedOos = Number(reward.adminMarkedOos || 0) === 1;
+      const stockFlags = await resolveBaanalingamRewardStock(
+        rewardName,
+        Number(reward.adminMarkedOos || 0) === 1,
+      );
       const stock = Math.max(0, Number(reward.stock || 0));
       return {
         rewardId: Number(reward.id),
@@ -520,13 +559,13 @@ class MilestoneRewardService {
         target: unlockTarget,
         claimTarget,
         extraJapas: unlockTarget,
-        eligible: total >= unlockTarget && !claimed,
+        eligible: total >= unlockTarget && !claimed && stockFlags.inStock,
         remaining: Math.max(0, unlockTarget - total),
         claimed,
         isRetry: isRetryAvailable,
         stock,
-        inStock: !adminMarkedOos,
-        adminMarkedOos,
+        inStock: stockFlags.inStock,
+        adminMarkedOos: stockFlags.adminMarkedOos,
         orderId: claim?.orderId ? Number(claim.orderId) : null,
         orderNumber: claim?.orderNumber ? String(claim.orderNumber) : null,
       };
@@ -576,9 +615,11 @@ class MilestoneRewardService {
     }
 
     const {claim, claimed, isRetryAvailable} = await loadClaimFlags();
-    const adminMarkedOos = Number(reward.adminMarkedOos || 0) === 1;
+    const stockFlags = await resolveBaanalingamRewardStock(
+      rewardName,
+      Number(reward.adminMarkedOos || 0) === 1,
+    );
     const stock = Math.max(0, Number(reward.stock || 0));
-    const inStock = !adminMarkedOos;
 
     return {
       rewardId: Number(reward.id),
@@ -590,13 +631,13 @@ class MilestoneRewardService {
       target: unlockTarget,
       claimTarget,
       extraJapas,
-      eligible: total >= unlockTarget,
+      eligible: total >= unlockTarget && stockFlags.inStock,
       remaining: Math.max(0, unlockTarget - total),
       claimed,
       isRetry: isRetryAvailable,
       stock,
-      inStock,
-      adminMarkedOos,
+      inStock: stockFlags.inStock,
+      adminMarkedOos: stockFlags.adminMarkedOos,
       orderId: claim?.orderId ? Number(claim.orderId) : null,
       orderNumber: claim?.orderNumber ? String(claim.orderNumber) : null,
     };
@@ -1015,6 +1056,16 @@ class MilestoneRewardService {
       [rewardId],
     );
 
+    try {
+      const profileRepository = (await import('../profile/profile.repository'))
+        .default;
+      await profileRepository.saveAddress(userId, address, {
+        postalCode: pinCode,
+      });
+    } catch {
+      // Non-fatal — order already created.
+    }
+
     let devotee = {name: fullName, email: '-', mobile};
     try {
       const user = await authRepository.findUserById(userId);
@@ -1332,6 +1383,16 @@ class MilestoneRewardService {
       `,
       [rewardId],
     );
+
+    try {
+      const profileRepository = (await import('../profile/profile.repository'))
+        .default;
+      await profileRepository.saveAddress(userId, address, {
+        postalCode: pinCode,
+      });
+    } catch {
+      // Non-fatal — order already created.
+    }
 
     let devotee = {name: fullName, email: '-', mobile};
     try {

@@ -3466,15 +3466,22 @@ const mapOrderDetail = (row: any) => {
   const fromAddress = parseAddressParts(deliveryAddress);
   const deliveryCity =
     row.claimCity ||
+    row.banaCityName ||
     parseRemarkLine(remarks, 'City') ||
     fromAddress.city ||
+    row.profileCityName ||
     '';
   const deliveryState =
     row.claimState ||
+    row.banaStateName ||
     parseRemarkLine(remarks, 'State') ||
     fromAddress.state ||
+    row.profileStateName ||
     '';
   const banaPin = String(row.banaPostalCode || '')
+    .replace(/\D/g, '')
+    .slice(0, 6);
+  const profilePin = String(row.profilePostalCode || '')
     .replace(/\D/g, '')
     .slice(0, 6);
   const deliveryPin =
@@ -3483,8 +3490,12 @@ const mapOrderDetail = (row: any) => {
     parseRemarkLine(remarks, 'PIN') ||
     parseRemarkLine(remarks, 'PIN Code') ||
     fromAddress.pinCode ||
+    (profilePin && profilePin !== '000000' ? profilePin : '') ||
     '';
-  const deliveryRegion = parseRemarkLine(remarks, 'Region') || '';
+  const deliveryRegion =
+    parseRemarkLine(remarks, 'Region') ||
+    String(row.profileRegion || '').trim() ||
+    '';
   const email = row.customerEmail || row.banaEmail || '';
   const mobile = [row.customerMobileCode, row.customerMobile]
     .filter(Boolean)
@@ -3558,13 +3569,17 @@ const orderDetailSelect = `
     bl.address AS banaAddress,
     bl.postal_code AS banaPostalCode,
     bl.gothram AS banaGothram,
-    bl.nakshatram AS banaNakshatram
+    bl.nakshatram AS banaNakshatram,
+    bci.name AS banaCityName,
+    bst.name AS banaStateName
   FROM orders o
   LEFT JOIN users u ON u.id = o.user_id
   LEFT JOIN states s ON s.id = u.state_id
   LEFT JOIN cities ci ON ci.id = u.city_id
   LEFT JOIN challenge_reward_claims crc ON crc.order_id = o.id
   LEFT JOIN bana_lingam bl ON bl.order_id = o.id
+  LEFT JOIN cities bci ON bci.id = bl.city_id
+  LEFT JOIN states bst ON bst.id = bl.state_id
 `;
 
 const ensureOrderCancelColumns = async () => {
@@ -6809,6 +6824,11 @@ router.get('/rewards', async (req: Request, res: Response) => {
     await ensureRewardSeed();
     await ensureRewardImageColumn();
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+    const {
+      isBaanalingamRewardName,
+      isSevaBaanalingamInStock,
+    } = await import('../japa/milestoneReward.service');
+    const sevaBanaInStock = await isSevaBaanalingamInStock();
     const rows = await mysql.query<any[]>(`
       SELECT
         id,
@@ -6825,12 +6845,19 @@ router.get('/rewards', async (req: Request, res: Response) => {
     `);
     return res.json({
       success: true,
-      data: (rows || []).map((row: any) =>
-        mapRewardRow(
+      data: (rows || []).map((row: any) => {
+        const mapped = mapRewardRow(
           row,
           row.imageUrl ? absoluteMediaUrl(req, row.imageUrl) : null,
-        ),
-      ),
+        );
+        if (
+          !sevaBanaInStock &&
+          isBaanalingamRewardName(String(mapped.name || ''))
+        ) {
+          return {...mapped, inStock: false, adminMarkedOos: true};
+        }
+        return mapped;
+      }),
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -6974,6 +7001,20 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         id,
       ],
     );
+
+    // Configure Rewards Baanalingam In/Out → mirror Seva Hub Baanalingam.
+    if (hasInStockFlag) {
+      try {
+        const {isBaanalingamRewardName} = await import(
+          '../japa/milestoneReward.service'
+        );
+        if (isBaanalingamRewardName(String(nextName || ''))) {
+          await syncSevaBaanalingamWithRewardStock(nextAdminOos !== 1);
+        }
+      } catch (err) {
+        console.warn('Seva Hub Baanalingam stock sync from reward failed:', err);
+      }
+    }
 
     // When Present+N extra changes, recompute locked unlock_target = baseline + new N.
     const prevEligibility = Number(current[0].eligibilityCriteria || 0);
@@ -7513,6 +7554,47 @@ router.get('/seva-offerings-stock', async (_req: Request, res: Response) => {
   }
 });
 
+/** Keep Narmada Baanalingam Configure Rewards OOS in sync with Seva Hub Baanalingam. */
+const syncBaanalingamRewardsWithSevaStock = async (inStock: boolean) => {
+  try {
+    await ensureRewardImageColumn();
+    const {isBaanalingamRewardName} = await import(
+      '../japa/milestoneReward.service'
+    );
+    const rows = await mysql.query<any[]>(
+      `SELECT id, name FROM challenge_rewards`,
+    );
+    const ids = (rows || [])
+      .filter(row => isBaanalingamRewardName(String(row.name || '')))
+      .map(row => Number(row.id))
+      .filter(id => Number.isFinite(id) && id > 0);
+    if (!ids.length) {
+      return;
+    }
+    const placeholders = ids.map(() => '?').join(',');
+    await mysql.query(
+      `
+      UPDATE challenge_rewards
+      SET admin_marked_oos = ?
+      WHERE id IN (${placeholders})
+      `,
+      [inStock ? 0 : 1, ...ids],
+    );
+  } catch (error) {
+    console.warn('Baanalingam reward stock sync failed:', error);
+  }
+};
+
+/** Configure Rewards Baanalingam In/Out → Seva Hub Baanalingam. */
+const syncSevaBaanalingamWithRewardStock = async (inStock: boolean) => {
+  try {
+    const appSettingsService = (await import('./appSettings.service')).default;
+    await appSettingsService.setSevaOfferingStock('BanaLingam', inStock);
+  } catch (error) {
+    console.warn('Seva Hub Baanalingam stock sync failed:', error);
+  }
+};
+
 router.put('/seva-offerings-stock/:key', async (req: Request, res: Response) => {
   try {
     const key = String(req.params.key || '').trim();
@@ -7525,6 +7607,9 @@ router.put('/seva-offerings-stock/:key', async (req: Request, res: Response) => 
         inStockRaw === '0'
       );
     const stock = await appSettingsService.setSevaOfferingStock(key, inStock);
+    if (key === 'BanaLingam') {
+      await syncBaanalingamRewardsWithSevaStock(inStock);
+    }
     return res.json({
       success: true,
       message: `${SEVA_OFFERING_LABELS[key] || key}: ${

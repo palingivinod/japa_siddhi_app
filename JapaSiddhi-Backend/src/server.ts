@@ -8,6 +8,7 @@ import { initializeSocket } from './socket/socketServer';
 import { initializeFirebase } from './firebase/firebase';
 import { purgeDemoData } from './utils/demoData';
 import { startNotificationReminderScheduler } from './modules/notification/notificationReminder.service';
+import { startPanchangDailyScheduler } from './modules/festival/panchangDailyCache';
 import { syncRecentRazorpayDonations } from './modules/payments/razorpay.service';
 
 // ✅ Initialize Firebase Admin BEFORE starting the server
@@ -28,12 +29,14 @@ server.listen(PORT, '0.0.0.0', async () => {
     await purgeDemoData();
     await syncRecentRazorpayDonations();
     startNotificationReminderScheduler();
+    startPanchangDailyScheduler();
     console.log('========================================');
     console.log(`🚀 Japa Siddhi Backend Started`);
     console.log(`🌐 Port : ${PORT}`);
     console.log('========================================');
     console.log('🔌 Socket.IO Started');
     console.log('🔔 Notification reminders scheduled');
+    console.log('🕉️  Panchangam daily cache scheduled (IST midnight)');
     console.log('========================================');
 });
 

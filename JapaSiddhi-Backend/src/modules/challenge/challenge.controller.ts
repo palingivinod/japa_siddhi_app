@@ -272,11 +272,20 @@ class ChallengeController {
   async listAvailableRewards(req: Request, res: Response, next: NextFunction) {
     try {
       const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+      const {
+        isBaanalingamRewardName,
+        isSevaBaanalingamInStock,
+      } = await import('../japa/milestoneReward.service');
+      const sevaBanaInStock = await isSevaBaanalingamInStock();
       const rows = await challengeRepository.listRewards();
       return apiResponse.success(res, 'Available rewards fetched', {
         rewards: (rows || []).map((row: any) => {
-          const adminMarkedOos =
+          let adminMarkedOos =
             Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+          const name = String(row.name || '');
+          if (!sevaBanaInStock && isBaanalingamRewardName(name)) {
+            adminMarkedOos = true;
+          }
           const stock = Math.max(0, Number(row.stock || 0));
           const unlockMode = String(row.unlockMode || row.unlock_mode || 'fixed')
             .trim()
@@ -284,7 +293,7 @@ class ChallengeController {
           const rawImage = String(row.imageUrl || row.image_url || '').trim();
           return {
             id: Number(row.id),
-            name: String(row.name || ''),
+            name,
             stock,
             // Qty is a label only — availability is admin In/Out toggle.
             inStock: !adminMarkedOos,

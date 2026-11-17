@@ -605,7 +605,12 @@ class DonationService {
       });
       requestId = request.id;
       if (addressText) {
-        await profileRepository.saveAddress(userId, addressText);
+        await profileRepository.saveAddress(userId, addressText, {
+          postalCode: deliveryPin,
+          cityId: deliveryCityId,
+          stateId: deliveryStateId,
+          countryId: deliveryCountryId,
+        });
       }
     }
 
@@ -617,7 +622,12 @@ class DonationService {
         kind === 'GOU_MAYA_BHASMA') &&
       addressText
     ) {
-      await profileRepository.saveAddress(userId, addressText);
+      await profileRepository.saveAddress(userId, addressText, {
+        postalCode: deliveryPin,
+        cityId: deliveryCityId,
+        stateId: deliveryStateId,
+        countryId: deliveryCountryId,
+      });
     }
 
     const confirmationId =

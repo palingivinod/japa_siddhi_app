@@ -320,11 +320,28 @@ class ProfileRepository {
     return addresses;
   }
 
-  async saveAddress(userId: number, address: string) {
+  /**
+   * Save a delivery address into user_addresses AND fill profile address fields
+   * (address / PIN / region / city / state) so Personal Details & admin blanks clear.
+   */
+  async saveAddress(
+    userId: number,
+    address: string,
+    extras?: {
+      postalCode?: string | null;
+      region?: string | null;
+      cityId?: number | null;
+      stateId?: number | null;
+      countryId?: number | null;
+    },
+  ) {
     const next = String(address || '').trim();
     if (!next) {
       return this.listAddresses(userId);
     }
+
+    await ensurePostalColumn();
+    await ensureRegionColumn();
 
     const existing = await mysql.query<any[]>(
       `
@@ -346,13 +363,62 @@ class ProfileRepository {
       );
     }
 
+    const pinFromText =
+      String(extras?.postalCode || '').replace(/\D/g, '').slice(0, 6) ||
+      (next.match(/\b(\d{6})\b/g) || []).slice(-1)[0] ||
+      '';
+    let cityId = Number(extras?.cityId) || null;
+    let stateId = Number(extras?.stateId) || null;
+    let countryId = Number(extras?.countryId) || null;
+    let region = String(extras?.region || '').trim();
+
+    // Prefer PIN lookup so city/state names resolve for profile + admin.
+    if (pinFromText && /^[0-9]{6}$/.test(pinFromText)) {
+      try {
+        const masterService = (await import('../master/master.service')).default;
+        const lookedUp = await masterService.lookupPincode(pinFromText);
+        cityId = Number(lookedUp.cityId) || cityId;
+        stateId = Number(lookedUp.stateId) || stateId;
+        countryId = Number(lookedUp.countryId) || countryId || 1;
+        if (!region) {
+          region = String(lookedUp.cityName || '').trim();
+        }
+      } catch {
+        // Keep whatever structured extras we already have.
+      }
+    }
+
+    // Always set recent address on profile (not only when blank).
     await mysql.query(
       `
       UPDATE users
-      SET address = COALESCE(NULLIF(TRIM(address), ''), ?), updated_at = CURRENT_TIMESTAMP
+      SET
+        address = ?,
+        postal_code = CASE
+          WHEN ? <> '' THEN ?
+          ELSE postal_code
+        END,
+        region = CASE
+          WHEN ? <> '' THEN ?
+          ELSE region
+        END,
+        city_id = COALESCE(?, city_id),
+        state_id = COALESCE(?, state_id),
+        country_id = COALESCE(?, country_id),
+        updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
       `,
-      [next, userId],
+      [
+        next,
+        pinFromText,
+        pinFromText,
+        region,
+        region,
+        cityId,
+        stateId,
+        countryId,
+        userId,
+      ],
     );
     return this.listAddresses(userId);
   }

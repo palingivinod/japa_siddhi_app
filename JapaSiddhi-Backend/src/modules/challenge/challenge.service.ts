@@ -366,30 +366,41 @@ class ChallengeService {
             orderNumber: claim.orderNumber || null,
           }
         : null,
-      rewards: (rewards || []).map((row: any) => {
-        const adminMarkedOos =
-          Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
-        const stock = Math.max(0, Number(row.stock || 0));
-        const unlockMode = String(row.unlockMode || row.unlock_mode || 'fixed')
-          .trim()
-          .toLowerCase();
-        return {
-          id: Number(row.id),
-          name: String(row.name || ''),
-          stock,
-          inStock: !adminMarkedOos,
-          adminMarkedOos,
-          description: String(row.description || ''),
-          eligibilityCriteria: Number(
-            row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
-          ),
-          unlockMode:
-            unlockMode === 'relative' || unlockMode === 'present'
-              ? 'relative'
-              : 'fixed',
-          imageUrl: row.imageUrl || null,
-        };
-      }),
+      rewards: await (async () => {
+        const {
+          isBaanalingamRewardName,
+          isSevaBaanalingamInStock,
+        } = await import('../japa/milestoneReward.service');
+        const sevaBanaInStock = await isSevaBaanalingamInStock();
+        return (rewards || []).map((row: any) => {
+          let adminMarkedOos =
+            Number(row.adminMarkedOos ?? row.admin_marked_oos ?? 0) === 1;
+          const name = String(row.name || '');
+          if (!sevaBanaInStock && isBaanalingamRewardName(name)) {
+            adminMarkedOos = true;
+          }
+          const stock = Math.max(0, Number(row.stock || 0));
+          const unlockMode = String(row.unlockMode || row.unlock_mode || 'fixed')
+            .trim()
+            .toLowerCase();
+          return {
+            id: Number(row.id),
+            name,
+            stock,
+            inStock: !adminMarkedOos,
+            adminMarkedOos,
+            description: String(row.description || ''),
+            eligibilityCriteria: Number(
+              row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
+            ),
+            unlockMode:
+              unlockMode === 'relative' || unlockMode === 'present'
+                ? 'relative'
+                : 'fixed',
+            imageUrl: row.imageUrl || null,
+          };
+        });
+      })(),
     };
   }
 
