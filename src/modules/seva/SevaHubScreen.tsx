@@ -120,6 +120,13 @@ const SevaHubScreen = () => {
         route: 'Donate',
       },
       {
+        icon: 'biravaPendant' as AppIconName,
+        title: `${t('tileBirava')} ${freeOfCostBracket}`,
+        itemName: t('tileBirava'),
+        sub: t('tileBiravaSub'),
+        route: 'BiravaPendant',
+      },
+      {
         icon: 'flame' as AppIconName,
         title: t('tileNithyaHomam'),
         itemName: t('tileNithyaHomam'),
@@ -153,13 +160,6 @@ const SevaHubScreen = () => {
         itemName: t('tileGouMayaBhasma'),
         sub: t('tileGouMayaBhasmaSub'),
         route: 'GouMayaBhasma',
-      },
-      {
-        icon: 'biravaPendant' as AppIconName,
-        title: `${t('tileBirava')} ${freeOfCostBracket}`,
-        itemName: t('tileBirava'),
-        sub: t('tileBiravaSub'),
-        route: 'BiravaPendant',
       },
     ];
     return all.filter(item => item.route !== 'Donate' || annadanamEnabled);

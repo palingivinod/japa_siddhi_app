@@ -180,19 +180,80 @@ const ChantScreen = () => {
     setLoading(true);
     setError('');
     setRawError(null);
+
+    const preferredId = Number(route.params?.mantraId || 0);
+    const isRecentOnly = Boolean(route.params?.recentOnly);
+    const hasTargetedMantra =
+      Boolean(ownMantra) ||
+      Boolean(personalMantraId) ||
+      Boolean(preferredId) ||
+      Boolean(challengeId);
+
+    // Open chant UI immediately when the mantra is already known (Your Japas /
+    // challenge / home resume). Supporting APIs refresh in the background.
+    let preferred: ChantMantra | null = null;
+    if (hasTargetedMantra && !isRecentOnly) {
+      preferred =
+        ownMantra || personalMantraId
+          ? ownChip(
+              Number(personalMantraId || 0),
+              ownMantra ||
+                String(route.params?.challengeMantra || '').trim() ||
+                'Mantra',
+            )
+          : preferredId
+            ? {
+                key: `preset:${preferredId}`,
+                id: preferredId,
+                name:
+                  String(route.params?.mantraName || '').trim() ||
+                  String(route.params?.challengeMantra || '').trim() ||
+                  'Mantra',
+                own: false,
+              }
+            : {
+                key: `challenge:${challengeId}`,
+                id: 0,
+                name:
+                  String(route.params?.challengeMantra || '').trim() ||
+                  'Challenge',
+                own: false,
+              };
+      setSelected(preferred);
+      setMantras([preferred]);
+      setShowMantraPicker(false);
+      const bootCount = Number(route.params?.initialCount || 0);
+      const bootGoal = Number(route.params?.goal ?? 2000) || 2000;
+      if (challengeId) {
+        applyDraftToCount({
+          count: Math.min(bootCount, bootGoal),
+          postedCount: Math.min(bootCount, bootGoal),
+          goal: bootGoal,
+        });
+        setDailyTarget(0);
+      } else {
+        setGoal(bootGoal);
+        setDailyTarget(Number(route.params?.dailyTarget || 0) || 0);
+        completingRef.current = false;
+      }
+      setLoading(false);
+    }
+
     try {
-      const [mantraResponse, summaryResponse, ownResponse] = await Promise.all([
-        apiService.get('/mantras', {
-          params: {
-            list: mode === 'private' ? 'antharanga' : 'samuhika',
-            ...(Number(route.params?.mantraId || 0)
-              ? {include: Number(route.params.mantraId)}
-              : {}),
-          },
-        }),
-        apiService.get('/japa/summary'),
-        apiService.get('/personal-mantras').catch(() => null),
-      ]);
+      const [mantraResponse, summaryResponse, ownResponse, goalsOrChallengeRes] =
+        await Promise.all([
+          apiService.get('/mantras', {
+            params: {
+              list: mode === 'private' ? 'antharanga' : 'samuhika',
+              ...(preferredId ? {include: preferredId} : {}),
+            },
+          }),
+          apiService.get('/japa/summary'),
+          apiService.get('/personal-mantras').catch(() => null),
+          challengeId
+            ? apiService.get(`/challenges/${challengeId}`).catch(() => null)
+            : apiService.get('/japa-goals').catch(() => null),
+        ]);
       const presets: Mantra[] = mantraResponse.data.data ?? [];
       const ownRows: any[] = ownResponse?.data?.data ?? [];
 
@@ -211,7 +272,6 @@ const ChantScreen = () => {
         data.byMantra || [],
       );
 
-      const isRecentOnly = Boolean(route.params?.recentOnly);
       let listItems = items;
       let hadPrevious = false;
       if (isRecentOnly) {
@@ -230,15 +290,7 @@ const ChantScreen = () => {
       setHasPracticedMantras(hadPrevious);
       setMantras(listItems);
 
-      const preferredId = Number(route.params?.mantraId || 0);
-      const isExplicitMantra =
-        Boolean(ownMantra) ||
-        Boolean(personalMantraId) ||
-        Boolean(preferredId) ||
-        Boolean(challengeId) ||
-        mode === 'community';
-
-      const preferred =
+      const resolvedPreferred =
         (ownMantra &&
           listItems.find(item => item.own && item.name === ownMantra)) ||
         (personalMantraId &&
@@ -247,27 +299,31 @@ const ChantScreen = () => {
           listItems.find(item => !item.own && item.id === preferredId)) ||
         (isRecentOnly
           ? listItems[0] || null
-          : mode === 'community'
+          : mode === 'community' && !hasTargetedMantra
             ? listItems.find(item => !item.own) || listItems[0] || null
-            : null);
+            : preferred);
+
+      preferred = resolvedPreferred || preferred;
 
       if (preferred) {
         setSelected(preferred);
       } else {
         setSelected(current => current ?? null);
       }
-      setShowMantraPicker(isRecentOnly || (!preferred && mode === 'private'));
+      setShowMantraPicker(
+        isRecentOnly || (!preferred && mode === 'private' && !hasTargetedMantra),
+      );
       let initialCount = Number(route.params?.initialCount || 0);
-      let paramGoal = Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
-      // Challenges have a total target only — never inherit Antharanga daily goal (e.g. 100).
+      let paramGoal =
+        Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
+      // Challenges have a total target only — never inherit Antharanga daily goal.
       let resolvedDailyTarget = 0;
       let resolvedTodayBaseline = 0;
       if (!challengeId) {
         resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
         const paramGoalId = Number(route.params?.japaGoalId || 0);
         try {
-          const goalsRes = await apiService.get('/japa-goals');
-          const goals: any[] = goalsRes.data?.data ?? [];
+          const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
           const match = pickMantraGoal(goals, {
             goalId: paramGoalId,
             personalMantraId,
@@ -296,30 +352,9 @@ const ChantScreen = () => {
         } catch {
           // Keep the daily goal passed in with this mantra.
         }
-      }
-      todaySavedRef.current = resolvedTodayBaseline;
-      extraBaseRef.current = resolvedTodayBaseline;
-      setExtraBase(resolvedTodayBaseline);
-      setTodaySaved(resolvedTodayBaseline);
-      setDailyTarget(resolvedDailyTarget);
-      if (
-        resolvedDailyTarget > 0 &&
-        resolvedTodayBaseline >= resolvedDailyTarget
-      ) {
-        dailyGoalCompletedShownRef.current = true;
-        setDailyGoalCompletedShown(true);
-      } else {
-        dailyGoalCompletedShownRef.current = false;
-        setDailyGoalCompletedShown(false);
-      }
-
-      // Challenge japa uses its own target/progress — never Antharanga draft/goal.
-      if (challengeId) {
+      } else if (goalsOrChallengeRes?.data?.data) {
         try {
-          const challengeResponse = await apiService.get(
-            `/challenges/${challengeId}`,
-          );
-          const challenge = challengeResponse.data?.data || {};
+          const challenge = goalsOrChallengeRes.data.data || {};
           paramGoal = Math.max(
             1,
             Number(challenge.targetValue || paramGoal) || paramGoal,
@@ -335,10 +370,30 @@ const ChantScreen = () => {
               .trim();
           if (mantra && mantra.toLowerCase() !== 'certificate') {
             setChallengeMantra(mantra);
+            if (preferred && preferred.key.startsWith('challenge:')) {
+              const named = {...preferred, name: mantra};
+              preferred = named;
+              setSelected(named);
+            }
           }
         } catch {
           // Fall back to route params.
         }
+      }
+      todaySavedRef.current = resolvedTodayBaseline;
+      extraBaseRef.current = resolvedTodayBaseline;
+      setExtraBase(resolvedTodayBaseline);
+      setTodaySaved(resolvedTodayBaseline);
+      setDailyTarget(resolvedDailyTarget);
+      if (
+        resolvedDailyTarget > 0 &&
+        resolvedTodayBaseline >= resolvedDailyTarget
+      ) {
+        dailyGoalCompletedShownRef.current = true;
+        setDailyGoalCompletedShown(true);
+      } else {
+        dailyGoalCompletedShownRef.current = false;
+        setDailyGoalCompletedShown(false);
       }
 
       const presetDraftId = preferred?.own ? undefined : preferred?.id;
@@ -404,9 +459,15 @@ const ChantScreen = () => {
           goal: paramGoal,
         });
         completingRef.current = false;
-      } else {
+      } else if (!hasTargetedMantra) {
         setGoal(paramGoal);
         completingRef.current = false;
+      } else {
+        // Targeted open already applied boot goal/count; keep draft/challenge updates above.
+        if (!restore) {
+          setGoal(paramGoal);
+          completingRef.current = false;
+        }
       }
       setSavedTotal(
         active?.own

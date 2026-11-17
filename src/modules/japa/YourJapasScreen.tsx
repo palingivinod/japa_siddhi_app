@@ -320,6 +320,9 @@ const YourJapasScreen = () => {
       });
 
       setJapas(items);
+      // Show the list as soon as goals/challenges are ready — do not wait on
+      // the lingam-advice inbox fetch (that was keeping the spinner up).
+      setLoading(false);
 
       // Blinking banner for unread lingam-advice notification (5k / 8k).
       try {
@@ -349,7 +352,6 @@ const YourJapasScreen = () => {
       }
     } catch (error) {
       console.log('Error loading active japas', error);
-    } finally {
       setLoading(false);
     }
   }, [t, language]);
@@ -389,6 +391,7 @@ const YourJapasScreen = () => {
       mantraId: item.mantraId,
       personalMantraId: item.personalMantraId,
       privateMantra: item.sourceType === 'PERSONAL' ? item.mantraName : undefined,
+      mantraName: item.mantraName,
       goal: item.targetCount,
       initialCount: item.completedCount,
       dailyTarget: item.dailyTarget,
