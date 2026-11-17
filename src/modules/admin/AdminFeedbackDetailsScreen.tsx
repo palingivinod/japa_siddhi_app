@@ -24,6 +24,29 @@ type FeedbackDetail = {
   rating: string;
   comment: string;
   videoUrl: string;
+  createdAt: string;
+};
+
+const formatFeedbackDate = (raw?: string | null) => {
+  const str = String(raw || '').trim();
+  if (!str) {
+    return '—';
+  }
+  const ms = Date.parse(
+    str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str,
+  );
+  if (!Number.isFinite(ms)) {
+    return str.slice(0, 16);
+  }
+  return new Date(ms).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
 };
 
 const handleCall = (mobile?: string) => {
@@ -64,6 +87,7 @@ const AdminFeedbackDetailsScreen = () => {
     rating: String(params.rating || ''),
     comment: String(params.comment || ''),
     videoUrl: String(params.videoUrl || ''),
+    createdAt: String(params.createdAt || '').trim(),
   });
   const [loading, setLoading] = useState(Boolean(userId));
 
@@ -147,6 +171,9 @@ const AdminFeedbackDetailsScreen = () => {
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Feedback</Text>
+        <Text style={styles.row}>
+          Date: {formatFeedbackDate(detail.createdAt)}
+        </Text>
         {detail.rating ? <Text style={styles.row}>{detail.rating}</Text> : null}
         <Text style={styles.comment}>{detail.comment || '—'}</Text>
         <AdminMediaLink

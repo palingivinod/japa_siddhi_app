@@ -7659,7 +7659,11 @@ router.get('/feedback', async (req: Request, res: Response) => {
           comment: row.message || row.title || '',
           videoUrl: absoluteMediaUrl(req, row.videoUrl),
           status: 'Pending',
-          createdAt: row.createdAt,
+          createdAt: row.createdAt
+            ? String(row.createdAt)
+            : row.created_at
+              ? String(row.created_at)
+              : '',
         };
       }),
     });

@@ -15,6 +15,28 @@ import AdminScreenLayout from './AdminScreenLayout';
 import AdminMediaLink from './AdminMediaLink';
 import {AdminFeedback} from './adminData';
 
+const formatFeedbackDate = (raw?: string | null) => {
+  const str = String(raw || '').trim();
+  if (!str) {
+    return '';
+  }
+  const ms = Date.parse(
+    str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str,
+  );
+  if (!Number.isFinite(ms)) {
+    return str.slice(0, 16);
+  }
+  return new Date(ms).toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+};
+
 const AdminFeedbackScreen = () => {
   const navigation = useNavigation<any>();
   const [items, setItems] = useState<AdminFeedback[]>([]);
@@ -39,6 +61,7 @@ const AdminFeedbackScreen = () => {
           comment: row.comment || '',
           videoUrl: row.videoUrl || null,
           status: 'Pending',
+          createdAt: String(row.createdAt || row.created_at || '').trim(),
         })),
       );
     } catch (err) {
@@ -89,11 +112,17 @@ const AdminFeedbackScreen = () => {
                 rating: item.rating,
                 comment: item.comment,
                 videoUrl: item.videoUrl,
+                createdAt: item.createdAt,
               })
             }>
             <Text style={styles.name}>{item.name}</Text>
             {item.mobileNumber ? (
               <Text style={styles.contact}>{item.mobileNumber}</Text>
+            ) : null}
+            {item.createdAt ? (
+              <Text style={styles.date}>
+                {formatFeedbackDate(item.createdAt)}
+              </Text>
             ) : null}
             <Text style={styles.meta}>
               {item.rating ? `${item.rating} • ` : ''}
@@ -142,6 +171,12 @@ const styles = StyleSheet.create({
     marginTop: 2,
     color: Colors.textSecondary,
     fontWeight: '600',
+    fontSize: 13,
+  },
+  date: {
+    marginTop: 4,
+    color: Colors.leafGreen,
+    fontWeight: '700',
     fontSize: 13,
   },
   meta: {

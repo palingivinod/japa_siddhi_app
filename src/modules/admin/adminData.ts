@@ -246,6 +246,7 @@ export type AdminFeedback = {
   comment: string;
   videoUrl?: string | null;
   status: AdminTicketStatus;
+  createdAt?: string;
 };
 
 export const ADMIN_ANNADANAM: AdminAnnadanamItem[] = [
