@@ -21,7 +21,7 @@ const localImages: Record<string, any> = {
   japa: require('../../../assets/images/chant.webp'),
   family: require('../../../assets/images/family_japa.webp'),
   donation: require('../../../assets/images/donation.webp'),
-  banalingam: require('../../../assets/images/banalingam.webp'),
+  banalingam: require('../../../assets/images/bana_linga_icon.png'),
   store: require('../../../assets/images/spiritual_store.webp'),
   orders: require('../../../assets/images/order.webp'),
   progress: require('../../../assets/images/myprogress.webp'),
