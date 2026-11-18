@@ -8570,11 +8570,17 @@ router.get('/japa/user-session-audit', async (req: Request, res: Response) => {
 /**
  * Repair 1.3.0 japa inflate: oversized session rows (lifetime re-POSTs).
  * Default dryRun=true. Apply only with { dryRun:false, confirm:"REPAIR_JAPA_INFLATE" }.
- * Body: { dryRun?, minCount?, since? } — since defaults to 2026-11-16 (UTC).
+ * Body: { dryRun?, minCount?, since?, ids?: number[] }
+ * If ids is non-empty, only those session row ids are targeted (still recomputes goals/global).
  */
 router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
   try {
     const dryRun = req.body?.dryRun !== false && req.query?.dryRun !== 'false';
+    const idList = Array.isArray(req.body?.ids)
+      ? (req.body.ids as unknown[])
+          .map(v => Number(v))
+          .filter(id => Number.isFinite(id) && id > 0)
+      : [];
     const minCountRaw = Number(req.body?.minCount ?? req.query?.minCount ?? 501);
     const minCount = Math.max(
       501,
@@ -8595,36 +8601,65 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
       : '2026-11-18 14:30:00';
     const confirm = String(req.body?.confirm || '').trim();
 
-    const summaryRows = await mysql.query<any[]>(
-      `
-      SELECT
-        COUNT(*) AS rowCount,
-        COUNT(DISTINCT user_id) AS userCount,
-        COALESCE(SUM(session_count), 0) AS japaSum,
-        COALESCE(MAX(session_count), 0) AS maxRow
-      FROM japa_sessions
-      WHERE session_count >= ?
-        AND created_at >= ?
-      `,
-      [minCount, since],
-    );
+    const byIds = idList.length > 0;
+    const summaryRows = byIds
+      ? await mysql.query<any[]>(
+          `
+          SELECT
+            COUNT(*) AS rowCount,
+            COUNT(DISTINCT user_id) AS userCount,
+            COALESCE(SUM(session_count), 0) AS japaSum,
+            COALESCE(MAX(session_count), 0) AS maxRow
+          FROM japa_sessions
+          WHERE id IN (${idList.map(() => '?').join(',')})
+          `,
+          idList,
+        )
+      : await mysql.query<any[]>(
+          `
+          SELECT
+            COUNT(*) AS rowCount,
+            COUNT(DISTINCT user_id) AS userCount,
+            COALESCE(SUM(session_count), 0) AS japaSum,
+            COALESCE(MAX(session_count), 0) AS maxRow
+          FROM japa_sessions
+          WHERE session_count >= ?
+            AND created_at >= ?
+          `,
+          [minCount, since],
+        );
     const summary = summaryRows?.[0] || {};
-    const sampleRows = await mysql.query<any[]>(
-      `
-      SELECT
-        id,
-        user_id AS userId,
-        session_count AS sessionCount,
-        created_at AS createdAt,
-        japa_goal_id AS japaGoalId
-      FROM japa_sessions
-      WHERE session_count >= ?
-        AND created_at >= ?
-      ORDER BY session_count DESC, id DESC
-      LIMIT 40
-      `,
-      [minCount, since],
-    );
+    const sampleRows = byIds
+      ? await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            user_id AS userId,
+            session_count AS sessionCount,
+            created_at AS createdAt,
+            japa_goal_id AS japaGoalId
+          FROM japa_sessions
+          WHERE id IN (${idList.map(() => '?').join(',')})
+          ORDER BY session_count DESC, id DESC
+          `,
+          idList,
+        )
+      : await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            user_id AS userId,
+            session_count AS sessionCount,
+            created_at AS createdAt,
+            japa_goal_id AS japaGoalId
+          FROM japa_sessions
+          WHERE session_count >= ?
+            AND created_at >= ?
+          ORDER BY session_count DESC, id DESC
+          LIMIT 40
+          `,
+          [minCount, since],
+        );
 
     if (dryRun) {
       return res.json({
@@ -8634,6 +8669,7 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
           dryRun: true,
           minCount,
           since,
+          ids: byIds ? idList : undefined,
           rowCount: Number(summary.rowCount || 0),
           userCount: Number(summary.userCount || 0),
           japaSum: Number(summary.japaSum || 0),
@@ -8644,6 +8680,7 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
             confirm: 'REPAIR_JAPA_INFLATE',
             minCount,
             since,
+            ids: byIds ? idList : undefined,
           },
         },
       });
@@ -8657,25 +8694,45 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
       });
     }
 
-    const affectedGoals = await mysql.query<any[]>(
-      `
-      SELECT DISTINCT japa_goal_id AS goalId, user_id AS userId
-      FROM japa_sessions
-      WHERE session_count >= ?
-        AND created_at >= ?
-        AND japa_goal_id IS NOT NULL
-      `,
-      [minCount, since],
-    );
+    const affectedGoals = byIds
+      ? await mysql.query<any[]>(
+          `
+          SELECT DISTINCT japa_goal_id AS goalId, user_id AS userId
+          FROM japa_sessions
+          WHERE id IN (${idList.map(() => '?').join(',')})
+            AND japa_goal_id IS NOT NULL
+          `,
+          idList,
+        )
+      : await mysql.query<any[]>(
+          `
+          SELECT DISTINCT japa_goal_id AS goalId, user_id AS userId
+          FROM japa_sessions
+          WHERE session_count >= ?
+            AND created_at >= ?
+            AND japa_goal_id IS NOT NULL
+          `,
+          [minCount, since],
+        );
 
-    await mysql.query(
-      `
-      DELETE FROM japa_sessions
-      WHERE session_count >= ?
-        AND created_at >= ?
-      `,
-      [minCount, since],
-    );
+    if (byIds) {
+      await mysql.query(
+        `
+        DELETE FROM japa_sessions
+        WHERE id IN (${idList.map(() => '?').join(',')})
+        `,
+        idList,
+      );
+    } else {
+      await mysql.query(
+        `
+        DELETE FROM japa_sessions
+        WHERE session_count >= ?
+          AND created_at >= ?
+        `,
+        [minCount, since],
+      );
+    }
 
     const japaRepository = (await import('../japa/japa.repository')).default;
     const globalTotal = await japaRepository.updateGlobalJapaCount(0);
@@ -8697,6 +8754,7 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
         dryRun: false,
         minCount,
         since,
+        ids: byIds ? idList : undefined,
         deletedRows: Number(summary.rowCount || 0),
         deletedJapas: Number(summary.japaSum || 0),
         usersTouched: Number(summary.userCount || 0),
