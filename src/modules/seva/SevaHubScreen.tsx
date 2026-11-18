@@ -162,7 +162,11 @@ const SevaHubScreen = () => {
         route: 'GouMayaBhasma',
       },
     ];
-    return all.filter(item => item.route !== 'Donate' || annadanamEnabled);
+    return all
+      .filter(item => item.route !== 'Donate' || annadanamEnabled)
+      .sort((a, b) =>
+        a.itemName.localeCompare(b.itemName, undefined, {sensitivity: 'base'}),
+      );
   }, [t, annadanamEnabled, freeOfCostBracket]);
 
   const onSevaPress = (item: SevaItem) => {
