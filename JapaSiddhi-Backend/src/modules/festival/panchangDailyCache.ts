@@ -20,6 +20,10 @@ type StoredDailyPanchang = {
 
 const settingKeyFor = (isoDate: string) => `panchang_daily_${isoDate}`;
 const claimKeyFor = (isoDate: string) => `panchang_fetch_claim_${isoDate}`;
+/** After a failed Prokerala attempt, skip external calls for this long (saves quota). */
+const FAIL_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const failCooldownKeyFor = (isoDate: string) =>
+  `panchang_fetch_cooldown_${isoDate}`;
 
 /** IST calendar YYYY-MM-DD. */
 export const istCalendarDate = (value?: Date | null) =>
@@ -100,12 +104,16 @@ const writeStored = async (row: StoredDailyPanchang) => {
 };
 
 /** One external provider call for the IST day (English). */
-const fetchOnceForDate = async (isoDate: string): Promise<PanchangResult> => {
+const fetchOnceForDate = async (
+  isoDate: string,
+): Promise<{payload: PanchangResult; usedExternal: boolean}> => {
   let loaded: PanchangResult | null = null;
+  let usedExternal = false;
 
   if (isProkeralaConfigured()) {
     try {
       loaded = await fetchProkeralaPanchang({date: isoDate, lang: 'en'});
+      usedExternal = true;
     } catch (error) {
       console.error(
         '[panchang-daily] Prokerala failed, trying VedicOrbit:',
@@ -121,6 +129,7 @@ const fetchOnceForDate = async (isoDate: string): Promise<PanchangResult> => {
         lang: 'en',
         mode: 'full',
       });
+      usedExternal = true;
     } catch (error) {
       console.error(
         '[panchang-daily] VedicOrbit failed, using local fallback:',
@@ -132,7 +141,7 @@ const fetchOnceForDate = async (isoDate: string): Promise<PanchangResult> => {
   if (!loaded) {
     loaded = getPanchang(isoDate);
   }
-  return loaded;
+  return {payload: loaded, usedExternal};
 };
 
 const isWeakPanchangSource = (source?: string | null) => {
@@ -192,6 +201,38 @@ const clearPanchangFetchClaim = async (isoDate: string) => {
   try {
     await mysql.query(`DELETE FROM app_settings WHERE setting_key = ?`, [
       claimKeyFor(isoDate),
+    ]);
+  } catch {
+    // ignore
+  }
+};
+
+const readFailCooldown = async (isoDate: string) => {
+  try {
+    const raw = await appSettingsService.getSetting(
+      failCooldownKeyFor(isoDate),
+      '',
+    );
+    const until = Date.parse(String(raw || ''));
+    return Number.isFinite(until) ? until : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const writeFailCooldown = async (isoDate: string) => {
+  const until = new Date(Date.now() + FAIL_COOLDOWN_MS).toISOString();
+  try {
+    await appSettingsService.setSetting(failCooldownKeyFor(isoDate), until);
+  } catch {
+    // ignore
+  }
+};
+
+const clearFailCooldown = async (isoDate: string) => {
+  try {
+    await mysql.query(`DELETE FROM app_settings WHERE setting_key = ?`, [
+      failCooldownKeyFor(isoDate),
     ]);
   } catch {
     // ignore
@@ -260,10 +301,13 @@ export const ensureDailyPanchang = async (
     const source = String(
       existing.source || (existing.payload as any)?.source || '',
     );
+    const cooldownUntil = await readFailCooldown(isoDate);
+    const inCooldown = cooldownUntil > Date.now();
     const shouldUpgrade =
       isWeakPanchangSource(source) &&
       isProkeralaConfigured() &&
-      !localUpgradeAttempted.has(isoDate);
+      !localUpgradeAttempted.has(isoDate) &&
+      !inCooldown;
     if (!shouldUpgrade) {
       return existing.payload;
     }
@@ -292,9 +336,16 @@ export const ensureDailyPanchang = async (
     }
 
     try {
-      const payload = await fetchOnceForDate(isoDate);
+      const {payload, usedExternal} = await fetchOnceForDate(isoDate);
+      if (!usedExternal && isProkeralaConfigured()) {
+        // Don't burn quota every minute when Prokerala is down/misconfigured.
+        await writeFailCooldown(isoDate);
+      } else if (usedExternal) {
+        await clearFailCooldown(isoDate);
+      }
       return await persistFetchedPanchang(isoDate, payload);
     } catch (error) {
+      await writeFailCooldown(isoDate);
       // Allow a later retry if this fetch hard-failed before writing.
       await clearPanchangFetchClaim(isoDate);
       throw error;
@@ -307,12 +358,13 @@ export const ensureDailyPanchang = async (
   return job;
 };
 
-/** Force refresh for an IST date (used by midnight job). */
+/** Force refresh for an IST date (used by midnight job only). */
 export const refreshDailyPanchang = async (dateInput?: string) => {
   const isoDate =
     String(dateInput || '').trim().slice(0, 10) || istCalendarDate();
   memory.delete(isoDate);
   localUpgradeAttempted.delete(isoDate);
+  await clearFailCooldown(isoDate);
   await clearPanchangFetchClaim(isoDate);
   // Do not wipe today's payload before the new fetch completes — avoids stampede.
   const pending = inflight.get(isoDate);
@@ -325,9 +377,15 @@ export const refreshDailyPanchang = async (dateInput?: string) => {
       return waitForStoredPanchang(isoDate, true, null);
     }
     try {
-      const payload = await fetchOnceForDate(isoDate);
+      const {payload, usedExternal} = await fetchOnceForDate(isoDate);
+      if (!usedExternal && isProkeralaConfigured()) {
+        await writeFailCooldown(isoDate);
+      } else if (usedExternal) {
+        await clearFailCooldown(isoDate);
+      }
       return await persistFetchedPanchang(isoDate, payload);
     } catch (error) {
+      await writeFailCooldown(isoDate);
       await clearPanchangFetchClaim(isoDate);
       throw error;
     }
@@ -374,12 +432,9 @@ export const startPanchangDailyScheduler = () => {
   }
   bootTimer = setTimeout(() => {
     const today = istCalendarDate();
-    // After adding Prokerala env vars, force refresh so we don't keep a
-    // previously cached "local" day (missing sunrise / rahu / etc.).
-    const warm = isProkeralaConfigured()
-      ? refreshDailyPanchang(today)
-      : ensureDailyPanchang(today);
-    warm.catch(error =>
+    // Warm cache only — never force-clear claim on every Render restart
+    // (that was burning Prokerala quota across redeploys).
+    ensureDailyPanchang(today).catch(error =>
       console.warn(
         '[panchang-daily] Boot warm-up failed:',
         errorDetail(error),
