@@ -36,6 +36,12 @@
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+    <!-- NetInfo / ACCESS_WIFI_STATE can imply Wi‑Fi as required. Keep optional
+         so devices without Wi‑Fi hardware can still install (mobile data OK). -->
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false"
+        tools:node="replace" />
     <!-- A graphics library marks OpenGL as required. Keep it optional so a
          device without that chip can still install. -->
     <uses-feature
