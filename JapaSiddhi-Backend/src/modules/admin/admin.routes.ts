@@ -8498,4 +8498,142 @@ router.delete('/meeting', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * Repair 1.3.0 japa inflate: oversized session rows (lifetime re-POSTs).
+ * Default dryRun=true. Apply only with { dryRun:false, confirm:"REPAIR_JAPA_INFLATE" }.
+ * Body: { dryRun?, minCount?, since? } — since defaults to 2026-11-16 (UTC).
+ */
+router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
+  try {
+    const dryRun = req.body?.dryRun !== false && req.query?.dryRun !== 'false';
+    const minCountRaw = Number(req.body?.minCount ?? req.query?.minCount ?? 501);
+    const minCount = Math.max(
+      501,
+      Number.isFinite(minCountRaw) && minCountRaw > 0 ? Math.floor(minCountRaw) : 501,
+    );
+    const sinceRaw = String(
+      req.body?.since || req.query?.since || '2026-11-16',
+    ).trim();
+    const since = /^\d{4}-\d{2}-\d{2}$/.test(sinceRaw)
+      ? sinceRaw
+      : '2026-11-16';
+    const confirm = String(req.body?.confirm || '').trim();
+
+    const summaryRows = await mysql.query<any[]>(
+      `
+      SELECT
+        COUNT(*) AS rowCount,
+        COUNT(DISTINCT user_id) AS userCount,
+        COALESCE(SUM(session_count), 0) AS japaSum,
+        COALESCE(MAX(session_count), 0) AS maxRow
+      FROM japa_sessions
+      WHERE session_count >= ?
+        AND created_at >= ?
+      `,
+      [minCount, since],
+    );
+    const summary = summaryRows?.[0] || {};
+    const sampleRows = await mysql.query<any[]>(
+      `
+      SELECT
+        id,
+        user_id AS userId,
+        session_count AS sessionCount,
+        created_at AS createdAt,
+        japa_goal_id AS japaGoalId
+      FROM japa_sessions
+      WHERE session_count >= ?
+        AND created_at >= ?
+      ORDER BY session_count DESC, id DESC
+      LIMIT 40
+      `,
+      [minCount, since],
+    );
+
+    if (dryRun) {
+      return res.json({
+        success: true,
+        message: 'Dry run only — no rows deleted.',
+        data: {
+          dryRun: true,
+          minCount,
+          since,
+          rowCount: Number(summary.rowCount || 0),
+          userCount: Number(summary.userCount || 0),
+          japaSum: Number(summary.japaSum || 0),
+          maxRow: Number(summary.maxRow || 0),
+          sample: sampleRows || [],
+          applyHint: {
+            dryRun: false,
+            confirm: 'REPAIR_JAPA_INFLATE',
+            minCount,
+            since,
+          },
+        },
+      });
+    }
+
+    if (confirm !== 'REPAIR_JAPA_INFLATE') {
+      return res.status(400).json({
+        success: false,
+        message:
+          'Refusing apply without confirm: "REPAIR_JAPA_INFLATE". Run dryRun first.',
+      });
+    }
+
+    const affectedGoals = await mysql.query<any[]>(
+      `
+      SELECT DISTINCT japa_goal_id AS goalId, user_id AS userId
+      FROM japa_sessions
+      WHERE session_count >= ?
+        AND created_at >= ?
+        AND japa_goal_id IS NOT NULL
+      `,
+      [minCount, since],
+    );
+
+    await mysql.query(
+      `
+      DELETE FROM japa_sessions
+      WHERE session_count >= ?
+        AND created_at >= ?
+      `,
+      [minCount, since],
+    );
+
+    const japaRepository = (await import('../japa/japa.repository')).default;
+    const globalTotal = await japaRepository.updateGlobalJapaCount(0);
+
+    let goalsUpdated = 0;
+    for (const row of affectedGoals || []) {
+      const goalId = Number(row.goalId || 0);
+      const userId = Number(row.userId || 0);
+      if (goalId > 0 && userId > 0) {
+        await japaRepository.updateJapaGoalProgress(goalId, 0, userId);
+        goalsUpdated += 1;
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: 'Inflated japa sessions removed and counters recomputed.',
+      data: {
+        dryRun: false,
+        minCount,
+        since,
+        deletedRows: Number(summary.rowCount || 0),
+        deletedJapas: Number(summary.japaSum || 0),
+        usersTouched: Number(summary.userCount || 0),
+        goalsUpdated,
+        globalTotal,
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Japa inflate repair failed.',
+    });
+  }
+});
+
 export default router;

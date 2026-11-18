@@ -112,9 +112,14 @@ const ChantScreen = () => {
   const goalRef = useRef(goal);
   const postedCountRef = useRef(0);
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  /** Blocks taps/autosave until draft/resume baseline is applied (stops 1.3.0 inflate race). */
+  const chantReadyRef = useRef(false);
+  const [chantReady, setChantReady] = useState(false);
   const shownMilestonesRef = useRef<Record<number, boolean>>({});
   const selectedRef = useRef<ChantMantra | null>(null);
   const completingRef = useRef(false);
+  /** Max japas in one POST — larger deltas are treated as corrupt baseline, not uploaded. */
+  const MAX_SESSION_POST = 500;
   const todaySavedRef = useRef(0);
   /** Today's japas already on the account when this visit's extras began. */
   const extraBaseRef = useRef(0);
@@ -164,10 +169,29 @@ const ChantScreen = () => {
     postedCount: number;
     goal: number;
   }) => {
+    const nextCount = Math.max(0, Number(draft.count) || 0);
+    const rawPosted = Math.max(0, Number(draft.postedCount) || 0);
+    let nextPosted = Math.min(rawPosted, nextCount);
+    // Corrupt / legacy drafts with a huge unposted gap must not re-upload
+    // lifetime totals. Treat the gap as already saved.
+    if (nextCount - nextPosted > MAX_SESSION_POST) {
+      nextPosted = nextCount;
+    }
+    const watermark = postedCountRef.current;
+    // Do not clobber a higher already-posted resume baseline with a smaller draft.
+    if (watermark > 0 && nextCount < watermark) {
+      setGoal(draft.goal);
+      return;
+    }
+    // Never lower an already-acknowledged posted watermark.
+    nextPosted = Math.max(watermark, nextPosted);
+    if (nextPosted > nextCount) {
+      nextPosted = nextCount;
+    }
     setGoal(draft.goal);
-    setCount(draft.count);
-    countRef.current = draft.count;
-    postedCountRef.current = Math.min(draft.postedCount, draft.count);
+    setCount(nextCount);
+    countRef.current = nextCount;
+    postedCountRef.current = nextPosted;
   };
 
   const resetSessionCount = () => {
@@ -178,6 +202,8 @@ const ChantScreen = () => {
 
   const load = async () => {
     setLoading(true);
+    chantReadyRef.current = false;
+    setChantReady(false);
     setError('');
     setRawError(null);
 
@@ -191,6 +217,7 @@ const ChantScreen = () => {
 
     // Open chant UI immediately when the mantra is already known (Your Japas /
     // challenge / home resume). Supporting APIs refresh in the background.
+    // Taps stay blocked until draft/resume baseline is applied (chantReadyRef).
     let preferred: ChantMantra | null = null;
     if (hasTargetedMantra && !isRecentOnly) {
       preferred =
@@ -232,7 +259,19 @@ const ChantScreen = () => {
         });
         setDailyTarget(0);
       } else {
-        setGoal(bootGoal);
+        // Resume/Continue: lock lifetime baseline before any tap can autosave.
+        const resumeBaseline =
+          bootCount > 0 &&
+          (Boolean(route.params?.resume) || Boolean(route.params?.fromHome));
+        if (resumeBaseline) {
+          applyDraftToCount({
+            count: Math.min(bootCount, bootGoal),
+            postedCount: Math.min(bootCount, bootGoal),
+            goal: bootGoal,
+          });
+        } else {
+          setGoal(bootGoal);
+        }
         setDailyTarget(Number(route.params?.dailyTarget || 0) || 0);
         completingRef.current = false;
       }
@@ -396,6 +435,9 @@ const ChantScreen = () => {
         setDailyGoalCompletedShown(false);
       }
 
+      // Drain any accidental early saves before changing the posted baseline.
+      await saveChainRef.current.catch(() => undefined);
+
       const presetDraftId = preferred?.own ? undefined : preferred?.id;
       const ownDraftId = preferred?.own ? preferred.id : undefined;
       const resumeDraft = challengeId
@@ -480,9 +522,15 @@ const ChantScreen = () => {
       extraBaseRef.current = visitToday;
       setExtraBase(visitToday);
       circleReadyRef.current = true;
+      chantReadyRef.current = true;
+      setChantReady(true);
     } catch (err: any) {
       setRawError(err);
       setError(getApiError(err, 'Could not load mantras from the API.'));
+      // Allow chanting with the early resume baseline if APIs failed.
+      const allow = Boolean(selectedRef.current);
+      chantReadyRef.current = allow;
+      setChantReady(allow);
     } finally {
       setLoading(false);
     }
@@ -839,15 +887,25 @@ const ChantScreen = () => {
   };
 
   const flushUnsavedTaps = async () => {
+    if (!chantReadyRef.current) {
+      return;
+    }
     const target = countRef.current;
     const posted = postedCountRef.current;
-    const delta = target - posted;
-    if (delta < 1 || !selectedRef.current) {
+    const rawDelta = target - posted;
+    if (rawDelta < 1 || !selectedRef.current) {
       return;
     }
     if (goalRef.current > 0 && target >= goalRef.current) {
       return;
     }
+    // Lifetime-sized gaps are the inflate bug signature — never upload them.
+    if (rawDelta > MAX_SESSION_POST) {
+      postedCountRef.current = Math.max(postedCountRef.current, target);
+      await persistDraft(countRef.current, postedCountRef.current);
+      return;
+    }
+    const delta = rawDelta;
     try {
       const response = await apiService.post('/japa/session', {
         ...sessionMantraFields(),
@@ -858,7 +916,8 @@ const ChantScreen = () => {
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
       });
-      postedCountRef.current = posted + delta;
+      // Never move postedCount backwards if resume/draft advanced it during await.
+      postedCountRef.current = Math.max(postedCountRef.current, posted + delta);
       await persistDraft(countRef.current, postedCountRef.current);
       rememberAutoSave(response.data?.data, delta);
     } catch {
@@ -868,6 +927,9 @@ const ChantScreen = () => {
   };
 
   const enqueueAutoSave = () => {
+    if (!chantReadyRef.current) {
+      return;
+    }
     saveChainRef.current = saveChainRef.current
       .catch(() => undefined)
       .then(() => flushUnsavedTaps());
@@ -897,6 +959,17 @@ const ChantScreen = () => {
         );
         return;
       }
+      if (remaining > MAX_SESSION_POST) {
+        // Corrupt baseline — mark posted and finish without a huge INSERT.
+        postedCountRef.current = sessionCount;
+        await clearDraftFor(selectedRef.current);
+        afterSessionSaved(
+          {userTotal: savedTotal, count: sessionCount},
+          0,
+          {completed: true},
+        );
+        return;
+      }
       const response = await apiService.post('/japa/session', {
         ...sessionMantraFields(),
         chantMode: 'TAP',
@@ -906,7 +979,7 @@ const ChantScreen = () => {
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
       });
-      postedCountRef.current = sessionCount;
+      postedCountRef.current = Math.max(postedCountRef.current, sessionCount);
       await clearDraftFor(selectedRef.current);
       afterSessionSaved(response.data.data, remaining, {completed: true});
     } catch (err: any) {
@@ -923,6 +996,12 @@ const ChantScreen = () => {
 
   const tapChant = () => {
     if (completingRef.current || goalReached) {
+      return;
+    }
+    if (!chantReadyRef.current) {
+      setMessage(
+        t('chantPreparing') || 'Preparing your japa… please wait a moment.',
+      );
       return;
     }
     if (mode === 'private' && !selected) {
@@ -998,6 +1077,12 @@ const ChantScreen = () => {
   };
 
   const saveSession = async () => {
+    if (!chantReadyRef.current) {
+      setMessage(
+        t('chantPreparing') || 'Preparing your japa… please wait a moment.',
+      );
+      return;
+    }
     if (count < 1) {
       setMessage('Tap to count chant before saving.');
       return;
@@ -1017,7 +1102,20 @@ const ChantScreen = () => {
       .then(async () => {
         try {
           const posted = postedCountRef.current;
-          const delta = Math.max(countRef.current - posted, 0);
+          const rawDelta = Math.max(countRef.current - posted, 0);
+          if (rawDelta > MAX_SESSION_POST) {
+            postedCountRef.current = Math.max(
+              postedCountRef.current,
+              countRef.current,
+            );
+            await persistDraft(countRef.current, postedCountRef.current);
+            afterSessionSaved(
+              {userTotal: savedTotal, count: countRef.current},
+              0,
+            );
+            return;
+          }
+          const delta = rawDelta;
           if (delta > 0) {
             const response = await apiService.post('/japa/session', {
               ...sessionMantraFields(),
@@ -1028,7 +1126,10 @@ const ChantScreen = () => {
               challengeId: challengeId || undefined,
               remarks: sessionRemarks(),
             });
-            postedCountRef.current = posted + delta;
+            postedCountRef.current = Math.max(
+              postedCountRef.current,
+              posted + delta,
+            );
             if (!challengeId && delta > 0) {
               const nextSaved = todaySavedRef.current + delta;
               todaySavedRef.current = nextSaved;
@@ -1257,7 +1358,9 @@ const ChantScreen = () => {
               ? challengeId
                 ? `✓ ${t('challengeCompleteLabel') || 'Challenge Complete'}`
                 : `✓ ${t('goalReachedLabel') || 'Goal Reached'}`
-              : (t('tapAnywhereToChant') || 'Tap anywhere to chant')}
+              : !chantReady
+                ? t('chantPreparing') || 'Preparing your japa…'
+                : t('tapAnywhereToChant') || 'Tap anywhere to chant'}
           </Text>
         </View>
       </Pressable>

@@ -12,7 +12,7 @@ const USE_PRODUCTION_API_IN_DEV = true;
 const ENV = {
   APP_NAME: 'Japa Siddhi',
 
-  VERSION: '1.1.0',
+  VERSION: '1.3.1',
 
   IS_PRODUCTION,
 

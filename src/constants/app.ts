@@ -1,6 +1,6 @@
 export const APP_NAME = 'Japa Siddhi';
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.3.1';
 
 export const SUPPORT_EMAIL = 'bilvapatratrust@gmail.com';
 

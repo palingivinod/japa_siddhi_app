@@ -26,6 +26,19 @@ class JapaService {
     userId: number,
     data: CreateJapaSessionRequest,
   ) {
+    // Hard cap: one request must not credit a lifetime-sized chunk (1.3.0 client race).
+    const MAX_SESSION_COUNT = 500;
+    const sessionCount = Math.floor(Number(data.sessionCount || 0));
+    if (!Number.isFinite(sessionCount) || sessionCount < 1) {
+      throw new AppError('Invalid japa session count', 400);
+    }
+    if (sessionCount > MAX_SESSION_COUNT) {
+      throw new AppError(
+        `Japa session count too large (max ${MAX_SESSION_COUNT} per save)`,
+        400,
+      );
+    }
+    data = {...data, sessionCount};
 
     const previousTotal = await japaRepository.getUserMilestoneJapa(userId);
 
