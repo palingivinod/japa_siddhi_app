@@ -363,7 +363,7 @@ const en = {
   homaBhasmaDesc:
     'You will receive the holy havan bhasmam free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
   homaBhasmaRegisterNote:
-    'Note: Every month, only 150 grams will be sent at the end of the month. Devotees can reorder the same for the next month.',
+    'Note: Every month, only 150 grams will be sent.\nDevotees can reorder the same in the next month.',
   tileShivakoti: 'Siva Koti Books',
   tileShivakotiSub: 'Request a book',
   shivakotiBooks: 'Siva Koti Books',
@@ -376,7 +376,7 @@ const en = {
   gouMayaBhasmaDesc:
     'Bhasma for doing pooja, abhishekam and alankaram. Bhasma is manufactured from desi cow dung.',
   gouMayaRegisterNote:
-    'Note: Every month, only 150 grams will be sent at the end of the month. Devotees can reorder the same for the next month.',
+    'Note: Every month, only 150 grams will be sent.\nDevotees can reorder the same in the next month.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
   freeDistribution: '(Free Distribution)',
