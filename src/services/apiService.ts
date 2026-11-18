@@ -65,6 +65,12 @@ apiService.interceptors.response.use(
 
     const config = error?.config || {};
 
+    // Never auto-replay japa session writes — a successful insert + 401/retry
+    // would double-count. Chant autosave will post the same delta on the next tap.
+    const method = String(config.method || 'get').toLowerCase();
+    const isJapaSessionWrite =
+      method === 'post' && url.includes('/japa/session');
+
     if (isAuthError && !isPublicAuth && !config.__authRetried) {
       // A devotee stays signed in until they tap Logout, so an auth failure
       // first tries to swap the token and replay the call.
@@ -76,6 +82,9 @@ apiService.interceptors.response.use(
           ...(config.headers || {}),
           Authorization: `Bearer ${result.token}`,
         };
+        if (isJapaSessionWrite) {
+          return Promise.reject(error);
+        }
         return apiService.request(config);
       }
 
