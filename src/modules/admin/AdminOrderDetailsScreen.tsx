@@ -398,7 +398,7 @@ const AdminOrderDetailsScreen = () => {
     );
   };
 
-  const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''}`.toLowerCase();
+  const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''} ${order?.remarks || ''}`.toLowerCase();
   const orderNoUpper = String(order?.orderNo || '').toUpperCase();
   const orderTypeUpper = String(order?.orderType || '').toUpperCase();
   const isBaanalingam =
@@ -406,8 +406,22 @@ const AdminOrderDetailsScreen = () => {
     orderNoUpper.includes('BL-') ||
     orderText.includes('banalingam') ||
     orderText.includes('baanalingam');
+  const isSreeChakra =
+    orderText.includes('sree chakra') ||
+    orderText.includes('sri chakra') ||
+    orderText.includes('sri chakram') ||
+    orderText.includes('yantra') ||
+    orderText.includes('maha meru');
+  const isMarakataShivling =
+    !isSreeChakra &&
+    (((orderText.includes('marakata') || orderText.includes('marakatha')) &&
+      (orderText.includes('shiv') || orderText.includes('ling'))) ||
+      (orderText.includes('aventurine') &&
+        (orderText.includes('shiv') || orderText.includes('ling'))));
+  /** Called → Sankalp only for Baanalingam / Marakata — not Pooja Bhasmam etc. */
+  const requiresCallSankalp = isBaanalingam || isMarakataShivling;
   const isRequestOrder =
-    isBaanalingam ||
+    requiresCallSankalp ||
     orderText.includes('ramakoti') ||
     orderText.includes('rk') ||
     orderText.includes('homa bhasma') ||
@@ -433,7 +447,7 @@ const AdminOrderDetailsScreen = () => {
     if (order.status === 'Cancelled') {
       return null;
     }
-    if (isBaanalingam) {
+    if (requiresCallSankalp) {
       if (order.status === 'Under Review') {
         return {
           title: saving
@@ -496,7 +510,7 @@ const AdminOrderDetailsScreen = () => {
     } else if (order.status === 'Packing') {
       prevStatus = 'Confirmed';
     } else if (order.status === 'Confirmed') {
-      prevStatus = isBaanalingam ? 'Sankalp Taken' : 'Under Review';
+      prevStatus = requiresCallSankalp ? 'Sankalp Taken' : 'Under Review';
     } else if (order.status === 'Sankalp Taken') {
       prevStatus = 'Called Devotee';
     } else if (order.status === 'Called Devotee') {

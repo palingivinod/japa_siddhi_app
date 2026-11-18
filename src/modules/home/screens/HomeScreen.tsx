@@ -80,6 +80,8 @@ type ActiveGoal = {
 
 const WHATSAPP_GROUP_URL =
   'https://chat.whatsapp.com/BC0GCM0K5UREZsYSonKFmo?s=cl&p=a&iam=2';
+const MONTHLY_AUTOPAY_FORM_URL =
+  'https://docs.google.com/forms/d/e/1FAIpQLSdxZZls48lg1VT9rcuqxL6rBXiJyndnume3Ldd2ONXmMvDWlA/viewform?usp=sharing&ouid=117470848885285924595';
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
@@ -191,6 +193,20 @@ const HomeScreen = () => {
     Alert.alert(
       t('joinWhatsAppGroup') || 'Join our WhatsApp group',
       t('couldNotOpenLink') || 'Could not open WhatsApp. Please try again.',
+    );
+  };
+
+  const openMonthlyAutopayForm = async () => {
+    try {
+      await Linking.openURL(MONTHLY_AUTOPAY_FORM_URL);
+      return;
+    } catch {
+      // fall through
+    }
+    Alert.alert(
+      t('monthlyAutoPayLinkButton') ||
+        'Monthly Auto-Pay Link for small offerings',
+      t('couldNotOpenLink') || 'Could not open the link. Please try again.',
     );
   };
 
@@ -1038,6 +1054,23 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </Animated.View>
 
+          <Animated.View style={{opacity: whatsappBlinkAnim}}>
+            <TouchableOpacity
+              style={styles.monthlyAutopayBtn}
+              onPress={() => void openMonthlyAutopayForm()}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel={
+                t('monthlyAutoPayLinkButton') ||
+                'Monthly Auto-Pay Link for small offerings'
+              }>
+              <Text style={styles.monthlyAutopayBtnText}>
+                {t('monthlyAutoPayLinkButton') ||
+                  'Monthly Auto-Pay Link for small offerings'}
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+
           {/* Meeting / Class — same slow border blink */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (
             <Animated.View
@@ -1496,7 +1529,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginTop: 4,
-    marginBottom: 14,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#1EBE57',
   },
@@ -1505,6 +1538,24 @@ const styles = StyleSheet.create({
     height: 18,
   },
   whatsappGroupText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  monthlyAutopayBtn: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#C9852E',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#A66B1E',
+  },
+  monthlyAutopayBtnText: {
     color: '#FFFFFF',
     fontWeight: '800',
     fontSize: 14,

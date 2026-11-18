@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
 
+import {shortMonthDayYear} from '../../i18n/calendar';
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import apiService from '../../services/apiService';
@@ -69,12 +70,33 @@ const SevaRequestScreen = () => {
   const [videoOpening, setVideoOpening] = useState(false);
   const [hasActiveOrder, setHasActiveOrder] = useState(false);
   const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [reorderCooldown, setReorderCooldown] = useState<{
+    orderedOnIso: string;
+    availableOnIso: string;
+  } | null>(null);
   const photos = photosForRequest(request.kind);
   const pendingTitle =
     t(request.pendingTitleKey) ||
     t('banaLingamPendingOrderTitle') ||
     'Order In Review';
   const pendingMessage = t(request.pendingMessageKey) || pendingTitle;
+  const itemLabel = t(request.titleKey) || 'this item';
+  const cooldownTitle =
+    t('bhasmamReorderCooldownTitle') || 'Please wait 30 days';
+  const cooldownOrderedOn = reorderCooldown
+    ? shortMonthDayYear(t, reorderCooldown.orderedOnIso)
+    : '';
+  const cooldownAvailableOn = reorderCooldown
+    ? shortMonthDayYear(t, reorderCooldown.availableOnIso)
+    : '';
+  const cooldownMessage = reorderCooldown
+    ? t('bhasmamReorderCooldownMessage', {
+        item: itemLabel,
+        orderedOn: cooldownOrderedOn,
+        availableOn: cooldownAvailableOn,
+      }) ||
+      `You ordered ${itemLabel} on ${cooldownOrderedOn}. You can order again after 30 days, on ${cooldownAvailableOn}.`
+    : '';
 
   const openPoojaVideo = async () => {
     if (videoOpening) {
@@ -125,6 +147,7 @@ const SevaRequestScreen = () => {
         if (undeliveredOrder) {
           setHasActiveOrder(true);
           setActiveOrder(undeliveredOrder);
+          setReorderCooldown(null);
           Alert.alert(
             t('openOrderBlockTitle') || pendingTitle,
             t('openOrderBlockMessage') || pendingMessage,
@@ -142,6 +165,42 @@ const SevaRequestScreen = () => {
         } else {
           setHasActiveOrder(false);
           setActiveOrder(null);
+
+          const {findBhasmamReorderCooldown, isBhasmamCooldownKind} = await import(
+            '../../utils/bhasmamReorderCooldown'
+          );
+          if (isBhasmamCooldownKind(request.kind)) {
+            const formatDay = (iso: string) => shortMonthDayYear(t, iso);
+            const cooldown = findBhasmamReorderCooldown(
+              allOrders,
+              request.matchOrder,
+              new Date(),
+              formatDay,
+            );
+            if (cooldown) {
+              setReorderCooldown({
+                orderedOnIso: cooldown.orderedOnIso,
+                availableOnIso: cooldown.availableOnIso,
+              });
+              const label = t(request.titleKey) || 'this item';
+              const orderedOn = cooldown.orderedOnLabel;
+              const availableOn = cooldown.availableOnLabel;
+              Alert.alert(
+                t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
+                t('bhasmamReorderCooldownMessage', {
+                  item: label,
+                  orderedOn,
+                  availableOn,
+                }) ||
+                  `You ordered ${label} on ${orderedOn}. You can order again after 30 days, on ${availableOn}.`,
+                [{text: t('ok') || 'OK'}],
+              );
+            } else {
+              setReorderCooldown(null);
+            }
+          } else {
+            setReorderCooldown(null);
+          }
         }
 
         const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
@@ -160,23 +219,28 @@ const SevaRequestScreen = () => {
           );
         }
         setSavedAddresses(addresses);
+        const latestChosen = await getLatestSelectedAddress();
+        const {pickPrefillAddress} = await import('../../utils/deliveryAddress');
+        const prefill = pickPrefillAddress({
+          selectedAddress: route.params?.selectedAddress,
+          profile,
+          latestChosen,
+          savedAddresses: addresses,
+        });
         if (route.params?.selectedAddress) {
-          setAddress(route.params.selectedAddress);
           await setLatestSelectedAddress(route.params.selectedAddress);
-        } else {
-          const latestChosen = await getLatestSelectedAddress();
-          const candidates = [latestChosen, addresses[0]].filter(Boolean) as string[];
-          const withPin = candidates.find(addressHasValidPin);
-          if (withPin) {
-            setAddress(current => current || withPin);
-          }
+        }
+        if (prefill) {
+          setAddress(current =>
+            current && addressHasValidPin(current) ? current : prefill,
+          );
         }
       };
       load();
       return () => {
         active = false;
       };
-    }, [route.params?.selectedAddress]),
+    }, [route.params?.selectedAddress, request.kind, request.matchOrder, t]),
   );
 
   const submit = async () => {
@@ -195,6 +259,12 @@ const SevaRequestScreen = () => {
           },
         ],
       );
+      return;
+    }
+    if (reorderCooldown) {
+      Alert.alert(cooldownTitle, cooldownMessage, [
+        {text: t('ok') || 'OK'},
+      ]);
       return;
     }
     if (!fullName.trim() || !mobile.trim() || !address.trim()) {
@@ -232,7 +302,13 @@ const SevaRequestScreen = () => {
     });
   };
 
-  const ready = Boolean(fullName.trim() && isMobile(mobile) && address.trim());
+  const ready = Boolean(
+    fullName.trim() &&
+      isMobile(mobile) &&
+      address.trim() &&
+      !hasActiveOrder &&
+      !reorderCooldown,
+  );
 
   return (
     <ScreenLayout title={t(request.titleKey)} showBack tab="SevaHub">
@@ -249,6 +325,15 @@ const SevaRequestScreen = () => {
                 {t('orderDetails') || 'Order Details'}: {activeOrder.orderNumber}
               </Text>
             ) : null}
+          </View>
+        </View>
+      ) : null}
+      {reorderCooldown && !hasActiveOrder ? (
+        <View style={styles.pendingOrderBanner}>
+          <Text style={styles.pendingOrderIcon}>⏳</Text>
+          <View style={styles.pendingOrderTextCol}>
+            <Text style={styles.pendingOrderTitle}>{cooldownTitle}</Text>
+            <Text style={styles.pendingOrderDesc}>{cooldownMessage}</Text>
           </View>
         </View>
       ) : null}

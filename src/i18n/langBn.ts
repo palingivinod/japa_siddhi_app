@@ -47,6 +47,8 @@ export const bn: TranslationDict = {
   homaBhasma: 'হোম ভস্মম',
   homaBhasmaDesc:
     'পবিত্র হবন ভস্ম বিনামূল্যে পাবেন। এটি সব নেতিবাচক শক্তি দূর করে এবং দেহে প্রবেশ করা অশুভ শক্তিকে ঠেকানোর শক্তিশালী আধ্যাত্মিক ঢাল হিসেবে কাজ করে।',
+  homaBhasmaRegisterNote:
+    'নোট: প্রতি মাসের শেষে কেবল ১৫০ গ্রাম পাঠানো হবে। ভক্তরা পরের মাসের জন্য একই আবার অর্ডার করতে পারবেন।',
   tileShivakoti: 'শিব কোটি বই',
   tileShivakotiSub: 'বইয়ের অনুরোধ',
   shivakotiBooks: 'শিব কোটি বই',
@@ -59,7 +61,7 @@ export const bn: TranslationDict = {
   gouMayaBhasmaDesc:
     'পূজা, অভিষেক ও অলংকারের জন্য ভস্ম। এই ভস্ম দেশী গরুর গোবর থেকে তৈরি হয়।',
   gouMayaRegisterNote:
-    'নোট: ভস্ম শেষ হওয়ার কাছাকাছি আবার অনুরোধ করতে এই বুকিং করুন।',
+    'নোট: প্রতি মাসের শেষে কেবল ১৫০ গ্রাম পাঠানো হবে। ভক্তরা পরের মাসের জন্য একই আবার অর্ডার করতে পারবেন।',
   tileBirava: 'ভীরাভা পেন্ডেন্ট',
   tileBiravaSub: 'পেন্ডেন্টের অনুরোধ',
   freeDistribution: '(বিনামূল্যে বিতরণ)',
@@ -155,6 +157,7 @@ export const bn: TranslationDict = {
   namaste: 'নমস্কার, {{name}}',
   peacefulDay: 'আপনার দিন শান্তিপূর্ণ হোক',
   beginYourJapa: 'আপনার জপ শুরু করুন',
+  monthlyAutoPayLinkButton: 'ছোট অনুদানের জন্য মাসিক অটো-পে লিঙ্ক',
   bannerSubtitle: 'জপ, অন্নদান ও আধ্যাত্মিক অংশগ্রহণের জন্য একটি ডিজিটাল স্থান।',
   startChanting: 'জপ শুরু করুন',
   japaCalmnessTitle: 'শান্তভাবে জপ করুন',
@@ -225,6 +228,9 @@ export const bn: TranslationDict = {
   gouMayaPendingOrderTitle: 'অর্ডার পর্যালোচনাধীন রয়েছে',
   gouMayaPendingOrderMessage:
     'ইতিমধ্যে একটি অর্ডার পর্যালোচনাধীন রয়েছে। আপনার আগের অর্ডার বিতরণ হওয়ার পরে আপনি অন্যটি অর্ডার করতে পারেন।',
+  bhasmamReorderCooldownTitle: 'অনুগ্রহ করে ৩০ দিন অপেক্ষা করুন',
+  bhasmamReorderCooldownMessage:
+    'আপনি {{orderedOn}}-এ {{item}} অর্ডার করেছিলেন। ৩০ দিন পর, {{availableOn}}-এ আবার অর্ডার করতে পারবেন।',
   tileAnnadanam: 'অন্নদান',
   tileAnnadanamSub: 'অন্ন সেবা অর্পণ করুন',
   tileNithyaHomam: 'নিত্য হোম',

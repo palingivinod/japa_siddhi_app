@@ -68,7 +68,8 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Packing', label: 'Packing'},
 ];
 
-const isBaanalingamOrder = (order: {
+/** Called → Sankalp flow: Baanalingam + Marakata Shivling only (not Pooja Bhasmam / books). */
+const requiresCallSankalpFlow = (order: {
   product?: string;
   orderType?: string;
   orderNo?: string;
@@ -78,13 +79,27 @@ const isBaanalingamOrder = (order: {
   const number = String(order.orderNo || '').toUpperCase();
   const text =
     `${order.product || ''} ${order.remarks || ''}`.toLowerCase();
-  return (
+  const isBaanalingam =
     type === 'BANA_LINGAM' ||
     number.includes('BL-') ||
     text.includes('baanalingam') ||
-    text.includes('banalingam')
-  );
+    text.includes('banalingam');
+  const isSreeChakra =
+    text.includes('sree chakra') ||
+    text.includes('sri chakra') ||
+    text.includes('sri chakram') ||
+    text.includes('yantra') ||
+    text.includes('maha meru');
+  const isMarakataShivling =
+    !isSreeChakra &&
+    (((text.includes('marakata') || text.includes('marakatha')) &&
+      (text.includes('shiv') || text.includes('ling'))) ||
+      (text.includes('aventurine') &&
+        (text.includes('shiv') || text.includes('ling'))));
+  return isBaanalingam || isMarakataShivling;
 };
+
+const isBaanalingamOrder = requiresCallSankalpFlow;
 
 const mapAdminOrderStatus = (raw: string): AdminOrder['status'] => {
   if (raw === 'Delivered') return 'Delivered';

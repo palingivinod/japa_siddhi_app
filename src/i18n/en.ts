@@ -254,6 +254,7 @@ const en = {
   peacefulDay: 'May your day be peaceful',
   beginYourJapa: 'Begin your Japa',
   joinWhatsAppGroup: 'Join our WhatsApp group',
+  monthlyAutoPayLinkButton: 'Monthly Auto-Pay Link for small offerings',
   couldNotOpenLink: 'Could not open WhatsApp. Please try again.',
   bannerSubtitle:
     'A digital space for Japa, Anna Santharpana and spiritual participation.',
@@ -343,6 +344,9 @@ const en = {
   gouMayaPendingOrderTitle: 'Order In Review',
   gouMayaPendingOrderMessage:
     'Already one order is in review. You can order another once your previous order is delivered.',
+  bhasmamReorderCooldownTitle: 'Please wait 30 days',
+  bhasmamReorderCooldownMessage:
+    'You ordered {{item}} on {{orderedOn}}. You can order again after 30 days, on {{availableOn}}.',
   tileAnnadanam: 'Anna Santharpana',
   tileAnnadanamSub: 'Offer Anna Santharpana',
   tileNithyaHomam: 'Nithya Homam',
@@ -358,6 +362,8 @@ const en = {
   homaBhasma: 'Homa Bhasmam',
   homaBhasmaDesc:
     'You will receive the holy havan bhasmam free of charge. It will remove all the negative energy and acts as a powerful spiritual shield that wards off evil forces entering into the body.',
+  homaBhasmaRegisterNote:
+    'Note: Every month, only 150 grams will be sent at the end of the month. Devotees can reorder the same for the next month.',
   tileShivakoti: 'Siva Koti Books',
   tileShivakotiSub: 'Request a book',
   shivakotiBooks: 'Siva Koti Books',
@@ -370,7 +376,7 @@ const en = {
   gouMayaBhasmaDesc:
     'Bhasma for doing pooja, abhishekam and alankaram. Bhasma is manufactured from desi cow dung.',
   gouMayaRegisterNote:
-    'Note: To request again, book this when you are nearing completion of the Bhasmam.',
+    'Note: Every month, only 150 grams will be sent at the end of the month. Devotees can reorder the same for the next month.',
   tileBirava: 'Bhirava Pendent',
   tileBiravaSub: 'Request a Pendent',
   freeDistribution: '(Free Distribution)',

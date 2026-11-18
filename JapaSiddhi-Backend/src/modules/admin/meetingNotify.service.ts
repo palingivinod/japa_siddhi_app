@@ -222,9 +222,30 @@ export const checkAndAutoOffMeeting = async () => {
   }
 };
 
+/**
+ * Mon–Fri 6:30 PM IST: enable meeting with 7:30 PM join time (1hr countdown)
+ * and send the same one-time "scheduled / on" notification.
+ */
+export const checkAndAutoOnMeeting = async () => {
+  try {
+    const result =
+      await appSettingsService.enforceMeetingWeekdayAutoOnIfNeeded();
+    if (result.toggledOn && result.meeting) {
+      await notifyMeetingSaved(result.meeting).catch(error =>
+        console.warn('Meeting weekday auto-on notify failed:', error),
+      );
+    }
+    return result;
+  } catch (error) {
+    console.warn('Meeting weekday auto-on failed:', error);
+    return {toggledOn: false};
+  }
+};
+
 export const checkAndNotifyMeetingLive = async () => {
   try {
     await checkAndAutoOffMeeting();
+    await checkAndAutoOnMeeting();
     const meeting = await appSettingsService.getMeetingConfig();
     if (!meeting.enabled || !String(meeting.link || '').trim()) {
       return {sent: false, reason: 'disabled_or_no_link'};

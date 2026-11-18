@@ -41,7 +41,10 @@ export type SevaRequestConfig = {
     | 'biravaPendingOrderMessage'
     | 'shivakotiPendingOrderMessage'
     | 'gouMayaPendingOrderMessage';
-  registerNoteKey?: 'shivakotiRegisterNote' | 'gouMayaRegisterNote';
+  registerNoteKey?:
+    | 'shivakotiRegisterNote'
+    | 'homaBhasmaRegisterNote'
+    | 'gouMayaRegisterNote';
   matchOrder: (type: string, name: string, num: string) => boolean;
   showPhotos?: boolean;
   /** Local bundled video preview (tap opens full-screen player). */
@@ -104,6 +107,7 @@ export const SEVA_REQUESTS: Record<SevaRequestKey, SevaRequestConfig> = {
     detailKey: 'homaBhasmaDesc',
     pendingTitleKey: 'homaBhasmaPendingOrderTitle',
     pendingMessageKey: 'homaBhasmaPendingOrderMessage',
+    registerNoteKey: 'homaBhasmaRegisterNote',
     matchOrder: matchHoma,
   },
   BiravaPendant: {

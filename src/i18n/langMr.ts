@@ -47,6 +47,8 @@ export const mr: TranslationDict = {
   homaBhasma: 'होम भस्मम्',
   homaBhasmaDesc:
     'पवित्र हवन भस्म मोफत मिळेल. हे सर्व नकारात्मक ऊर्जा काढते आणि शरीरात प्रवेश करणाऱ्या वाईट शक्तींना रोखणारे शक्तिशाली आध्यात्मिक कवच बनते.',
+  homaBhasmaRegisterNote:
+    'टीप: दर महिन्याच्या शेवटी फक्त 150 ग्रॅम पाठवले जातील. भक्त पुढील महिन्यासाठी तेच पुन्हा ऑर्डर करू शकतात.',
   tileShivakoti: 'शिव कोटी पुस्तके',
   tileShivakotiSub: 'पुस्तकाची विनंती',
   shivakotiBooks: 'शिव कोटी पुस्तके',
@@ -59,7 +61,7 @@ export const mr: TranslationDict = {
   gouMayaBhasmaDesc:
     'पूजा, अभिषेक आणि अलंकारमसाठी भस्म. हे भस्म देशी गायीच्या शेणापासून बनवले जाते.',
   gouMayaRegisterNote:
-    'टीप: भस्म संपत आल्यावर पुन्हा विनंती करण्यासाठी ही बुकिंग करा.',
+    'टीप: दर महिन्याच्या शेवटी फक्त 150 ग्रॅम पाठवले जातील. भक्त पुढील महिन्यासाठी तेच पुन्हा ऑर्डर करू शकतात.',
   tileBirava: 'भिरावा पेंडंट',
   tileBiravaSub: 'पेंडंटची विनंती',
   freeDistribution: '(मोफत वितरण)',
@@ -155,6 +157,7 @@ export const mr: TranslationDict = {
   namaste: 'नमस्कार, {{name}}',
   peacefulDay: 'तुमचा दिवस शांत असो',
   beginYourJapa: 'तुमचा जप सुरू करा',
+  monthlyAutoPayLinkButton: 'छोट्या देणग्यांसाठी मासिक ऑटो-पे लिंक',
   bannerSubtitle: 'जप, अन्नदान आणि आध्यात्मिक सहभागासाठी डिजिटल जागा.',
   startChanting: 'जप सुरू करा',
   japaCalmnessTitle: 'शांतपणे जप करा',
@@ -225,6 +228,9 @@ export const mr: TranslationDict = {
   gouMayaPendingOrderTitle: 'ऑर्डर पुनरावलोकनात आहे',
   gouMayaPendingOrderMessage:
     'आधीच एक ऑर्डर पुनरावलोकनात आहे. तुमची मागील ऑर्डर डिलिव्हर झाल्यानंतर तुम्ही दुसरी ऑर्डर करू शकता.',
+  bhasmamReorderCooldownTitle: 'कृपया ३० दिवस वाट पहा',
+  bhasmamReorderCooldownMessage:
+    'तुम्ही {{orderedOn}} रोजी {{item}} ऑर्डर केले होते. ३० दिवसांनंतर, {{availableOn}} रोजी पुन्हा ऑर्डर करू शकता.',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पण करा',
   tileNithyaHomam: 'नित्य होम',

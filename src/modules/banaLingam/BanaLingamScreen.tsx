@@ -204,16 +204,21 @@ const BanaLingamScreen = () => {
           );
         }
         setSavedAddresses(addresses);
+        const latestChosen = await getLatestSelectedAddress();
+        const {pickPrefillAddress} = await import('../../utils/deliveryAddress');
+        const prefill = pickPrefillAddress({
+          selectedAddress: route.params?.selectedAddress,
+          profile,
+          latestChosen,
+          savedAddresses: addresses,
+        });
         if (route.params?.selectedAddress) {
-          setAddress(route.params.selectedAddress);
           await setLatestSelectedAddress(route.params.selectedAddress);
-        } else {
-          const latestChosen = await getLatestSelectedAddress();
-          const candidates = [latestChosen, addresses[0]].filter(Boolean) as string[];
-          const withPin = candidates.find(addressHasValidPin);
-          if (withPin) {
-            setAddress(current => current || withPin);
-          }
+        }
+        if (prefill) {
+          setAddress(current =>
+            current && addressHasValidPin(current) ? current : prefill,
+          );
         }
       };
       load();

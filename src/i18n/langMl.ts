@@ -47,6 +47,8 @@ export const ml: TranslationDict = {
   homaBhasma: 'ഹോമ ഭസ്മം',
   homaBhasmaDesc:
     'പവിത്രമായ ഹവൻ ഭസ്മം സൗജന്യമായി ലഭിക്കും. ഇത് എല്ലാ നെഗറ്റീവ് ഊർജവും നീക്കി, ശരീരത്തിലേക്ക് കടക്കുന്ന ദുഷ്ടശക്തികളെ തടയുന്ന ശക്തമായ ആത്മീയ കവചമായി പ്രവർത്തിക്കും.',
+  homaBhasmaRegisterNote:
+    'കുറിപ്പ്: ഓരോ മാസാവസാനവും 150 ഗ്രാം മാത്രമേ അയയ്ക്കൂ. ഭക്തർക്ക് അടുത്ത മാസത്തേക്ക് അതേ വീണ്ടും ഓർഡർ ചെയ്യാം.',
   tileShivakoti: 'ശിവ കോടി പുസ്തകങ്ങൾ',
   tileShivakotiSub: 'പുസ്തകം അഭ്യർത്ഥിക്കുക',
   shivakotiBooks: 'ശിവ കോടി പുസ്തകങ്ങൾ',
@@ -59,7 +61,7 @@ export const ml: TranslationDict = {
   gouMayaBhasmaDesc:
     'പൂജ, അഭിഷേകം, അലങ്കാരം എന്നിവയ്ക്കുള്ള ഭസ്മം. ഈ ഭസ്മം ദേശി പശുവിന്റെ ചാണകത്തിൽ നിന്ന് നിർമ്മിക്കുന്നു.',
   gouMayaRegisterNote:
-    'കുറിപ്പ്: ഭസ്മം തീരാറാകുമ്പോൾ വീണ്ടും അഭ്യർത്ഥിക്കാൻ ഈ ബുക്കിംഗ് ചെയ്യുക.',
+    'കുറിപ്പ്: ഓരോ മാസാവസാനവും 150 ഗ്രാം മാത്രമേ അയയ്ക്കൂ. ഭക്തർക്ക് അടുത്ത മാസത്തേക്ക് അതേ വീണ്ടും ഓർഡർ ചെയ്യാം.',
   tileBirava: 'ഭിരവ പെൻഡന്റ്',
   tileBiravaSub: 'പെൻഡന്റ് അഭ്യർത്ഥിക്കുക',
   freeDistribution: '(സൗജന്യ വിതരണം)',
@@ -155,6 +157,7 @@ export const ml: TranslationDict = {
   namaste: 'നമസ്കാരം, {{name}}',
   peacefulDay: 'നിങ്ങളുടെ ദിവസം ശാന്തമായിരിക്കട്ടെ',
   beginYourJapa: 'നിങ്ങളുടെ ജപം ആരംഭിക്കുക',
+  monthlyAutoPayLinkButton: 'ചെറിയ സംഭാവനകൾക്കുള്ള മാസിക ഓട്ടോ-പേ ലിങ്ക്',
   bannerSubtitle: 'ജപം, Annadanam, ആത്മീയ പങ്കാളിത്തത്തിനുള്ള ഡിജിറ്റൽ സ്ഥലം.',
   startChanting: 'ജപം ആരംഭിക്കുക',
   japaCalmnessTitle: 'ശാന്തമായി ജപിക്കുക',
@@ -225,6 +228,9 @@ export const ml: TranslationDict = {
   gouMayaPendingOrderTitle: 'പൂജ ഭസ്മം ഓർഡർ അവലോകനത്തിലാണ്',
   gouMayaPendingOrderMessage:
     'ഇതിനകം ഒരു പൂജ ഭസ്മം ഓർഡർ അവലോകനത്തിലാണ്. നിങ്ങളുടെ മുൻ ഓർഡർ ഡെലിവറി ചെയ്ത ശേഷം നിങ്ങൾക്ക് മറ്റൊന്ന് ഓർഡർ ചെയ്യാം.',
+  bhasmamReorderCooldownTitle: 'ദയവായി 30 ദിവസം കാത്തിരിക്കുക',
+  bhasmamReorderCooldownMessage:
+    'നിങ്ങൾ {{orderedOn}}-ന് {{item}} ഓർഡർ ചെയ്തു. 30 ദിവസത്തിന് ശേഷം, {{availableOn}}-ന് വീണ്ടും ഓർഡർ ചെയ്യാം.',
   tileAnnadanam: 'അന്ന സന്തർപ്പണ',
   tileAnnadanamSub: 'ഭക്ഷണ സേവ നൽകുക',
   tileNithyaHomam: 'നിത്യ Homam',

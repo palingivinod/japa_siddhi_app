@@ -58,6 +58,8 @@ export const hi: TranslationDict = {
   homaBhasma: 'होम भस्मम्',
   homaBhasmaDesc:
     'आपको पवित्र हवन भस्म निःशुल्क मिलेगी। यह सारी नकारात्मक ऊर्जा हटाती है और एक शक्तिशाली आध्यात्मिक ढाल बनकर शरीर में प्रवेश करने वाली बुरी शक्तियों को रोकती है।',
+  homaBhasmaRegisterNote:
+    'नोट: हर महीने के अंत में केवल 150 ग्राम भेजी जाएगी। भक्त अगले महीने के लिए वही फिर से ऑर्डर कर सकते हैं।',
   tileShivakoti: 'शिव कोटि पुस्तकें',
   tileShivakotiSub: 'पुस्तक का अनुरोध',
   shivakotiBooks: 'शिव कोटि पुस्तकें',
@@ -70,7 +72,7 @@ export const hi: TranslationDict = {
   gouMayaBhasmaDesc:
     'पूजा, अभिषेक और अलंकारम के लिए भस्म। यह भस्म देसी गौ गोबर से बनाई जाती है।',
   gouMayaRegisterNote:
-    'नोट: भस्म पूरा होने के निकट होने पर फिर से अनुरोध के लिए यह बुकिंग करें।',
+    'नोट: हर महीने के अंत में केवल 150 ग्राम भेजी जाएगी। भक्त अगले महीने के लिए वही फिर से ऑर्डर कर सकते हैं।',
   tileBirava: 'भिरावा पेंडेंट',
   tileBiravaSub: 'पेंडेंट का अनुरोध',
   freeDistribution: '(निःशुल्क वितरण)',
@@ -189,6 +191,7 @@ export const hi: TranslationDict = {
   namaste: 'नमस्ते, {{name}}',
   peacefulDay: 'आपका दिन शांतिमय हो',
   beginYourJapa: 'अपना जप शुरू करें',
+  monthlyAutoPayLinkButton: 'छोटे दान के लिए मासिक ऑटो-पे लिंक',
   bannerSubtitle: 'जप, अन्नदान और आध्यात्मिक भागीदारी के लिए डिजिटल स्थान।',
   startChanting: 'जप शुरू करें',
   japaCalmnessTitle: 'शांति से जप करें',
@@ -268,6 +271,9 @@ export const hi: TranslationDict = {
   gouMayaPendingOrderTitle: 'ऑर्डर समीक्षाधीन है',
   gouMayaPendingOrderMessage:
     'पहले से एक ऑर्डर समीक्षाधीन है। पिछला ऑर्डर डिलीवर होने के बाद आप दूसरा ऑर्डर कर सकते हैं।',
+  bhasmamReorderCooldownTitle: 'कृपया 30 दिन प्रतीक्षा करें',
+  bhasmamReorderCooldownMessage:
+    'आपने {{orderedOn}} को {{item}} ऑर्डर किया था। आप 30 दिनों बाद, {{availableOn}} को फिर से ऑर्डर कर सकते हैं।',
   tileAnnadanam: 'अन्नदान',
   tileAnnadanamSub: 'अन्न सेवा अर्पित करें',
   tileNithyaHomam: 'नित्य होम',
@@ -1162,6 +1168,8 @@ export const te: TranslationDict = {
   homaBhasma: 'హోమ భస్మం',
   homaBhasmaDesc:
     'పవిత్ర హవన భస్మ ఉచితంగా అందుతుంది. ఇది ప్రతికూల శక్తిని తొలగించి, శరీరంలోకి ప్రవేశించే దుష్ట శక్తులను అడ్డుకునే శక్తివంతమైన ఆధ్యాత్మిక కవచంగా పనిచేస్తుంది.',
+  homaBhasmaRegisterNote:
+    'గమనిక: ప్రతి నెల చివరలో కేవలం 150 గ్రాములు మాత్రమే పంపబడతాయి. భక్తులు తదుపరి నెలకు అదే మళ్లీ ఆర్డర్ చేసుకోవచ్చు.',
   tileShivakoti: 'శివ కోటి పుస్తకాలు',
   tileShivakotiSub: 'పుస్తకం కోరండి',
   shivakotiBooks: 'శివ కోటి పుస్తకాలు',
@@ -1174,7 +1182,7 @@ export const te: TranslationDict = {
   gouMayaBhasmaDesc:
     'పూజ, అభిషేకం మరియు అలంకారం కోసం భస్మం. ఈ భస్మం దేశి ఆవు పేడ నుండి తయారు చేయబడుతుంది.',
   gouMayaRegisterNote:
-    'గమనిక: భస్మం పూర్తికి దగ్గరగా ఉన్నప్పుడు మళ్లీ అభ్యర్థించడానికి ఈ బుకింగ్ చేయండి.',
+    'గమనిక: ప్రతి నెల చివరలో కేవలం 150 గ్రాములు మాత్రమే పంపబడతాయి. భక్తులు తదుపరి నెలకు అదే మళ్లీ ఆర్డర్ చేసుకోవచ్చు.',
   tileBirava: 'భైరవ పెండెంట్',
   tileBiravaSub: 'పెండెంట్ అభ్యర్థన',
   freeDistribution: '(ఉచిత పంపిణీ)',
@@ -1293,6 +1301,7 @@ export const te: TranslationDict = {
   namaste: 'నమస్తే, {{name}}',
   peacefulDay: 'మీ రోజు శాంతియుతంగా ఉండాలి',
   beginYourJapa: 'మీ జపం ప్రారంభించండి',
+  monthlyAutoPayLinkButton: 'చిన్న విరాళాల కోసం నెలవారీ ఆటో-పే లింక్',
   bannerSubtitle: 'జపం, అన్నదానం మరియు ఆధ్యాత్మిక భాగస్వామ్యానికి డిజిటల్ స్థలం.',
   startChanting: 'జపం ప్రారంభించండి',
   japaCalmnessTitle: 'ప్రశాంతంగా జపం చేయండి',
@@ -1372,6 +1381,9 @@ export const te: TranslationDict = {
   gouMayaPendingOrderTitle: 'ఆర్డర్ పరిశీలనలో ఉంది',
   gouMayaPendingOrderMessage:
     'ఇప్పటికే ఒక ఆర్డర్ పరిశీలనలో ఉంది. మునుపటి ఆర్డర్ డెలివరీ అయిన తర్వాత మీరు మరొకటి ఆర్డర్ చేయవచ్చు.',
+  bhasmamReorderCooldownTitle: 'దయచేసి 30 రోజులు వేచి ఉండండి',
+  bhasmamReorderCooldownMessage:
+    'మీరు {{orderedOn}}న {{item}} ఆర్డర్ చేశారు. మీరు 30 రోజుల తర్వాత, {{availableOn}}న మళ్లీ ఆర్డర్ చేయవచ్చు.',
   tileAnnadanam: 'అన్న సంతర్పణ',
   tileAnnadanamSub: 'అన్న సేవ అర్పించండి',
   tileNithyaHomam: 'నిత్య హోమం',

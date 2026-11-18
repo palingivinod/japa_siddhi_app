@@ -47,6 +47,8 @@ export const kn: TranslationDict = {
   homaBhasma: 'ಹೋಮ ಭಸ್ಮಂ',
   homaBhasmaDesc:
     'ಪವಿತ್ರ ಹವನ ಭಸ್ಮ ಉಚಿತವಾಗಿ ಸಿಗುತ್ತದೆ. ಇದು ಎಲ್ಲಾ ಋಣಾತ್ಮಕ ಶಕ್ತಿಯನ್ನು ತೆಗೆದು, ದೇಹಕ್ಕೆ ಪ್ರವೇಶಿಸುವ ದುಷ್ಟ ಶಕ್ತಿಗಳನ್ನು ತಡೆಯುವ ಪ್ರಬಲ ಆಧ್ಯಾತ್ಮಿಕ ಗುರಾಣಿಯಾಗಿ ಕೆಲಸ ಮಾಡುತ್ತದೆ.',
+  homaBhasmaRegisterNote:
+    'ಗಮನಿಸಿ: ಪ್ರತಿ ತಿಂಗಳ ಕೊನೆಯಲ್ಲಿ ಕೇವಲ 150 ಗ್ರಾಂ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಭಕ್ತರು ಮುಂದಿನ ತಿಂಗಳಿಗೆ ಅದೇ ಮರು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
   tileShivakoti: 'ಶಿವ ಕೋಟಿ ಪುಸ್ತಕಗಳು',
   tileShivakotiSub: 'ಪುಸ್ತಕವನ್ನು ಕೇಳಿ',
   shivakotiBooks: 'ಶಿವ ಕೋಟಿ ಪುಸ್ತಕಗಳು',
@@ -59,7 +61,7 @@ export const kn: TranslationDict = {
   gouMayaBhasmaDesc:
     'ಪೂಜೆ, ಅಭಿಷೇಕ ಮತ್ತು ಅಲಂಕಾರಕ್ಕಾಗಿ ಭಸ್ಮ. ಈ ಭಸ್ಮವನ್ನು ದೇಸಿ ಹಸುವಿನ ಸಗಣಿಯಿಂದ ತಯಾರಿಸಲಾಗುತ್ತದೆ.',
   gouMayaRegisterNote:
-    'ಗಮನಿಸಿ: ಭಸ್ಮ ಮುಗಿಯುವ ಹಂತದಲ್ಲಿ ಮತ್ತೆ ವಿನಂತಿಸಲು ಈ ಬುಕಿಂಗ್ ಮಾಡಿ.',
+    'ಗಮನಿಸಿ: ಪ್ರತಿ ತಿಂಗಳ ಕೊನೆಯಲ್ಲಿ ಕೇವಲ 150 ಗ್ರಾಂ ಮಾತ್ರ ಕಳುಹಿಸಲಾಗುತ್ತದೆ. ಭಕ್ತರು ಮುಂದಿನ ತಿಂಗಳಿಗೆ ಅದೇ ಮರು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
   tileBirava: 'ಭಿರವ ಪೆಂಡೆಂಟ್',
   tileBiravaSub: 'ಪೆಂಡೆಂಟ್ ಕೇಳಿ',
   freeDistribution: '(ಉಚಿತ ವಿತರಣೆ)',
@@ -154,6 +156,7 @@ export const kn: TranslationDict = {
   namaste: 'ನಮಸ್ಕಾರ, {{name}}',
   peacefulDay: 'ನಿಮ್ಮ ದಿನ ಶಾಂತಿಯುತವಾಗಿರಲಿ',
   beginYourJapa: 'ನಿಮ್ಮ ಜಪ ಪ್ರಾರಂಭಿಸಿ',
+  monthlyAutoPayLinkButton: 'ಸಣ್ಣ ಕಾಣಿಕೆಗಳಿಗಾಗಿ ಮಾಸಿಕ ಆಟೋ-ಪೇ ಲಿಂಕ್',
   bannerSubtitle: 'ಜಪ, ಅನ್ನದಾನ ಮತ್ತು ಆಧ್ಯಾತ್ಮಿಕ ಭಾಗವಹಿಸುವಿಕೆಗೆ ಡಿಜಿಟಲ್ ಸ್ಥಳ.',
   startChanting: 'ಜಪ ಪ್ರಾರಂಭಿಸಿ',
   japaCalmnessTitle: 'ಶಾಂತಿಯಿಂದ ಜಪ ಮಾಡಿ',
@@ -224,6 +227,9 @@ export const kn: TranslationDict = {
   gouMayaPendingOrderTitle: 'ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ',
   gouMayaPendingOrderMessage:
     'ಈಗಾಗಲೇ ಒಂದು ಆರ್ಡರ್ ಪರಿಶೀಲನೆಯಲ್ಲಿದೆ. ನಿಮ್ಮ ಹಿಂದಿನ ಆರ್ಡರ್ ತಲುಪಿದ ನಂತರ ನೀವು ಇನ್ನೊಂದನ್ನು ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
+  bhasmamReorderCooldownTitle: 'ದಯವಿಟ್ಟು 30 ದಿನ ಕಾಯಿರಿ',
+  bhasmamReorderCooldownMessage:
+    'ನೀವು {{orderedOn}} ರಂದು {{item}} ಆರ್ಡರ್ ಮಾಡಿದ್ದೀರಿ. 30 ದಿನಗಳ ನಂತರ, {{availableOn}} ರಂದು ಮತ್ತೆ ಆರ್ಡರ್ ಮಾಡಬಹುದು.',
   tileAnnadanam: 'ಅನ್ನದಾನ',
   tileAnnadanamSub: 'ಅನ್ನ ಸೇವೆ ಅರ್ಪಿಸಿ',
   tileNithyaHomam: 'ನಿತ್ಯ ಹೋಮ',

@@ -34,6 +34,41 @@ class OrderService {
           400,
         );
       }
+
+      // Homa / Pooja Bhasmam: block reorder for 30 days from last non-cancelled order.
+      if (orderType === 'HOMA_BHASMA' || orderType === 'GOU_MAYA_BHASMA') {
+        const recent = await orderRepository.findRecentBhasmamOrder(
+          order.userId,
+          orderType as 'HOMA_BHASMA' | 'GOU_MAYA_BHASMA',
+          30,
+        );
+        if (recent?.createdAt) {
+          const orderedMs = new Date(
+            String(recent.createdAt).replace(' ', 'T'),
+          ).getTime();
+          if (Number.isFinite(orderedMs)) {
+            const available = new Date(orderedMs + 30 * 24 * 60 * 60 * 1000);
+            const orderedLabel = new Date(orderedMs).toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              timeZone: 'Asia/Kolkata',
+            });
+            const availableLabel = available.toLocaleDateString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+              timeZone: 'Asia/Kolkata',
+            });
+            const item =
+              orderType === 'GOU_MAYA_BHASMA' ? 'Pooja Bhasmam' : 'Homa Bhasmam';
+            throw new AppError(
+              `You ordered ${item} on ${orderedLabel}. You can order again after 30 days, on ${availableLabel}.`,
+              400,
+            );
+          }
+        }
+      }
     }
 
     const orderNumber = await orderRepository.getNextOrderNumber(numberPrefix);

@@ -698,6 +698,112 @@ class OrderRepository {
   }
 
   /**
+   * Latest non-cancelled Homa / Pooja Bhasmam order within the last `withinDays`.
+   * Used for the 30-day reorder cooldown.
+   */
+  async findRecentBhasmamOrder(
+    userId: number,
+    orderType: 'HOMA_BHASMA' | 'GOU_MAYA_BHASMA',
+    withinDays = 30,
+  ): Promise<{
+    id: number;
+    orderNumber: string;
+    orderType: string;
+    itemName: string;
+    createdAt: string;
+  } | null> {
+    if (!userId) {
+      return null;
+    }
+    await this.ensureUserDeletedColumn();
+    const days = Math.max(1, Number(withinDays) || 30);
+    const type = String(orderType || '').toUpperCase();
+    const isGou = type === 'GOU_MAYA_BHASMA';
+    const typeMatch = isGou
+      ? `(
+          upper(IFNULL(order_type, '')) = 'GOU_MAYA_BHASMA'
+          OR lower(IFNULL(item_name, '')) LIKE '%gou%maya%'
+          OR lower(IFNULL(item_name, '')) LIKE '%goumaya%'
+          OR lower(IFNULL(item_name, '')) LIKE '%pooja%bhasma%'
+          OR IFNULL(order_number, '') LIKE 'GM%'
+          OR IFNULL(order_number, '') LIKE '#GM%'
+        )`
+      : `(
+          (
+            upper(IFNULL(order_type, '')) = 'HOMA_BHASMA'
+            OR (
+              lower(IFNULL(item_name, '')) LIKE '%homa%'
+              AND lower(IFNULL(item_name, '')) LIKE '%bhasma%'
+            )
+            OR IFNULL(order_number, '') LIKE 'HB%'
+            OR IFNULL(order_number, '') LIKE '#HB%'
+          )
+          AND NOT (
+            lower(IFNULL(item_name, '')) LIKE '%gou%maya%'
+            OR lower(IFNULL(item_name, '')) LIKE '%goumaya%'
+            OR lower(IFNULL(item_name, '')) LIKE '%pooja%bhasma%'
+            OR IFNULL(order_number, '') LIKE 'GM%'
+            OR IFNULL(order_number, '') LIKE '#GM%'
+          )
+        )`;
+
+    const selectRecentSql = async (withDeletedFilter: boolean) => {
+      const deletedSql = withDeletedFilter
+        ? 'AND COALESCE(deleted_by_user, 0) = 0'
+        : '';
+      const engine = mysql.getEngineName();
+      const sinceSql =
+        engine === 'mysql'
+          ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`
+          : engine === 'postgres'
+            ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '${days} days'`
+            : `created_at >= datetime('now', '-${days} days')`;
+      return mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          order_number AS orderNumber,
+          order_type AS orderType,
+          item_name AS itemName,
+          created_at AS createdAt
+        FROM orders
+        WHERE user_id = ?
+          AND ${typeMatch}
+          ${deletedSql}
+          AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+              NOT IN ('CANCELLED', 'CANCELED')
+          AND ${sinceSql}
+        ORDER BY id DESC
+        LIMIT 1
+        `,
+        [userId],
+      );
+    };
+
+    let rows: any[] = [];
+    try {
+      rows = (await selectRecentSql(true)) || [];
+    } catch {
+      try {
+        rows = (await selectRecentSql(false)) || [];
+      } catch {
+        return null;
+      }
+    }
+    const row = rows[0];
+    if (!row) {
+      return null;
+    }
+    return {
+      id: Number(row.id),
+      orderNumber: String(row.orderNumber || row.order_number || ''),
+      orderType: String(row.orderType || row.order_type || ''),
+      itemName: String(row.itemName || row.item_name || ''),
+      createdAt: String(row.createdAt || row.created_at || ''),
+    };
+  }
+
+  /**
    * Any undelivered product order (blocks new product orders globally).
    * Excludes Nithya Homam / Annadanam seva rows.
    */

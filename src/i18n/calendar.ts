@@ -68,3 +68,12 @@ export const shortMonthDay = (t: Translate, raw?: string | null) => {
   }
   return `${t(MONTH_KEYS[date.getMonth()])} ${date.getDate()}`;
 };
+
+/** Month, day, and year in the devotee's language, e.g. 18 Nov 2026 / 18 नवंबर 2026. */
+export const shortMonthDayYear = (t: Translate, raw?: string | null) => {
+  const date = parseApiDate(raw);
+  if (!date) {
+    return String(raw || '').trim();
+  }
+  return `${date.getDate()} ${t(MONTH_KEYS[date.getMonth()])} ${date.getFullYear()}`;
+};

@@ -47,6 +47,8 @@ export const or: TranslationDict = {
   homaBhasma: 'ହୋମ ଭସ୍ମମ୍',
   homaBhasmaDesc:
     'ପବିତ୍ର ହବନ ଭସ୍ମ ମାଗଣାରେ ମିଳିବ। ଏହା ସମସ୍ତ ନକାରାତ୍ମକ ଶକ୍ତି ଦୂର କରି, ଶରୀରରେ ପ୍ରବେଶ କରୁଥିବା ଅଶୁଭ ଶକ୍ତିକୁ ରୋକୁଥିବା ଶକ୍ତିଶାଳୀ ଆଧ୍ୟାତ୍ମିକ ଢାଲ ଭାବେ କାମ କରେ।',
+  homaBhasmaRegisterNote:
+    'ନୋଟ୍: ପ୍ରତି ମାସ ଶେଷରେ କେବଳ ୧୫୦ ଗ୍ରାମ ପଠାଯିବ। ଭକ୍ତମାନେ ପରବର୍ତ୍ତୀ ମାସ ପାଇଁ ସମାନ ପୁନଃ ଅର୍ଡର କରିପାରିବେ।',
   tileShivakoti: 'ଶିବ କୋଟି ବହି',
   tileShivakotiSub: 'ବହି ପାଇଁ ଅନୁରୋଧ',
   shivakotiBooks: 'ଶିବ କୋଟି ବହି',
@@ -59,7 +61,7 @@ export const or: TranslationDict = {
   gouMayaBhasmaDesc:
     'ପୂଜା, ଅଭିଷେକ ଓ ଅଲଙ୍କାର ପାଇଁ ଭସ୍ମ। ଏହି ଭସ୍ମ ଦେଶୀ ଗାଈ ଗୋବରରୁ ତିଆରି ହୁଏ।',
   gouMayaRegisterNote:
-    'ନୋଟ୍: ଭସ୍ମ ସମାପ୍ତି ନିକଟରେ ପୁନର୍ବାର ଅନୁରୋଧ କରିବାକୁ ଏହି ବୁକିଙ୍ଗ କରନ୍ତୁ।',
+    'ନୋଟ୍: ପ୍ରତି ମାସ ଶେଷରେ କେବଳ ୧୫୦ ଗ୍ରାମ ପଠାଯିବ। ଭକ୍ତମାନେ ପରବର୍ତ୍ତୀ ମାସ ପାଇଁ ସମାନ ପୁନଃ ଅର୍ଡର କରିପାରିବେ।',
   tileBirava: 'ଭିରାଭା ପେଣ୍ଡାଣ୍ଟ',
   tileBiravaSub: 'ପେଣ୍ଡାଣ୍ଟ ଅନୁରୋଧ',
   freeDistribution: '(ମାଗଣା ବିତରଣ)',
@@ -155,6 +157,7 @@ export const or: TranslationDict = {
   namaste: 'ନମସ୍କାର, {{name}}',
   peacefulDay: 'ଆପଣଙ୍କ ଦିନ ଶାନ୍ତିପୂର୍ଣ୍ଣ ହେଉ',
   beginYourJapa: 'ଆପଣଙ୍କ ଜପ ଆରମ୍ଭ କରନ୍ତୁ',
+  monthlyAutoPayLinkButton: 'ଛୋଟ ଦାନ ପାଇଁ ମାସିକ ଅଟୋ-ପେ ଲିଙ୍କ୍',
   bannerSubtitle: 'ଜପ, ଅନ୍ନଦାନ ଓ ଆଧ୍ୟାତ୍ମିକ ଅଂଶଗ୍ରହଣ ପାଇଁ ଏକ ଡିଜିଟାଲ୍ ସ୍ଥାନ।',
   startChanting: 'ଜପ ଆରମ୍ଭ କରନ୍ତୁ',
   japaCalmnessTitle: 'ଶାନ୍ତିରେ ଜପ କରନ୍ତୁ',
@@ -225,6 +228,9 @@ export const or: TranslationDict = {
   gouMayaPendingOrderTitle: 'ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି',
   gouMayaPendingOrderMessage:
     'ପୂର୍ବରୁ ଗୋଟିଏ ଅର୍ଡର ସମୀକ୍ଷାଧୀନ ଅଛି। ପୂର୍ବ ଅର୍ଡର ବିତରଣ ହେବା ପରେ ଆପଣ ଅନ୍ୟଟି ଅର୍ଡର କରିପାରିବେ।',
+  bhasmamReorderCooldownTitle: 'ଦୟାକରି ୩୦ ଦିନ ଅପେକ୍ଷା କରନ୍ତୁ',
+  bhasmamReorderCooldownMessage:
+    'ଆପଣ {{orderedOn}} ରେ {{item}} ଅର୍ଡର କରିଥିଲେ। ୩୦ ଦିନ ପରେ, {{availableOn}} ରେ ପୁଣି ଅର୍ଡର କରିପାରିବେ।',
   tileAnnadanam: 'ଅନ୍ନଦାନ',
   tileAnnadanamSub: 'ଅନ୍ନ ସେବା ଅର୍ପଣ କରନ୍ତୁ',
   tileNithyaHomam: 'ନିତ୍ୟ ହୋମ',

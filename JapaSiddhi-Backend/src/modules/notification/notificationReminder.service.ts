@@ -132,6 +132,113 @@ const notificationsEnabled = async (userId: number) => {
   }
 };
 
+let dedupeTableReady = false;
+
+/** One claim per (user, actionType, actionId) across concurrent Render instances. */
+const ensureNotificationDedupeTable = async () => {
+  if (dedupeTableReady) {
+    return;
+  }
+  const engine = mysql.getEngineName() || 'sqlite';
+  try {
+    if (engine === 'postgres') {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS notification_action_dedupe (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL,
+          action_type VARCHAR(80) NOT NULL,
+          action_id BIGINT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT uq_notification_action_dedupe
+            UNIQUE (user_id, action_type, action_id)
+        )
+      `);
+    } else {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS notification_action_dedupe (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          action_type TEXT NOT NULL,
+          action_id INTEGER NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (user_id, action_type, action_id)
+        )
+      `);
+    }
+    dedupeTableReady = true;
+  } catch (error) {
+    console.warn('[notifyOnce] ensureNotificationDedupeTable:', error);
+  }
+};
+
+/** Returns true only for the first claim; false if already claimed. */
+const claimNotificationAction = async (
+  userId: number,
+  actionType: string,
+  actionId: number,
+): Promise<boolean> => {
+  await ensureNotificationDedupeTable();
+  const engine = mysql.getEngineName() || 'sqlite';
+  try {
+    if (engine === 'postgres') {
+      const res = await mysql.query<any>(
+        `
+        INSERT INTO notification_action_dedupe (user_id, action_type, action_id)
+        VALUES (?, ?, ?)
+        ON CONFLICT (user_id, action_type, action_id) DO NOTHING
+        `,
+        [userId, actionType, actionId],
+      );
+      return Number(res?.affectedRows || 0) > 0;
+    }
+    const res = await mysql.query<any>(
+      `
+      INSERT OR IGNORE INTO notification_action_dedupe (user_id, action_type, action_id)
+      VALUES (?, ?, ?)
+      `,
+      [userId, actionType, actionId],
+    );
+    return Number(res?.affectedRows || 0) > 0;
+  } catch (error: any) {
+    // Unique violation / race → treat as already claimed.
+    const msg = String(error?.message || error || '');
+    if (/unique|duplicate|conflict/i.test(msg)) {
+      return false;
+    }
+    console.warn(
+      `[notifyOnce] claim failed user=${userId} ${actionType}/${actionId}:`,
+      msg,
+    );
+    return false;
+  }
+};
+
+const hasPendingGoalReminderToday = async (userId: number, today: string) => {
+  try {
+    const engine = mysql.getEngineName();
+    const dayClause =
+      engine === 'mysql'
+        ? `DATE(DATE_ADD(COALESCE(sent_at, created_at), INTERVAL 330 MINUTE)) = ?`
+        : engine === 'postgres'
+          ? `to_char((COALESCE(sent_at, created_at)::timestamptz AT TIME ZONE 'Asia/Kolkata'), 'YYYY-MM-DD') = ?`
+          : `DATE(COALESCE(sent_at, created_at), '+5 hours', '30 minutes') = ?`;
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM notifications
+      WHERE user_id = ?
+        AND action_type = 'DAILY_JAPA_PENDING'
+        AND ${dayClause}
+      LIMIT 1
+      `,
+      [userId, today],
+    );
+    return Boolean(rows?.[0]?.id);
+  } catch {
+    return false;
+  }
+};
+
 const notifyOnce = async (input: {
   userId: number;
   title: string;
@@ -160,22 +267,53 @@ const notifyOnce = async (input: {
     input.actionId,
   );
   if (existing?.extraData?.pushSent === true) {
+    // Ensure claim exists so concurrent creates cannot slip through later.
+    await claimNotificationAction(
+      input.userId,
+      input.actionType,
+      input.actionId,
+    ).catch(() => false);
     return false;
   }
 
   let notificationId = existing?.id || 0;
+  let createdNow = false;
   if (!existing) {
-    const created = await notificationService.create({
-      userId: input.userId,
-      title: input.title,
-      message: input.message,
-      notificationType: input.notificationType,
-      actionType: input.actionType,
-      actionId: input.actionId,
-      extraData: input.extraData || null,
-      expiresAt: input.expiresAt ?? null,
-    });
-    notificationId = Number(created?.id || 0);
+    // Atomic lock before INSERT — prevents duplicate inbox rows when two
+    // Render instances / sweeps race at the same second.
+    const claimed = await claimNotificationAction(
+      input.userId,
+      input.actionType,
+      input.actionId,
+    );
+    if (!claimed) {
+      const raced = await notificationService.findByAction(
+        input.userId,
+        input.actionType,
+        input.actionId,
+      );
+      if (raced?.extraData?.pushSent === true) {
+        return false;
+      }
+      if (raced?.id) {
+        notificationId = Number(raced.id);
+      } else {
+        return false;
+      }
+    } else {
+      const created = await notificationService.create({
+        userId: input.userId,
+        title: input.title,
+        message: input.message,
+        notificationType: input.notificationType,
+        actionType: input.actionType,
+        actionId: input.actionId,
+        extraData: input.extraData || null,
+        expiresAt: input.expiresAt ?? null,
+      });
+      notificationId = Number(created?.id || 0);
+      createdNow = notificationId > 0;
+    }
   }
 
   // Same WhatsApp-style tray popup as admin broadcasts (needs fcm_token).
@@ -195,15 +333,20 @@ const notifyOnce = async (input: {
       const {sendPushToTokens} = await import(
         '../admin/adminNotification.service'
       );
+      const prior = existing || (await notificationService.findByAction(
+        input.userId,
+        input.actionType,
+        input.actionId,
+      ));
       const pushTitle =
-        String(input.extraData?.pushTitle || existing?.extraData?.pushTitle || '')
+        String(input.extraData?.pushTitle || prior?.extraData?.pushTitle || '')
           .trim() ||
-        String(existing?.title || input.title).trim();
+        String(prior?.title || input.title).trim();
       const pushBody =
-        String(input.extraData?.pushBody || existing?.extraData?.pushBody || '')
+        String(input.extraData?.pushBody || prior?.extraData?.pushBody || '')
           .trim() ||
-        String(existing?.message || input.message).trim();
-      const pack = {...(existing?.extraData || {}), ...(input.extraData || {})};
+        String(prior?.message || input.message).trim();
+      const pack = {...(prior?.extraData || {}), ...(input.extraData || {})};
       const pushExtra: Record<string, string> = {
         notificationId: String(notificationId || ''),
         actionType: String(input.actionType || ''),
@@ -248,7 +391,7 @@ const notifyOnce = async (input: {
     console.warn('Reminder FCM push failed:', error);
   }
 
-  return !existing;
+  return createdNow;
 };
 
 /** End of an IST calendar day — reminders leave the inbox after this. */
@@ -478,6 +621,8 @@ export const notifyChallengeCompleted = async (input: {
 export const flushDeadlineReminders = async () => {
   const today = todayYmdIst();
   let created = 0;
+  /** Users who already got a pending-goal reminder today (skip generic idle). */
+  const usersWithPending = new Set<number>();
 
   try {
     const challengeRows = await mysql.query<any[]>(`
@@ -783,6 +928,7 @@ export const flushDeadlineReminders = async () => {
     );
 
     const dayKey = Number(today.replace(/-/g, ''));
+    const pendingSeen = new Set<string>();
     for (const row of activeGoalUsers || []) {
       const target = Number(row.targetCount || 0);
       const completed = Number(row.completedCount || 0);
@@ -806,6 +952,7 @@ export const flushDeadlineReminders = async () => {
         const mantraId = Number(row.mantraId || 0) || null;
         const personalMantraId = Number(row.personalMantraId || 0) || null;
         const goalId = Number(row.goalId || 0);
+        const userId = Number(row.userId);
         // One pending reminder per mantra per calendar day (not per goal row).
         const mantraKey =
           personalMantraId && personalMantraId > 0
@@ -813,6 +960,11 @@ export const flushDeadlineReminders = async () => {
             : mantraId && mantraId > 0
               ? mantraId
               : goalId;
+        const dedupeKey = `${userId}:${mantraKey}`;
+        if (pendingSeen.has(dedupeKey)) {
+          continue;
+        }
+        pendingSeen.add(dedupeKey);
         const isSamuhika = String(row.goalName || '').toLowerCase().includes('samuhika');
         const isPersonal = Boolean(personalMantraId);
         const category = resolveJapaCategory({isSamuhika, isPersonal});
@@ -824,7 +976,7 @@ export const flushDeadlineReminders = async () => {
         );
 
         const ok = await notifyOnce({
-          userId: Number(row.userId),
+          userId,
           title: branded.title,
           message: branded.message,
           notificationType: 'JAPA_REMINDER',
@@ -850,6 +1002,8 @@ export const flushDeadlineReminders = async () => {
           },
           expiresAt: endOfDayStamp(today),
         });
+        // Whether created now or already existed, this user has a pending reminder today.
+        usersWithPending.add(userId);
         if (ok) {
           created += 1;
         }
@@ -891,6 +1045,14 @@ export const flushDeadlineReminders = async () => {
 
     const dayKey = Number(today.replace(/-/g, ''));
     for (const row of idleRows || []) {
+      const userId = Number(row.userId);
+      // Avoid double messaging: pending-goal reminder already covers "not done today".
+      if (usersWithPending.has(userId)) {
+        continue;
+      }
+      if (await hasPendingGoalReminderToday(userId, today)) {
+        continue;
+      }
       const branded = brandJapaNotification(
         'Your Japa',
         'Daily reminder',
@@ -898,7 +1060,7 @@ export const flushDeadlineReminders = async () => {
         'You have not chanted today. Take a few minutes for your japa practice.',
       );
       const ok = await notifyOnce({
-        userId: Number(row.userId),
+        userId,
         title: branded.title,
         message: branded.message,
         notificationType: 'JAPA_REMINDER',

@@ -4,6 +4,12 @@ let tableReady = false;
 
 /** Class card auto-hides for users after this IST wall-clock time (20:30). */
 export const MEETING_AUTO_OFF_IST_MINUTES = 20 * 60 + 30;
+/** Weekday auto-show on Home (countdown) from this IST time (18:30). */
+export const MEETING_AUTO_ON_IST_MINUTES = 18 * 60 + 30;
+/** Join button / LIVE start IST time (19:30) — 1 hour after auto-on. */
+export const MEETING_JOIN_IST_MINUTES = 19 * 60 + 30;
+
+const MEETING_WEEKDAY_AUTO_ON_YMD_KEY = 'meeting_weekday_auto_on_ymd';
 
 /** Current IST hour*60+minute from a UTC instant (default: now). */
 export const getIstMinutesOfDay = (date = new Date()): number => {
@@ -20,8 +26,59 @@ export const getIstMinutesOfDay = (date = new Date()): number => {
   return h * 60 + minute;
 };
 
+/** IST calendar YYYY-MM-DD. */
+export const getIstYmd = (date = new Date()): string =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+
+/** IST weekday: 0=Sun … 6=Sat (en-US). */
+export const getIstWeekday = (date = new Date()): number => {
+  const label = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    weekday: 'short',
+  }).format(date);
+  const map: Record<string, number> = {
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
+  };
+  return map[label] ?? date.getDay();
+};
+
+export const isWeekdayIst = (date = new Date()): boolean => {
+  const d = getIstWeekday(date);
+  return d >= 1 && d <= 5;
+};
+
 export const isPastMeetingAutoOffIst = (date = new Date()): boolean =>
   getIstMinutesOfDay(date) >= MEETING_AUTO_OFF_IST_MINUTES;
+
+/** Mon–Fri, from 6:30 PM until auto-off (exclusive of 8:30 PM). */
+export const isMeetingWeekdayAutoOnWindowIst = (date = new Date()): boolean => {
+  if (!isWeekdayIst(date)) {
+    return false;
+  }
+  const mins = getIstMinutesOfDay(date);
+  return mins >= MEETING_AUTO_ON_IST_MINUTES && mins < MEETING_AUTO_OFF_IST_MINUTES;
+};
+
+/** Today's join time as ISO with IST offset, e.g. 2026-11-18T19:30:00+05:30 */
+export const buildIstJoinScheduledAt = (date = new Date()): string => {
+  const ymd = getIstYmd(date);
+  const hour = Math.floor(MEETING_JOIN_IST_MINUTES / 60);
+  const minute = MEETING_JOIN_IST_MINUTES % 60;
+  const hh = String(hour).padStart(2, '0');
+  const mm = String(minute).padStart(2, '0');
+  return `${ymd}T${hh}:${mm}:00+05:30`;
+};
 
 const ensureSettingsTable = async () => {
   if (tableReady) {
@@ -195,9 +252,48 @@ class AppSettingsService {
     return {toggledOff: true};
   }
 
+  /**
+   * Mon–Fri from 6:30 PM IST: turn meeting ON with scheduledAt = today 7:30 PM
+   * so Home shows a 1-hour countdown, then Join at 7:30. Once per weekday.
+   * Keeps existing title/link. Skips weekends and after 8:30 PM.
+   */
+  async enforceMeetingWeekdayAutoOnIfNeeded(
+    date = new Date(),
+  ): Promise<{toggledOn: boolean; meeting?: Awaited<ReturnType<AppSettingsService['getMeetingConfig']>>}> {
+    if (!isMeetingWeekdayAutoOnWindowIst(date)) {
+      return {toggledOn: false};
+    }
+
+    const ymd = getIstYmd(date);
+    const already = await this.getSetting(MEETING_WEEKDAY_AUTO_ON_YMD_KEY, '');
+    if (already === ymd) {
+      return {toggledOn: false};
+    }
+
+    const current = await this.getMeetingConfig();
+    if (!String(current.link || '').trim()) {
+      return {toggledOn: false};
+    }
+
+    const scheduledAt = buildIstJoinScheduledAt(date);
+    const updated = await this.setMeetingConfig({
+      enabled: true,
+      time: '7:30 PM',
+      scheduledAt,
+    });
+    await this.setSetting(MEETING_WEEKDAY_AUTO_ON_YMD_KEY, ymd);
+    return {toggledOn: true, meeting: updated};
+  }
+
   /** Public Home/Classes payload — never exposes join link after 8:30 PM IST. */
   async getPublicMeetingConfig(date = new Date()) {
     await this.enforceMeetingAutoOffIfNeeded(date);
+    const autoOn = await this.enforceMeetingWeekdayAutoOnIfNeeded(date);
+    if (autoOn.toggledOn && autoOn.meeting) {
+      void import('./meetingNotify.service')
+        .then(({notifyMeetingSaved}) => notifyMeetingSaved(autoOn.meeting!))
+        .catch(() => undefined);
+    }
     const meeting = await this.getMeetingConfig();
     if (isPastMeetingAutoOffIst(date)) {
       return {...meeting, enabled: false};

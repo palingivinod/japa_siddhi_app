@@ -2,6 +2,7 @@ import React, {useState} from 'react';
 import {Alert, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useNavigation, useRoute} from '@react-navigation/native';
 
+import {shortMonthDayYear} from '../../i18n/calendar';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import {saveDeliveryAddress} from '../../services/savedAddresses';
@@ -54,10 +55,11 @@ const SevaRequestReviewScreen = () => {
       );
     } catch (error) {
       const msg = getApiError(error, t('couldNotSubmitApplication'));
+      const lower = msg.toLowerCase();
       if (
-        msg.toLowerCase().includes('already one') ||
-        msg.toLowerCase().includes('in progress') ||
-        msg.toLowerCase().includes('in review')
+        lower.includes('already one') ||
+        lower.includes('in progress') ||
+        lower.includes('in review')
       ) {
         Alert.alert(
           t('banaLingamPendingOrderTitle') || 'Order In Review',
@@ -72,6 +74,44 @@ const SevaRequestReviewScreen = () => {
               style: 'cancel',
             },
           ],
+        );
+      } else if (
+        lower.includes('30 days') ||
+        lower.includes('order again after')
+      ) {
+        let cooldownMessage = msg;
+        try {
+          const {
+            findBhasmamReorderCooldown,
+            isBhasmamCooldownKind,
+          } = await import('../../utils/bhasmamReorderCooldown');
+          if (isBhasmamCooldownKind(request.kind)) {
+            const ordersRes = await apiService.get('/orders').catch(() => null);
+            const allOrders = ordersRes?.data?.data || [];
+            const cooldown = findBhasmamReorderCooldown(
+              allOrders,
+              request.matchOrder,
+              new Date(),
+              iso => shortMonthDayYear(t, iso),
+            );
+            if (cooldown) {
+              const label = t(request.titleKey) || 'this item';
+              cooldownMessage =
+                t('bhasmamReorderCooldownMessage', {
+                  item: label,
+                  orderedOn: cooldown.orderedOnLabel,
+                  availableOn: cooldown.availableOnLabel,
+                }) ||
+                `You ordered ${label} on ${cooldown.orderedOnLabel}. You can order again after 30 days, on ${cooldown.availableOnLabel}.`;
+            }
+          }
+        } catch {
+          // Keep API message if local rebuild fails.
+        }
+        Alert.alert(
+          t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
+          cooldownMessage,
+          [{text: t('ok') || 'OK'}],
         );
       } else {
         Alert.alert(t('applicationOverview'), msg);

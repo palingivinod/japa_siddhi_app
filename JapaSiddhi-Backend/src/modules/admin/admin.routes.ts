@@ -8421,6 +8421,14 @@ router.get('/meeting', async (_req: Request, res: Response) => {
     const appSettingsService = (await import('./appSettings.service')).default;
     // Keep admin toggle in sync: after 8:30 PM IST auto-off persists.
     await appSettingsService.enforceMeetingAutoOffIfNeeded();
+    // Mon–Fri 6:30 PM IST: auto-show with 7:30 PM join countdown.
+    const autoOn =
+      await appSettingsService.enforceMeetingWeekdayAutoOnIfNeeded();
+    if (autoOn.toggledOn && autoOn.meeting) {
+      void import('./meetingNotify.service')
+        .then(({notifyMeetingSaved}) => notifyMeetingSaved(autoOn.meeting!))
+        .catch(() => undefined);
+    }
     const meeting = await appSettingsService.getMeetingConfig();
     return res.json({
       success: true,
