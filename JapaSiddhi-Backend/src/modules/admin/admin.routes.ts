@@ -8511,12 +8511,19 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
       501,
       Number.isFinite(minCountRaw) && minCountRaw > 0 ? Math.floor(minCountRaw) : 501,
     );
+    // Accept YYYY-MM-DD or YYYY-MM-DD HH:mm[:ss] / ISO. Default = 1.3.0 live cutover
+    // 2026-11-18 20:00 IST = 2026-11-18 14:30:00 UTC.
     const sinceRaw = String(
-      req.body?.since || req.query?.since || '2026-11-16',
+      req.body?.since || req.query?.since || '2026-11-18 14:30:00',
     ).trim();
-    const since = /^\d{4}-\d{2}-\d{2}$/.test(sinceRaw)
-      ? sinceRaw
-      : '2026-11-16';
+    const sinceMatch = sinceRaw.match(
+      /^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/,
+    );
+    const since = sinceMatch
+      ? sinceMatch[2]
+        ? `${sinceMatch[1]} ${sinceMatch[2]}:${sinceMatch[3]}:${sinceMatch[4] || '00'}`
+        : sinceMatch[1]
+      : '2026-11-18 14:30:00';
     const confirm = String(req.body?.confirm || '').trim();
 
     const summaryRows = await mysql.query<any[]>(
