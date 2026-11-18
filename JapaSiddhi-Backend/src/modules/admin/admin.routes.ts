@@ -8498,6 +8498,75 @@ router.delete('/meeting', async (_req: Request, res: Response) => {
   }
 });
 
+/** Session-size audit for one user (junk vs real). Query: userId */
+router.get('/japa/user-session-audit', async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.query.userId || 0);
+    if (!userId) {
+      return res.status(400).json({success: false, message: 'userId required'});
+    }
+    const totalRows = await mysql.query<any[]>(
+      `
+      SELECT
+        COALESCE(SUM(session_count), 0) AS totalJapa,
+        COUNT(*) AS sessionRows,
+        COALESCE(MAX(session_count), 0) AS maxRow
+      FROM japa_sessions
+      WHERE user_id = ?
+      `,
+      [userId],
+    );
+    const buckets = await mysql.query<any[]>(
+      `
+      SELECT
+        CASE
+          WHEN session_count <= 1 THEN '1'
+          WHEN session_count BETWEEN 2 AND 20 THEN '2-20'
+          WHEN session_count BETWEEN 21 AND 108 THEN '21-108'
+          WHEN session_count BETWEEN 109 AND 500 THEN '109-500'
+          WHEN session_count BETWEEN 501 AND 999 THEN '501-999'
+          ELSE '1000+'
+        END AS bucket,
+        COUNT(*) AS rows,
+        COALESCE(SUM(session_count), 0) AS japas
+      FROM japa_sessions
+      WHERE user_id = ?
+      GROUP BY 1
+      ORDER BY 1
+      `,
+      [userId],
+    );
+    const recentBig = await mysql.query<any[]>(
+      `
+      SELECT id, session_count AS sessionCount, created_at AS createdAt
+      FROM japa_sessions
+      WHERE user_id = ?
+        AND session_count >= 200
+      ORDER BY session_count DESC, id DESC
+      LIMIT 25
+      `,
+      [userId],
+    );
+    const t = totalRows?.[0] || {};
+    return res.json({
+      success: true,
+      data: {
+        userId,
+        totalJapa: Number(t.totalJapa || 0),
+        sessionRows: Number(t.sessionRows || 0),
+        maxRow: Number(t.maxRow || 0),
+        buckets: buckets || [],
+        recentBig: recentBig || [],
+      },
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Session audit failed.',
+    });
+  }
+});
+
 /**
  * Repair 1.3.0 japa inflate: oversized session rows (lifetime re-POSTs).
  * Default dryRun=true. Apply only with { dryRun:false, confirm:"REPAIR_JAPA_INFLATE" }.
