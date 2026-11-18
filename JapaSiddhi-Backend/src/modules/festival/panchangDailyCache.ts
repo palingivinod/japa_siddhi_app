@@ -1,3 +1,4 @@
+import mysql from '../../database/mysql';
 import appSettingsService from '../admin/appSettings.service';
 import {getPanchang} from './panchang';
 import {PanchangResult} from './panchang';
@@ -18,6 +19,7 @@ type StoredDailyPanchang = {
 };
 
 const settingKeyFor = (isoDate: string) => `panchang_daily_${isoDate}`;
+const claimKeyFor = (isoDate: string) => `panchang_fetch_claim_${isoDate}`;
 
 /** IST calendar YYYY-MM-DD. */
 export const istCalendarDate = (value?: Date | null) =>
@@ -140,6 +142,108 @@ const isWeakPanchangSource = (source?: string | null) => {
   return !value || value === 'local';
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Cross-instance lock: only one Render process may call Prokerala for a given day.
+ * Prevents quota burn when many users open panchang at once / during redeploys.
+ */
+const tryClaimPanchangFetch = async (isoDate: string): Promise<boolean> => {
+  const key = claimKeyFor(isoDate);
+  const stamp = new Date().toISOString();
+  const engine = mysql.getEngineName() || 'sqlite';
+  try {
+    if (engine === 'postgres') {
+      const res = await mysql.query<any>(
+        `
+        INSERT INTO app_settings (setting_key, setting_value)
+        VALUES (?, ?)
+        ON CONFLICT (setting_key) DO NOTHING
+        `,
+        [key, stamp],
+      );
+      return Number(res?.affectedRows || 0) > 0;
+    }
+    if (engine === 'mysql') {
+      const res = await mysql.query<any>(
+        `
+        INSERT IGNORE INTO app_settings (setting_key, setting_value)
+        VALUES (?, ?)
+        `,
+        [key, stamp],
+      );
+      return Number(res?.affectedRows || 0) > 0;
+    }
+    const res = await mysql.query<any>(
+      `
+      INSERT OR IGNORE INTO app_settings (setting_key, setting_value)
+      VALUES (?, ?)
+      `,
+      [key, stamp],
+    );
+    return Number(res?.affectedRows || 0) > 0;
+  } catch (error) {
+    console.warn('[panchang-daily] fetch claim failed:', errorDetail(error));
+    return false;
+  }
+};
+
+const clearPanchangFetchClaim = async (isoDate: string) => {
+  try {
+    await mysql.query(`DELETE FROM app_settings WHERE setting_key = ?`, [
+      claimKeyFor(isoDate),
+    ]);
+  } catch {
+    // ignore
+  }
+};
+
+/** Wait briefly for another instance to finish writing today's cache. */
+const waitForStoredPanchang = async (
+  isoDate: string,
+  preferStrongSource: boolean,
+  fallback: PanchangResult | null,
+): Promise<PanchangResult> => {
+  for (let i = 0; i < 25; i += 1) {
+    await sleep(400);
+    memory.delete(isoDate);
+    const row = await readStored(isoDate);
+    if (!row?.payload) {
+      continue;
+    }
+    const source = String(row.source || (row.payload as any)?.source || '');
+    if (!preferStrongSource || !isWeakPanchangSource(source)) {
+      return row.payload;
+    }
+  }
+  if (fallback) {
+    return fallback;
+  }
+  return getPanchang(isoDate);
+};
+
+const persistFetchedPanchang = async (
+  isoDate: string,
+  payload: PanchangResult,
+) => {
+  const row: StoredDailyPanchang = {
+    date: isoDate,
+    fetchedAt: new Date().toISOString(),
+    source: String((payload as any)?.source || ''),
+    payload,
+  };
+  try {
+    await writeStored(row);
+  } catch (error) {
+    console.warn('[panchang-daily] Could not persist cache:', errorDetail(error));
+    memory.set(isoDate, row);
+  }
+  console.log(
+    `[panchang-daily] Cached panchang for ${isoDate} (source=${row.source || 'local'})`,
+  );
+  return payload;
+};
+
 /**
  * Ensure today's (or given IST date) panchang is stored.
  * Concurrent callers share one in-flight fetch — never stampede providers.
@@ -151,6 +255,7 @@ export const ensureDailyPanchang = async (
   const isoDate =
     String(dateInput || '').trim().slice(0, 10) || istCalendarDate();
   const existing = await readStored(isoDate);
+  let upgradeFromLocal = false;
   if (existing?.payload) {
     const source = String(
       existing.source || (existing.payload as any)?.source || '',
@@ -163,10 +268,11 @@ export const ensureDailyPanchang = async (
       return existing.payload;
     }
     localUpgradeAttempted.add(isoDate);
+    upgradeFromLocal = true;
     console.log(
       `[panchang-daily] Upgrading local cache for ${isoDate} via Prokerala`,
     );
-    memory.delete(isoDate);
+    // Keep serving the old local row to other requests — do NOT clear DB first.
   }
 
   const pending = inflight.get(isoDate);
@@ -175,30 +281,24 @@ export const ensureDailyPanchang = async (
   }
 
   const job = (async () => {
-    // Clear stale local row before rewrite so a failed provider does not
-    // leave us stuck forever if a concurrent reader re-cached it.
-    try {
-      await appSettingsService.setSetting(settingKeyFor(isoDate), '');
-    } catch {
-      // ignore
+    const claimed = await tryClaimPanchangFetch(isoDate);
+    if (!claimed) {
+      // Another instance is fetching — wait for shared cache, keep local meantime.
+      return waitForStoredPanchang(
+        isoDate,
+        upgradeFromLocal,
+        existing?.payload || null,
+      );
     }
-    const payload = await fetchOnceForDate(isoDate);
-    const row: StoredDailyPanchang = {
-      date: isoDate,
-      fetchedAt: new Date().toISOString(),
-      source: String((payload as any)?.source || ''),
-      payload,
-    };
+
     try {
-      await writeStored(row);
+      const payload = await fetchOnceForDate(isoDate);
+      return await persistFetchedPanchang(isoDate, payload);
     } catch (error) {
-      console.warn('[panchang-daily] Could not persist cache:', errorDetail(error));
-      memory.set(isoDate, row);
+      // Allow a later retry if this fetch hard-failed before writing.
+      await clearPanchangFetchClaim(isoDate);
+      throw error;
     }
-    console.log(
-      `[panchang-daily] Cached panchang for ${isoDate} (source=${row.source || 'local'})`,
-    );
-    return payload;
   })().finally(() => {
     inflight.delete(isoDate);
   });
@@ -213,12 +313,29 @@ export const refreshDailyPanchang = async (dateInput?: string) => {
     String(dateInput || '').trim().slice(0, 10) || istCalendarDate();
   memory.delete(isoDate);
   localUpgradeAttempted.delete(isoDate);
-  try {
-    await appSettingsService.setSetting(settingKeyFor(isoDate), '');
-  } catch {
-    // ignore
+  await clearPanchangFetchClaim(isoDate);
+  // Do not wipe today's payload before the new fetch completes — avoids stampede.
+  const pending = inflight.get(isoDate);
+  if (pending) {
+    return pending;
   }
-  return ensureDailyPanchang(isoDate);
+  const job = (async () => {
+    const claimed = await tryClaimPanchangFetch(isoDate);
+    if (!claimed) {
+      return waitForStoredPanchang(isoDate, true, null);
+    }
+    try {
+      const payload = await fetchOnceForDate(isoDate);
+      return await persistFetchedPanchang(isoDate, payload);
+    } catch (error) {
+      await clearPanchangFetchClaim(isoDate);
+      throw error;
+    }
+  })().finally(() => {
+    inflight.delete(isoDate);
+  });
+  inflight.set(isoDate, job);
+  return job;
 };
 
 let midnightTimer: NodeJS.Timeout | null = null;
