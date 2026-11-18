@@ -51,6 +51,8 @@ export const msUntilNextIstMidnight = (now = new Date()) => {
 
 const memory = new Map<string, StoredDailyPanchang>();
 const inflight = new Map<string, Promise<PanchangResult>>();
+/** Avoid hammering Prokerala every request if credentials fail and we fall back to local. */
+const localUpgradeAttempted = new Set<string>();
 
 const errorDetail = (error: unknown) => {
   if (!(error instanceof Error)) {
@@ -131,9 +133,17 @@ const fetchOnceForDate = async (isoDate: string): Promise<PanchangResult> => {
   return loaded;
 };
 
+const isWeakPanchangSource = (source?: string | null) => {
+  const value = String(source || '')
+    .trim()
+    .toLowerCase();
+  return !value || value === 'local';
+};
+
 /**
  * Ensure today's (or given IST date) panchang is stored.
  * Concurrent callers share one in-flight fetch — never stampede providers.
+ * If an older "local" cache exists and Prokerala is now configured, refresh once.
  */
 export const ensureDailyPanchang = async (
   dateInput?: string,
@@ -142,7 +152,21 @@ export const ensureDailyPanchang = async (
     String(dateInput || '').trim().slice(0, 10) || istCalendarDate();
   const existing = await readStored(isoDate);
   if (existing?.payload) {
-    return existing.payload;
+    const source = String(
+      existing.source || (existing.payload as any)?.source || '',
+    );
+    const shouldUpgrade =
+      isWeakPanchangSource(source) &&
+      isProkeralaConfigured() &&
+      !localUpgradeAttempted.has(isoDate);
+    if (!shouldUpgrade) {
+      return existing.payload;
+    }
+    localUpgradeAttempted.add(isoDate);
+    console.log(
+      `[panchang-daily] Upgrading local cache for ${isoDate} via Prokerala`,
+    );
+    memory.delete(isoDate);
   }
 
   const pending = inflight.get(isoDate);
@@ -151,6 +175,13 @@ export const ensureDailyPanchang = async (
   }
 
   const job = (async () => {
+    // Clear stale local row before rewrite so a failed provider does not
+    // leave us stuck forever if a concurrent reader re-cached it.
+    try {
+      await appSettingsService.setSetting(settingKeyFor(isoDate), '');
+    } catch {
+      // ignore
+    }
     const payload = await fetchOnceForDate(isoDate);
     const row: StoredDailyPanchang = {
       date: isoDate,
@@ -181,6 +212,7 @@ export const refreshDailyPanchang = async (dateInput?: string) => {
   const isoDate =
     String(dateInput || '').trim().slice(0, 10) || istCalendarDate();
   memory.delete(isoDate);
+  localUpgradeAttempted.delete(isoDate);
   try {
     await appSettingsService.setSetting(settingKeyFor(isoDate), '');
   } catch {
@@ -224,7 +256,13 @@ export const startPanchangDailyScheduler = () => {
     return;
   }
   bootTimer = setTimeout(() => {
-    ensureDailyPanchang(istCalendarDate()).catch(error =>
+    const today = istCalendarDate();
+    // After adding Prokerala env vars, force refresh so we don't keep a
+    // previously cached "local" day (missing sunrise / rahu / etc.).
+    const warm = isProkeralaConfigured()
+      ? refreshDailyPanchang(today)
+      : ensureDailyPanchang(today);
+    warm.catch(error =>
       console.warn(
         '[panchang-daily] Boot warm-up failed:',
         errorDetail(error),
