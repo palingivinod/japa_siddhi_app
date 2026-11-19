@@ -55,6 +55,9 @@ export type ActiveJapaItem = {
   progressPercent: number;
   isChallenge?: boolean;
   isCompleted?: boolean;
+  /** New Samuhika campaign (admin start/deadline) — no daily-goal flow. */
+  isSamuhikaCampaign?: boolean;
+  deadlineAt?: string | null;
 };
 
 const formatDate = (raw?: string | null) => {
@@ -182,19 +185,6 @@ const YourJapasScreen = () => {
               ? Math.min(100, Math.round((completedCount / targetCount) * 100))
               : 0;
 
-          const doneToday = Number(goal.todayCompletedCount || 0);
-          const plan = resolveMantraDailyTarget({
-            today: todayIso,
-            endDate: goal.endDate,
-            remainingNow: remainingCount,
-            doneToday,
-            serverTarget: Number(goal.dailyTarget || 0),
-            serverPlanDate: goal.dailyPlanDate || goal.daily_plan_date,
-            saved: planSnaps[String(goal.id)] || null,
-          });
-          const dailyTarget = plan.target;
-          void writeDailyPlanSnap(Number(goal.id), plan.snap);
-
           const isPersonal =
             goal.mantraType === 'PERSONAL' ||
             Boolean(goal.personalMantraId) ||
@@ -202,11 +192,33 @@ const YourJapasScreen = () => {
             String(goal.goalName || '').toLowerCase().includes('personal') ||
             String(goal.goalName || '').toLowerCase().includes('my japa');
 
+          const notesLower = String(goal.notes || '').toLowerCase();
           const isCommunity =
             !isPersonal &&
             (String(goal.goalName || '').toLowerCase().includes('samuhika') ||
               String(goal.goalName || '').toLowerCase().includes('community') ||
-              String(goal.notes || '').toLowerCase().includes('samuhika'));
+              notesLower.includes('samuhika'));
+          // Campaign join omits dailyTarget; legacy Goal Select always sets one.
+          const isSamuhikaCampaign =
+            isCommunity &&
+            (notesLower.includes('samuhika campaign') ||
+              Number(goal.dailyTarget || 0) <= 0);
+
+          let dailyTarget = 0;
+          if (!isSamuhikaCampaign) {
+            const doneToday = Number(goal.todayCompletedCount || 0);
+            const plan = resolveMantraDailyTarget({
+              today: todayIso,
+              endDate: goal.endDate,
+              remainingNow: remainingCount,
+              doneToday,
+              serverTarget: Number(goal.dailyTarget || 0),
+              serverPlanDate: goal.dailyPlanDate || goal.daily_plan_date,
+              saved: planSnaps[String(goal.id)] || null,
+            });
+            dailyTarget = plan.target;
+            void writeDailyPlanSnap(Number(goal.id), plan.snap);
+          }
 
           let sourceType: JapaSourceType = 'CATALOG';
           let sourceLabel = t('sourceCatalog') || 'Japa Mantra';
@@ -252,6 +264,10 @@ const YourJapasScreen = () => {
             remainingDays,
             progressPercent,
             isChallenge: false,
+            isSamuhikaCampaign,
+            deadlineAt: isSamuhikaCampaign
+              ? goal.endDate || null
+              : null,
           });
         });
       }
@@ -394,10 +410,18 @@ const YourJapasScreen = () => {
       mantraName: item.mantraName,
       goal: item.targetCount,
       initialCount: item.completedCount,
-      dailyTarget: item.dailyTarget,
+      dailyTarget: item.isSamuhikaCampaign ? 0 : item.dailyTarget,
       japaGoalId: item.goalId,
       resume: true,
       fromHome: false,
+      ...(item.isSamuhikaCampaign
+        ? {
+            samuhika: true,
+            samuhikaCampaign: true,
+            skipGoalSelect: true,
+            deadlineAt: item.deadlineAt || item.endDate || undefined,
+          }
+        : {}),
     });
   };
 
@@ -592,15 +616,15 @@ const YourJapasScreen = () => {
                     : tt(item.mantraName)}
                 </Text>
 
-                {item.isChallenge ? (
-                  item.endDate ? (
+                {item.isChallenge || item.isSamuhikaCampaign ? (
+                  item.endDate || item.deadlineAt ? (
                     <View style={styles.dailyGoalBox}>
                       <View style={styles.deadlineRight}>
                         <Text style={styles.deadlineTitle}>
                           📅 {t('deadlineLabel') || 'DEADLINE'}
                         </Text>
                         <Text style={styles.deadlineValue}>
-                          {formatDate(item.endDate)}
+                          {formatDate(item.deadlineAt || item.endDate)}
                         </Text>
                       </View>
                     </View>

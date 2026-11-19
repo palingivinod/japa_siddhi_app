@@ -35,6 +35,7 @@ import {
   writeDailyPlanSnap,
 } from '../../utils/mantraDailyPlan';
 import {istIsoDate} from '../../utils/dateUtils';
+import {formatIstDateTime12h} from '../../utils/istTime';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import ScreenLayout from '../common/ScreenLayout';
 
@@ -73,6 +74,13 @@ const ChantScreen = () => {
   const navigation = useNavigation<any>();
   const {t, tt} = useLanguage();
   const mode = route.params?.mode === 'private' ? 'private' : 'community';
+  /** New Samuhika campaigns only — never Antharanga or legacy Samuhika. */
+  const isSamuhikaCampaign = Boolean(
+    route.params?.samuhikaCampaign ||
+      (route.params?.samuhika &&
+        route.params?.skipGoalSelect &&
+        (route.params?.deadlineAt || route.params?.startsAt)),
+  );
   const [mantras, setMantras] = useState<ChantMantra[]>([]);
   const [selected, setSelected] = useState<ChantMantra | null>(null);
   const [editingMantra, setEditingMantra] = useState(false);
@@ -84,14 +92,16 @@ const ChantScreen = () => {
   );
   const [count, setCount] = useState(0);
   const [goal, setGoal] = useState(() => {
-    if (route.params?.samuhika || route.params?.skipGoalSelect) {
+    if (isSamuhikaCampaign || route.params?.skipGoalSelect) {
       return Math.max(0, Number(route.params?.goal || 0));
     }
     return Number(route.params?.goal ?? 2000) || 2000;
   });
   const challengeId = Number(route.params?.challengeId || 0);
   const [dailyTarget, setDailyTarget] = useState(
-    challengeId ? 0 : Number(route.params?.dailyTarget || 0) || 0,
+    challengeId || isSamuhikaCampaign
+      ? 0
+      : Number(route.params?.dailyTarget || 0) || 0,
   );
   /** Japas saved for this goal today, including taps saved during this visit. */
   const [todaySaved, setTodaySaved] = useState(0);
@@ -147,11 +157,13 @@ const ChantScreen = () => {
   // Until the daily plan is done, the circle shows today's japas.
   // After that, it counts only extras chanted in this sitting: 1, 2, 3.
   // Leaving the screen and coming back starts those extras from 0 again.
-  const circleCount = challengeId
-    ? count
-    : dailyTarget > 0 && todayTotal >= dailyTarget
-      ? Math.max(0, todayTotal - Math.max(dailyTarget, extraBase))
-      : todayTotal;
+  // Samuhika campaigns / challenges show total progress toward the target.
+  const circleCount =
+    challengeId || isSamuhikaCampaign
+      ? count
+      : dailyTarget > 0 && todayTotal >= dailyTarget
+        ? Math.max(0, todayTotal - Math.max(dailyTarget, extraBase))
+        : todayTotal;
 
   const applyMantraTotals = (rows: any[]) => {
     const next: Record<number, number> = {};
@@ -258,16 +270,17 @@ const ChantScreen = () => {
         route.params?.initialCount || route.params?.count || 0,
       );
       const bootGoal =
-        route.params?.samuhika || route.params?.skipGoalSelect
+        isSamuhikaCampaign || route.params?.skipGoalSelect
           ? Math.max(0, Number(route.params?.goal || 0))
           : Number(route.params?.goal ?? 2000) || 2000;
-      if (challengeId) {
+      if (challengeId || isSamuhikaCampaign) {
         applyDraftToCount({
-          count: Math.min(bootCount, bootGoal),
-          postedCount: Math.min(bootCount, bootGoal),
+          count: Math.min(bootCount, bootGoal || bootCount),
+          postedCount: Math.min(bootCount, bootGoal || bootCount),
           goal: bootGoal,
         });
         setDailyTarget(0);
+        completingRef.current = false;
       } else {
         // Resume/Continue: lock lifetime baseline before any tap can autosave.
         const resumeBaseline =
@@ -362,13 +375,16 @@ const ChantScreen = () => {
       setShowMantraPicker(
         isRecentOnly || (!preferred && mode === 'private' && !hasTargetedMantra),
       );
-      let initialCount = Number(route.params?.initialCount || 0);
-      let paramGoal =
-        Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
-      // Challenges have a total target only — never inherit Antharanga daily goal.
+      let initialCount = Number(
+        route.params?.initialCount || route.params?.count || 0,
+      );
+      let paramGoal = isSamuhikaCampaign
+        ? Math.max(0, Number(route.params?.goal || 0))
+        : Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
+      // Challenges / Samuhika campaigns have a total target only — no daily goal.
       let resolvedDailyTarget = 0;
       let resolvedTodayBaseline = 0;
-      if (!challengeId) {
+      if (!challengeId && !isSamuhikaCampaign) {
         resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
         const paramGoalId = Number(route.params?.japaGoalId || 0);
         try {
@@ -401,6 +417,30 @@ const ChantScreen = () => {
         } catch {
           // Keep the daily goal passed in with this mantra.
         }
+      } else if (isSamuhikaCampaign) {
+        const paramGoalId = Number(route.params?.japaGoalId || 0);
+        try {
+          const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
+          const match = pickMantraGoal(goals, {
+            goalId: paramGoalId,
+            personalMantraId,
+            mantraId: preferredId,
+          });
+          if (match) {
+            initialCount = Math.max(
+              initialCount,
+              Number(match.completedCount || 0),
+            );
+            paramGoal = Math.max(
+              paramGoal,
+              Number(match.targetCount || 0),
+            );
+            matchedGoalIdRef.current = Number(match.id) || 0;
+          }
+        } catch {
+          // Keep route params.
+        }
+        resolvedDailyTarget = 0;
       } else if (goalsOrChallengeRes?.data?.data) {
         try {
           const challenge = goalsOrChallengeRes.data.data || {};
@@ -769,20 +809,15 @@ const ChantScreen = () => {
       return;
     }
     if (options?.completed) {
-      const isSamuhika =
-        Boolean(route.params?.samuhika) ||
-        mode === 'community' ||
-        String(route.params?.mode || '') === 'community';
-      if (isSamuhika) {
+      if (isSamuhikaCampaign) {
         const mantraLabel =
           chip?.name ||
           route.params?.mantraName ||
           route.params?.challengeMantra ||
           'mantra';
         Alert.alert(
-          t('samuhikaCompleteTitle') || 'Well done!',
-          t('samuhikaCompleteBody', {mantra: mantraLabel}) ||
-            `You completed the Samuhika japa — ${mantraLabel}. Well done!`,
+          t('samuhikaCompleteTitle'),
+          t('samuhikaCompleteBody', {mantra: mantraLabel}),
           [
             {
               text: t('ok') || 'OK',
@@ -1093,6 +1128,7 @@ const ChantScreen = () => {
       todaySavedRef.current + Math.max(0, next - postedCountRef.current);
     if (
       !challengeId &&
+      !isSamuhikaCampaign &&
       effectiveDaily > 0 &&
       effectiveDaily < goalRef.current &&
       !dailyGoalCompletedShownRef.current &&
@@ -1374,9 +1410,21 @@ const ChantScreen = () => {
         <Text style={styles.goal}>
           {challengeId
             ? t('challengeGoalWithCount', {count: goal.toLocaleString()})
-            : t('goalWithCount', {count: goal.toLocaleString()})}
+            : isSamuhikaCampaign
+              ? t('samuhikaCompletedLabel', {
+                  done: count.toLocaleString(),
+                  target: goal.toLocaleString(),
+                })
+              : t('goalWithCount', {count: goal.toLocaleString()})}
         </Text>
-        {!challengeId && dailyTarget > 0 ? (
+        {isSamuhikaCampaign && route.params?.deadlineAt ? (
+          <Text style={styles.dailyGoalLine}>
+            {t('samuhikaDeadlineLine', {
+              date: formatIstDateTime12h(route.params.deadlineAt),
+            })}
+          </Text>
+        ) : null}
+        {!challengeId && !isSamuhikaCampaign && dailyTarget > 0 ? (
           <Text style={styles.dailyGoalLine}>
             {t('dailyGoalLabel') || 'Daily Goal'}:{' '}
             {todayTotal.toLocaleString()}

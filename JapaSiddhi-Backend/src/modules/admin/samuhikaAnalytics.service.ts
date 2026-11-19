@@ -50,7 +50,8 @@ export const getSamuhikaMantraAnalytics = async (mantraId: number) => {
       g.status AS status,
       g.end_date AS endDate,
       u.full_name AS fullName,
-      u.phone AS phone,
+      u.mobile_country_code AS mobileCountryCode,
+      u.mobile_number AS mobileNumber,
       u.email AS email
     FROM japa_goals g
     LEFT JOIN users u ON u.id = g.user_id
@@ -67,11 +68,14 @@ export const getSamuhikaMantraAnalytics = async (mantraId: number) => {
   const users = (goalRows || []).map((row: any) => {
     const done = num(row.completedCount);
     const target = num(row.targetCount);
+    const code = String(row.mobileCountryCode || '').trim();
+    const mobile = String(row.mobileNumber || '').trim();
+    const phone = [code, mobile].filter(Boolean).join(' ').trim();
     return {
       userId: num(row.userId),
       goalId: num(row.goalId),
       name: String(row.fullName || '').trim() || 'Devotee',
-      phone: String(row.phone || '').trim(),
+      phone,
       email: String(row.email || '').trim(),
       japaCount: done,
       targetCount: target,

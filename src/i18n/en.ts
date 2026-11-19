@@ -1285,6 +1285,11 @@ const en = {
     'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
   deadlineOverShort: 'Deadline over',
   couldNotJoin: 'Could not join',
+  samuhikaCompleteTitle: 'Well done!',
+  samuhikaCompleteBody:
+    'You completed your Samuhika target for "{{mantra}}". Tap OK to return.',
+  samuhikaCompletedLabel: 'Completed: {{done}} / Target: {{target}}',
+  samuhikaDeadlineLine: 'Deadline: {{date}}',
   tapToPlayVideo: 'Tap to play video',
   openingVideo: 'Opening video…',
   tapToPlayAudio: 'Tap to play audio',

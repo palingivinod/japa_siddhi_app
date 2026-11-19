@@ -333,13 +333,22 @@ const CommunityJapaScreen = () => {
     );
   };
 
-  const goChant = (payload: {
+  /** New Samuhika campaigns have start/deadline; legacy catalog mantras do not. */
+  const isSamuhikaCampaignMantra = (item: any) =>
+    Boolean(
+      String(item?.startsAt || '').trim() ||
+        String(item?.deadlineAt || '').trim(),
+    );
+
+  const goCampaignChant = (payload: {
     mantraId: number;
     mantraName: string;
     goal: number;
     japaGoalId?: number;
+    startsAt?: string | null;
     deadlineAt?: string | null;
     initialCount?: number;
+    categoryCode?: string;
   }) => {
     navigation.navigate('Chant', {
       mode: 'community',
@@ -347,16 +356,39 @@ const CommunityJapaScreen = () => {
       mantraName: payload.mantraName,
       goal: payload.goal > 0 ? payload.goal : undefined,
       japaGoalId: payload.japaGoalId,
+      startsAt: payload.startsAt || undefined,
       deadlineAt: payload.deadlineAt || undefined,
       count: payload.initialCount || 0,
+      initialCount: payload.initialCount || 0,
       resume: Boolean(payload.japaGoalId),
       samuhika: true,
+      samuhikaCampaign: true,
       skipGoalSelect: true,
+      dailyTarget: 0,
+      categoryCode: payload.categoryCode,
+    });
+  };
+
+  const goLegacyGoalSelect = () => {
+    if (!selected?.id) {
+      return;
+    }
+    navigation.navigate('GoalSelect', {
+      mode: 'community',
+      mantraId: Number(selected.id),
+      mantraName:
+        selected.mantraName || selected.transliteration || 'Mantra',
     });
   };
 
   const doJoin = async () => {
     if (!selected?.id) {
+      return;
+    }
+    const campaign = isSamuhikaCampaignMantra(selected);
+    if (!campaign) {
+      // Old Samuhika mantras: keep Goal Select + daily goal (Antharanga untouched).
+      goLegacyGoalSelect();
       return;
     }
     // Live IST wall-clock check (naive stamps are Asia/Kolkata, not UTC).
@@ -378,14 +410,16 @@ const CommunityJapaScreen = () => {
         Number(selected.targetCount) ||
         Number(selected.defaultJapaCount) ||
         0;
-      goChant({
+      goCampaignChant({
         mantraId: Number(selected.id),
         mantraName:
           selected.mantraName || selected.transliteration || 'Mantra',
         goal: target,
         japaGoalId: data.japaGoalId ? Number(data.japaGoalId) : undefined,
+        startsAt: selected.startsAt,
         deadlineAt: data.deadlineAt || selected.deadlineAt,
         initialCount: Number(data.completedCount) || 0,
+        categoryCode: selected.categoryCode,
       });
     } catch (err: any) {
       Alert.alert(

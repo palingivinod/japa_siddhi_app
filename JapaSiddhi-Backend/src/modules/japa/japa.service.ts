@@ -1207,7 +1207,11 @@ class JapaService {
     const targetCount = Number(mantra?.defaultJapaCount) || 0;
     let japaGoalId: number | undefined;
     let endDate: string | null = null;
-    if (id && targetCount > 0) {
+    const isCampaign =
+      Boolean(String(mantra?.startsAt || '').trim()) ||
+      Boolean(String(mantra?.deadlineAt || '').trim());
+    // Only campaign mantras (start/deadline set) auto-enroll with admin target.
+    if (id && targetCount > 0 && isCampaign) {
       const japaGoalService = (await import('../japaGoal/japaGoal.service'))
         .default;
       const deadlineStamp = String(mantra?.deadlineAt || '').trim();
@@ -1242,7 +1246,7 @@ class JapaService {
         days,
         startDate: todayIst,
         endDate: deadlineDay,
-        notes: 'Samuhika japa',
+        notes: 'Samuhika campaign',
       });
       japaGoalId = Number(created.goalId) || undefined;
       endDate = deadlineDay || null;
