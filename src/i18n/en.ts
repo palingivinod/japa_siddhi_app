@@ -1277,6 +1277,20 @@ const en = {
   alreadyInIndividualMsg:
     'You already have an active individual Japa for "{{mantra}}". Are you sure you want to join Samuhika Japa for it?',
 
+  notStartedTitle: 'Not started yet',
+  notStartedMsg:
+    'This Samuhika japa has not started yet. Please wait until the scheduled start time.',
+  deadlineOverTitle: 'Deadline over',
+  deadlineOverMsg:
+    'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
+  deadlineOverShort: 'Deadline over',
+  couldNotJoin: 'Could not join',
+  tapToPlayVideo: 'Tap to play video',
+  openingVideo: 'Opening video…',
+  tapToPlayAudio: 'Tap to play audio',
+  openingAudio: 'Opening audio…',
+  mediaPlayError: 'Could not play this file. Check your connection.',
+
   // Preset mantra names. Devotee-created mantras are shown exactly as typed.
   mantraOmNamahShivaya: 'Om Namah Shivaya',
   mantraMahaMrityunjaya: 'Maha Mrityunjaya Mantra',

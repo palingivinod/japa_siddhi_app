@@ -804,12 +804,15 @@ const NotificationsScreen = () => {
                       <Text
                         style={[styles.linkText, styles.standaloneLink]}
                         onPress={() => {
-                          Linking.openURL(noteAudio).catch(() => {
-                            Alert.alert(
-                              'Audio Error',
-                              'Unable to open audio file.',
-                            );
-                          });
+                          void (async () => {
+                            const ok = await playIntroVideo(noteAudio);
+                            if (!ok) {
+                              Alert.alert(
+                                'Audio',
+                                'Could not play this audio. Check your connection.',
+                              );
+                            }
+                          })();
                         }}>
                         🔊 Play audio
                       </Text>

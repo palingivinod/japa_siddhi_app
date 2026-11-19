@@ -1,8 +1,9 @@
 import React, {useCallback, useEffect, useState} from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
-  Linking,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -16,6 +17,7 @@ import {
 } from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
+import {playIntroVideo} from '../../services/introVideos';
 import {resolveMediaUrl} from '../../services/profilePhoto';
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -54,6 +56,10 @@ const CommunityJapaScreen = () => {
   );
   const [openCode, setOpenCode] = useState<string | null>(
     route.params?.categoryCode ? String(route.params.categoryCode) : null,
+  );
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [playingMedia, setPlayingMedia] = useState<null | 'video' | 'audio'>(
+    null,
   );
 
   useFocusEffect(
@@ -151,12 +157,24 @@ const CommunityJapaScreen = () => {
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
 
-  const openMedia = (url?: string) => {
+  const playMediaInApp = async (
+    url: string | undefined,
+    kind: 'video' | 'audio',
+  ) => {
     const resolved = resolveMediaUrl(url || '');
-    if (!resolved) {
+    if (!resolved || playingMedia) {
       return;
     }
-    Linking.openURL(resolved).catch(() => undefined);
+    setPlayingMedia(kind);
+    const ok = await playIntroVideo(resolved);
+    setPlayingMedia(null);
+    if (!ok) {
+      Alert.alert(
+        kind === 'video' ? 'Video' : 'Audio',
+        t('mediaPlayError') ||
+          'Could not play this file. Check your connection.',
+      );
+    }
   };
 
   const renderMediaRow = (item: {
@@ -173,22 +191,40 @@ const CommunityJapaScreen = () => {
     return (
       <View style={styles.mediaRow}>
         {image ? (
-          <TouchableOpacity onPress={() => openMedia(item.imageUrl)}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => setSelectedImage(image)}>
             <Image source={{uri: image}} style={styles.mediaThumb} />
           </TouchableOpacity>
         ) : null}
         {video ? (
           <TouchableOpacity
             style={styles.mediaChip}
-            onPress={() => openMedia(item.videoUrl)}>
-            <Text style={styles.mediaChipText}>Video</Text>
+            activeOpacity={0.85}
+            disabled={Boolean(playingMedia)}
+            onPress={() => void playMediaInApp(item.videoUrl, 'video')}>
+            {playingMedia === 'video' ? (
+              <ActivityIndicator size="small" color={Colors.sacredBrown} />
+            ) : (
+              <Text style={styles.mediaChipText}>
+                ▶ {t('tapToPlayVideo') || 'Tap to play video'}
+              </Text>
+            )}
           </TouchableOpacity>
         ) : null}
         {audio ? (
           <TouchableOpacity
             style={styles.mediaChip}
-            onPress={() => openMedia(item.audioUrl)}>
-            <Text style={styles.mediaChipText}>Audio</Text>
+            activeOpacity={0.85}
+            disabled={Boolean(playingMedia)}
+            onPress={() => void playMediaInApp(item.audioUrl, 'audio')}>
+            {playingMedia === 'audio' ? (
+              <ActivityIndicator size="small" color={Colors.sacredBrown} />
+            ) : (
+              <Text style={styles.mediaChipText}>
+                🔊 {t('tapToPlayAudio') || 'Tap to play audio'}
+              </Text>
+            )}
           </TouchableOpacity>
         ) : null}
       </View>
@@ -223,17 +259,15 @@ const CommunityJapaScreen = () => {
     }
     if (selected.notStartedYet) {
       Alert.alert(
-        t('notStartedTitle') || 'Not started yet',
-        t('notStartedMsg') ||
-          'This Samuhika japa has not started yet. Please wait until the scheduled start time.',
+        t('notStartedTitle'),
+        t('notStartedMsg'),
       );
       return;
     }
     if (selected.deadlinePassed) {
       Alert.alert(
-        t('deadlineOverTitle') || 'Deadline over',
-        t('deadlineOverMsg') ||
-          'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
+        t('deadlineOverTitle'),
+        t('deadlineOverMsg'),
       );
       return;
     }
@@ -258,12 +292,8 @@ const CommunityJapaScreen = () => {
       });
     } catch (err: any) {
       Alert.alert(
-        t('couldNotJoin') || 'Could not join',
-        getApiError(
-          err,
-          t('deadlineOverMsg') ||
-            'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
-        ),
+        t('couldNotJoin'),
+        getApiError(err, t('deadlineOverMsg')),
       );
     }
   };
@@ -379,17 +409,26 @@ const CommunityJapaScreen = () => {
                     current === group.code ? null : group.code,
                   )
                 }>
-                <Text
-                  style={[
-                    styles.categoryText,
-                    open && styles.categoryTextOpen,
-                  ]}>
-                  {title}
+                <View style={styles.categoryTitleRow}>
+                  <Text
+                    style={[
+                      styles.categoryText,
+                      open && styles.categoryTextOpen,
+                      styles.categoryTitleFlex,
+                    ]}>
+                    {title}
+                  </Text>
                   {String(categoryMeta?.categoryType || '').toUpperCase() ===
-                  'EVENT'
-                    ? ' · Event'
-                    : ''}
-                </Text>
+                  'EVENT' ? (
+                    <Text
+                      style={[
+                        styles.eventBadge,
+                        open && styles.eventBadgeOpen,
+                      ]}>
+                      Event
+                    </Text>
+                  ) : null}
+                </View>
               </TouchableOpacity>
               {open ? (
                 <>
@@ -437,6 +476,30 @@ const CommunityJapaScreen = () => {
           </View>
         ) : null}
       </ScrollView>
+
+      <Modal
+        visible={Boolean(selectedImage)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setSelectedImage(null)}>
+        <TouchableOpacity
+          style={styles.imageModalBackdrop}
+          activeOpacity={1}
+          onPress={() => setSelectedImage(null)}>
+          {selectedImage ? (
+            <Image
+              source={{uri: selectedImage}}
+              style={styles.imageModalImage}
+              resizeMode="contain"
+            />
+          ) : null}
+          <TouchableOpacity
+            style={styles.imageModalClose}
+            onPress={() => setSelectedImage(null)}>
+            <Text style={styles.imageModalCloseText}>Close</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -494,6 +557,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.templeGold,
     borderColor: Colors.templeGold,
   },
+  categoryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryTitleFlex: {
+    flex: 1,
+  },
   categoryText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
@@ -501,6 +572,42 @@ const styles = StyleSheet.create({
   },
   categoryTextOpen: {
     color: Colors.white,
+  },
+  eventBadge: {
+    backgroundColor: '#FFF3D6',
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 11,
+    overflow: 'hidden',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+  },
+  eventBadgeOpen: {
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    color: Colors.white,
+  },
+  imageModalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  imageModalImage: {
+    width: '100%',
+    height: '75%',
+  },
+  imageModalClose: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    backgroundColor: Colors.templeGold,
+  },
+  imageModalCloseText: {
+    color: Colors.white,
+    fontWeight: '800',
   },
   empty: {
     color: Colors.textSecondary,
