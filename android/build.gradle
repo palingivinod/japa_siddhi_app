@@ -4,7 +4,9 @@ buildscript {
         minSdkVersion = 24
         compileSdkVersion = 36
         targetSdkVersion = 36
-        ndkVersion = "27.1.12297006"
+        // NDK r28b: native .so libs are 16 KB–aligned by default (Play requirement).
+        // Still runs on 4 KB page-size phones; keeps all current ABIs.
+        ndkVersion = "28.1.13356709"
         kotlinVersion = "2.1.20"
     }
     repositories {
