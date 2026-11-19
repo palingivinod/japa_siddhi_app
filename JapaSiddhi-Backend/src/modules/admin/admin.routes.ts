@@ -1681,6 +1681,7 @@ const mapMantraRow = (row: any) => ({
   imageUrl: row.imageUrl || '',
   videoUrl: row.videoUrl || '',
   audioUrl: row.audioUrl || '',
+  startsAt: row.startsAt || null,
   deadlineAt: row.deadlineAt || null,
 });
 
@@ -1891,6 +1892,7 @@ router.post('/mantras', async (req: Request, res: Response) => {
       imageUrl: req.body?.imageUrl,
       videoUrl: req.body?.videoUrl,
       audioUrl: req.body?.audioUrl,
+      startsAt: req.body?.startsAt || req.body?.startAt || null,
       deadlineAt: req.body?.deadlineAt || req.body?.deadline || null,
     });
     const mapped = mapMantraRow(created);
@@ -2003,6 +2005,8 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
       req.body?.imageUrl == null &&
       req.body?.videoUrl == null &&
       req.body?.audioUrl == null &&
+      req.body?.startsAt == null &&
+      req.body?.startAt == null &&
       req.body?.deadlineAt == null &&
       req.body?.deadline == null;
 
@@ -2032,6 +2036,12 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
           imageUrl: req.body?.imageUrl,
           videoUrl: req.body?.videoUrl,
           audioUrl: req.body?.audioUrl,
+          startsAt:
+            req.body?.startsAt !== undefined
+              ? req.body.startsAt
+              : req.body?.startAt !== undefined
+                ? req.body.startAt
+                : undefined,
           deadlineAt:
             req.body?.deadlineAt !== undefined
               ? req.body.deadlineAt

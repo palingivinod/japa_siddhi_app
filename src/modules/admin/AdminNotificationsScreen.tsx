@@ -16,7 +16,7 @@ import {dismissKeyboardThen} from '../../utils/keyboard';
 import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
-import {pickFeedbackVideo} from '../../services/mediaPick';
+import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
 import {
   pickProfilePhoto,
   resolveMediaUrl,
@@ -430,21 +430,16 @@ const AdminNotificationsScreen = () => {
 
   const pickAndUploadAudio = async () => {
     try {
-      const {launchImageLibrary} = await import('react-native-image-picker');
       setUploadingAudio(true);
-      const result = await launchImageLibrary({
-        mediaType: 'mixed',
-        selectionLimit: 1,
-      });
-      const asset = result.assets?.[0];
-      if (!asset?.uri) {
+      const picked = await pickAudioFile();
+      if (!picked?.uri) {
         return;
       }
       const formData = new FormData();
       formData.append('audio', {
-        uri: asset.uri,
-        type: asset.type || 'audio/mpeg',
-        name: asset.fileName || 'notification.mp3',
+        uri: picked.uri,
+        type: picked.type || 'audio/mpeg',
+        name: picked.fileName || 'notification.mp3',
       } as any);
       const response = await apiService.post(
         '/admin/notifications/upload-audio',
@@ -458,12 +453,13 @@ const AdminNotificationsScreen = () => {
       setAudioUrl(String(uploaded));
     } catch (err: any) {
       setAudioUrl(null);
+      if (String(err?.message || '') === 'not_audio') {
+        Alert.alert('Audio only', 'Please select an audio file (MP3, M4A, WAV).');
+        return;
+      }
       Alert.alert(
         'Upload failed',
-        getApiError(
-          err,
-          'Could not upload audio. You can paste an audio URL after uploading elsewhere.',
-        ),
+        getApiError(err, 'Could not upload audio file.'),
       );
     } finally {
       setUploadingAudio(false);

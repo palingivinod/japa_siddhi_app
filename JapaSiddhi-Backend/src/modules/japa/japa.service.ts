@@ -1082,6 +1082,7 @@ class JapaService {
           image_url AS imageUrl,
           video_url AS videoUrl,
           audio_url AS audioUrl,
+          starts_at AS startsAt,
           deadline_at AS deadlineAt
         FROM mantras
         WHERE is_active = 1
@@ -1101,7 +1102,8 @@ class JapaService {
           japa_list AS japaList,
           default_japa_count AS defaultJapaCount,
           image_url AS imageUrl,
-          audio_url AS audioUrl
+          audio_url AS audioUrl,
+          deadline_at AS deadlineAt
         FROM mantras
         WHERE is_active = 1
           AND japa_list = 'SAMUHIKA'
@@ -1124,10 +1126,15 @@ class JapaService {
       const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
       const deadlinePassed =
         Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < now;
+      const startsRaw = String(row.startsAt || '').trim();
+      const startsMs = startsRaw ? Date.parse(startsRaw) : NaN;
+      const notStartedYet =
+        Number.isFinite(startsMs) && startsMs > 0 && startsMs > now;
       return {
         ...row,
         targetCount: Number(row.defaultJapaCount) || 0,
         deadlinePassed,
+        notStartedYet,
       };
     });
 
@@ -1151,9 +1158,20 @@ class JapaService {
       throw error;
     }
 
+    const nowMs = Date.now();
+    const startsRaw = String(mantra?.startsAt || '').trim();
+    const startsMs = startsRaw ? Date.parse(startsRaw) : NaN;
+    if (Number.isFinite(startsMs) && startsMs > 0 && startsMs > nowMs) {
+      const error: any = new Error(
+        'This Samuhika japa has not started yet. Please wait until the scheduled start time.',
+      );
+      error.statusCode = 403;
+      error.code = 'NOT_STARTED';
+      throw error;
+    }
     const deadlineRaw = String(mantra?.deadlineAt || '').trim();
     const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
-    if (Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < Date.now()) {
+    if (Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < nowMs) {
       const error: any = new Error(
         'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
       );

@@ -20,6 +20,7 @@ export type MantraInput = {
   imageUrl?: string | null;
   videoUrl?: string | null;
   audioUrl?: string | null;
+  startsAt?: string | null;
   deadlineAt?: string | null;
 };
 
@@ -56,6 +57,7 @@ const MANTRA_COLUMNS = `
         image_url AS imageUrl,
         video_url AS videoUrl,
         audio_url AS audioUrl,
+        starts_at AS startsAt,
         deadline_at AS deadlineAt,
   translations,
   is_featured AS isFeatured,
@@ -116,6 +118,7 @@ class MantraRepository {
       }
     };
     await add(`ALTER TABLE mantras ADD COLUMN video_url TEXT NULL`);
+    await add(`ALTER TABLE mantras ADD COLUMN starts_at TEXT NULL`);
     await add(`ALTER TABLE mantras ADD COLUMN deadline_at TEXT NULL`);
     await add(
       `ALTER TABLE mantra_categories ADD COLUMN category_type VARCHAR(20) NOT NULL DEFAULT 'NORMAL'`,
@@ -523,6 +526,7 @@ class MantraRepository {
     const imageUrl = String(input.imageUrl || '').trim() || null;
     const videoUrl = String(input.videoUrl || '').trim() || null;
     const audioUrl = String(input.audioUrl || '').trim() || null;
+    const startsAt = String(input.startsAt || '').trim() || null;
     const deadlineAt = String(input.deadlineAt || '').trim() || null;
 
     const orderRows = await mysql.query<any[]>(
@@ -543,6 +547,7 @@ class MantraRepository {
           image_url,
           video_url,
           audio_url,
+          starts_at,
           deadline_at,
           is_featured,
           is_active,
@@ -550,7 +555,7 @@ class MantraRepository {
           translations,
           japa_list,
           category_code
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
           name,
@@ -561,6 +566,7 @@ class MantraRepository {
           imageUrl,
           videoUrl,
           audioUrl,
+          startsAt,
           deadlineAt,
           isFeatured,
           isActive,
@@ -680,6 +686,10 @@ class MantraRepository {
       input.audioUrl !== undefined
         ? String(input.audioUrl || '').trim() || null
         : existing.audioUrl || null;
+    const startsAt =
+      input.startsAt !== undefined
+        ? String(input.startsAt || '').trim() || null
+        : existing.startsAt || null;
     const deadlineAt =
       input.deadlineAt !== undefined
         ? String(input.deadlineAt || '').trim() || null
@@ -698,6 +708,7 @@ class MantraRepository {
           image_url = ?,
           video_url = ?,
           audio_url = ?,
+          starts_at = ?,
           deadline_at = ?,
           is_featured = ?,
           is_active = ?,
@@ -715,6 +726,7 @@ class MantraRepository {
           imageUrl,
           videoUrl,
           audioUrl,
+          startsAt,
           deadlineAt,
           isFeatured,
           isActive,

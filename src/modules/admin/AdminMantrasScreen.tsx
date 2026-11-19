@@ -9,9 +9,10 @@ import {
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
-
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
+import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
+import {pickProfilePhoto} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import MoveCategoryModal from './MoveCategoryModal';
 import {
@@ -55,7 +56,134 @@ const AdminMantrasScreen = () => {
   const [categoryVideoUrl, setCategoryVideoUrl] = useState('');
   const [categoryAudioUrl, setCategoryAudioUrl] = useState('');
   const [categoryNotify, setCategoryNotify] = useState(true);
+  const [uploadingCategoryMedia, setUploadingCategoryMedia] = useState<
+    null | 'image' | 'video' | 'audio'
+  >(null);
   const [savingCategory, setSavingCategory] = useState(false);
+
+  const resetCategoryMedia = () => {
+    setCategoryImageUrl('');
+    setCategoryVideoUrl('');
+    setCategoryAudioUrl('');
+    setCategoryType('NORMAL');
+    setCategoryNotify(true);
+    setUploadingCategoryMedia(null);
+  };
+
+  const uploadCategoryImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Category image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingCategoryMedia('image');
+      const formData = new FormData();
+      formData.append('image', {
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        name: picked.fileName || 'category.jpg',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-image',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.imageUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No image URL returned');
+      }
+      setCategoryImageUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload category image.'),
+      );
+    } finally {
+      setUploadingCategoryMedia(null);
+    }
+  };
+
+  const uploadCategoryVideo = async () => {
+    try {
+      const picked = await pickFeedbackVideo();
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingCategoryMedia('video');
+      const formData = new FormData();
+      formData.append('video', {
+        uri: picked.uri,
+        type: picked.type || 'video/mp4',
+        name: picked.fileName || 'category.mp4',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-video',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.videoUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No video URL returned');
+      }
+      setCategoryVideoUrl(String(uploaded));
+    } catch (err: any) {
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload category video.'),
+      );
+    } finally {
+      setUploadingCategoryMedia(null);
+    }
+  };
+
+  const uploadCategoryAudio = async () => {
+    try {
+      setUploadingCategoryMedia('audio');
+      const picked = await pickAudioFile();
+      if (!picked?.uri) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: picked.uri,
+        type: picked.type || 'audio/mpeg',
+        name: picked.fileName || 'category.mp3',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-audio',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.audioUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No audio URL returned');
+      }
+      setCategoryAudioUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'not_audio') {
+        Alert.alert('Audio only', 'Please select an audio file (MP3, M4A, WAV).');
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload category audio.'),
+      );
+    } finally {
+      setUploadingCategoryMedia(null);
+    }
+  };
 
   const loadMantras = useCallback(async () => {
     setLoading(true);
@@ -253,11 +381,7 @@ const AdminMantrasScreen = () => {
         ]);
       }
       setCategoryName('');
-      setCategoryType('NORMAL');
-      setCategoryImageUrl('');
-      setCategoryVideoUrl('');
-      setCategoryAudioUrl('');
-      setCategoryNotify(true);
+      resetCategoryMedia();
       setAddingCategory(false);
     } catch (err) {
       Alert.alert(
@@ -360,6 +484,7 @@ const AdminMantrasScreen = () => {
                 setDeletingCategory(false);
                 setEditingCategory(null);
                 setCategoryName('');
+                resetCategoryMedia();
                 setAddingCategory(true);
               }}>
               <Text style={styles.pinText}>ADD CATEGORY</Text>
@@ -403,27 +528,67 @@ const AdminMantrasScreen = () => {
                       </TouchableOpacity>
                     ))}
                   </View>
-                  <TextInput
-                    style={styles.input}
-                    value={categoryImageUrl}
-                    onChangeText={setCategoryImageUrl}
-                    placeholder="Image URL (optional)"
-                    placeholderTextColor={Colors.placeholder}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={categoryVideoUrl}
-                    onChangeText={setCategoryVideoUrl}
-                    placeholder="Video URL (optional)"
-                    placeholderTextColor={Colors.placeholder}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={categoryAudioUrl}
-                    onChangeText={setCategoryAudioUrl}
-                    placeholder="Audio URL (optional)"
-                    placeholderTextColor={Colors.placeholder}
-                  />
+                  <Text style={styles.meta}>Media (optional)</Text>
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      disabled={Boolean(uploadingCategoryMedia) || savingCategory}
+                      onPress={() => void uploadCategoryImage()}>
+                      <Text style={styles.editText}>
+                        {uploadingCategoryMedia === 'image'
+                          ? 'Uploading…'
+                          : categoryImageUrl
+                            ? 'Photo ✓'
+                            : 'Upload photo'}
+                      </Text>
+                    </TouchableOpacity>
+                    {categoryImageUrl ? (
+                      <TouchableOpacity
+                        onPress={() => setCategoryImageUrl('')}>
+                        <Text style={styles.cancelText}>Remove</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      disabled={Boolean(uploadingCategoryMedia) || savingCategory}
+                      onPress={() => void uploadCategoryVideo()}>
+                      <Text style={styles.editText}>
+                        {uploadingCategoryMedia === 'video'
+                          ? 'Uploading…'
+                          : categoryVideoUrl
+                            ? 'Video ✓'
+                            : 'Upload video'}
+                      </Text>
+                    </TouchableOpacity>
+                    {categoryVideoUrl ? (
+                      <TouchableOpacity
+                        onPress={() => setCategoryVideoUrl('')}>
+                        <Text style={styles.cancelText}>Remove</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                  <View style={styles.actions}>
+                    <TouchableOpacity
+                      style={styles.editBtn}
+                      disabled={Boolean(uploadingCategoryMedia) || savingCategory}
+                      onPress={() => void uploadCategoryAudio()}>
+                      <Text style={styles.editText}>
+                        {uploadingCategoryMedia === 'audio'
+                          ? 'Uploading…'
+                          : categoryAudioUrl
+                            ? 'Audio ✓'
+                            : 'Upload audio'}
+                      </Text>
+                    </TouchableOpacity>
+                    {categoryAudioUrl ? (
+                      <TouchableOpacity
+                        onPress={() => setCategoryAudioUrl('')}>
+                        <Text style={styles.cancelText}>Remove</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
                   <Text style={styles.meta}>Notify users</Text>
                   <View style={styles.actions}>
                     {[true, false].map(option => (

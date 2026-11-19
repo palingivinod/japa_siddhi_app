@@ -221,6 +221,14 @@ const CommunityJapaScreen = () => {
     if (!selected?.id) {
       return;
     }
+    if (selected.notStartedYet) {
+      Alert.alert(
+        t('notStartedTitle') || 'Not started yet',
+        t('notStartedMsg') ||
+          'This Samuhika japa has not started yet. Please wait until the scheduled start time.',
+      );
+      return;
+    }
     if (selected.deadlinePassed) {
       Alert.alert(
         t('deadlineOverTitle') || 'Deadline over',
@@ -305,7 +313,13 @@ const CommunityJapaScreen = () => {
     if (target > 0) {
       bits.push(`Target ${target.toLocaleString()}`);
     }
-    if (item.deadlinePassed) {
+    if (item.notStartedYet) {
+      bits.push(
+        `Starts ${String(item.startsAt || '')
+          .slice(0, 16)
+          .replace('T', ' ')}`,
+      );
+    } else if (item.deadlinePassed) {
       bits.push(t('deadlineOverShort') || 'Deadline over');
     } else if (item.deadlineAt) {
       bits.push(`Until ${String(item.deadlineAt).slice(0, 10)}`);

@@ -9,10 +9,13 @@ import {
   View,
 } from 'react-native';
 import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native';
-
 import Colors from '../../theme/colors';
+import {dismissKeyboardThen} from '../../utils/keyboard';
 import PrimaryButton from '../common/PrimaryButton';
+import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
+import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
+import {pickProfilePhoto} from '../../services/profilePhoto';
 import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
 import AdminLanguageTabs, {
@@ -46,6 +49,43 @@ const defaultTranslations = (): Record<AdminSupportedLang, MantraLangFields> => 
   ta: emptyFields(),
   kn: emptyFields(),
 });
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+const toStamp = (date: Date) =>
+  `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
+    date.getHours(),
+  )}:${pad(date.getMinutes())}:00`;
+
+const parseStamp = (value?: string | null): Date | null => {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return null;
+  }
+  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+  const parsed = Date.parse(normalized);
+  return Number.isFinite(parsed) ? new Date(parsed) : null;
+};
+
+const formatDateLabel = (date: Date) =>
+  date.toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
+
+const formatTimeLabel = (date: Date) =>
+  date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+const defaultScheduleDate = () => {
+  const d = new Date();
+  d.setHours(d.getHours() + 1, 0, 0, 0);
+  return d;
+};
 
 const Field = ({
   label,
@@ -102,12 +142,19 @@ const AdminMantraEditScreen = () => {
     Record<AdminSupportedLang, MantraLangFields>
   >(defaultTranslations);
   const [target, setTarget] = useState('');
-  const [deadlineAt, setDeadlineAt] = useState('');
+  const [startsAt, setStartsAt] = useState<Date | null>(null);
+  const [deadlineAt, setDeadlineAt] = useState<Date | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<
+    null | 'start-date' | 'start-time' | 'deadline-date' | 'deadline-time'
+  >(null);
   const [imageUrl, setImageUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
   const [notifyUsers, setNotifyUsers] = useState(true);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadingKind, setUploadingKind] = useState<
+    null | 'image' | 'video' | 'audio'
+  >(null);
   const [active, setActive] = useState(true);
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
@@ -167,9 +214,8 @@ const AdminMantraEditScreen = () => {
       };
       skipAutoTranslateRef.current = true;
       setTarget(Number(data.target) > 0 ? String(data.target) : '');
-      setDeadlineAt(
-        data.deadlineAt ? String(data.deadlineAt).slice(0, 16).replace('T', ' ') : '',
-      );
+      setStartsAt(parseStamp(data.startsAt || data.startAt));
+      setDeadlineAt(parseStamp(data.deadlineAt));
       setImageUrl(String(data.imageUrl || ''));
       setVideoUrl(String(data.videoUrl || ''));
       setAudioUrl(String(data.audioUrl || ''));
@@ -306,6 +352,114 @@ const AdminMantraEditScreen = () => {
     }));
   };
 
+  const uploadImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Mantra image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingKind('image');
+      const formData = new FormData();
+      formData.append('image', {
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        name: picked.fileName || 'mantra.jpg',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-image',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.imageUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No image URL returned');
+      }
+      setImageUrl(String(uploaded));
+    } catch (err: any) {
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload image.'),
+      );
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
+  const uploadVideo = async () => {
+    try {
+      const picked = await pickFeedbackVideo();
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingKind('video');
+      const formData = new FormData();
+      formData.append('video', {
+        uri: picked.uri,
+        type: picked.type || 'video/mp4',
+        name: picked.fileName || 'mantra.mp4',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-video',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.videoUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No video URL returned');
+      }
+      setVideoUrl(String(uploaded));
+    } catch (err: any) {
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload video.'),
+      );
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
+  const uploadAudio = async () => {
+    try {
+      setUploadingKind('audio');
+      const picked = await pickAudioFile();
+      if (!picked?.uri) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: picked.uri,
+        type: picked.type || 'audio/mpeg',
+        name: picked.fileName || 'mantra.mp3',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-audio',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.audioUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No audio URL returned');
+      }
+      setAudioUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'not_audio') {
+        Alert.alert('Audio only', 'Please select an audio file (MP3, M4A, WAV).');
+        return;
+      }
+      Alert.alert(
+        'Upload failed',
+        getApiError(err, 'Could not upload audio.'),
+      );
+    } finally {
+      setUploadingKind(null);
+    }
+  };
+
   const save = async () => {
     const primaryName =
       translations.en.name.trim() || translations[activeLang].name.trim();
@@ -323,11 +477,13 @@ const AdminMantraEditScreen = () => {
         setSaving(false);
         return;
       }
-      const deadlineValue = deadlineAt.trim()
-        ? deadlineAt.trim().includes('T')
-          ? deadlineAt.trim()
-          : deadlineAt.trim().replace(' ', 'T')
-        : null;
+      if (startsAt && deadlineAt && deadlineAt.getTime() <= startsAt.getTime()) {
+        Alert.alert(
+          'Invalid schedule',
+          'Deadline must be after the start schedule time.',
+        );
+        return;
+      }
       const payload = {
         mantraName:
           translations.en.name.trim() || translations[activeLang].name.trim(),
@@ -349,15 +505,13 @@ const AdminMantraEditScreen = () => {
         imageUrl: imageUrl.trim() || null,
         videoUrl: videoUrl.trim() || null,
         audioUrl: audioUrl.trim() || null,
-        deadlineAt: deadlineValue,
+        startsAt: startsAt ? toStamp(startsAt) : null,
+        deadlineAt: deadlineAt ? toStamp(deadlineAt) : null,
         notifyUsers,
         ...(!isEdit ? {japaList, categoryCode} : {}),
       };
       if (isEdit) {
         await apiService.put(`/admin/mantras/${mantraId}`, payload);
-        if (deadlineValue && japaList === 'SAMUHIKA') {
-          // Keep dedicated deadline endpoint available for extend+notify later.
-        }
       } else {
         await apiService.post('/admin/mantras', payload);
       }
@@ -477,34 +631,143 @@ const AdminMantraEditScreen = () => {
             keyboardType="numeric"
             placeholder="Optional — leave blank to hide on user screen"
           />
-          <Field
-            label="Deadline (YYYY-MM-DD HH:mm)"
-            value={deadlineAt}
-            onChangeText={setDeadlineAt}
-            placeholder="Optional e.g. 2026-12-31 20:00"
-          />
-          <Field
-            label="Image URL"
-            value={imageUrl}
-            onChangeText={setImageUrl}
-            placeholder="Optional image URL"
-          />
-          <Field
-            label="Video URL"
-            value={videoUrl}
-            onChangeText={setVideoUrl}
-            placeholder="Optional video URL"
-          />
-          <Field
-            label="Audio URL"
-            value={audioUrl}
-            onChangeText={setAudioUrl}
-            placeholder="Optional audio URL"
-          />
-          <Text style={styles.mediaHint}>
-            Upload media from Admin → Notifications (photo/video/audio), then
-            paste the URL here. Or paste any public media URL.
-          </Text>
+
+          <Text style={styles.label}>Start schedule (optional)</Text>
+          <View style={styles.pickerRow}>
+            <TouchableOpacity
+              style={styles.pickerBtn}
+              onPress={() =>
+                dismissKeyboardThen(() => {
+                  if (!startsAt) {
+                    setStartsAt(defaultScheduleDate());
+                  }
+                  setPickerTarget('start-date');
+                })
+              }>
+              <Text style={styles.pickerLabel}>Date</Text>
+              <Text style={styles.pickerValue}>
+                {startsAt ? formatDateLabel(startsAt) : 'Pick date'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pickerBtn}
+              onPress={() =>
+                dismissKeyboardThen(() => {
+                  if (!startsAt) {
+                    setStartsAt(defaultScheduleDate());
+                  }
+                  setPickerTarget('start-time');
+                })
+              }>
+              <Text style={styles.pickerLabel}>Time</Text>
+              <Text style={styles.pickerValue}>
+                {startsAt ? formatTimeLabel(startsAt) : 'Pick time'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {startsAt ? (
+            <TouchableOpacity onPress={() => setStartsAt(null)}>
+              <Text style={styles.mediaHint}>Clear start schedule</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <Text style={styles.label}>Deadline (optional)</Text>
+          <View style={styles.pickerRow}>
+            <TouchableOpacity
+              style={styles.pickerBtn}
+              onPress={() =>
+                dismissKeyboardThen(() => {
+                  if (!deadlineAt) {
+                    setDeadlineAt(defaultScheduleDate());
+                  }
+                  setPickerTarget('deadline-date');
+                })
+              }>
+              <Text style={styles.pickerLabel}>Date</Text>
+              <Text style={styles.pickerValue}>
+                {deadlineAt ? formatDateLabel(deadlineAt) : 'Pick date'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.pickerBtn}
+              onPress={() =>
+                dismissKeyboardThen(() => {
+                  if (!deadlineAt) {
+                    setDeadlineAt(defaultScheduleDate());
+                  }
+                  setPickerTarget('deadline-time');
+                })
+              }>
+              <Text style={styles.pickerLabel}>Time</Text>
+              <Text style={styles.pickerValue}>
+                {deadlineAt ? formatTimeLabel(deadlineAt) : 'Pick time'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {deadlineAt ? (
+            <TouchableOpacity onPress={() => setDeadlineAt(null)}>
+              <Text style={styles.mediaHint}>Clear deadline</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          <Text style={styles.label}>Media (optional)</Text>
+          <View style={styles.statusRow}>
+            <TouchableOpacity
+              style={styles.statusChip}
+              disabled={Boolean(uploadingKind) || saving}
+              onPress={() => void uploadImage()}>
+              <Text style={styles.statusText}>
+                {uploadingKind === 'image'
+                  ? 'Uploading…'
+                  : imageUrl
+                    ? 'Photo ✓'
+                    : 'Upload photo'}
+              </Text>
+            </TouchableOpacity>
+            {imageUrl ? (
+              <TouchableOpacity onPress={() => setImageUrl('')}>
+                <Text style={styles.mediaHint}>Remove</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <View style={styles.statusRow}>
+            <TouchableOpacity
+              style={styles.statusChip}
+              disabled={Boolean(uploadingKind) || saving}
+              onPress={() => void uploadVideo()}>
+              <Text style={styles.statusText}>
+                {uploadingKind === 'video'
+                  ? 'Uploading…'
+                  : videoUrl
+                    ? 'Video ✓'
+                    : 'Upload video'}
+              </Text>
+            </TouchableOpacity>
+            {videoUrl ? (
+              <TouchableOpacity onPress={() => setVideoUrl('')}>
+                <Text style={styles.mediaHint}>Remove</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+          <View style={styles.statusRow}>
+            <TouchableOpacity
+              style={styles.statusChip}
+              disabled={Boolean(uploadingKind) || saving}
+              onPress={() => void uploadAudio()}>
+              <Text style={styles.statusText}>
+                {uploadingKind === 'audio'
+                  ? 'Uploading…'
+                  : audioUrl
+                    ? 'Audio ✓'
+                    : 'Upload audio'}
+              </Text>
+            </TouchableOpacity>
+            {audioUrl ? (
+              <TouchableOpacity onPress={() => setAudioUrl('')}>
+                <Text style={styles.mediaHint}>Remove</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
 
           <Text style={styles.label}>Notify users on create</Text>
           <View style={styles.statusRow}>
@@ -547,19 +810,14 @@ const AdminMantraEditScreen = () => {
                 uploadingMedia ? 'UPDATING DEADLINE...' : 'EXTEND DEADLINE + NOTIFY'
               }
               onPress={async () => {
-                const deadlineValue = deadlineAt.trim()
-                  ? deadlineAt.trim().includes('T')
-                    ? deadlineAt.trim()
-                    : deadlineAt.trim().replace(' ', 'T')
-                  : '';
-                if (!deadlineValue) {
-                  Alert.alert('Required', 'Enter a deadline first.');
+                if (!deadlineAt) {
+                  Alert.alert('Required', 'Pick a deadline date and time first.');
                   return;
                 }
                 setUploadingMedia(true);
                 try {
                   await apiService.put(`/admin/mantras/${mantraId}/deadline`, {
-                    deadlineAt: deadlineValue,
+                    deadlineAt: toStamp(deadlineAt),
                     notifyUsers: true,
                   });
                   Alert.alert('Updated', 'Deadline extended and users notified.');
@@ -586,6 +844,71 @@ const AdminMantraEditScreen = () => {
             }
             onPress={save}
             disabled={saving}
+          />
+
+          <DatePickerModal
+            visible={
+              pickerTarget === 'start-date' || pickerTarget === 'deadline-date'
+            }
+            value={
+              (pickerTarget?.startsWith('start')
+                ? startsAt
+                : deadlineAt) || defaultScheduleDate()
+            }
+            mode="date"
+            onCancel={() => setPickerTarget(null)}
+            onConfirm={date => {
+              if (pickerTarget?.startsWith('start')) {
+                setStartsAt(prev => {
+                  const next = new Date(prev || defaultScheduleDate());
+                  next.setFullYear(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    date.getDate(),
+                  );
+                  return next;
+                });
+              } else {
+                setDeadlineAt(prev => {
+                  const next = new Date(prev || defaultScheduleDate());
+                  next.setFullYear(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    date.getDate(),
+                  );
+                  return next;
+                });
+              }
+              setPickerTarget(null);
+            }}
+          />
+          <DatePickerModal
+            visible={
+              pickerTarget === 'start-time' || pickerTarget === 'deadline-time'
+            }
+            value={
+              (pickerTarget?.startsWith('start')
+                ? startsAt
+                : deadlineAt) || defaultScheduleDate()
+            }
+            mode="time"
+            onCancel={() => setPickerTarget(null)}
+            onConfirm={date => {
+              if (pickerTarget?.startsWith('start')) {
+                setStartsAt(prev => {
+                  const next = new Date(prev || defaultScheduleDate());
+                  next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+                  return next;
+                });
+              } else {
+                setDeadlineAt(prev => {
+                  const next = new Date(prev || defaultScheduleDate());
+                  next.setHours(date.getHours(), date.getMinutes(), 0, 0);
+                  return next;
+                });
+              }
+              setPickerTarget(null);
+            }}
           />
         </>
       )}
@@ -680,6 +1003,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 12,
     lineHeight: 18,
+  },
+  pickerRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  pickerBtn: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginRight: 8,
+  },
+  pickerLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  pickerValue: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
   },
   sectionHeading: {
     fontSize: 16,

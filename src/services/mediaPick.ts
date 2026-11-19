@@ -1,5 +1,12 @@
 import {Alert, Keyboard, NativeModules} from 'react-native';
 import {
+  errorCodes,
+  isErrorWithCode,
+  keepLocalCopy,
+  pick,
+  types,
+} from '@react-native-documents/picker';
+import {
   launchCamera,
   launchImageLibrary,
   type Asset,
@@ -41,6 +48,48 @@ const fromAsset = (
     type: asset.type || fallbackType,
     fileName: asset.fileName || fallbackName,
   };
+};
+
+/** Opens the system file picker filtered to audio only (no photos/videos). */
+export const pickAudioFile = async (): Promise<PickedMedia | null> => {
+  try {
+    const results = await pick({
+      type: [types.audio],
+      allowMultiSelection: false,
+    });
+    const file = results?.[0];
+    if (!file?.uri) {
+      return null;
+    }
+    const fileName = String(file.name || 'audio.mp3');
+    const mimeType = String(file.type || 'audio/mpeg');
+    if (mimeType && !mimeType.startsWith('audio/') && mimeType !== 'application/octet-stream') {
+      throw new Error('not_audio');
+    }
+    let uri = file.uri;
+    try {
+      const copies = await keepLocalCopy({
+        files: [{uri: file.uri, fileName}],
+        destination: 'cachesDirectory',
+      });
+      const local = copies?.[0];
+      if (local && (local as any).status === 'success' && (local as any).localUri) {
+        uri = String((local as any).localUri);
+      }
+    } catch {
+      // Use the original content URI if local copy is unavailable.
+    }
+    return {
+      uri,
+      type: mimeType.startsWith('audio/') ? mimeType : 'audio/mpeg',
+      fileName,
+    };
+  } catch (error) {
+    if (isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED) {
+      return null;
+    }
+    throw error;
+  }
 };
 
 export const pickFeedbackVideo = (): Promise<PickedMedia | null> =>
