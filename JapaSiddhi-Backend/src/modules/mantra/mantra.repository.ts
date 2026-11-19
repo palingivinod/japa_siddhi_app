@@ -320,7 +320,7 @@ class MantraRepository {
       return {error: 'Category not found.' as const};
     }
     const current = await this.getCategoryByCode(category);
-    const clean = String(input.name ?? current?.name || '')
+    const clean = String(input.name ?? current?.name ?? '')
       .trim()
       .replace(/\s+/g, ' ')
       .slice(0, 80);
