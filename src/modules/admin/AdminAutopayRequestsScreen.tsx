@@ -2,12 +2,13 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Clipboard,
   Linking,
-  RefreshControl,
-  ScrollView,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
+  ToastAndroid,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -16,6 +17,19 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
 import AdminScreenLayout from './AdminScreenLayout';
+
+const copyDetail = (text?: string | null, label = 'Detail') => {
+  const value = String(text || '').trim();
+  if (!value || value === '—') {
+    return;
+  }
+  Clipboard.setString(value);
+  if (Platform.OS === 'android') {
+    ToastAndroid.show(`${label} copied`, ToastAndroid.SHORT);
+  } else {
+    Alert.alert('Copied', `${label} copied`);
+  }
+};
 
 export type AutopayRequestItem = {
   id: string;
@@ -288,16 +302,32 @@ const AdminAutopayRequestsScreen = () => {
         const isContacted = item.status.toLowerCase() === 'contacted';
         const isUpdating = updatingId === item.id;
 
+        const planText = `₹${item.amount || 58} / month`;
+        const dateText = formatDate(item.createdAt);
+
         return (
           <View key={item.id} style={styles.card}>
-            {/* Header: Name & Status */}
+            {/* Header: Name & Status — long-press copies detail only */}
             <View style={styles.cardHeaderRow}>
               <View style={styles.nameCol}>
-                <Text style={styles.devoteeName}>{item.fullName}</Text>
-                <Text style={styles.dateText}>{formatDate(item.createdAt)}</Text>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onLongPress={() => copyDetail(item.fullName, 'Name')}
+                  delayLongPress={280}>
+                  <Text style={styles.devoteeName}>{item.fullName}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onLongPress={() => copyDetail(dateText, 'Date')}
+                  delayLongPress={280}>
+                  <Text style={styles.dateText}>{dateText}</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.headerRightCol}>
-                <View
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onLongPress={() => copyDetail(item.status, 'Status')}
+                  delayLongPress={280}
                   style={[
                     styles.statusPill,
                     {backgroundColor: tone.bg, borderColor: tone.border},
@@ -305,7 +335,7 @@ const AdminAutopayRequestsScreen = () => {
                   <Text style={[styles.statusPillText, {color: tone.text}]}>
                     {item.status}
                   </Text>
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.deleteBtn}
                   disabled={isUpdating}
@@ -322,23 +352,34 @@ const AdminAutopayRequestsScreen = () => {
             {/* Plan Badge */}
             <View style={styles.planRow}>
               <Text style={styles.planLabel}>Selected Plan:</Text>
-              <View style={styles.planBadge}>
-                <Text style={styles.planBadgeText}>
-                  ₹{item.amount || 58} / month
-                </Text>
-              </View>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onLongPress={() => copyDetail(planText, 'Plan')}
+                delayLongPress={280}
+                style={styles.planBadge}>
+                <Text style={styles.planBadgeText}>{planText}</Text>
+              </TouchableOpacity>
             </View>
 
             {item.notes ? (
-              <Text style={styles.notesText}>{item.notes}</Text>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onLongPress={() => copyDetail(item.notes, 'Notes')}
+                delayLongPress={280}>
+                <Text style={styles.notesText}>{item.notes}</Text>
+              </TouchableOpacity>
             ) : null}
 
             {/* Mobile & Contact Action Buttons (Call & Msg) */}
             <View style={styles.contactRow}>
-              <View style={styles.phoneInfo}>
+              <TouchableOpacity
+                style={styles.phoneInfo}
+                activeOpacity={0.85}
+                onLongPress={() => copyDetail(item.mobile, 'Phone')}
+                delayLongPress={280}>
                 <Text style={styles.phoneLabel}>Phone Number:</Text>
                 <Text style={styles.phoneNumber}>{item.mobile || '—'}</Text>
-              </View>
+              </TouchableOpacity>
               {item.mobile ? (
                 <View style={styles.contactActions}>
                   <TouchableOpacity
