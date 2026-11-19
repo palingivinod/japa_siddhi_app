@@ -1,6 +1,10 @@
 import React, {useCallback, useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
-import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute,
+} from '@react-navigation/native';
 
 import {shortWeekday} from '../../i18n/calendar';
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -22,15 +26,20 @@ import ScreenLayout from '../common/ScreenLayout';
 
 const JapaProgressScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const {t} = useLanguage();
+  const seededGoal = Math.max(0, Number(route.params?.goal || 0));
   const [today, setToday] = useState(0);
-  const [goal, setGoal] = useState(0);
+  const [goal, setGoal] = useState(seededGoal);
   const [percent, setPercent] = useState(0);
   const [lifetime, setLifetime] = useState(0);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
   const [dayPlans, setDayPlans] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
 
   const load = useCallback(() => {
+    setLoading(true);
     Promise.all([
       apiService.get('/japa/progress'),
       apiService.get('/japa/summary'),
@@ -108,6 +117,9 @@ const JapaProgressScreen = () => {
         if (dailyGoal <= 0) {
           dailyGoal = Number(data.dailyGoal ?? data.goal ?? 0);
         }
+        if (dailyGoal <= 0 && seededGoal > 0) {
+          dailyGoal = seededGoal;
+        }
         const progressPct =
           dailyGoal > 0
             ? Math.min(100, Math.round((todayCount / dailyGoal) * 100))
@@ -119,9 +131,11 @@ const JapaProgressScreen = () => {
         setWeekly(weekRows);
         setDayPlans(plans);
         setLifetime(Number(totals.totalJapaCount ?? totals.lifetimeCount ?? 0));
+        setHasLoaded(true);
       })
-      .catch(() => undefined);
-  }, []);
+      .catch(() => undefined)
+      .finally(() => setLoading(false));
+  }, [seededGoal]);
 
   useFocusEffect(
     useCallback(() => {
@@ -165,112 +179,137 @@ const JapaProgressScreen = () => {
 
   return (
     <ScreenLayout title="Japa Progress" showBack tab="JapaHub">
-      <View style={styles.stats}>
-        <View style={styles.stat}>
-          <Text style={styles.label}>{t('today')}</Text>
-          <Text style={styles.value}>{today.toLocaleString()}</Text>
+      {loading && !hasLoaded ? (
+        <View style={styles.loadingBox}>
+          <ActivityIndicator size="large" color={Colors.templeGold} />
+          <Text style={styles.loadingText}>
+            {t('pleaseWait') || 'Please wait…'}
+          </Text>
         </View>
-        <View style={styles.stat}>
-          <Text style={styles.label}>{t('goalLabel')}</Text>
-          <Text style={styles.value}>{goal.toLocaleString()}</Text>
-        </View>
-      </View>
-      <Text style={styles.section}>{t('dailyGoal')}</Text>
-      <View style={styles.barRow}>
-        <View style={styles.track}>
-          <View style={[styles.fill, {width: `${percent}%`}]} />
-        </View>
-        <Text style={styles.percent}>{percent}%</Text>
-      </View>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
-        {weekly.length === 0 ? (
-          <Text style={styles.meta}>{t('noChantsThisWeek')}</Text>
-        ) : (
-          weekly.map(item => (
-            <Text key={item.day} style={styles.meta}>
-              {shortWeekday(t, item.day)} • {Number(item.count).toLocaleString()}
-            </Text>
-          ))
-        )}
-      </View>
-      <Text style={styles.section}>{t('goalCompletion')}</Text>
-      <View style={styles.chartCard}>
-        {weekly.length === 0 ? (
-          <Text style={styles.meta}>{t('noSavedJapaForPeriod')}</Text>
-        ) : (
-          <View style={styles.chartRow}>
-            {weekly.map(item => {
-              const itemCount = Number(item.count) || 0;
-              const dayKey = String(item.day || '').slice(0, 10);
-              const dayPlan = Object.prototype.hasOwnProperty.call(dayPlans, dayKey)
-                ? dayPlans[dayKey]
-                : goal;
-              const isCompleted = itemCount >= dayPlan && dayPlan > 0;
-              const barHeight = Math.max(
-                14,
-                Math.round((itemCount / maxWeeklyCount) * 96),
-              );
-
-              return (
-                <View key={`bar-${item.day}`} style={styles.col}>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      isCompleted
-                        ? styles.statusBadgeCompleted
-                        : styles.statusBadgeNotCompleted,
-                    ]}>
-                    <Text
-                      style={[
-                        styles.statusText,
-                        isCompleted
-                          ? styles.statusTextCompleted
-                          : styles.statusTextNotCompleted,
-                      ]}
-                      numberOfLines={1}>
-                      {isCompleted
-                        ? `✓ ${t('goalCompleted')}`
-                        : t('goalNotCompleted')}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[
-                      styles.barCount,
-                      isCompleted
-                        ? styles.barCountCompleted
-                        : styles.barCountRegular,
-                    ]}>
-                    {itemCount.toLocaleString()}
-                  </Text>
-                  <View
-                    style={[
-                      styles.bar,
-                      {
-                        height: barHeight,
-                        backgroundColor: isCompleted
-                          ? '#2E7D32'
-                          : Colors.templeGold,
-                      },
-                    ]}
-                  />
-                  <Text style={styles.axis}>{shortWeekday(t, item.day)}</Text>
-                </View>
-              );
-            })}
+      ) : (
+        <>
+          {loading ? (
+            <View style={styles.refreshRow}>
+              <ActivityIndicator size="small" color={Colors.templeGold} />
+              <Text style={styles.refreshText}>
+                {t('pleaseWait') || 'Please wait…'}
+              </Text>
+            </View>
+          ) : null}
+          <View style={styles.stats}>
+            <View style={styles.stat}>
+              <Text style={styles.label}>{t('today')}</Text>
+              <Text style={styles.value}>{today.toLocaleString()}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.label}>{t('goalLabel')}</Text>
+              <Text style={styles.value}>{goal.toLocaleString()}</Text>
+            </View>
           </View>
-        )}
-      </View>
-      <View style={styles.gap} />
-      <PrimaryButton
-        title={t('japaAnalytics').toUpperCase()}
-        onPress={() => navigation.navigate('AnalyticsHub')}
-      />
-      <View style={styles.gap} />
-      <OutlineButton
-        title={lifetime >= 5000 ? t('donateNowAction') : t('resumeJapa')}
-        onPress={resumeJapa}
-      />
+          <Text style={styles.section}>{t('dailyGoal')}</Text>
+          <View style={styles.barRow}>
+            <View style={styles.track}>
+              <View style={[styles.fill, {width: `${percent}%`}]} />
+            </View>
+            <Text style={styles.percent}>{percent}%</Text>
+          </View>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
+            {weekly.length === 0 ? (
+              <Text style={styles.meta}>{t('noChantsThisWeek')}</Text>
+            ) : (
+              weekly.map(item => (
+                <Text key={item.day} style={styles.meta}>
+                  {shortWeekday(t, item.day)} •{' '}
+                  {Number(item.count).toLocaleString()}
+                </Text>
+              ))
+            )}
+          </View>
+          <Text style={styles.section}>{t('goalCompletion')}</Text>
+          <View style={styles.chartCard}>
+            {weekly.length === 0 ? (
+              <Text style={styles.meta}>{t('noSavedJapaForPeriod')}</Text>
+            ) : (
+              <View style={styles.chartRow}>
+                {weekly.map(item => {
+                  const itemCount = Number(item.count) || 0;
+                  const dayKey = String(item.day || '').slice(0, 10);
+                  const dayPlan = Object.prototype.hasOwnProperty.call(
+                    dayPlans,
+                    dayKey,
+                  )
+                    ? dayPlans[dayKey]
+                    : goal;
+                  const isCompleted = itemCount >= dayPlan && dayPlan > 0;
+                  const barHeight = Math.max(
+                    14,
+                    Math.round((itemCount / maxWeeklyCount) * 96),
+                  );
+
+                  return (
+                    <View key={`bar-${item.day}`} style={styles.col}>
+                      <View
+                        style={[
+                          styles.statusBadge,
+                          isCompleted
+                            ? styles.statusBadgeCompleted
+                            : styles.statusBadgeNotCompleted,
+                        ]}>
+                        <Text
+                          style={[
+                            styles.statusText,
+                            isCompleted
+                              ? styles.statusTextCompleted
+                              : styles.statusTextNotCompleted,
+                          ]}
+                          numberOfLines={1}>
+                          {isCompleted
+                            ? `✓ ${t('goalCompleted')}`
+                            : t('goalNotCompleted')}
+                        </Text>
+                      </View>
+                      <Text
+                        style={[
+                          styles.barCount,
+                          isCompleted
+                            ? styles.barCountCompleted
+                            : styles.barCountRegular,
+                        ]}>
+                        {itemCount.toLocaleString()}
+                      </Text>
+                      <View
+                        style={[
+                          styles.bar,
+                          {
+                            height: barHeight,
+                            backgroundColor: isCompleted
+                              ? '#2E7D32'
+                              : Colors.templeGold,
+                          },
+                        ]}
+                      />
+                      <Text style={styles.axis}>
+                        {shortWeekday(t, item.day)}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+          <View style={styles.gap} />
+          <PrimaryButton
+            title={t('japaAnalytics').toUpperCase()}
+            onPress={() => navigation.navigate('AnalyticsHub')}
+          />
+          <View style={styles.gap} />
+          <OutlineButton
+            title={lifetime >= 5000 ? t('donateNowAction') : t('resumeJapa')}
+            onPress={resumeJapa}
+          />
+        </>
+      )}
     </ScreenLayout>
   );
 };
@@ -278,6 +317,30 @@ const JapaProgressScreen = () => {
 export default JapaProgressScreen;
 
 const styles = StyleSheet.create({
+  loadingBox: {
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 40,
+  },
+  loadingText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  refreshRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  refreshText: {
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+    fontSize: 13,
+  },
   stats: {flexDirection: 'row', gap: 10, marginBottom: 16},
   stat: {
     flex: 1,

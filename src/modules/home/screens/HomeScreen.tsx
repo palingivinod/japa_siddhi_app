@@ -1510,8 +1510,8 @@ const styles = StyleSheet.create({
     borderColor: '#1EBE57',
   },
   whatsappGroupLogo: {
-    width: 18,
-    height: 18,
+    width: 22,
+    height: 22,
   },
   whatsappGroupText: {
     color: '#FFFFFF',
