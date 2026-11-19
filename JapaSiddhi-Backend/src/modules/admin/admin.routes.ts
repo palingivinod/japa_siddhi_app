@@ -1921,7 +1921,9 @@ router.post('/mantras', async (req: Request, res: Response) => {
             imageUrl: mapped.imageUrl || category?.imageUrl,
             videoUrl: mapped.videoUrl || category?.videoUrl,
             audioUrl: mapped.audioUrl || category?.audioUrl,
+            startsAt: mapped.startsAt,
             deadlineAt: mapped.deadlineAt,
+            targetCount: mapped.target,
           });
         } else {
           const {notifyAdminContentCreated} = await import(
@@ -2115,7 +2117,9 @@ router.put('/mantras/:id/deadline', async (req: Request, res: Response) => {
               : 'NORMAL',
           mantraName: mapped.name,
           imageUrl: mapped.imageUrl || category?.imageUrl,
+          startsAt: mapped.startsAt,
           deadlineAt: mapped.deadlineAt,
+          targetCount: mapped.target,
         });
       } catch (err) {
         console.warn('Deadline extend notify failed:', err);

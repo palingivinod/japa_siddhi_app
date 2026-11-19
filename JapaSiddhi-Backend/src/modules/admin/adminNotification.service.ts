@@ -839,15 +839,40 @@ export const notifySamuhikaContent = async (input: {
   imageUrl?: string;
   videoUrl?: string;
   audioUrl?: string;
+  startsAt?: string | null;
   deadlineAt?: string | null;
+  targetCount?: number | null;
 }) => {
+  const {formatIstDateTime12h} = await import('../../utils/istTime');
   const id = input.id;
   const name = String(input.name || '').trim() || 'Update';
   const isEvent =
     String(input.categoryType || '').toUpperCase() === 'EVENT' ||
     input.kind === 'deadline_extended';
+  const targetNum = Number(input.targetCount);
+  const hasTarget = Number.isFinite(targetNum) && targetNum > 0;
+  const startsLabel = formatIstDateTime12h(input.startsAt);
+  const deadlineLabel = formatIstDateTime12h(input.deadlineAt);
+
+  const scheduleBits: string[] = [];
+  if (hasTarget) {
+    scheduleBits.push(`Target: ${targetNum.toLocaleString('en-IN')}`);
+  }
+  if (startsLabel && input.kind === 'mantra') {
+    scheduleBits.push(`Starts: ${startsLabel}`);
+  }
+  if (deadlineLabel) {
+    scheduleBits.push(
+      input.kind === 'deadline_extended'
+        ? `New deadline: ${deadlineLabel}`
+        : `Deadline: ${deadlineLabel}`,
+    );
+  }
+  const scheduleSuffix =
+    scheduleBits.length > 0 ? ` ${scheduleBits.join('. ')}.` : '';
+
   let title = 'New Samuhika Japa';
-  let message = `"${name}" is now available in Samuhika Japa. Tap to open.`;
+  let message = `"${name}" is now available in Samuhika Japa.${scheduleSuffix} Tap to open.`;
   let actionType = 'ADMIN_SAMUHIKA_CATEGORY';
 
   if (input.kind === 'category') {
@@ -861,18 +886,18 @@ export const notifySamuhikaContent = async (input: {
     title = isEvent ? 'New Samuhika Event Mantra' : 'New Samuhika Mantra';
     message = isEvent
       ? categoryLabel
-        ? `New event mantra "${name}" in Samuhika Japa. Category: ${categoryLabel}. Tap to open the category.`
-        : `New event mantra "${name}" in Samuhika Japa. Tap to open the category.`
+        ? `New event mantra "${name}" in Samuhika Japa. Category: ${categoryLabel}.${scheduleSuffix} Tap to open the category.`
+        : `New event mantra "${name}" in Samuhika Japa.${scheduleSuffix} Tap to open the category.`
       : categoryLabel
-        ? `"${name}" is now available in Samuhika Japa (${categoryLabel}). Tap to open.`
-        : `"${name}" is now available in Samuhika Japa. Tap to open.`;
+        ? `"${name}" is now available in Samuhika Japa (${categoryLabel}).${scheduleSuffix} Tap to open.`
+        : `"${name}" is now available in Samuhika Japa.${scheduleSuffix} Tap to open.`;
     actionType = 'ADMIN_SAMUHIKA_MANTRA';
   } else if (input.kind === 'deadline_extended') {
     const categoryLabel = String(input.categoryName || '').trim();
     title = 'Samuhika Deadline Extended';
     message = categoryLabel
-      ? `Deadline extended for "${name}" in ${categoryLabel}. You can enroll or continue japa. Tap to open.`
-      : `Deadline extended for "${name}". You can enroll or continue japa. Tap to open.`;
+      ? `Deadline extended for "${name}" in ${categoryLabel}.${scheduleSuffix} You can enroll or continue japa. Tap to open.`
+      : `Deadline extended for "${name}".${scheduleSuffix} You can enroll or continue japa. Tap to open.`;
     actionType = 'ADMIN_SAMUHIKA_DEADLINE';
   }
 
@@ -886,7 +911,9 @@ export const notifySamuhikaContent = async (input: {
     imageUrl: input.imageUrl || undefined,
     videoUrl: input.videoUrl || undefined,
     audioUrl: input.audioUrl || undefined,
+    startsAt: input.startsAt || undefined,
     deadlineAt: input.deadlineAt || undefined,
+    targetCount: hasTarget ? targetNum : undefined,
   };
 
   await ensureQueueTable();

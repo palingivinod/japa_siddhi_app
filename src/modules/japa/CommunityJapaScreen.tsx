@@ -18,9 +18,21 @@ import {
 
 import apiService, {getApiError} from '../../services/apiService';
 import {playIntroVideo} from '../../services/introVideos';
+import {
+  pauseRemoteAudio,
+  playRemoteAudio,
+  stopRemoteAudio,
+  subscribeRemoteAudioProgress,
+} from '../../services/remoteAudio';
 import {resolveMediaUrl} from '../../services/profilePhoto';
 import Colors from '../../theme/colors';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {
+  formatIstDate,
+  formatIstDateTime12h,
+  isDeadlinePassed,
+  isNotStartedYet,
+} from '../../utils/istTime';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
@@ -58,8 +70,44 @@ const CommunityJapaScreen = () => {
     route.params?.categoryCode ? String(route.params.categoryCode) : null,
   );
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [playingMedia, setPlayingMedia] = useState<null | 'video' | 'audio'>(
-    null,
+  const [playingMedia, setPlayingMedia] = useState<null | 'video'>(null);
+  const [audioPlaying, setAudioPlaying] = useState(false);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [audioUrlPlaying, setAudioUrlPlaying] = useState<string | null>(null);
+  const [audioProgress, setAudioProgress] = useState({
+    positionMs: 0,
+    durationMs: 0,
+  });
+
+  useEffect(() => {
+    return subscribeRemoteAudioProgress(event => {
+      if (event.completed) {
+        setAudioPlaying(false);
+        setAudioLoading(false);
+        setAudioUrlPlaying(null);
+        setAudioProgress({positionMs: 0, durationMs: 0});
+        return;
+      }
+      setAudioPlaying(Boolean(event.playing));
+      setAudioProgress({
+        positionMs: Number(event.positionMs) || 0,
+        durationMs: Number(event.durationMs) || 0,
+      });
+      if (event.url) {
+        setAudioUrlPlaying(String(event.url));
+      }
+    });
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        void stopRemoteAudio();
+        setAudioPlaying(false);
+        setAudioLoading(false);
+        setAudioUrlPlaying(null);
+      };
+    }, []),
   );
 
   useFocusEffect(
@@ -157,24 +205,55 @@ const CommunityJapaScreen = () => {
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
 
-  const playMediaInApp = async (
-    url: string | undefined,
-    kind: 'video' | 'audio',
-  ) => {
+  const playVideoInApp = async (url: string | undefined) => {
     const resolved = resolveMediaUrl(url || '');
     if (!resolved || playingMedia) {
       return;
     }
-    setPlayingMedia(kind);
+    setPlayingMedia('video');
     const ok = await playIntroVideo(resolved);
     setPlayingMedia(null);
     if (!ok) {
       Alert.alert(
-        kind === 'video' ? 'Video' : 'Audio',
+        'Video',
         t('mediaPlayError') ||
           'Could not play this file. Check your connection.',
       );
     }
+  };
+
+  const toggleAudioInApp = async (url: string | undefined) => {
+    const resolved = resolveMediaUrl(url || '');
+    if (!resolved) {
+      return;
+    }
+    if (audioPlaying && audioUrlPlaying === resolved) {
+      await pauseRemoteAudio();
+      setAudioPlaying(false);
+      return;
+    }
+    setAudioLoading(true);
+    setAudioUrlPlaying(resolved);
+    const ok = await playRemoteAudio(resolved);
+    setAudioLoading(false);
+    if (!ok) {
+      setAudioPlaying(false);
+      setAudioUrlPlaying(null);
+      Alert.alert(
+        'Audio',
+        t('mediaPlayError') ||
+          'Could not play this file. Check your connection.',
+      );
+      return;
+    }
+    setAudioPlaying(true);
+  };
+
+  const formatAudioClock = (ms: number) => {
+    const totalSec = Math.max(0, Math.floor(ms / 1000));
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${m}:${String(s).padStart(2, '0')}`;
   };
 
   const renderMediaRow = (item: {
@@ -188,6 +267,11 @@ const CommunityJapaScreen = () => {
     if (!image && !video && !audio) {
       return null;
     }
+    const thisAudioActive = Boolean(audio && audioUrlPlaying === audio);
+    const progressRatio =
+      thisAudioActive && audioProgress.durationMs > 0
+        ? Math.min(1, audioProgress.positionMs / audioProgress.durationMs)
+        : 0;
     return (
       <View style={styles.mediaRow}>
         {image ? (
@@ -202,7 +286,7 @@ const CommunityJapaScreen = () => {
             style={styles.mediaChip}
             activeOpacity={0.85}
             disabled={Boolean(playingMedia)}
-            onPress={() => void playMediaInApp(item.videoUrl, 'video')}>
+            onPress={() => void playVideoInApp(item.videoUrl)}>
             {playingMedia === 'video' ? (
               <ActivityIndicator size="small" color={Colors.sacredBrown} />
             ) : (
@@ -214,17 +298,35 @@ const CommunityJapaScreen = () => {
         ) : null}
         {audio ? (
           <TouchableOpacity
-            style={styles.mediaChip}
+            style={styles.audioPlayer}
             activeOpacity={0.85}
-            disabled={Boolean(playingMedia)}
-            onPress={() => void playMediaInApp(item.audioUrl, 'audio')}>
-            {playingMedia === 'audio' ? (
-              <ActivityIndicator size="small" color={Colors.sacredBrown} />
-            ) : (
-              <Text style={styles.mediaChipText}>
-                🔊 {t('tapToPlayAudio') || 'Tap to play audio'}
+            onPress={() => void toggleAudioInApp(item.audioUrl)}>
+            <View style={styles.audioPlayBtn}>
+              {audioLoading && thisAudioActive ? (
+                <ActivityIndicator size="small" color={Colors.white} />
+              ) : (
+                <Text style={styles.audioPlayIcon}>
+                  {thisAudioActive && audioPlaying ? '❚❚' : '▶'}
+                </Text>
+              )}
+            </View>
+            <View style={styles.audioWaveWrap}>
+              <View style={styles.audioTrack}>
+                <View
+                  style={[
+                    styles.audioFill,
+                    {width: `${Math.round(progressRatio * 100)}%`},
+                  ]}
+                />
+              </View>
+              <Text style={styles.audioTime}>
+                {thisAudioActive
+                  ? `${formatAudioClock(audioProgress.positionMs)} / ${formatAudioClock(
+                      audioProgress.durationMs,
+                    )}`
+                  : t('tapToPlayAudio') || 'Tap to play audio'}
               </Text>
-            )}
+            </View>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -257,18 +359,13 @@ const CommunityJapaScreen = () => {
     if (!selected?.id) {
       return;
     }
-    if (selected.notStartedYet) {
-      Alert.alert(
-        t('notStartedTitle'),
-        t('notStartedMsg'),
-      );
+    // Live IST wall-clock check (naive stamps are Asia/Kolkata, not UTC).
+    if (isNotStartedYet(selected.startsAt)) {
+      Alert.alert(t('notStartedTitle'), t('notStartedMsg'));
       return;
     }
-    if (selected.deadlinePassed) {
-      Alert.alert(
-        t('deadlineOverTitle'),
-        t('deadlineOverMsg'),
-      );
+    if (isDeadlinePassed(selected.deadlineAt)) {
+      Alert.alert(t('deadlineOverTitle'), t('deadlineOverMsg'));
       return;
     }
     try {
@@ -343,16 +440,16 @@ const CommunityJapaScreen = () => {
     if (target > 0) {
       bits.push(`Target ${target.toLocaleString()}`);
     }
-    if (item.notStartedYet) {
-      bits.push(
-        `Starts ${String(item.startsAt || '')
-          .slice(0, 16)
-          .replace('T', ' ')}`,
-      );
-    } else if (item.deadlinePassed) {
+    const notStarted = isNotStartedYet(item.startsAt);
+    const deadlineOver = isDeadlinePassed(item.deadlineAt);
+    if (notStarted && item.startsAt) {
+      bits.push(`Starts ${formatIstDateTime12h(item.startsAt)}`);
+    } else if (deadlineOver) {
       bits.push(t('deadlineOverShort') || 'Deadline over');
     } else if (item.deadlineAt) {
-      bits.push(`Until ${String(item.deadlineAt).slice(0, 10)}`);
+      bits.push(`Until ${formatIstDate(item.deadlineAt)}`);
+    } else if (item.startsAt) {
+      bits.push(`Starts ${formatIstDateTime12h(item.startsAt)}`);
     }
     if (selected?.id === item.id) {
       bits.push(t('selected') || 'Selected');
@@ -654,5 +751,50 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '700',
     fontSize: 12,
+  },
+  audioPlayer: {
+    flex: 1,
+    minWidth: 180,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+  },
+  audioPlayBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.sacredBrown,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  audioPlayIcon: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
+  audioWaveWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  audioTrack: {
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Colors.lightGold,
+    overflow: 'hidden',
+  },
+  audioFill: {
+    backgroundColor: Colors.templeGold,
+    height: 4,
+  },
+  audioTime: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 11,
   },
 });

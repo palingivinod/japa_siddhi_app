@@ -52,18 +52,26 @@ const defaultTranslations = (): Record<AdminSupportedLang, MantraLangFields> => 
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+/** Store wall-clock as Asia/Kolkata so Render (UTC) compares correctly. */
 const toStamp = (date: Date) =>
   `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(
     date.getHours(),
-  )}:${pad(date.getMinutes())}:00`;
+  )}:${pad(date.getMinutes())}:00+05:30`;
 
 const parseStamp = (value?: string | null): Date | null => {
   const raw = String(value || '').trim();
   if (!raw) {
     return null;
   }
-  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
-  const parsed = Date.parse(normalized);
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(raw)) {
+    const parsed = Date.parse(raw);
+    return Number.isFinite(parsed) ? new Date(parsed) : null;
+  }
+  let normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(normalized)) {
+    normalized = `${normalized}:00`;
+  }
+  const parsed = Date.parse(`${normalized}+05:30`);
   return Number.isFinite(parsed) ? new Date(parsed) : null;
 };
 
@@ -769,7 +777,7 @@ const AdminMantraEditScreen = () => {
             ) : null}
           </View>
 
-          <Text style={styles.label}>Notify users on create</Text>
+          <Text style={styles.label}>Notify users</Text>
           <View style={styles.statusRow}>
             {[true, false].map(option => {
               const on = option === notifyUsers;
@@ -777,8 +785,7 @@ const AdminMantraEditScreen = () => {
                 <TouchableOpacity
                   key={`notify-${String(option)}`}
                   style={[styles.statusChip, on && styles.statusChipOn]}
-                  onPress={() => setNotifyUsers(option)}
-                  disabled={isEdit}>
+                  onPress={() => setNotifyUsers(option)}>
                   <Text style={[styles.statusText, on && styles.statusTextOn]}>
                     {option ? 'Yes' : 'No (testing)'}
                   </Text>

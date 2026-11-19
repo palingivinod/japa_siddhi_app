@@ -61,14 +61,6 @@ const AdminJapaScreen = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.listBtn}
-        onPress={() => navigation.navigate('AdminSamuhikaAnalytics')}>
-        <Text style={styles.listTitle}>Samuhika Japa Analytics</Text>
-        <Text style={styles.listMeta}>
-          Events, categories, enrollments, user japa counts, and copy-all.
-        </Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.listBtn}
         onPress={() =>
           navigation.navigate('AdminMantras', {list: 'ANTHARANGA'})
         }>

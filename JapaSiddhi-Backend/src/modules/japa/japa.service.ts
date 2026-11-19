@@ -17,6 +17,7 @@ import {
 } from './japa.milestones';
 import milestoneRewardService from './milestoneReward.service';
 import {ensureLingamAdviceNotifications} from './lingamAdviceNotification';
+import {parseIstMillis} from '../../utils/istTime';
 
 const MILESTONE_ACTION = 'JAPA_MILESTONE';
 
@@ -1122,12 +1123,10 @@ class JapaService {
 
     const now = Date.now();
     const enriched = (mantras || []).map((row: any) => {
-      const deadlineRaw = String(row.deadlineAt || '').trim();
-      const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
+      const deadlineMs = parseIstMillis(row.deadlineAt);
       const deadlinePassed =
         Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < now;
-      const startsRaw = String(row.startsAt || '').trim();
-      const startsMs = startsRaw ? Date.parse(startsRaw) : NaN;
+      const startsMs = parseIstMillis(row.startsAt);
       const notStartedYet =
         Number.isFinite(startsMs) && startsMs > 0 && startsMs > now;
       return {
@@ -1159,8 +1158,7 @@ class JapaService {
     }
 
     const nowMs = Date.now();
-    const startsRaw = String(mantra?.startsAt || '').trim();
-    const startsMs = startsRaw ? Date.parse(startsRaw) : NaN;
+    const startsMs = parseIstMillis(mantra?.startsAt);
     if (Number.isFinite(startsMs) && startsMs > 0 && startsMs > nowMs) {
       const error: any = new Error(
         'This Samuhika japa has not started yet. Please wait until the scheduled start time.',
@@ -1169,8 +1167,7 @@ class JapaService {
       error.code = 'NOT_STARTED';
       throw error;
     }
-    const deadlineRaw = String(mantra?.deadlineAt || '').trim();
-    const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
+    const deadlineMs = parseIstMillis(mantra?.deadlineAt);
     if (Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < nowMs) {
       const error: any = new Error(
         'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
@@ -1213,8 +1210,9 @@ class JapaService {
     if (id && targetCount > 0) {
       const japaGoalService = (await import('../japaGoal/japaGoal.service'))
         .default;
-      const deadlineDay = deadlineRaw
-        ? String(deadlineRaw).slice(0, 10)
+      const deadlineStamp = String(mantra?.deadlineAt || '').trim();
+      const deadlineDay = deadlineStamp
+        ? deadlineStamp.slice(0, 10)
         : undefined;
       const todayIst = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Kolkata',
