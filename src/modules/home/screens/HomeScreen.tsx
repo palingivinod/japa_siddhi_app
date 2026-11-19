@@ -141,7 +141,6 @@ const HomeScreen = () => {
 
   // Stronger, slightly quicker border blink for Meeting so it stands out
   const meetingBorderAnim = useRef(new Animated.Value(0)).current;
-  const whatsappBlinkAnim = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     const pulse = Animated.loop(
       Animated.sequence([
@@ -160,25 +159,6 @@ const HomeScreen = () => {
     pulse.start();
     return () => pulse.stop();
   }, [meetingBorderAnim]);
-
-  useEffect(() => {
-    const blink = Animated.loop(
-      Animated.sequence([
-        Animated.timing(whatsappBlinkAnim, {
-          toValue: 0.35,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-        Animated.timing(whatsappBlinkAnim, {
-          toValue: 1,
-          duration: 700,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    blink.start();
-    return () => blink.stop();
-  }, [whatsappBlinkAnim]);
 
   const openWhatsAppGroup = async () => {
     try {
@@ -1034,42 +1014,38 @@ const HomeScreen = () => {
             }))}
           />
 
-          <Animated.View style={{opacity: whatsappBlinkAnim}}>
-            <TouchableOpacity
-              style={styles.whatsappGroupBtn}
-              onPress={() => void openWhatsAppGroup()}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={
-                t('joinWhatsAppGroup') || 'Join our WhatsApp group'
-              }>
-              <Image
-                source={require('../../../assets/images/whatsapp_logo.png')}
-                style={styles.whatsappGroupLogo}
-                resizeMode="contain"
-              />
-              <Text style={styles.whatsappGroupText}>
-                {t('joinWhatsAppGroup') || 'Join our WhatsApp group'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <TouchableOpacity
+            style={styles.whatsappGroupBtn}
+            onPress={() => void openWhatsAppGroup()}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={
+              t('joinWhatsAppGroup') || 'Join our WhatsApp group'
+            }>
+            <Image
+              source={require('../../../assets/images/whatsapp_logo.png')}
+              style={styles.whatsappGroupLogo}
+              resizeMode="contain"
+            />
+            <Text style={styles.whatsappGroupText}>
+              {t('joinWhatsAppGroup') || 'Join our WhatsApp group'}
+            </Text>
+          </TouchableOpacity>
 
-          <Animated.View style={{opacity: whatsappBlinkAnim}}>
-            <TouchableOpacity
-              style={styles.monthlyAutopayBtn}
-              onPress={() => void openMonthlyAutopayForm()}
-              activeOpacity={0.85}
-              accessibilityRole="button"
-              accessibilityLabel={
-                t('monthlyAutoPayLinkButton') ||
-                'Monthly Auto-Pay Link for small offerings'
-              }>
-              <Text style={styles.monthlyAutopayBtnText}>
-                {t('monthlyAutoPayLinkButton') ||
-                  'Monthly Auto-Pay Link for small offerings'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <TouchableOpacity
+            style={styles.monthlyAutopayBtn}
+            onPress={() => void openMonthlyAutopayForm()}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={
+              t('monthlyAutoPayLinkButton') ||
+              'Monthly Auto-Pay Link for small offerings'
+            }>
+            <Text style={styles.monthlyAutopayBtnText}>
+              {t('monthlyAutoPayLinkButton') ||
+                'Monthly Auto-Pay Link for small offerings'}
+            </Text>
+          </TouchableOpacity>
 
           {/* Meeting / Class — same slow border blink */}
           {activeMeeting && activeMeeting.enabled && activeMeeting.link ? (

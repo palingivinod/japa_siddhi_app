@@ -999,9 +999,7 @@ const ChantScreen = () => {
       return;
     }
     if (!chantReadyRef.current) {
-      setMessage(
-        t('chantPreparing') || 'Preparing your japa… please wait a moment.',
-      );
+      setMessage(t('pleaseWait') || 'Please wait…');
       return;
     }
     if (mode === 'private' && !selected) {
@@ -1078,9 +1076,7 @@ const ChantScreen = () => {
 
   const saveSession = async () => {
     if (!chantReadyRef.current) {
-      setMessage(
-        t('chantPreparing') || 'Preparing your japa… please wait a moment.',
-      );
+      setMessage(t('pleaseWait') || 'Please wait…');
       return;
     }
     if (count < 1) {
@@ -1352,16 +1348,32 @@ const ChantScreen = () => {
             {dailyTarget.toLocaleString()}
           </Text>
         ) : null}
-        <View style={[styles.tapPromptContainer, goalReached && styles.tapPromptContainerDone]}>
-          <Text style={[styles.tapPromptText, goalReached && styles.tapPromptTextDone]}>
-            {goalReached
-              ? challengeId
-                ? `✓ ${t('challengeCompleteLabel') || 'Challenge Complete'}`
-                : `✓ ${t('goalReachedLabel') || 'Goal Reached'}`
-              : !chantReady
-                ? t('chantPreparing') || 'Preparing your japa…'
+        <View
+          style={[
+            styles.tapPromptContainer,
+            goalReached && styles.tapPromptContainerDone,
+            !chantReady && !goalReached && styles.tapPromptContainerLoading,
+          ]}>
+          {!chantReady && !goalReached ? (
+            <View style={styles.preparingRow}>
+              <ActivityIndicator size="small" color={Colors.sacredBrown} />
+              <Text style={styles.tapPromptText}>
+                {t('pleaseWait') || 'Please wait…'}
+              </Text>
+            </View>
+          ) : (
+            <Text
+              style={[
+                styles.tapPromptText,
+                goalReached && styles.tapPromptTextDone,
+              ]}>
+              {goalReached
+                ? challengeId
+                  ? `✓ ${t('challengeCompleteLabel') || 'Challenge Complete'}`
+                  : `✓ ${t('goalReachedLabel') || 'Goal Reached'}`
                 : t('tapAnywhereToChant') || 'Tap anywhere to chant'}
-          </Text>
+            </Text>
+          )}
         </View>
       </Pressable>
 
@@ -1717,6 +1729,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: 'center',
     includeFontPadding: true,
+  },
+  preparingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+  },
+  tapPromptContainerLoading: {
+    opacity: 0.95,
   },
   tapPromptContainer: {
     marginTop: 14,
