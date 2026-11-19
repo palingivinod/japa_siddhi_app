@@ -10,6 +10,8 @@ export const MEETING_AUTO_ON_IST_MINUTES = 18 * 60 + 30;
 export const MEETING_JOIN_IST_MINUTES = 19 * 60 + 30;
 
 const MEETING_WEEKDAY_AUTO_ON_YMD_KEY = 'meeting_weekday_auto_on_ymd';
+/** When '1', Mon–Fri auto schedule + auto meeting notify are paused. */
+const MEETING_WEEKDAY_AUTO_STOPPED_KEY = 'meeting_weekday_auto_stopped';
 
 /** Current IST hour*60+minute from a UTC instant (default: now). */
 export const getIstMinutesOfDay = (date = new Date()): number => {
@@ -149,6 +151,19 @@ class AppSettingsService {
     return val;
   }
 
+  async isMeetingWeekdayAutoStopped(): Promise<boolean> {
+    const raw = await this.getSetting(MEETING_WEEKDAY_AUTO_STOPPED_KEY, '0');
+    return raw === '1' || raw === 'true' || raw === 'yes';
+  }
+
+  async setMeetingWeekdayAutoStopped(stopped: boolean): Promise<boolean> {
+    await this.setSetting(
+      MEETING_WEEKDAY_AUTO_STOPPED_KEY,
+      stopped ? '1' : '0',
+    );
+    return stopped;
+  }
+
   async getMeetingConfig(): Promise<{
     enabled: boolean;
     title: string;
@@ -156,7 +171,9 @@ class AppSettingsService {
     time: string;
     scheduledAt?: string | null;
     updatedAt?: string;
+    autoScheduleStopped?: boolean;
   }> {
+    const autoScheduleStopped = await this.isMeetingWeekdayAutoStopped();
     const raw = await this.getSetting('active_meeting_config', '');
     if (!raw) {
       return {
@@ -165,6 +182,7 @@ class AppSettingsService {
         link: 'https://meet.google.com/ryz-hxyg-byc',
         time: '',
         scheduledAt: null,
+        autoScheduleStopped,
       };
     }
     try {
@@ -176,6 +194,7 @@ class AppSettingsService {
         time: String(parsed.time || ''),
         scheduledAt: parsed.scheduledAt ? String(parsed.scheduledAt) : null,
         updatedAt: parsed.updatedAt,
+        autoScheduleStopped,
       };
     } catch {
       return {
@@ -184,6 +203,7 @@ class AppSettingsService {
         link: '',
         time: '',
         scheduledAt: null,
+        autoScheduleStopped,
       };
     }
   }
@@ -194,6 +214,7 @@ class AppSettingsService {
     link?: string;
     time?: string;
     scheduledAt?: string | null;
+    autoScheduleStopped?: boolean;
   }): Promise<{
     enabled: boolean;
     title: string;
@@ -201,8 +222,12 @@ class AppSettingsService {
     time: string;
     scheduledAt?: string | null;
     updatedAt: string;
+    autoScheduleStopped: boolean;
   }> {
     const current = await this.getMeetingConfig();
+    if (config.autoScheduleStopped !== undefined) {
+      await this.setMeetingWeekdayAutoStopped(Boolean(config.autoScheduleStopped));
+    }
     const updated = {
       enabled: config.enabled !== undefined ? Boolean(config.enabled) : current.enabled,
       title: config.title !== undefined ? String(config.title).trim() : current.title,
@@ -217,7 +242,8 @@ class AppSettingsService {
       updatedAt: new Date().toISOString(),
     };
     await this.setSetting('active_meeting_config', JSON.stringify(updated));
-    return updated;
+    const autoScheduleStopped = await this.isMeetingWeekdayAutoStopped();
+    return {...updated, autoScheduleStopped};
   }
 
   async removeMeetingConfig(): Promise<void> {
@@ -261,6 +287,10 @@ class AppSettingsService {
     date = new Date(),
   ): Promise<{toggledOn: boolean; meeting?: Awaited<ReturnType<AppSettingsService['getMeetingConfig']>>}> {
     if (!isMeetingWeekdayAutoOnWindowIst(date)) {
+      return {toggledOn: false};
+    }
+
+    if (await this.isMeetingWeekdayAutoStopped()) {
       return {toggledOn: false};
     }
 

@@ -8755,29 +8755,46 @@ router.put('/meeting', async (req: Request, res: Response) => {
   try {
     const appSettingsMod = await import('./appSettings.service');
     const appSettingsService = appSettingsMod.default;
-    const {enabled, title, link, time, scheduledAt} = req.body || {};
+    const {enabled, title, link, time, scheduledAt, autoScheduleStopped} =
+      req.body || {};
     const wantsEnabled = enabled !== undefined ? Boolean(enabled) : undefined;
     const pastCutoff = appSettingsMod.isPastMeetingAutoOffIst();
     // After 8:30 PM IST, do not allow publishing the class card again tonight.
     const nextEnabled =
       wantsEnabled === true && pastCutoff ? false : wantsEnabled;
+    const contentChange =
+      enabled !== undefined ||
+      typeof title === 'string' ||
+      typeof link === 'string' ||
+      typeof time === 'string' ||
+      scheduledAt !== undefined;
     const updated = await appSettingsService.setMeetingConfig({
       enabled: nextEnabled,
       title: typeof title === 'string' ? title : undefined,
       link: typeof link === 'string' ? link : undefined,
       time: typeof time === 'string' ? time : undefined,
       scheduledAt: scheduledAt !== undefined ? (scheduledAt ? String(scheduledAt) : null) : undefined,
+      autoScheduleStopped:
+        autoScheduleStopped !== undefined
+          ? Boolean(autoScheduleStopped)
+          : undefined,
     });
-    // Notify all devotees: scheduled (future) or live (already started / no clock).
-    void import('./meetingNotify.service')
-      .then(({notifyMeetingSaved}) => notifyMeetingSaved(updated))
-      .catch(() => undefined);
+    // Notify only when meeting content is published — not for Stop schedule alone.
+    if (contentChange) {
+      void import('./meetingNotify.service')
+        .then(({notifyMeetingSaved}) => notifyMeetingSaved(updated))
+        .catch(() => undefined);
+    }
     return res.json({
       success: true,
       message:
         wantsEnabled === true && pastCutoff
           ? 'Saved, but Show on Home stays off after 8:30 PM IST. Enable again tomorrow.'
-          : 'Meeting configuration updated successfully.',
+          : autoScheduleStopped !== undefined && !contentChange
+            ? Boolean(autoScheduleStopped)
+              ? 'Stop schedule is ON. Weekday auto schedule and auto notifications are paused.'
+              : 'Stop schedule is OFF. Weekday automation is active again.'
+            : 'Meeting configuration updated successfully.',
       data: updated,
     });
   } catch (error: any) {

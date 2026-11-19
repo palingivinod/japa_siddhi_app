@@ -27,6 +27,8 @@ type MeetingData = {
   time: string;
   scheduledAt?: string | null;
   updatedAt?: string;
+  /** When true, Mon–Fri auto schedule + auto notify are paused. */
+  autoScheduleStopped?: boolean;
 };
 
 const DEFAULT_MEETING: MeetingData = {
@@ -35,6 +37,7 @@ const DEFAULT_MEETING: MeetingData = {
   link: 'https://meet.google.com/ryz-hxyg-byc',
   time: '',
   scheduledAt: null,
+  autoScheduleStopped: false,
 };
 
 const AdminMeetingScreen = () => {
@@ -50,6 +53,7 @@ const AdminMeetingScreen = () => {
   const [time, setTime] = useState('');
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
   const [enabled, setEnabled] = useState(true);
+  const [autoScheduleStopped, setAutoScheduleStopped] = useState(false);
 
   // Picker states
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -73,6 +77,7 @@ const AdminMeetingScreen = () => {
       setTime(data.time || '');
       setScheduledAt(data.scheduledAt || null);
       setEnabled(Boolean(data.enabled));
+      setAutoScheduleStopped(Boolean(data.autoScheduleStopped));
 
       if (data.scheduledAt) {
         const d = new Date(data.scheduledAt);
@@ -93,6 +98,7 @@ const AdminMeetingScreen = () => {
       setTime(DEFAULT_MEETING.time);
       setScheduledAt(DEFAULT_MEETING.scheduledAt || null);
       setEnabled(DEFAULT_MEETING.enabled);
+      setAutoScheduleStopped(Boolean(DEFAULT_MEETING.autoScheduleStopped));
     } finally {
       setLoading(false);
     }
@@ -245,6 +251,7 @@ const AdminMeetingScreen = () => {
         link: cleanLink,
         time: cleanTime,
         scheduledAt: scheduledAt || null,
+        autoScheduleStopped,
       });
       const updated: MeetingData = res.data?.data || {
         enabled,
@@ -252,8 +259,10 @@ const AdminMeetingScreen = () => {
         link: cleanLink,
         time: cleanTime,
         scheduledAt: scheduledAt || null,
+        autoScheduleStopped,
       };
       setCurrentMeeting(updated);
+      setAutoScheduleStopped(Boolean(updated.autoScheduleStopped));
       Alert.alert(
         'Success',
         t('meetingSavedSuccess') ||
@@ -719,6 +728,55 @@ const AdminMeetingScreen = () => {
                   onValueChange={setEnabled}
                   trackColor={{false: '#D1D5DB', true: '#86EFAC'}}
                   thumbColor={enabled ? Colors.leafGreen : '#9CA3AF'}
+                />
+              </View>
+
+              {/* Stop weekday auto schedule (Mon–Fri 6:30 PM automation) */}
+              <View style={styles.switchRow}>
+                <View style={styles.switchCopy}>
+                  <Text style={styles.switchLabel}>
+                    {t('meetingStopScheduleLabel') || 'Stop schedule'}
+                  </Text>
+                  <Text style={styles.switchSub}>
+                    {autoScheduleStopped
+                      ? t('meetingStopScheduleOn') ||
+                        'Automation paused — no Mon–Fri auto go-live or auto meeting notifications.'
+                      : t('meetingStopScheduleOff') ||
+                        'Automation on — Mon–Fri auto schedule and notifications run as usual.'}
+                  </Text>
+                </View>
+                <Switch
+                  value={autoScheduleStopped}
+                  onValueChange={next => {
+                    setAutoScheduleStopped(next);
+                    void (async () => {
+                      try {
+                        const res = await apiService.put('/admin/meeting', {
+                          autoScheduleStopped: next,
+                        });
+                        const updated = res.data?.data;
+                        if (updated) {
+                          setCurrentMeeting(prev =>
+                            prev ? {...prev, ...updated} : updated,
+                          );
+                          setAutoScheduleStopped(
+                            Boolean(updated.autoScheduleStopped),
+                          );
+                        }
+                      } catch (err) {
+                        setAutoScheduleStopped(!next);
+                        Alert.alert(
+                          'Update failed',
+                          getApiError(
+                            err,
+                            'Could not update stop schedule.',
+                          ),
+                        );
+                      }
+                    })();
+                  }}
+                  trackColor={{false: '#D1D5DB', true: '#FECACA'}}
+                  thumbColor={autoScheduleStopped ? '#DC2626' : '#9CA3AF'}
                 />
               </View>
 

@@ -1575,6 +1575,11 @@ const en = {
   meetingLinkLabel: 'Meeting Link (Google Meet / Zoom)',
   meetingTimeLabel: 'Meeting Time / Schedule',
   meetingActiveLabel: 'Show on User Home Screen',
+  meetingStopScheduleLabel: 'Stop schedule',
+  meetingStopScheduleOn:
+    'Automation paused — no Mon–Fri auto go-live or auto meeting notifications.',
+  meetingStopScheduleOff:
+    'Automation on — Mon–Fri auto schedule and notifications run as usual.',
   saveMeeting: 'Save & Publish Meeting',
   editMeeting: 'Edit Meeting',
   removeMeeting: 'Remove Meeting',
