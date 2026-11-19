@@ -410,6 +410,14 @@ const CommunityJapaScreen = () => {
         Number(selected.targetCount) ||
         Number(selected.defaultJapaCount) ||
         0;
+      const done = Number(data.completedCount) || 0;
+      if (data.alreadyCompleted || (target > 0 && done >= target)) {
+        Alert.alert(
+          t('samuhikaAlreadyDoneTitle'),
+          t('samuhikaAlreadyDoneMsg'),
+        );
+        return;
+      }
       goCampaignChant({
         mantraId: Number(selected.id),
         mantraName:
@@ -418,14 +426,23 @@ const CommunityJapaScreen = () => {
         japaGoalId: data.japaGoalId ? Number(data.japaGoalId) : undefined,
         startsAt: selected.startsAt,
         deadlineAt: data.deadlineAt || selected.deadlineAt,
-        initialCount: Number(data.completedCount) || 0,
+        initialCount: done,
         categoryCode: selected.categoryCode,
       });
     } catch (err: any) {
-      Alert.alert(
-        t('couldNotJoin'),
-        getApiError(err, t('deadlineOverMsg')),
-      );
+      const code = String(err?.response?.data?.code || err?.code || '');
+      const msg = getApiError(err, t('deadlineOverMsg'));
+      if (
+        code === 'ALREADY_COMPLETED' ||
+        /already completed/i.test(msg)
+      ) {
+        Alert.alert(
+          t('samuhikaAlreadyDoneTitle'),
+          t('samuhikaAlreadyDoneMsg'),
+        );
+        return;
+      }
+      Alert.alert(t('couldNotJoin'), msg);
     }
   };
 
@@ -654,7 +671,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.cardBorder,
   },
-  label: {color: Colors.leafGreen, fontWeight: '700', fontSize: 12},
+  label: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    fontSize: 11,
+    lineHeight: 14,
+  },
   value: {
     marginTop: 6,
     fontSize: 22,

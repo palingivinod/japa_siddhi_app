@@ -142,6 +142,16 @@ const AdminSamuhikaAnalyticsScreen = () => {
     }
   };
 
+  const copyText = (value: string, label: string) => {
+    const text = String(value || '').trim();
+    if (!text) {
+      Alert.alert('Nothing to copy', `${label} is empty.`);
+      return;
+    }
+    Clipboard.setString(text);
+    Alert.alert('Copied', `${label} copied.`);
+  };
+
   const copyAll = () => {
     if (!users.length) {
       Alert.alert('Nothing to copy', 'No enrolled users for this mantra yet.');
@@ -159,6 +169,37 @@ const AdminSamuhikaAnalyticsScreen = () => {
     ];
     Clipboard.setString(lines.join('\n'));
     Alert.alert('Copied', 'All user data copied as text.');
+  };
+
+  const onUserLongPress = (row: UserRow) => {
+    const fullRow = `${row.userId} | ${row.name} | ${row.phone || '-'} | ${row.japaCount}`;
+    Alert.alert(
+      'Copy user data',
+      `${row.name} (ID ${row.userId})`,
+      [
+        {
+          text: 'Copy ID',
+          onPress: () => copyText(String(row.userId), 'User ID'),
+        },
+        {
+          text: 'Copy name',
+          onPress: () => copyText(row.name, 'Name'),
+        },
+        {
+          text: 'Copy phone',
+          onPress: () => copyText(row.phone, 'Phone'),
+        },
+        {
+          text: 'Copy japa count',
+          onPress: () => copyText(String(row.japaCount), 'Japa count'),
+        },
+        {
+          text: 'Copy full row',
+          onPress: () => copyText(fullRow, 'Full row'),
+        },
+        {text: 'Cancel', style: 'cancel'},
+      ],
+    );
   };
 
   return (
@@ -232,8 +273,14 @@ const AdminSamuhikaAnalyticsScreen = () => {
               {loadingDetail ? (
                 <ActivityIndicator color={Colors.templeGold} />
               ) : null}
+              <Text style={styles.hint}>Long-press a user to copy ID, name, phone, or japa count.</Text>
               {users.map(row => (
-                <View key={`${row.userId}-${row.japaCount}`} style={styles.userCard}>
+                <TouchableOpacity
+                  key={`${row.userId}-${row.japaCount}`}
+                  style={styles.userCard}
+                  activeOpacity={0.85}
+                  onLongPress={() => onUserLongPress(row)}
+                  delayLongPress={350}>
                   <Text style={styles.cardTitle}>
                     {row.name} (ID {row.userId})
                   </Text>
@@ -244,7 +291,7 @@ const AdminSamuhikaAnalyticsScreen = () => {
                       : ''}
                     {row.completed ? ' · Done' : ''}
                   </Text>
-                </View>
+                </TouchableOpacity>
               ))}
               {!loadingDetail && users.length === 0 ? (
                 <Text style={styles.meta}>No enrollments yet.</Text>
@@ -330,5 +377,11 @@ const styles = StyleSheet.create({
     borderColor: Colors.cardBorder,
     padding: 12,
     marginBottom: 8,
+  },
+  hint: {
+    marginBottom: 8,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+    fontSize: 12,
   },
 });

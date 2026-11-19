@@ -712,7 +712,13 @@ class JapaGoalRepository {
 
         j.end_date AS endDate,
 
-        j.status
+        j.notes AS notes,
+
+        j.status,
+
+        m.starts_at AS mantraStartsAt,
+
+        m.deadline_at AS mantraDeadlineAt
 
       FROM japa_goals j
 

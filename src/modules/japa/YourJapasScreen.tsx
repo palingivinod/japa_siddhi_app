@@ -198,10 +198,12 @@ const YourJapasScreen = () => {
             (String(goal.goalName || '').toLowerCase().includes('samuhika') ||
               String(goal.goalName || '').toLowerCase().includes('community') ||
               notesLower.includes('samuhika'));
-          // Campaign join omits dailyTarget; legacy Goal Select always sets one.
+          // Campaign = notes flag, or mantra has start/deadline, or dailyTarget 0.
           const isSamuhikaCampaign =
             isCommunity &&
             (notesLower.includes('samuhika campaign') ||
+              Boolean(String(goal.mantraStartsAt || '').trim()) ||
+              Boolean(String(goal.mantraDeadlineAt || '').trim()) ||
               Number(goal.dailyTarget || 0) <= 0);
 
           let dailyTarget = 0;

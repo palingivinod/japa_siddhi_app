@@ -15,13 +15,17 @@ class JapaGoalService {
 
 
     const days = Math.max(1, Number(data.days) || 1);
+    const notesLower = String(data.notes || '').toLowerCase();
+    const isSamuhikaCampaign = notesLower.includes('samuhika campaign');
     const minDividedDailyTarget = Math.max(
       1,
       Math.ceil(Number(data.targetCount) / days),
     );
     const customDaily = Number(data.dailyTarget);
-    const dailyTarget =
-      customDaily >= minDividedDailyTarget
+    // Campaign Samuhika uses total target + deadline only — no daily plan.
+    const dailyTarget = isSamuhikaCampaign
+      ? 0
+      : customDaily >= minDividedDailyTarget
         ? customDaily
         : minDividedDailyTarget;
 

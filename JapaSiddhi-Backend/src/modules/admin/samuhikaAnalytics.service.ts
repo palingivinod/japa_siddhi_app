@@ -65,7 +65,7 @@ export const getSamuhikaMantraAnalytics = async (mantraId: number) => {
     [id],
   );
 
-  const users = (goalRows || []).map((row: any) => {
+  const mapped = (goalRows || []).map((row: any) => {
     const done = num(row.completedCount);
     const target = num(row.targetCount);
     const code = String(row.mobileCountryCode || '').trim();
@@ -84,6 +84,26 @@ export const getSamuhikaMantraAnalytics = async (mantraId: number) => {
       completed: target > 0 && done >= target,
     };
   });
+
+  // One enrollment row per user — keep the best progress (avoids join duplicates).
+  const byUser = new Map<number, (typeof mapped)[0]>();
+  mapped.forEach(row => {
+    const prev = byUser.get(row.userId);
+    if (!prev) {
+      byUser.set(row.userId, row);
+      return;
+    }
+    if (row.japaCount > prev.japaCount) {
+      byUser.set(row.userId, row);
+      return;
+    }
+    if (row.japaCount === prev.japaCount && row.completed && !prev.completed) {
+      byUser.set(row.userId, row);
+    }
+  });
+  const users = Array.from(byUser.values()).sort(
+    (a, b) => b.japaCount - a.japaCount || b.goalId - a.goalId,
+  );
 
   const enrolled = users.length;
   const doneCount = users.filter(item => item.completed).length;

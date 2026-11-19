@@ -204,11 +204,11 @@ class JapaController {
       return apiResponse.success(res, 'Joined community japa', result);
     } catch (error: any) {
       if (error?.statusCode) {
-        return apiResponse.error(
-          res,
-          error.message || 'Could not join community japa',
-          error.statusCode,
-        );
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message || 'Could not join community japa',
+          code: error.code || undefined,
+        });
       }
       next(error);
     }

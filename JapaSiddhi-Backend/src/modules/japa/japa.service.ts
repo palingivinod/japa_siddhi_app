@@ -1178,29 +1178,89 @@ class JapaService {
     }
 
     const goals = await japaGoalRepository.getUserGoals(userId);
-    const existingGoal = goals.find(g => {
-      if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
-        return false;
-      }
+    const isSamuhikaGoal = (g: any) => {
       if (Number(g.mantraId) !== id) {
         return false;
       }
-      const isSam =
+      const status = String(g.status || '').toUpperCase();
+      if (status === 'CANCELLED' || status === 'EXPIRED') {
+        return false;
+      }
+      return (
         String(g.goalName || '').toLowerCase().includes('samuhika') ||
-        String(g.notes || '').toLowerCase().includes('samuhika');
-      return isSam;
+        String(g.notes || '').toLowerCase().includes('samuhika')
+      );
+    };
+    const samuhikaGoals = (goals || [])
+      .filter(isSamuhikaGoal)
+      .sort(
+        (a, b) => Number(b.completedCount || 0) - Number(a.completedCount || 0),
+      );
+
+    const cancelDuplicateSamuhikaGoals = async (keepId: number) => {
+      const dupes = samuhikaGoals.filter(
+        g =>
+          Number(g.id) !== keepId &&
+          String(g.status || '').toUpperCase() === 'ACTIVE',
+      );
+      for (const dup of dupes) {
+        try {
+          await mysql.query(
+            `
+            UPDATE japa_goals
+            SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND user_id = ? AND status = 'ACTIVE'
+            `,
+            [Number(dup.id), userId],
+          );
+        } catch {
+          // ignore cleanup failure
+        }
+      }
+    };
+
+    // Already finished any enrollment for this mantra → block re-join.
+    const finished = samuhikaGoals.find(g => {
+      const target =
+        Number(g.targetCount) || Number(mantra?.defaultJapaCount) || 0;
+      const done = Number(g.completedCount) || 0;
+      const status = String(g.status || '').toUpperCase();
+      return status === 'COMPLETED' || (target > 0 && done >= target);
     });
-    if (existingGoal) {
+    if (finished) {
+      await cancelDuplicateSamuhikaGoals(Number(finished.id));
+      const error: any = new Error(
+        'You already completed this Samuhika japa.',
+      );
+      error.statusCode = 403;
+      error.code = 'ALREADY_COMPLETED';
+      throw error;
+    }
+
+    // Resume best in-progress enrollment (never create a second row).
+    const existingAny =
+      samuhikaGoals.find(
+        g => String(g.status || '').toUpperCase() === 'ACTIVE',
+      ) || samuhikaGoals[0];
+
+    if (existingAny) {
+      await cancelDuplicateSamuhikaGoals(Number(existingAny.id));
+      const target =
+        Number(existingAny.targetCount) ||
+        Number(mantra?.defaultJapaCount) ||
+        0;
+      const done = Number(existingAny.completedCount) || 0;
       return {
         joined: true,
-        japaGoalId: Number(existingGoal.id),
+        japaGoalId: Number(existingAny.id),
         mode: 'community',
-        targetCount: Number(existingGoal.targetCount) || 0,
-        completedCount: Number(existingGoal.completedCount) || 0,
-        endDate: existingGoal.endDate || null,
+        targetCount: target,
+        completedCount: done,
+        endDate: existingAny.endDate || null,
         deadlineAt: mantra?.deadlineAt || null,
         mantraName: mantra?.mantraName || '',
         resumed: true,
+        alreadyCompleted: false,
       };
     }
 

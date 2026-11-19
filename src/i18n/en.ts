@@ -516,7 +516,7 @@ const en = {
   selected: 'Selected',
   tapToSelect: 'Tap to select',
   totalChants: 'Total chants',
-  devoteesLabel: 'Devotees',
+  devoteesLabel: 'Number of devotees throughout the world',
   deadlineToday: 'Today',
   deadlineDays7: '7 Days',
   deadlineDays11: '11 Days',
@@ -1290,6 +1290,9 @@ const en = {
     'You completed your Samuhika target for "{{mantra}}". Tap OK to return.',
   samuhikaCompletedLabel: 'Completed: {{done}} / Target: {{target}}',
   samuhikaDeadlineLine: 'Deadline: {{date}}',
+  samuhikaAlreadyDoneTitle: 'Already completed',
+  samuhikaAlreadyDoneMsg:
+    'You already completed this Samuhika japa. Well done!',
   tapToPlayVideo: 'Tap to play video',
   openingVideo: 'Opening video…',
   tapToPlayAudio: 'Tap to play audio',
