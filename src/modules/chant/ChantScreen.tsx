@@ -83,7 +83,12 @@ const ChantScreen = () => {
     {},
   );
   const [count, setCount] = useState(0);
-  const [goal, setGoal] = useState(Number(route.params?.goal ?? 2000) || 2000);
+  const [goal, setGoal] = useState(() => {
+    if (route.params?.samuhika || route.params?.skipGoalSelect) {
+      return Math.max(0, Number(route.params?.goal || 0));
+    }
+    return Number(route.params?.goal ?? 2000) || 2000;
+  });
   const challengeId = Number(route.params?.challengeId || 0);
   const [dailyTarget, setDailyTarget] = useState(
     challengeId ? 0 : Number(route.params?.dailyTarget || 0) || 0,
@@ -249,8 +254,13 @@ const ChantScreen = () => {
       setSelected(preferred);
       setMantras([preferred]);
       setShowMantraPicker(false);
-      const bootCount = Number(route.params?.initialCount || 0);
-      const bootGoal = Number(route.params?.goal ?? 2000) || 2000;
+      const bootCount = Number(
+        route.params?.initialCount || route.params?.count || 0,
+      );
+      const bootGoal =
+        route.params?.samuhika || route.params?.skipGoalSelect
+          ? Math.max(0, Number(route.params?.goal || 0))
+          : Number(route.params?.goal ?? 2000) || 2000;
       if (challengeId) {
         applyDraftToCount({
           count: Math.min(bootCount, bootGoal),
@@ -759,6 +769,32 @@ const ChantScreen = () => {
       return;
     }
     if (options?.completed) {
+      const isSamuhika =
+        Boolean(route.params?.samuhika) ||
+        mode === 'community' ||
+        String(route.params?.mode || '') === 'community';
+      if (isSamuhika) {
+        const mantraLabel =
+          chip?.name ||
+          route.params?.mantraName ||
+          route.params?.challengeMantra ||
+          'mantra';
+        Alert.alert(
+          t('samuhikaCompleteTitle') || 'Well done!',
+          t('samuhikaCompleteBody', {mantra: mantraLabel}) ||
+            `You completed the Samuhika japa — ${mantraLabel}. Well done!`,
+          [
+            {
+              text: t('ok') || 'OK',
+              onPress: () =>
+                navigation.navigate('CommunityJapa', {
+                  categoryCode: route.params?.categoryCode,
+                }),
+            },
+          ],
+        );
+        return;
+      }
       if (reached.length) {
         const highest = Math.max(
           ...reached.map((level: number) => Number(level)),

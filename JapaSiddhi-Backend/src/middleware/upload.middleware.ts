@@ -23,6 +23,19 @@ const VIDEO_TYPES = new Set([
   'video/3gpp2',
 ]);
 
+const AUDIO_TYPES = new Set([
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/mp4',
+  'audio/m4a',
+  'audio/x-m4a',
+  'audio/aac',
+  'audio/wav',
+  'audio/x-wav',
+  'audio/ogg',
+  'audio/webm',
+]);
+
 const LOCAL_UPLOADS = path.join(process.cwd(), 'uploads');
 
 const canUseDir = (dir: string): boolean => {
@@ -99,6 +112,21 @@ const makeFilename = (file: Express.Multer.File, fallbackExt: string) => {
       ext = '.mov';
     } else if (file.mimetype.startsWith('video/')) {
       ext = '.mp4';
+    } else if (
+      file.mimetype === 'audio/mpeg' ||
+      file.mimetype === 'audio/mp3'
+    ) {
+      ext = '.mp3';
+    } else if (
+      file.mimetype === 'audio/mp4' ||
+      file.mimetype === 'audio/m4a' ||
+      file.mimetype === 'audio/x-m4a'
+    ) {
+      ext = '.m4a';
+    } else if (file.mimetype === 'audio/wav' || file.mimetype === 'audio/x-wav') {
+      ext = '.wav';
+    } else if (file.mimetype.startsWith('audio/')) {
+      ext = '.mp3';
     } else {
       ext = fallbackExt;
     }
@@ -265,6 +293,28 @@ export const handleNotifyImageUpload = wrapUpload(
 export const handleNotifyVideoUpload = wrapUpload(
   notifyVideoUploader.single('video'),
   'Notification video must be 40 MB or smaller',
+);
+
+const notifyAudioStorage = multer.diskStorage({
+  destination: diskDestination(notifyDir),
+  filename: (_req, file, cb) => cb(null, makeFilename(file, '.mp3')),
+});
+
+const notifyAudioUploader = multer({
+  storage: notifyAudioStorage,
+  limits: {fileSize: 20 * 1024 * 1024},
+  fileFilter: (_req, file, cb) => {
+    if (AUDIO_TYPES.has(file.mimetype)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Only MP3/M4A/AAC/WAV audio is allowed'));
+  },
+});
+
+export const handleNotifyAudioUpload = wrapUpload(
+  notifyAudioUploader.single('audio'),
+  'Notification audio must be 20 MB or smaller',
 );
 
 export const publicPhotoPath = (filename: string) =>

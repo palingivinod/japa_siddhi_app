@@ -197,9 +197,19 @@ class JapaController {
       if (!userId) {
         return apiResponse.error(res, 'User not authenticated', 401);
       }
-      const result = await japaService.joinCommunity(userId, req.body?.mantraId);
+      const result = await japaService.joinCommunity(
+        userId,
+        req.body?.mantraId,
+      );
       return apiResponse.success(res, 'Joined community japa', result);
-    } catch (error) {
+    } catch (error: any) {
+      if (error?.statusCode) {
+        return apiResponse.error(
+          res,
+          error.message || 'Could not join community japa',
+          error.statusCode,
+        );
+      }
       next(error);
     }
   }

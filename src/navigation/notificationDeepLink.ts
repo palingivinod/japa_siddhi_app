@@ -106,6 +106,21 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
+  // Samuhika category / mantra / deadline → open that Samuhika category.
+  if (
+    action === 'ADMIN_SAMUHIKA_CATEGORY' ||
+    action === 'ADMIN_SAMUHIKA_MANTRA' ||
+    action === 'ADMIN_SAMUHIKA_DEADLINE'
+  ) {
+    navigateTo('CommunityJapa', {
+      ...(str(data.categoryCode) ? {categoryCode: str(data.categoryCode)} : {}),
+      ...(num(data.mantraId || data.actionId)
+        ? {mantraId: num(data.mantraId || data.actionId)}
+        : {}),
+    });
+    return;
+  }
+
   if (action === 'ADMIN_REWARD_NEW' || action === 'ADMIN_PRODUCT_NEW') {
     navigateTo('Rewards');
     return;

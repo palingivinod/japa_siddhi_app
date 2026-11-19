@@ -182,8 +182,10 @@ const AdminNotificationsScreen = () => {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
   const [linkUrl, setLinkUrl] = useState('');
   const [rewards, setRewards] = useState<
     Array<{id: string; name: string; imageUrl?: string | null}>
@@ -416,9 +418,56 @@ const AdminNotificationsScreen = () => {
     setVideoUrl(null);
   };
 
+  const clearAudio = () => {
+    setAudioUrl(null);
+  };
+
   const clearMedia = () => {
     clearPhoto();
     clearVideo();
+    clearAudio();
+  };
+
+  const pickAndUploadAudio = async () => {
+    try {
+      const {launchImageLibrary} = await import('react-native-image-picker');
+      setUploadingAudio(true);
+      const result = await launchImageLibrary({
+        mediaType: 'mixed',
+        selectionLimit: 1,
+      });
+      const asset = result.assets?.[0];
+      if (!asset?.uri) {
+        return;
+      }
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: asset.uri,
+        type: asset.type || 'audio/mpeg',
+        name: asset.fileName || 'notification.mp3',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-audio',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.audioUrl || response.data?.data?.path || null;
+      if (!uploaded) {
+        throw new Error('No audio URL returned');
+      }
+      setAudioUrl(String(uploaded));
+    } catch (err: any) {
+      setAudioUrl(null);
+      Alert.alert(
+        'Upload failed',
+        getApiError(
+          err,
+          'Could not upload audio. You can paste an audio URL after uploading elsewhere.',
+        ),
+      );
+    } finally {
+      setUploadingAudio(false);
+    }
   };
 
   const selectedUserIds = useMemo(
@@ -619,12 +668,14 @@ const AdminNotificationsScreen = () => {
           schedule === 'Later' ? toScheduleStamp(scheduledAt) : undefined,
         imageUrl: imageUrl || undefined,
         videoUrl: videoUrl || undefined,
+        audioUrl: audioUrl || undefined,
         url: extractedLink || undefined,
         link: extractedLink || undefined,
         linkUrl: extractedLink || undefined,
-        extraData: extractedLink
-          ? {url: extractedLink, link: extractedLink}
-          : undefined,
+        extraData: {
+          ...(extractedLink ? {url: extractedLink, link: extractedLink} : {}),
+          ...(audioUrl ? {audioUrl} : {}),
+        },
       });
       const data = response.data?.data || {};
       const isQueued = data.mode === 'sending' || data.mode === 'scheduled';
@@ -817,8 +868,8 @@ const AdminNotificationsScreen = () => {
 
       <Text style={styles.sectionHeading}>Upload media (optional)</Text>
       <Text style={styles.imageHint}>
-        Add a photo and/or video for the notification popup (both allowed). You
-        can also pick a reward photo below.
+        Add a photo, video, and/or audio for the notification popup. You can
+        also pick a reward photo below.
       </Text>
       {localPreview || imageUrl ? (
         <Image
@@ -833,11 +884,16 @@ const AdminNotificationsScreen = () => {
       {videoUrl ? (
         <Text style={styles.videoAttached}>Video attached ✓</Text>
       ) : null}
+      {audioUrl ? (
+        <Text style={styles.videoAttached}>Audio attached ✓</Text>
+      ) : null}
       <View style={styles.imageActions}>
         <TouchableOpacity
           style={styles.imageBtn}
           onPress={pickAndUploadImage}
-          disabled={uploadingImage || uploadingVideo || sending}>
+          disabled={
+            uploadingImage || uploadingVideo || uploadingAudio || sending
+          }>
           <Text style={styles.imageBtnText}>
             {uploadingImage
               ? 'UPLOADING...'
@@ -849,7 +905,9 @@ const AdminNotificationsScreen = () => {
         <TouchableOpacity
           style={styles.imageBtn}
           onPress={() => void pickAndUploadVideo()}
-          disabled={uploadingImage || uploadingVideo || sending}>
+          disabled={
+            uploadingImage || uploadingVideo || uploadingAudio || sending
+          }>
           <Text style={styles.imageBtnText}>
             {uploadingVideo
               ? 'UPLOADING...'
@@ -858,14 +916,30 @@ const AdminNotificationsScreen = () => {
                 : 'UPLOAD VIDEO'}
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.imageBtn}
+          onPress={() => void pickAndUploadAudio()}
+          disabled={
+            uploadingImage || uploadingVideo || uploadingAudio || sending
+          }>
+          <Text style={styles.imageBtnText}>
+            {uploadingAudio
+              ? 'UPLOADING...'
+              : audioUrl
+                ? 'CHANGE AUDIO'
+                : 'UPLOAD AUDIO'}
+          </Text>
+        </TouchableOpacity>
       </View>
-      {imageUrl || localPreview || videoUrl ? (
+      {imageUrl || localPreview || videoUrl || audioUrl ? (
         <View style={styles.imageActions}>
           {imageUrl || localPreview ? (
             <TouchableOpacity
               style={styles.imageBtnClear}
               onPress={clearPhoto}
-              disabled={uploadingImage || uploadingVideo || sending}>
+              disabled={
+                uploadingImage || uploadingVideo || uploadingAudio || sending
+              }>
               <Text style={styles.imageBtnClearText}>REMOVE PHOTO</Text>
             </TouchableOpacity>
           ) : null}
@@ -873,8 +947,20 @@ const AdminNotificationsScreen = () => {
             <TouchableOpacity
               style={styles.imageBtnClear}
               onPress={clearVideo}
-              disabled={uploadingImage || uploadingVideo || sending}>
+              disabled={
+                uploadingImage || uploadingVideo || uploadingAudio || sending
+              }>
               <Text style={styles.imageBtnClearText}>REMOVE VIDEO</Text>
+            </TouchableOpacity>
+          ) : null}
+          {audioUrl ? (
+            <TouchableOpacity
+              style={styles.imageBtnClear}
+              onPress={clearAudio}
+              disabled={
+                uploadingImage || uploadingVideo || uploadingAudio || sending
+              }>
+              <Text style={styles.imageBtnClearText}>REMOVE AUDIO</Text>
             </TouchableOpacity>
           ) : null}
         </View>

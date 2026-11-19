@@ -828,6 +828,114 @@ export const deliverAdminNotification = async (input: {
  * When admin adds a mantra / challenge / reward / banner / product,
  * notify all users (inbox + tray) with a deep-link action type.
  */
+export const notifySamuhikaContent = async (input: {
+  kind: 'category' | 'mantra' | 'deadline_extended';
+  id: number | string;
+  name: string;
+  categoryCode?: string;
+  categoryName?: string;
+  categoryType?: 'EVENT' | 'NORMAL';
+  mantraName?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  deadlineAt?: string | null;
+}) => {
+  const id = input.id;
+  const name = String(input.name || '').trim() || 'Update';
+  const isEvent =
+    String(input.categoryType || '').toUpperCase() === 'EVENT' ||
+    input.kind === 'deadline_extended';
+  let title = 'New Samuhika Japa';
+  let message = `"${name}" is now available in Samuhika Japa. Tap to open.`;
+  let actionType = 'ADMIN_SAMUHIKA_CATEGORY';
+
+  if (input.kind === 'category') {
+    title = isEvent ? 'New Samuhika Event' : 'New Samuhika Category';
+    message = isEvent
+      ? `New event created in Samuhika Japa: "${name}". Tap to view.`
+      : `New category "${name}" is available in Samuhika Japa. Tap to view.`;
+    actionType = 'ADMIN_SAMUHIKA_CATEGORY';
+  } else if (input.kind === 'mantra') {
+    title = isEvent ? 'New Samuhika Event Mantra' : 'New Samuhika Mantra';
+    message = isEvent
+      ? `New event mantra "${name}" in Samuhika Japa. Tap to open the category.`
+      : `"${name}" is now available in Samuhika Japa. Tap to open.`;
+    actionType = 'ADMIN_SAMUHIKA_MANTRA';
+  } else if (input.kind === 'deadline_extended') {
+    title = 'Samuhika Deadline Extended';
+    message = `Deadline extended for "${name}". You can enroll or continue japa. Tap to open.`;
+    actionType = 'ADMIN_SAMUHIKA_DEADLINE';
+  }
+
+  const extraData: Record<string, any> = {
+    contentKind: input.kind,
+    categoryCode: input.categoryCode || undefined,
+    categoryName: input.categoryName || undefined,
+    categoryType: input.categoryType || undefined,
+    mantraId: input.kind === 'category' ? undefined : Number(id) || undefined,
+    mantraName: input.mantraName || name,
+    imageUrl: input.imageUrl || undefined,
+    videoUrl: input.videoUrl || undefined,
+    audioUrl: input.audioUrl || undefined,
+    deadlineAt: input.deadlineAt || undefined,
+  };
+
+  await ensureQueueTable();
+  const now = nowIstStamp();
+  let queueId: number | null = null;
+  try {
+    const queueInsert = await mysql.query<ResultSetHeader>(
+      `
+      INSERT INTO admin_notification_queue (
+        title, message, target_group, category, action_type, send_at, status,
+        recipient_count, processed_at, image_url
+      ) VALUES (?, ?, 'all', 'general', ?, ?, 'SENDING', 0, ?, ?)
+      `,
+      [title, message, actionType, now, now, input.imageUrl || null],
+    );
+    queueId = Number(
+      (queueInsert as any)?.insertId ?? (queueInsert as any)?.id ?? 0,
+    );
+  } catch (err) {
+    console.warn('admin_notification_queue insert failed on notifySamuhikaContent:', err);
+  }
+
+  const delivered = await deliverAdminNotification({
+    title,
+    message,
+    target: 'all',
+    actionType,
+    actionId: Number(id) || undefined,
+    imageUrl: input.imageUrl || undefined,
+    extraData: {
+      ...extraData,
+      videoUrl: input.videoUrl || undefined,
+      audioUrl: input.audioUrl || undefined,
+      ...(queueId ? {broadcastId: queueId, queuedId: queueId} : {}),
+    },
+  });
+
+  if (queueId) {
+    try {
+      await mysql.query(
+        `
+        UPDATE admin_notification_queue
+        SET status = 'SENT',
+            recipient_count = ?,
+            processed_at = ?
+        WHERE id = ?
+        `,
+        [delivered.recipientCount, now, queueId],
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  return delivered;
+};
+
 export const notifyAdminContentCreated = async (input: {
   kind: 'challenge' | 'mantra' | 'reward' | 'banner' | 'product';
   id: number | string;
@@ -2185,6 +2293,7 @@ export default {
   sendAdminNotification,
   flushDueAdminNotifications,
   notifyAdminContentCreated,
+  notifySamuhikaContent,
   deliverAdminNotification,
   getNotificationAnalytics,
   mapTarget,

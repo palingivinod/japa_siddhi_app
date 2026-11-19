@@ -50,6 +50,11 @@ const AdminMantrasScreen = () => {
     null,
   );
   const [categoryName, setCategoryName] = useState('');
+  const [categoryType, setCategoryType] = useState<'NORMAL' | 'EVENT'>('NORMAL');
+  const [categoryImageUrl, setCategoryImageUrl] = useState('');
+  const [categoryVideoUrl, setCategoryVideoUrl] = useState('');
+  const [categoryAudioUrl, setCategoryAudioUrl] = useState('');
+  const [categoryNotify, setCategoryNotify] = useState(true);
   const [savingCategory, setSavingCategory] = useState(false);
 
   const loadMantras = useCallback(async () => {
@@ -232,7 +237,14 @@ const AdminMantrasScreen = () => {
     }
     setSavingCategory(true);
     try {
-      const response = await apiService.post('/admin/mantra-categories', {name});
+      const response = await apiService.post('/admin/mantra-categories', {
+        name,
+        categoryType: japaList === 'SAMUHIKA' ? categoryType : 'NORMAL',
+        imageUrl: categoryImageUrl.trim() || undefined,
+        videoUrl: categoryVideoUrl.trim() || undefined,
+        audioUrl: categoryAudioUrl.trim() || undefined,
+        notifyUsers: japaList === 'SAMUHIKA' ? categoryNotify : false,
+      });
       const created = response.data?.data;
       if (created?.code) {
         setCategories(current => [
@@ -241,6 +253,11 @@ const AdminMantrasScreen = () => {
         ]);
       }
       setCategoryName('');
+      setCategoryType('NORMAL');
+      setCategoryImageUrl('');
+      setCategoryVideoUrl('');
+      setCategoryAudioUrl('');
+      setCategoryNotify(true);
       setAddingCategory(false);
     } catch (err) {
       Alert.alert(
@@ -368,6 +385,63 @@ const AdminMantrasScreen = () => {
                 placeholder="Category name"
                 placeholderTextColor={Colors.placeholder}
               />
+              {japaList === 'SAMUHIKA' ? (
+                <>
+                  <Text style={styles.meta}>Type</Text>
+                  <View style={styles.actions}>
+                    {(['NORMAL', 'EVENT'] as const).map(option => (
+                      <TouchableOpacity
+                        key={option}
+                        style={[
+                          styles.editBtn,
+                          categoryType === option ? styles.activeOn : null,
+                        ]}
+                        onPress={() => setCategoryType(option)}>
+                        <Text style={styles.editText}>
+                          {option === 'EVENT' ? 'Event' : 'Normal'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                  <TextInput
+                    style={styles.input}
+                    value={categoryImageUrl}
+                    onChangeText={setCategoryImageUrl}
+                    placeholder="Image URL (optional)"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={categoryVideoUrl}
+                    onChangeText={setCategoryVideoUrl}
+                    placeholder="Video URL (optional)"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={categoryAudioUrl}
+                    onChangeText={setCategoryAudioUrl}
+                    placeholder="Audio URL (optional)"
+                    placeholderTextColor={Colors.placeholder}
+                  />
+                  <Text style={styles.meta}>Notify users</Text>
+                  <View style={styles.actions}>
+                    {[true, false].map(option => (
+                      <TouchableOpacity
+                        key={`cat-notify-${String(option)}`}
+                        style={[
+                          styles.editBtn,
+                          categoryNotify === option ? styles.activeOn : null,
+                        ]}
+                        onPress={() => setCategoryNotify(option)}>
+                        <Text style={styles.editText}>
+                          {option ? 'Yes' : 'No (testing)'}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </>
+              ) : null}
               <View style={styles.actions}>
                 <TouchableOpacity
                   style={styles.editBtn}

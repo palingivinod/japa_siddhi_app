@@ -776,6 +776,12 @@ const NotificationsScreen = () => {
                   extra.video ||
                   null;
                 const noteVideo = resolveMediaUrl(rawVideo);
+                const rawAudio =
+                  item.audioUrl ||
+                  extra.audioUrl ||
+                  extra.audio ||
+                  null;
+                const noteAudio = resolveMediaUrl(rawAudio);
                 const cleanLink = extractNotificationLink(item, subject, bodyLine);
                 const linkAlreadyInBody =
                   cleanLink &&
@@ -794,6 +800,20 @@ const NotificationsScreen = () => {
                       />
                     ) : null}
                     {noteVideo ? <NotificationCardVideo uri={noteVideo} /> : null}
+                    {noteAudio ? (
+                      <Text
+                        style={[styles.linkText, styles.standaloneLink]}
+                        onPress={() => {
+                          Linking.openURL(noteAudio).catch(() => {
+                            Alert.alert(
+                              'Audio Error',
+                              'Unable to open audio file.',
+                            );
+                          });
+                        }}>
+                        🔊 Play audio
+                      </Text>
+                    ) : null}
                     {subject ? (
                       renderTextWithLinks(
                         subject,

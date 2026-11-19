@@ -102,6 +102,12 @@ const AdminMantraEditScreen = () => {
     Record<AdminSupportedLang, MantraLangFields>
   >(defaultTranslations);
   const [target, setTarget] = useState('');
+  const [deadlineAt, setDeadlineAt] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [notifyUsers, setNotifyUsers] = useState(true);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [active, setActive] = useState(true);
   const [translating, setTranslating] = useState(false);
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
@@ -161,6 +167,12 @@ const AdminMantraEditScreen = () => {
       };
       skipAutoTranslateRef.current = true;
       setTarget(Number(data.target) > 0 ? String(data.target) : '');
+      setDeadlineAt(
+        data.deadlineAt ? String(data.deadlineAt).slice(0, 16).replace('T', ' ') : '',
+      );
+      setImageUrl(String(data.imageUrl || ''));
+      setVideoUrl(String(data.videoUrl || ''));
+      setAudioUrl(String(data.audioUrl || ''));
       setActive(Boolean(data.active));
       if (data.japaList) {
         setShownList(String(data.japaList));
@@ -311,6 +323,11 @@ const AdminMantraEditScreen = () => {
         setSaving(false);
         return;
       }
+      const deadlineValue = deadlineAt.trim()
+        ? deadlineAt.trim().includes('T')
+          ? deadlineAt.trim()
+          : deadlineAt.trim().replace(' ', 'T')
+        : null;
       const payload = {
         mantraName:
           translations.en.name.trim() || translations[activeLang].name.trim(),
@@ -329,10 +346,18 @@ const AdminMantraEditScreen = () => {
         defaultJapaCount: targetNum,
         isActive: active,
         translations: JSON.stringify(translations),
+        imageUrl: imageUrl.trim() || null,
+        videoUrl: videoUrl.trim() || null,
+        audioUrl: audioUrl.trim() || null,
+        deadlineAt: deadlineValue,
+        notifyUsers,
         ...(!isEdit ? {japaList, categoryCode} : {}),
       };
       if (isEdit) {
         await apiService.put(`/admin/mantras/${mantraId}`, payload);
+        if (deadlineValue && japaList === 'SAMUHIKA') {
+          // Keep dedicated deadline endpoint available for extend+notify later.
+        }
       } else {
         await apiService.post('/admin/mantras', payload);
       }
@@ -450,8 +475,54 @@ const AdminMantraEditScreen = () => {
             value={target}
             onChangeText={setTarget}
             keyboardType="numeric"
-            placeholder="Optional"
+            placeholder="Optional — leave blank to hide on user screen"
           />
+          <Field
+            label="Deadline (YYYY-MM-DD HH:mm)"
+            value={deadlineAt}
+            onChangeText={setDeadlineAt}
+            placeholder="Optional e.g. 2026-12-31 20:00"
+          />
+          <Field
+            label="Image URL"
+            value={imageUrl}
+            onChangeText={setImageUrl}
+            placeholder="Optional image URL"
+          />
+          <Field
+            label="Video URL"
+            value={videoUrl}
+            onChangeText={setVideoUrl}
+            placeholder="Optional video URL"
+          />
+          <Field
+            label="Audio URL"
+            value={audioUrl}
+            onChangeText={setAudioUrl}
+            placeholder="Optional audio URL"
+          />
+          <Text style={styles.mediaHint}>
+            Upload media from Admin → Notifications (photo/video/audio), then
+            paste the URL here. Or paste any public media URL.
+          </Text>
+
+          <Text style={styles.label}>Notify users on create</Text>
+          <View style={styles.statusRow}>
+            {[true, false].map(option => {
+              const on = option === notifyUsers;
+              return (
+                <TouchableOpacity
+                  key={`notify-${String(option)}`}
+                  style={[styles.statusChip, on && styles.statusChipOn]}
+                  onPress={() => setNotifyUsers(option)}
+                  disabled={isEdit}>
+                  <Text style={[styles.statusText, on && styles.statusTextOn]}>
+                    {option ? 'Yes' : 'No (testing)'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
           <Text style={styles.label}>Status</Text>
           <View style={styles.statusRow}>
@@ -469,6 +540,41 @@ const AdminMantraEditScreen = () => {
               );
             })}
           </View>
+
+          {isEdit && shownList === 'SAMUHIKA' ? (
+            <PrimaryButton
+              title={
+                uploadingMedia ? 'UPDATING DEADLINE...' : 'EXTEND DEADLINE + NOTIFY'
+              }
+              onPress={async () => {
+                const deadlineValue = deadlineAt.trim()
+                  ? deadlineAt.trim().includes('T')
+                    ? deadlineAt.trim()
+                    : deadlineAt.trim().replace(' ', 'T')
+                  : '';
+                if (!deadlineValue) {
+                  Alert.alert('Required', 'Enter a deadline first.');
+                  return;
+                }
+                setUploadingMedia(true);
+                try {
+                  await apiService.put(`/admin/mantras/${mantraId}/deadline`, {
+                    deadlineAt: deadlineValue,
+                    notifyUsers: true,
+                  });
+                  Alert.alert('Updated', 'Deadline extended and users notified.');
+                } catch (err) {
+                  Alert.alert(
+                    'Update failed',
+                    getApiError(err, 'Could not extend deadline.'),
+                  );
+                } finally {
+                  setUploadingMedia(false);
+                }
+              }}
+              disabled={saving || uploadingMedia}
+            />
+          ) : null}
 
           <PrimaryButton
             title={
@@ -568,6 +674,12 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: Colors.cardBorder,
     marginVertical: 16,
+  },
+  mediaHint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 18,
   },
   sectionHeading: {
     fontSize: 16,

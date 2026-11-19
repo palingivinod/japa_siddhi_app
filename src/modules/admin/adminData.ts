@@ -88,6 +88,7 @@ const ADMIN_CONTROL_ITEMS_RAW: Array<{
   {title: 'Festival Analytics', route: 'AdminFestivalAnalytics'},
   {title: 'Japa Analytics', route: 'AdminJapaAnalytics'},
   {title: 'Japa Management', route: 'AdminJapa'},
+  {title: 'Samuhika Japa Analytics', route: 'AdminSamuhikaAnalytics'},
   {title: 'Meeting Management', route: 'AdminMeeting'},
   {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
   {title: 'Notification Management', route: 'AdminNotifications'},

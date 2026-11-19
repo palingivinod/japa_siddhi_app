@@ -143,6 +143,7 @@ import AdminFeedbackDetailsScreen from '../modules/admin/AdminFeedbackDetailsScr
 import AdminAnalyticsDashboardScreen from '../modules/admin/AdminAnalyticsDashboardScreen';
 import AdminUserDemographicsScreen from '../modules/admin/AdminUserDemographicsScreen';
 import AdminJapaAnalyticsScreen from '../modules/admin/AdminJapaAnalyticsScreen';
+import AdminSamuhikaAnalyticsScreen from '../modules/admin/AdminSamuhikaAnalyticsScreen';
 import AdminChallengeAnalyticsScreen from '../modules/admin/AdminChallengeAnalyticsScreen';
 import AdminDonationAnalyticsScreen from '../modules/admin/AdminDonationAnalyticsScreen';
 import AdminFestivalAnalyticsScreen from '../modules/admin/AdminFestivalAnalyticsScreen';
@@ -186,7 +187,12 @@ export type RootStackParamList = {
   };
   Home: undefined;
   JapaHub: undefined;
-  CommunityJapa: undefined;
+  CommunityJapa:
+    | {
+        categoryCode?: string;
+        mantraId?: number;
+      }
+    | undefined;
   MantraSelect: {mode?: string; mantraId?: number; mantraName?: string} | undefined;
   GoalSelect: {mode?: string; mantraId?: number; goal?: number; challengeId?: number; privateMantra?: string} | undefined;
   ReferenceChant: {
@@ -481,6 +487,7 @@ export type RootStackParamList = {
   AdminAnalyticsDashboard: undefined;
   AdminUserDemographics: undefined;
   AdminJapaAnalytics: undefined;
+  AdminSamuhikaAnalytics: undefined;
   AdminChallengeAnalytics: undefined;
   AdminDonationAnalytics: undefined;
   AdminFestivalAnalytics: undefined;
@@ -624,6 +631,9 @@ const ProtectedAdminFeedbackDetails = withAdminAuth(AdminFeedbackDetailsScreen);
 const ProtectedAdminAnalyticsDashboard = withAdminAuth(AdminAnalyticsDashboardScreen);
 const ProtectedAdminUserDemographics = withAdminAuth(AdminUserDemographicsScreen);
 const ProtectedAdminJapaAnalytics = withAdminAuth(AdminJapaAnalyticsScreen);
+const ProtectedAdminSamuhikaAnalytics = withAdminAuth(
+  AdminSamuhikaAnalyticsScreen,
+);
 const ProtectedAdminChallengeAnalytics = withAdminAuth(
   AdminChallengeAnalyticsScreen,
 );
@@ -999,6 +1009,10 @@ const AppNavigator = () => {
         <Stack.Screen
           name="AdminJapaAnalytics"
           component={ProtectedAdminJapaAnalytics}
+        />
+        <Stack.Screen
+          name="AdminSamuhikaAnalytics"
+          component={ProtectedAdminSamuhikaAnalytics}
         />
         <Stack.Screen
           name="AdminChallengeAnalytics"

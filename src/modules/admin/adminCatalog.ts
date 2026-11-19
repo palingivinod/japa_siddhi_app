@@ -150,6 +150,12 @@ export const ADMIN_FRAMES: AdminFrame[] = [
     status: 'done',
   },
   {
+    id: '23b',
+    title: 'Samuhika Japa Analytics',
+    route: 'AdminSamuhikaAnalytics',
+    status: 'done',
+  },
+  {
     id: '24',
     title: 'Challenge Analytics',
     route: 'AdminChallengeAnalytics',

@@ -17,6 +17,18 @@ export type MantraInput = {
   translations?: string | Record<string, any>;
   japaList?: string;
   categoryCode?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  audioUrl?: string | null;
+  deadlineAt?: string | null;
+};
+
+export type CategoryInput = {
+  name: string;
+  categoryType?: 'EVENT' | 'NORMAL';
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  audioUrl?: string | null;
 };
 
 const storedJapaTarget = (value: unknown) => {
@@ -42,6 +54,9 @@ const MANTRA_COLUMNS = `
         transliteration,
         default_japa_count AS defaultJapaCount,
         image_url AS imageUrl,
+        video_url AS videoUrl,
+        audio_url AS audioUrl,
+        deadline_at AS deadlineAt,
   translations,
   is_featured AS isFeatured,
   is_active AS isActive,
@@ -49,6 +64,16 @@ const MANTRA_COLUMNS = `
   japa_list AS japaList,
   category_code AS categoryCode,
   copied_from_id AS copiedFromId
+`;
+
+const CATEGORY_COLUMNS = `
+  code,
+  name,
+  display_order AS displayOrder,
+  IFNULL(category_type, 'NORMAL') AS categoryType,
+  IFNULL(image_url, '') AS imageUrl,
+  IFNULL(video_url, '') AS videoUrl,
+  IFNULL(audio_url, '') AS audioUrl
 `;
 
 class MantraRepository {
@@ -78,7 +103,26 @@ class MantraRepository {
       `SELECT japa_list, category_code, copied_from_id FROM mantras LIMIT 1`,
     );
     await this.ensureCategoryTable();
+    await this.ensureCampaignColumns();
     this.columnsReady = true;
+  }
+
+  private async ensureCampaignColumns() {
+    const add = async (sql: string) => {
+      try {
+        await mysql.query(sql);
+      } catch {
+        // Column already exists.
+      }
+    };
+    await add(`ALTER TABLE mantras ADD COLUMN video_url TEXT NULL`);
+    await add(`ALTER TABLE mantras ADD COLUMN deadline_at TEXT NULL`);
+    await add(
+      `ALTER TABLE mantra_categories ADD COLUMN category_type VARCHAR(20) NOT NULL DEFAULT 'NORMAL'`,
+    );
+    await add(`ALTER TABLE mantra_categories ADD COLUMN image_url TEXT NULL`);
+    await add(`ALTER TABLE mantra_categories ADD COLUMN video_url TEXT NULL`);
+    await add(`ALTER TABLE mantra_categories ADD COLUMN audio_url TEXT NULL`);
   }
 
   private async ensureCategoryTable() {
@@ -90,6 +134,10 @@ class MantraRepository {
           code VARCHAR(40) NOT NULL,
           name VARCHAR(100) NOT NULL,
           display_order INT NOT NULL DEFAULT 0,
+          category_type VARCHAR(20) NOT NULL DEFAULT 'NORMAL',
+          image_url TEXT NULL,
+          video_url TEXT NULL,
+          audio_url TEXT NULL,
           created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
           PRIMARY KEY (id),
           UNIQUE KEY uq_mantra_category_code (code)
@@ -102,6 +150,10 @@ class MantraRepository {
           code TEXT NOT NULL UNIQUE,
           name TEXT NOT NULL,
           display_order INTEGER NOT NULL DEFAULT 0,
+          category_type TEXT NOT NULL DEFAULT 'NORMAL',
+          image_url TEXT,
+          video_url TEXT,
+          audio_url TEXT,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `);
@@ -150,25 +202,61 @@ class MantraRepository {
 
   async listCategories() {
     await this.ensureMantraLists();
-    const rows = await mysql.query<any[]>(
-      `
-      SELECT code, name, display_order AS displayOrder
-      FROM mantra_categories
-      ORDER BY display_order ASC, id ASC
-      `,
-    );
-    return rows || [];
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT ${CATEGORY_COLUMNS}
+        FROM mantra_categories
+        ORDER BY display_order ASC, id ASC
+        `,
+      );
+      return rows || [];
+    } catch {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT code, name, display_order AS displayOrder
+        FROM mantra_categories
+        ORDER BY display_order ASC, id ASC
+        `,
+      );
+      return (rows || []).map((row: any) => ({
+        ...row,
+        categoryType: 'NORMAL',
+        imageUrl: '',
+        videoUrl: '',
+        audioUrl: '',
+      }));
+    }
   }
 
-  async createCategory(name: string) {
+  async getCategoryByCode(code: string) {
     await this.ensureMantraLists();
-    const clean = String(name || '')
+    const category = normalizeMantraCategory(code);
+    if (!category) {
+      return null;
+    }
+    const rows = await this.listCategories();
+    return rows.find((item: any) => item.code === category) || null;
+  }
+
+  async createCategory(input: string | CategoryInput) {
+    await this.ensureMantraLists();
+    const payload: CategoryInput =
+      typeof input === 'string' ? {name: input} : input || {name: ''};
+    const clean = String(payload.name || '')
       .trim()
       .replace(/\s+/g, ' ')
       .slice(0, 80);
     if (clean.length < 2) {
       return {error: 'Enter a category name.' as const};
     }
+    const categoryType =
+      String(payload.categoryType || 'NORMAL').toUpperCase() === 'EVENT'
+        ? 'EVENT'
+        : 'NORMAL';
+    const imageUrl = String(payload.imageUrl || '').trim() || null;
+    const videoUrl = String(payload.videoUrl || '').trim() || null;
+    const audioUrl = String(payload.audioUrl || '').trim() || null;
     const existing = await this.listCategories();
     if (
       existing.some(
@@ -193,23 +281,46 @@ class MantraRepository {
         (max: number, item: any) => Math.max(max, Number(item.displayOrder) || 0),
         0,
       ) + 1;
-    await mysql.query(
-      `
-      INSERT INTO mantra_categories (code, name, display_order)
-      VALUES (?, ?, ?)
-      `,
-      [code, clean, displayOrder],
-    );
-    return {category: {code, name: clean, displayOrder}};
+    try {
+      await mysql.query(
+        `
+        INSERT INTO mantra_categories (
+          code, name, display_order, category_type, image_url, video_url, audio_url
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        `,
+        [code, clean, displayOrder, categoryType, imageUrl, videoUrl, audioUrl],
+      );
+    } catch {
+      await mysql.query(
+        `
+        INSERT INTO mantra_categories (code, name, display_order)
+        VALUES (?, ?, ?)
+        `,
+        [code, clean, displayOrder],
+      );
+    }
+    return {
+      category: {
+        code,
+        name: clean,
+        displayOrder,
+        categoryType,
+        imageUrl: imageUrl || '',
+        videoUrl: videoUrl || '',
+        audioUrl: audioUrl || '',
+      },
+    };
   }
 
-  async renameCategory(code: string, name: string) {
+  async updateCategory(code: string, input: CategoryInput & {name?: string}) {
     await this.ensureMantraLists();
     const category = normalizeMantraCategory(code);
     if (!category || !(await this.categoryExists(category))) {
       return {error: 'Category not found.' as const};
     }
-    const clean = String(name || '')
+    const current = await this.getCategoryByCode(category);
+    const clean = String(input.name ?? current?.name || '')
       .trim()
       .replace(/\s+/g, ' ')
       .slice(0, 80);
@@ -226,11 +337,55 @@ class MantraRepository {
     ) {
       return {error: 'That category already exists.' as const};
     }
-    await mysql.query(
-      `UPDATE mantra_categories SET name = ? WHERE code = ?`,
-      [clean, category],
-    );
-    return {category: {code: category, name: clean}};
+    const categoryType =
+      input.categoryType !== undefined
+        ? String(input.categoryType || 'NORMAL').toUpperCase() === 'EVENT'
+          ? 'EVENT'
+          : 'NORMAL'
+        : String(current?.categoryType || 'NORMAL').toUpperCase() === 'EVENT'
+          ? 'EVENT'
+          : 'NORMAL';
+    const imageUrl =
+      input.imageUrl !== undefined
+        ? String(input.imageUrl || '').trim() || null
+        : String(current?.imageUrl || '').trim() || null;
+    const videoUrl =
+      input.videoUrl !== undefined
+        ? String(input.videoUrl || '').trim() || null
+        : String(current?.videoUrl || '').trim() || null;
+    const audioUrl =
+      input.audioUrl !== undefined
+        ? String(input.audioUrl || '').trim() || null
+        : String(current?.audioUrl || '').trim() || null;
+    try {
+      await mysql.query(
+        `
+        UPDATE mantra_categories
+        SET name = ?, category_type = ?, image_url = ?, video_url = ?, audio_url = ?
+        WHERE code = ?
+        `,
+        [clean, categoryType, imageUrl, videoUrl, audioUrl, category],
+      );
+    } catch {
+      await mysql.query(
+        `UPDATE mantra_categories SET name = ? WHERE code = ?`,
+        [clean, category],
+      );
+    }
+    return {
+      category: {
+        code: category,
+        name: clean,
+        categoryType,
+        imageUrl: imageUrl || '',
+        videoUrl: videoUrl || '',
+        audioUrl: audioUrl || '',
+      },
+    };
+  }
+
+  async renameCategory(code: string, name: string) {
+    return this.updateCategory(code, {name});
   }
 
   async deleteCategory(code: string) {
@@ -365,6 +520,10 @@ class MantraRepository {
     const isActive = input.isActive === false ? 0 : 1;
     const isFeatured = input.isFeatured ? 1 : 0;
     const translations = normalizeTranslations(input.translations);
+    const imageUrl = String(input.imageUrl || '').trim() || null;
+    const videoUrl = String(input.videoUrl || '').trim() || null;
+    const audioUrl = String(input.audioUrl || '').trim() || null;
+    const deadlineAt = String(input.deadlineAt || '').trim() || null;
 
     const orderRows = await mysql.query<any[]>(
       `SELECT IFNULL(MAX(display_order), 0) + 1 AS nextOrder FROM mantras`,
@@ -372,36 +531,77 @@ class MantraRepository {
     const displayOrder =
       Number(input.displayOrder) || Number(orderRows?.[0]?.nextOrder) || 1;
 
-    await mysql.query(
-      `
-      INSERT INTO mantras (
-        mantra_name,
-        deity_name,
-        sanskrit_text,
-        transliteration,
-        default_japa_count,
-        is_featured,
-        is_active,
-        display_order,
-        translations,
-        japa_list,
-        category_code
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      [
-        name,
-        deity,
-        sanskrit,
-        transliteration,
-        target,
-        isFeatured,
-        isActive,
-        displayOrder,
-        translations,
-        japaList,
-        categoryCode,
-      ],
-    );
+    try {
+      await mysql.query(
+        `
+        INSERT INTO mantras (
+          mantra_name,
+          deity_name,
+          sanskrit_text,
+          transliteration,
+          default_japa_count,
+          image_url,
+          video_url,
+          audio_url,
+          deadline_at,
+          is_featured,
+          is_active,
+          display_order,
+          translations,
+          japa_list,
+          category_code
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          name,
+          deity,
+          sanskrit,
+          transliteration,
+          target,
+          imageUrl,
+          videoUrl,
+          audioUrl,
+          deadlineAt,
+          isFeatured,
+          isActive,
+          displayOrder,
+          translations,
+          japaList,
+          categoryCode,
+        ],
+      );
+    } catch {
+      await mysql.query(
+        `
+        INSERT INTO mantras (
+          mantra_name,
+          deity_name,
+          sanskrit_text,
+          transliteration,
+          default_japa_count,
+          is_featured,
+          is_active,
+          display_order,
+          translations,
+          japa_list,
+          category_code
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+          name,
+          deity,
+          sanskrit,
+          transliteration,
+          target,
+          isFeatured,
+          isActive,
+          displayOrder,
+          translations,
+          japaList,
+          categoryCode,
+        ],
+      );
+    }
 
     const created = await mysql.query<any[]>(
       `SELECT id FROM mantras ORDER BY id DESC LIMIT 1`,
@@ -468,37 +668,115 @@ class MantraRepository {
       input.translations !== undefined
         ? normalizeTranslations(input.translations)
         : existing.translations;
+    const imageUrl =
+      input.imageUrl !== undefined
+        ? String(input.imageUrl || '').trim() || null
+        : existing.imageUrl || null;
+    const videoUrl =
+      input.videoUrl !== undefined
+        ? String(input.videoUrl || '').trim() || null
+        : existing.videoUrl || null;
+    const audioUrl =
+      input.audioUrl !== undefined
+        ? String(input.audioUrl || '').trim() || null
+        : existing.audioUrl || null;
+    const deadlineAt =
+      input.deadlineAt !== undefined
+        ? String(input.deadlineAt || '').trim() || null
+        : existing.deadlineAt || null;
 
-    await mysql.query(
-      `
-      UPDATE mantras
-      SET
-        mantra_name = ?,
-        deity_name = ?,
-        sanskrit_text = ?,
-        transliteration = ?,
-        default_japa_count = ?,
-        is_featured = ?,
-        is_active = ?,
-        display_order = ?,
-        translations = ?,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-      `,
-      [
-        name,
-        deity,
-        sanskrit,
-        transliteration,
-        target,
-        isFeatured,
-        isActive,
-        displayOrder,
-        translations,
-        id,
-      ],
-    );
+    try {
+      await mysql.query(
+        `
+        UPDATE mantras
+        SET
+          mantra_name = ?,
+          deity_name = ?,
+          sanskrit_text = ?,
+          transliteration = ?,
+          default_japa_count = ?,
+          image_url = ?,
+          video_url = ?,
+          audio_url = ?,
+          deadline_at = ?,
+          is_featured = ?,
+          is_active = ?,
+          display_order = ?,
+          translations = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [
+          name,
+          deity,
+          sanskrit,
+          transliteration,
+          target,
+          imageUrl,
+          videoUrl,
+          audioUrl,
+          deadlineAt,
+          isFeatured,
+          isActive,
+          displayOrder,
+          translations,
+          id,
+        ],
+      );
+    } catch {
+      await mysql.query(
+        `
+        UPDATE mantras
+        SET
+          mantra_name = ?,
+          deity_name = ?,
+          sanskrit_text = ?,
+          transliteration = ?,
+          default_japa_count = ?,
+          is_featured = ?,
+          is_active = ?,
+          display_order = ?,
+          translations = ?,
+          updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [
+          name,
+          deity,
+          sanskrit,
+          transliteration,
+          target,
+          isFeatured,
+          isActive,
+          displayOrder,
+          translations,
+          id,
+        ],
+      );
+    }
 
+    return this.getById(id);
+  }
+
+  async setDeadline(id: number, deadlineAt: string | null) {
+    await this.ensureMantraLists();
+    const existing = await this.getById(id);
+    if (!existing) {
+      return null;
+    }
+    const value = String(deadlineAt || '').trim() || null;
+    try {
+      await mysql.query(
+        `
+        UPDATE mantras
+        SET deadline_at = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+        `,
+        [value, id],
+      );
+    } catch {
+      return existing;
+    }
     return this.getById(id);
   }
 

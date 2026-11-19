@@ -1678,6 +1678,10 @@ const mapMantraRow = (row: any) => ({
   translations: parseJsonSafely(row.translations),
   japaList: row.japaList || 'SAMUHIKA',
   categoryCode: row.categoryCode || '',
+  imageUrl: row.imageUrl || '',
+  videoUrl: row.videoUrl || '',
+  audioUrl: row.audioUrl || '',
+  deadlineAt: row.deadlineAt || null,
 });
 
 router.get('/mantra-categories', async (_req: Request, res: Response) => {
@@ -1696,12 +1700,45 @@ router.get('/mantra-categories', async (_req: Request, res: Response) => {
 router.post('/mantra-categories', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;
-    const result = await mantraRepository.createCategory(String(req.body?.name || ''));
+    const result = await mantraRepository.createCategory({
+      name: String(req.body?.name || ''),
+      categoryType:
+        String(req.body?.categoryType || '').toUpperCase() === 'EVENT'
+          ? 'EVENT'
+          : 'NORMAL',
+      imageUrl: req.body?.imageUrl,
+      videoUrl: req.body?.videoUrl,
+      audioUrl: req.body?.audioUrl,
+    });
     if (result.error || !result.category) {
       return res.status(400).json({
         success: false,
         message: result.error || 'Could not add the category.',
       });
+    }
+    const notifyUsers =
+      req.body?.notifyUsers !== false &&
+      req.body?.notify !== false &&
+      String(req.body?.notifyUsers).toLowerCase() !== 'false';
+    if (notifyUsers) {
+      try {
+        const {notifySamuhikaContent} = await import(
+          './adminNotification.service'
+        );
+        await notifySamuhikaContent({
+          kind: 'category',
+          id: result.category.code,
+          name: result.category.name,
+          categoryCode: result.category.code,
+          categoryName: result.category.name,
+          categoryType: result.category.categoryType as 'EVENT' | 'NORMAL',
+          imageUrl: result.category.imageUrl,
+          videoUrl: result.category.videoUrl,
+          audioUrl: result.category.audioUrl,
+        });
+      } catch (err) {
+        console.warn('Category create notify failed:', err);
+      }
     }
     return res.status(201).json({
       success: true,
@@ -1719,9 +1756,20 @@ router.post('/mantra-categories', async (req: Request, res: Response) => {
 router.put('/mantra-categories/:code', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;
-    const result = await mantraRepository.renameCategory(
+    const result = await mantraRepository.updateCategory(
       String(req.params.code || ''),
-      String(req.body?.name || ''),
+      {
+        name: String(req.body?.name || ''),
+        categoryType:
+          req.body?.categoryType !== undefined
+            ? String(req.body?.categoryType || '').toUpperCase() === 'EVENT'
+              ? 'EVENT'
+              : 'NORMAL'
+            : undefined,
+        imageUrl: req.body?.imageUrl,
+        videoUrl: req.body?.videoUrl,
+        audioUrl: req.body?.audioUrl,
+      },
     );
     if (result.error || !result.category) {
       const missing = result.error === 'Category not found.';
@@ -1840,19 +1888,52 @@ router.post('/mantras', async (req: Request, res: Response) => {
       translations: req.body?.translations,
       japaList,
       categoryCode,
+      imageUrl: req.body?.imageUrl,
+      videoUrl: req.body?.videoUrl,
+      audioUrl: req.body?.audioUrl,
+      deadlineAt: req.body?.deadlineAt || req.body?.deadline || null,
     });
     const mapped = mapMantraRow(created);
-    try {
-      const {notifyAdminContentCreated} = await import(
-        './adminNotification.service'
-      );
-      await notifyAdminContentCreated({
-        kind: 'mantra',
-        id: mapped.id,
-        name: mapped.name || mantraName,
-      });
-    } catch (err) {
-      console.warn('Mantra create notify failed:', err);
+    const notifyUsers =
+      req.body?.notifyUsers !== false &&
+      req.body?.notify !== false &&
+      String(req.body?.notifyUsers).toLowerCase() !== 'false';
+    if (notifyUsers) {
+      try {
+        if (japaList === 'SAMUHIKA') {
+          const {notifySamuhikaContent} = await import(
+            './adminNotification.service'
+          );
+          const category = await mantraRepository.getCategoryByCode(categoryCode);
+          await notifySamuhikaContent({
+            kind: 'mantra',
+            id: mapped.id,
+            name: mapped.name || mantraName,
+            categoryCode,
+            categoryName: category?.name,
+            categoryType:
+              String(category?.categoryType || '').toUpperCase() === 'EVENT'
+                ? 'EVENT'
+                : 'NORMAL',
+            mantraName: mapped.name || mantraName,
+            imageUrl: mapped.imageUrl || category?.imageUrl,
+            videoUrl: mapped.videoUrl || category?.videoUrl,
+            audioUrl: mapped.audioUrl || category?.audioUrl,
+            deadlineAt: mapped.deadlineAt,
+          });
+        } else {
+          const {notifyAdminContentCreated} = await import(
+            './adminNotification.service'
+          );
+          await notifyAdminContentCreated({
+            kind: 'mantra',
+            id: mapped.id,
+            name: mapped.name || mantraName,
+          });
+        }
+      } catch (err) {
+        console.warn('Mantra create notify failed:', err);
+      }
     }
     return res.status(201).json({
       success: true,
@@ -1918,7 +1999,12 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
       req.body?.defaultJapaCount == null &&
       req.body?.target == null &&
       req.body?.isFeatured == null &&
-      req.body?.translations == null;
+      req.body?.translations == null &&
+      req.body?.imageUrl == null &&
+      req.body?.videoUrl == null &&
+      req.body?.audioUrl == null &&
+      req.body?.deadlineAt == null &&
+      req.body?.deadline == null;
 
     const nextActive =
       req.body?.isActive != null || req.body?.active != null
@@ -1943,6 +2029,15 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
               ? Boolean(req.body.isFeatured)
               : undefined,
           translations: req.body?.translations,
+          imageUrl: req.body?.imageUrl,
+          videoUrl: req.body?.videoUrl,
+          audioUrl: req.body?.audioUrl,
+          deadlineAt:
+            req.body?.deadlineAt !== undefined
+              ? req.body.deadlineAt
+              : req.body?.deadline !== undefined
+                ? req.body.deadline
+                : undefined,
         });
     if (!updated) {
       return res.status(404).json({success: false, message: 'Mantra not found.'});
@@ -1963,6 +2058,124 @@ router.put('/mantras/:id', async (req: Request, res: Response) => {
     });
   }
 });
+
+router.put('/mantras/:id/deadline', async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) {
+      return res.status(400).json({success: false, message: 'Invalid mantra id.'});
+    }
+    const deadlineAt = String(
+      req.body?.deadlineAt || req.body?.deadline || '',
+    ).trim();
+    if (!deadlineAt) {
+      return res.status(400).json({
+        success: false,
+        message: 'Enter a new deadline date/time.',
+      });
+    }
+    const mantraRepository = (await import('../mantra/mantra.repository'))
+      .default;
+    const updated = await mantraRepository.setDeadline(id, deadlineAt);
+    if (!updated) {
+      return res.status(404).json({success: false, message: 'Mantra not found.'});
+    }
+    const mapped = mapMantraRow(updated);
+    const notifyUsers =
+      req.body?.notifyUsers !== false &&
+      req.body?.notify !== false &&
+      String(req.body?.notifyUsers).toLowerCase() !== 'false';
+    if (notifyUsers && String(mapped.japaList).toUpperCase() === 'SAMUHIKA') {
+      try {
+        const {notifySamuhikaContent} = await import(
+          './adminNotification.service'
+        );
+        const category = await mantraRepository.getCategoryByCode(
+          mapped.categoryCode,
+        );
+        await notifySamuhikaContent({
+          kind: 'deadline_extended',
+          id: mapped.id,
+          name: mapped.name,
+          categoryCode: mapped.categoryCode,
+          categoryName: category?.name,
+          categoryType:
+            String(category?.categoryType || '').toUpperCase() === 'EVENT'
+              ? 'EVENT'
+              : 'NORMAL',
+          mantraName: mapped.name,
+          imageUrl: mapped.imageUrl || category?.imageUrl,
+          deadlineAt: mapped.deadlineAt,
+        });
+      } catch (err) {
+        console.warn('Deadline extend notify failed:', err);
+      }
+    }
+    return res.json({
+      success: true,
+      message: 'Deadline updated.',
+      data: mapped,
+    });
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to update deadline.',
+    });
+  }
+});
+
+router.get('/samuhika-analytics/categories', async (_req: Request, res: Response) => {
+  try {
+    const {listSamuhikaCategories} = await import(
+      './samuhikaAnalytics.service'
+    );
+    const rows = await listSamuhikaCategories();
+    return res.json({success: true, data: rows});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load Samuhika categories.',
+    });
+  }
+});
+
+router.get('/samuhika-analytics/mantras', async (req: Request, res: Response) => {
+  try {
+    const {listSamuhikaMantras} = await import('./samuhikaAnalytics.service');
+    const rows = await listSamuhikaMantras(String(req.query.categoryCode || ''));
+    return res.json({success: true, data: rows});
+  } catch (error: any) {
+    return res.status(500).json({
+      success: false,
+      message: error?.message || 'Unable to load Samuhika mantras.',
+    });
+  }
+});
+
+router.get(
+  '/samuhika-analytics/mantras/:id',
+  async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const {getSamuhikaMantraAnalytics} = await import(
+        './samuhikaAnalytics.service'
+      );
+      const data = await getSamuhikaMantraAnalytics(id);
+      if (!data) {
+        return res.status(404).json({
+          success: false,
+          message: 'Mantra not found.',
+        });
+      }
+      return res.json({success: true, data});
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error?.message || 'Unable to load Samuhika analytics.',
+      });
+    }
+  },
+);
 
 router.delete('/mantras/:id', async (req: Request, res: Response) => {
   try {
@@ -2476,6 +2689,10 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     const videoUrl = rawVideo
       ? absoluteMediaUrl(req, rawVideo) || rawVideo
       : undefined;
+    const rawAudio = String(req.body?.audioUrl || '').trim();
+    const audioUrl = rawAudio
+      ? absoluteMediaUrl(req, rawAudio) || rawAudio
+      : undefined;
     const rawUserIds = Array.isArray(req.body?.userIds)
       ? req.body.userIds
       : [];
@@ -2501,7 +2718,12 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
       videoUrl: videoUrl || undefined,
       url: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
       link: req.body?.url || req.body?.link || req.body?.linkUrl || undefined,
-      extraData: req.body?.extraData,
+      extraData: {
+        ...(req.body?.extraData && typeof req.body.extraData === 'object'
+          ? req.body.extraData
+          : {}),
+        ...(audioUrl ? {audioUrl} : {}),
+      },
     });
     const status =
       result.mode === 'scheduled' || result.mode === 'sending' ? 202 : 200;
@@ -2658,6 +2880,79 @@ router.post(
         return res.status(500).json({
           success: false,
           message: error?.message || 'Unable to upload notification video.',
+        });
+      }
+    });
+  },
+);
+
+router.post(
+  '/notifications/upload-audio',
+  async (req: Request, res: Response, next) => {
+    const {handleNotifyAudioUpload, publicNotifyPath} = await import(
+      '../../middleware/upload.middleware'
+    );
+    handleNotifyAudioUpload(req, res, async err => {
+      if (err) {
+        next(err);
+        return;
+      }
+      try {
+        const file = (req as any).file as Express.Multer.File | undefined;
+        if (!file?.filename) {
+          return res.status(400).json({
+            success: false,
+            message: 'Choose an MP3/M4A/AAC/WAV audio file to upload.',
+          });
+        }
+
+        const {
+          deleteLocalUploadQuietly,
+          isFirebaseStorageReady,
+          uploadFileToFirebase,
+        } = await import('../../firebase/firebaseStorage');
+
+        if (isFirebaseStorageReady() && file.path) {
+          try {
+            const audioUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'notifications',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+            return res.json({
+              success: true,
+              message: 'Notification audio uploaded.',
+              data: {
+                path: audioUrl,
+                audioUrl,
+                storage: 'firebase',
+              },
+            });
+          } catch (firebaseError: any) {
+            console.warn(
+              'Firebase Storage audio upload failed; falling back to local URL:',
+              firebaseError?.message || firebaseError,
+            );
+          }
+        }
+
+        const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
+        const path = publicNotifyPath(file.filename);
+        return res.json({
+          success: true,
+          message: 'Notification audio uploaded.',
+          data: {
+            path,
+            audioUrl: absoluteMediaUrl(req, path),
+            storage: 'local',
+          },
+        });
+      } catch (error: any) {
+        return res.status(500).json({
+          success: false,
+          message: error?.message || 'Unable to upload notification audio.',
         });
       }
     });

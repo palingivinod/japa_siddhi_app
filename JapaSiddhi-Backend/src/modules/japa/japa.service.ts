@@ -1067,8 +1067,9 @@ class JapaService {
   async getCommunity(userId: number) {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;
     await mantraRepository.ensureMantraLists();
-    const [mantras, totalChants, devotees, summary, mantraStats] = await Promise.all([
-      mysql.query<any[]>(
+    let mantras: any[] = [];
+    try {
+      mantras = await mysql.query<any[]>(
         `
         SELECT
           id,
@@ -1076,21 +1077,63 @@ class JapaService {
           deity_name AS deityName,
           transliteration,
           category_code AS categoryCode,
-          japa_list AS japaList
+          japa_list AS japaList,
+          default_japa_count AS defaultJapaCount,
+          image_url AS imageUrl,
+          video_url AS videoUrl,
+          audio_url AS audioUrl,
+          deadline_at AS deadlineAt
         FROM mantras
         WHERE is_active = 1
           AND japa_list = 'SAMUHIKA'
         ORDER BY display_order ASC, id ASC
         `,
-      ),
-      japaRepository.getGlobalJapaCount(),
-      japaRepository.getDevoteeCount(),
-      this.getSummary(userId),
-      japaRepository.getCommunityMantraStats(),
-    ]);
+      );
+    } catch {
+      mantras = await mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          mantra_name AS mantraName,
+          deity_name AS deityName,
+          transliteration,
+          category_code AS categoryCode,
+          japa_list AS japaList,
+          default_japa_count AS defaultJapaCount,
+          image_url AS imageUrl,
+          audio_url AS audioUrl
+        FROM mantras
+        WHERE is_active = 1
+          AND japa_list = 'SAMUHIKA'
+        ORDER BY display_order ASC, id ASC
+        `,
+      );
+    }
+    const [totalChants, devotees, summary, mantraStats, categories] =
+      await Promise.all([
+        japaRepository.getGlobalJapaCount(),
+        japaRepository.getDevoteeCount(),
+        this.getSummary(userId),
+        japaRepository.getCommunityMantraStats(),
+        mantraRepository.listCategories(),
+      ]);
+
+    const now = Date.now();
+    const enriched = (mantras || []).map((row: any) => {
+      const deadlineRaw = String(row.deadlineAt || '').trim();
+      const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
+      const deadlinePassed =
+        Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < now;
+      return {
+        ...row,
+        targetCount: Number(row.defaultJapaCount) || 0,
+        deadlinePassed,
+      };
+    });
 
     return {
-      mantras,
+      mantras: enriched,
+      categories,
       mantraStats,
       totalChants,
       devotees: Math.max(devotees, 1),
@@ -1099,14 +1142,106 @@ class JapaService {
   }
 
   async joinCommunity(userId: number, mantraId?: number) {
+    const id = Number(mantraId) || 0;
+    const mantraRepository = (await import('../mantra/mantra.repository')).default;
+    const mantra = id ? await mantraRepository.getById(id) : null;
+    if (id && !mantra) {
+      const error: any = new Error('Mantra not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const deadlineRaw = String(mantra?.deadlineAt || '').trim();
+    const deadlineMs = deadlineRaw ? Date.parse(deadlineRaw) : NaN;
+    if (Number.isFinite(deadlineMs) && deadlineMs > 0 && deadlineMs < Date.now()) {
+      const error: any = new Error(
+        'You are not allowed to enroll. The deadline for this Samuhika japa is over.',
+      );
+      error.statusCode = 403;
+      error.code = 'DEADLINE_OVER';
+      throw error;
+    }
+
     const goals = await japaGoalRepository.getUserGoals(userId);
-    const existingGoal = goals.find(
-      g => g.status === 'ACTIVE' && Number(g.mantraId) === Number(mantraId),
-    );
+    const existingGoal = goals.find(g => {
+      if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
+        return false;
+      }
+      if (Number(g.mantraId) !== id) {
+        return false;
+      }
+      const isSam =
+        String(g.goalName || '').toLowerCase().includes('samuhika') ||
+        String(g.notes || '').toLowerCase().includes('samuhika');
+      return isSam;
+    });
+    if (existingGoal) {
+      return {
+        joined: true,
+        japaGoalId: Number(existingGoal.id),
+        mode: 'community',
+        targetCount: Number(existingGoal.targetCount) || 0,
+        completedCount: Number(existingGoal.completedCount) || 0,
+        endDate: existingGoal.endDate || null,
+        deadlineAt: mantra?.deadlineAt || null,
+        mantraName: mantra?.mantraName || '',
+        resumed: true,
+      };
+    }
+
+    const targetCount = Number(mantra?.defaultJapaCount) || 0;
+    let japaGoalId: number | undefined;
+    let endDate: string | null = null;
+    if (id && targetCount > 0) {
+      const japaGoalService = (await import('../japaGoal/japaGoal.service'))
+        .default;
+      const deadlineDay = deadlineRaw
+        ? String(deadlineRaw).slice(0, 10)
+        : undefined;
+      const todayIst = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+      let days = 1;
+      if (deadlineDay && /^\d{4}-\d{2}-\d{2}$/.test(deadlineDay)) {
+        const start = Date.parse(`${todayIst}T00:00:00+05:30`);
+        const end = Date.parse(`${deadlineDay}T23:59:59+05:30`);
+        if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+          days = Math.max(
+            1,
+            Math.ceil((end - start) / (24 * 60 * 60 * 1000)) + 1,
+          );
+        }
+      }
+      const created = await japaGoalService.createGoal(userId, {
+        mantraId: id,
+        mantraType: 'DEFAULT',
+        goalName: `Samuhika Japa · ${String(mantra?.mantraName || 'Mantra')}`.slice(
+          0,
+          80,
+        ),
+        targetCount,
+        days,
+        startDate: todayIst,
+        endDate: deadlineDay,
+        notes: 'Samuhika japa',
+      });
+      japaGoalId = Number(created.goalId) || undefined;
+      endDate = deadlineDay || null;
+    }
+
     return {
       joined: true,
-      japaGoalId: existingGoal ? Number(existingGoal.id) : undefined,
+      japaGoalId,
       mode: 'community',
+      targetCount,
+      completedCount: 0,
+      endDate,
+      deadlineAt: mantra?.deadlineAt || null,
+      mantraName: mantra?.mantraName || '',
+      resumed: false,
     };
   }
 
