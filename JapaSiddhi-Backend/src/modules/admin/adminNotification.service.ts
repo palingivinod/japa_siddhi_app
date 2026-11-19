@@ -857,14 +857,22 @@ export const notifySamuhikaContent = async (input: {
       : `New category "${name}" is available in Samuhika Japa. Tap to view.`;
     actionType = 'ADMIN_SAMUHIKA_CATEGORY';
   } else if (input.kind === 'mantra') {
+    const categoryLabel = String(input.categoryName || '').trim();
     title = isEvent ? 'New Samuhika Event Mantra' : 'New Samuhika Mantra';
     message = isEvent
-      ? `New event mantra "${name}" in Samuhika Japa. Tap to open the category.`
-      : `"${name}" is now available in Samuhika Japa. Tap to open.`;
+      ? categoryLabel
+        ? `New event mantra "${name}" in Samuhika Japa. Category: ${categoryLabel}. Tap to open the category.`
+        : `New event mantra "${name}" in Samuhika Japa. Tap to open the category.`
+      : categoryLabel
+        ? `"${name}" is now available in Samuhika Japa (${categoryLabel}). Tap to open.`
+        : `"${name}" is now available in Samuhika Japa. Tap to open.`;
     actionType = 'ADMIN_SAMUHIKA_MANTRA';
   } else if (input.kind === 'deadline_extended') {
+    const categoryLabel = String(input.categoryName || '').trim();
     title = 'Samuhika Deadline Extended';
-    message = `Deadline extended for "${name}". You can enroll or continue japa. Tap to open.`;
+    message = categoryLabel
+      ? `Deadline extended for "${name}" in ${categoryLabel}. You can enroll or continue japa. Tap to open.`
+      : `Deadline extended for "${name}". You can enroll or continue japa. Tap to open.`;
     actionType = 'ADMIN_SAMUHIKA_DEADLINE';
   }
 

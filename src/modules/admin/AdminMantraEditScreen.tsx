@@ -805,46 +805,58 @@ const AdminMantraEditScreen = () => {
           </View>
 
           {isEdit && shownList === 'SAMUHIKA' ? (
-            <PrimaryButton
-              title={
-                uploadingMedia ? 'UPDATING DEADLINE...' : 'EXTEND DEADLINE + NOTIFY'
-              }
-              onPress={async () => {
-                if (!deadlineAt) {
-                  Alert.alert('Required', 'Pick a deadline date and time first.');
-                  return;
+            <View style={styles.actionBtnWrap}>
+              <PrimaryButton
+                title={
+                  uploadingMedia
+                    ? 'UPDATING DEADLINE...'
+                    : 'EXTEND DEADLINE + NOTIFY'
                 }
-                setUploadingMedia(true);
-                try {
-                  await apiService.put(`/admin/mantras/${mantraId}/deadline`, {
-                    deadlineAt: toStamp(deadlineAt),
-                    notifyUsers: true,
-                  });
-                  Alert.alert('Updated', 'Deadline extended and users notified.');
-                } catch (err) {
-                  Alert.alert(
-                    'Update failed',
-                    getApiError(err, 'Could not extend deadline.'),
-                  );
-                } finally {
-                  setUploadingMedia(false);
-                }
-              }}
-              disabled={saving || uploadingMedia}
-            />
+                onPress={async () => {
+                  if (!deadlineAt) {
+                    Alert.alert(
+                      'Required',
+                      'Pick a deadline date and time first.',
+                    );
+                    return;
+                  }
+                  setUploadingMedia(true);
+                  try {
+                    await apiService.put(`/admin/mantras/${mantraId}/deadline`, {
+                      deadlineAt: toStamp(deadlineAt),
+                      notifyUsers: true,
+                    });
+                    Alert.alert(
+                      'Updated',
+                      'Deadline extended and users notified.',
+                    );
+                  } catch (err) {
+                    Alert.alert(
+                      'Update failed',
+                      getApiError(err, 'Could not extend deadline.'),
+                    );
+                  } finally {
+                    setUploadingMedia(false);
+                  }
+                }}
+                disabled={saving || uploadingMedia}
+              />
+            </View>
           ) : null}
 
-          <PrimaryButton
-            title={
-              saving
-                ? 'SAVING...'
-                : isEdit
-                  ? 'SAVE MANTRA'
-                  : 'CREATE MANTRA'
-            }
-            onPress={save}
-            disabled={saving}
-          />
+          <View style={styles.actionBtnWrap}>
+            <PrimaryButton
+              title={
+                saving
+                  ? 'SAVING...'
+                  : isEdit
+                    ? 'SAVE MANTRA'
+                    : 'CREATE MANTRA'
+              }
+              onPress={save}
+              disabled={saving}
+            />
+          </View>
 
           <DatePickerModal
             visible={
@@ -1003,6 +1015,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginBottom: 12,
     lineHeight: 18,
+  },
+  actionBtnWrap: {
+    marginTop: 14,
   },
   pickerRow: {
     flexDirection: 'row',
