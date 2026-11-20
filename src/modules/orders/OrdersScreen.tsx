@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import AppIcon from '../../components/icons/AppIcon';
 import apiService, {getApiError} from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import PlayStoreFeedbackModal from '../common/PlayStoreFeedbackModal';
@@ -106,17 +107,34 @@ const OrdersScreen = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [showPlayStoreFeedback, setShowPlayStoreFeedback] = useState(false);
+  const hasOrdersRef = useRef(false);
 
   const load = () => {
-    setLoading(true);
     setError('');
     setRawError(null);
+    const cached = getReadCache<any[]>('orders:list');
+    if (cached?.length && !hasOrdersRef.current) {
+      setOrders(cached);
+      hasOrdersRef.current = true;
+      setLoading(false);
+    } else if (hasOrdersRef.current) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     apiService
       .get('/orders')
-      .then(response => setOrders(response.data.data ?? []))
+      .then(response => {
+        const rows = response.data.data ?? [];
+        setOrders(rows);
+        hasOrdersRef.current = rows.length > 0;
+        setReadCache('orders:list', rows, READ_TTL_MS);
+      })
       .catch(err => {
-        setRawError(err);
-        setError(getApiError(err, t('couldNotLoadOrders')));
+        if (!hasOrdersRef.current) {
+          setRawError(err);
+          setError(getApiError(err, t('couldNotLoadOrders')));
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -135,13 +153,15 @@ const OrdersScreen = () => {
     setCancelError('');
     try {
       await apiService.put(`/orders/${cancelTarget.id}/cancel`, {reason: nextReason});
-      setOrders(prev =>
-        prev.map(item =>
+      setOrders(prev => {
+        const next = prev.map(item =>
           item.id === cancelTarget.id
             ? {...item, orderStatus: 'CANCELLED', cancelReason: nextReason}
             : item,
-        ),
-      );
+        );
+        setReadCache('orders:list', next, READ_TTL_MS);
+        return next;
+      });
       setCancelTarget(null);
       setReason('');
     } catch (err) {
@@ -170,7 +190,11 @@ const OrdersScreen = () => {
     setDeletingId(id);
     try {
       await apiService.delete(`/orders/${id}`);
-      setOrders(prev => prev.filter(order => order.id !== id));
+      setOrders(prev => {
+        const next = prev.filter(order => order.id !== id);
+        setReadCache('orders:list', next, READ_TTL_MS);
+        return next;
+      });
     } catch (err) {
       Alert.alert(
         t('deleteFailed') || 'Delete Failed',
@@ -195,8 +219,8 @@ const OrdersScreen = () => {
             setConfirmingId(orderItem.id);
             try {
               await apiService.put(`/orders/${orderItem.id}/received`);
-              setOrders(prev =>
-                prev.map(o =>
+              setOrders(prev => {
+                const next = prev.map(o =>
                   o.id === orderItem.id
                     ? {
                         ...o,
@@ -206,8 +230,10 @@ const OrdersScreen = () => {
                         status: 'DELIVERED',
                       }
                     : o,
-                ),
-              );
+                );
+                setReadCache('orders:list', next, READ_TTL_MS);
+                return next;
+              });
               setShowPlayStoreFeedback(true);
             } catch (err) {
               Alert.alert(

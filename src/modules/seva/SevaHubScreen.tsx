@@ -24,6 +24,7 @@ import {
 } from '../../navigation/bookingDeepLinks';
 import {useTabSwipe} from '../../navigation/useTabSwipe';
 import apiService from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import {gateBaanalingamSevaPress} from '../../utils/baanalingamSevaGate';
 import {
@@ -71,30 +72,32 @@ const SevaHubScreen = () => {
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      apiService
-        .get('/annadanam/visibility')
-        .then(response => {
-          if (active) {
-            setAnnadanamEnabled(response.data?.data?.any !== false);
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setAnnadanamEnabled(true);
-          }
-        });
-      apiService
-        .get('/home/seva-offerings-stock')
-        .then(response => {
-          if (active) {
-            setSevaStock(response.data?.data || {});
-          }
-        })
-        .catch(() => {
-          if (active) {
-            setSevaStock({});
-          }
-        });
+      const cached = getReadCache<{
+        annadanamEnabled: boolean;
+        sevaStock: SevaOfferingsStockMap;
+      }>('seva:hub');
+      if (cached) {
+        setAnnadanamEnabled(cached.annadanamEnabled);
+        setSevaStock(cached.sevaStock || {});
+      }
+      Promise.all([
+        apiService.get('/annadanam/visibility').catch(() => null),
+        apiService.get('/home/seva-offerings-stock').catch(() => null),
+      ]).then(([visibilityRes, stockRes]) => {
+        if (!active) {
+          return;
+        }
+        const nextEnabled =
+          visibilityRes?.data?.data?.any !== false;
+        const nextStock = stockRes?.data?.data || {};
+        setAnnadanamEnabled(nextEnabled);
+        setSevaStock(nextStock);
+        setReadCache(
+          'seva:hub',
+          {annadanamEnabled: nextEnabled, sevaStock: nextStock},
+          READ_TTL_MS,
+        );
+      });
       return () => {
         active = false;
       };

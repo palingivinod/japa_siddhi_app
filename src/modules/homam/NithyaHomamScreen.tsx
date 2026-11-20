@@ -1,10 +1,11 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import apiService from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
@@ -27,11 +28,23 @@ const NithyaHomamScreen = () => {
   const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
+  const hasEnrollmentRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      setLoading(true);
+      const cached = getReadCache<{enrollment: EnrollmentState | null}>(
+        'homam:status',
+      );
+      if (cached && !hasEnrollmentRef.current) {
+        setEnrollment(cached.enrollment);
+        hasEnrollmentRef.current = true;
+        setLoading(false);
+      } else if (hasEnrollmentRef.current) {
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
       apiService
         .get('/donations/homam-status')
         .then(response => {
@@ -39,36 +52,38 @@ const NithyaHomamScreen = () => {
             return;
           }
           const statusRow = response.data?.data || null;
+          let next: EnrollmentState | null = null;
           if (!statusRow?.id) {
-            setEnrollment(null);
-            return;
+            next = null;
+          } else {
+            const payment = String(statusRow.paymentStatus || '').toUpperCase();
+            const orderStatus = String(statusRow.orderStatus || '').toUpperCase();
+            if (orderStatus === 'INACTIVE' || orderStatus === 'CANCELLED') {
+              next = {
+                code: statusRow.code || `NH${statusRow.id}`,
+                status: 'Inactive',
+                stage: 'Inactive',
+              };
+            } else if (payment === 'SUCCESS' || orderStatus === 'ACTIVE') {
+              next = {
+                code: statusRow.code || `NH${statusRow.id}`,
+                status: 'Active',
+                stage: 'Verified',
+              };
+            } else {
+              next = {
+                code: statusRow.code || `NH${statusRow.id}`,
+                status: 'Pending',
+                stage: 'Pending verification',
+              };
+            }
           }
-          const payment = String(statusRow.paymentStatus || '').toUpperCase();
-          const orderStatus = String(statusRow.orderStatus || '').toUpperCase();
-          if (orderStatus === 'INACTIVE' || orderStatus === 'CANCELLED') {
-            setEnrollment({
-              code: statusRow.code || `NH${statusRow.id}`,
-              status: 'Inactive',
-              stage: 'Inactive',
-            });
-            return;
-          }
-          if (payment === 'SUCCESS' || orderStatus === 'ACTIVE') {
-            setEnrollment({
-              code: statusRow.code || `NH${statusRow.id}`,
-              status: 'Active',
-              stage: 'Verified',
-            });
-            return;
-          }
-          setEnrollment({
-            code: statusRow.code || `NH${statusRow.id}`,
-            status: 'Pending',
-            stage: 'Pending verification',
-          });
+          setEnrollment(next);
+          hasEnrollmentRef.current = true;
+          setReadCache('homam:status', {enrollment: next}, READ_TTL_MS);
         })
         .catch(() => {
-          if (active) {
+          if (active && !hasEnrollmentRef.current) {
             setEnrollment(null);
           }
         })

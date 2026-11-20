@@ -17,6 +17,7 @@ import {
 } from '@react-navigation/native';
 
 import apiService, {getApiError} from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import {playIntroVideo} from '../../services/introVideos';
 import {
   pauseRemoteAudio,
@@ -63,6 +64,7 @@ const CommunityJapaScreen = () => {
   const [selected, setSelected] = useState<any>(null);
   const [stats, setStats] = useState<Record<number, MantraStat>>({});
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
+  const [loadingMantras, setLoadingMantras] = useState(true);
   const [categories, setCategories] = useState<CategoryRow[]>(
     builtinCategories(),
   );
@@ -112,59 +114,104 @@ const CommunityJapaScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      const applyCommunity = (data: any) => {
+        const list = data.mantras ?? [];
+        setMantras(list);
+        const preferredId = Number(route.params?.mantraId || 0);
+        const preferredMantra = preferredId
+          ? list.find((item: any) => Number(item.id) === preferredId)
+          : null;
+        setSelected((current: any) => {
+          if (preferredMantra) {
+            return preferredMantra;
+          }
+          return current
+            ? list.find((item: any) => item.id === current.id) ?? current
+            : list[0] ?? null;
+        });
+        if (preferredMantra?.categoryCode) {
+          setOpenCode(String(preferredMantra.categoryCode));
+        } else if (route.params?.categoryCode) {
+          setOpenCode(String(route.params.categoryCode));
+        }
+        const byMantra: Record<number, MantraStat> = {};
+        (data.mantraStats ?? []).forEach((row: any) => {
+          byMantra[Number(row.mantraId)] = {
+            totalChants: Number(row.totalChants ?? 0),
+            devotees: Number(row.devotees ?? 0),
+          };
+        });
+        setStats(byMantra);
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setCategories(
+            data.categories.map((row: any) => ({
+              code: String(row.code || ''),
+              name: String(row.name || ''),
+              categoryType: String(row.categoryType || 'NORMAL'),
+              imageUrl: String(row.imageUrl || ''),
+              videoUrl: String(row.videoUrl || ''),
+              audioUrl: String(row.audioUrl || ''),
+            })),
+          );
+        }
+      };
+
+      // Show last catalog if cached, but always show a loading circle while
+      // fresh mantras (including newly added ones) are fetched.
+      const cached = getReadCache<any>('community:payload');
+      if (cached) {
+        applyCommunity(cached);
+      }
+      setLoadingMantras(true);
+
       apiService
         .get('/japa/community')
         .then(response => {
           const data = response.data.data ?? {};
-          const list = data.mantras ?? [];
-          setMantras(list);
-          const preferredId = Number(route.params?.mantraId || 0);
-          const preferredMantra = preferredId
-            ? list.find((item: any) => Number(item.id) === preferredId)
-            : null;
-          setSelected((current: any) => {
-            if (preferredMantra) {
-              return preferredMantra;
-            }
-            return current
-              ? list.find((item: any) => item.id === current.id) ?? current
-              : list[0] ?? null;
-          });
-          if (preferredMantra?.categoryCode) {
-            setOpenCode(String(preferredMantra.categoryCode));
-          } else if (route.params?.categoryCode) {
-            setOpenCode(String(route.params.categoryCode));
-          }
-          const byMantra: Record<number, MantraStat> = {};
-          (data.mantraStats ?? []).forEach((row: any) => {
-            byMantra[Number(row.mantraId)] = {
-              totalChants: Number(row.totalChants ?? 0),
-              devotees: Number(row.devotees ?? 0),
-            };
-          });
-          setStats(byMantra);
-          if (Array.isArray(data.categories) && data.categories.length > 0) {
-            setCategories(
-              data.categories.map((row: any) => ({
-                code: String(row.code || ''),
-                name: String(row.name || ''),
-                categoryType: String(row.categoryType || 'NORMAL'),
-                imageUrl: String(row.imageUrl || ''),
-                videoUrl: String(row.videoUrl || ''),
-                audioUrl: String(row.audioUrl || ''),
-              })),
-            );
+          setReadCache('community:payload', data, READ_TTL_MS);
+          applyCommunity(data);
+          // Fallback only if community payload has no categories yet.
+          if (
+            !Array.isArray(data.categories) ||
+            data.categories.length === 0
+          ) {
+            apiService
+              .get('/mantras/categories', {params: {list: 'samuhika'}})
+              .then(catRes => {
+                const rows = Array.isArray(catRes.data?.data)
+                  ? catRes.data.data
+                  : [];
+                if (rows.length > 0) {
+                  setCategories(
+                    rows.map((row: any) => ({
+                      code: String(row.code || ''),
+                      name: String(row.name || ''),
+                      categoryType: String(row.categoryType || 'NORMAL'),
+                      imageUrl: String(row.imageUrl || ''),
+                      videoUrl: String(row.videoUrl || ''),
+                      audioUrl: String(row.audioUrl || ''),
+                    })),
+                  );
+                }
+              })
+              .catch(() => undefined);
           }
         })
         .catch(() => {
-          setMantras([
-            {id: 1, mantraName: 'Om Namah Shivaya'},
-            {id: 2, mantraName: 'Om Namo Narayanaya'},
-            {id: 3, mantraName: 'Hare Krishna'},
-            {id: 4, mantraName: 'Gayatri Mantra'},
-          ]);
+          if (!cached) {
+            setMantras([
+              {id: 1, mantraName: 'Om Namah Shivaya'},
+              {id: 2, mantraName: 'Om Namo Narayanaya'},
+              {id: 3, mantraName: 'Hare Krishna'},
+              {id: 4, mantraName: 'Gayatri Mantra'},
+            ]);
+          }
+        })
+        .finally(() => {
+          setLoadingMantras(false);
         });
 
+      // Goals always fresh — used for enroll/already-done (not cached).
       apiService
         .get('/japa-goals')
         .then(res => {
@@ -197,26 +244,7 @@ const CommunityJapaScreen = () => {
     }
   }, [route.params?.mantraId, mantras]);
 
-  useEffect(() => {
-    apiService
-      .get('/mantras/categories', {params: {list: 'samuhika'}})
-      .then(response => {
-        const rows = Array.isArray(response.data?.data) ? response.data.data : [];
-        if (rows.length > 0) {
-          setCategories(
-            rows.map((row: any) => ({
-              code: String(row.code || ''),
-              name: String(row.name || ''),
-              categoryType: String(row.categoryType || 'NORMAL'),
-              imageUrl: String(row.imageUrl || ''),
-              videoUrl: String(row.videoUrl || ''),
-              audioUrl: String(row.audioUrl || ''),
-            })),
-          );
-        }
-      })
-      .catch(() => undefined);
-  }, []);
+  // Categories come from /japa/community — no duplicate /mantras/categories call.
 
   const {unassigned, groups} = groupByCategory(mantras, categories);
   const selectedStat = selected ? stats[Number(selected.id)] : undefined;
@@ -555,12 +583,30 @@ const CommunityJapaScreen = () => {
 
         <Text style={styles.heading}>{t('selectMantra') || 'Select a mantra'}</Text>
         <Text style={styles.categoryHint}>{t('selectCategoryForMantra')}</Text>
+        {loadingMantras && mantras.length > 0 ? (
+          <View
+            style={styles.mantraLoadingRow}
+            accessibilityLabel="Loading mantras">
+            <ActivityIndicator color={Colors.templeGold} />
+            <Text style={styles.mantraLoadingText}>
+              {t('loadingMantras') || 'Loading mantras…'}
+            </Text>
+          </View>
+        ) : null}
       </View>
 
       <ScrollView
         style={styles.mantraScroll}
         contentContainerStyle={styles.mantraScrollContent}
         showsVerticalScrollIndicator={false}>
+        {loadingMantras && mantras.length === 0 ? (
+          <View style={styles.mantraLoadingEmpty}>
+            <ActivityIndicator size="large" color={Colors.templeGold} />
+            <Text style={styles.mantraLoadingText}>
+              {t('loadingMantras') || 'Loading mantras…'}
+            </Text>
+          </View>
+        ) : null}
         {groups.map(group => {
           const open = openCode === group.code;
           const title = categoryTitle(group, t);
@@ -714,6 +760,24 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontWeight: '700',
     marginBottom: 10,
+  },
+  mantraLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+    paddingVertical: 6,
+  },
+  mantraLoadingEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+    gap: 12,
+  },
+  mantraLoadingText: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    fontSize: 13,
   },
   categoryBtn: {
     backgroundColor: Colors.white,

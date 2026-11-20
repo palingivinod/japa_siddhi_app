@@ -35,9 +35,11 @@ class NotificationController {
         .then(mod => mod.runReminderSweep())
         .catch(() => undefined);
 
+      const limitRaw = Number(req.query?.limit);
       const result =
         await notificationService.getUserNotifications(
           userId,
+          Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 80,
         );
 
       return apiResponse.success(

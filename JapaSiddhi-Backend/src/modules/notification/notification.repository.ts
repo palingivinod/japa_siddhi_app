@@ -403,8 +403,9 @@ class NotificationRepository {
     return result.insertId;
   }
 
-  async getUserNotifications(userId: number) {
+  async getUserNotifications(userId: number, limit = 80) {
     await this.purgeExpired(userId);
+    const take = Math.max(1, Math.min(200, Number(limit) || 80));
 
     const rows = await mysql.query<any[]>(
       `
@@ -434,6 +435,7 @@ class NotificationRepository {
           }
         )
       ORDER BY created_at DESC
+      LIMIT ${take}
       `,
       [userId],
     );

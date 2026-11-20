@@ -56,11 +56,13 @@ class NotificationService {
 
   async getUserNotifications(
     userId: number,
+    limit?: number,
   ) {
 
 
     return notificationRepository.getUserNotifications(
       userId,
+      limit,
     );
 
   }

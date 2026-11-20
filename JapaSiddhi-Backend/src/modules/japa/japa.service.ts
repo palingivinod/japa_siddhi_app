@@ -1111,14 +1111,16 @@ class JapaService {
         `,
       );
     }
-    const [totalChants, devotees, summary, mantraStats, categories] =
-      await Promise.all([
-        japaRepository.getGlobalJapaCount(),
-        japaRepository.getDevoteeCount(),
-        this.getSummary(userId),
-        japaRepository.getCommunityMantraStats(),
-        mantraRepository.listCategories('SAMUHIKA'),
-      ]);
+    // Keep this list endpoint light — do NOT embed full personal getSummary()
+    // (lifetime/streak/byMantra). That belongs on Home /japa/summary only.
+    // Also skip global lifetime totals here — Samuhika UI uses per-mantra stats.
+    const mantraIds = (mantras || [])
+      .map((row: any) => Number(row.id || 0))
+      .filter((id: number) => id > 0);
+    const [mantraStats, categories] = await Promise.all([
+      japaRepository.getCommunityMantraStats(mantraIds),
+      mantraRepository.listCategories('SAMUHIKA'),
+    ]);
 
     const now = Date.now();
     const enriched = (mantras || []).map((row: any) => {
@@ -1140,9 +1142,10 @@ class JapaService {
       mantras: enriched,
       categories,
       mantraStats,
-      totalChants,
-      devotees: Math.max(devotees, 1),
-      todayCount: summary.todayJapaCount,
+      totalChants: 0,
+      devotees: 1,
+      // Personal today count is loaded via /japa/summary on Home — not here.
+      todayCount: 0,
     };
   }
 

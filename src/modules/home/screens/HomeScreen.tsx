@@ -36,6 +36,7 @@ import {getLastChantedJapa, getStoredUser, hydrateSession, saveSession} from '..
 import ProfileApi from '../../auth/services/profileApi';
 import {promptRegion, regionMissing} from '../../../navigation/goHomeAfterAuth';
 import {getJapaDraft} from '../../../services/japaDraft';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../../services/readCache';
 import Colors from '../../../theme/colors';
 import {PLAYSTORE_URL} from '../../../constants/app';
 import AppHeader from '../../common/AppHeader';
@@ -491,6 +492,79 @@ const HomeScreen = () => {
     [t],
   );
 
+  const loadSecondaryHome = async () => {
+    try {
+      const cachedChallenges = getReadCache<any[]>('home:challenges');
+      if (cachedChallenges) {
+        setChallenge(
+          cachedChallenges.find((item: any) => item.joined) ||
+            cachedChallenges[0] ||
+            null,
+        );
+      }
+      const [
+        challenges,
+        bannersRes,
+        annadanamRes,
+        meetingRes,
+        sevaStockRes,
+      ] = await Promise.allSettled([
+        apiService.get('/challenges'),
+        apiService.get('/banners/active', {
+          params: {module: 'Home', lang: language || 'en'},
+        }),
+        apiService.get('/annadanam/visibility'),
+        apiService.get('/home/meeting'),
+        apiService.get('/home/seva-offerings-stock'),
+      ]);
+      if (challenges.status === 'fulfilled') {
+        const list = challenges.value.data.data ?? [];
+        setReadCache('home:challenges', list, READ_TTL_MS);
+        setChallenge(list.find((item: any) => item.joined) || list[0] || null);
+      }
+      if (bannersRes.status === 'fulfilled') {
+        const rows = Array.isArray(bannersRes.value.data?.data)
+          ? bannersRes.value.data.data
+          : [];
+        setHomeBanners(
+          rows.map((row: any) => ({
+            id: Number(row.id) || 0,
+            title: String(row.title || ''),
+            subtitle: String(row.subtitle || ''),
+            imageUrl: String(row.imageUrl || ''),
+            buttonText: String(row.buttonText || t('startChanting')),
+          })),
+        );
+      } else {
+        setHomeBanners([]);
+      }
+      if (annadanamRes.status === 'fulfilled') {
+        const data = annadanamRes.value.data?.data || {};
+        setAnnadanamVisibility({
+          japa: data.japa !== false,
+          general: data.general !== false,
+          campaigns: data.campaigns !== false,
+          any: data.any !== false,
+        });
+      }
+      if (meetingRes.status === 'fulfilled' && meetingRes.value?.data?.data) {
+        const m = meetingRes.value.data.data;
+        if (m.enabled && m.link) {
+          setActiveMeeting(m);
+        } else {
+          setActiveMeeting(null);
+        }
+      } else {
+        setActiveMeeting(null);
+      }
+      if (sevaStockRes.status === 'fulfilled') {
+        setSevaStock(sevaStockRes.value?.data?.data || {});
+      }
+    } catch (error) {
+      console.log('Home secondary unavailable', error);
+    }
+  };
+
   const load = async () => {
     const user = await getStoredUser();
     const display =
@@ -498,29 +572,16 @@ const HomeScreen = () => {
     setName(String(display).trim() || t('devotee'));
 
     try {
-      const [
-        summary,
-        goals,
-        challenges,
-        panchangRes,
-        bannersRes,
-        annadanamRes,
-        todayTotalsRes,
-        meetingRes,
-        sevaStockRes,
-      ] = await Promise.allSettled([
-        apiService.get('/japa/summary'),
-        apiService.get('/japa-goals'),
-        apiService.get('/challenges'),
-        getPanchangForToday(language),
-        apiService.get('/banners/active', {
-          params: {module: 'Home', lang: language || 'en'},
-        }),
-        apiService.get('/annadanam/visibility'),
-        apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
-        apiService.get('/home/meeting'),
-        apiService.get('/home/seva-offerings-stock'),
-      ]);
+      // Critical path only — japa counts/goals always fresh (never cached).
+      // Secondary cards load after so Home paints sooner.
+      void loadSecondaryHome();
+      const [summary, goals, panchangRes, todayTotalsRes] =
+        await Promise.allSettled([
+          apiService.get('/japa/summary'),
+          apiService.get('/japa-goals'),
+          getPanchangForToday(language),
+          apiService.get('/japa/mantras/totals', {params: {period: 'today'}}),
+        ]);
       if (summary.status === 'fulfilled') {
         const data = summary.value.data.data ?? {};
         setToday(Number(data.todayJapaCount ?? data.todayCount ?? 0));
@@ -670,50 +731,8 @@ const HomeScreen = () => {
           setActiveJapaGoal(null);
         }
       }
-      if (challenges.status === 'fulfilled') {
-        const list = challenges.value.data.data ?? [];
-        setChallenge(list.find((item: any) => item.joined) || list[0] || null);
-      }
       if (panchangRes.status === 'fulfilled' && panchangRes.value) {
         setPanchang(panchangRes.value);
-      }
-      if (bannersRes.status === 'fulfilled') {
-        const rows = Array.isArray(bannersRes.value.data?.data)
-          ? bannersRes.value.data.data
-          : [];
-        setHomeBanners(
-          rows.map((row: any) => ({
-            id: Number(row.id) || 0,
-            title: String(row.title || ''),
-            subtitle: String(row.subtitle || ''),
-            imageUrl: String(row.imageUrl || ''),
-            buttonText: String(row.buttonText || t('startChanting')),
-          })),
-        );
-      } else {
-        setHomeBanners([]);
-      }
-      if (annadanamRes.status === 'fulfilled') {
-        const data = annadanamRes.value.data?.data || {};
-        setAnnadanamVisibility({
-          japa: data.japa !== false,
-          general: data.general !== false,
-          campaigns: data.campaigns !== false,
-          any: data.any !== false,
-        });
-      }
-      if (meetingRes.status === 'fulfilled' && meetingRes.value?.data?.data) {
-        const m = meetingRes.value.data.data;
-        if (m.enabled && m.link) {
-          setActiveMeeting(m);
-        } else {
-          setActiveMeeting(null);
-        }
-      } else {
-        setActiveMeeting(null);
-      }
-      if (sevaStockRes.status === 'fulfilled') {
-        setSevaStock(sevaStockRes.value?.data?.data || {});
       }
     } catch (error) {
       console.log('Home summary unavailable', error);
@@ -723,7 +742,10 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       load();
-      syncAppBadgeWithServer().catch(() => undefined);
+      // Badge after paint — not on critical japa path.
+      setTimeout(() => {
+        syncAppBadgeWithServer().catch(() => undefined);
+      }, 0);
     }, [t, language]),
   );
 

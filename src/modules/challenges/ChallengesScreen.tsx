@@ -1,11 +1,12 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {shortMonthDay} from '../../i18n/calendar';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService from '../../services/apiService';
-import {getJapaDraft} from '../../services/japaDraft';
+import {listActiveChallengeDraftIds} from '../../services/japaDraft';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import ScreenLayout from '../common/ScreenLayout';
 import {getLocalizedChallenge} from '../../utils/localizedContent';
@@ -64,11 +65,21 @@ const ChallengesScreen = () => {
   const [items, setItems] = useState<any[]>([]);
   const [resumeIds, setResumeIds] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const hasItemsRef = useRef(false);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
-      setLoading(true);
+      // Soft refresh: keep prior list visible (no full-screen spinner).
+      if (hasItemsRef.current) {
+        setLoading(false);
+      }
+      const cached = getReadCache<any[]>('challenges:list');
+      if (cached?.length && !hasItemsRef.current) {
+        setItems(cached);
+        hasItemsRef.current = true;
+        setLoading(false);
+      }
       apiService
         .get('/challenges')
         .then(async response => {
@@ -76,26 +87,16 @@ const ChallengesScreen = () => {
             return;
           }
           const rows = response.data.data ?? [];
+          setReadCache('challenges:list', rows, READ_TTL_MS);
           setItems(rows);
-          const drafts: Record<number, boolean> = {};
-          await Promise.all(
-            rows.map(async (item: any) => {
-              const id = Number(item.id || 0);
-              if (!id) {
-                return;
-              }
-              const draft = await getJapaDraft('community', undefined, id);
-              if (draft) {
-                drafts[id] = true;
-              }
-            }),
-          );
+          hasItemsRef.current = rows.length > 0;
+          const drafts = await listActiveChallengeDraftIds();
           if (active) {
             setResumeIds(drafts);
           }
         })
         .catch(() => {
-          if (active) {
+          if (active && !hasItemsRef.current) {
             setItems([]);
             setResumeIds({});
           }

@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,6 +20,7 @@ import {
   pickProfilePhoto,
   resolveMediaUrl,
 } from '../../services/profilePhoto';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import AppIcon from '../../components/icons/AppIcon';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -39,6 +40,7 @@ const ProfileViewScreen = () => {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+  const hasProfileRef = useRef(false);
 
   const openBilvaSite = async () => {
     try {
@@ -120,12 +122,27 @@ const ProfileViewScreen = () => {
   });
 
   const loadProfile = useCallback(async () => {
-    setLoading(true);
     setError('');
     setRawError(null);
+    const cached = getReadCache<{profile: any; milestone: string | null}>(
+      'profile:view',
+    );
+    if (cached?.profile && !hasProfileRef.current) {
+      setProfile(cached.profile);
+      setAchievedMilestone(cached.milestone);
+      hasProfileRef.current = true;
+      setLoading(false);
+    } else if (hasProfileRef.current) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     const stored = await getStoredUser();
-    if (stored) {
+    if (stored && !hasProfileRef.current) {
       setProfile(applyProfile(null, stored));
+      hasProfileRef.current = true;
+      setLoading(false);
     }
 
     try {
@@ -134,15 +151,22 @@ const ProfileViewScreen = () => {
         apiService.get('/japa/milestones').catch(() => null),
       ]);
       const milestone = milestoneRes?.data?.data;
+      let nextMilestone: string | null = null;
       if (milestone?.latestTitle) {
-        setAchievedMilestone(String(milestone.latestTitle));
+        nextMilestone = String(milestone.latestTitle);
       } else if (milestone?.allComplete && milestone?.nextTitle) {
-        setAchievedMilestone(String(milestone.nextTitle));
-      } else {
-        setAchievedMilestone(null);
+        nextMilestone = String(milestone.nextTitle);
       }
+      setAchievedMilestone(nextMilestone);
       if (data) {
-        setProfile(applyProfile(data, stored));
+        const next = applyProfile(data, stored);
+        setProfile(next);
+        hasProfileRef.current = true;
+        setReadCache(
+          'profile:view',
+          {profile: next, milestone: nextMilestone},
+          READ_TTL_MS,
+        );
         await updateStoredUser(data);
         return;
       }

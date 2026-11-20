@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Share,
@@ -20,6 +20,7 @@ import {
   getPanchangForToday,
   PanchangPayload,
 } from '../../services/panchang';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import PanchangDetails from '../common/PanchangDetails';
@@ -40,21 +41,42 @@ const FestivalsScreen = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [rawError, setRawError] = useState<any>(null);
+  const hasDataRef = useRef(false);
 
   const load = useCallback(() => {
-    setLoading(true);
     setError('');
     setRawError(null);
+    const cacheKey = `festivals:${language || 'en'}`;
+    const cached = getReadCache<{
+      festivals: Festival[];
+      panchang: PanchangPayload;
+    }>(cacheKey);
+    if (cached && !hasDataRef.current) {
+      setFestivals(cached.festivals || []);
+      setPanchang(cached.panchang || emptyPanchang());
+      hasDataRef.current = true;
+      setLoading(false);
+    } else if (hasDataRef.current) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     Promise.allSettled([
       apiService.get('/festivals'),
       getPanchangForToday(language),
     ])
       .then(([response, panchangRes]) => {
+        let nextFestivals: Festival[] = [];
+        let nextPanchang: PanchangPayload | null = null;
         if (response.status === 'fulfilled') {
-          setFestivals(response.value.data.data ?? []);
+          nextFestivals = response.value.data.data ?? [];
+          setFestivals(nextFestivals);
+          hasDataRef.current = true;
         }
         if (panchangRes.status === 'fulfilled' && panchangRes.value) {
-          setPanchang(panchangRes.value);
+          nextPanchang = panchangRes.value;
+          setPanchang(nextPanchang);
+          hasDataRef.current = true;
         } else if (
           panchangRes.status === 'rejected' &&
           response.status === 'rejected'
@@ -65,6 +87,18 @@ const FestivalsScreen = () => {
               panchangRes.reason,
               'Could not load panchangam from the API.',
             ),
+          );
+        }
+        if (nextFestivals.length || nextPanchang) {
+          setReadCache(
+            cacheKey,
+            {
+              festivals: nextFestivals.length
+                ? nextFestivals
+                : cached?.festivals || [],
+              panchang: nextPanchang || cached?.panchang || emptyPanchang(),
+            },
+            READ_TTL_MS,
           );
         }
       })

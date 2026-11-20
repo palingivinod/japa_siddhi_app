@@ -83,10 +83,12 @@ export const syncAppBadgeWithServer = async (): Promise<number> => {
       // Endpoint may fail or not be reachable, fall through to fallback
     }
 
-    // 2. Fallback: query full notification list and compute unread items directly
+    // 2. Fallback: recent inbox slice only (never pull unbounded list for badge).
     if (unreadCount === null) {
       try {
-        const listRes = await apiService.get('/notifications');
+        const listRes = await apiService.get('/notifications', {
+          params: {limit: 40},
+        });
         const list = Array.isArray(listRes.data?.data)
           ? listRes.data.data
           : Array.isArray(listRes.data)

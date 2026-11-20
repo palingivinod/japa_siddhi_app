@@ -1,4 +1,4 @@
-import React, {useCallback, useMemo, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import Colors from '../../theme/colors';
 import apiService, {getApiError} from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import ScreenLayout from '../common/ScreenLayout';
 import {useLanguage} from '../../i18n/LanguageContext';
 import {
@@ -116,15 +117,29 @@ const TransactionHistoryScreen = () => {
   const [activeTab, setActiveTab] = useState<FilterCategory>('ALL');
   const [search, setSearch] = useState('');
   const [downloadingId, setDownloadingId] = useState('');
+  const hasItemsRef = useRef(false);
 
   const loadHistory = useCallback(async () => {
     setError('');
+    const cached = getReadCache<UserTransactionItem[]>('transactions:list');
+    if (cached?.length && !hasItemsRef.current) {
+      setItems(cached);
+      hasItemsRef.current = true;
+      setLoading(false);
+    } else if (hasItemsRef.current) {
+      setLoading(false);
+    }
     try {
       const res = await apiService.get('/donations/history');
       const list = res.data?.data || [];
-      setItems(Array.isArray(list) ? list : []);
+      const rows = Array.isArray(list) ? list : [];
+      setItems(rows);
+      hasItemsRef.current = rows.length > 0;
+      setReadCache('transactions:list', rows, READ_TTL_MS);
     } catch (err) {
-      setError(getApiError(err, 'Could not load your transactions.'));
+      if (!hasItemsRef.current) {
+        setError(getApiError(err, 'Could not load your transactions.'));
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);

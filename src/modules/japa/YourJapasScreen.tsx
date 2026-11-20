@@ -346,7 +346,9 @@ const YourJapasScreen = () => {
       try {
         const stored = await getStoredUser();
         const userId = stored?.id || stored?.userId || 'anon';
-        const notesRes = await apiService.get('/notifications').catch(() => null);
+        const notesRes = await apiService
+          .get('/notifications', {params: {limit: 40}})
+          .catch(() => null);
         const notes = Array.isArray(notesRes?.data?.data)
           ? notesRes.data.data
           : [];

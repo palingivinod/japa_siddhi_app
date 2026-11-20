@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,6 +16,7 @@ import {useLanguage} from '../../i18n/LanguageContext';
 import AppIcon from '../../components/icons/AppIcon';
 import apiService from '../../services/apiService';
 import {resolveMediaUrl} from '../../services/profilePhoto';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import {getStoredUser} from '../../services/session';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
@@ -111,11 +112,39 @@ const AvailableRewardsScreen = () => {
   const [pendingBanaItem, setPendingBanaItem] = useState<RewardItem | null>(
     null,
   );
+  const hasRewardsRef = useRef(false);
+
+  type RewardsCachePayload = {
+    rewards: RewardItem[];
+    userTotalJapas: number;
+    marakataTarget: number;
+    relativeTargets: Record<string, {unlockTarget: number; extraJapas: number}>;
+    hasBaanalingamOrder: boolean;
+    hasMarakataOrder: boolean;
+  };
+
+  const applyRewardsCache = (cached: RewardsCachePayload) => {
+    setRewards(cached.rewards);
+    setUserTotalJapas(cached.userTotalJapas);
+    setMarakataTarget(cached.marakataTarget);
+    setRelativeTargets(cached.relativeTargets);
+    setHasBaanalingamOrder(cached.hasBaanalingamOrder);
+    setHasMarakataOrder(cached.hasMarakataOrder);
+    hasRewardsRef.current = cached.rewards.length > 0;
+  };
 
   const load = useCallback(async () => {
-    setLoading(true);
     setError('');
     setRawError(null);
+    const cached = getReadCache<RewardsCachePayload>('rewards:available');
+    if (cached?.rewards?.length && !hasRewardsRef.current) {
+      applyRewardsCache(cached);
+      setLoading(false);
+    } else if (hasRewardsRef.current) {
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     try {
       const stored = await getStoredUser();
       const userId = stored?.id || stored?.userId || 'anon';
@@ -144,37 +173,35 @@ const AvailableRewardsScreen = () => {
         ).toUpperCase();
         return status !== 'CANCELLED' && status !== 'CANCELED';
       });
-      setHasBaanalingamOrder(
-        activeOrders.some((row: any) => {
-          const type = String(row?.orderType || row?.order_type || '').toUpperCase();
-          const name = String(
-            row?.itemName || row?.item_name || row?.product || '',
-          ).toLowerCase();
-          const num = String(row?.orderNumber || row?.order_number || '');
-          return (
-            type === 'BANA_LINGAM' ||
-            name.includes('baanalingam') ||
-            name.includes('banalingam') ||
-            num.startsWith('BL-') ||
-            num.startsWith('#BL-')
-          );
-        }),
-      );
-      setHasMarakataOrder(
-        activeOrders.some((row: any) => {
-          const name = String(
-            row?.itemName || row?.item_name || row?.product || '',
-          ).toLowerCase();
-          if (name.includes('chakra') || name.includes('yantra')) {
-            return false;
-          }
-          return (
-            ((name.includes('marakata') || name.includes('marakatha')) &&
-              (name.includes('shiv') || name.includes('ling'))) ||
-            (name.includes('aventurine') && name.includes('shiv'))
-          );
-        }),
-      );
+      const nextHasBaanalingam = activeOrders.some((row: any) => {
+        const type = String(row?.orderType || row?.order_type || '').toUpperCase();
+        const name = String(
+          row?.itemName || row?.item_name || row?.product || '',
+        ).toLowerCase();
+        const num = String(row?.orderNumber || row?.order_number || '');
+        return (
+          type === 'BANA_LINGAM' ||
+          name.includes('baanalingam') ||
+          name.includes('banalingam') ||
+          num.startsWith('BL-') ||
+          num.startsWith('#BL-')
+        );
+      });
+      const nextHasMarakata = activeOrders.some((row: any) => {
+        const name = String(
+          row?.itemName || row?.item_name || row?.product || '',
+        ).toLowerCase();
+        if (name.includes('chakra') || name.includes('yantra')) {
+          return false;
+        }
+        return (
+          ((name.includes('marakata') || name.includes('marakatha')) &&
+            (name.includes('shiv') || name.includes('ling'))) ||
+          (name.includes('aventurine') && name.includes('shiv'))
+        );
+      });
+      setHasBaanalingamOrder(nextHasBaanalingam);
+      setHasMarakataOrder(nextHasMarakata);
 
       const milestoneData = milestoneRes?.data?.data || {};
       const marakataData = marakataRes?.data?.data || {};
@@ -272,7 +299,21 @@ const AvailableRewardsScreen = () => {
           })
           .filter(row => row.name && (isCanonicalReward(row.name) || Boolean(row.id)));
 
-        setRewards(sortRewardsCanonical(mapped));
+        const sorted = sortRewardsCanonical(mapped);
+        setRewards(sorted);
+        hasRewardsRef.current = sorted.length > 0;
+        setReadCache(
+          'rewards:available',
+          {
+            rewards: sorted,
+            userTotalJapas: total,
+            marakataTarget: locked,
+            relativeTargets: targetMap,
+            hasBaanalingamOrder: nextHasBaanalingam,
+            hasMarakataOrder: nextHasMarakata,
+          } satisfies RewardsCachePayload,
+          READ_TTL_MS,
+        );
         // Prefetch admin photos so thumbs appear faster on scroll.
         mapped.forEach(row => {
           const uri = resolveMediaUrl(row.imageUrl);
@@ -285,9 +326,11 @@ const AvailableRewardsScreen = () => {
         setError(t('unableToLoadRewards') || 'Unable to load rewards.');
       }
     } catch (err) {
-      setRawError(err);
-      setRewards([]);
-      setError(t('unableToLoadRewards') || 'Unable to load rewards.');
+      if (!hasRewardsRef.current) {
+        setRawError(err);
+        setRewards([]);
+        setError(t('unableToLoadRewards') || 'Unable to load rewards.');
+      }
       try {
         const stored = await getStoredUser();
         const locked = await resolveMarakataUnlockTarget(

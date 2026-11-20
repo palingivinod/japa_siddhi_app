@@ -110,6 +110,24 @@ export const getJapaDraft = async (
   return latest ? normalize(latest) : null;
 };
 
+/** One AsyncStorage read for challenge resume chips (avoids N× readMap). */
+export const listActiveChallengeDraftIds = async (): Promise<
+  Record<number, boolean>
+> => {
+  const map = await readMap();
+  const out: Record<number, boolean> = {};
+  for (const draft of Object.values(map)) {
+    if (!isActive(draft)) {
+      continue;
+    }
+    const id = Number(draft.challengeId || 0);
+    if (id > 0) {
+      out[id] = true;
+    }
+  }
+  return out;
+};
+
 export const saveJapaDraft = async (draft: JapaDraft) => {
   const next = normalize({...draft, updatedAt: Date.now()});
   const map = await readMap();

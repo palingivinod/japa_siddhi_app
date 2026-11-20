@@ -16,6 +16,7 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
+import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import ApiErrorPanel from '../common/ApiErrorPanel';
 import PrimaryButton from '../common/PrimaryButton';
@@ -404,13 +405,23 @@ const NotificationsScreen = () => {
     ? String(route.params.highlightId)
     : null;
 
+  const hasItemsRef = useRef(false);
+
   const load = useCallback(async () => {
-    setLoading(true);
+    // Soft refresh — keep previous inbox visible while updating.
+    const cached = getReadCache<any[]>('notifications:list');
+    if (cached?.length && !hasItemsRef.current) {
+      setItems(cached);
+      hasItemsRef.current = true;
+      setLoading(false);
+    } else if (!hasItemsRef.current) {
+      setLoading(true);
+    }
     setError('');
     setRawError(null);
     try {
       const [response, storedCleared] = await Promise.all([
-        apiService.get('/notifications'),
+        apiService.get('/notifications', {params: {limit: 80}}),
         AsyncStorage.getItem('cleared_notification_ids'),
       ]);
       const clearedSet = new Set<string>(
@@ -428,6 +439,8 @@ const NotificationsScreen = () => {
         ? visible.map((item: any) => ({...item, isRead: true}))
         : visible;
       setItems(shown);
+      hasItemsRef.current = shown.length > 0;
+      setReadCache('notifications:list', shown, READ_TTL_MS);
       setAppBadgeCount(0).catch(() => undefined);
       if (hasUnread) {
         apiService.put('/notifications/read-all').catch(() => undefined);
@@ -439,8 +452,10 @@ const NotificationsScreen = () => {
         }
       });
     } catch (err) {
+      if (!hasItemsRef.current) {
         setRawError(err);
-      setError(getApiError(err, t('couldNotLoadMilestones')));
+        setError(getApiError(err, t('couldNotLoadMilestones')));
+      }
     } finally {
       setLoading(false);
     }

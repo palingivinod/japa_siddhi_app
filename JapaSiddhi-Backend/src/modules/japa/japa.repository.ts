@@ -455,7 +455,20 @@ class JapaRepository {
    * and how much they have chanted between them. A devotee counts once, whether
    * they joined the mantra or simply chanted it.
    */
-  async getCommunityMantraStats() {
+  async getCommunityMantraStats(mantraIds?: number[]) {
+    const ids = [
+      ...new Set(
+        (mantraIds || [])
+          .map(id => Number(id))
+          .filter(id => Number.isFinite(id) && id > 0),
+      ),
+    ];
+    const idFilter =
+      ids.length > 0
+        ? `AND mantra_id IN (${ids.map(() => '?').join(', ')})`
+        : '';
+    const idParams = ids.length > 0 ? ids : [];
+
     const [chantRows, devoteeRows] = await Promise.all([
       mysql.query<any[]>(
         `
@@ -465,9 +478,11 @@ class JapaRepository {
         FROM japa_sessions
         WHERE mantra_type = 'DEFAULT'
         AND mantra_id IS NOT NULL
+        ${idFilter}
         ${EXCLUDE_CHALLENGE_REMARKS}
         GROUP BY mantra_id
         `,
+        idParams,
       ),
       mysql.query<any[]>(
         `
@@ -477,15 +492,18 @@ class JapaRepository {
           FROM japa_sessions
           WHERE mantra_type = 'DEFAULT'
           AND mantra_id IS NOT NULL
+          ${idFilter}
           ${EXCLUDE_CHALLENGE_REMARKS}
           UNION
           SELECT DISTINCT mantra_id AS mantraId, user_id
           FROM japa_goals
           WHERE mantra_type = 'DEFAULT'
           AND mantra_id IS NOT NULL
+          ${idFilter}
         ) t
         GROUP BY mantraId
         `,
+        [...idParams, ...idParams],
       ),
     ]);
 
