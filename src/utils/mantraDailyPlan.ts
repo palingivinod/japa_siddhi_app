@@ -20,8 +20,8 @@ const morningTarget = (atStart: number, days: number) => {
   if (days <= 1) {
     return atStart;
   }
-  const divisor = days >= 900 ? 30 : days;
-  return Math.max(1, Math.ceil(atStart / divisor));
+  // Use full remaining days — do not collapse long goals (e.g. 30 years) to ÷30.
+  return Math.max(1, Math.ceil(atStart / days));
 };
 
 const capToRemaining = (target: number, atStart: number) => {

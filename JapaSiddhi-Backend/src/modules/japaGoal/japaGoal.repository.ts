@@ -190,8 +190,8 @@ class JapaGoalRepository {
       if (days <= 1) {
         return remaining;
       }
-      const divisor = days >= 900 ? 30 : days;
-      return Math.max(1, Math.ceil(remaining / divisor));
+      // Real remaining calendar days (long Antharanga goals must not use ÷30).
+      return Math.max(1, Math.ceil(remaining / days));
     };
 
     for (const goal of goals) {

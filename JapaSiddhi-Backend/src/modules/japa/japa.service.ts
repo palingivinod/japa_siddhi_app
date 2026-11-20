@@ -227,11 +227,10 @@ class JapaService {
                 );
               }
             }
-            const dayDivisor = remDays >= 900 ? 30 : remDays;
             targetDaily =
               remainingCount <= 0
                 ? 0
-                : Math.max(1, Math.ceil(remainingCount / dayDivisor));
+                : Math.max(1, Math.ceil(remainingCount / remDays));
           }
         }
 
@@ -1087,7 +1086,7 @@ class JapaService {
           deadline_at AS deadlineAt
         FROM mantras
         WHERE is_active = 1
-          AND japa_list = 'SAMUHIKA'
+          AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
         ORDER BY display_order ASC, id ASC
         `,
       );
@@ -1107,7 +1106,7 @@ class JapaService {
           deadline_at AS deadlineAt
         FROM mantras
         WHERE is_active = 1
-          AND japa_list = 'SAMUHIKA'
+          AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
         ORDER BY display_order ASC, id ASC
         `,
       );
@@ -1118,7 +1117,7 @@ class JapaService {
         japaRepository.getDevoteeCount(),
         this.getSummary(userId),
         japaRepository.getCommunityMantraStats(),
-        mantraRepository.listCategories(),
+        mantraRepository.listCategories('SAMUHIKA'),
       ]);
 
     const now = Date.now();

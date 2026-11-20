@@ -1,6 +1,8 @@
 import mysql from '../../database/mysql';
 import {
+  BUILTIN_CATEGORY_CODES,
   MANTRA_CATEGORIES,
+  listsMatchingScope,
   normalizeMantraCategory,
   normalizeMantraList,
 } from './mantraCategories';
@@ -27,6 +29,7 @@ export type MantraInput = {
 export type CategoryInput = {
   name: string;
   categoryType?: 'EVENT' | 'NORMAL';
+  japaList?: string;
   imageUrl?: string | null;
   videoUrl?: string | null;
   audioUrl?: string | null;
@@ -73,6 +76,7 @@ const CATEGORY_COLUMNS = `
   name,
   display_order AS displayOrder,
   IFNULL(category_type, 'NORMAL') AS categoryType,
+  IFNULL(japa_list, 'BOTH') AS japaList,
   IFNULL(image_url, '') AS imageUrl,
   IFNULL(video_url, '') AS videoUrl,
   IFNULL(audio_url, '') AS audioUrl
@@ -126,6 +130,88 @@ class MantraRepository {
     await add(`ALTER TABLE mantra_categories ADD COLUMN image_url TEXT NULL`);
     await add(`ALTER TABLE mantra_categories ADD COLUMN video_url TEXT NULL`);
     await add(`ALTER TABLE mantra_categories ADD COLUMN audio_url TEXT NULL`);
+    await add(
+      `ALTER TABLE mantra_categories ADD COLUMN japa_list VARCHAR(20) NOT NULL DEFAULT 'BOTH'`,
+    );
+    await this.migrateCategoryJapaLists();
+    // Event campaign — Samuhika only; must not appear under admin "Both".
+    try {
+      await mysql.query(
+        `
+        UPDATE mantra_categories
+        SET japa_list = 'SAMUHIKA'
+        WHERE code = 'shiva_naama_japa_yagyam'
+          AND UPPER(IFNULL(japa_list, 'BOTH')) = 'BOTH'
+        `,
+      );
+    } catch {
+      // Column/table may be missing on very old DBs.
+    }
+  }
+
+  private categoryListMigrated = false;
+
+  /** One-time: builtins → BOTH; custom categories follow their mantras. */
+  private async migrateCategoryJapaLists() {
+    if (this.categoryListMigrated) {
+      return;
+    }
+    try {
+      const rows = await mysql.query<any[]>(
+        `SELECT code, IFNULL(japa_list, '') AS japaList FROM mantra_categories`,
+      );
+      for (const row of rows || []) {
+        const code = String(row.code || '');
+        if (!code) {
+          continue;
+        }
+        if (BUILTIN_CATEGORY_CODES.has(code as any)) {
+          await mysql.query(
+            `UPDATE mantra_categories SET japa_list = 'BOTH' WHERE code = ?`,
+            [code],
+          );
+          continue;
+        }
+        const existing = String(row.japaList || '').toUpperCase();
+        if (
+          existing === 'SAMUHIKA' ||
+          existing === 'ANTHARANGA' ||
+          existing === 'BOTH'
+        ) {
+          continue;
+        }
+        const usage = await mysql.query<any[]>(
+          `
+          SELECT DISTINCT UPPER(IFNULL(japa_list, '')) AS japaList
+          FROM mantras
+          WHERE category_code = ?
+          `,
+          [code],
+        );
+        const lists = new Set(
+          (usage || [])
+            .map((item: any) => String(item.japaList || '').toUpperCase())
+            .filter(Boolean),
+        );
+        let next = 'SAMUHIKA';
+        if (lists.has('SAMUHIKA') && lists.has('ANTHARANGA')) {
+          next = 'BOTH';
+        } else if (lists.has('ANTHARANGA') && !lists.has('SAMUHIKA')) {
+          next = 'ANTHARANGA';
+        } else if (lists.has('BOTH')) {
+          next = 'BOTH';
+        } else if (lists.has('SAMUHIKA')) {
+          next = 'SAMUHIKA';
+        }
+        await mysql.query(
+          `UPDATE mantra_categories SET japa_list = ? WHERE code = ?`,
+          [next, code],
+        );
+      }
+      this.categoryListMigrated = true;
+    } catch {
+      // Older DBs without column yet — next ensureMantraLists call retries.
+    }
   }
 
   private async ensureCategoryTable() {
@@ -203,8 +289,9 @@ class MantraRepository {
     );
   }
 
-  async listCategories() {
+  async listCategories(list?: string | null) {
     await this.ensureMantraLists();
+    const scope = normalizeMantraList(list);
     try {
       const rows = await mysql.query<any[]>(
         `
@@ -213,7 +300,22 @@ class MantraRepository {
         ORDER BY display_order ASC, id ASC
         `,
       );
-      return rows || [];
+      const all = rows || [];
+      if (!scope) {
+        return all;
+      }
+      if (scope === 'BOTH') {
+        return all.filter(
+          (row: any) =>
+            String(row.japaList || 'BOTH').toUpperCase() === 'BOTH',
+        );
+      }
+      const allowed = new Set(listsMatchingScope(scope));
+      return all.filter((row: any) =>
+        allowed.has(
+          (normalizeMantraList(row.japaList) || 'BOTH') as any,
+        ),
+      );
     } catch {
       const rows = await mysql.query<any[]>(
         `
@@ -225,6 +327,7 @@ class MantraRepository {
       return (rows || []).map((row: any) => ({
         ...row,
         categoryType: 'NORMAL',
+        japaList: 'BOTH',
         imageUrl: '',
         videoUrl: '',
         audioUrl: '',
@@ -257,13 +360,16 @@ class MantraRepository {
       String(payload.categoryType || 'NORMAL').toUpperCase() === 'EVENT'
         ? 'EVENT'
         : 'NORMAL';
+    const japaList = normalizeMantraList(payload.japaList) || 'SAMUHIKA';
     const imageUrl = String(payload.imageUrl || '').trim() || null;
     const videoUrl = String(payload.videoUrl || '').trim() || null;
     const audioUrl = String(payload.audioUrl || '').trim() || null;
     const existing = await this.listCategories();
     if (
       existing.some(
-        (item: any) => String(item.name || '').toLowerCase() === clean.toLowerCase(),
+        (item: any) =>
+          String(item.name || '').toLowerCase() === clean.toLowerCase() &&
+          String(item.japaList || 'BOTH').toUpperCase() === japaList,
       )
     ) {
       return {error: 'That category already exists.' as const};
@@ -288,20 +394,45 @@ class MantraRepository {
       await mysql.query(
         `
         INSERT INTO mantra_categories (
-          code, name, display_order, category_type, image_url, video_url, audio_url
+          code, name, display_order, category_type, japa_list, image_url, video_url, audio_url
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `,
-        [code, clean, displayOrder, categoryType, imageUrl, videoUrl, audioUrl],
+        [
+          code,
+          clean,
+          displayOrder,
+          categoryType,
+          japaList,
+          imageUrl,
+          videoUrl,
+          audioUrl,
+        ],
       );
     } catch {
-      await mysql.query(
-        `
-        INSERT INTO mantra_categories (code, name, display_order)
-        VALUES (?, ?, ?)
-        `,
-        [code, clean, displayOrder],
-      );
+      try {
+        await mysql.query(
+          `
+          INSERT INTO mantra_categories (
+            code, name, display_order, category_type, image_url, video_url, audio_url
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          `,
+          [code, clean, displayOrder, categoryType, imageUrl, videoUrl, audioUrl],
+        );
+        await mysql.query(
+          `UPDATE mantra_categories SET japa_list = ? WHERE code = ?`,
+          [japaList, code],
+        );
+      } catch {
+        await mysql.query(
+          `
+          INSERT INTO mantra_categories (code, name, display_order)
+          VALUES (?, ?, ?)
+          `,
+          [code, clean, displayOrder],
+        );
+      }
     }
     return {
       category: {
@@ -309,6 +440,7 @@ class MantraRepository {
         name: clean,
         displayOrder,
         categoryType,
+        japaList,
         imageUrl: imageUrl || '',
         videoUrl: videoUrl || '',
         audioUrl: audioUrl || '',
@@ -360,26 +492,43 @@ class MantraRepository {
       input.audioUrl !== undefined
         ? String(input.audioUrl || '').trim() || null
         : String(current?.audioUrl || '').trim() || null;
+    const japaList =
+      input.japaList !== undefined
+        ? normalizeMantraList(input.japaList) ||
+          String(current?.japaList || 'SAMUHIKA').toUpperCase()
+        : String(current?.japaList || 'BOTH').toUpperCase();
     try {
       await mysql.query(
         `
         UPDATE mantra_categories
-        SET name = ?, category_type = ?, image_url = ?, video_url = ?, audio_url = ?
+        SET name = ?, category_type = ?, japa_list = ?, image_url = ?, video_url = ?, audio_url = ?
         WHERE code = ?
         `,
-        [clean, categoryType, imageUrl, videoUrl, audioUrl, category],
+        [clean, categoryType, japaList, imageUrl, videoUrl, audioUrl, category],
       );
     } catch {
-      await mysql.query(
-        `UPDATE mantra_categories SET name = ? WHERE code = ?`,
-        [clean, category],
-      );
+      try {
+        await mysql.query(
+          `
+          UPDATE mantra_categories
+          SET name = ?, category_type = ?, image_url = ?, video_url = ?, audio_url = ?
+          WHERE code = ?
+          `,
+          [clean, categoryType, imageUrl, videoUrl, audioUrl, category],
+        );
+      } catch {
+        await mysql.query(
+          `UPDATE mantra_categories SET name = ? WHERE code = ?`,
+          [clean, category],
+        );
+      }
     }
     return {
       category: {
         code: category,
         name: clean,
         categoryType,
+        japaList,
         imageUrl: imageUrl || '',
         videoUrl: videoUrl || '',
         audioUrl: audioUrl || '',
@@ -465,31 +614,53 @@ class MantraRepository {
 
   async getActiveMantras(list?: string | null, includeId?: number) {
     await this.ensureMantraLists();
-    const japaList = normalizeMantraList(list) || 'SAMUHIKA';
+    const scope = normalizeMantraList(list) || 'SAMUHIKA';
     const extraId = Number(includeId) || 0;
+    if (scope === 'BOTH') {
+      return mysql.query<any[]>(
+        `
+        SELECT ${MANTRA_COLUMNS}
+        FROM mantras
+        WHERE (is_active = 1 AND japa_list = 'BOTH')
+           OR (? > 0 AND id = ?)
+        ORDER BY display_order ASC, id ASC
+        `,
+        [extraId, extraId],
+      );
+    }
     return mysql.query<any[]>(
       `
       SELECT ${MANTRA_COLUMNS}
       FROM mantras
-      WHERE (is_active = 1 AND japa_list = ?)
+      WHERE (is_active = 1 AND (japa_list = ? OR japa_list = 'BOTH'))
          OR (? > 0 AND id = ?)
       ORDER BY display_order ASC, id ASC
       `,
-      [japaList, extraId, extraId],
+      [scope, extraId, extraId],
     );
   }
 
   async getAllMantras(list?: string | null) {
     await this.ensureMantraLists();
-    const japaList = normalizeMantraList(list) || 'SAMUHIKA';
+    const scope = normalizeMantraList(list) || 'SAMUHIKA';
+    if (scope === 'BOTH') {
+      return mysql.query<any[]>(
+        `
+        SELECT ${MANTRA_COLUMNS}
+        FROM mantras
+        WHERE japa_list = 'BOTH'
+        ORDER BY display_order ASC, id ASC
+        `,
+      );
+    }
     return mysql.query<any[]>(
       `
       SELECT ${MANTRA_COLUMNS}
       FROM mantras
-      WHERE japa_list = ?
+      WHERE japa_list = ? OR japa_list = 'BOTH'
       ORDER BY display_order ASC, id ASC
       `,
-      [japaList],
+      [scope],
     );
   }
 

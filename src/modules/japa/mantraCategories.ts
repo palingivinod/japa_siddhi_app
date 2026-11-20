@@ -22,10 +22,39 @@ export type MantraCategoryOption = {
 export const builtinCategories = (): MantraCategoryOption[] =>
   MANTRA_CATEGORIES.map(item => ({code: item.code, name: item.label}));
 
-export const mantraListLabel = (list?: string) =>
-  String(list || '').toUpperCase() === 'ANTHARANGA'
-    ? 'Antharanga Japa'
-    : 'Samuhika Japa';
+export type MantraListCode = 'SAMUHIKA' | 'ANTHARANGA' | 'BOTH';
+
+export const normalizeMantraListParam = (
+  value?: unknown,
+): MantraListCode => {
+  const code = String(value || '')
+    .trim()
+    .toUpperCase();
+  if (code === 'ANTHARANGA' || code === 'PRIVATE') {
+    return 'ANTHARANGA';
+  }
+  if (code === 'BOTH' || code === 'ALL' || code === 'SHARED') {
+    return 'BOTH';
+  }
+  return 'SAMUHIKA';
+};
+
+export const mantraListLabel = (list?: string) => {
+  const code = normalizeMantraListParam(list);
+  if (code === 'ANTHARANGA') {
+    return 'Antharanga Japa';
+  }
+  if (code === 'BOTH') {
+    return 'Both (Samuhika + Antharanga)';
+  }
+  return 'Samuhika Japa';
+};
+
+/** Samuhika-style schedule / event / notify UI (includes Both). */
+export const isSamuhikaStyleList = (list?: string) => {
+  const code = normalizeMantraListParam(list);
+  return code === 'SAMUHIKA' || code === 'BOTH';
+};
 
 export const categoryTitle = (
   category: MantraCategoryOption,

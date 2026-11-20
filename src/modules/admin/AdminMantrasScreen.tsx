@@ -19,7 +19,9 @@ import {
   MantraCategoryOption,
   builtinCategories,
   groupByCategory,
+  isSamuhikaStyleList,
   mantraListLabel,
+  normalizeMantraListParam,
 } from '../japa/mantraCategories';
 
 type ListedMantra = {
@@ -33,11 +35,9 @@ type ListedMantra = {
 const AdminMantrasScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const japaList =
-    String(route.params?.list || 'SAMUHIKA').toUpperCase() === 'ANTHARANGA'
-      ? 'ANTHARANGA'
-      : 'SAMUHIKA';
+  const japaList = normalizeMantraListParam(route.params?.list);
   const listTitle = mantraListLabel(japaList);
+  const samuhikaStyle = isSamuhikaStyleList(japaList);
   const [mantras, setMantras] = useState<ListedMantra[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -191,7 +191,9 @@ const AdminMantrasScreen = () => {
     try {
       const [response, categoryResponse] = await Promise.all([
         apiService.get('/admin/mantras', {params: {list: japaList}}),
-        apiService.get('/admin/mantra-categories'),
+        apiService.get('/admin/mantra-categories', {
+          params: {list: japaList},
+        }),
       ]);
       const categoryRows = Array.isArray(categoryResponse.data?.data)
         ? categoryResponse.data.data
@@ -367,11 +369,12 @@ const AdminMantrasScreen = () => {
     try {
       const response = await apiService.post('/admin/mantra-categories', {
         name,
-        categoryType: japaList === 'SAMUHIKA' ? categoryType : 'NORMAL',
+        japaList,
+        categoryType: samuhikaStyle ? categoryType : 'NORMAL',
         imageUrl: categoryImageUrl.trim() || undefined,
         videoUrl: categoryVideoUrl.trim() || undefined,
         audioUrl: categoryAudioUrl.trim() || undefined,
-        notifyUsers: japaList === 'SAMUHIKA' ? categoryNotify : false,
+        notifyUsers: samuhikaStyle ? categoryNotify : false,
       });
       const created = response.data?.data;
       if (created?.code) {
@@ -510,23 +513,28 @@ const AdminMantrasScreen = () => {
                 placeholder="Category name"
                 placeholderTextColor={Colors.placeholder}
               />
-              {japaList === 'SAMUHIKA' ? (
+              {samuhikaStyle ? (
                 <>
                   <Text style={styles.meta}>Type</Text>
                   <View style={styles.actions}>
-                    {(['NORMAL', 'EVENT'] as const).map(option => (
-                      <TouchableOpacity
-                        key={option}
-                        style={[
-                          styles.editBtn,
-                          categoryType === option ? styles.activeOn : null,
-                        ]}
-                        onPress={() => setCategoryType(option)}>
-                        <Text style={styles.editText}>
-                          {option === 'EVENT' ? 'Event' : 'Normal'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {(['NORMAL', 'EVENT'] as const).map(option => {
+                      const on = categoryType === option;
+                      return (
+                        <TouchableOpacity
+                          key={option}
+                          style={[styles.choiceChip, on && styles.choiceChipOn]}
+                          onPress={() => setCategoryType(option)}>
+                          <Text
+                            style={[
+                              styles.choiceChipText,
+                              on && styles.choiceChipTextOn,
+                            ]}>
+                            {on ? '✓ ' : ''}
+                            {option === 'EVENT' ? 'Event' : 'Normal'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                   <Text style={styles.meta}>Media (optional)</Text>
                   <View style={styles.actions}>
@@ -591,19 +599,24 @@ const AdminMantrasScreen = () => {
                   </View>
                   <Text style={styles.meta}>Notify users</Text>
                   <View style={styles.actions}>
-                    {[true, false].map(option => (
-                      <TouchableOpacity
-                        key={`cat-notify-${String(option)}`}
-                        style={[
-                          styles.editBtn,
-                          categoryNotify === option ? styles.activeOn : null,
-                        ]}
-                        onPress={() => setCategoryNotify(option)}>
-                        <Text style={styles.editText}>
-                          {option ? 'Yes' : 'No (testing)'}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                    {[true, false].map(option => {
+                      const on = categoryNotify === option;
+                      return (
+                        <TouchableOpacity
+                          key={`cat-notify-${String(option)}`}
+                          style={[styles.choiceChip, on && styles.choiceChipOn]}
+                          onPress={() => setCategoryNotify(option)}>
+                          <Text
+                            style={[
+                              styles.choiceChipText,
+                              on && styles.choiceChipTextOn,
+                            ]}>
+                            {on ? '✓ ' : ''}
+                            {option ? 'Yes' : 'No (testing)'}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
                   </View>
                 </>
               ) : null}
@@ -881,6 +894,30 @@ const styles = StyleSheet.create({
   editText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
+  },
+  choiceChip: {
+    flexGrow: 1,
+    minWidth: 120,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#D6C4A8',
+    backgroundColor: Colors.white,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  choiceChipOn: {
+    borderColor: Colors.sacredBrown,
+    backgroundColor: Colors.sacredBrown,
+  },
+  choiceChipText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  choiceChipTextOn: {
+    color: Colors.white,
   },
   deleteBtn: {
     borderRadius: 20,

@@ -34,8 +34,8 @@ export function computeEffectiveDailyTarget(opts: {
   if (days <= 1) {
     return remaining;
   }
-  const dayDivisor = days >= 900 ? 30 : days;
-  return Math.max(1, Math.ceil(remaining / dayDivisor));
+  // Always divide by real remaining calendar days (incl. long Antharanga goals).
+  return Math.max(1, Math.ceil(remaining / days));
 }
 
 /** Inclusive days from one Indian calendar date through the goal end date. */

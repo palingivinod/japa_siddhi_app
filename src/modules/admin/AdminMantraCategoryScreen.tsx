@@ -17,6 +17,7 @@ import {
   MantraCategoryOption,
   builtinCategories,
   mantraListLabel,
+  normalizeMantraListParam,
 } from '../japa/mantraCategories';
 
 type ListedMantra = {
@@ -30,10 +31,7 @@ type ListedMantra = {
 const AdminMantraCategoryScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const japaList =
-    String(route.params?.list || 'SAMUHIKA').toUpperCase() === 'ANTHARANGA'
-      ? 'ANTHARANGA'
-      : 'SAMUHIKA';
+  const japaList = normalizeMantraListParam(route.params?.list);
   const categoryCode = String(route.params?.categoryCode || '');
   const categoryName = String(route.params?.categoryName || 'Category');
   const listTitle = mantraListLabel(japaList);
@@ -51,7 +49,9 @@ const AdminMantraCategoryScreen = () => {
     try {
       const [response, categoryResponse] = await Promise.all([
         apiService.get('/admin/mantras', {params: {list: japaList}}),
-        apiService.get('/admin/mantra-categories'),
+        apiService.get('/admin/mantra-categories', {
+          params: {list: japaList},
+        }),
       ]);
       const categoryRows = Array.isArray(categoryResponse.data?.data)
         ? categoryResponse.data.data

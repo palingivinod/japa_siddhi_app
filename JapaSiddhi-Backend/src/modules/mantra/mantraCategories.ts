@@ -9,7 +9,11 @@ export const MANTRA_CATEGORIES = [
 ] as const;
 
 export type MantraCategoryCode = (typeof MANTRA_CATEGORIES)[number]['code'];
-export type MantraListCode = 'SAMUHIKA' | 'ANTHARANGA';
+export type MantraListCode = 'SAMUHIKA' | 'ANTHARANGA' | 'BOTH';
+
+export const BUILTIN_CATEGORY_CODES = new Set(
+  MANTRA_CATEGORIES.map(item => item.code),
+);
 
 export const normalizeMantraList = (value?: unknown): MantraListCode | '' => {
   const code = String(value || '')
@@ -21,7 +25,19 @@ export const normalizeMantraList = (value?: unknown): MantraListCode | '' => {
   if (code === 'SAMUHIKA' || code === 'COMMUNITY') {
     return 'SAMUHIKA';
   }
+  if (code === 'BOTH' || code === 'ALL' || code === 'SHARED') {
+    return 'BOTH';
+  }
   return '';
+};
+
+/** Lists visible for a devotee/admin scope (includes BOTH). */
+export const listsMatchingScope = (scope?: unknown): MantraListCode[] => {
+  const code = normalizeMantraList(scope) || 'SAMUHIKA';
+  if (code === 'BOTH') {
+    return ['BOTH'];
+  }
+  return [code, 'BOTH'];
 };
 
 export const normalizeMantraCategory = (value?: unknown): string | null => {

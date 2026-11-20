@@ -1685,10 +1685,12 @@ const mapMantraRow = (row: any) => ({
   deadlineAt: row.deadlineAt || null,
 });
 
-router.get('/mantra-categories', async (_req: Request, res: Response) => {
+router.get('/mantra-categories', async (req: Request, res: Response) => {
   try {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;
-    const rows = await mantraRepository.listCategories();
+    const rows = await mantraRepository.listCategories(
+      String(req.query.list || ''),
+    );
     return res.json({success: true, data: rows});
   } catch (error: any) {
     return res.status(500).json({
@@ -1707,6 +1709,7 @@ router.post('/mantra-categories', async (req: Request, res: Response) => {
         String(req.body?.categoryType || '').toUpperCase() === 'EVENT'
           ? 'EVENT'
           : 'NORMAL',
+      japaList: req.body?.japaList,
       imageUrl: req.body?.imageUrl,
       videoUrl: req.body?.videoUrl,
       audioUrl: req.body?.audioUrl,
@@ -1721,29 +1724,29 @@ router.post('/mantra-categories', async (req: Request, res: Response) => {
       req.body?.notifyUsers !== false &&
       req.body?.notify !== false &&
       String(req.body?.notifyUsers).toLowerCase() !== 'false';
+    // Don't block save on push fan-out — notify in background.
     if (notifyUsers) {
-      try {
-        const {notifySamuhikaContent} = await import(
-          './adminNotification.service'
-        );
-        await notifySamuhikaContent({
-          kind: 'category',
-          id: result.category.code,
-          name: result.category.name,
-          categoryCode: result.category.code,
-          categoryName: result.category.name,
-          categoryType: result.category.categoryType as 'EVENT' | 'NORMAL',
-          imageUrl: result.category.imageUrl,
-          videoUrl: result.category.videoUrl,
-          audioUrl: result.category.audioUrl,
-        });
-      } catch (err) {
-        console.warn('Category create notify failed:', err);
-      }
+      void import('./adminNotification.service')
+        .then(({notifySamuhikaContent}) =>
+          notifySamuhikaContent({
+            kind: 'category',
+            id: result.category.code,
+            name: result.category.name,
+            categoryCode: result.category.code,
+            categoryName: result.category.name,
+            categoryType: result.category.categoryType as 'EVENT' | 'NORMAL',
+            imageUrl: result.category.imageUrl,
+            videoUrl: result.category.videoUrl,
+            audioUrl: result.category.audioUrl,
+          }),
+        )
+        .catch(err => console.warn('Category create notify failed:', err));
     }
     return res.status(201).json({
       success: true,
-      message: 'Category added.',
+      message: notifyUsers
+        ? 'Category added. Notifications are sending in the background.'
+        : 'Category added.',
       data: result.category,
     });
   } catch (error: any) {
@@ -1767,6 +1770,7 @@ router.put('/mantra-categories/:code', async (req: Request, res: Response) => {
               ? 'EVENT'
               : 'NORMAL'
             : undefined,
+        japaList: req.body?.japaList,
         imageUrl: req.body?.imageUrl,
         videoUrl: req.body?.videoUrl,
         audioUrl: req.body?.audioUrl,
@@ -1873,7 +1877,7 @@ router.post('/mantras', async (req: Request, res: Response) => {
     if (!japaList || !categoryCode) {
       return res.status(400).json({
         success: false,
-        message: 'Choose Samuhika or Antharanga, and a mantra category.',
+        message: 'Choose Samuhika, Antharanga, or Both, and a mantra category.',
       });
     }
     const mantraRepository = (await import('../mantra/mantra.repository'))
@@ -1900,48 +1904,55 @@ router.post('/mantras', async (req: Request, res: Response) => {
       req.body?.notifyUsers !== false &&
       req.body?.notify !== false &&
       String(req.body?.notifyUsers).toLowerCase() !== 'false';
+    // Don't block create on push fan-out — notify in background.
     if (notifyUsers) {
-      try {
-        if (japaList === 'SAMUHIKA') {
-          const {notifySamuhikaContent} = await import(
-            './adminNotification.service'
-          );
-          const category = await mantraRepository.getCategoryByCode(categoryCode);
-          await notifySamuhikaContent({
-            kind: 'mantra',
-            id: mapped.id,
-            name: mapped.name || mantraName,
-            categoryCode,
-            categoryName: category?.name,
-            categoryType:
-              String(category?.categoryType || '').toUpperCase() === 'EVENT'
-                ? 'EVENT'
-                : 'NORMAL',
-            mantraName: mapped.name || mantraName,
-            imageUrl: mapped.imageUrl || category?.imageUrl,
-            videoUrl: mapped.videoUrl || category?.videoUrl,
-            audioUrl: mapped.audioUrl || category?.audioUrl,
-            startsAt: mapped.startsAt,
-            deadlineAt: mapped.deadlineAt,
-            targetCount: mapped.target,
-          });
-        } else {
-          const {notifyAdminContentCreated} = await import(
-            './adminNotification.service'
-          );
-          await notifyAdminContentCreated({
-            kind: 'mantra',
-            id: mapped.id,
-            name: mapped.name || mantraName,
-          });
+      void (async () => {
+        try {
+          if (japaList === 'SAMUHIKA' || japaList === 'BOTH') {
+            const {notifySamuhikaContent} = await import(
+              './adminNotification.service'
+            );
+            const category = await mantraRepository.getCategoryByCode(
+              categoryCode,
+            );
+            await notifySamuhikaContent({
+              kind: 'mantra',
+              id: mapped.id,
+              name: mapped.name || mantraName,
+              categoryCode,
+              categoryName: category?.name,
+              categoryType:
+                String(category?.categoryType || '').toUpperCase() === 'EVENT'
+                  ? 'EVENT'
+                  : 'NORMAL',
+              mantraName: mapped.name || mantraName,
+              imageUrl: mapped.imageUrl || category?.imageUrl,
+              videoUrl: mapped.videoUrl || category?.videoUrl,
+              audioUrl: mapped.audioUrl || category?.audioUrl,
+              startsAt: mapped.startsAt,
+              deadlineAt: mapped.deadlineAt,
+              targetCount: mapped.target,
+            });
+          } else {
+            const {notifyAdminContentCreated} = await import(
+              './adminNotification.service'
+            );
+            await notifyAdminContentCreated({
+              kind: 'mantra',
+              id: mapped.id,
+              name: mapped.name || mantraName,
+            });
+          }
+        } catch (err) {
+          console.warn('Mantra create notify failed:', err);
         }
-      } catch (err) {
-        console.warn('Mantra create notify failed:', err);
-      }
+      })();
     }
     return res.status(201).json({
       success: true,
-      message: 'Mantra created successfully.',
+      message: notifyUsers
+        ? 'Mantra created successfully. Notifications are sending in the background.'
+        : 'Mantra created successfully.',
       data: mapped,
     });
   } catch (error: any) {
@@ -2097,33 +2108,39 @@ router.put('/mantras/:id/deadline', async (req: Request, res: Response) => {
       req.body?.notifyUsers !== false &&
       req.body?.notify !== false &&
       String(req.body?.notifyUsers).toLowerCase() !== 'false';
-    if (notifyUsers && String(mapped.japaList).toUpperCase() === 'SAMUHIKA') {
-      try {
-        const {notifySamuhikaContent} = await import(
-          './adminNotification.service'
-        );
-        const category = await mantraRepository.getCategoryByCode(
-          mapped.categoryCode,
-        );
-        await notifySamuhikaContent({
-          kind: 'deadline_extended',
-          id: mapped.id,
-          name: mapped.name,
-          categoryCode: mapped.categoryCode,
-          categoryName: category?.name,
-          categoryType:
-            String(category?.categoryType || '').toUpperCase() === 'EVENT'
-              ? 'EVENT'
-              : 'NORMAL',
-          mantraName: mapped.name,
-          imageUrl: mapped.imageUrl || category?.imageUrl,
-          startsAt: mapped.startsAt,
-          deadlineAt: mapped.deadlineAt,
-          targetCount: mapped.target,
-        });
-      } catch (err) {
-        console.warn('Deadline extend notify failed:', err);
-      }
+    const deadlineList = String(mapped.japaList || '').toUpperCase();
+    if (
+      notifyUsers &&
+      (deadlineList === 'SAMUHIKA' || deadlineList === 'BOTH')
+    ) {
+      void (async () => {
+        try {
+          const {notifySamuhikaContent} = await import(
+            './adminNotification.service'
+          );
+          const category = await mantraRepository.getCategoryByCode(
+            mapped.categoryCode,
+          );
+          await notifySamuhikaContent({
+            kind: 'deadline_extended',
+            id: mapped.id,
+            name: mapped.name,
+            categoryCode: mapped.categoryCode,
+            categoryName: category?.name,
+            categoryType:
+              String(category?.categoryType || '').toUpperCase() === 'EVENT'
+                ? 'EVENT'
+                : 'NORMAL',
+            mantraName: mapped.name,
+            imageUrl: mapped.imageUrl || category?.imageUrl,
+            startsAt: mapped.startsAt,
+            deadlineAt: mapped.deadlineAt,
+            targetCount: mapped.target,
+          });
+        } catch (err) {
+          console.warn('Deadline extend notify failed:', err);
+        }
+      })();
     }
     return res.json({
       success: true,
@@ -2267,6 +2284,9 @@ const mapChallengeRow = (row: any) => {
     targetValue: Number(row.targetValue) || 0,
     rewardType: row.rewardType || 'CERTIFICATE',
     rewardName: row.rewardName || '',
+    rewardIds: Array.isArray(row.rewardIds)
+      ? row.rewardIds.map((id: any) => Number(id)).filter((id: number) => id > 0)
+      : [],
     rewardQuantity: Number(row.rewardQuantity) || 1,
     startDate: parseChallengeDate(row.startDate) || row.startDate,
     endDate: parseChallengeDate(row.endDate) || row.endDate,
@@ -2287,6 +2307,68 @@ const mapChallengeRow = (row: any) => {
     },
     translations: parseJsonSafely(row.translations),
   };
+};
+
+const parseChallengeRewardIds = (raw: unknown): number[] => {
+  if (Array.isArray(raw)) {
+    return [
+      ...new Set(
+        raw.map(item => Number(item) || 0).filter(id => id > 0),
+      ),
+    ];
+  }
+  if (typeof raw === 'string' && raw.trim()) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parseChallengeRewardIds(parsed);
+      }
+    } catch {
+      // comma-separated
+    }
+    return [
+      ...new Set(
+        raw
+          .split(',')
+          .map(item => Number(item.trim()) || 0)
+          .filter(id => id > 0),
+      ),
+    ];
+  }
+  return [];
+};
+
+const resolveChallengeRewardLabel = async (rewardIds: number[]) => {
+  if (!rewardIds.length) {
+    return '';
+  }
+  try {
+    const placeholders = rewardIds.map(() => '?').join(', ');
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id, name
+      FROM challenge_rewards
+      WHERE id IN (${placeholders})
+      ORDER BY display_order ASC, id ASC
+      `,
+      rewardIds,
+    );
+    return (rows || [])
+      .map((row: any) => String(row.name || '').trim())
+      .filter(Boolean)
+      .join(' · ');
+  } catch {
+    return '';
+  }
+};
+
+const syncChallengeRewardOptions = async (
+  challengeId: number,
+  rewardIds: number[],
+) => {
+  const challengeRepository = (await import('../challenge/challenge.repository'))
+    .default;
+  return challengeRepository.setRewardIdsForChallenge(challengeId, rewardIds);
 };
 
 const challengeProgressPctSql = `
@@ -2349,9 +2431,24 @@ router.get('/challenges', async (_req: Request, res: Response) => {
         c.translations
       ORDER BY c.id DESC
     `);
+    const challengeRepository = (await import('../challenge/challenge.repository'))
+      .default;
+    const data = await Promise.all(
+      (rows || []).map(async row => {
+        const mapped = mapChallengeRow(row);
+        try {
+          mapped.rewardIds = await challengeRepository.getRewardIdsForChallenge(
+            Number(mapped.id),
+          );
+        } catch {
+          mapped.rewardIds = [];
+        }
+        return mapped;
+      }),
+    );
     return res.json({
       success: true,
-      data: (rows || []).map(mapChallengeRow),
+      data,
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -2398,7 +2495,12 @@ router.post('/challenges', async (req: Request, res: Response) => {
     }
     const description = String(req.body?.description || '').trim() || null;
     const mantraHint = String(req.body?.mantra || '').trim();
+    const rewardIds = parseChallengeRewardIds(
+      req.body?.rewardIds ?? req.body?.rewardIdList,
+    );
+    const linkedLabel = await resolveChallengeRewardLabel(rewardIds);
     const rewardName =
+      linkedLabel ||
       String(req.body?.rewardName || '').trim() ||
       (mantraHint ? `${mantraHint} Certificate` : 'Certificate');
 
@@ -2457,6 +2559,14 @@ router.post('/challenges', async (req: Request, res: Response) => {
     );
 
     const mapped = mapChallengeRow(created[0]);
+    if (rewardIds.length) {
+      mapped.rewardIds = await syncChallengeRewardOptions(
+        Number(mapped.id),
+        rewardIds,
+      );
+      mapped.rewardName =
+        (await resolveChallengeRewardLabel(mapped.rewardIds)) || mapped.rewardName;
+    }
     // Await notify so Render does not cut off the work when the HTTP response ends.
     let notify: any = null;
     try {
@@ -2580,8 +2690,19 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
     }
 
     const mantraHint = String(req.body?.mantra || '').trim();
+    const rewardIdsProvided =
+      req.body?.rewardIds !== undefined || req.body?.rewardIdList !== undefined;
+    const rewardIds = rewardIdsProvided
+      ? parseChallengeRewardIds(req.body?.rewardIds ?? req.body?.rewardIdList)
+      : [];
     let rewardName = String(current.rewardName || 'Certificate');
-    if (req.body?.rewardName !== undefined) {
+    if (rewardIdsProvided) {
+      const linkedLabel = await resolveChallengeRewardLabel(rewardIds);
+      rewardName =
+        linkedLabel ||
+        String(req.body?.rewardName || '').trim() ||
+        rewardName;
+    } else if (req.body?.rewardName !== undefined) {
       rewardName = String(req.body.rewardName || '').trim() || rewardName;
     } else if (mantraHint) {
       rewardName = `${mantraHint} Certificate`;
@@ -2639,6 +2760,10 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
       ],
     );
 
+    if (rewardIdsProvided) {
+      await syncChallengeRewardOptions(id, rewardIds);
+    }
+
     const rows = await mysql.query<any[]>(`
       SELECT
         id,
@@ -2658,10 +2783,21 @@ router.put('/challenges/:id', async (req: Request, res: Response) => {
       LIMIT 1
     `, [id]);
 
+    const mappedUpdate = mapChallengeRow(rows[0]);
+    try {
+      const challengeRepository = (
+        await import('../challenge/challenge.repository')
+      ).default;
+      mappedUpdate.rewardIds =
+        await challengeRepository.getRewardIdsForChallenge(id);
+    } catch {
+      mappedUpdate.rewardIds = rewardIds;
+    }
+
     return res.json({
       success: true,
       message: 'Challenge updated successfully.',
-      data: mapChallengeRow(rows[0]),
+      data: mappedUpdate,
     });
   } catch (error: any) {
     return res.status(500).json({

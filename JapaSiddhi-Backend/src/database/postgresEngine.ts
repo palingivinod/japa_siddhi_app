@@ -166,6 +166,11 @@ CREATE TABLE IF NOT EXISTS mantra_categories (
   code TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   display_order INTEGER NOT NULL DEFAULT 0,
+  category_type TEXT NOT NULL DEFAULT 'NORMAL',
+  japa_list TEXT NOT NULL DEFAULT 'BOTH',
+  image_url TEXT,
+  video_url TEXT,
+  audio_url TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
 );
 

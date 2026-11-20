@@ -214,6 +214,13 @@
             <data android:scheme="japasiddhi" android:host="monthly-support" />
             <data android:scheme="japasiddhi" android:host="ms" />
         </intent-filter>
+        <!-- Samuhika mantra share: japasiddhi://samuhika/mantra/{id} -->
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="japasiddhi" android:host="samuhika" android:pathPrefix="/mantra" />
+        </intent-filter>
         <!-- Booking services: japasiddhi://book/{slug} and japasiddhi://{slug} -->
         <intent-filter>
             <action android:name="android.intent.action.VIEW" />
@@ -244,14 +251,18 @@
             <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/annadanam" />
             <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/ms" />
             <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="japasiddhi.app" android:pathPrefix="/samuhika" />
             <data android:scheme="https" android:host="japasiddhi.com" android:pathPrefix="/ms" />
             <data android:scheme="https" android:host="japasiddhi.com" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="japasiddhi.com" android:pathPrefix="/samuhika" />
             <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/ms" />
             <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="www.japasiddhi.com" android:pathPrefix="/samuhika" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annasantharpana" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/annadanam" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/ms" />
             <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/book" />
+            <data android:scheme="https" android:host="japasiddhi.onrender.com" android:pathPrefix="/samuhika" />
         </intent-filter>
       </activity>
     </application>

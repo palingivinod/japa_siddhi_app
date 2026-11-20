@@ -143,6 +143,31 @@ app.get(['/annasantharpana', '/annadanam'], (req, res) => {
   );
 });
 
+// Samuhika mantra share links → open app on Community Japa with mantra selected
+app.get(['/samuhika/mantra', '/samuhika/mantra/:id'], (req, res) => {
+  const lang = pickLandingLang({
+    queryLang: String(req.query.lang || req.query.hl || ''),
+    acceptLanguage: String(req.headers['accept-language'] || ''),
+  });
+  const mantraId = Number(req.params.id || 0);
+  const deepLink =
+    Number.isFinite(mantraId) && mantraId > 0
+      ? `japasiddhi://samuhika/mantra/${mantraId}`
+      : 'japasiddhi://samuhika/mantra';
+  res.status(200).send(
+    renderDeepLinkLanding({
+      title: 'Samuhika Japa',
+      subtitle:
+        Number.isFinite(mantraId) && mantraId > 0
+          ? 'Open Japa Siddhi to join this Samuhika mantra.'
+          : 'Open Japa Siddhi to view Samuhika Japa.',
+      appDeepLink: deepLink,
+      icon: '🕉️',
+      lang,
+    }),
+  );
+});
+
 // Monthly Support flyer links (same open-app pattern as Anna Santharpana)
 app.get(['/ms', '/ms/:slug'], (req, res) => {
   const lang = pickLandingLang({

@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Clipboard,
   StyleSheet,
   Text,
   TextInput,
@@ -23,9 +24,12 @@ import AdminLanguageTabs, {
   AdminSupportedLang,
 } from './components/AdminLanguageTabs';
 import {parseTranslationsMap} from '../../utils/localizedContent';
+import {buildSamuhikaMantraWebLink} from '../../utils/samuhikaDeepLink';
 import {
   MANTRA_CATEGORIES,
+  isSamuhikaStyleList,
   mantraListLabel,
+  normalizeMantraListParam,
 } from '../japa/mantraCategories';
 
 interface MantraLangFields {
@@ -124,16 +128,16 @@ const Field = ({
 const AdminMantraEditScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
-  const mantraId = route.params?.mantraId
+  const routeMantraId = route.params?.mantraId
     ? String(route.params.mantraId)
     : '';
-  const isEdit = Boolean(mantraId);
-  const japaList =
-    String(route.params?.japaList || 'SAMUHIKA').toUpperCase() === 'ANTHARANGA'
-      ? 'ANTHARANGA'
-      : 'SAMUHIKA';
+  const [savedMantraId, setSavedMantraId] = useState(routeMantraId);
+  const mantraId = savedMantraId || routeMantraId;
+  const isEdit = Boolean(routeMantraId);
+  const japaList = normalizeMantraListParam(route.params?.japaList);
   const categoryCode = String(route.params?.categoryCode || '');
   const [shownList, setShownList] = useState(japaList);
+  const samuhikaStyle = isSamuhikaStyleList(shownList);
   const [shownCategory, setShownCategory] = useState(categoryCode);
   const [shownCategoryName, setShownCategoryName] = useState(
     String(route.params?.categoryName || ''),
@@ -184,7 +188,7 @@ const AdminMantraEditScreen = () => {
     }
     setLoading(true);
     try {
-      const response = await apiService.get(`/admin/mantras/${mantraId}`);
+      const response = await apiService.get(`/admin/mantras/${routeMantraId}`);
       const data = response.data?.data || {};
       const parsedTrans = parseTranslationsMap<MantraLangFields>(
         data.translations,
@@ -229,7 +233,7 @@ const AdminMantraEditScreen = () => {
       setAudioUrl(String(data.audioUrl || ''));
       setActive(Boolean(data.active));
       if (data.japaList) {
-        setShownList(String(data.japaList));
+        setShownList(normalizeMantraListParam(data.japaList));
       }
       if (data.categoryCode) {
         setShownCategory(String(data.categoryCode));
@@ -239,7 +243,13 @@ const AdminMantraEditScreen = () => {
     } finally {
       setLoading(false);
     }
-  }, [isEdit, mantraId]);
+  }, [isEdit, routeMantraId]);
+
+  useEffect(() => {
+    if (routeMantraId) {
+      setSavedMantraId(routeMantraId);
+    }
+  }, [routeMantraId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -518,18 +528,55 @@ const AdminMantraEditScreen = () => {
         notifyUsers,
         ...(!isEdit ? {japaList, categoryCode} : {}),
       };
+      let createdId = Number(mantraId) || 0;
       if (isEdit) {
         await apiService.put(`/admin/mantras/${mantraId}`, payload);
+        createdId = Number(mantraId) || 0;
       } else {
-        await apiService.post('/admin/mantras', payload);
+        const created = await apiService.post('/admin/mantras', payload);
+        createdId =
+          Number(
+            created.data?.data?.id ||
+              created.data?.data?.mantraId ||
+              created.data?.id ||
+              0,
+          ) || 0;
+        if (createdId) {
+          setSavedMantraId(String(createdId));
+        }
       }
-      Alert.alert(
-        'Saved',
-        isEdit
-          ? 'Mantra and multilingual translations updated.'
-          : 'Mantra created with multilingual translations.',
-        [{text: 'OK', onPress: () => navigation.goBack()}],
-      );
+      const shareLink =
+        isSamuhikaStyleList(shownList) && createdId
+          ? buildSamuhikaMantraWebLink(createdId)
+          : '';
+      if (shareLink) {
+        Alert.alert(
+          'Saved',
+          isEdit
+            ? 'Mantra updated. Copy the share link to send to devotees.'
+            : 'Mantra created. Copy the share link to send to devotees.',
+          [
+            {
+              text: 'Copy link',
+              onPress: () => {
+                Clipboard.setString(shareLink);
+                Alert.alert('Copied', shareLink, [
+                  {text: 'OK', onPress: () => navigation.goBack()},
+                ]);
+              },
+            },
+            {text: 'OK', onPress: () => navigation.goBack()},
+          ],
+        );
+      } else {
+        Alert.alert(
+          'Saved',
+          isEdit
+            ? 'Mantra and multilingual translations updated.'
+            : 'Mantra created with multilingual translations.',
+          [{text: 'OK', onPress: () => navigation.goBack()}],
+        );
+      }
     } catch (err) {
       Alert.alert('Save failed', getApiError(err, 'Could not save mantra.'));
     } finally {
@@ -538,6 +585,21 @@ const AdminMantraEditScreen = () => {
   };
 
   const activeLangOption = ADMIN_LANGUAGES.find(l => l.code === activeLang);
+  const samuhikaShareLink =
+    samuhikaStyle && Number(mantraId) > 0
+      ? buildSamuhikaMantraWebLink(mantraId)
+      : '';
+
+  const copySamuhikaLink = () => {
+    if (!samuhikaShareLink) {
+      return;
+    }
+    Clipboard.setString(samuhikaShareLink);
+    Alert.alert(
+      'Link copied',
+      'Send this link to devotees. It opens Samuhika Japa with this mantra selected.',
+    );
+  };
 
   return (
     <AdminScreenLayout
@@ -554,6 +616,20 @@ const AdminMantraEditScreen = () => {
         Type in English, and it automatically translates into Telugu, Hindi, Tamil,
         and Kannada. Sanskrit script is kept the same across languages.
       </Text>
+      {samuhikaShareLink ? (
+        <View style={styles.shareBox}>
+          <Text style={styles.shareLabel}>Devotee share link</Text>
+          <Text style={styles.shareLink} selectable>
+            {samuhikaShareLink}
+          </Text>
+          <TouchableOpacity
+            style={styles.shareBtn}
+            onPress={copySamuhikaLink}
+            activeOpacity={0.85}>
+            <Text style={styles.shareBtnText}>COPY LINK</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
 
       {loading ? (
         <View style={styles.centerBox}>
@@ -787,6 +863,7 @@ const AdminMantraEditScreen = () => {
                   style={[styles.statusChip, on && styles.statusChipOn]}
                   onPress={() => setNotifyUsers(option)}>
                   <Text style={[styles.statusText, on && styles.statusTextOn]}>
+                    {on ? '✓ ' : ''}
                     {option ? 'Yes' : 'No (testing)'}
                   </Text>
                 </TouchableOpacity>
@@ -804,6 +881,7 @@ const AdminMantraEditScreen = () => {
                   style={[styles.statusChip, on && styles.statusChipOn]}
                   onPress={() => setActive(option)}>
                   <Text style={[styles.statusText, on && styles.statusTextOn]}>
+                    {on ? '✓ ' : ''}
                     {option ? 'Active' : 'Inactive'}
                   </Text>
                 </TouchableOpacity>
@@ -811,7 +889,7 @@ const AdminMantraEditScreen = () => {
             })}
           </View>
 
-          {isEdit && shownList === 'SAMUHIKA' ? (
+          {isEdit && samuhikaStyle ? (
             <View style={styles.actionBtnWrap}>
               <PrimaryButton
                 title={
@@ -956,6 +1034,38 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
   },
+  shareBox: {
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 14,
+  },
+  shareLabel: {
+    color: Colors.leafGreen,
+    fontWeight: '800',
+    fontSize: 12,
+    marginBottom: 6,
+  },
+  shareLink: {
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+    fontSize: 13,
+    marginBottom: 10,
+  },
+  shareBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.templeGold,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  shareBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 12,
+  },
   centerBox: {
     paddingVertical: 24,
     alignItems: 'center',
@@ -1080,20 +1190,23 @@ const styles = StyleSheet.create({
   },
   statusChip: {
     flex: 1,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
+    borderWidth: 2,
+    borderColor: '#D6C4A8',
     borderRadius: 22,
-    minHeight: 44,
+    minHeight: 48,
+    backgroundColor: Colors.white,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   statusChipOn: {
-    backgroundColor: Colors.templeGold,
-    borderColor: Colors.templeGold,
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
   },
   statusText: {
     color: Colors.sacredBrown,
     fontWeight: '800',
+    fontSize: 14,
   },
   statusTextOn: {
     color: Colors.white,

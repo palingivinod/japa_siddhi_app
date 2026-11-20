@@ -303,7 +303,7 @@ const YourJapasScreen = () => {
               ? 0
               : remainingDays <= 1
                 ? remainingCount
-                : Math.max(1, Math.ceil(remainingCount / (remainingDays >= 900 ? 30 : remainingDays)));
+                : Math.max(1, Math.ceil(remainingCount / remainingDays));
 
           items.push({
             id: `challenge-${ch.id}`,

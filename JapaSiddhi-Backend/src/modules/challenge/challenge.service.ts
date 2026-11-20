@@ -351,7 +351,7 @@ class ChallengeService {
       throw new Error('Challenge not found');
     }
     const [rewards, claim] = await Promise.all([
-      challengeRepository.listRewards(),
+      challengeRepository.listRewards(challengeId),
       challengeRepository.getRewardClaim(challengeId, userId),
     ]);
     return {
@@ -433,20 +433,23 @@ class ChallengeService {
       challengeId,
       userId,
     );
-    if (existing?.orderId) {
+    // One grab only: after a reward is chosen, no other reward can be claimed.
+    if (existing) {
+      if (Number(existing.rewardId) === Number(rewardId)) {
+        return {
+          challengeId,
+          rewardId,
+          rewardName: String(existing.rewardName || ''),
+          claimId: existing.id || null,
+          deliverySubmitted: Boolean(existing.orderId),
+          changed: false,
+        };
+      }
       throw new Error(
-        'Reward order already placed. Selection cannot be changed.',
+        existing.orderId
+          ? 'Reward order already placed. Selection cannot be changed.'
+          : 'You already chose a reward for this challenge. Another reward cannot be grabbed.',
       );
-    }
-    if (existing && Number(existing.rewardId) === Number(rewardId)) {
-      return {
-        challengeId,
-        rewardId,
-        rewardName: String(existing.rewardName || ''),
-        claimId: existing.id || null,
-        deliverySubmitted: false,
-        changed: false,
-      };
     }
 
     const reward = await challengeRepository.getRewardById(rewardId);
@@ -590,36 +593,28 @@ class ChallengeService {
     }
 
     const rewardName = String(reward.name || '');
-    let changed = false;
-    if (existing) {
-      await challengeRepository.changeRewardClaim(
-        Number(existing.id),
-        Number(existing.rewardId || 0),
-        rewardId,
-        rewardName,
-      );
-      changed = true;
-    } else {
-      await challengeRepository.claimReward(
-        challengeId,
-        userId,
-        rewardId,
-        rewardName,
-      );
+    // Also ensure reward is offered on this challenge when options are configured.
+    const offeredIds = await challengeRepository.getRewardIdsForChallenge(
+      challengeId,
+    );
+    if (offeredIds.length > 0 && !offeredIds.includes(Number(rewardId))) {
+      throw new Error('This reward is not available for this challenge.');
     }
+
+    await challengeRepository.claimReward(
+      challengeId,
+      userId,
+      rewardId,
+      rewardName,
+    );
     const claim = await challengeRepository.getRewardClaim(challengeId, userId);
     const devotee = await this.userSummary(userId);
     await emailOtpService.notifyAdmin(
-      changed ? 'Challenge reward changed' : 'Challenge reward selected',
+      'Challenge reward selected',
       [
-        changed
-          ? 'A devotee changed their challenge reward (before order).'
-          : 'A devotee selected a challenge reward.',
+        'A devotee selected a challenge reward.',
         `Challenge: ${challenge.title || challengeId}`,
         `Reward: ${rewardName}`,
-        existing?.rewardName
-          ? `Previous reward: ${String(existing.rewardName)}`
-          : '',
         `Name: ${devotee.name}`,
         `Email: ${devotee.email}`,
         `Mobile: ${devotee.mobile}`,
@@ -634,7 +629,7 @@ class ChallengeService {
       rewardName,
       claimId: claim?.id || null,
       deliverySubmitted: false,
-      changed,
+      changed: false,
     };
   }
 

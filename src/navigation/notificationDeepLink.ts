@@ -6,6 +6,7 @@ import {
   isBookingDeepLink,
   parseBookingDeepLink,
 } from './bookingDeepLinks';
+import {parseSamuhikaMantraDeepLink} from '../utils/samuhikaDeepLink';
 import {navigateTo} from './navigationRef';
 
 type PushLike = Record<string, any> | null | undefined;
@@ -511,6 +512,19 @@ export const bindNotifyDeepLinks = () => {
     ) {
       navigateTo('MonthlySupport', parseMonthlySupportDeepLink(raw));
       return;
+    }
+
+    // Samuhika mantra: japasiddhi://samuhika/mantra/123
+    // https://japasiddhi.com/samuhika/mantra/123
+    if (
+      lower.includes('japasiddhi://samuhika/mantra') ||
+      /https?:\/\/[^/]+\/samuhika\/mantra\//i.test(lower)
+    ) {
+      const parsed = parseSamuhikaMantraDeepLink(raw);
+      if (parsed?.mantraId) {
+        navigateTo('CommunityJapa', {mantraId: parsed.mantraId});
+        return;
+      }
     }
 
     // Booking / seva services: japasiddhi://book/nithya-homam,

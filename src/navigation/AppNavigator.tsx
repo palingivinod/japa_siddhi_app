@@ -395,10 +395,10 @@ export type RootStackParamList = {
   AdminUserDetails: {userId?: string} | undefined;
   AdminUserEdit: {userId?: string} | undefined;
   AdminJapa: undefined;
-  AdminMantras: {list?: 'SAMUHIKA' | 'ANTHARANGA'} | undefined;
+  AdminMantras: {list?: 'SAMUHIKA' | 'ANTHARANGA' | 'BOTH'} | undefined;
   AdminMantraCategory:
     | {
-        list?: 'SAMUHIKA' | 'ANTHARANGA';
+        list?: 'SAMUHIKA' | 'ANTHARANGA' | 'BOTH';
         categoryCode?: string;
         categoryName?: string;
       }

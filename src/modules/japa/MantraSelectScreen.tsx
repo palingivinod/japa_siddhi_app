@@ -46,7 +46,7 @@ const MantraSelectScreen = () => {
       setSelected(current => current ?? items[0]?.id ?? null);
     });
     apiService
-      .get('/mantras/categories')
+      .get('/mantras/categories', {params: {list}})
       .then(response => {
         const rows = Array.isArray(response.data?.data) ? response.data.data : [];
         if (rows.length > 0) {

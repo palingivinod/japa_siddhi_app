@@ -3,9 +3,11 @@ import mantraRepository from './mantra.repository';
 import apiResponse from '../../utils/apiResponse';
 
 class MantraController {
-  async categories(_req: Request, res: Response, next: NextFunction) {
+  async categories(req: Request, res: Response, next: NextFunction) {
     try {
-      const data = await mantraRepository.listCategories();
+      const data = await mantraRepository.listCategories(
+        req.query.list as string,
+      );
       return apiResponse.success(res, 'Mantra categories fetched successfully', data);
     } catch (error) {
       next(error);

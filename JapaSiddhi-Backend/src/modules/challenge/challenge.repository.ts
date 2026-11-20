@@ -476,7 +476,85 @@ class ChallengeRepository {
     };
   }
 
-  async listRewards() {
+  async ensureChallengeRewardOptionsTable() {
+    try {
+      await mysql.query(`
+        CREATE TABLE IF NOT EXISTS challenge_reward_options (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          challenge_id INTEGER NOT NULL,
+          reward_id INTEGER NOT NULL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(challenge_id, reward_id)
+        )
+      `);
+    } catch {
+      try {
+        await mysql.query(`
+          CREATE TABLE IF NOT EXISTS challenge_reward_options (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+            challenge_id BIGINT UNSIGNED NOT NULL,
+            reward_id BIGINT UNSIGNED NOT NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_challenge_reward (challenge_id, reward_id)
+          )
+        `);
+      } catch {
+        // Table already exists or engine mismatch.
+      }
+    }
+  }
+
+  async getRewardIdsForChallenge(challengeId: number): Promise<number[]> {
+    await this.ensureChallengeRewardOptionsTable();
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT reward_id AS rewardId
+        FROM challenge_reward_options
+        WHERE challenge_id = ?
+        ORDER BY id ASC
+        `,
+        [challengeId],
+      );
+      return (rows || [])
+        .map((row: any) => Number(row.rewardId) || 0)
+        .filter((id: number) => id > 0);
+    } catch {
+      return [];
+    }
+  }
+
+  async setRewardIdsForChallenge(challengeId: number, rewardIds: number[]) {
+    await this.ensureChallengeRewardOptionsTable();
+    const ids = [
+      ...new Set(
+        (rewardIds || [])
+          .map(id => Number(id) || 0)
+          .filter(id => id > 0),
+      ),
+    ];
+    await mysql.query(
+      `DELETE FROM challenge_reward_options WHERE challenge_id = ?`,
+      [challengeId],
+    );
+    for (const rewardId of ids) {
+      try {
+        await mysql.query(
+          `
+          INSERT INTO challenge_reward_options (challenge_id, reward_id)
+          VALUES (?, ?)
+          `,
+          [challengeId, rewardId],
+        );
+      } catch {
+        // Ignore duplicate race.
+      }
+    }
+    return ids;
+  }
+
+  async listRewards(challengeId?: number) {
     try {
       try {
         await mysql.query(
@@ -562,6 +640,35 @@ class ChallengeRepository {
 
     // Stock qty is a label only — never force it to 0 from admin_marked_oos.
 
+    const linkedIds =
+      challengeId && Number(challengeId) > 0
+        ? await this.getRewardIdsForChallenge(Number(challengeId))
+        : [];
+
+    if (linkedIds.length > 0) {
+      const placeholders = linkedIds.map(() => '?').join(', ');
+      return mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          name,
+          IFNULL(stock, 0) AS stock,
+          is_active AS isActive,
+          display_order AS displayOrder,
+          IFNULL(description, '') AS description,
+          IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
+          IFNULL(unlock_mode, 'fixed') AS unlockMode,
+          IFNULL(image_url, '') AS imageUrl,
+          IFNULL(admin_marked_oos, 0) AS adminMarkedOos
+        FROM challenge_rewards
+        WHERE id IN (${placeholders})
+        ORDER BY display_order ASC, id ASC
+        `,
+        linkedIds,
+      );
+    }
+
+    // Legacy challenges with no linked options → show full catalog.
     return mysql.query<any[]>(
       `
       SELECT

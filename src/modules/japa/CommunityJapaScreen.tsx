@@ -119,19 +119,22 @@ const CommunityJapaScreen = () => {
           const list = data.mantras ?? [];
           setMantras(list);
           const preferredId = Number(route.params?.mantraId || 0);
+          const preferredMantra = preferredId
+            ? list.find((item: any) => Number(item.id) === preferredId)
+            : null;
           setSelected((current: any) => {
-            if (preferredId) {
-              const preferred = list.find(
-                (item: any) => Number(item.id) === preferredId,
-              );
-              if (preferred) {
-                return preferred;
-              }
+            if (preferredMantra) {
+              return preferredMantra;
             }
             return current
               ? list.find((item: any) => item.id === current.id) ?? current
               : list[0] ?? null;
           });
+          if (preferredMantra?.categoryCode) {
+            setOpenCode(String(preferredMantra.categoryCode));
+          } else if (route.params?.categoryCode) {
+            setOpenCode(String(route.params.categoryCode));
+          }
           const byMantra: Record<number, MantraStat> = {};
           (data.mantraStats ?? []).forEach((row: any) => {
             byMantra[Number(row.mantraId)] = {
@@ -170,7 +173,7 @@ const CommunityJapaScreen = () => {
         .catch(() => {
           setActiveGoals([]);
         });
-    }, []),
+    }, [route.params?.mantraId, route.params?.categoryCode]),
   );
 
   useEffect(() => {
@@ -180,8 +183,23 @@ const CommunityJapaScreen = () => {
   }, [route.params?.categoryCode]);
 
   useEffect(() => {
+    const preferredId = Number(route.params?.mantraId || 0);
+    if (!preferredId || !mantras.length) {
+      return;
+    }
+    const preferred = mantras.find(item => Number(item.id) === preferredId);
+    if (!preferred) {
+      return;
+    }
+    setSelected(preferred);
+    if (preferred.categoryCode) {
+      setOpenCode(String(preferred.categoryCode));
+    }
+  }, [route.params?.mantraId, mantras]);
+
+  useEffect(() => {
     apiService
-      .get('/mantras/categories')
+      .get('/mantras/categories', {params: {list: 'samuhika'}})
       .then(response => {
         const rows = Array.isArray(response.data?.data) ? response.data.data : [];
         if (rows.length > 0) {

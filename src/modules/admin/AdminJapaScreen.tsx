@@ -36,8 +36,8 @@ const AdminJapaScreen = () => {
     <AdminScreenLayout title="Japa Management" tab="AdminJapa" showBack={false}>
       <Text style={styles.heading}>Japa Management</Text>
       <Text style={styles.sub}>
-        Samuhika Japa and Antharanga Japa each have their own mantras. A mantra
-        added in one list does not appear in the other.
+        Samuhika and Antharanga can each have their own categories and mantras.
+        Use Both for items that should appear in both lists.
       </Text>
 
       <TouchableOpacity
@@ -56,7 +56,7 @@ const AdminJapaScreen = () => {
         onPress={() => navigation.navigate('AdminMantras', {list: 'SAMUHIKA'})}>
         <Text style={styles.listTitle}>Samuhika Japa</Text>
         <Text style={styles.listMeta}>
-          Categories and mantras devotees see in Samuhika Japa.
+          Categories and mantras only for Samuhika Japa (plus shared Both items).
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
@@ -66,7 +66,16 @@ const AdminJapaScreen = () => {
         }>
         <Text style={styles.listTitle}>Antharanga Japa</Text>
         <Text style={styles.listMeta}>
-          Categories and mantras devotees see in Antharanga Japa.
+          Categories and mantras only for Antharanga Japa (plus shared Both
+          items).
+        </Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.listBtn}
+        onPress={() => navigation.navigate('AdminMantras', {list: 'BOTH'})}>
+        <Text style={styles.listTitle}>Both</Text>
+        <Text style={styles.listMeta}>
+          Create categories and mantras that appear in Samuhika and Antharanga.
         </Text>
       </TouchableOpacity>
     </AdminScreenLayout>

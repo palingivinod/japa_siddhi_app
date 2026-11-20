@@ -116,21 +116,28 @@ const AdminSamuhikaAnalyticsScreen = () => {
         `/admin/samuhika-analytics/mantras/${mantraId}`,
       );
       const data = response.data?.data || {};
-      setMantraName(String(data.mantra?.name || ''));
-      setEnrolled(Number(data.enrolled) || 0);
-      setDone(Number(data.done) || 0);
-      setUsers(
-        Array.isArray(data.users)
-          ? data.users.map((row: any) => ({
+      const mantraTarget = Number(data.mantra?.target) || 0;
+      const usersMapped: UserRow[] = Array.isArray(data.users)
+        ? data.users.map((row: any) => {
+            const japaCount = Number(row.japaCount) || 0;
+            const targetCount =
+              mantraTarget > 0
+                ? mantraTarget
+                : Number(row.targetCount) || 0;
+            return {
               userId: Number(row.userId) || 0,
               name: String(row.name || 'Devotee'),
               phone: String(row.phone || ''),
-              japaCount: Number(row.japaCount) || 0,
-              targetCount: Number(row.targetCount) || 0,
-              completed: Boolean(row.completed),
-            }))
-          : [],
-      );
+              japaCount,
+              targetCount,
+              completed: targetCount > 0 && japaCount >= targetCount,
+            };
+          })
+        : [];
+      setMantraName(String(data.mantra?.name || ''));
+      setEnrolled(Number(data.enrolled) || usersMapped.length);
+      setDone(usersMapped.filter(row => row.completed).length);
+      setUsers(usersMapped);
     } catch (err) {
       setUsers([]);
       Alert.alert(
