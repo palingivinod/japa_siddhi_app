@@ -21,6 +21,7 @@ export type NotificationAnalyticsRecipient = {
   userCode?: string;
   name: string;
   isRead?: boolean | null;
+  isOpened?: boolean | null;
   city?: string;
   phone?: string;
 };
@@ -35,8 +36,10 @@ export type NotificationAnalyticsItem = {
   sentAt: string;
   sentCount: number;
   readCount: number;
+  openedCount: number;
   unreadCount: number;
   readRate: number;
+  openedRate?: number;
   recipients?: NotificationAnalyticsRecipient[];
   recipientTotal?: number;
   recipientsTruncated?: boolean;
@@ -46,8 +49,10 @@ export type AnalyticsSummary = {
   totalBroadcasts: number;
   totalDelivered: number;
   totalRead: number;
+  totalOpened: number;
   totalUnread: number;
   averageReadRate: number;
+  averageOpenedRate?: number;
   generalCount?: number;
   birthdayCount?: number;
   ordersCount?: number;
@@ -233,8 +238,23 @@ const AdminNotificationAnalyticsScreen = () => {
           return;
         }
         const data = response.data?.data || {};
-        setSummary(data.summary || null);
-        const nextItems = Array.isArray(data.items) ? data.items : [];
+        const rawSummary = data.summary || null;
+        setSummary(
+          rawSummary
+            ? {
+                ...rawSummary,
+                totalOpened: Number(rawSummary.totalOpened || 0),
+                averageOpenedRate: Number(rawSummary.averageOpenedRate || 0),
+              }
+            : null,
+        );
+        const nextItems = (Array.isArray(data.items) ? data.items : []).map(
+          (row: any) => ({
+            ...row,
+            openedCount: Number(row.openedCount || 0),
+            openedRate: Number(row.openedRate || 0),
+          }),
+        );
         setItems(prev => (append ? [...prev, ...nextItems] : nextItems));
         setPage(pageToLoad);
         setTotal(Number(data.total) || nextItems.length);
@@ -297,8 +317,10 @@ const AdminNotificationAnalyticsScreen = () => {
       totalBroadcasts: summary?.totalBroadcasts ?? 0,
       totalDelivered: summary?.totalDelivered ?? 0,
       totalRead: summary?.totalRead ?? 0,
+      totalOpened: summary?.totalOpened ?? 0,
       totalUnread: summary?.totalUnread ?? 0,
       averageReadRate: summary?.averageReadRate ?? 0,
+      averageOpenedRate: summary?.averageOpenedRate ?? 0,
     }),
     [summary],
   );
@@ -384,6 +406,23 @@ const AdminNotificationAnalyticsScreen = () => {
               {activeSummary.totalUnread.toLocaleString()}
             </Text>
             <Text style={styles.summaryLabel}>Unread</Text>
+          </View>
+        </View>
+        <View style={styles.summaryActualRow}>
+          <View style={styles.summaryActualBox}>
+            <Text style={[styles.summaryNum, {color: '#7C3AED'}]}>
+              {activeSummary.totalOpened.toLocaleString()}
+            </Text>
+            <Text style={styles.summaryLabel}>Actual</Text>
+            <Text style={styles.summaryActualHint}>
+              Opened inbox or marked as read
+            </Text>
+          </View>
+          <View style={styles.summaryActualRate}>
+            <Text style={styles.summaryRateLabel}>Actual Rate</Text>
+            <Text style={[styles.summaryRateValue, {color: '#7C3AED'}]}>
+              {activeSummary.averageOpenedRate}%
+            </Text>
           </View>
         </View>
         <View style={styles.summaryRateRow}>
@@ -499,18 +538,24 @@ const AdminNotificationAnalyticsScreen = () => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statCol}>
+            <Text style={[styles.statNum, {color: '#7C3AED'}]}>
+              {Number(item.openedCount || 0).toLocaleString()}
+            </Text>
+            <Text style={styles.statLabel}>✅ Actual</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statCol}>
             <Text style={[styles.statNum, {color: '#6B7280'}]}>
               {item.unreadCount.toLocaleString()}
             </Text>
             <Text style={styles.statLabel}>⏳ Unread</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statCol}>
-            <Text style={[styles.statNum, {color: '#B45309'}]}>
-              {item.readRate}%
-            </Text>
-            <Text style={styles.statLabel}>📈 Read Rate</Text>
-          </View>
+        </View>
+        <View style={styles.statsCardSecondary}>
+          <Text style={styles.statSecondaryText}>
+            Read rate {item.readRate}% · Actual rate{' '}
+            {Number(item.openedRate ?? 0)}%
+          </Text>
         </View>
 
         <TouchableOpacity
@@ -538,12 +583,16 @@ const AdminNotificationAnalyticsScreen = () => {
                 const phone = String(person.phone || '').trim();
                 const showOrderContact =
                   itemCategory === 'orders' && (city || phone);
-                const readLabel =
-                  person.isRead === true
-                    ? 'Read'
-                    : person.isRead === false
-                      ? 'Unread'
-                      : null;
+                const statusLabel =
+                  person.isOpened === true
+                    ? 'Actual'
+                    : person.isRead === true
+                      ? 'Read'
+                      : person.isRead === false
+                        ? 'Unread'
+                        : null;
+                const statusOn =
+                  person.isOpened === true || person.isRead === true;
                 return (
                   <View
                     key={`${item.id}-${person.userId}`}
@@ -562,15 +611,17 @@ const AdminNotificationAnalyticsScreen = () => {
                         </Text>
                       ) : null}
                     </View>
-                    {readLabel ? (
+                    {statusLabel ? (
                       <Text
                         style={[
                           styles.recipientRead,
-                          person.isRead
-                            ? styles.recipientReadOn
+                          statusOn
+                            ? person.isOpened
+                              ? styles.recipientOpenedOn
+                              : styles.recipientReadOn
                             : styles.recipientReadOff,
                         ]}>
-                        {readLabel}
+                        {statusLabel}
                       </Text>
                     ) : null}
                   </View>
@@ -785,6 +836,28 @@ const styles = StyleSheet.create({
     height: 32,
     backgroundColor: '#E5E7EB',
   },
+  summaryActualRow: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  summaryActualBox: {
+    flex: 1,
+  },
+  summaryActualHint: {
+    marginTop: 2,
+    fontSize: 10,
+    color: Colors.textSecondary,
+    fontWeight: '600',
+  },
+  summaryActualRate: {
+    alignItems: 'flex-end',
+  },
   summaryRateRow: {
     marginTop: 12,
     paddingTop: 10,
@@ -931,6 +1004,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     marginTop: 8,
   },
+  statsCardSecondary: {
+    marginTop: 6,
+    paddingHorizontal: 4,
+  },
+  statSecondaryText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
   statCol: {
     flex: 1,
     alignItems: 'center',
@@ -995,6 +1077,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   recipientReadOn: {color: '#15803D'},
+  recipientOpenedOn: {color: '#7C3AED'},
   recipientReadOff: {color: '#6B7280'},
   recipientEmpty: {
     fontSize: 12,

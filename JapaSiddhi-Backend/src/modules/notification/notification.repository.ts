@@ -22,9 +22,30 @@ const bumpQueueReadCount = async (broadcastId: number, by = 1) => {
   }
 };
 
+const bumpQueueOpenedCount = async (broadcastId: number, by = 1) => {
+  const id = Number(broadcastId || 0);
+  const delta = Math.max(0, Number(by || 0));
+  if (!id || !delta) {
+    return;
+  }
+  try {
+    await mysql.query(
+      `
+      UPDATE admin_notification_queue
+      SET opened_count = IFNULL(opened_count, 0) + ?
+      WHERE id = ?
+      `,
+      [delta, id],
+    );
+  } catch {
+    // Best-effort analytics counter.
+  }
+};
+
 class NotificationRepository {
   private expiresColumnReady = false;
   private broadcastIdReady = false;
+  private userOpenedReady = false;
   private broadcastBackfillRunning = false;
 
   private async ensureExpiresColumn() {
@@ -40,6 +61,29 @@ class NotificationRepository {
       // Column already exists (SQLite / MySQL).
     }
     await this.ensureBroadcastIdColumn();
+    await this.ensureUserOpenedColumn();
+  }
+
+  /** True open: inbox open / mark-as-read / push tap — not the 2-day auto-read. */
+  private async ensureUserOpenedColumn() {
+    if (this.userOpenedReady) {
+      return;
+    }
+    this.userOpenedReady = true;
+    try {
+      await mysql.query(
+        `ALTER TABLE notifications ADD COLUMN user_opened INT NOT NULL DEFAULT 0`,
+      );
+    } catch {
+      // Column already exists.
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE notifications ADD COLUMN opened_at TEXT NULL`,
+      );
+    } catch {
+      // Column already exists.
+    }
   }
 
   private async ensureBroadcastIdColumn() {
@@ -449,6 +493,7 @@ class NotificationRepository {
       `
       SELECT
         IFNULL(is_read, 0) AS isRead,
+        IFNULL(user_opened, 0) AS userOpened,
         broadcast_id AS broadcastId,
         extra_data AS extraData
       FROM notifications
@@ -459,6 +504,7 @@ class NotificationRepository {
     );
     const prev = before?.[0];
     const wasUnread = prev && Number(prev.isRead || 0) === 0;
+    const wasUnopened = prev && Number(prev.userOpened || 0) === 0;
 
     const result = await mysql.query<ResultSetHeader>(
       `
@@ -466,6 +512,11 @@ class NotificationRepository {
       SET
         is_read = 1,
         read_at = CURRENT_TIMESTAMP,
+        user_opened = 1,
+        opened_at = CASE
+          WHEN IFNULL(user_opened, 0) = 1 THEN opened_at
+          ELSE CURRENT_TIMESTAMP
+        END,
         expires_at = CASE
           WHEN IFNULL(action_type, '') IN (
             'JAPA_MILESTONE',
@@ -494,11 +545,16 @@ class NotificationRepository {
       [id, userId],
     );
 
-    if (wasUnread && Number(result?.affectedRows || 0) > 0) {
+    if (Number(result?.affectedRows || 0) > 0) {
       const bid =
         Number(prev?.broadcastId || 0) || this.parseBroadcastId(prev?.extraData);
       if (bid) {
-        await bumpQueueReadCount(bid, 1);
+        if (wasUnread) {
+          await bumpQueueReadCount(bid, 1);
+        }
+        if (wasUnopened) {
+          await bumpQueueOpenedCount(bid, 1);
+        }
       }
     }
   }
@@ -668,47 +724,94 @@ class NotificationRepository {
   async markAllAsRead(userId: number): Promise<void> {
     await this.ensureExpiresColumn();
 
-    // Capture unread broadcast ids before flip so analytics read_count stays accurate.
-    let unreadRows: any[] = [];
+    // Capture unread + not-yet-opened before flip for accurate analytics.
+    let pendingRows: any[] = [];
     try {
-      unreadRows = await mysql.query<any[]>(
+      pendingRows = await mysql.query<any[]>(
         `
         SELECT
+          IFNULL(is_read, 0) AS isRead,
+          IFNULL(user_opened, 0) AS userOpened,
           broadcast_id AS broadcastId,
           extra_data AS extraData
         FROM notifications
+        WHERE user_id = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+        `,
+        [userId],
+      );
+    } catch {
+      // Older DBs without user_opened — fall back to unread-only.
+      try {
+        pendingRows = await mysql.query<any[]>(
+          `
+          SELECT
+            IFNULL(is_read, 0) AS isRead,
+            0 AS userOpened,
+            broadcast_id AS broadcastId,
+            extra_data AS extraData
+          FROM notifications
+          WHERE user_id = ?
+            AND is_read = 0
+          `,
+          [userId],
+        );
+      } catch {
+        pendingRows = [];
+      }
+    }
+
+    try {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP,
+          user_opened = 1,
+          opened_at = CASE
+            WHEN IFNULL(user_opened, 0) = 1 THEN opened_at
+            ELSE CURRENT_TIMESTAMP
+          END
+        WHERE user_id = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+        `,
+        [userId],
+      );
+    } catch {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
           AND is_read = 0
         `,
         [userId],
       );
-    } catch {
-      unreadRows = [];
     }
 
-    await mysql.query(
-      `
-      UPDATE notifications
-      SET
-        is_read = 1,
-        read_at = CURRENT_TIMESTAMP
-      WHERE user_id = ?
-        AND is_read = 0
-      `,
-      [userId],
-    );
-
-    const byBroadcast = new Map<number, number>();
-    for (const row of unreadRows || []) {
+    const unreadByBroadcast = new Map<number, number>();
+    const openedByBroadcast = new Map<number, number>();
+    for (const row of pendingRows || []) {
       const bid =
         Number(row?.broadcastId || 0) || this.parseBroadcastId(row?.extraData);
       if (!bid) {
         continue;
       }
-      byBroadcast.set(bid, (byBroadcast.get(bid) || 0) + 1);
+      if (Number(row?.isRead || 0) === 0) {
+        unreadByBroadcast.set(bid, (unreadByBroadcast.get(bid) || 0) + 1);
+      }
+      if (Number(row?.userOpened || 0) === 0) {
+        openedByBroadcast.set(bid, (openedByBroadcast.get(bid) || 0) + 1);
+      }
     }
-    for (const [bid, count] of byBroadcast) {
+    for (const [bid, count] of unreadByBroadcast) {
       await bumpQueueReadCount(bid, count);
+    }
+    for (const [bid, count] of openedByBroadcast) {
+      await bumpQueueOpenedCount(bid, count);
     }
   }
 
@@ -717,62 +820,184 @@ class NotificationRepository {
     filters: { actionType?: string; actionId?: number; broadcastId?: number },
   ): Promise<void> {
     await this.ensureExpiresColumn();
-    const clauses: string[] = ['user_id = ?', 'is_read = 0'];
-    const params: any[] = [userId];
-
     const matchClauses: string[] = [];
+    const matchParams: any[] = [];
     if (filters.actionType) {
       matchClauses.push('action_type = ?');
-      params.push(filters.actionType);
+      matchParams.push(filters.actionType);
     }
     if (filters.actionId) {
       matchClauses.push('action_id = ?');
-      params.push(filters.actionId);
+      matchParams.push(filters.actionId);
     }
     if (filters.broadcastId) {
       matchClauses.push(
         '(broadcast_id = ? OR extra_data LIKE ? OR extra_data LIKE ?)',
       );
-      params.push(Number(filters.broadcastId));
-      params.push(`%"broadcastId":${filters.broadcastId}%`);
-      params.push(`%"queuedId":${filters.broadcastId}%`);
+      matchParams.push(Number(filters.broadcastId));
+      matchParams.push(`%"broadcastId":${filters.broadcastId}%`);
+      matchParams.push(`%"queuedId":${filters.broadcastId}%`);
     }
 
     if (matchClauses.length === 0) {
       return;
     }
 
-    const result = await mysql.query<ResultSetHeader>(
-      `
-      UPDATE notifications
-      SET
-        is_read = 1,
-        read_at = CURRENT_TIMESTAMP
-      WHERE ${clauses.join(' AND ')}
-        AND (${matchClauses.join(' OR ')})
-      `,
-      params,
-    );
+    const matchSql = matchClauses.join(' OR ');
+    let pendingRows: any[] = [];
+    try {
+      pendingRows = await mysql.query<any[]>(
+        `
+        SELECT
+          IFNULL(is_read, 0) AS isRead,
+          IFNULL(user_opened, 0) AS userOpened,
+          broadcast_id AS broadcastId,
+          extra_data AS extraData
+        FROM notifications
+        WHERE user_id = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+          AND (${matchSql})
+        `,
+        [userId, ...matchParams],
+      );
+    } catch {
+      pendingRows = [];
+    }
 
-    const affected = Number(result?.affectedRows || 0);
-    if (affected > 0 && filters.broadcastId) {
-      await bumpQueueReadCount(Number(filters.broadcastId), affected);
+    try {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP,
+          user_opened = 1,
+          opened_at = CASE
+            WHEN IFNULL(user_opened, 0) = 1 THEN opened_at
+            ELSE CURRENT_TIMESTAMP
+          END
+        WHERE user_id = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+          AND (${matchSql})
+        `,
+        [userId, ...matchParams],
+      );
+    } catch {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+          AND is_read = 0
+          AND (${matchSql})
+        `,
+        [userId, ...matchParams],
+      );
+    }
+
+    const unreadByBroadcast = new Map<number, number>();
+    const openedByBroadcast = new Map<number, number>();
+    for (const row of pendingRows || []) {
+      const bid =
+        Number(row?.broadcastId || 0) ||
+        this.parseBroadcastId(row?.extraData) ||
+        Number(filters.broadcastId || 0);
+      if (!bid) {
+        continue;
+      }
+      if (Number(row?.isRead || 0) === 0) {
+        unreadByBroadcast.set(bid, (unreadByBroadcast.get(bid) || 0) + 1);
+      }
+      if (Number(row?.userOpened || 0) === 0) {
+        openedByBroadcast.set(bid, (openedByBroadcast.get(bid) || 0) + 1);
+      }
+    }
+    for (const [bid, count] of unreadByBroadcast) {
+      await bumpQueueReadCount(bid, count);
+    }
+    for (const [bid, count] of openedByBroadcast) {
+      await bumpQueueOpenedCount(bid, count);
     }
   }
 
   async markActionAsRead(userId: number, actionType: string) {
-    await mysql.query(
-      `
-      UPDATE notifications
-      SET
-        is_read = 1,
-        read_at = CURRENT_TIMESTAMP
-      WHERE user_id = ?
-        AND action_type = ?
-        AND is_read = 0
-      `,
-      [userId, actionType],
-    );
+    await this.ensureExpiresColumn();
+    let pendingRows: any[] = [];
+    try {
+      pendingRows = await mysql.query<any[]>(
+        `
+        SELECT
+          IFNULL(is_read, 0) AS isRead,
+          IFNULL(user_opened, 0) AS userOpened,
+          broadcast_id AS broadcastId,
+          extra_data AS extraData
+        FROM notifications
+        WHERE user_id = ?
+          AND action_type = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+        `,
+        [userId, actionType],
+      );
+    } catch {
+      pendingRows = [];
+    }
+
+    try {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP,
+          user_opened = 1,
+          opened_at = CASE
+            WHEN IFNULL(user_opened, 0) = 1 THEN opened_at
+            ELSE CURRENT_TIMESTAMP
+          END
+        WHERE user_id = ?
+          AND action_type = ?
+          AND (IFNULL(is_read, 0) = 0 OR IFNULL(user_opened, 0) = 0)
+        `,
+        [userId, actionType],
+      );
+    } catch {
+      await mysql.query(
+        `
+        UPDATE notifications
+        SET
+          is_read = 1,
+          read_at = CURRENT_TIMESTAMP
+        WHERE user_id = ?
+          AND action_type = ?
+          AND is_read = 0
+        `,
+        [userId, actionType],
+      );
+    }
+
+    const unreadByBroadcast = new Map<number, number>();
+    const openedByBroadcast = new Map<number, number>();
+    for (const row of pendingRows || []) {
+      const bid =
+        Number(row?.broadcastId || 0) || this.parseBroadcastId(row?.extraData);
+      if (!bid) {
+        continue;
+      }
+      if (Number(row?.isRead || 0) === 0) {
+        unreadByBroadcast.set(bid, (unreadByBroadcast.get(bid) || 0) + 1);
+      }
+      if (Number(row?.userOpened || 0) === 0) {
+        openedByBroadcast.set(bid, (openedByBroadcast.get(bid) || 0) + 1);
+      }
+    }
+    for (const [bid, count] of unreadByBroadcast) {
+      await bumpQueueReadCount(bid, count);
+    }
+    for (const [bid, count] of openedByBroadcast) {
+      await bumpQueueOpenedCount(bid, count);
+    }
   }
 
   async deleteById(id: number, userId: number): Promise<void> {
@@ -973,6 +1198,24 @@ class NotificationRepository {
   async countReadsForQueueIds(
     queueIds: number[],
   ): Promise<Map<number, number>> {
+    return this.countFlagForQueueIds(queueIds, 'is_read');
+  }
+
+  /**
+   * Actual opens: inbox open / mark-as-read / push tap (user_opened=1).
+   * Does not include the 2-day auto-read.
+   */
+  async countOpenedForQueueIds(
+    queueIds: number[],
+  ): Promise<Map<number, number>> {
+    await this.ensureUserOpenedColumn();
+    return this.countFlagForQueueIds(queueIds, 'user_opened');
+  }
+
+  private async countFlagForQueueIds(
+    queueIds: number[],
+    flagColumn: 'is_read' | 'user_opened',
+  ): Promise<Map<number, number>> {
     const ids = [...new Set(
       (queueIds || [])
         .map(id => Number(id))
@@ -985,6 +1228,7 @@ class NotificationRepository {
     await this.ensureBroadcastIdColumn();
     const engine = mysql.getEngineName() || 'sqlite';
     const placeholders = ids.map(() => '?').join(', ');
+    const flagExpr = `IFNULL(${flagColumn}, 0)`;
 
     try {
       // Fast path: indexed broadcast_id.
@@ -992,7 +1236,7 @@ class NotificationRepository {
         `
         SELECT
           broadcast_id AS bid,
-          SUM(CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END) AS reads
+          SUM(CASE WHEN ${flagExpr} = 1 THEN 1 ELSE 0 END) AS hits
         FROM notifications
         WHERE broadcast_id IN (${placeholders})
         GROUP BY broadcast_id
@@ -1002,7 +1246,7 @@ class NotificationRepository {
       for (const row of indexed || []) {
         const bid = Number(row.bid || 0);
         if (bid) {
-          out.set(bid, Math.max(0, Number(row.reads || 0)));
+          out.set(bid, Math.max(0, Number(row.hits || 0)));
         }
       }
 
@@ -1016,7 +1260,7 @@ class NotificationRepository {
       if (engine === 'postgres') {
         const rows = await mysql.query<any[]>(
           `
-          SELECT bid, SUM(reads) AS reads
+          SELECT bid, SUM(hits) AS hits
           FROM (
             SELECT
               COALESCE(
@@ -1024,7 +1268,7 @@ class NotificationRepository {
                 NULLIF(substring(extra_data from '"broadcastId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int,
                 NULLIF(substring(extra_data from '"queuedId"[[:space:]]*:[[:space:]]*"?([0-9]+)"?'), '')::int
               ) AS bid,
-              CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END AS reads
+              CASE WHEN ${flagExpr} = 1 THEN 1 ELSE 0 END AS hits
             FROM notifications
             WHERE broadcast_id IN (${missing.map(() => '?').join(', ')})
                OR (
@@ -1042,13 +1286,13 @@ class NotificationRepository {
         for (const row of rows || []) {
           const bid = Number(row.bid || 0);
           if (bid) {
-            out.set(bid, Math.max(0, Number(row.reads || 0)));
+            out.set(bid, Math.max(0, Number(row.hits || 0)));
           }
         }
       } else if (engine === 'mysql') {
         const rows = await mysql.query<any[]>(
           `
-          SELECT bid, SUM(reads) AS reads
+          SELECT bid, SUM(hits) AS hits
           FROM (
             SELECT
               COALESCE(
@@ -1056,7 +1300,7 @@ class NotificationRepository {
                 CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.broadcastId')) AS UNSIGNED),
                 CAST(JSON_UNQUOTE(JSON_EXTRACT(extra_data, '$.queuedId')) AS UNSIGNED)
               ) AS bid,
-              CASE WHEN IFNULL(is_read, 0) = 1 THEN 1 ELSE 0 END AS reads
+              CASE WHEN ${flagExpr} = 1 THEN 1 ELSE 0 END AS hits
             FROM notifications
             WHERE broadcast_id IN (${missing.map(() => '?').join(', ')})
                OR (
@@ -1074,13 +1318,15 @@ class NotificationRepository {
         for (const row of rows || []) {
           const bid = Number(row.bid || 0);
           if (bid) {
-            out.set(bid, Math.max(0, Number(row.reads || 0)));
+            out.set(bid, Math.max(0, Number(row.hits || 0)));
           }
         }
       } else {
         const rows = await mysql.query<any[]>(
           `
-          SELECT extra_data AS extraData, IFNULL(is_read, 0) AS isRead
+          SELECT
+            extra_data AS extraData,
+            ${flagExpr} AS hit
           FROM notifications
           WHERE broadcast_id IS NULL
             AND extra_data IS NOT NULL
@@ -1096,7 +1342,7 @@ class NotificationRepository {
           if (!bid || !allowed.has(bid)) {
             continue;
           }
-          if (Number(row.isRead || 0) === 1) {
+          if (Number(row.hit || 0) === 1) {
             out.set(bid, (out.get(bid) || 0) + 1);
           } else if (!out.has(bid)) {
             out.set(bid, 0);
@@ -1104,7 +1350,7 @@ class NotificationRepository {
         }
       }
     } catch {
-      // Caller falls back to stored queue.read_count.
+      // Caller falls back to stored queue counters.
     }
     return out;
   }

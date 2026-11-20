@@ -100,6 +100,13 @@ const ensureQueueTable = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN opened_count INT NOT NULL DEFAULT 0`,
+    );
+  } catch {
+    // Column already exists.
+  }
   queueReady = true;
 };
 
@@ -1801,6 +1808,7 @@ type AnalyticsRecipient = {
   userCode: string;
   name: string;
   isRead: boolean | null;
+  isOpened?: boolean | null;
   city?: string;
   phone?: string;
 };
@@ -1948,6 +1956,7 @@ const loadAnalyticsRecipients = async (
           SELECT
             n.user_id AS userId,
             IFNULL(n.is_read, 0) AS isRead,
+            IFNULL(n.user_opened, 0) AS userOpened,
             IFNULL(u.user_code, '') AS userCode,
             IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name,
             IFNULL(ci.name, '') AS city,
@@ -1964,6 +1973,7 @@ const loadAnalyticsRecipients = async (
           SELECT
             n.user_id AS userId,
             IFNULL(n.is_read, 0) AS isRead,
+            IFNULL(n.user_opened, 0) AS userOpened,
             IFNULL(u.user_code, '') AS userCode,
             IFNULL(NULLIF(TRIM(u.full_name), ''), 'Devotee') AS name
           FROM notifications n
@@ -1983,6 +1993,7 @@ const loadAnalyticsRecipients = async (
             userCode: String(row.userCode || '').trim(),
             name: String(row.name || 'Devotee').trim() || 'Devotee',
             isRead: Number(row.isRead || 0) === 1,
+            isOpened: Number(row.userOpened || 0) === 1,
           };
           if (includeContact) {
             person.city = String(row.city || '').trim();
@@ -2056,6 +2067,7 @@ const loadAnalyticsRecipients = async (
         userCode: label?.userCode || '',
         name: label?.name || `User #${userId}`,
         isRead: null,
+        isOpened: null,
       };
       if (includeContact) {
         person.city = label?.city || '';
@@ -2128,7 +2140,8 @@ export const getNotificationAnalytics = async (opts?: {
         SELECT
           COUNT(*) AS broadcasts,
           IFNULL(SUM(IFNULL(recipient_count, 0)), 0) AS delivered,
-          IFNULL(SUM(IFNULL(read_count, 0)), 0) AS total_read
+          IFNULL(SUM(IFNULL(read_count, 0)), 0) AS total_read,
+          IFNULL(SUM(IFNULL(opened_count, 0)), 0) AS total_opened
         FROM admin_notification_queue
         WHERE ${baseWhere}
         ${searchSql}
@@ -2171,6 +2184,7 @@ export const getNotificationAnalytics = async (opts?: {
           recipient_ids AS recipientIds,
           recipient_count AS recipientCount,
           IFNULL(read_count, 0) AS readCount,
+          IFNULL(opened_count, 0) AS openedCount,
           send_at AS sendAt,
           processed_at AS processedAt,
           created_at AS createdAt,
@@ -2191,6 +2205,7 @@ export const getNotificationAnalytics = async (opts?: {
   const totalBroadcasts = Number(sumRows?.[0]?.broadcasts || 0);
   const totalDelivered = Number(sumRows?.[0]?.delivered || 0);
   let totalRead = Number(sumRows?.[0]?.total_read || 0);
+  let totalOpened = Number(sumRows?.[0]?.total_opened || 0);
   const generalCount = Number(generalCountRows?.[0]?.c || 0);
   const birthdayCount = Number(birthdayCountRows?.[0]?.c || 0);
   const ordersCount = Number(ordersCountRows?.[0]?.c || 0);
@@ -2200,6 +2215,7 @@ export const getNotificationAnalytics = async (opts?: {
     .map(row => Number(row.id))
     .filter(id => Number.isFinite(id) && id > 0);
   let liveReads = new Map<number, number>();
+  let liveOpened = new Map<number, number>();
   if (pageIds.length) {
     try {
       for (let pass = 0; pass < 8; pass++) {
@@ -2211,8 +2227,9 @@ export const getNotificationAnalytics = async (opts?: {
         }
       }
       liveReads = await notificationRepository.countReadsForQueueIds(pageIds);
-      await Promise.all(
-        [...liveReads.entries()].map(([bid, reads]) =>
+      liveOpened = await notificationRepository.countOpenedForQueueIds(pageIds);
+      await Promise.all([
+        ...[...liveReads.entries()].map(([bid, reads]) =>
           mysql
             .query(
               `
@@ -2224,9 +2241,21 @@ export const getNotificationAnalytics = async (opts?: {
             )
             .catch(() => undefined),
         ),
-      );
+        ...[...liveOpened.entries()].map(([bid, opens]) =>
+          mysql
+            .query(
+              `
+              UPDATE admin_notification_queue
+              SET opened_count = ?
+              WHERE id = ? AND IFNULL(opened_count, 0) <> ?
+              `,
+              [opens, bid, opens],
+            )
+            .catch(() => undefined),
+        ),
+      ]);
     } catch {
-      // Fall back to stored queue.read_count.
+      // Fall back to stored queue counters.
     }
   }
 
@@ -2256,13 +2285,20 @@ export const getNotificationAnalytics = async (opts?: {
     const sentCount = Math.max(0, Number(row.recipientCount || 0));
     const id = Number(row.id);
     const storedReads = Math.max(0, Number(row.readCount || 0));
+    const storedOpened = Math.max(0, Number(row.openedCount || 0));
     const readCount = Math.min(
       sentCount,
       liveReads.has(id) ? Number(liveReads.get(id) || 0) : storedReads,
     );
+    const openedCount = Math.min(
+      sentCount,
+      liveOpened.has(id) ? Number(liveOpened.get(id) || 0) : storedOpened,
+    );
     const unreadCount = Math.max(0, sentCount - readCount);
     const readRate =
       sentCount > 0 ? Math.round((readCount / sentCount) * 1000) / 10 : 0;
+    const openedRate =
+      sentCount > 0 ? Math.round((openedCount / sentCount) * 1000) / 10 : 0;
     const category = resolveAnalyticsCategory(
       row.actionType,
       row.title,
@@ -2281,8 +2317,10 @@ export const getNotificationAnalytics = async (opts?: {
       ),
       sentCount,
       readCount,
+      openedCount,
       unreadCount,
       readRate,
+      openedRate,
       recipients: recipientInfo?.recipients || [],
       recipientTotal:
         recipientInfo?.recipientTotal ??
@@ -2296,10 +2334,18 @@ export const getNotificationAnalytics = async (opts?: {
   if (totalRead <= 0 && pageReadSum > 0) {
     totalRead = pageReadSum;
   }
+  const pageOpenedSum = items.reduce((sum, item) => sum + item.openedCount, 0);
+  if (totalOpened <= 0 && pageOpenedSum > 0) {
+    totalOpened = pageOpenedSum;
+  }
   const totalUnread = Math.max(0, totalDelivered - totalRead);
   const averageReadRate =
     totalDelivered > 0
       ? Math.round((totalRead / totalDelivered) * 1000) / 10
+      : 0;
+  const averageOpenedRate =
+    totalDelivered > 0
+      ? Math.round((totalOpened / totalDelivered) * 1000) / 10
       : 0;
 
   return {
@@ -2307,8 +2353,10 @@ export const getNotificationAnalytics = async (opts?: {
       totalBroadcasts,
       totalDelivered,
       totalRead,
+      totalOpened,
       totalUnread,
       averageReadRate,
+      averageOpenedRate,
       generalCount,
       birthdayCount,
       ordersCount,
