@@ -419,9 +419,11 @@ export type RootStackParamList = {
         detail?: string;
         targetValue?: number;
         rewardName?: string;
+        rewardIds?: string[];
         startDate?: string;
         endDate?: string;
         mantra?: string;
+        translations?: string;
       }
     | undefined;
   AdminChallenges: undefined;

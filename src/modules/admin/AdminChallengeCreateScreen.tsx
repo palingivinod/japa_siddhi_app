@@ -15,6 +15,7 @@ import {dismissKeyboardThen} from '../../utils/keyboard';
 import DatePickerModal from '../common/DatePickerModal';
 import PrimaryButton from '../common/PrimaryButton';
 import apiService, {getApiError} from '../../services/apiService';
+import {pickProfilePhoto} from '../../services/profilePhoto';
 import {autoTranslateFields} from '../../services/translationService';
 import AdminScreenLayout from './AdminScreenLayout';
 import AdminLanguageTabs, {
@@ -22,6 +23,12 @@ import AdminLanguageTabs, {
   AdminSupportedLang,
 } from './components/AdminLanguageTabs';
 import {parseTranslationsMap} from '../../utils/localizedContent';
+
+type RewardOption = {
+  id: string;
+  name: string;
+  description?: string;
+};
 
 interface ChallengeLangFields {
   title: string;
@@ -156,9 +163,61 @@ const AdminChallengeCreateScreen = () => {
   const [lastAutoTranslatedAt, setLastAutoTranslatedAt] = useState<number | null>(
     null,
   );
+  const [rewards, setRewards] = useState<RewardOption[]>([]);
+  const [selectedRewardIds, setSelectedRewardIds] = useState<string[]>(() =>
+    Array.isArray(route.params?.rewardIds)
+      ? route.params.rewardIds.map((id: any) => String(id)).filter(Boolean)
+      : [],
+  );
+  const [showRewardPicker, setShowRewardPicker] = useState(false);
+  const [addingCustom, setAddingCustom] = useState(false);
+  const [customName, setCustomName] = useState('');
+  const [customDescription, setCustomDescription] = useState('');
+  const [customImage, setCustomImage] = useState<{
+    uri: string;
+    type?: string;
+    fileName?: string;
+  } | null>(null);
+  const [savingCustom, setSavingCustom] = useState(false);
   const latestEnRef = useRef({title: '', description: '', mantra: ''});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipAutoTranslateRef = useRef(isEdit);
+
+  const selectedRewardNames = useMemo(() => {
+    const map = new Map(rewards.map(item => [item.id, item.name]));
+    return selectedRewardIds
+      .map(id => map.get(id) || '')
+      .filter(Boolean)
+      .join(' · ');
+  }, [rewards, selectedRewardIds]);
+
+  const toggleReward = (id: string) => {
+    setSelectedRewardIds(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id],
+    );
+  };
+
+  const loadRewards = async () => {
+    try {
+      const response = await apiService.get('/admin/rewards');
+      const rows = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+      setRewards(
+        rows.map((row: any) => ({
+          id: String(row.id),
+          name: String(row.name || row.title || ''),
+          description: String(row.description || ''),
+        })),
+      );
+    } catch {
+      setRewards([]);
+    }
+  };
+
+  useEffect(() => {
+    void loadRewards();
+  }, []);
 
   useEffect(() => {
     if (route.params?.title) {
@@ -258,6 +317,11 @@ const AdminChallengeCreateScreen = () => {
               return next;
             })(),
         );
+        if (Array.isArray(match.rewardIds)) {
+          setSelectedRewardIds(
+            match.rewardIds.map((id: any) => String(id)).filter(Boolean),
+          );
+        }
       })
       .catch(err => {
         Alert.alert(
@@ -388,6 +452,94 @@ const AdminChallengeCreateScreen = () => {
     setShowEndPicker(false);
   };
 
+  const pickCustomImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Reward image',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setCustomImage({
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        fileName: picked.fileName || 'reward.jpg',
+      });
+    } catch (err) {
+      Alert.alert(
+        'Image',
+        getApiError(err, 'Could not pick reward image.'),
+      );
+    }
+  };
+
+  const saveCustomReward = async () => {
+    const name = customName.trim();
+    const description = customDescription.trim();
+    if (name.length < 2) {
+      Alert.alert('Required', 'Enter a custom reward name.');
+      return;
+    }
+    if (!description) {
+      Alert.alert('Required', 'Enter a description for the custom reward.');
+      return;
+    }
+    setSavingCustom(true);
+    try {
+      const response = await apiService.post('/admin/rewards', {
+        name,
+        title: name,
+        description,
+        eligibilityCriteria: 1,
+        unlockMode: 'fixed',
+        active: true,
+        notifyUsers: false,
+      });
+      const createdId = String(
+        response.data?.data?.id || response.data?.data?.rewardId || '',
+      );
+      if (createdId && customImage?.uri) {
+        try {
+          const formData = new FormData();
+          formData.append('image', {
+            uri: customImage.uri,
+            type: customImage.type || 'image/jpeg',
+            name: customImage.fileName || 'reward.jpg',
+          } as any);
+          await apiService.post(`/admin/rewards/${createdId}/image`, formData);
+        } catch {
+          // Image can be added later from Rewards.
+        }
+      }
+      await loadRewards();
+      if (createdId) {
+        setSelectedRewardIds(prev =>
+          prev.includes(createdId) ? prev : [...prev, createdId],
+        );
+      }
+      setCustomName('');
+      setCustomDescription('');
+      setCustomImage(null);
+      setAddingCustom(false);
+      Alert.alert(
+        'Reward added',
+        createdId
+          ? `“${name}” added and selected for this challenge.`
+          : `“${name}” added.`,
+      );
+    } catch (err) {
+      Alert.alert(
+        'Could not add reward',
+        getApiError(err, 'Could not create custom reward.'),
+      );
+    } finally {
+      setSavingCustom(false);
+    }
+  };
+
   const save = async () => {
     const primaryTitle =
       translations.en.title.trim() || translations[activeLang].title.trim();
@@ -403,8 +555,18 @@ const AdminChallengeCreateScreen = () => {
       Alert.alert('Invalid dates', 'End date must be on or after start date.');
       return;
     }
+    if (selectedRewardIds.length === 0) {
+      Alert.alert(
+        'Rewards required',
+        'Select at least one reward (or add a custom reward).',
+      );
+      return;
+    }
     setSaving(true);
     try {
+      const rewardIds = selectedRewardIds
+        .map(id => Number(id))
+        .filter(id => id > 0);
       const payload = {
         title: primaryTitle,
         description:
@@ -417,6 +579,8 @@ const AdminChallengeCreateScreen = () => {
         startDate: toYmd(startDate),
         endDate: toYmd(endDate),
         translations: JSON.stringify(translations),
+        rewardIds,
+        rewardName: selectedRewardNames || undefined,
       };
       if (isEdit) {
         await apiService.put(`/admin/challenges/${editId}`, payload);
@@ -628,6 +792,154 @@ const AdminChallengeCreateScreen = () => {
             />
           </View>
 
+          <View style={styles.divider} />
+          <Text style={styles.sectionHeading}>Rewards</Text>
+          <Text style={styles.rewardHint}>
+            Devotees can claim only one — after they choose or order, other
+            rewards stay locked.
+          </Text>
+          <View style={styles.rewardActions}>
+            <TouchableOpacity
+              style={[
+                styles.rewardActionBtn,
+                showRewardPicker && styles.rewardActionBtnOn,
+              ]}
+              onPress={() => {
+                setShowRewardPicker(current => !current);
+                if (!showRewardPicker) {
+                  setAddingCustom(false);
+                }
+              }}>
+              <Text
+                style={[
+                  styles.rewardActionText,
+                  showRewardPicker && styles.rewardActionTextOn,
+                ]}>
+                {showRewardPicker
+                  ? 'Hide reward list'
+                  : selectedRewardIds.length
+                    ? `Select rewards (${selectedRewardIds.length})`
+                    : 'Select rewards'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.rewardActionBtn,
+                addingCustom && styles.rewardActionBtnOn,
+              ]}
+              onPress={() => {
+                setAddingCustom(current => !current);
+                if (!addingCustom) {
+                  setShowRewardPicker(false);
+                }
+              }}>
+              <Text
+                style={[
+                  styles.rewardActionText,
+                  addingCustom && styles.rewardActionTextOn,
+                ]}>
+                {addingCustom ? 'Hide custom reward' : '+ New custom reward'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.selectedRewards}>
+            {selectedRewardNames
+              ? `Selected: ${selectedRewardNames}`
+              : 'No rewards selected yet.'}
+          </Text>
+
+          {showRewardPicker ? (
+            <View style={styles.rewardPicker}>
+              {rewards.length === 0 ? (
+                <Text style={styles.rewardHint}>No catalog rewards yet.</Text>
+              ) : (
+                rewards.map(reward => {
+                  const checked = selectedRewardIds.includes(reward.id);
+                  return (
+                    <TouchableOpacity
+                      key={reward.id}
+                      style={[
+                        styles.rewardChip,
+                        checked && styles.rewardChipOn,
+                      ]}
+                      onPress={() => toggleReward(reward.id)}
+                      activeOpacity={0.85}>
+                      <Text
+                        style={[
+                          styles.rewardChipTitle,
+                          checked && styles.rewardChipTitleOn,
+                        ]}>
+                        {checked ? '✓ ' : ''}
+                        {reward.name}
+                      </Text>
+                      {reward.description ? (
+                        <Text
+                          style={[
+                            styles.rewardChipMeta,
+                            checked && styles.rewardChipMetaOn,
+                          ]}
+                          numberOfLines={2}>
+                          {reward.description}
+                        </Text>
+                      ) : null}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+              <TouchableOpacity
+                style={styles.doneBtn}
+                onPress={() => setShowRewardPicker(false)}>
+                <Text style={styles.doneBtnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
+          {addingCustom ? (
+            <View style={styles.customCard}>
+              <Text style={styles.customTitle}>New custom reward</Text>
+              <Text style={styles.rewardHint}>
+                Saved into Rewards for users, then auto-selected on this
+                challenge.
+              </Text>
+              <Field
+                label="Reward name"
+                value={customName}
+                onChangeText={setCustomName}
+                placeholder="e.g. Temple Prasad Box"
+              />
+              <Field
+                label="Description"
+                value={customDescription}
+                onChangeText={setCustomDescription}
+                placeholder="Short description shown to devotees"
+                multiline
+              />
+              <View style={styles.rewardActions}>
+                <TouchableOpacity
+                  style={styles.rewardActionBtn}
+                  onPress={() => void pickCustomImage()}
+                  disabled={savingCustom}>
+                  <Text style={styles.rewardActionText}>
+                    {customImage ? 'Photo ✓' : 'Upload photo'}
+                  </Text>
+                </TouchableOpacity>
+                {customImage ? (
+                  <TouchableOpacity onPress={() => setCustomImage(null)}>
+                    <Text style={styles.clearImage}>Remove photo</Text>
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                style={styles.doneBtn}
+                disabled={savingCustom}
+                onPress={() => void saveCustomReward()}>
+                <Text style={styles.doneBtnText}>
+                  {savingCustom ? 'Saving…' : 'Add custom reward'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+
           <PrimaryButton
             title={
               saving
@@ -639,7 +951,7 @@ const AdminChallengeCreateScreen = () => {
                   : 'CREATE CHALLENGE'
             }
             onPress={save}
-            disabled={saving || loading}
+            disabled={saving || loading || savingCustom}
           />
         </>
       )}
@@ -753,5 +1065,113 @@ const styles = StyleSheet.create({
   },
   placeholder: {
     color: Colors.placeholder,
+  },
+  rewardHint: {
+    color: Colors.textSecondary,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  rewardActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  rewardActionBtn: {
+    borderWidth: 1,
+    borderColor: Colors.sacredBrown,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: Colors.white,
+  },
+  rewardActionBtnOn: {
+    backgroundColor: Colors.sacredBrown,
+  },
+  rewardActionText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  rewardActionTextOn: {
+    color: Colors.white,
+  },
+  selectedRewards: {
+    color: Colors.textPrimary,
+    fontSize: 13,
+    fontWeight: '600',
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  rewardPicker: {
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 14,
+    backgroundColor: Colors.white,
+    padding: 12,
+    marginBottom: 14,
+  },
+  rewardChip: {
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 8,
+    backgroundColor: '#FAFAF7',
+  },
+  rewardChipOn: {
+    borderColor: Colors.sacredBrown,
+    backgroundColor: '#F4EEE6',
+  },
+  rewardChipTitle: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  rewardChipTitleOn: {
+    color: Colors.sacredBrown,
+  },
+  rewardChipMeta: {
+    marginTop: 4,
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  rewardChipMetaOn: {
+    color: Colors.textSecondary,
+  },
+  doneBtn: {
+    marginTop: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.sacredBrown,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  doneBtnText: {
+    color: Colors.white,
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  customCard: {
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    borderRadius: 14,
+    backgroundColor: '#F7FAF4',
+    padding: 12,
+    marginBottom: 16,
+  },
+  customTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 4,
+  },
+  clearImage: {
+    color: Colors.textSecondary,
+    fontWeight: '700',
+    alignSelf: 'center',
+    paddingVertical: 10,
   },
 });

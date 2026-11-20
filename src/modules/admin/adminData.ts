@@ -43,6 +43,7 @@ export type AdminChallenge = {
   description?: string;
   targetValue?: number;
   rewardName?: string;
+  rewardIds?: string[];
   startDate?: string;
   endDate?: string;
   participants?: number;

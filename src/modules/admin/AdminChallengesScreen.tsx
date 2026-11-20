@@ -55,6 +55,9 @@ const AdminChallengesScreen = () => {
             description: row.description || '',
             targetValue: Number(row.targetValue || 0),
             rewardName: row.rewardName || '',
+            rewardIds: Array.isArray(row.rewardIds)
+              ? row.rewardIds.map((id: any) => String(id)).filter(Boolean)
+              : [],
             startDate: row.startDate || '',
             endDate: row.endDate || '',
             status: (active ? 'Active' : 'Inactive') as AdminChallenge['status'],
@@ -224,6 +227,11 @@ const AdminChallengesScreen = () => {
           <View key={item.id} style={styles.card}>
             <Text style={styles.name}>{item.title}</Text>
             <Text style={styles.meta}>{item.detail}</Text>
+            {item.rewardName ? (
+              <Text style={styles.meta}>Rewards: {item.rewardName}</Text>
+            ) : (
+              <Text style={styles.meta}>Rewards: none linked</Text>
+            )}
 
             <View style={styles.statsRow}>
               <View style={styles.statBox}>
@@ -267,6 +275,7 @@ const AdminChallengesScreen = () => {
                     detail: item.detail,
                     targetValue: item.targetValue,
                     rewardName: item.rewardName,
+                    rewardIds: item.rewardIds || [],
                     startDate: item.startDate,
                     endDate: item.endDate,
                   })
