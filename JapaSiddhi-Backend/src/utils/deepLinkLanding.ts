@@ -118,7 +118,17 @@ export const renderDeepLinkLanding = (input: {
       var deepLink = ${JSON.stringify(input.appDeepLink)};
       var intentUrl = ${JSON.stringify(intentUrl)};
       var isAndroid = /Android/i.test(navigator.userAgent || '');
+      // Chrome/Brave often ignore custom japasiddhi:// taps; Intent URLs open the app.
       var target = isAndroid ? intentUrl : deepLink;
+      window.__openAppDeepLink = function (e) {
+        try {
+          if (e && e.preventDefault) { e.preventDefault(); }
+          window.location.href = target;
+        } catch (err) {
+          window.location.href = deepLink;
+        }
+        return false;
+      };
       setTimeout(function () {
         window.location.href = target;
       }, 150);
@@ -148,7 +158,7 @@ export const renderDeepLinkLanding = (input: {
     <h1>${title}</h1>
     <p>${subtitle}</p>
     <p id="dl-hint" class="hint">${notOpening}</p>
-    <a href="${deepLink}" class="btn-app">${openInApp}</a>
+    <a href="${escapeHtml(intentUrl)}" class="btn-app" onclick="return window.__openAppDeepLink(event);">${openInApp}</a>
     <a href="${PLAYSTORE}" class="btn-play">${downloadPlay}</a>
   </div>
 </body>

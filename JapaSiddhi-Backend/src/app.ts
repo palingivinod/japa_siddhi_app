@@ -144,7 +144,9 @@ app.get(['/annasantharpana', '/annadanam'], (req, res) => {
 });
 
 // Samuhika mantra share links → open app on Community Japa with mantra selected
-app.get(['/samuhika/mantra', '/samuhika/mantra/:id'], (req, res) => {
+app.get(
+  ['/samuhika', '/samuhika/mantra', '/samuhika/mantra/:id'],
+  (req, res) => {
   const lang = pickLandingLang({
     queryLang: String(req.query.lang || req.query.hl || ''),
     acceptLanguage: String(req.headers['accept-language'] || ''),
