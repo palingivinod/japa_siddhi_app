@@ -135,7 +135,7 @@ const en = {
   resendOtp: 'Resend OTP',
   resetPasswordHeading: 'Reset password',
   forgotPasswordHelper:
-    'Enter your email or mobile number. We will send a 4-digit OTP to the registered email so you can set a new password.',
+    'Enter your email or mobile number. Email gets a 4-digit code; mobile gets a 6-digit SMS so you can set a new password.',
   otpSentTitle: 'OTP sent',
   otpSentToValue: 'A 4-digit code was sent to {{to}}.',
   otpSentToPhone: 'A 6-digit code was sent to {{to}}.',
@@ -153,6 +153,7 @@ const en = {
   sending: 'SENDING...',
   newPassword: 'New password',
   fourDigitOtp: '4-digit OTP',
+  sixDigitOtp: '6-digit OTP',
   socialGoogle: 'Google',
   forQuickLogin: 'For quick login',
   socialFacebook: 'Facebook',

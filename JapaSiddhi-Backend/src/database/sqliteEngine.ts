@@ -17,14 +17,39 @@ const countSqliteRows = (filePath: string, table: string): number => {
   }
 };
 
+/** True when the process can create/write the directory (avoids EACCES on /var/data). */
+const canWriteDir = (dir: string): boolean => {
+  try {
+    fs.mkdirSync(dir, {recursive: true});
+    fs.accessSync(dir, fs.constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const ensureLocalSqliteDir = (): string => {
+  fs.mkdirSync(path.dirname(LOCAL_DEFAULT_DB), {recursive: true});
+  return LOCAL_DEFAULT_DB;
+};
+
 /**
- * Prefer an explicit SQLITE_PATH. On Render, always use the persistent disk
- * even if the dashboard env var was never set — otherwise every deploy wipes users.
+ * Prefer an explicit SQLITE_PATH / Render disk when writable.
+ * If /var/data is not mounted (common on Render without a Disk), never throw
+ * EACCES — fall back to ./data so OTP and auth keep working.
  */
 export const resolveSqlitePath = (): string => {
   const fromEnv = String(process.env.SQLITE_PATH || '').trim();
   if (fromEnv) {
-    return fromEnv;
+    if (canWriteDir(path.dirname(fromEnv))) {
+      return fromEnv;
+    }
+    console.warn(
+      `SQLITE_PATH "${fromEnv}" is not writable (EACCES). ` +
+        'Attach a Render Disk at /var/data, or unset SQLITE_PATH. ' +
+        `Falling back to ${LOCAL_DEFAULT_DB}.`,
+    );
+    return ensureLocalSqliteDir();
   }
 
   const onRender = Boolean(
@@ -35,41 +60,45 @@ export const resolveSqlitePath = (): string => {
   const diskMounted = fs.existsSync('/var/data');
 
   if (onRender || diskMounted || process.env.NODE_ENV === 'production') {
-    try {
-      fs.mkdirSync('/var/data', {recursive: true});
+    if (canWriteDir('/var/data')) {
+      try {
+        const diskSize = countSqliteRows(RENDER_DISK_DB, 'users');
+        const localSize = countSqliteRows(LOCAL_DEFAULT_DB, 'users');
 
-      const diskSize = countSqliteRows(RENDER_DISK_DB, 'users');
-      const localSize = countSqliteRows(LOCAL_DEFAULT_DB, 'users');
-
-      // Prefer whichever file has more data so we don't abandon history.
-      if (diskSize < 0 && localSize > 0) {
-        fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
-        console.log(
-          `Migrated SQLite from ephemeral ${LOCAL_DEFAULT_DB} → ${RENDER_DISK_DB}`,
-        );
-      } else if (diskSize >= 0 && localSize > diskSize) {
-        const backup = `${RENDER_DISK_DB}.bak-${Date.now()}`;
-        try {
-          fs.copyFileSync(RENDER_DISK_DB, backup);
-        } catch {
-          // ignore backup failure
+        // Prefer whichever file has more data so we don't abandon history.
+        if (diskSize < 0 && localSize > 0) {
+          fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
+          console.log(
+            `Migrated SQLite from ephemeral ${LOCAL_DEFAULT_DB} → ${RENDER_DISK_DB}`,
+          );
+        } else if (diskSize >= 0 && localSize > diskSize) {
+          const backup = `${RENDER_DISK_DB}.bak-${Date.now()}`;
+          try {
+            fs.copyFileSync(RENDER_DISK_DB, backup);
+          } catch {
+            // ignore backup failure
+          }
+          fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
+          console.log(
+            `Replaced smaller disk DB with larger ephemeral copy (${localSize} > ${diskSize} bytes). Backup: ${backup}`,
+          );
         }
-        fs.copyFileSync(LOCAL_DEFAULT_DB, RENDER_DISK_DB);
-        console.log(
-          `Replaced smaller disk DB with larger ephemeral copy (${localSize} > ${diskSize} bytes). Backup: ${backup}`,
+
+        return RENDER_DISK_DB;
+      } catch (error) {
+        console.warn(
+          'Could not use /var/data for SQLite; falling back to local path.',
+          error,
         );
       }
-
-      return RENDER_DISK_DB;
-    } catch (error) {
+    } else {
       console.warn(
-        'Could not use /var/data for SQLite; falling back to local path.',
-        error,
+        'Render disk /var/data is missing or not writable; using local SQLite path.',
       );
     }
   }
 
-  return LOCAL_DEFAULT_DB;
+  return ensureLocalSqliteDir();
 };
 
 const DB_PATH = resolveSqlitePath();
@@ -181,7 +210,12 @@ class SqliteEngine {
   }
 
   private async open(): Promise<void> {
-    fs.mkdirSync(path.dirname(DB_PATH), {recursive: true});
+    if (!canWriteDir(path.dirname(DB_PATH))) {
+      throw new Error(
+        `SQLite directory is not writable: ${path.dirname(DB_PATH)}. ` +
+          'Unset SQLITE_PATH or attach a writable disk (e.g. /var/data on Render).',
+      );
+    }
 
     const existed = fs.existsSync(DB_PATH);
     if (existed) {

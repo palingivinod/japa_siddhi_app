@@ -24,7 +24,7 @@ const isPhoneOtpEnabled = () =>
   String(process.env.PHONE_OTP_ENABLED || '').trim().toLowerCase() === 'true';
 
 const phoneOtpComingSoon = (
-  mode: 'login' | 'register',
+  mode: 'login' | 'register' | 'forgot',
   mobileCountryCode: string,
   mobileNumber: string,
 ) => ({
@@ -813,6 +813,46 @@ class AuthService {
       user = (await authRepository.findUserById(user.id)) as AuthUser;
     }
 
+    const phoneIdentifier = !identifier.includes('@');
+    const mobileCountryCode =
+      normalizePhone(user.mobileCountryCode || '') ||
+      restoreCountry ||
+      '91';
+    const mobileNumber =
+      normalizePhone(user.mobileNumber || '') || restoreMobile || '';
+
+    // Phone entry → Firebase SMS OTP (app sends SMS after this gate).
+    if (phoneIdentifier) {
+      if (!isPhoneOtpEnabled()) {
+        // Fall back to registered email when SMS is off.
+        if (!user?.email || !String(user.email).includes('@')) {
+          return phoneOtpComingSoon(
+            'forgot',
+            mobileCountryCode,
+            mobileNumber || restoreMobile,
+          );
+        }
+      } else {
+        if (!mobileNumber || mobileNumber.length < 8 || /^0+$/.test(mobileNumber)) {
+          throw new AppError('Enter a valid mobile number', 400);
+        }
+        return {
+          sent: true,
+          provider: 'firebase' as const,
+          phoneOtpAvailable: true as const,
+          channel: 'phone' as const,
+          mobileCountryCode,
+          mobileNumber,
+          sentTo: this.maskPhone(mobileCountryCode, mobileNumber),
+          email:
+            user.email && String(user.email).includes('@')
+              ? String(user.email).trim().toLowerCase()
+              : null,
+          expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
+        };
+      }
+    }
+
     if (!user?.email || !String(user.email).includes('@')) {
       throw new AppError(
         'No account with a registered email was found for this login.',
@@ -836,7 +876,8 @@ class AuthService {
     const otp = String(Math.floor(1000 + Math.random() * 9000));
     await emailOtpService.sendOtp(destinationEmail, otp);
     await otpRepository.save({
-      mobileCountryCode: normalizePhone(user.mobileCountryCode || '') || '91',
+      mobileCountryCode:
+        normalizePhone(user.mobileCountryCode || '') || '91',
       mobileNumber: normalizePhone(user.mobileNumber || '') || '0000000000',
       email: destinationEmail,
       codeHash: emailOtpService.hashOtp(otp),
@@ -845,6 +886,8 @@ class AuthService {
 
     return {
       sent: true,
+      provider: 'email' as const,
+      channel: 'email' as const,
       sentTo: emailOtpService.maskEmail(destinationEmail),
       email: destinationEmail,
       expiresInSeconds: environment.OTP_EXPIRES_SECONDS,
@@ -855,19 +898,76 @@ class AuthService {
     email?: string;
     otp?: string;
     newPassword?: string;
+    firebaseToken?: string;
+    mobileCountryCode?: string;
+    mobileNumber?: string;
+    channel?: 'email' | 'phone';
   }) {
+    const password = String(data.newPassword || '');
+    if (password.length < 6) {
+      throw new AppError('Password must be at least 6 characters.', 400);
+    }
+
+    const usePhone =
+      data.channel === 'phone' || Boolean(String(data.firebaseToken || '').trim());
+
+    if (usePhone) {
+      const {firebaseUid, mobileCountryCode, mobileNumber} =
+        await this.parseFirebasePhoneToken(String(data.firebaseToken || ''));
+
+      const expectedCc =
+        normalizePhone(data.mobileCountryCode || '') || mobileCountryCode;
+      const expectedMobile =
+        normalizePhone(data.mobileNumber || '') || mobileNumber;
+      if (
+        expectedMobile &&
+        (expectedCc !== mobileCountryCode || expectedMobile !== mobileNumber)
+      ) {
+        throw new AppError(
+          'Verified phone does not match the number used to reset password.',
+          401,
+        );
+      }
+
+      let user =
+        (await authRepository.findUserByMobile(
+          mobileCountryCode,
+          mobileNumber,
+        )) || (await authRepository.findUserByFirebaseUid(firebaseUid));
+
+      if (!user) {
+        throw new AppError('No account found for this mobile number.', 404);
+      }
+
+      if (String(user.firebaseUid || '') !== firebaseUid) {
+        await authRepository
+          .linkFirebaseUid(user.id, firebaseUid)
+          .catch(() => undefined);
+      }
+
+      const passwordHash = await hashPassword(password);
+      await authRepository.setPasswordHash(user.id, passwordHash);
+
+      return {
+        success: true,
+        channel: 'phone' as const,
+        mobileCountryCode,
+        mobileNumber,
+        email:
+          user.email && String(user.email).includes('@')
+            ? String(user.email).trim().toLowerCase()
+            : null,
+      };
+    }
+
     const email = String(data.email || '').trim().toLowerCase();
     const code = String(data.otp || '').trim();
-    const password = String(data.newPassword || '');
 
     if (!email || !email.includes('@')) {
       throw new AppError('Email is required to reset password.', 400);
     }
     if (code.length !== 4) {
       throw new AppError('Enter the 4-digit OTP.', 400);
-    }
-    if (password.length < 6) {
-      throw new AppError('Password must be at least 6 characters.', 400);
     }
 
     let user = await authRepository.findUserByEmail(email);
@@ -906,7 +1006,7 @@ class AuthService {
     const passwordHash = await hashPassword(password);
     await authRepository.setPasswordHash(user.id, passwordHash);
 
-    return {success: true, email};
+    return {success: true, channel: 'email' as const, email};
   }
 
   async signIn(data: {

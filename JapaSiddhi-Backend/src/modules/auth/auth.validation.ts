@@ -180,21 +180,37 @@ export const forgotPasswordSendValidation = [
 ];
 
 export const forgotPasswordResetValidation = [
-  body('email')
-    .trim()
-    .notEmpty()
-    .withMessage('Email is required.')
-    .isEmail()
-    .withMessage('Enter a valid email address.'),
-  body('otp')
-    .trim()
-    .isLength({min: 4, max: 4})
-    .withMessage('Enter the 4-digit OTP.'),
   body('newPassword')
     .notEmpty()
     .withMessage('New password is required.')
     .isLength({min: 6})
     .withMessage('Password must be at least 6 characters.'),
+  body('email').optional({nullable: true}).trim(),
+  body('otp').optional({nullable: true}).trim(),
+  body('firebaseToken').optional({nullable: true}).trim(),
+  body('mobileCountryCode').optional({nullable: true}).trim(),
+  body('mobileNumber').optional({nullable: true}).trim(),
+  body('channel').optional({nullable: true}).trim(),
+  body().custom((_, {req}) => {
+    const channel = String(req.body?.channel || '').trim().toLowerCase();
+    const firebaseToken = String(req.body?.firebaseToken || '').trim();
+    const usePhone = channel === 'phone' || Boolean(firebaseToken);
+    if (usePhone) {
+      if (!firebaseToken) {
+        throw new Error('Firebase token is required for phone password reset.');
+      }
+      return true;
+    }
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const otp = String(req.body?.otp || '').trim();
+    if (!email || !email.includes('@')) {
+      throw new Error('Email is required.');
+    }
+    if (otp.length !== 4) {
+      throw new Error('Enter the 4-digit OTP.');
+    }
+    return true;
+  }),
 ];
 
 export const registerValidation = [
