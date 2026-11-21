@@ -1,8 +1,10 @@
 import React, {useCallback, useRef, useState} from 'react';
 import {
   Alert,
+  Modal,
   NativeModules,
   Platform,
+  ScrollView,
   Share,
   StyleSheet,
   Text,
@@ -89,6 +91,8 @@ const MonthlySupportScreen = () => {
   const [customAmountText, setCustomAmountText] = useState('');
   const [submittingAutopay, setSubmittingAutopay] = useState(false);
   const [autopayLocked, setAutopayLocked] = useState(false);
+  const [showPreferDateModal, setShowPreferDateModal] = useState(false);
+  const [preferredDay, setPreferredDay] = useState<number | null>(null);
   const profileReadyRef = useRef(false);
   const pendingDeepLinkRef = useRef<RouteParams | null>(null);
   const autopayInFlightRef = useRef(false);
@@ -137,12 +141,33 @@ const MonthlySupportScreen = () => {
     setAutopayLocked(true);
   }, []);
 
+  const openAutopayPreferDate = useCallback(() => {
+    if (autopayLockedRef.current || autopayLocked) {
+      showAutopayAlreadySent();
+      return;
+    }
+    if (autopayInFlightRef.current || submittingAutopay) {
+      return;
+    }
+    setPreferredDay(null);
+    setShowPreferDateModal(true);
+  }, [autopayLocked, showAutopayAlreadySent, submittingAutopay]);
+
   const handleSetAutoPay = useCallback(async () => {
     if (autopayLockedRef.current || autopayLocked) {
       showAutopayAlreadySent();
       return;
     }
     if (autopayInFlightRef.current || submittingAutopay) {
+      return;
+    }
+    const day = Number(preferredDay || 0);
+    if (!Number.isFinite(day) || day < 1 || day > 30) {
+      Alert.alert(
+        t('validationTitle') || 'Required',
+        t('selectAutopayPreferDate') ||
+          'Please select your preferred day (1–30).',
+      );
       return;
     }
     autopayInFlightRef.current = true;
@@ -157,9 +182,11 @@ const MonthlySupportScreen = () => {
         fullName: devoteeName || 'Devotee',
         mobile: devoteeMobile || '',
         amount: amountToRegister,
+        preferredDate: day,
         notes: `Selected plan: ₹${amountToRegister} / month`,
       });
       const already = Boolean(response.data?.data?.alreadySubmitted);
+      setShowPreferDateModal(false);
       lockAutopay();
       if (already) {
         showAutopayAlreadySent();
@@ -174,6 +201,7 @@ const MonthlySupportScreen = () => {
     } catch (err: any) {
       const msg = String(err?.response?.data?.message || '');
       if (/already/i.test(msg)) {
+        setShowPreferDateModal(false);
         lockAutopay();
         showAutopayAlreadySent();
       } else {
@@ -194,6 +222,7 @@ const MonthlySupportScreen = () => {
     devoteeName,
     isCustom,
     lockAutopay,
+    preferredDay,
     selectedAmount,
     showAutopayAlreadySent,
     submittingAutopay,
@@ -207,7 +236,7 @@ const MonthlySupportScreen = () => {
           showAutopayAlreadySent();
           return;
         }
-        void handleSetAutoPay();
+        openAutopayPreferDate();
         return;
       }
       if (params.openCustom) {
@@ -228,7 +257,7 @@ const MonthlySupportScreen = () => {
         void handlePayAmount(amt);
       }
     },
-    [handlePayAmount, handleSetAutoPay, showAutopayAlreadySent],
+    [handlePayAmount, openAutopayPreferDate, showAutopayAlreadySent],
   );
 
   const consumeDeepLinkIfReady = useCallback(() => {
@@ -467,7 +496,7 @@ const MonthlySupportScreen = () => {
               ? t('autopayAlreadySubmittedBtn')
               : t('setAutopay')
         }
-        onPress={handleSetAutoPay}
+        onPress={openAutopayPreferDate}
         disabled={submittingAutopay}
       />
 
@@ -487,6 +516,76 @@ const MonthlySupportScreen = () => {
           </Text>
         </View>
       </TouchableOpacity>
+
+      <Modal
+        visible={showPreferDateModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          if (!submittingAutopay) {
+            setShowPreferDateModal(false);
+          }
+        }}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {t('autopayPreferDateTitle') ||
+                'Preferred date for monthly support'}
+            </Text>
+            <Text style={styles.modalHint}>
+              {t('autopayPreferDateHint') ||
+                'Please enter your preferred date to support every month (day 1–30).'}
+            </Text>
+            <ScrollView
+              style={styles.dayScroll}
+              contentContainerStyle={styles.dayGrid}
+              keyboardShouldPersistTaps="handled">
+              {Array.from({length: 30}, (_, i) => i + 1).map(day => {
+                const active = preferredDay === day;
+                return (
+                  <TouchableOpacity
+                    key={day}
+                    style={[styles.dayChip, active && styles.dayChipActive]}
+                    activeOpacity={0.85}
+                    disabled={submittingAutopay}
+                    onPress={() => setPreferredDay(day)}>
+                    <Text
+                      style={[
+                        styles.dayChipText,
+                        active && styles.dayChipTextActive,
+                      ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            {preferredDay ? (
+              <Text style={styles.selectedDayLine}>
+                {t('autopayDayEveryMonth', {day: preferredDay}) ||
+                  `Day ${preferredDay} every month`}
+              </Text>
+            ) : null}
+            <PrimaryButton
+              title={
+                submittingAutopay
+                  ? t('submittingAutopayRequest')
+                  : t('autopaySendRequest') || 'SEND REQUEST'
+              }
+              onPress={handleSetAutoPay}
+              disabled={submittingAutopay}
+            />
+            <TouchableOpacity
+              style={styles.modalCancel}
+              disabled={submittingAutopay}
+              onPress={() => setShowPreferDateModal(false)}>
+              <Text style={styles.modalCancelText}>
+                {t('autopayCancel') || 'Cancel'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScreenLayout>
   );
 };
@@ -494,6 +593,79 @@ const MonthlySupportScreen = () => {
 export default MonthlySupportScreen;
 
 const styles = StyleSheet.create({
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(40, 24, 10, 0.45)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalCard: {
+    backgroundColor: Colors.cream || '#F7F0E4',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    padding: 16,
+    maxHeight: '85%',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    marginBottom: 8,
+  },
+  modalHint: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '600',
+    color: Colors.textSecondary,
+    marginBottom: 12,
+  },
+  dayScroll: {
+    maxHeight: 220,
+    marginBottom: 10,
+  },
+  dayGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  dayChip: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayChipActive: {
+    borderColor: Colors.leafGreen,
+    backgroundColor: '#F1F8E9',
+  },
+  dayChipText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  dayChipTextActive: {
+    color: Colors.leafGreen,
+  },
+  selectedDayLine: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.leafGreen,
+    marginBottom: 12,
+  },
+  modalCancel: {
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  modalCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',

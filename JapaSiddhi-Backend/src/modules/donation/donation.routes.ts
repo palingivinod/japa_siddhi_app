@@ -78,6 +78,11 @@ router.post('/autopay/request', authenticate, async (req: any, res: any) => {
       mobile: req.body?.mobile || req.body?.phone || '',
       amount: req.body?.amount,
       notes: req.body?.notes,
+      preferredDate:
+        req.body?.preferredDate ||
+        req.body?.preferDate ||
+        req.body?.preferredDay ||
+        null,
     });
     return res.json({
       success: true,
@@ -87,9 +92,11 @@ router.post('/autopay/request', authenticate, async (req: any, res: any) => {
       data,
     });
   } catch (error: any) {
-    return res.status(500).json({
+    const message = error?.message || 'Could not submit autopay request';
+    const status = /preferred date/i.test(message) ? 400 : 500;
+    return res.status(status).json({
       success: false,
-      message: error?.message || 'Could not submit autopay request',
+      message,
     });
   }
 });

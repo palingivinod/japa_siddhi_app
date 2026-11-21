@@ -39,7 +39,16 @@ export type AutopayRequestItem = {
   amount?: number | null;
   status: 'Pending' | 'Contacted' | 'Completed' | string;
   notes?: string;
+  preferredDate?: string | null;
   createdAt: string;
+};
+
+const formatPreferredDay = (raw?: string | null) => {
+  const day = Math.floor(Number(raw));
+  if (!Number.isFinite(day) || day < 1) {
+    return '';
+  }
+  return `Day ${day} every month`;
 };
 
 const TABS = ['All', 'Pending', 'Contacted', 'Completed'];
@@ -361,6 +370,26 @@ const AdminAutopayRequestsScreen = () => {
               </TouchableOpacity>
             </View>
 
+            {formatPreferredDay(item.preferredDate) ? (
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onLongPress={() =>
+                  copyDetail(
+                    formatPreferredDay(item.preferredDate),
+                    'Preferred date',
+                  )
+                }
+                delayLongPress={280}
+                style={styles.preferRow}>
+                <Text style={styles.preferLabel}>Preferred Date:</Text>
+                <View style={styles.preferBadge}>
+                  <Text style={styles.preferBadgeText}>
+                    📅 {formatPreferredDay(item.preferredDate)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ) : null}
+
             {item.notes ? (
               <TouchableOpacity
                 activeOpacity={0.85}
@@ -370,11 +399,12 @@ const AdminAutopayRequestsScreen = () => {
               </TouchableOpacity>
             ) : null}
 
-            {/* Mobile & Contact Action Buttons (Call & Msg) */}
+            {/* Mobile & Contact Action Buttons (Copy / Call / Msg) */}
             <View style={styles.contactRow}>
               <TouchableOpacity
                 style={styles.phoneInfo}
                 activeOpacity={0.85}
+                onPress={() => copyDetail(item.mobile, 'Phone')}
                 onLongPress={() => copyDetail(item.mobile, 'Phone')}
                 delayLongPress={280}>
                 <Text style={styles.phoneLabel}>Phone Number:</Text>
@@ -382,6 +412,15 @@ const AdminAutopayRequestsScreen = () => {
               </TouchableOpacity>
               {item.mobile ? (
                 <View style={styles.contactActions}>
+                  <TouchableOpacity
+                    style={[styles.contactBtn, styles.copyBtn]}
+                    onPress={() => copyDetail(item.mobile, 'Phone')}
+                    activeOpacity={0.7}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    <Text style={styles.contactBtnIcon}>📋</Text>
+                    <Text style={styles.contactBtnText}>Copy</Text>
+                  </TouchableOpacity>
+
                   <TouchableOpacity
                     style={[styles.contactBtn, styles.phoneBtn]}
                     onPress={() => handleCall(item.mobile)}
@@ -686,6 +725,31 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#92400E',
   },
+  preferRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 8,
+  },
+  preferLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+  },
+  preferBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#7DD3FC',
+  },
+  preferBadgeText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0369A1',
+  },
   notesText: {
     fontSize: 13,
     color: Colors.textSecondary,
@@ -729,6 +793,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     gap: 4,
+  },
+  copyBtn: {
+    backgroundColor: '#FFF7ED',
+    borderColor: '#FDBA74',
   },
   phoneBtn: {
     backgroundColor: '#EFF6FF',

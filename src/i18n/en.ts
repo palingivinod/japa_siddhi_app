@@ -709,6 +709,14 @@ const en = {
     'Add your spouse name in Personal Details. Anniversary uses that name.',
   preferDate: 'Prefer date',
   selectPreferDate: 'Select a prefer date.',
+  autopayPreferDateTitle: 'Preferred date for monthly support',
+  autopayPreferDateHint:
+    'Please enter your preferred date to support every month (day 1–30).',
+  autopayPreferDateLabel: 'Preferred date',
+  autopayDayEveryMonth: 'Day {{day}} every month',
+  selectAutopayPreferDate: 'Please select your preferred day (1–30).',
+  autopaySendRequest: 'SEND REQUEST',
+  autopayCancel: 'Cancel',
   selectNoOfPersons: 'Select No of Persons',
   rateSlashPerson: '₹{{rate}} / person',
   ratePerPersonFull: 'Rate: ₹{{rate}} per person',
@@ -1098,6 +1106,8 @@ const en = {
   challengeCompleteLabel: 'Challenge complete',
   saveSession: 'Save Session',
   savingLabel: 'Saving...',
+  autoSaveFailedNote:
+    'Auto-save could not save right now. Press Save Session to save your progress.',
   viewProgress: 'View Progress',
   viewChallengeProgress: 'View Challenge Progress',
   goalWithCount: 'Goal {{count}}',

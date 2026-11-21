@@ -1143,9 +1143,16 @@ const ChantScreen = () => {
       postedCountRef.current = Math.max(postedCountRef.current, posted + delta);
       await persistDraft(countRef.current, postedCountRef.current);
       rememberAutoSave(response.data?.data, delta);
+      // Clear rare offline warning once auto-save works again.
+      setMessage(current =>
+        /auto-save could not save/i.test(current) ? '' : current,
+      );
     } catch {
       await persistDraft(countRef.current, postedCountRef.current);
-      setMessage('Could not save this tap. Save Session will keep it.');
+      setMessage(
+        t('autoSaveFailedNote') ||
+          'Auto-save could not save right now. Press Save Session to save your progress.',
+      );
     }
   };
 

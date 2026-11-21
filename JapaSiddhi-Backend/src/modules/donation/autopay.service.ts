@@ -2,6 +2,20 @@ import mysql from '../../database/mysql';
 
 let tableReady = false;
 
+const ensurePreferredDateColumn = async () => {
+  const add = async (sql: string) => {
+    try {
+      await mysql.query(sql);
+    } catch {
+      // Column already exists.
+    }
+  };
+  await add(`ALTER TABLE autopay_requests ADD COLUMN preferred_date TEXT`);
+  await add(
+    `ALTER TABLE autopay_requests ADD COLUMN preferred_date VARCHAR(20) NULL`,
+  );
+};
+
 export const ensureAutopayTable = async () => {
   if (tableReady) return;
   const engine = mysql.getEngineName();
@@ -16,6 +30,7 @@ export const ensureAutopayTable = async () => {
           amount NUMERIC(10, 2),
           status TEXT NOT NULL DEFAULT 'Pending',
           notes TEXT,
+          preferred_date TEXT,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::TEXT
         )
@@ -30,6 +45,7 @@ export const ensureAutopayTable = async () => {
           amount REAL,
           status TEXT NOT NULL DEFAULT 'Pending',
           notes TEXT,
+          preferred_date TEXT,
           created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
           updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
@@ -44,15 +60,26 @@ export const ensureAutopayTable = async () => {
           amount DECIMAL(10, 2) NULL,
           status VARCHAR(50) NOT NULL DEFAULT 'Pending',
           notes TEXT NULL,
+          preferred_date VARCHAR(20) NULL,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         )
       `);
     }
+    await ensurePreferredDateColumn();
     tableReady = true;
   } catch (error) {
     console.error('Could not ensure autopay_requests table:', error);
   }
+};
+
+/** Day of month 1–30 for monthly debit. */
+export const normalizePreferredDay = (raw: unknown) => {
+  const day = Math.floor(Number(raw));
+  if (!Number.isFinite(day) || day < 1 || day > 30) {
+    return null;
+  }
+  return day;
 };
 
 export interface CreateAutopayInput {
@@ -61,6 +88,7 @@ export interface CreateAutopayInput {
   mobile: string;
   amount?: number | null;
   notes?: string | null;
+  preferredDate?: string | number | null;
 }
 
 const normalizeMobile = (raw: string) =>
@@ -81,7 +109,7 @@ export const findActiveAutopayRequest = async (opts: {
     const byUser = await mysql.query<any[]>(
       `
       SELECT id, user_id AS userId, full_name AS fullName, mobile, amount, status, notes,
-             created_at AS createdAt
+             preferred_date AS preferredDate, created_at AS createdAt
       FROM autopay_requests
       WHERE user_id = ?
         AND LOWER(TRIM(status)) IN ('pending', 'contacted')
@@ -99,7 +127,7 @@ export const findActiveAutopayRequest = async (opts: {
     const byMobile = await mysql.query<any[]>(
       `
       SELECT id, user_id AS userId, full_name AS fullName, mobile, amount, status, notes,
-             created_at AS createdAt
+             preferred_date AS preferredDate, created_at AS createdAt
       FROM autopay_requests
       WHERE LOWER(TRIM(status)) IN ('pending', 'contacted')
       ORDER BY id DESC
@@ -140,7 +168,16 @@ export const createAutopayRequest = async (input: CreateAutopayInput) => {
   const name = String(input.fullName || 'Devotee').trim().slice(0, 150);
   const mobile = String(input.mobile || '').replace(/[^\d+]/g, '').slice(0, 30);
   const amount = Number(input.amount) > 0 ? Number(input.amount) : null;
-  const notes = input.notes ? String(input.notes).slice(0, 500) : null;
+  const preferredDay = normalizePreferredDay(input.preferredDate);
+  if (!preferredDay) {
+    throw new Error('Please select your preferred date (day 1–30) for monthly support.');
+  }
+  const preferredDate = String(preferredDay);
+  const baseNotes = input.notes ? String(input.notes).slice(0, 400) : '';
+  const notes = `${baseNotes}${baseNotes ? ' · ' : ''}Preferred date: Day ${preferredDay} every month`.slice(
+    0,
+    500,
+  );
   const userId = input.userId ? Number(input.userId) : null;
 
   const existing = await findActiveAutopayRequest({userId, mobile});
@@ -152,14 +189,17 @@ export const createAutopayRequest = async (input: CreateAutopayInput) => {
       amount:
         existing.amount != null ? Number(existing.amount) : amount,
       status: String(existing.status || 'Pending'),
+      preferredDate: existing.preferredDate
+        ? String(existing.preferredDate)
+        : null,
       alreadySubmitted: true as const,
     };
   }
 
   const result: any = await mysql.query(
-    `INSERT INTO autopay_requests (user_id, full_name, mobile, amount, status, notes)
-     VALUES (?, ?, ?, ?, 'Pending', ?)`,
-    [userId, name, mobile, amount, notes],
+    `INSERT INTO autopay_requests (user_id, full_name, mobile, amount, status, notes, preferred_date)
+     VALUES (?, ?, ?, ?, 'Pending', ?, ?)`,
+    [userId, name, mobile, amount, notes, preferredDate],
   );
 
   return {
@@ -168,6 +208,7 @@ export const createAutopayRequest = async (input: CreateAutopayInput) => {
     mobile,
     amount,
     status: 'Pending',
+    preferredDate,
     alreadySubmitted: false as const,
   };
 };
@@ -176,7 +217,7 @@ export const getAutopayRequests = async () => {
   await ensureAutopayTable();
   const rows = await mysql.query<any[]>(
     `SELECT id, user_id AS userId, full_name AS fullName, mobile, amount, status, notes,
-            created_at AS createdAt
+            preferred_date AS preferredDate, created_at AS createdAt
      FROM autopay_requests
      ORDER BY id DESC`,
   );
@@ -188,6 +229,7 @@ export const getAutopayRequests = async () => {
     amount: r.amount ? Number(r.amount) : null,
     status: String(r.status || 'Pending'),
     notes: r.notes ? String(r.notes) : '',
+    preferredDate: r.preferredDate ? String(r.preferredDate) : '',
     createdAt: String(r.createdAt || r.created_at || new Date().toISOString()),
   }));
 };
