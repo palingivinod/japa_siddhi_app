@@ -788,7 +788,11 @@ const ChantScreen = () => {
       goal: goalRef.current,
       count: nextCount,
       postedCount,
-      japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+      japaGoalId: challengeId
+        ? undefined
+        : matchedGoalIdRef.current ||
+          Number(route.params?.japaGoalId || 0) ||
+          undefined,
       challengeId: challengeId || undefined,
     });
   };
@@ -925,9 +929,11 @@ const ChantScreen = () => {
         : 'These japas are already saved.',
     );
 
+    const lockedGoalForSave =
+      matchedGoalIdRef.current || Number(route.params?.japaGoalId || 0) || undefined;
     // Persist most recently chanted & saved mantra
     void saveLastChantedJapa({
-      goalId: challengeId ? undefined : route.params?.japaGoalId,
+      goalId: challengeId ? undefined : lockedGoalForSave,
       challengeId: challengeId || undefined,
       mantraId: chip?.own ? undefined : chip?.id,
       personalMantraId: chip?.own ? chip.id : undefined,
@@ -947,7 +953,7 @@ const ChantScreen = () => {
         todayCount: todaySavedRef.current,
         sessionCount: added > 0 ? added : Number(savedCount || 0),
         completed: options?.completed,
-        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+        japaGoalId: challengeId ? undefined : lockedGoalForSave,
         mantraName:
           chip?.name ||
           route.params?.privateMantra ||
@@ -961,7 +967,10 @@ const ChantScreen = () => {
         mantraId: chip?.own ? undefined : chip?.id,
         privateMantra: chip?.own ? chip.name : route.params?.privateMantra,
         personalMantraId: chip?.own ? chip.id : undefined,
-        japaGoalId: route.params?.japaGoalId,
+        japaGoalId:
+          matchedGoalIdRef.current ||
+          Number(route.params?.japaGoalId || 0) ||
+          undefined,
         userTotal,
       });
     if (challengeId) {
@@ -1099,7 +1108,11 @@ const ChantScreen = () => {
       }
     }
     void saveLastChantedJapa({
-      goalId: challengeId ? undefined : route.params?.japaGoalId,
+      goalId: challengeId
+        ? undefined
+        : matchedGoalIdRef.current ||
+          Number(route.params?.japaGoalId || 0) ||
+          undefined,
       challengeId: challengeId || undefined,
       mantraId: chip?.own ? undefined : chip?.id,
       personalMantraId: chip?.own ? chip.id : undefined,
@@ -1160,7 +1173,11 @@ const ChantScreen = () => {
         chantMode: 'TAP',
         sessionCount: delta,
         durationSeconds: Math.max(delta * 2, 1),
-        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+        japaGoalId: challengeId
+          ? undefined
+          : matchedGoalIdRef.current ||
+            Number(route.params?.japaGoalId || 0) ||
+            undefined,
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
       });
@@ -1375,7 +1392,11 @@ const ChantScreen = () => {
               chantMode: 'TAP',
               sessionCount: delta,
               durationSeconds: Math.max(delta * 2, 1),
-              japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+              japaGoalId: challengeId
+                ? undefined
+                : matchedGoalIdRef.current ||
+                  Number(route.params?.japaGoalId || 0) ||
+                  undefined,
               challengeId: challengeId || undefined,
               remarks: sessionRemarks(),
             });
@@ -1658,10 +1679,25 @@ const ChantScreen = () => {
               navigation.navigate('ChallengeProgress', {id: challengeId});
               return;
             }
+            const chip = selectedRef.current;
+            const progressDaily =
+              dailyTargetRef.current > 0 ? dailyTargetRef.current : goal;
+            const lockedGoalId =
+              matchedGoalIdRef.current ||
+              Number(route.params?.japaGoalId || 0) ||
+              undefined;
             navigation.navigate('JapaProgress', {
               count: savedTotal + count,
-              goal,
+              goal: progressDaily,
+              dailyTarget: progressDaily,
+              todayCount: todaySavedRef.current,
               sessionCount: count,
+              // Lock Progress to THIS mantra — do not fall back to last-chanted other goal.
+              japaGoalId: lockedGoalId,
+              mantraName:
+                chip?.name ||
+                route.params?.privateMantra ||
+                route.params?.challengeMantra,
             });
           }}>
           <Text style={styles.progressBtnText}>

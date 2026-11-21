@@ -12,7 +12,7 @@ import apiService from '../../services/apiService';
 import {getJapaDraft} from '../../services/japaDraft';
 import Colors from '../../theme/colors';
 import {dailyPlansForDays} from '../../utils/dailyGoal';
-import {istIsoDate} from '../../utils/dateUtils';
+import {istIsoDate, shiftIsoDate} from '../../utils/dateUtils';
 import {getLastChantedJapa} from '../../services/session';
 import {
   pickMantraGoal,
@@ -62,49 +62,57 @@ const JapaProgressScreen = () => {
   const applyProgressPayload = useCallback(
     async (data: any, goalsList: any[]) => {
       const lastChanted = await getLastChantedJapa();
+      // Route goal (from Chant → View Progress) always wins over last-chanted.
       const preferredGoalId =
         seededGoalId ||
         Number(data.activeGoalId || 0) ||
         Number(lastChanted?.goalId || 0);
-      const picked = pickMantraGoal(goalsList, {
-        goalId: preferredGoalId || lastChanted?.goalId,
-        personalMantraId: lastChanted?.personalMantraId,
-        mantraId: lastChanted?.mantraId,
-      });
-      const activeGoal =
-        picked ||
-        (preferredGoalId
-          ? goalsList.find((g: any) => Number(g.id) === preferredGoalId)
-          : null) ||
-        goalsList.find((g: any) => {
-          if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
-            return false;
-          }
-          const target = Number(g.targetCount ?? 0);
-          const completed = Number(g.completedCount ?? 0);
-          const daily = Number(g.dailyTarget ?? 0);
-          const goalName = String(g.goalName || '').trim();
-          if (
-            target === 10800 &&
-            completed === 0 &&
-            daily === 108 &&
-            goalName === 'Daily Japa'
-          ) {
-            return false;
-          }
-          if (target > 0 && completed >= target) {
-            return false;
-          }
-          return true;
+
+      let activeGoal: any = null;
+      if (seededGoalId > 0) {
+        activeGoal =
+          goalsList.find((g: any) => Number(g.id) === seededGoalId) || null;
+      }
+      if (!activeGoal) {
+        const picked = pickMantraGoal(goalsList, {
+          goalId: preferredGoalId || lastChanted?.goalId,
+          personalMantraId: lastChanted?.personalMantraId,
+          mantraId: lastChanted?.mantraId,
         });
+        activeGoal =
+          picked ||
+          (preferredGoalId
+            ? goalsList.find((g: any) => Number(g.id) === preferredGoalId)
+            : null) ||
+          goalsList.find((g: any) => {
+            if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
+              return false;
+            }
+            const target = Number(g.targetCount ?? 0);
+            const completed = Number(g.completedCount ?? 0);
+            const daily = Number(g.dailyTarget ?? 0);
+            const goalName = String(g.goalName || '').trim();
+            if (
+              target === 10800 &&
+              completed === 0 &&
+              daily === 108 &&
+              goalName === 'Daily Japa'
+            ) {
+              return false;
+            }
+            if (target > 0 && completed >= target) {
+              return false;
+            }
+            return true;
+          });
+      }
 
       let todayCount = Number(
         activeGoal?.todayCompletedCount ??
-          data.todayCount ??
+          (seededGoalId > 0 ? 0 : data.todayCount) ??
           0,
       );
       // Keep just-saved session visible if server lag still shows an older today.
-      // Only when this screen was opened for the same goal we just chanted.
       const seedMatchesGoal =
         !seededGoalId ||
         !activeGoal ||
@@ -113,7 +121,8 @@ const JapaProgressScreen = () => {
         todayCount = seededToday;
       }
       const label = String(
-        activeGoal?.mantraName ||
+        (seededGoalId > 0 ? route.params?.mantraName : '') ||
+          activeGoal?.mantraName ||
           activeGoal?.goalName ||
           data.mantraName ||
           route.params?.mantraName ||
@@ -122,11 +131,22 @@ const JapaProgressScreen = () => {
       if (label) {
         setMantraLabel(label);
       }
-      const weekRows: Array<{day: string; count: number}> = Array.isArray(
-        data.weekly,
-      )
-        ? data.weekly
-        : [];
+
+      // Always show last 7 IST days (0 where no chant) so bars don't collapse to "today only".
+      const byDay = new Map<string, number>();
+      (Array.isArray(data.weekly) ? data.weekly : []).forEach((row: any) => {
+        const key = String(row.day || '').slice(0, 10);
+        if (key) {
+          byDay.set(key, Number(row.count) || 0);
+        }
+      });
+      const todayIso = istIsoDate();
+      const weekRows: Array<{day: string; count: number}> = [];
+      for (let i = 6; i >= 0; i -= 1) {
+        const day = shiftIsoDate(todayIso, -i);
+        weekRows.push({day, count: byDay.get(day) || 0});
+      }
+
       let dailyGoal = 0;
       let plans: Record<string, number> = {};
       if (activeGoal) {
@@ -135,7 +155,7 @@ const JapaProgressScreen = () => {
         const remaining = Math.max(0, target - completed);
         const snaps = await readDailyPlanSnaps();
         const plan = resolveMantraDailyTarget({
-          today: istIsoDate(),
+          today: todayIso,
           endDate: activeGoal.endDate,
           remainingNow: remaining,
           doneToday: todayCount,
@@ -153,7 +173,11 @@ const JapaProgressScreen = () => {
         });
       }
       if (dailyGoal <= 0) {
-        dailyGoal = Number(data.dailyGoal ?? data.goal ?? 0);
+        dailyGoal = Number(
+          seededGoalId > 0
+            ? seededGoal || data.dailyGoal || data.goal || 0
+            : data.dailyGoal ?? data.goal ?? 0,
+        );
       }
       if (dailyGoal <= 0 && seededGoal > 0) {
         dailyGoal = seededGoal;
@@ -309,7 +333,7 @@ const JapaProgressScreen = () => {
           </View>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
-            {weekly.length === 0 ? (
+            {weekly.every(item => !(Number(item.count) > 0)) ? (
               <Text style={styles.meta}>{t('noChantsThisWeek')}</Text>
             ) : (
               weekly.map(item => (

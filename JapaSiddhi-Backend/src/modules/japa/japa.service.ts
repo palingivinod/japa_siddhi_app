@@ -1397,11 +1397,11 @@ class JapaService {
     };
 
     const preferred = Number(preferredGoalId || 0);
+    // Explicit goalId from the app must win (View Progress for selected mantra).
+    // Do not fall through to most-recent when preferred exists but is completed/hidden.
     const active =
       (preferred > 0
-        ? (goals || []).find(
-            (g: any) => Number(g.id) === preferred && isUsableActive(g),
-          )
+        ? (goals || []).find((g: any) => Number(g.id) === preferred)
         : null) ||
       (recentGoalId
         ? (goals || []).find(
