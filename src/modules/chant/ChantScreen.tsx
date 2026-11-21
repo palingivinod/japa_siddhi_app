@@ -947,6 +947,11 @@ const ChantScreen = () => {
         todayCount: todaySavedRef.current,
         sessionCount: added > 0 ? added : Number(savedCount || 0),
         completed: options?.completed,
+        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+        mantraName:
+          chip?.name ||
+          route.params?.privateMantra ||
+          route.params?.challengeMantra,
       });
     const goGoalComplete = () =>
       navigation.replace('JapaGoalComplete', {

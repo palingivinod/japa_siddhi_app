@@ -39,7 +39,7 @@ class NotificationController {
       const result =
         await notificationService.getUserNotifications(
           userId,
-          Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 80,
+          Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 15,
         );
 
       return apiResponse.success(

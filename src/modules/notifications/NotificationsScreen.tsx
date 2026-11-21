@@ -421,7 +421,8 @@ const NotificationsScreen = () => {
     setRawError(null);
     try {
       const [response, storedCleared] = await Promise.all([
-        apiService.get('/notifications', {params: {limit: 80}}),
+        // Only the latest handful — full history is not needed for the inbox UI.
+        apiService.get('/notifications', {params: {limit: 15}}),
         AsyncStorage.getItem('cleared_notification_ids'),
       ]);
       const clearedSet = new Set<string>(

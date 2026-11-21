@@ -213,6 +213,8 @@ export type RootStackParamList = {
         todayCount?: number;
         sessionCount?: number;
         completed?: boolean;
+        japaGoalId?: number;
+        mantraName?: string;
       }
     | undefined;
   JapaGoalComplete:

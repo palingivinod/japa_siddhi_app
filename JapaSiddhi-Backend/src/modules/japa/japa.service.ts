@@ -1366,13 +1366,14 @@ class JapaService {
     };
   }
 
-  async getProgress(userId: number) {
-    const [summary, weekly, goals] = await Promise.all([
+  async getProgress(userId: number, preferredGoalId?: number) {
+    const [summary, goals, recentGoalId] = await Promise.all([
       this.getSummary(userId),
-      japaRepository.getWeeklyBreakdown(userId),
       japaGoalRepository.getUserGoals(userId),
+      japaRepository.getMostRecentGoalId(userId),
     ]);
-    const active = (goals || []).find((g: any) => {
+
+    const isUsableActive = (g: any) => {
       if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
         return false;
       }
@@ -1393,7 +1394,27 @@ class JapaService {
         return false;
       }
       return true;
-    });
+    };
+
+    const preferred = Number(preferredGoalId || 0);
+    const active =
+      (preferred > 0
+        ? (goals || []).find(
+            (g: any) => Number(g.id) === preferred && isUsableActive(g),
+          )
+        : null) ||
+      (recentGoalId
+        ? (goals || []).find(
+            (g: any) => Number(g.id) === recentGoalId && isUsableActive(g),
+          )
+        : null) ||
+      (goals || []).find(isUsableActive);
+
+    // Week bars must match the same mantra/goal as Today + Daily goal.
+    const weekly = await japaRepository.getWeeklyBreakdown(
+      userId,
+      active ? Number(active.id) : undefined,
+    );
     const dailyGoal =
       Number(active?.dailyTarget ?? goals?.[0]?.dailyTarget ?? 0) || 0;
     const today = Number(
@@ -1411,6 +1432,8 @@ class JapaService {
       weekly,
       lifetime: summary.totalJapaCount,
       totalJapaCount: summary.totalJapaCount,
+      activeGoalId: active ? Number(active.id) : null,
+      mantraName: active?.mantraName || active?.goalName || null,
       // Include goals so the app can pick the last-chanted mantra in one round-trip
       // (avoids a second /japa-goals + /japa/summary after Save).
       goals: goals || [],

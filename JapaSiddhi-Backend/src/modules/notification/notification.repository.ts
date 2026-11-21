@@ -403,9 +403,9 @@ class NotificationRepository {
     return result.insertId;
   }
 
-  async getUserNotifications(userId: number, limit = 80) {
+  async getUserNotifications(userId: number, limit = 15) {
     await this.purgeExpired(userId);
-    const take = Math.max(1, Math.min(200, Number(limit) || 80));
+    const take = Math.max(1, Math.min(50, Number(limit) || 15));
 
     const rows = await mysql.query<any[]>(
       `

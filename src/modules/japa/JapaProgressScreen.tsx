@@ -37,6 +37,7 @@ const JapaProgressScreen = () => {
     Number(route.params?.todayCount || 0),
   );
   const seededLifetime = Math.max(0, Number(route.params?.count || 0));
+  const seededGoalId = Math.max(0, Number(route.params?.japaGoalId || 0));
   const hasSeed =
     seededGoal > 0 || seededToday > 0 || Number(route.params?.sessionCount || 0) > 0;
 
@@ -50,6 +51,9 @@ const JapaProgressScreen = () => {
   const [lifetime, setLifetime] = useState(seededLifetime);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
   const [dayPlans, setDayPlans] = useState<Record<string, number>>({});
+  const [mantraLabel, setMantraLabel] = useState(
+    String(route.params?.mantraName || '').trim(),
+  );
   const [loading, setLoading] = useState(!hasSeed);
   const [hasLoaded, setHasLoaded] = useState(hasSeed);
   const hasLoadedRef = useRef(hasSeed);
@@ -58,13 +62,20 @@ const JapaProgressScreen = () => {
   const applyProgressPayload = useCallback(
     async (data: any, goalsList: any[]) => {
       const lastChanted = await getLastChantedJapa();
+      const preferredGoalId =
+        seededGoalId ||
+        Number(data.activeGoalId || 0) ||
+        Number(lastChanted?.goalId || 0);
       const picked = pickMantraGoal(goalsList, {
-        goalId: lastChanted?.goalId,
+        goalId: preferredGoalId || lastChanted?.goalId,
         personalMantraId: lastChanted?.personalMantraId,
         mantraId: lastChanted?.mantraId,
       });
       const activeGoal =
         picked ||
+        (preferredGoalId
+          ? goalsList.find((g: any) => Number(g.id) === preferredGoalId)
+          : null) ||
         goalsList.find((g: any) => {
           if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
             return false;
@@ -93,8 +104,23 @@ const JapaProgressScreen = () => {
           0,
       );
       // Keep just-saved session visible if server lag still shows an older today.
-      if (seededToday > todayCount) {
+      // Only when this screen was opened for the same goal we just chanted.
+      const seedMatchesGoal =
+        !seededGoalId ||
+        !activeGoal ||
+        Number(activeGoal.id) === seededGoalId;
+      if (seedMatchesGoal && seededToday > todayCount) {
         todayCount = seededToday;
+      }
+      const label = String(
+        activeGoal?.mantraName ||
+          activeGoal?.goalName ||
+          data.mantraName ||
+          route.params?.mantraName ||
+          '',
+      ).trim();
+      if (label) {
+        setMantraLabel(label);
       }
       const weekRows: Array<{day: string; count: number}> = Array.isArray(
         data.weekly,
@@ -151,7 +177,7 @@ const JapaProgressScreen = () => {
         ),
       );
     },
-    [seededGoal, seededLifetime, seededToday],
+    [route.params?.mantraName, seededGoal, seededGoalId, seededLifetime, seededToday],
   );
 
   const load = useCallback(() => {
@@ -162,7 +188,12 @@ const JapaProgressScreen = () => {
     }
     (async () => {
       try {
-        const progress = await apiService.get('/japa/progress');
+        const lastChanted = await getLastChantedJapa();
+        const goalId =
+          seededGoalId || Number(lastChanted?.goalId || 0) || undefined;
+        const progress = await apiService.get('/japa/progress', {
+          params: goalId ? {goalId} : undefined,
+        });
         if (gen !== loadGen.current) {
           return;
         }
@@ -189,7 +220,7 @@ const JapaProgressScreen = () => {
         }
       }
     })();
-  }, [applyProgressPayload]);
+  }, [applyProgressPayload, seededGoalId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -253,6 +284,11 @@ const JapaProgressScreen = () => {
                 {t('pleaseWait') || 'Please wait…'}
               </Text>
             </View>
+          ) : null}
+          {mantraLabel ? (
+            <Text style={styles.mantraName} numberOfLines={2}>
+              {mantraLabel}
+            </Text>
           ) : null}
           <View style={styles.stats}>
             <View style={styles.stat}>
@@ -398,6 +434,12 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '600',
     fontSize: 13,
+  },
+  mantraName: {
+    marginBottom: 10,
+    fontSize: 15,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
   },
   stats: {flexDirection: 'row', gap: 10, marginBottom: 16},
   stat: {

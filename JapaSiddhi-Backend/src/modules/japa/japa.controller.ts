@@ -248,7 +248,13 @@ class JapaController {
       if (!userId) {
         return apiResponse.error(res, 'User not authenticated', 401);
       }
-      const result = await japaService.getProgress(userId);
+      const preferredGoalId = Number(
+        req.query?.goalId || req.query?.japaGoalId || 0,
+      );
+      const result = await japaService.getProgress(
+        userId,
+        preferredGoalId > 0 ? preferredGoalId : undefined,
+      );
       return apiResponse.success(res, 'Japa progress fetched', result);
     } catch (error) {
       next(error);

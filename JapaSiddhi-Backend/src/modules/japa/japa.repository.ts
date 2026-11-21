@@ -534,7 +534,7 @@ class JapaRepository {
     return Array.from(stats.values());
   }
 
-  async getWeeklyBreakdown(userId: number) {
+  async getWeeklyBreakdown(userId: number, goalId?: number) {
     const isMysql = mysql.getEngineName() === 'mysql';
     const dayExpr = isMysql
       ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE))`
@@ -542,6 +542,9 @@ class JapaRepository {
     const rangeCondition = isMysql
       ? `DATE(DATE_ADD(created_at, INTERVAL 330 MINUTE)) >= DATE_SUB(DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE)), INTERVAL 6 DAY)`
       : `DATE(created_at, '+5 hours', '30 minutes') >= DATE('now', '+5 hours', '30 minutes', '-6 days')`;
+    const goal = Number(goalId || 0);
+    const goalFilter = goal > 0 ? 'AND japa_goal_id = ?' : '';
+    const params = goal > 0 ? [userId, goal] : [userId];
 
     const rows = await mysql.query<any[]>(
       `
@@ -551,16 +554,36 @@ class JapaRepository {
       FROM japa_sessions
       WHERE user_id = ?
       AND ${rangeCondition}
+      ${goalFilter}
       ${EXCLUDE_CHALLENGE_REMARKS}
       GROUP BY ${dayExpr}
       ORDER BY ${dayExpr} ASC
       `,
-      [userId],
+      params,
     );
     return (rows || []).map(item => ({
       day: String(item.day || ''),
       count: this.toCount(item.count),
     }));
+  }
+
+  /** Most recently chanted active goal for this devotee (Progress screen focus). */
+  async getMostRecentGoalId(userId: number): Promise<number | null> {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT japa_goal_id AS goalId
+      FROM japa_sessions
+      WHERE user_id = ?
+        AND japa_goal_id IS NOT NULL
+        AND japa_goal_id > 0
+      ${EXCLUDE_CHALLENGE_REMARKS}
+      ORDER BY created_at DESC, id DESC
+      LIMIT 1
+      `,
+      [userId],
+    );
+    const id = Number(rows?.[0]?.goalId || 0);
+    return id > 0 ? id : null;
   }
 
   async saveReference(

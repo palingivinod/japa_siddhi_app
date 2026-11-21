@@ -87,7 +87,7 @@ export const syncAppBadgeWithServer = async (): Promise<number> => {
     if (unreadCount === null) {
       try {
         const listRes = await apiService.get('/notifications', {
-          params: {limit: 40},
+          params: {limit: 15},
         });
         const list = Array.isArray(listRes.data?.data)
           ? listRes.data.data
