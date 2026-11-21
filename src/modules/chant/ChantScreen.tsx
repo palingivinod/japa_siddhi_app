@@ -884,7 +884,8 @@ const ChantScreen = () => {
     );
     const chip = selectedRef.current;
     const chipId = Number(chip?.id || 0);
-    const added = Number(fallbackCount || 0);
+    // Only newly posted japas — never the full session watermark (avoids bump).
+    const added = Math.max(0, Number(fallbackCount || 0));
     if (added > 0) {
       const bump = (prev: Record<number, number>) => {
         const nextTotal = Number(prev[chipId] || savedTotal || 0) + added;
@@ -895,6 +896,21 @@ const ChantScreen = () => {
         setPersonalTotals(bump);
       } else {
         setMantraTotals(bump);
+      }
+      // Keep today baseline in sync for Progress seed (same as autosave path).
+      if (!challengeId) {
+        const nextSaved = todaySavedRef.current + added;
+        todaySavedRef.current = nextSaved;
+        setTodaySaved(nextSaved);
+        const lockedGoalId =
+          matchedGoalIdRef.current || Number(route.params?.japaGoalId || 0);
+        if (lockedGoalId && dailyTargetRef.current > 0) {
+          void writeDailyPlanSnap(lockedGoalId, {
+            date: istIsoDate(),
+            target: dailyTargetRef.current,
+            counted: nextSaved,
+          });
+        }
       }
     }
     if (options?.resetCount) {
@@ -921,11 +937,15 @@ const ChantScreen = () => {
       mode,
       timestamp: Date.now(),
     });
+    const progressDaily =
+      dailyTargetRef.current > 0 ? dailyTargetRef.current : goal;
     const goProgress = () =>
       navigation.navigate('JapaProgress', {
         count: userTotal,
-        goal,
-        sessionCount: savedCount,
+        goal: progressDaily,
+        dailyTarget: progressDaily,
+        todayCount: todaySavedRef.current,
+        sessionCount: added > 0 ? added : Number(savedCount || 0),
         completed: options?.completed,
       });
     const goGoalComplete = () =>
@@ -1181,10 +1201,11 @@ const ChantScreen = () => {
       }
       const remaining = Math.max(sessionCount - postedCountRef.current, 0);
       if (remaining < 1) {
+        // Already autosaved — do not re-add sessionCount (that caused local bumps).
         await clearDraftFor(selectedRef.current);
         afterSessionSaved(
-          {userTotal: savedTotal, count: sessionCount},
-          sessionCount,
+          {userTotal: savedTotal, count: 0},
+          0,
           {completed: true},
         );
         return;
@@ -1357,11 +1378,7 @@ const ChantScreen = () => {
               postedCountRef.current,
               posted + delta,
             );
-            if (!challengeId && delta > 0) {
-              const nextSaved = todaySavedRef.current + delta;
-              todaySavedRef.current = nextSaved;
-              setTodaySaved(nextSaved);
-            }
+            // todaySaved / totals bump happens inside afterSessionSaved (single place).
             await persistDraft(countRef.current, postedCountRef.current);
             afterSessionSaved(response.data.data, delta);
           } else {

@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useMemo, useRef, useState} from 'react';
 import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
 import {
   useFocusEffect,
@@ -28,34 +28,44 @@ const JapaProgressScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const {t} = useLanguage();
-  const seededGoal = Math.max(0, Number(route.params?.goal || 0));
-  const [today, setToday] = useState(0);
+  const seededGoal = Math.max(
+    0,
+    Number(route.params?.dailyTarget || route.params?.goal || 0),
+  );
+  const seededToday = Math.max(
+    0,
+    Number(route.params?.todayCount || 0),
+  );
+  const seededLifetime = Math.max(0, Number(route.params?.count || 0));
+  const hasSeed =
+    seededGoal > 0 || seededToday > 0 || Number(route.params?.sessionCount || 0) > 0;
+
+  const [today, setToday] = useState(seededToday);
   const [goal, setGoal] = useState(seededGoal);
-  const [percent, setPercent] = useState(0);
-  const [lifetime, setLifetime] = useState(0);
+  const [percent, setPercent] = useState(() =>
+    seededGoal > 0
+      ? Math.min(100, Math.round((seededToday / seededGoal) * 100))
+      : 0,
+  );
+  const [lifetime, setLifetime] = useState(seededLifetime);
   const [weekly, setWeekly] = useState<Array<{day: string; count: number}>>([]);
   const [dayPlans, setDayPlans] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(true);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [loading, setLoading] = useState(!hasSeed);
+  const [hasLoaded, setHasLoaded] = useState(hasSeed);
+  const hasLoadedRef = useRef(hasSeed);
+  const loadGen = useRef(0);
 
-  const load = useCallback(() => {
-    setLoading(true);
-    Promise.all([
-      apiService.get('/japa/progress'),
-      apiService.get('/japa/summary'),
-      apiService.get('/japa-goals').catch(() => ({data: {data: []}})),
-    ])
-      .then(async ([progress, summary, goalsRes]) => {
-        const data = progress.data.data ?? {};
-        const totals = summary.data.data ?? {};
-        const goalsList: any[] = goalsRes?.data?.data ?? [];
-        const lastChanted = await getLastChantedJapa();
-        const picked = pickMantraGoal(goalsList, {
-          goalId: lastChanted?.goalId,
-          personalMantraId: lastChanted?.personalMantraId,
-          mantraId: lastChanted?.mantraId,
-        });
-        const activeGoal = picked || goalsList.find((g: any) => {
+  const applyProgressPayload = useCallback(
+    async (data: any, goalsList: any[]) => {
+      const lastChanted = await getLastChantedJapa();
+      const picked = pickMantraGoal(goalsList, {
+        goalId: lastChanted?.goalId,
+        personalMantraId: lastChanted?.personalMantraId,
+        mantraId: lastChanted?.mantraId,
+      });
+      const activeGoal =
+        picked ||
+        goalsList.find((g: any) => {
           if (String(g.status || '').toUpperCase() !== 'ACTIVE') {
             return false;
           }
@@ -77,65 +87,109 @@ const JapaProgressScreen = () => {
           return true;
         });
 
-        // Prefer per-goal today + dynamic daily from remaining ÷ days left.
-        let todayCount = Number(
-          activeGoal?.todayCompletedCount ??
-            data.todayCount ??
-            totals.todayJapaCount ??
-            0,
-        );
-        const weekRows: Array<{day: string; count: number}> = Array.isArray(
-          data.weekly,
-        )
-          ? data.weekly
-          : [];
-        let dailyGoal = 0;
-        let plans: Record<string, number> = {};
-        if (activeGoal) {
-          const target = Number(activeGoal.targetCount ?? 0);
-          const completed = Number(activeGoal.completedCount ?? 0);
-          const remaining = Math.max(0, target - completed);
-          const snaps = await readDailyPlanSnaps();
-          const plan = resolveMantraDailyTarget({
-            today: istIsoDate(),
-            endDate: activeGoal.endDate,
-            remainingNow: remaining,
-            doneToday: todayCount,
-            serverTarget: Number(activeGoal.dailyTarget || 0),
-            serverPlanDate:
-              activeGoal.dailyPlanDate || activeGoal.daily_plan_date,
-            saved: snaps[String(activeGoal.id)] || null,
-          });
-          dailyGoal = plan.target;
-          void writeDailyPlanSnap(Number(activeGoal.id), plan.snap);
-          plans = dailyPlansForDays(weekRows, {
-            target,
-            completed,
-            endDate: activeGoal.endDate,
-          });
-        }
-        if (dailyGoal <= 0) {
-          dailyGoal = Number(data.dailyGoal ?? data.goal ?? 0);
-        }
-        if (dailyGoal <= 0 && seededGoal > 0) {
-          dailyGoal = seededGoal;
-        }
-        const progressPct =
-          dailyGoal > 0
-            ? Math.min(100, Math.round((todayCount / dailyGoal) * 100))
-            : Number(data.progressPercent ?? 0);
+      let todayCount = Number(
+        activeGoal?.todayCompletedCount ??
+          data.todayCount ??
+          0,
+      );
+      // Keep just-saved session visible if server lag still shows an older today.
+      if (seededToday > todayCount) {
+        todayCount = seededToday;
+      }
+      const weekRows: Array<{day: string; count: number}> = Array.isArray(
+        data.weekly,
+      )
+        ? data.weekly
+        : [];
+      let dailyGoal = 0;
+      let plans: Record<string, number> = {};
+      if (activeGoal) {
+        const target = Number(activeGoal.targetCount ?? 0);
+        const completed = Number(activeGoal.completedCount ?? 0);
+        const remaining = Math.max(0, target - completed);
+        const snaps = await readDailyPlanSnaps();
+        const plan = resolveMantraDailyTarget({
+          today: istIsoDate(),
+          endDate: activeGoal.endDate,
+          remainingNow: remaining,
+          doneToday: todayCount,
+          serverTarget: Number(activeGoal.dailyTarget || 0),
+          serverPlanDate:
+            activeGoal.dailyPlanDate || activeGoal.daily_plan_date,
+          saved: snaps[String(activeGoal.id)] || null,
+        });
+        dailyGoal = plan.target;
+        void writeDailyPlanSnap(Number(activeGoal.id), plan.snap);
+        plans = dailyPlansForDays(weekRows, {
+          target,
+          completed,
+          endDate: activeGoal.endDate,
+        });
+      }
+      if (dailyGoal <= 0) {
+        dailyGoal = Number(data.dailyGoal ?? data.goal ?? 0);
+      }
+      if (dailyGoal <= 0 && seededGoal > 0) {
+        dailyGoal = seededGoal;
+      }
+      const progressPct =
+        dailyGoal > 0
+          ? Math.min(100, Math.round((todayCount / dailyGoal) * 100))
+          : Number(data.progressPercent ?? 0);
 
-        setToday(todayCount);
-        setGoal(dailyGoal);
-        setPercent(progressPct);
-        setWeekly(weekRows);
-        setDayPlans(plans);
-        setLifetime(Number(totals.totalJapaCount ?? totals.lifetimeCount ?? 0));
+      setToday(todayCount);
+      setGoal(dailyGoal);
+      setPercent(progressPct);
+      setWeekly(weekRows);
+      setDayPlans(plans);
+      setLifetime(
+        Number(
+          data.lifetime ??
+            data.totalJapaCount ??
+            seededLifetime ??
+            0,
+        ),
+      );
+    },
+    [seededGoal, seededLifetime, seededToday],
+  );
+
+  const load = useCallback(() => {
+    const gen = ++loadGen.current;
+    // Only block the whole screen when we have nothing to show yet.
+    if (!hasLoadedRef.current) {
+      setLoading(true);
+    }
+    (async () => {
+      try {
+        const progress = await apiService.get('/japa/progress');
+        if (gen !== loadGen.current) {
+          return;
+        }
+        const data = progress.data?.data ?? {};
+        let goalsList: any[] = Array.isArray(data.goals) ? data.goals : [];
+        // Older backends without a `goals` field — one fallback call only.
+        if (!Object.prototype.hasOwnProperty.call(data, 'goals')) {
+          const goalsRes = await apiService
+            .get('/japa-goals')
+            .catch(() => ({data: {data: []}}));
+          if (gen !== loadGen.current) {
+            return;
+          }
+          goalsList = goalsRes?.data?.data ?? [];
+        }
+        await applyProgressPayload(data, goalsList);
+        hasLoadedRef.current = true;
         setHasLoaded(true);
-      })
-      .catch(() => undefined)
-      .finally(() => setLoading(false));
-  }, [seededGoal]);
+      } catch {
+        // Keep seeded / last painted values.
+      } finally {
+        if (gen === loadGen.current) {
+          setLoading(false);
+        }
+      }
+    })();
+  }, [applyProgressPayload]);
 
   useFocusEffect(
     useCallback(() => {
@@ -171,10 +225,14 @@ const JapaProgressScreen = () => {
     });
   };
 
-  const maxWeeklyCount = Math.max(
-    goal,
-    ...weekly.map(item => Number(item.count) || 0),
-    1,
+  const maxWeeklyCount = useMemo(
+    () =>
+      Math.max(
+        goal,
+        ...weekly.map(item => Number(item.count) || 0),
+        1,
+      ),
+    [goal, weekly],
   );
 
   return (
@@ -455,4 +513,3 @@ const styles = StyleSheet.create({
   },
   gap: {height: 12},
 });
-

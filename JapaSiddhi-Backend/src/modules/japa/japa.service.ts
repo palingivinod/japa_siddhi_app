@@ -1408,6 +1408,10 @@ class JapaService {
       ),
       weekly,
       lifetime: summary.totalJapaCount,
+      totalJapaCount: summary.totalJapaCount,
+      // Include goals so the app can pick the last-chanted mantra in one round-trip
+      // (avoids a second /japa-goals + /japa/summary after Save).
+      goals: goals || [],
     };
   }
 

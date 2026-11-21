@@ -205,7 +205,16 @@ export type RootStackParamList = {
     challengeMantra?: string;
   } | undefined;
   JapaPaused: {count?: number; goal?: number} | undefined;
-  JapaProgress: {count?: number; goal?: number} | undefined;
+  JapaProgress:
+    | {
+        count?: number;
+        goal?: number;
+        dailyTarget?: number;
+        todayCount?: number;
+        sessionCount?: number;
+        completed?: boolean;
+      }
+    | undefined;
   JapaGoalComplete:
     | {
         count?: number;
