@@ -141,6 +141,17 @@ const MonthlySupportScreen = () => {
     setAutopayLocked(true);
   }, []);
 
+  const resolveAutopayAmount = useCallback(() => {
+    if (isCustom) {
+      const custom = Number(customAmountText);
+      return Number.isFinite(custom) && custom >= 1 ? custom : null;
+    }
+    if (selectedAmount && Number.isFinite(selectedAmount) && selectedAmount >= 1) {
+      return selectedAmount;
+    }
+    return null;
+  }, [customAmountText, isCustom, selectedAmount]);
+
   const openAutopayPreferDate = useCallback(() => {
     if (autopayLockedRef.current || autopayLocked) {
       showAutopayAlreadySent();
@@ -149,9 +160,24 @@ const MonthlySupportScreen = () => {
     if (autopayInFlightRef.current || submittingAutopay) {
       return;
     }
+    const amount = resolveAutopayAmount();
+    if (!amount) {
+      Alert.alert(
+        t('validationTitle') || 'Required',
+        t('selectAutopayAmountFirst') ||
+          'Please select an amount from above, or tap Custom to enter your own amount.',
+      );
+      return;
+    }
     setPreferredDay(null);
     setShowPreferDateModal(true);
-  }, [autopayLocked, showAutopayAlreadySent, submittingAutopay]);
+  }, [
+    autopayLocked,
+    resolveAutopayAmount,
+    showAutopayAlreadySent,
+    submittingAutopay,
+    t,
+  ]);
 
   const handleSetAutoPay = useCallback(async () => {
     if (autopayLockedRef.current || autopayLocked) {
@@ -159,6 +185,16 @@ const MonthlySupportScreen = () => {
       return;
     }
     if (autopayInFlightRef.current || submittingAutopay) {
+      return;
+    }
+    const amountToRegister = resolveAutopayAmount();
+    if (!amountToRegister) {
+      setShowPreferDateModal(false);
+      Alert.alert(
+        t('validationTitle') || 'Required',
+        t('selectAutopayAmountFirst') ||
+          'Please select an amount from above, or tap Custom to enter your own amount.',
+      );
       return;
     }
     const day = Number(preferredDay || 0);
@@ -173,11 +209,6 @@ const MonthlySupportScreen = () => {
     autopayInFlightRef.current = true;
     setSubmittingAutopay(true);
     try {
-      const amountToRegister =
-        isCustom && Number(customAmountText) > 0
-          ? Number(customAmountText)
-          : selectedAmount || 58;
-
       const response = await apiService.post('/donations/autopay/request', {
         fullName: devoteeName || 'Devotee',
         mobile: devoteeMobile || '',
@@ -217,13 +248,11 @@ const MonthlySupportScreen = () => {
     }
   }, [
     autopayLocked,
-    customAmountText,
     devoteeMobile,
     devoteeName,
-    isCustom,
     lockAutopay,
     preferredDay,
-    selectedAmount,
+    resolveAutopayAmount,
     showAutopayAlreadySent,
     submittingAutopay,
     t,

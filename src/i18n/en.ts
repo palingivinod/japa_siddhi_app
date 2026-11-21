@@ -715,6 +715,8 @@ const en = {
   autopayPreferDateLabel: 'Preferred date',
   autopayDayEveryMonth: 'Day {{day}} every month',
   selectAutopayPreferDate: 'Please select your preferred day (1–30).',
+  selectAutopayAmountFirst:
+    'Please select an amount from above, or tap Custom to enter your own amount.',
   autopaySendRequest: 'SEND REQUEST',
   autopayCancel: 'Cancel',
   selectNoOfPersons: 'Select No of Persons',
