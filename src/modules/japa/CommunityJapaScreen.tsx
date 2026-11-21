@@ -39,7 +39,6 @@ import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 import {
   MantraCategoryOption,
-  builtinCategories,
   categoryTitle,
   groupByCategory,
 } from './mantraCategories';
@@ -65,9 +64,8 @@ const CommunityJapaScreen = () => {
   const [stats, setStats] = useState<Record<number, MantraStat>>({});
   const [activeGoals, setActiveGoals] = useState<any[]>([]);
   const [loadingMantras, setLoadingMantras] = useState(true);
-  const [categories, setCategories] = useState<CategoryRow[]>(
-    builtinCategories(),
-  );
+  // Start empty — do not flash builtin Siva/Vishnu/Devi before EVENT catalog loads.
+  const [categories, setCategories] = useState<CategoryRow[]>([]);
   const [openCode, setOpenCode] = useState<string | null>(
     route.params?.categoryCode ? String(route.params.categoryCode) : null,
   );
@@ -199,13 +197,10 @@ const CommunityJapaScreen = () => {
           }
         })
         .catch(() => {
+          // Keep cache if present; otherwise leave empty (no fake mantras / categories).
           if (!cached) {
-            setMantras([
-              {id: 1, mantraName: 'Om Namah Shivaya'},
-              {id: 2, mantraName: 'Om Namo Narayanaya'},
-              {id: 3, mantraName: 'Hare Krishna'},
-              {id: 4, mantraName: 'Gayatri Mantra'},
-            ]);
+            setMantras([]);
+            setCategories([]);
           }
         })
         .finally(() => {
@@ -248,6 +243,16 @@ const CommunityJapaScreen = () => {
   // Categories come from /japa/community — no duplicate /mantras/categories call.
 
   const {unassigned, groups} = groupByCategory(mantras, categories);
+  // Hide empty placeholder categories; only show ones that have mantras (or
+  // EVENT/media categories from the server that still need a header).
+  const visibleGroups = groups.filter(
+    group =>
+      group.items.length > 0 ||
+      String(
+        categories.find(item => item.code === group.code)?.categoryType || '',
+      ).toUpperCase() === 'EVENT',
+  );
+  const catalogReady = !loadingMantras || mantras.length > 0 || categories.length > 0;
   const selectedStat = selected ? stats[Number(selected.id)] : undefined;
   const total = selectedStat?.totalChants ?? 0;
   const devotees = selectedStat?.devotees ?? 0;
@@ -608,69 +613,75 @@ const CommunityJapaScreen = () => {
             </Text>
           </View>
         ) : null}
-        {groups.map(group => {
-          const open = openCode === group.code;
-          const title = categoryTitle(group, t);
-          const categoryMeta = categories.find(item => item.code === group.code);
-          return (
-            <View key={group.code} style={styles.section}>
-              <TouchableOpacity
-                style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
-                activeOpacity={0.8}
-                onPress={() =>
-                  setOpenCode(current =>
-                    current === group.code ? null : group.code,
-                  )
-                }>
-                <View style={styles.categoryTitleRow}>
-                  <Text
-                    style={[
-                      styles.categoryText,
-                      open && styles.categoryTextOpen,
-                      styles.categoryTitleFlex,
-                    ]}>
-                    {title}
-                  </Text>
-                  {String(categoryMeta?.categoryType || '').toUpperCase() ===
-                  'EVENT' ? (
-                    <Text
-                      style={[
-                        styles.eventBadge,
-                        open && styles.eventBadgeOpen,
-                      ]}>
-                      Event
-                    </Text>
+        {catalogReady
+          ? visibleGroups.map(group => {
+              const open = openCode === group.code;
+              const title = categoryTitle(group, t);
+              const categoryMeta = categories.find(
+                item => item.code === group.code,
+              );
+              return (
+                <View key={group.code} style={styles.section}>
+                  <TouchableOpacity
+                    style={[styles.categoryBtn, open && styles.categoryBtnOpen]}
+                    activeOpacity={0.8}
+                    onPress={() =>
+                      setOpenCode(current =>
+                        current === group.code ? null : group.code,
+                      )
+                    }>
+                    <View style={styles.categoryTitleRow}>
+                      <Text
+                        style={[
+                          styles.categoryText,
+                          open && styles.categoryTextOpen,
+                          styles.categoryTitleFlex,
+                        ]}>
+                        {title}
+                      </Text>
+                      {String(categoryMeta?.categoryType || '').toUpperCase() ===
+                      'EVENT' ? (
+                        <Text
+                          style={[
+                            styles.eventBadge,
+                            open && styles.eventBadgeOpen,
+                          ]}>
+                          Event
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                  {open ? (
+                    <>
+                      {categoryMeta ? renderMediaRow(categoryMeta) : null}
+                      {group.items.length > 0 ? (
+                        group.items.map(item => (
+                          <View key={item.id}>
+                            <MenuCard
+                              emoji="🕉️"
+                              title={item.mantraName || item.transliteration}
+                              subtitle={mantraSubtitle(item)}
+                              tone="gold"
+                              selected={selected?.id === item.id}
+                              onPress={() => setSelected(item)}
+                            />
+                            {selected?.id === item.id
+                              ? renderMediaRow(item)
+                              : null}
+                          </View>
+                        ))
+                      ) : (
+                        <Text style={styles.empty}>
+                          {t('noMantrasInCategory')}
+                        </Text>
+                      )}
+                    </>
                   ) : null}
                 </View>
-              </TouchableOpacity>
-              {open ? (
-                <>
-                  {categoryMeta ? renderMediaRow(categoryMeta) : null}
-                  {group.items.length > 0 ? (
-                    group.items.map(item => (
-                      <View key={item.id}>
-                        <MenuCard
-                          emoji="🕉️"
-                          title={item.mantraName || item.transliteration}
-                          subtitle={mantraSubtitle(item)}
-                          tone="gold"
-                          selected={selected?.id === item.id}
-                          onPress={() => setSelected(item)}
-                        />
-                        {selected?.id === item.id
-                          ? renderMediaRow(item)
-                          : null}
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.empty}>{t('noMantrasInCategory')}</Text>
-                  )}
-                </>
-              ) : null}
-            </View>
-          );
-        })}
-        {unassigned.length > 0 ? (
+              );
+            })
+          : null}
+        {catalogReady && unassigned.length > 0 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('mantraCatUnassigned')}</Text>
             {unassigned.map(item => (
