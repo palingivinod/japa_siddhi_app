@@ -187,6 +187,30 @@ class JapaController {
     }
   }
 
+  async getCommunityStats(
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) {
+    try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const raw = String(req.query?.mantraIds || req.query?.ids || '').trim();
+      const mantraIds = raw
+        ? raw
+            .split(',')
+            .map(part => Number(part.trim()))
+            .filter(id => Number.isFinite(id) && id > 0)
+        : [];
+      const result = await japaService.getCommunityStats(mantraIds);
+      return apiResponse.success(res, 'Community mantra stats fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async joinCommunity(
     req: Request,
     res: Response,

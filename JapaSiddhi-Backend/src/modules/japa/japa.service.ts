@@ -1064,53 +1064,9 @@ class JapaService {
     };
   }
 
-  async getCommunity(userId: number) {
+  async getCommunity(_userId: number) {
     const mantraRepository = (await import('../mantra/mantra.repository')).default;
     await mantraRepository.ensureMantraLists();
-    let mantras: any[] = [];
-    try {
-      mantras = await mysql.query<any[]>(
-        `
-        SELECT
-          id,
-          mantra_name AS mantraName,
-          deity_name AS deityName,
-          transliteration,
-          category_code AS categoryCode,
-          japa_list AS japaList,
-          default_japa_count AS defaultJapaCount,
-          image_url AS imageUrl,
-          video_url AS videoUrl,
-          audio_url AS audioUrl,
-          starts_at AS startsAt,
-          deadline_at AS deadlineAt
-        FROM mantras
-        WHERE is_active = 1
-          AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
-        ORDER BY id DESC
-        `,
-      );
-    } catch {
-      mantras = await mysql.query<any[]>(
-        `
-        SELECT
-          id,
-          mantra_name AS mantraName,
-          deity_name AS deityName,
-          transliteration,
-          category_code AS categoryCode,
-          japa_list AS japaList,
-          default_japa_count AS defaultJapaCount,
-          image_url AS imageUrl,
-          audio_url AS audioUrl,
-          deadline_at AS deadlineAt
-        FROM mantras
-        WHERE is_active = 1
-          AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
-        ORDER BY id DESC
-        `,
-      );
-    }
 
     // Browse catalog: only recent Samuhika EVENT / Yagyam categories.
     // Older catalog mantras stay joinable via existing goals on Your Japas —
@@ -1139,26 +1095,64 @@ class JapaService {
     const categories = (allCategories || [])
       .filter(isSamuhikaCatalogCategory)
       .sort((a: any, b: any) => categoryRecency(b) - categoryRecency(a));
-    const allowedCodes = new Set(
-      categories
-        .map((row: any) => String(row.code || '').trim())
-        .filter(Boolean),
-    );
-    // Newest mantras first (id DESC already); keep that after category filter.
-    mantras = (mantras || [])
-      .filter((row: any) =>
-        allowedCodes.has(String(row.categoryCode || '').trim()),
-      )
-      .sort((a: any, b: any) => Number(b.id || 0) - Number(a.id || 0));
+    const allowedCodes = categories
+      .map((row: any) => String(row.code || '').trim())
+      .filter(Boolean);
 
-    // Keep this list endpoint light — do NOT embed full personal getSummary()
-    // (lifetime/streak/byMantra). That belongs on Home /japa/summary only.
-    // Also skip global lifetime totals here — Samuhika UI uses per-mantra stats.
-    const mantraIds = (mantras || [])
-      .map((row: any) => Number(row.id || 0))
-      .filter((id: number) => id > 0);
-    const mantraStats = await japaRepository.getCommunityMantraStats(mantraIds);
+    let mantras: any[] = [];
+    if (allowedCodes.length > 0) {
+      const placeholders = allowedCodes.map(() => '?').join(', ');
+      try {
+        mantras = await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            mantra_name AS mantraName,
+            deity_name AS deityName,
+            transliteration,
+            category_code AS categoryCode,
+            japa_list AS japaList,
+            default_japa_count AS defaultJapaCount,
+            image_url AS imageUrl,
+            video_url AS videoUrl,
+            audio_url AS audioUrl,
+            starts_at AS startsAt,
+            deadline_at AS deadlineAt
+          FROM mantras
+          WHERE is_active = 1
+            AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
+            AND category_code IN (${placeholders})
+          ORDER BY id DESC
+          `,
+          allowedCodes,
+        );
+      } catch {
+        mantras = await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            mantra_name AS mantraName,
+            deity_name AS deityName,
+            transliteration,
+            category_code AS categoryCode,
+            japa_list AS japaList,
+            default_japa_count AS defaultJapaCount,
+            image_url AS imageUrl,
+            audio_url AS audioUrl,
+            deadline_at AS deadlineAt
+          FROM mantras
+          WHERE is_active = 1
+            AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
+            AND category_code IN (${placeholders})
+          ORDER BY id DESC
+          `,
+          allowedCodes,
+        );
+      }
+    }
 
+    // Keep this list endpoint light — heavy session SUM/DISTINCT stats are
+    // loaded separately via /japa/community/stats so the mantra list paints fast.
     const now = Date.now();
     const enriched = (mantras || []).map((row: any) => {
       const deadlineMs = parseIstMillis(row.deadlineAt);
@@ -1178,12 +1172,20 @@ class JapaService {
     return {
       mantras: enriched,
       categories,
-      mantraStats,
+      mantraStats: [] as Array<{
+        mantraId: number;
+        totalChants: number;
+        devotees: number;
+      }>,
       totalChants: 0,
       devotees: 1,
       // Personal today count is loaded via /japa/summary on Home — not here.
       todayCount: 0,
     };
+  }
+
+  async getCommunityStats(mantraIds: number[]) {
+    return japaRepository.getCommunityMantraStats(mantraIds);
   }
 
   async joinCommunity(userId: number, mantraId?: number) {

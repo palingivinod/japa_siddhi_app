@@ -41,6 +41,12 @@ router.get(
   japaController.getCommunity,
 );
 
+router.get(
+  '/community/stats',
+  authenticate,
+  japaController.getCommunityStats,
+);
+
 router.post(
   '/community/join',
   authenticate,

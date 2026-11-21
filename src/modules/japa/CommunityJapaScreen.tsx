@@ -15,9 +15,10 @@ import {
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import apiService, {getApiError} from '../../services/apiService';
-import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
+import {getReadCache, setReadCache} from '../../services/readCache';
 import {playIntroVideo} from '../../services/introVideos';
 import {
   pauseRemoteAudio,
@@ -42,6 +43,38 @@ import {
   categoryTitle,
   groupByCategory,
 } from './mantraCategories';
+
+/** In-memory TTL for soft refresh; disk cache survives app restarts. */
+const COMMUNITY_CATALOG_TTL_MS = 5 * 60 * 1000;
+const COMMUNITY_DISK_KEY = 'community:payload:v2:disk';
+const COMMUNITY_MEM_KEY = 'community:payload:v2';
+
+const readCommunityDisk = async (): Promise<any | null> => {
+  try {
+    const raw = await AsyncStorage.getItem(COMMUNITY_DISK_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return null;
+    }
+    return parsed.data ?? parsed;
+  } catch {
+    return null;
+  }
+};
+
+const writeCommunityDisk = async (data: any) => {
+  try {
+    await AsyncStorage.setItem(
+      COMMUNITY_DISK_KEY,
+      JSON.stringify({savedAt: Date.now(), data}),
+    );
+  } catch {
+    // Catalog can still load from network.
+  }
+};
 
 interface MantraStat {
   totalChants: number;
@@ -154,58 +187,106 @@ const CommunityJapaScreen = () => {
         }
       };
 
-      // Show last catalog if cached, but always show a loading circle while
-      // fresh mantras (including newly added ones) are fetched.
-      // v2: catalog is EVENT/Yagyam-only from API (old enrollments stay on Your Japas).
-      const cached = getReadCache<any>('community:payload:v2');
-      if (cached) {
-        applyCommunity(cached);
-      }
-      setLoadingMantras(true);
-
-      apiService
-        .get('/japa/community')
-        .then(response => {
-          const data = response.data.data ?? {};
-          setReadCache('community:payload:v2', data, READ_TTL_MS);
-          applyCommunity(data);
-          // Fallback only if community payload has no categories yet.
-          if (
-            !Array.isArray(data.categories) ||
-            data.categories.length === 0
-          ) {
-            apiService
-              .get('/mantras/categories', {params: {list: 'samuhika'}})
-              .then(catRes => {
-                const rows = Array.isArray(catRes.data?.data)
-                  ? catRes.data.data
-                  : [];
-                if (rows.length > 0) {
-                  setCategories(
-                    rows.map((row: any) => ({
-                      code: String(row.code || ''),
-                      name: String(row.name || ''),
-                      categoryType: String(row.categoryType || 'NORMAL'),
-                      imageUrl: String(row.imageUrl || ''),
-                      videoUrl: String(row.videoUrl || ''),
-                      audioUrl: String(row.audioUrl || ''),
-                    })),
-                  );
-                }
-              })
-              .catch(() => undefined);
-          }
-        })
-        .catch(() => {
-          // Keep cache if present; otherwise leave empty (no fake mantras / categories).
-          if (!cached) {
-            setMantras([]);
-            setCategories([]);
-          }
-        })
-        .finally(() => {
-          setLoadingMantras(false);
+      const applyStats = (rows: any[]) => {
+        const byMantra: Record<number, MantraStat> = {};
+        (rows || []).forEach((row: any) => {
+          byMantra[Number(row.mantraId)] = {
+            totalChants: Number(row.totalChants ?? 0),
+            devotees: Number(row.devotees ?? 0),
+          };
         });
+        setStats(byMantra);
+      };
+
+      const loadStatsFor = (list: any[]) => {
+        const ids = (list || [])
+          .map((row: any) => Number(row.id || 0))
+          .filter((id: number) => id > 0);
+        if (!ids.length) {
+          return;
+        }
+        apiService
+          .get('/japa/community/stats', {
+            params: {mantraIds: ids.join(',')},
+          })
+          .then(res => {
+            const rows = Array.isArray(res.data?.data) ? res.data.data : [];
+            applyStats(rows);
+          })
+          .catch(() => undefined);
+      };
+
+      // v2: catalog is EVENT/Yagyam-only from API (old enrollments stay on Your Japas).
+      let hadLocalCatalog = false;
+      const mem = getReadCache<any>(COMMUNITY_MEM_KEY);
+      if (mem) {
+        applyCommunity(mem);
+        setLoadingMantras(false);
+        hadLocalCatalog = true;
+      }
+
+      const refreshCatalog = () => {
+        apiService
+          .get('/japa/community')
+          .then(response => {
+            const data = response.data.data ?? {};
+            setReadCache(COMMUNITY_MEM_KEY, data, COMMUNITY_CATALOG_TTL_MS);
+            void writeCommunityDisk(data);
+            applyCommunity(data);
+            setLoadingMantras(false);
+            // Chant/devotee counts are heavy — load after the mantra list paints.
+            loadStatsFor(data.mantras ?? []);
+            // Fallback only if community payload has no categories yet.
+            if (
+              !Array.isArray(data.categories) ||
+              data.categories.length === 0
+            ) {
+              apiService
+                .get('/mantras/categories', {params: {list: 'samuhika'}})
+                .then(catRes => {
+                  const rows = Array.isArray(catRes.data?.data)
+                    ? catRes.data.data
+                    : [];
+                  if (rows.length > 0) {
+                    setCategories(
+                      rows.map((row: any) => ({
+                        code: String(row.code || ''),
+                        name: String(row.name || ''),
+                        categoryType: String(row.categoryType || 'NORMAL'),
+                        imageUrl: String(row.imageUrl || ''),
+                        videoUrl: String(row.videoUrl || ''),
+                        audioUrl: String(row.audioUrl || ''),
+                      })),
+                    );
+                  }
+                })
+                .catch(() => undefined);
+            }
+          })
+          .catch(() => {
+            if (!hadLocalCatalog) {
+              setMantras([]);
+              setCategories([]);
+            }
+            setLoadingMantras(false);
+          });
+      };
+
+      if (hadLocalCatalog) {
+        // Soft-refresh in background — list already visible.
+        refreshCatalog();
+      } else {
+        setLoadingMantras(true);
+        void readCommunityDisk().then(disk => {
+          if (disk && (disk.mantras?.length || disk.categories?.length)) {
+            applyCommunity(disk);
+            setReadCache(COMMUNITY_MEM_KEY, disk, COMMUNITY_CATALOG_TTL_MS);
+            setLoadingMantras(false);
+            hadLocalCatalog = true;
+          }
+          refreshCatalog();
+        });
+      }
 
       // Goals always fresh — used for enroll/already-done (not cached).
       apiService
