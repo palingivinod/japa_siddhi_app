@@ -54,8 +54,9 @@ const JapaProgressScreen = () => {
   const [mantraLabel, setMantraLabel] = useState(
     String(route.params?.mantraName || '').trim(),
   );
-  const [loading, setLoading] = useState(!hasSeed);
+  const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(hasSeed);
+  const [weekReady, setWeekReady] = useState(false);
   const hasLoadedRef = useRef(hasSeed);
   const loadGen = useRef(0);
 
@@ -206,10 +207,7 @@ const JapaProgressScreen = () => {
 
   const load = useCallback(() => {
     const gen = ++loadGen.current;
-    // Only block the whole screen when we have nothing to show yet.
-    if (!hasLoadedRef.current) {
-      setLoading(true);
-    }
+    setLoading(true);
     (async () => {
       try {
         const lastChanted = await getLastChantedJapa();
@@ -236,8 +234,12 @@ const JapaProgressScreen = () => {
         await applyProgressPayload(data, goalsList);
         hasLoadedRef.current = true;
         setHasLoaded(true);
+        setWeekReady(true);
       } catch {
-        // Keep seeded / last painted values.
+        // Keep seeded / last painted values; stop spinning so empty state can show.
+        if (gen === loadGen.current) {
+          setWeekReady(true);
+        }
       } finally {
         if (gen === loadGen.current) {
           setLoading(false);
@@ -290,9 +292,12 @@ const JapaProgressScreen = () => {
     [goal, weekly],
   );
 
+  const weekPending = !weekReady;
+  const weekHasChants = weekly.some(item => Number(item.count) > 0);
+
   return (
     <ScreenLayout title="Japa Progress" showBack tab="JapaHub">
-      {loading && !hasLoaded ? (
+      {loading && !hasLoaded && !hasSeed ? (
         <View style={styles.loadingBox}>
           <ActivityIndicator size="large" color={Colors.templeGold} />
           <Text style={styles.loadingText}>
@@ -301,7 +306,7 @@ const JapaProgressScreen = () => {
         </View>
       ) : (
         <>
-          {loading ? (
+          {loading && weekReady ? (
             <View style={styles.refreshRow}>
               <ActivityIndicator size="small" color={Colors.templeGold} />
               <Text style={styles.refreshText}>
@@ -333,7 +338,14 @@ const JapaProgressScreen = () => {
           </View>
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
-            {weekly.every(item => !(Number(item.count) > 0)) ? (
+            {weekPending ? (
+              <View style={styles.sectionLoading}>
+                <ActivityIndicator size="small" color={Colors.templeGold} />
+                <Text style={styles.refreshText}>
+                  {t('pleaseWait') || 'Please wait…'}
+                </Text>
+              </View>
+            ) : !weekHasChants ? (
               <Text style={styles.meta}>{t('noChantsThisWeek')}</Text>
             ) : (
               weekly.map(item => (
@@ -346,7 +358,14 @@ const JapaProgressScreen = () => {
           </View>
           <Text style={styles.section}>{t('goalCompletion')}</Text>
           <View style={styles.chartCard}>
-            {weekly.length === 0 ? (
+            {weekPending ? (
+              <View style={styles.sectionLoading}>
+                <ActivityIndicator size="large" color={Colors.templeGold} />
+                <Text style={styles.refreshText}>
+                  {t('pleaseWait') || 'Please wait…'}
+                </Text>
+              </View>
+            ) : weekly.length === 0 ? (
               <Text style={styles.meta}>{t('noSavedJapaForPeriod')}</Text>
             ) : (
               <View style={styles.chartRow}>
@@ -453,6 +472,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
     marginBottom: 12,
+  },
+  sectionLoading: {
+    minHeight: 72,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    paddingVertical: 16,
   },
   refreshText: {
     color: Colors.sacredBrown,
