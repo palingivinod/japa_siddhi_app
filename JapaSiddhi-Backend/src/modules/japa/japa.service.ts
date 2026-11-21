@@ -1087,7 +1087,7 @@ class JapaService {
         FROM mantras
         WHERE is_active = 1
           AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
-        ORDER BY display_order ASC, id ASC
+        ORDER BY id DESC
         `,
       );
     } catch {
@@ -1107,20 +1107,57 @@ class JapaService {
         FROM mantras
         WHERE is_active = 1
           AND (japa_list = 'SAMUHIKA' OR japa_list = 'BOTH')
-        ORDER BY display_order ASC, id ASC
+        ORDER BY id DESC
         `,
       );
     }
+
+    // Browse catalog: only recent Samuhika EVENT / Yagyam categories.
+    // Older catalog mantras stay joinable via existing goals on Your Japas —
+    // this endpoint must NOT hide or block those goals/counts.
+    const isSamuhikaCatalogCategory = (row: any) => {
+      const type = String(row?.categoryType || '').toUpperCase();
+      if (type === 'EVENT') {
+        return true;
+      }
+      const blob = `${row?.code || ''} ${row?.name || ''}`.toLowerCase();
+      return /yagyam|yagnam|yaagam/.test(blob);
+    };
+
+    const categoryRecency = (row: any) => {
+      const created = Date.parse(String(row?.createdAt || ''));
+      if (Number.isFinite(created) && created > 0) {
+        return created;
+      }
+      // Newer admin categories get higher display_order / id.
+      return (
+        Number(row?.displayOrder || 0) * 1e9 + Number(row?.id || 0)
+      );
+    };
+
+    const allCategories = await mantraRepository.listCategories('SAMUHIKA');
+    const categories = (allCategories || [])
+      .filter(isSamuhikaCatalogCategory)
+      .sort((a: any, b: any) => categoryRecency(b) - categoryRecency(a));
+    const allowedCodes = new Set(
+      categories
+        .map((row: any) => String(row.code || '').trim())
+        .filter(Boolean),
+    );
+    // Newest mantras first (id DESC already); keep that after category filter.
+    mantras = (mantras || [])
+      .filter((row: any) =>
+        allowedCodes.has(String(row.categoryCode || '').trim()),
+      )
+      .sort((a: any, b: any) => Number(b.id || 0) - Number(a.id || 0));
+
     // Keep this list endpoint light — do NOT embed full personal getSummary()
     // (lifetime/streak/byMantra). That belongs on Home /japa/summary only.
     // Also skip global lifetime totals here — Samuhika UI uses per-mantra stats.
     const mantraIds = (mantras || [])
       .map((row: any) => Number(row.id || 0))
       .filter((id: number) => id > 0);
-    const [mantraStats, categories] = await Promise.all([
-      japaRepository.getCommunityMantraStats(mantraIds),
-      mantraRepository.listCategories('SAMUHIKA'),
-    ]);
+    const mantraStats = await japaRepository.getCommunityMantraStats(mantraIds);
 
     const now = Date.now();
     const enriched = (mantras || []).map((row: any) => {

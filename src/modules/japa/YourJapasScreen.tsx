@@ -49,6 +49,8 @@ export type ActiveJapaItem = {
   completedCount: number;
   remainingCount: number;
   dailyTarget: number;
+  /** Saved japas for this goal today (IST) — passed into Chant for fast unlock. */
+  todayCompletedCount?: number;
   startDate?: string;
   endDate?: string;
   remainingDays: number;
@@ -207,13 +209,13 @@ const YourJapasScreen = () => {
               Number(goal.dailyTarget || 0) <= 0);
 
           let dailyTarget = 0;
+          const todayCompletedCount = Number(goal.todayCompletedCount || 0) || 0;
           if (!isSamuhikaCampaign) {
-            const doneToday = Number(goal.todayCompletedCount || 0);
             const plan = resolveMantraDailyTarget({
               today: todayIso,
               endDate: goal.endDate,
               remainingNow: remainingCount,
-              doneToday,
+              doneToday: todayCompletedCount,
               serverTarget: Number(goal.dailyTarget || 0),
               serverPlanDate: goal.dailyPlanDate || goal.daily_plan_date,
               saved: planSnaps[String(goal.id)] || null,
@@ -261,6 +263,7 @@ const YourJapasScreen = () => {
             completedCount,
             remainingCount,
             dailyTarget,
+            todayCompletedCount: isSamuhikaCampaign ? 0 : todayCompletedCount,
             startDate: goal.startDate,
             endDate: goal.endDate,
             remainingDays,
@@ -414,6 +417,9 @@ const YourJapasScreen = () => {
       mantraName: item.mantraName,
       goal: item.targetCount,
       initialCount: item.completedCount,
+      todayCompletedCount: item.isSamuhikaCampaign
+        ? 0
+        : Number(item.todayCompletedCount || 0) || 0,
       dailyTarget: item.isSamuhikaCampaign ? 0 : item.dailyTarget,
       japaGoalId: item.goalId,
       resume: true,

@@ -231,6 +231,8 @@ export type RootStackParamList = {
     durationMs?: number;
     resume?: boolean;
     initialCount?: number;
+    /** Today's saved count for this goal — lets Chant unlock without waiting on APIs. */
+    todayCompletedCount?: number;
     dailyTarget?: number;
     challengeMantra?: string;
     fromHome?: boolean;

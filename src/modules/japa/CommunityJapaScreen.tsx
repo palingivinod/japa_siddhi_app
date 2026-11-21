@@ -158,7 +158,8 @@ const CommunityJapaScreen = () => {
 
       // Show last catalog if cached, but always show a loading circle while
       // fresh mantras (including newly added ones) are fetched.
-      const cached = getReadCache<any>('community:payload');
+      // v2: catalog is EVENT/Yagyam-only from API (old enrollments stay on Your Japas).
+      const cached = getReadCache<any>('community:payload:v2');
       if (cached) {
         applyCommunity(cached);
       }
@@ -168,7 +169,7 @@ const CommunityJapaScreen = () => {
         .get('/japa/community')
         .then(response => {
           const data = response.data.data ?? {};
-          setReadCache('community:payload', data, READ_TTL_MS);
+          setReadCache('community:payload:v2', data, READ_TTL_MS);
           applyCommunity(data);
           // Fallback only if community payload has no categories yet.
           if (

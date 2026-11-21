@@ -914,6 +914,12 @@ const HomeScreen = () => {
         privateMantra: isPersonal ? personalLabel : undefined,
         goal: activeJapaGoal.targetCount,
         initialCount: activeJapaGoal.completedCount,
+        todayCompletedCount:
+          Number(
+            activeJapaGoal.todayCompletedCount ??
+              activeMantraTodayCount ??
+              0,
+          ) || 0,
         dailyTarget: userDailyGoal || activeJapaGoal.dailyTarget,
         japaGoalId: activeJapaGoal.id,
         resume: true,

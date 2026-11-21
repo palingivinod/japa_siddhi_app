@@ -17,12 +17,6 @@ import Colors from '../../theme/colors';
 import {getLanguage} from '../../services/language';
 import {getValidSession, saveSession} from '../../services/session';
 import apiService from '../../services/apiService';
-import {
-  isSocialLoginUser,
-  profileNeedsDetails,
-  promptSocialDetails,
-} from '../../navigation/goHomeAfterAuth';
-import {useLanguage} from '../../i18n/LanguageContext';
 import {useBottomNavPad} from '../../utils/safeArea';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
@@ -30,8 +24,32 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 const SRI_URJITH_SITE = 'https://www.sriurjith.com/';
 const DEVELOPED_BY = 'Developed by Sri Urjith Services Pvt Ltd';
 
+/** Refresh stored profile without blocking Get Started → Home. */
+const refreshProfileInBackground = (token: string, user: any) => {
+  apiService
+    .get('/auth/profile')
+    .then(async profileResponse => {
+      const profile = profileResponse.data?.data;
+      if (!profile) {
+        return;
+      }
+      const next = {
+        ...(user || {}),
+        ...profile,
+        authProvider:
+          profile.authProvider ||
+          profile.auth_provider ||
+          user?.authProvider ||
+          user?.provider,
+      };
+      await saveSession(token, next);
+    })
+    .catch(() => {
+      // Keep the stored profile; Home also refreshes on focus.
+    });
+};
+
 const SplashScreen = ({navigation}: Props) => {
-  const {t} = useLanguage();
   const [busy, setBusy] = useState(false);
   const {width, height} = useWindowDimensions();
   // Keep welcome art above the system nav bar on gesture/3-button phones.
@@ -78,33 +96,10 @@ const SplashScreen = ({navigation}: Props) => {
       if (savedLanguage) {
         const session = await getValidSession();
         if (session.token) {
-          let user = session.user;
-          try {
-            const profileResponse = await apiService.get('/auth/profile');
-            const profile = profileResponse.data?.data;
-            if (profile) {
-              user = {
-                ...user,
-                ...profile,
-                authProvider:
-                  profile.authProvider ||
-                  profile.auth_provider ||
-                  user?.authProvider ||
-                  user?.provider,
-              };
-              await saveSession(session.token, user);
-            }
-          } catch {
-            // Use the stored profile if the refresh fails.
-          }
-          if (false && isSocialLoginUser(user) && profileNeedsDetails(user)) {
-            promptSocialDetails(navigation, user, {
-              title: t('socialDetailsTitle'),
-              message: t('socialDetailsMessage'),
-              ok: t('ok'),
-            });
-            return;
-          }
+          // Open Home from the saved session immediately. Profile refresh
+          // runs in the background so Get Started is not blocked on network.
+          // Home still refreshes profile on focus (DOB/phone/region prompts).
+          refreshProfileInBackground(session.token, session.user);
           navigation.dispatch(
             CommonActions.reset({
               index: 0,
@@ -122,7 +117,7 @@ const SplashScreen = ({navigation}: Props) => {
     } finally {
       setBusy(false);
     }
-  }, [busy, navigation, t]);
+  }, [busy, navigation]);
 
   return (
     <View style={styles.container}>

@@ -72,6 +72,7 @@ const MANTRA_COLUMNS = `
 `;
 
 const CATEGORY_COLUMNS = `
+  id,
   code,
   name,
   display_order AS displayOrder,
@@ -79,7 +80,8 @@ const CATEGORY_COLUMNS = `
   IFNULL(japa_list, 'BOTH') AS japaList,
   IFNULL(image_url, '') AS imageUrl,
   IFNULL(video_url, '') AS videoUrl,
-  IFNULL(audio_url, '') AS audioUrl
+  IFNULL(audio_url, '') AS audioUrl,
+  created_at AS createdAt
 `;
 
 class MantraRepository {

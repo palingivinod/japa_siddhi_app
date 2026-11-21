@@ -217,6 +217,63 @@ const ChantScreen = () => {
     postedCountRef.current = 0;
   };
 
+  /** Daily-goal UI from route/server — never touches lifetime postedCount. */
+  const applyDailyBaseline = (todayDone: number, target: number) => {
+    const done = Math.max(0, Number(todayDone) || 0);
+    const plan = Math.max(0, Number(target) || 0);
+    todaySavedRef.current = done;
+    setTodaySaved(done);
+    setDailyTarget(plan);
+    dailyTargetRef.current = plan;
+    if (plan > 0 && done >= plan) {
+      dailyGoalCompletedShownRef.current = true;
+      setDailyGoalCompletedShown(true);
+    } else {
+      dailyGoalCompletedShownRef.current = false;
+      setDailyGoalCompletedShown(false);
+    }
+    const visitToday =
+      done + Math.max(0, countRef.current - postedCountRef.current);
+    extraBaseRef.current = visitToday;
+    setExtraBase(visitToday);
+    circleReadyRef.current = true;
+  };
+
+  /**
+   * Raise lifetime watermark from server without re-uploading.
+   * Preserves unsaved taps: count = serverCompleted + unsaved.
+   */
+  const raiseLifetimeFromServer = (
+    serverCompleted: number,
+    targetGoal: number,
+  ) => {
+    const server = Math.max(0, Number(serverCompleted) || 0);
+    const goalValue = Math.max(0, Number(targetGoal) || 0) || goalRef.current;
+    const unsaved = Math.max(0, countRef.current - postedCountRef.current);
+    if (server <= postedCountRef.current && countRef.current >= server) {
+      if (goalValue > 0) {
+        setGoal(goalValue);
+      }
+      return;
+    }
+    applyDraftToCount({
+      count: Math.max(countRef.current, server + unsaved),
+      postedCount: Math.max(postedCountRef.current, server),
+      goal: goalValue || goalRef.current,
+    });
+  };
+
+  const markChantReady = () => {
+    // Corrupt lifetime gap must never be treated as unsaved taps.
+    const gap = countRef.current - postedCountRef.current;
+    if (gap > MAX_SESSION_POST) {
+      postedCountRef.current = countRef.current;
+    }
+    circleReadyRef.current = true;
+    chantReadyRef.current = true;
+    setChantReady(true);
+  };
+
   const load = async () => {
     setLoading(true);
     chantReadyRef.current = false;
@@ -231,6 +288,17 @@ const ChantScreen = () => {
       Boolean(personalMantraId) ||
       Boolean(preferredId) ||
       Boolean(challengeId);
+    const bootCount = Number(
+      route.params?.initialCount || route.params?.count || 0,
+    );
+    const bootGoal =
+      isSamuhikaCampaign || route.params?.skipGoalSelect
+        ? Math.max(0, Number(route.params?.goal || 0))
+        : Number(route.params?.goal ?? 2000) || 2000;
+    const paramGoalId = Number(route.params?.japaGoalId || 0);
+    if (paramGoalId) {
+      matchedGoalIdRef.current = paramGoalId;
+    }
 
     // Open chant UI immediately when the mantra is already known (Your Japas /
     // challenge / home resume). Supporting APIs refresh in the background.
@@ -266,227 +334,322 @@ const ChantScreen = () => {
       setSelected(preferred);
       setMantras([preferred]);
       setShowMantraPicker(false);
-      const bootCount = Number(
-        route.params?.initialCount || route.params?.count || 0,
-      );
-      const bootGoal =
-        isSamuhikaCampaign || route.params?.skipGoalSelect
-          ? Math.max(0, Number(route.params?.goal || 0))
-          : Number(route.params?.goal ?? 2000) || 2000;
+
       if (challengeId || isSamuhikaCampaign) {
         applyDraftToCount({
           count: Math.min(bootCount, bootGoal || bootCount),
           postedCount: Math.min(bootCount, bootGoal || bootCount),
           goal: bootGoal,
         });
-        setDailyTarget(0);
+        applyDailyBaseline(0, 0);
         completingRef.current = false;
       } else {
-        // Resume/Continue: lock lifetime baseline before any tap can autosave.
+        // Resume/Continue / GoalSelect: lock lifetime baseline before any tap.
         const resumeBaseline =
           bootCount > 0 &&
           (Boolean(route.params?.resume) || Boolean(route.params?.fromHome));
         if (resumeBaseline) {
           applyDraftToCount({
-            count: Math.min(bootCount, bootGoal),
-            postedCount: Math.min(bootCount, bootGoal),
+            count: Math.min(bootCount, bootGoal || bootCount),
+            postedCount: Math.min(bootCount, bootGoal || bootCount),
+            goal: bootGoal,
+          });
+        } else if (paramGoalId > 0 || bootCount === 0) {
+          // New Antharanga goal (GoalSelect) or zero resume — lock 0/0 watermark.
+          applyDraftToCount({
+            count: Math.max(0, bootCount),
+            postedCount: Math.max(0, bootCount),
             goal: bootGoal,
           });
         } else {
           setGoal(bootGoal);
         }
-        setDailyTarget(Number(route.params?.dailyTarget || 0) || 0);
+        applyDailyBaseline(
+          Number(route.params?.todayCompletedCount || 0) || 0,
+          Number(route.params?.dailyTarget || 0) || 0,
+        );
         completingRef.current = false;
       }
       setLoading(false);
+
+      // Local draft only (no network) — then unlock when watermark is safe.
+      try {
+        const presetDraftId = preferred?.own ? undefined : preferred?.id;
+        const ownDraftId = preferred?.own ? preferred.id : undefined;
+        const resumeDraft = challengeId
+          ? await getJapaDraft(mode, presetDraftId, challengeId, ownDraftId)
+          : await getJapaDraft(mode, presetDraftId, undefined, ownDraftId);
+        const restore =
+          !!resumeDraft &&
+          resumeDraft.count > 0 &&
+          resumeDraft.count < resumeDraft.goal &&
+          (challengeId
+            ? Number(resumeDraft.challengeId || 0) === challengeId
+            : !resumeDraft.challengeId &&
+              (route.params?.resume ||
+                route.params?.fromHome ||
+                resumeDraft.mode === mode));
+        if (restore && resumeDraft) {
+          const isSame =
+            (preferred.own && resumeDraft.personalMantraId === preferred.id) ||
+            (!preferred.own && resumeDraft.mantraId === preferred.id) ||
+            Boolean(challengeId);
+          if (isSame) {
+            applyDraftToCount(resumeDraft);
+          }
+        }
+      } catch {
+        // Draft is optional — params baseline is enough.
+      }
+
+      const gap = countRef.current - postedCountRef.current;
+      const lifetimeLocked =
+        challengeId ||
+        isSamuhikaCampaign ||
+        (Boolean(route.params?.resume) || Boolean(route.params?.fromHome)) ||
+        (paramGoalId > 0 && bootCount === 0) ||
+        gap <= MAX_SESSION_POST;
+      if (lifetimeLocked && preferred) {
+        // Seal any remaining unsafe gap before taps.
+        if (gap > MAX_SESSION_POST) {
+          postedCountRef.current = countRef.current;
+        }
+        markChantReady();
+      }
+
+      // Network refresh in background — never blocks first tap when unlocked.
+      void refreshChantSupportApis({
+        preferredId,
+        personalMantraId,
+        preferred,
+        hasTargetedMantra,
+        isRecentOnly,
+        bootCount,
+        bootGoal,
+        earlyUnlocked: chantReadyRef.current,
+      });
+      return;
     }
 
     try {
-      const [mantraResponse, summaryResponse, ownResponse, goalsOrChallengeRes] =
-        await Promise.all([
-          apiService.get('/mantras', {
-            params: {
-              list: mode === 'private' ? 'antharanga' : 'samuhika',
-              ...(preferredId ? {include: preferredId} : {}),
-            },
-          }),
-          apiService.get('/japa/summary'),
-          apiService.get('/personal-mantras').catch(() => null),
-          challengeId
-            ? apiService.get(`/challenges/${challengeId}`).catch(() => null)
-            : apiService.get('/japa-goals').catch(() => null),
-        ]);
-      const presets: Mantra[] = mantraResponse.data.data ?? [];
-      const ownRows: any[] = ownResponse?.data?.data ?? [];
+      await refreshChantSupportApis({
+        preferredId,
+        personalMantraId,
+        preferred: null,
+        hasTargetedMantra,
+        isRecentOnly,
+        bootCount,
+        bootGoal,
+        earlyUnlocked: false,
+      });
+    } catch (err: any) {
+      setRawError(err);
+      setError(getApiError(err, 'Could not load mantras from the API.'));
+      const allow = Boolean(selectedRef.current);
+      chantReadyRef.current = allow;
+      setChantReady(allow);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      // The user's own mantras sit in the same list as the listed ones.
-      const items: ChantMantra[] = [
-        ...presets.map(presetChip),
-        ...ownRows
-          .filter(row => Number(row?.id || 0) > 0)
-          .map(row => ownChip(Number(row.id), String(row.mantraName || ''))),
-      ];
-      if (ownMantra && !items.some(item => item.own && item.name === ownMantra)) {
-        items.push(ownChip(Number(personalMantraId || 0), ownMantra));
-      }
-      const data = summaryResponse.data.data ?? {};
-      const {presets: totals, personal} = applyMantraTotals(
-        data.byMantra || [],
-      );
+  const refreshChantSupportApis = async (opts: {
+    preferredId: number;
+    personalMantraId?: number;
+    preferred: ChantMantra | null;
+    hasTargetedMantra: boolean;
+    isRecentOnly: boolean;
+    bootCount: number;
+    bootGoal: number;
+    earlyUnlocked: boolean;
+  }) => {
+    let preferred = opts.preferred;
+    const preferredId = opts.preferredId;
+    const isRecentOnly = opts.isRecentOnly;
+    const hasTargetedMantra = opts.hasTargetedMantra;
 
-      let listItems = items;
-      let hadPrevious = false;
-      if (isRecentOnly) {
-        const previousDone = items.filter(item => {
-          if (item.own) {
-            return (
-              (personal[item.id] || 0) > 0 ||
-              ownRows.some(r => Number(r.id) === item.id)
-            );
-          }
-          return (totals[item.id] || 0) > 0;
+    const [mantraResponse, summaryResponse, ownResponse, goalsOrChallengeRes] =
+      await Promise.all([
+        apiService.get('/mantras', {
+          params: {
+            list: mode === 'private' ? 'antharanga' : 'samuhika',
+            ...(preferredId ? {include: preferredId} : {}),
+          },
+        }),
+        apiService.get('/japa/summary'),
+        apiService.get('/personal-mantras').catch(() => null),
+        challengeId
+          ? apiService.get(`/challenges/${challengeId}`).catch(() => null)
+          : apiService.get('/japa-goals').catch(() => null),
+      ]);
+    const presets: Mantra[] = mantraResponse.data.data ?? [];
+    const ownRows: any[] = ownResponse?.data?.data ?? [];
+
+    const items: ChantMantra[] = [
+      ...presets.map(presetChip),
+      ...ownRows
+        .filter(row => Number(row?.id || 0) > 0)
+        .map(row => ownChip(Number(row.id), String(row.mantraName || ''))),
+    ];
+    if (ownMantra && !items.some(item => item.own && item.name === ownMantra)) {
+      items.push(ownChip(Number(personalMantraId || 0), ownMantra));
+    }
+    const data = summaryResponse.data.data ?? {};
+    const {presets: totals, personal} = applyMantraTotals(data.byMantra || []);
+
+    let listItems = items;
+    let hadPrevious = false;
+    if (isRecentOnly) {
+      const previousDone = items.filter(item => {
+        if (item.own) {
+          return (
+            (personal[item.id] || 0) > 0 ||
+            ownRows.some(r => Number(r.id) === item.id)
+          );
+        }
+        return (totals[item.id] || 0) > 0;
+      });
+      hadPrevious = previousDone.length > 0;
+      listItems = hadPrevious ? previousDone : items;
+    }
+    setHasPracticedMantras(hadPrevious);
+    setMantras(listItems);
+
+    const resolvedPreferred =
+      (ownMantra &&
+        listItems.find(item => item.own && item.name === ownMantra)) ||
+      (personalMantraId &&
+        listItems.find(item => item.own && item.id === personalMantraId)) ||
+      (preferredId &&
+        listItems.find(item => !item.own && item.id === preferredId)) ||
+      (isRecentOnly
+        ? listItems[0] || null
+        : mode === 'community' && !hasTargetedMantra
+          ? listItems.find(item => !item.own) || listItems[0] || null
+          : preferred);
+
+    preferred = resolvedPreferred || preferred;
+
+    if (preferred) {
+      setSelected(preferred);
+    } else {
+      setSelected(current => current ?? null);
+    }
+    setShowMantraPicker(
+      isRecentOnly || (!preferred && mode === 'private' && !hasTargetedMantra),
+    );
+
+    let initialCount = Number(
+      route.params?.initialCount || route.params?.count || 0,
+    );
+    let paramGoal = isSamuhikaCampaign
+      ? Math.max(0, Number(route.params?.goal || 0))
+      : Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
+    let resolvedDailyTarget = 0;
+    let resolvedTodayBaseline = 0;
+
+    if (!challengeId && !isSamuhikaCampaign) {
+      resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
+      resolvedTodayBaseline =
+        Number(route.params?.todayCompletedCount || 0) || 0;
+      const paramGoalId = Number(route.params?.japaGoalId || 0);
+      try {
+        const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
+        const match = pickMantraGoal(goals, {
+          goalId: paramGoalId,
+          personalMantraId,
+          mantraId: preferredId,
         });
-        hadPrevious = previousDone.length > 0;
-        listItems = hadPrevious ? previousDone : items;
-      }
-      setHasPracticedMantras(hadPrevious);
-      setMantras(listItems);
-
-      const resolvedPreferred =
-        (ownMantra &&
-          listItems.find(item => item.own && item.name === ownMantra)) ||
-        (personalMantraId &&
-          listItems.find(item => item.own && item.id === personalMantraId)) ||
-        (preferredId &&
-          listItems.find(item => !item.own && item.id === preferredId)) ||
-        (isRecentOnly
-          ? listItems[0] || null
-          : mode === 'community' && !hasTargetedMantra
-            ? listItems.find(item => !item.own) || listItems[0] || null
-            : preferred);
-
-      preferred = resolvedPreferred || preferred;
-
-      if (preferred) {
-        setSelected(preferred);
-      } else {
-        setSelected(current => current ?? null);
-      }
-      setShowMantraPicker(
-        isRecentOnly || (!preferred && mode === 'private' && !hasTargetedMantra),
-      );
-      let initialCount = Number(
-        route.params?.initialCount || route.params?.count || 0,
-      );
-      let paramGoal = isSamuhikaCampaign
-        ? Math.max(0, Number(route.params?.goal || 0))
-        : Number(route.params?.goal ?? data.dailyTarget ?? 2000) || 2000;
-      // Challenges / Samuhika campaigns have a total target only — no daily goal.
-      let resolvedDailyTarget = 0;
-      let resolvedTodayBaseline = 0;
-      if (!challengeId && !isSamuhikaCampaign) {
-        resolvedDailyTarget = Number(route.params?.dailyTarget || 0);
-        const paramGoalId = Number(route.params?.japaGoalId || 0);
-        try {
-          const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
-          const match = pickMantraGoal(goals, {
-            goalId: paramGoalId,
-            personalMantraId,
-            mantraId: preferredId,
+        if (match) {
+          const completed = Number(match.completedCount || 0);
+          const target = Number(match.targetCount || 0);
+          const remaining = Math.max(0, target - completed);
+          resolvedTodayBaseline =
+            Number(match.todayCompletedCount || 0) || 0;
+          const snaps = await readDailyPlanSnaps();
+          const plan = resolveMantraDailyTarget({
+            today: istIsoDate(),
+            endDate: match.endDate,
+            remainingNow: remaining,
+            doneToday: resolvedTodayBaseline,
+            serverTarget: Number(match.dailyTarget || 0),
+            serverPlanDate: match.dailyPlanDate || match.daily_plan_date,
+            saved: snaps[String(match.id)] || null,
           });
-          if (match) {
-            const completed = Number(match.completedCount || 0);
-            const target = Number(match.targetCount || 0);
-            const remaining = Math.max(0, target - completed);
-            resolvedTodayBaseline =
-              Number(match.todayCompletedCount || 0) || 0;
-            const snaps = await readDailyPlanSnaps();
-            const plan = resolveMantraDailyTarget({
-              today: istIsoDate(),
-              endDate: match.endDate,
-              remainingNow: remaining,
-              doneToday: resolvedTodayBaseline,
-              serverTarget: Number(match.dailyTarget || 0),
-              serverPlanDate: match.dailyPlanDate || match.daily_plan_date,
-              saved: snaps[String(match.id)] || null,
-            });
-            resolvedDailyTarget = plan.target;
-            matchedGoalIdRef.current = Number(match.id) || 0;
-            await writeDailyPlanSnap(Number(match.id), plan.snap);
-          }
-        } catch {
-          // Keep the daily goal passed in with this mantra.
+          resolvedDailyTarget = plan.target;
+          matchedGoalIdRef.current = Number(match.id) || 0;
+          await writeDailyPlanSnap(Number(match.id), plan.snap);
+          paramGoal = target > 0 ? target : paramGoal;
+          initialCount = Math.max(initialCount, completed);
         }
-      } else if (isSamuhikaCampaign) {
-        const paramGoalId = Number(route.params?.japaGoalId || 0);
-        try {
-          const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
-          const match = pickMantraGoal(goals, {
-            goalId: paramGoalId,
-            personalMantraId,
-            mantraId: preferredId,
-          });
-          if (match) {
-            initialCount = Math.max(
-              initialCount,
-              Number(match.completedCount || 0),
-            );
-            paramGoal = Math.max(
-              paramGoal,
-              Number(match.targetCount || 0),
-            );
-            matchedGoalIdRef.current = Number(match.id) || 0;
-          }
-        } catch {
-          // Keep route params.
-        }
-        resolvedDailyTarget = 0;
-      } else if (goalsOrChallengeRes?.data?.data) {
-        try {
-          const challenge = goalsOrChallengeRes.data.data || {};
-          paramGoal = Math.max(
-            1,
-            Number(challenge.targetValue || paramGoal) || paramGoal,
-          );
+      } catch {
+        // Keep the daily goal passed in with this mantra.
+      }
+    } else if (isSamuhikaCampaign) {
+      const paramGoalId = Number(route.params?.japaGoalId || 0);
+      try {
+        const goals: any[] = goalsOrChallengeRes?.data?.data ?? [];
+        const match = pickMantraGoal(goals, {
+          goalId: paramGoalId,
+          personalMantraId,
+          mantraId: preferredId,
+        });
+        if (match) {
           initialCount = Math.max(
-            0,
-            Number(challenge.currentValue || initialCount) || 0,
+            initialCount,
+            Number(match.completedCount || 0),
           );
-          const mantra =
-            String(challenge.mantra || '').trim() ||
-            String(challenge.rewardName || '')
-              .replace(/\s*Certificate$/i, '')
-              .trim();
-          if (mantra && mantra.toLowerCase() !== 'certificate') {
-            setChallengeMantra(mantra);
-            if (preferred && preferred.key.startsWith('challenge:')) {
-              const named = {...preferred, name: mantra};
-              preferred = named;
-              setSelected(named);
-            }
-          }
-        } catch {
-          // Fall back to route params.
+          paramGoal = Math.max(paramGoal, Number(match.targetCount || 0));
+          matchedGoalIdRef.current = Number(match.id) || 0;
         }
+      } catch {
+        // Keep route params.
       }
-      todaySavedRef.current = resolvedTodayBaseline;
-      extraBaseRef.current = resolvedTodayBaseline;
-      setExtraBase(resolvedTodayBaseline);
-      setTodaySaved(resolvedTodayBaseline);
-      setDailyTarget(resolvedDailyTarget);
-      if (
-        resolvedDailyTarget > 0 &&
-        resolvedTodayBaseline >= resolvedDailyTarget
-      ) {
-        dailyGoalCompletedShownRef.current = true;
-        setDailyGoalCompletedShown(true);
-      } else {
-        dailyGoalCompletedShownRef.current = false;
-        setDailyGoalCompletedShown(false);
+      resolvedDailyTarget = 0;
+      resolvedTodayBaseline = 0;
+    } else if (goalsOrChallengeRes?.data?.data) {
+      try {
+        const challenge = goalsOrChallengeRes.data.data || {};
+        paramGoal = Math.max(
+          1,
+          Number(challenge.targetValue || paramGoal) || paramGoal,
+        );
+        initialCount = Math.max(
+          0,
+          Number(challenge.currentValue || initialCount) || 0,
+        );
+        const mantra =
+          String(challenge.mantra || '').trim() ||
+          String(challenge.rewardName || '')
+            .replace(/\s*Certificate$/i, '')
+            .trim();
+        if (mantra && mantra.toLowerCase() !== 'certificate') {
+          setChallengeMantra(mantra);
+          if (preferred && preferred.key.startsWith('challenge:')) {
+            const named = {...preferred, name: mantra};
+            preferred = named;
+            setSelected(named);
+          }
+        }
+      } catch {
+        // Fall back to route params.
       }
+    }
 
-      // Drain any accidental early saves before changing the posted baseline.
-      await saveChainRef.current.catch(() => undefined);
+    // Drain in-flight autosaves before adjusting baselines (anti-bump).
+    await saveChainRef.current.catch(() => undefined);
+
+    if (opts.earlyUnlocked) {
+      // Already chanting — only raise watermark / refresh daily UI. Never reset.
+      raiseLifetimeFromServer(initialCount, paramGoal);
+      if (!challengeId && !isSamuhikaCampaign) {
+        applyDailyBaseline(
+          Math.max(resolvedTodayBaseline, todaySavedRef.current),
+          resolvedDailyTarget || dailyTargetRef.current,
+        );
+      }
+    } else {
+      applyDailyBaseline(resolvedTodayBaseline, resolvedDailyTarget);
 
       const presetDraftId = preferred?.own ? undefined : preferred?.id;
       const ownDraftId = preferred?.own ? preferred.id : undefined;
@@ -541,9 +704,7 @@ const ChantScreen = () => {
         completingRef.current = false;
       } else if (
         initialCount > 0 &&
-        paramGoal > initialCount &&
-        route.params?.resume &&
-        route.params?.fromHome
+        (route.params?.resume || route.params?.fromHome)
       ) {
         applyDraftToCount({
           count: initialCount,
@@ -554,35 +715,26 @@ const ChantScreen = () => {
       } else if (!hasTargetedMantra) {
         setGoal(paramGoal);
         completingRef.current = false;
-      } else {
-        // Targeted open already applied boot goal/count; keep draft/challenge updates above.
-        if (!restore) {
-          setGoal(paramGoal);
-          completingRef.current = false;
-        }
+      } else if (!restore) {
+        setGoal(paramGoal);
+        completingRef.current = false;
       }
+
       setSavedTotal(
         active?.own
           ? personal[active.id] || 0
           : totals[Number(active?.id || 0)] || 0,
       );
-      const visitToday =
-        todaySavedRef.current +
-        Math.max(0, countRef.current - postedCountRef.current);
-      extraBaseRef.current = visitToday;
-      setExtraBase(visitToday);
-      circleReadyRef.current = true;
-      chantReadyRef.current = true;
-      setChantReady(true);
-    } catch (err: any) {
-      setRawError(err);
-      setError(getApiError(err, 'Could not load mantras from the API.'));
-      // Allow chanting with the early resume baseline if APIs failed.
-      const allow = Boolean(selectedRef.current);
-      chantReadyRef.current = allow;
-      setChantReady(allow);
-    } finally {
-      setLoading(false);
+      markChantReady();
+    }
+
+    const activeChip = preferred || selectedRef.current;
+    if (activeChip) {
+      setSavedTotal(
+        activeChip.own
+          ? personal[activeChip.id] || 0
+          : totals[Number(activeChip.id || 0)] || 0,
+      );
     }
   };
 
