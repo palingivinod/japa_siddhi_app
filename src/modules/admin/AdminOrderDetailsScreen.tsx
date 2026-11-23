@@ -399,13 +399,35 @@ const AdminOrderDetailsScreen = () => {
   };
 
   const orderText = `${order?.product || ''} ${order?.orderType || ''} ${order?.orderNo || ''} ${order?.remarks || ''}`.toLowerCase();
-  const orderNoUpper = String(order?.orderNo || '').toUpperCase();
+  const orderNoUpper = String(order?.orderNo || '')
+    .replace(/^#/, '')
+    .toUpperCase();
   const orderTypeUpper = String(order?.orderType || '').toUpperCase();
+  const isBooksOrBhasmam =
+    orderTypeUpper === 'GOU_MAYA_BHASMA' ||
+    orderTypeUpper === 'HOMA_BHASMA' ||
+    orderTypeUpper === 'RAMAKOTI_BOOKS' ||
+    orderTypeUpper === 'SHIVAKOTI_BOOKS' ||
+    orderTypeUpper === 'BIRAVA_PENDANT' ||
+    orderNoUpper.startsWith('PB') ||
+    orderNoUpper.startsWith('GM') ||
+    orderNoUpper.startsWith('HB') ||
+    orderNoUpper.startsWith('RK') ||
+    orderNoUpper.startsWith('SK') ||
+    orderNoUpper.startsWith('BP') ||
+    orderText.includes('pooja bhasmam') ||
+    orderText.includes('pooja bhasma') ||
+    orderText.includes('gou maya') ||
+    (orderText.includes('homa') && orderText.includes('bhasma')) ||
+    orderText.includes('ramakoti') ||
+    orderText.includes('shivakoti') ||
+    orderText.includes('siva koti');
   const isBaanalingam =
-    orderTypeUpper === 'BANA_LINGAM' ||
-    orderNoUpper.includes('BL-') ||
-    orderText.includes('banalingam') ||
-    orderText.includes('baanalingam');
+    !isBooksOrBhasmam &&
+    (orderTypeUpper === 'BANA_LINGAM' ||
+      orderNoUpper.includes('BL-') ||
+      orderText.includes('banalingam') ||
+      orderText.includes('baanalingam'));
   const isSreeChakra =
     orderText.includes('sree chakra') ||
     orderText.includes('sri chakra') ||
@@ -413,12 +435,13 @@ const AdminOrderDetailsScreen = () => {
     orderText.includes('yantra') ||
     orderText.includes('maha meru');
   const isMarakataShivling =
+    !isBooksOrBhasmam &&
     !isSreeChakra &&
     (((orderText.includes('marakata') || orderText.includes('marakatha')) &&
       (orderText.includes('shiv') || orderText.includes('ling'))) ||
       (orderText.includes('aventurine') &&
         (orderText.includes('shiv') || orderText.includes('ling'))));
-  /** Called → Sankalp only for Baanalingam / Marakata — not Pooja Bhasmam etc. */
+  /** Called → Sankalp only for Baanalingam / Marakata — not Pooja/Homa Bhasmam or books. */
   const requiresCallSankalp = isBaanalingam || isMarakataShivling;
   const isRequestOrder =
     requiresCallSankalp ||

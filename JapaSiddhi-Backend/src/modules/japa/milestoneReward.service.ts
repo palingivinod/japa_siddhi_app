@@ -2,6 +2,7 @@ import mysql from '../../database/mysql';
 import authRepository from '../auth/auth.repository';
 import challengeRepository from '../challenge/challenge.repository';
 import orderService from '../orders/order.service';
+import rewardOrderPrefix from '../orders/rewardOrderPrefix';
 import emailOtpService from '../../services/emailOtp.service';
 import masterService from '../master/master.service';
 import japaRepository from './japa.repository';
@@ -937,8 +938,9 @@ class MilestoneRewardService {
       paymentId: null,
       orderStatus: 'UNDER_REVIEW',
       remarks,
+      numberPrefix: rewardOrderPrefix(rewardName),
     });
-    const orderNumber = `RW${String(10000 + Number(created.id)).padStart(5, '0')}`;
+    const orderNumber = String(created.orderNumber || '');
 
     if (existingClaim?.id) {
       await mysql.query(
@@ -1265,8 +1267,9 @@ class MilestoneRewardService {
       paymentId: null,
       orderStatus: 'UNDER_REVIEW',
       remarks,
+      numberPrefix: rewardOrderPrefix(rewardName),
     });
-    const orderNumber = `RW${String(10000 + Number(created.id)).padStart(5, '0')}`;
+    const orderNumber = String(created.orderNumber || '');
 
     if (existingClaim?.id) {
       await mysql.query(

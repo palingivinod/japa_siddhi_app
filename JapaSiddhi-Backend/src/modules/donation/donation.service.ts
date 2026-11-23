@@ -550,7 +550,7 @@ class DonationService {
             : kind === 'SHIVAKOTI_BOOKS'
               ? 'SK'
               : kind === 'GOU_MAYA_BHASMA'
-                ? 'GM'
+                ? 'PB'
                 : undefined;
     const order = await orderService.create({
       userId,

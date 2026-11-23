@@ -277,20 +277,33 @@ class OrderRepository {
   }
 
   async getNextOrderNumber(prefix?: string): Promise<string> {
-    const code = String(prefix || '').toUpperCase();
-    if (code === 'RK' || code === 'HB' || code === 'BP') {
+    const raw = String(prefix || '').toUpperCase().replace(/[^A-Z]/g, '');
+    // Legacy Gou Maya used GM; new Pooja Bhasmam orders use PB.
+    const code = raw === 'GM' ? 'PB' : raw;
+    // Letter prefixes (RK, HB, PB, MSC, MS, admin-derived, …). BL uses BL-#### below.
+    if (code && code !== 'BL' && /^[A-Z]{2,4}$/.test(code)) {
       try {
+        // PB also counts legacy GM## rows so sequences stay unique.
+        const likeParams =
+          code === 'PB' ? [`${code}%`, 'GM%'] : [`${code}%`];
+        const likeSql =
+          code === 'PB'
+            ? `upper(order_number) LIKE ? OR upper(order_number) LIKE ?`
+            : `upper(order_number) LIKE ?`;
         const rows = await mysql.query<any[]>(
           `
           SELECT order_number FROM orders
-          WHERE upper(order_number) LIKE ?
+          WHERE ${likeSql}
           ORDER BY id DESC
           LIMIT 200
           `,
-          [`${code}%`],
+          likeParams,
         );
         let maxSeq = 0;
-        const pattern = new RegExp(`^${code}(\\d+)`, 'i');
+        const pattern =
+          code === 'PB'
+            ? /^(?:PB|GM)(\d+)/i
+            : new RegExp(`^${code}(\\d+)`, 'i');
         for (const row of rows || []) {
           const match = String(row.order_number || '').match(pattern);
           if (match) {
@@ -725,6 +738,8 @@ class OrderRepository {
           OR lower(IFNULL(item_name, '')) LIKE '%gou%maya%'
           OR lower(IFNULL(item_name, '')) LIKE '%goumaya%'
           OR lower(IFNULL(item_name, '')) LIKE '%pooja%bhasma%'
+          OR IFNULL(order_number, '') LIKE 'PB%'
+          OR IFNULL(order_number, '') LIKE '#PB%'
           OR IFNULL(order_number, '') LIKE 'GM%'
           OR IFNULL(order_number, '') LIKE '#GM%'
         )`
@@ -742,6 +757,8 @@ class OrderRepository {
             lower(IFNULL(item_name, '')) LIKE '%gou%maya%'
             OR lower(IFNULL(item_name, '')) LIKE '%goumaya%'
             OR lower(IFNULL(item_name, '')) LIKE '%pooja%bhasma%'
+            OR IFNULL(order_number, '') LIKE 'PB%'
+            OR IFNULL(order_number, '') LIKE '#PB%'
             OR IFNULL(order_number, '') LIKE 'GM%'
             OR IFNULL(order_number, '') LIKE '#GM%'
           )
@@ -873,7 +890,7 @@ class OrderRepository {
     let whereClause = '';
 
     if (k === 'BANA_LINGAM' || k.includes('BANA')) {
-      whereClause = `(order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%' OR order_number LIKE 'BL-%' OR order_number LIKE '#BL-%')`;
+      whereClause = `((order_type = 'BANA_LINGAM' OR lower(item_name) LIKE '%baanalingam%' OR lower(item_name) LIKE '%banalingam%' OR order_number LIKE 'BL-%' OR order_number LIKE '#BL-%') AND upper(IFNULL(order_type,'')) NOT IN ('GOU_MAYA_BHASMA','HOMA_BHASMA','RAMAKOTI_BOOKS','SHIVAKOTI_BOOKS','BIRAVA_PENDANT') AND lower(IFNULL(item_name,'')) NOT LIKE '%pooja%bhasma%' AND lower(IFNULL(item_name,'')) NOT LIKE '%homa%bhasma%')`;
     } else if (k === 'RAMAKOTI_BOOKS' || k.includes('RAMAKOTI')) {
       whereClause = `(order_type = 'RAMAKOTI_BOOKS' OR lower(item_name) LIKE '%ramakoti%' OR order_number LIKE 'RK%' OR order_number LIKE '#RK%')`;
     } else if (
@@ -888,12 +905,12 @@ class OrderRepository {
       k.includes('GOU_MAYA') ||
       k.includes('GOUMAYA')
     ) {
-      whereClause = `(order_type = 'GOU_MAYA_BHASMA' OR lower(item_name) LIKE '%gou%maya%' OR lower(item_name) LIKE '%goumaya%' OR lower(item_name) LIKE '%pooja%bhasma%' OR order_number LIKE 'GM%' OR order_number LIKE '#GM%')`;
+      whereClause = `(order_type = 'GOU_MAYA_BHASMA' OR lower(item_name) LIKE '%gou%maya%' OR lower(item_name) LIKE '%goumaya%' OR lower(item_name) LIKE '%pooja%bhasma%' OR order_number LIKE 'PB%' OR order_number LIKE '#PB%' OR order_number LIKE 'GM%' OR order_number LIKE '#GM%')`;
     } else if (
       k === 'HOMA_BHASMA' ||
       (k.includes('HOMA') && k.includes('BHASMA'))
     ) {
-      whereClause = `(order_type = 'HOMA_BHASMA' OR (lower(item_name) LIKE '%homa%' AND lower(item_name) LIKE '%bhasma%') OR lower(item_name) LIKE '%bhasmam%' OR order_number LIKE 'HB%' OR order_number LIKE '#HB%')`;
+      whereClause = `((order_type = 'HOMA_BHASMA' OR (lower(item_name) LIKE '%homa%' AND lower(item_name) LIKE '%bhasma%') OR order_number LIKE 'HB%' OR order_number LIKE '#HB%') AND upper(IFNULL(order_type,'')) <> 'GOU_MAYA_BHASMA' AND lower(IFNULL(item_name,'')) NOT LIKE '%pooja%bhasma%' AND lower(IFNULL(item_name,'')) NOT LIKE '%gou%maya%')`;
     } else if (
       k === 'BIRAVA_PENDANT' ||
       k.includes('PENDANT') ||

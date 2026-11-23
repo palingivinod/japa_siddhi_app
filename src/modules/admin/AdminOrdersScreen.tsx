@@ -68,7 +68,7 @@ const TABS: Array<{id: string; label: string}> = [
   {id: 'Packing', label: 'Packing'},
 ];
 
-/** Called → Sankalp flow: Baanalingam + Marakata Shivling only (not Pooja Bhasmam / books). */
+/** Called → Sankalp: Baanalingam + Marakata only — never books / Homa / Pooja Bhasmam. */
 const requiresCallSankalpFlow = (order: {
   product?: string;
   orderType?: string;
@@ -76,9 +76,34 @@ const requiresCallSankalpFlow = (order: {
   remarks?: string;
 }) => {
   const type = String(order.orderType || '').toUpperCase();
-  const number = String(order.orderNo || '').toUpperCase();
+  const number = String(order.orderNo || '')
+    .replace(/^#/, '')
+    .toUpperCase();
   const text =
     `${order.product || ''} ${order.remarks || ''}`.toLowerCase();
+  if (
+    type === 'GOU_MAYA_BHASMA' ||
+    type === 'HOMA_BHASMA' ||
+    type === 'RAMAKOTI_BOOKS' ||
+    type === 'SHIVAKOTI_BOOKS' ||
+    type === 'BIRAVA_PENDANT' ||
+    number.startsWith('PB') ||
+    number.startsWith('GM') ||
+    number.startsWith('HB') ||
+    number.startsWith('RK') ||
+    number.startsWith('SK') ||
+    number.startsWith('BP') ||
+    text.includes('pooja bhasmam') ||
+    text.includes('pooja bhasma') ||
+    text.includes('gou maya') ||
+    text.includes('goumaya') ||
+    (text.includes('homa') && text.includes('bhasma')) ||
+    text.includes('ramakoti') ||
+    text.includes('shivakoti') ||
+    text.includes('siva koti')
+  ) {
+    return false;
+  }
   const isBaanalingam =
     type === 'BANA_LINGAM' ||
     number.includes('BL-') ||
@@ -137,7 +162,7 @@ const orderDateValue = (order: AdminOrder) => {
 const orderUserIdValue = (order: AdminOrder) =>
   order.userId != null ? Number(order.userId) : 999999999;
 
-export type ProductFilterType = 'ALL' | 'RK' | 'SK' | 'BP' | 'HB' | 'GM' | 'BL';
+export type ProductFilterType = 'ALL' | 'RK' | 'SK' | 'BP' | 'HB' | 'PB' | 'BL';
 
 export const ITEM_FILTERS: Array<{
   id: ProductFilterType;
@@ -149,7 +174,7 @@ export const ITEM_FILTERS: Array<{
   {id: 'SK', code: 'SK', label: 'Siva Koti'},
   {id: 'BP', code: 'BP', label: 'Bhirava Pendant'},
   {id: 'HB', code: 'HB', label: 'Homa Bhasmam'},
-  {id: 'GM', code: 'GM', label: 'Pooja Bhasmam'},
+  {id: 'PB', code: 'PB', label: 'Pooja Bhasmam'},
   {id: 'BL', code: 'BL', label: 'Baanalingam'},
 ];
 
@@ -202,8 +227,10 @@ const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): bool
       remarks.includes('sivakoti')
     );
   }
-  if (filterId === 'GM') {
+  if (filterId === 'PB') {
     return (
+      num.startsWith('#PB') ||
+      num.startsWith('PB') ||
       num.startsWith('#GM') ||
       num.startsWith('GM') ||
       type === 'GOU_MAYA_BHASMA' ||
@@ -223,6 +250,8 @@ const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): bool
       prod.includes('goumaya') ||
       prod.includes('pooja bhasmam') ||
       prod.includes('pooja bhasma') ||
+      num.startsWith('PB') ||
+      num.startsWith('#PB') ||
       num.startsWith('GM') ||
       num.startsWith('#GM')
     ) {
@@ -233,11 +262,22 @@ const matchesItemFilter = (order: AdminOrder, filterId: ProductFilterType): bool
       num.startsWith('HB') ||
       type === 'HOMA_BHASMA' ||
       (prod.includes('homa') && prod.includes('bhasma')) ||
-      prod.includes('bhasmam') ||
       (remarks.includes('homa') && remarks.includes('bhasma'))
     );
   }
   if (filterId === 'BL') {
+    if (
+      type === 'GOU_MAYA_BHASMA' ||
+      type === 'HOMA_BHASMA' ||
+      type === 'RAMAKOTI_BOOKS' ||
+      type === 'SHIVAKOTI_BOOKS' ||
+      type === 'BIRAVA_PENDANT' ||
+      prod.includes('pooja bhasmam') ||
+      prod.includes('pooja bhasma') ||
+      (prod.includes('homa') && prod.includes('bhasma'))
+    ) {
+      return false;
+    }
     return (
       num.startsWith('#BL') ||
       num.startsWith('BL') ||
@@ -270,12 +310,26 @@ const orderGroupOf = (row: {
   const number = String(row.orderNo || '').replace(/^#/, '').toUpperCase();
   const remarks = String(row.remarks || '').toLowerCase();
   const product = String(row.product || '').toLowerCase();
+  const rewardPrefixes = [
+    'RW',
+    'RM',
+    'TM',
+    'PM',
+    'SW',
+    'KM',
+    'SM',
+    'GA',
+    'YA',
+    'MSC',
+    'MS',
+  ];
   const reward =
     source === 'CHALLENGE' ||
     source === 'MILESTONE' ||
-    number.startsWith('RW') ||
+    rewardPrefixes.some(p => number.startsWith(p)) ||
     remarks.includes('challenge reward') ||
-    remarks.includes('milestone reward');
+    remarks.includes('milestone reward') ||
+    remarks.includes('relative reward');
   if (reward) {
     return 'reward';
   }
@@ -291,6 +345,7 @@ const orderGroupOf = (row: {
     number.startsWith('HB') ||
     number.startsWith('BP') ||
     number.startsWith('SK') ||
+    number.startsWith('PB') ||
     number.startsWith('GM') ||
     product.includes('baanalingam') ||
     product.includes('banalingam') ||
@@ -596,7 +651,7 @@ const AdminOrdersScreen = () => {
       SK: typedOrders.filter(o => matchesItemFilter(o, 'SK')).length,
       BP: typedOrders.filter(o => matchesItemFilter(o, 'BP')).length,
       HB: typedOrders.filter(o => matchesItemFilter(o, 'HB')).length,
-      GM: typedOrders.filter(o => matchesItemFilter(o, 'GM')).length,
+      PB: typedOrders.filter(o => matchesItemFilter(o, 'PB')).length,
       BL: typedOrders.filter(o => matchesItemFilter(o, 'BL')).length,
     };
   }, [typedOrders]);

@@ -57,14 +57,17 @@ const matchHoma = (type: string, name: string, num: string) => {
     name.includes('gou maya') ||
     name.includes('goumaya') ||
     name.includes('pooja bhasmam') ||
-    name.includes('pooja bhasma')
+    name.includes('pooja bhasma') ||
+    num.startsWith('PB') ||
+    num.startsWith('#PB') ||
+    num.startsWith('GM') ||
+    num.startsWith('#GM')
   ) {
     return false;
   }
   return (
     type === 'HOMA_BHASMA' ||
     (name.includes('homa') && name.includes('bhasma')) ||
-    name.includes('bhasmam') ||
     num.startsWith('HB') ||
     num.startsWith('#HB')
   );
@@ -94,6 +97,8 @@ const matchGouMaya = (type: string, name: string, num: string) =>
   name.includes('pooja bhasmam') ||
   name.includes('pooja bhasma') ||
   (name.includes('gou') && name.includes('bhasma')) ||
+  num.startsWith('PB') ||
+  num.startsWith('#PB') ||
   num.startsWith('GM') ||
   num.startsWith('#GM');
 

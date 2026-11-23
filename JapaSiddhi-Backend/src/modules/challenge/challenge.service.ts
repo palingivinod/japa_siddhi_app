@@ -4,6 +4,7 @@ import {
 
 import challengeRepository from './challenge.repository';
 import orderService from '../orders/order.service';
+import rewardOrderPrefix from '../orders/rewardOrderPrefix';
 import mysql from '../../database/mysql';
 import emailOtpService from '../../services/emailOtp.service';
 import authRepository from '../auth/auth.repository';
@@ -722,17 +723,19 @@ class ChallengeService {
       `Reward: ${claim.rewardName}`,
     ].join('\n');
 
+    const rewardName = String(claim.rewardName || 'Challenge reward');
     const created = await orderService.create({
       userId,
       orderType: 'SPIRITUAL_PRODUCT',
       orderSource: 'CHALLENGE',
-      itemName: String(claim.rewardName || 'Challenge reward'),
+      itemName: rewardName,
       quantity: 1,
       paymentId: null,
       remarks,
+      numberPrefix: rewardOrderPrefix(rewardName),
     });
 
-    const orderNumber = `RW${String(10000 + Number(created.id)).padStart(5, '0')}`;
+    const orderNumber = String(created.orderNumber || '');
     await mysql.query(
       `
       UPDATE orders

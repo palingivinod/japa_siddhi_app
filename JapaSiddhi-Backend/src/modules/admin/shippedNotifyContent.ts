@@ -124,6 +124,7 @@ export const resolveShippedOrderKind = (input: {
   if (
     type === 'GOU_MAYA_BHASMA' ||
     type.includes('GOU_MAYA') ||
+    number.startsWith('PB') ||
     number.startsWith('GM') ||
     hay.includes('gou maya') ||
     hay.includes('goumaya') ||
@@ -135,8 +136,7 @@ export const resolveShippedOrderKind = (input: {
   if (
     type === 'HOMA_BHASMA' ||
     number.startsWith('HB') ||
-    (hay.includes('homa') && hay.includes('bhasma')) ||
-    hay.includes('bhasmam')
+    (hay.includes('homa') && hay.includes('bhasma'))
   ) {
     return 'HOMA_BHASMA';
   }

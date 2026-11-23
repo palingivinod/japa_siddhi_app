@@ -3694,15 +3694,34 @@ const notifyUserOrderStatus = async (input: {
 const isRewardOrder = (row: any) => {
   const source = String(row.orderSource || '').toUpperCase();
   const type = String(row.orderType || '').toUpperCase();
-  const number = String(row.orderNumber || '').toUpperCase();
+  const number = String(row.orderNumber || '')
+    .replace(/^#/, '')
+    .toUpperCase();
   const remarks = String(row.remarks || '').toLowerCase();
   if (source === 'CHALLENGE' || source === 'MILESTONE') {
     return true;
   }
-  if (number.startsWith('RW')) {
+  const rewardPrefixes = [
+    'RW',
+    'RM',
+    'TM',
+    'PM',
+    'SW',
+    'KM',
+    'SM',
+    'GA',
+    'YA',
+    'MSC',
+    'MS',
+  ];
+  if (rewardPrefixes.some(p => number.startsWith(p))) {
     return true;
   }
-  if (remarks.includes('challenge reward') || remarks.includes('milestone reward')) {
+  if (
+    remarks.includes('challenge reward') ||
+    remarks.includes('milestone reward') ||
+    remarks.includes('relative reward')
+  ) {
     return true;
   }
   return type === 'SPIRITUAL_PRODUCT' && source !== 'ADMIN_GIFT' && source !== 'PURCHASE';
@@ -3727,6 +3746,7 @@ const isNormalBaanalingamOrder = (row: any) => {
     number.startsWith('HB') ||
     number.startsWith('BP') ||
     number.startsWith('SK') ||
+    number.startsWith('PB') ||
     number.startsWith('GM') ||
     item.includes('baanalingam') ||
     item.includes('banalingam') ||

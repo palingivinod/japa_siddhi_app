@@ -82,7 +82,7 @@ export type HistoryItemFilter =
   | 'SK'
   | 'BP'
   | 'HB'
-  | 'GM'
+  | 'PB'
   | 'REWARD';
 export type HistoryStatusFilter = 'ALL' | 'SHIPPED' | 'DELIVERED';
 
@@ -93,7 +93,7 @@ const HISTORY_FILTERS: Array<{id: HistoryItemFilter; label: string}> = [
   {id: 'SK', label: 'Siva Koti'},
   {id: 'BP', label: 'Bhirava Pendant'},
   {id: 'HB', label: 'Homa Bhasmam'},
-  {id: 'GM', label: 'Pooja Bhasmam'},
+  {id: 'PB', label: 'Pooja Bhasmam'},
   {id: 'REWARD', label: 'Rewards'},
 ];
 
@@ -225,8 +225,10 @@ const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter):
       remarks.includes('sivakoti')
     );
   }
-  if (filterId === 'GM') {
+  if (filterId === 'PB') {
     return (
+      num.startsWith('#PB') ||
+      num.startsWith('PB') ||
       num.startsWith('#GM') ||
       num.startsWith('GM') ||
       type === 'GOU_MAYA_BHASMA' ||
@@ -246,6 +248,8 @@ const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter):
       prod.includes('goumaya') ||
       prod.includes('pooja bhasmam') ||
       prod.includes('pooja bhasma') ||
+      num.startsWith('PB') ||
+      num.startsWith('#PB') ||
       num.startsWith('GM') ||
       num.startsWith('#GM')
     ) {
@@ -256,11 +260,19 @@ const matchesHistoryCategory = (order: AdminOrder, filterId: HistoryItemFilter):
       num.startsWith('HB') ||
       type === 'HOMA_BHASMA' ||
       (prod.includes('homa') && prod.includes('bhasma')) ||
-      prod.includes('bhasmam') ||
       (remarks.includes('homa') && remarks.includes('bhasma'))
     );
   }
   if (filterId === 'BL') {
+    if (
+      type === 'GOU_MAYA_BHASMA' ||
+      type === 'HOMA_BHASMA' ||
+      prod.includes('pooja bhasmam') ||
+      prod.includes('pooja bhasma') ||
+      (prod.includes('homa') && prod.includes('bhasma'))
+    ) {
+      return false;
+    }
     return (
       num.startsWith('#BL') ||
       num.startsWith('BL') ||
@@ -296,12 +308,26 @@ const orderGroupOf = (row: any): AdminOrder['orderGroup'] => {
   const number = String(row.orderNo || '').replace(/^#/, '').toUpperCase();
   const remarks = String(row.remarks || '').toLowerCase();
   const product = String(row.product || '').toLowerCase();
+  const rewardPrefixes = [
+    'RW',
+    'RM',
+    'TM',
+    'PM',
+    'SW',
+    'KM',
+    'SM',
+    'GA',
+    'YA',
+    'MSC',
+    'MS',
+  ];
   const reward =
     source === 'CHALLENGE' ||
     source === 'MILESTONE' ||
-    number.startsWith('RW') ||
+    rewardPrefixes.some(p => number.startsWith(p)) ||
     remarks.includes('challenge reward') ||
-    remarks.includes('milestone reward');
+    remarks.includes('milestone reward') ||
+    remarks.includes('relative reward');
   if (reward) {
     return 'reward';
   }
@@ -317,6 +343,7 @@ const orderGroupOf = (row: any): AdminOrder['orderGroup'] => {
     number.startsWith('HB') ||
     number.startsWith('BP') ||
     number.startsWith('SK') ||
+    number.startsWith('PB') ||
     number.startsWith('GM') ||
     product.includes('baanalingam') ||
     product.includes('banalingam') ||

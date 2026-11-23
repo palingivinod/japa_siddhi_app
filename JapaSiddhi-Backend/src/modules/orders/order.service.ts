@@ -201,12 +201,34 @@ class OrderService {
     const status = String(order.orderStatus || 'UNDER_REVIEW').toUpperCase();
     const type = String(order.orderType || '').toUpperCase();
     const item = String(order.itemName || '').toLowerCase();
-    const number = String(order.orderNumber || '').toUpperCase();
+    const number = String(order.orderNumber || '')
+      .replace(/^#/, '')
+      .toUpperCase();
+    const isBooksOrBhasmam =
+      type === 'GOU_MAYA_BHASMA' ||
+      type === 'HOMA_BHASMA' ||
+      type === 'RAMAKOTI_BOOKS' ||
+      type === 'SHIVAKOTI_BOOKS' ||
+      type === 'BIRAVA_PENDANT' ||
+      number.startsWith('PB') ||
+      number.startsWith('GM') ||
+      number.startsWith('HB') ||
+      number.startsWith('RK') ||
+      number.startsWith('SK') ||
+      number.startsWith('BP') ||
+      item.includes('pooja bhasmam') ||
+      item.includes('pooja bhasma') ||
+      item.includes('gou maya') ||
+      (item.includes('homa') && item.includes('bhasma')) ||
+      item.includes('ramakoti') ||
+      item.includes('shivakoti') ||
+      item.includes('siva koti');
     const isBaanalingam =
-      type === 'BANA_LINGAM' ||
-      number.startsWith('BL-') ||
-      item.includes('baanalingam') ||
-      item.includes('banalingam');
+      !isBooksOrBhasmam &&
+      (type === 'BANA_LINGAM' ||
+        number.startsWith('BL-') ||
+        item.includes('baanalingam') ||
+        item.includes('banalingam'));
 
     if (isBaanalingam) {
       const rank =
