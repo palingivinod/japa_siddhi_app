@@ -1398,6 +1398,14 @@ const en = {
   extendingGoal: 'EXTENDING...',
   extendJapaGoalBtn: 'EXTEND JAPA GOAL',
   doneViewProgress: 'DONE / VIEW PROGRESS',
+  congratulations: 'Congratulations! 🎉',
+  enterCustomCountHere: 'Enter your custom count here',
+  newDeadlineLabel: 'New deadline (YYYY-MM-DD)',
+  deadlineHelp:
+    'Type the date or pick it from the calendar. Leave blank to keep the current deadline.',
+  pickDate: '📅 Calendar',
+  deadlineInvalid: 'Enter a valid date as YYYY-MM-DD (today or later).',
+  rateUsOnPlayStore: 'Rate us on Play Store',
   privacyUpdated: 'Last updated: 16 August 2026',
   privacyIntro:
     'Japa Siddhi is operated by Bilva Patra Trust. This policy explains what we collect and how we use it when you use the Japa Siddhi app.',
