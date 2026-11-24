@@ -590,14 +590,18 @@ const YourJapasScreen = () => {
   const [deadlineDraft, setDeadlineDraft] = useState('');
   const [savingDeadlineId, setSavingDeadlineId] = useState<string | null>(null);
 
-  /** Goal still ACTIVE but its deadline day is already over, with japas left. */
+  /**
+   * Goal still ACTIVE, with japas left, and its deadline day has arrived (today)
+   * or just passed (inside the 2-day window). Expired goals are handled by
+   * `isExpired` and never get the extend control.
+   */
   const isDeadlinePassed = (item: ActiveJapaItem) =>
     !item.isChallenge &&
     !item.isSamuhikaCampaign &&
     Boolean(item.goalId) &&
     item.remainingCount > 0 &&
     String(item.endDate || '').slice(0, 10) !== '' &&
-    String(item.endDate || '').slice(0, 10) < istIsoDate();
+    String(item.endDate || '').slice(0, 10) <= istIsoDate();
 
   const showDeadlineBox = (item: ActiveJapaItem) =>
     Boolean(item.isExpired) || isDeadlinePassed(item);
@@ -898,7 +902,9 @@ const YourJapasScreen = () => {
                     <Text style={styles.deadlinePassedText}>
                       {item.isExpired
                         ? 'This goal has expired. Your japas are saved.'
-                        : 'Today is the deadline. Extend it or choose a new date, otherwise this goal expires.'}
+                        : String(item.endDate || '').slice(0, 10) === istIsoDate()
+                          ? 'Today is the deadline. Extend it or choose a new date, otherwise this goal expires.'
+                          : 'The deadline has passed. Extend it or choose a new date, otherwise this goal expires.'}
                     </Text>
                     {item.isExpired || item.fromSaved ? null : deadlineEditId === item.id ? (
                       <>

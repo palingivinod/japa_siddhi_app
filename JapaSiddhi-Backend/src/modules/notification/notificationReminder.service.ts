@@ -690,12 +690,24 @@ export const flushDeadlineReminders = async () => {
   }
 
   try {
+    let japaGoalRepo: any = null;
+    try {
+      japaGoalRepo = (await import('../japaGoal/japaGoal.repository')).default;
+      await japaGoalRepo.ensureDeadlinePromptColumn();
+    } catch {
+      japaGoalRepo = null;
+    }
+    const istHour = new Date(Date.now() + 330 * 60 * 1000).getUTCHours();
+
     const goalRows = await mysql.query<any[]>(`
       SELECT
         jg.id AS goalId,
         jg.user_id AS userId,
         jg.goal_name AS goalName,
         jg.end_date AS endDate,
+        jg.deadline_prompt_at AS deadlinePromptAt,
+        jg.daily_target AS dailyTarget,
+        jg.mantra_type AS mantraType,
         jg.mantra_id AS mantraId,
         jg.personal_mantra_id AS personalMantraId,
         CASE
@@ -760,7 +772,57 @@ export const flushDeadlineReminders = async () => {
         continue;
       }
       const left = daysUntil(today, endDate);
-      if (left != null && left < 0) {
+
+      // Deadline day (from 8 AM IST) or the day after (fallback): ask once
+      // whether to extend. Tapping opens Your Japas. Goal stays ACTIVE.
+      if (
+        left != null &&
+        (left === -1 || (left === 0 && istHour >= 8)) &&
+        japaGoalRepo &&
+        !row.deadlinePromptAt
+      ) {
+        const claimId = Number(`${goalId}${endDate.replace(/-/g, '')}`);
+        const claimed = await claimNotificationAction(
+          userId,
+          'GOAL_DEADLINE_EXTEND',
+          claimId,
+        );
+        if (claimed) {
+          try {
+            await mysql.query(
+              `UPDATE japa_goals SET deadline_prompt_at = ? WHERE id = ? AND user_id = ?`,
+              [today, goalId, userId],
+            );
+            if (await notificationsEnabled(userId)) {
+              await japaGoalRepo.notifyDeadlinePassed(
+                userId,
+                {
+                  id: goalId,
+                  goalName: mantraName || goalName,
+                  targetCount: target,
+                  completedCount: completed,
+                  dailyTarget: Number(row.dailyTarget || 0),
+                  mantraType: row.mantraType,
+                  mantraId,
+                  personalMantraId,
+                },
+                left === 0 ? 'today' : 'passed',
+              );
+              created += 1;
+            }
+          } catch (err) {
+            console.warn('Goal deadline extend notice failed:', err);
+          }
+        }
+        if (left === 0) {
+          // The old "Goal ends today" reminder would duplicate this one.
+          continue;
+        }
+      }
+
+      // Goals stay open for 2 days after the deadline (same rule as
+      // japaGoal.repository): deadline D is expired from D+2.
+      if (left != null && left < -1) {
         await mysql.query(
           `UPDATE japa_goals SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
           [goalId],
@@ -781,8 +843,9 @@ export const flushDeadlineReminders = async () => {
         continue;
       }
 
-      // 3. Approaching deadline
-      if (left != null && DEADLINE_WINDOWS.includes(left as any)) {
+      // 3. Approaching deadline (3 days / 1 day before). The deadline day
+      // itself is handled above by the "extend your deadline" notice.
+      if (left != null && left > 0 && DEADLINE_WINDOWS.includes(left as any)) {
         const detail = goalDeadlineCopy(goalName, left, completed, target);
         const category = resolveJapaCategory({
           isSamuhika,

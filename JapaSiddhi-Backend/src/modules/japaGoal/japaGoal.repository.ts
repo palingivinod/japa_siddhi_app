@@ -905,12 +905,24 @@ class JapaGoalRepository {
 
   private deadlinePromptReady = false;
 
-  /** In-app + push: deadline reached, devotee can extend or change it. */
-  private async notifyDeadlinePassed(userId: number, goal: any) {
+  /**
+   * In-app + push: deadline reached, devotee can extend or change it.
+   * `today` = sent on the deadline date itself; `passed` = fallback sent the
+   * day after (e.g. the morning send was missed).
+   */
+  async notifyDeadlinePassed(
+    userId: number,
+    goal: any,
+    when: 'today' | 'passed' = 'passed',
+  ) {
     const goalId = Number(goal.id);
     const name = String(goal.goalName || 'your japa').trim().slice(0, 60);
-    const title = 'Japa deadline reached';
-    const message = `Today is the deadline for "${name}". Do you want to extend the deadline? If you ignore it, the goal will expire.`;
+    const title =
+      when === 'today' ? 'Japa deadline today' : 'Japa deadline passed';
+    const message =
+      when === 'today'
+        ? `Today is the last day for "${name}". Want more time? Tap here to extend your deadline. If you ignore it, the goal will expire.`
+        : `The deadline for "${name}" has passed. Want more time? Tap here to extend your deadline. If you ignore it, the goal will expire.`;
     try {
       const notificationService = (
         await import('../notification/notification.service')
@@ -953,7 +965,7 @@ class JapaGoalRepository {
     }
   }
 
-  private async ensureDeadlinePromptColumn() {
+  async ensureDeadlinePromptColumn() {
     if (this.deadlinePromptReady) {
       return;
     }
