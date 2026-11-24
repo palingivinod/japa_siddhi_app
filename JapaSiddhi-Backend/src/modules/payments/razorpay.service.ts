@@ -533,6 +533,59 @@ export const syncRecentRazorpayDonations = async () => {
   }
 };
 
+let catchUpRunning = false;
+let catchUpLastRunAt = 0;
+
+/**
+ * Lightweight catch-up: reads the latest Razorpay payments (last 3 days) and saves
+ * any that are missing. Safe to repeat: recordRazorpayPayment skips payments whose
+ * transaction_id already exists, and only app payments (notes.source === 'app') are saved.
+ * Never deletes anything. `minGapMs` throttles repeated calls.
+ */
+export const catchUpRecentRazorpayPayments = async (minGapMs = 0) => {
+  if (!razorpayReady() || catchUpRunning) {
+    return;
+  }
+  if (minGapMs > 0 && Date.now() - catchUpLastRunAt < minGapMs) {
+    return;
+  }
+  catchUpRunning = true;
+  catchUpLastRunAt = Date.now();
+  try {
+    const from = Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60;
+    for (let skip = 0; skip < 100; skip += 25) {
+      const body = await razorpayGet(
+        `payments?count=25&skip=${skip}&from=${from}`,
+      );
+      const items = Array.isArray(body.items) ? body.items : [];
+      for (const payment of items) {
+        try {
+          await recordRazorpayPayment(payment);
+        } catch (error: any) {
+          console.error('Catch-up: could not save a Razorpay donation:', error?.message || error);
+        }
+      }
+      if (items.length < 25) {
+        break;
+      }
+    }
+  } catch (error: any) {
+    console.error('Catch-up: could not read Razorpay payments:', error?.message || error);
+  } finally {
+    catchUpRunning = false;
+  }
+};
+
+export const startRazorpayCatchUpScheduler = () => {
+  if (!razorpayReady()) {
+    return;
+  }
+  const timer = setInterval(() => {
+    void catchUpRecentRazorpayPayments();
+  }, 5 * 60 * 1000);
+  timer.unref?.();
+};
+
 export const verifyWebhookSignature = (rawBody: Buffer, signature: string) => {
   const secret = environment.RAZORPAY_WEBHOOK_SECRET;
   if (!secret || !signature) {

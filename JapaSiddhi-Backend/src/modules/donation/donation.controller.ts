@@ -5,6 +5,7 @@ import {
 } from 'express';
 
 import donationService from './donation.service';
+import { catchUpRecentRazorpayPayments } from '../payments/razorpay.service';
 
 import apiResponse from '../../utils/apiResponse';
 
@@ -56,6 +57,17 @@ class DonationController {
   ) {
 
     try {
+
+      // Save any recent in-app Razorpay payments that were not recorded yet
+      // (throttled to once a minute; never blocks history for more than 6s).
+      try {
+        await Promise.race([
+          catchUpRecentRazorpayPayments(60 * 1000),
+          new Promise<void>((resolve) => setTimeout(resolve, 6000)),
+        ]);
+      } catch {
+        // history must still load
+      }
 
       const result =
         await donationService.getHistory(
