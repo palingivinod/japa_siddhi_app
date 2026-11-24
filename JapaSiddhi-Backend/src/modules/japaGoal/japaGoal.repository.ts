@@ -115,6 +115,20 @@ class JapaGoalRepository {
       .slice(0, 10);
   }
 
+  /**
+   * A goal whose deadline is MORE than 2 days behind is expired for good
+   * (deadline D → expired from D+2). `end_date < graceCutoff(today)` means
+   * the deadline is that far back. Date-based, so it does not depend on the
+   * devotee opening the app.
+   */
+  private graceCutoff(todayIso: string) {
+    return this.addIsoDays(todayIso, -1);
+  }
+
+  private isPastGrace(endIso: string, todayIso: string) {
+    return Boolean(endIso) && endIso.slice(0, 10) < this.graceCutoff(todayIso);
+  }
+
   private inclusiveDays(fromIso: string, toIso: string) {
     const [y1, m1, d1] = fromIso.slice(0, 10).split('-').map(Number);
     const [y2, m2, d2] = toIso.slice(0, 10).split('-').map(Number);
@@ -636,7 +650,10 @@ class JapaGoalRepository {
       await this.repairPersonalGoalCatalogIds(userId);
       await this.ensureDeadlinePromptColumn();
       const todayIst = istToday();
-      // Step 1: deadline passed and goal not finished → ask the devotee once.
+      // Deadline D: on D+1 the devotee is asked once whether to extend.
+      // From D+2 the goal is expired for good (no extend / change deadline).
+      const cutoff = this.graceCutoff(todayIst);
+      // Step 1: deadline passed (yesterday) and goal not finished → ask once.
       const newlyPassed = await mysql.query<any[]>(
         `
         SELECT
@@ -652,10 +669,11 @@ class JapaGoalRepository {
         WHERE user_id = ?
           AND status = 'ACTIVE'
           AND end_date < ?
+          AND end_date >= ?
           AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
           AND deadline_prompt_at IS NULL
         `,
-        [userId, todayIst],
+        [userId, todayIst, cutoff],
       );
       for (const goal of newlyPassed || []) {
         await mysql.query(
@@ -664,19 +682,18 @@ class JapaGoalRepository {
         );
         await this.notifyDeadlinePassed(userId, goal);
       }
-      // Step 2: prompt was sent on an earlier day and not answered → expire.
-      // Sessions and counts are never changed here.
+      // Step 2: deadline is more than 2 days behind and goal unfinished →
+      // expire. Only the status changes; sessions and counts are untouched.
       await mysql.query(
         `
         UPDATE japa_goals
         SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
           AND status = 'ACTIVE'
-          AND deadline_prompt_at IS NOT NULL
-          AND deadline_prompt_at < ?
+          AND end_date < ?
           AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
         `,
-        [userId, todayIst],
+        [userId, cutoff],
       );
       await mysql.query(
         `
@@ -989,13 +1006,24 @@ class JapaGoalRepository {
       throw Object.assign(new Error('Japa goal not found'), {statusCode: 404});
     }
     const status = String(goal.status || '').toUpperCase();
-    if (status !== 'ACTIVE' && status !== 'EXPIRED') {
+    if (status !== 'ACTIVE') {
       throw Object.assign(
-        new Error('Only active or expired goals can change deadline'),
+        new Error(
+          status === 'EXPIRED'
+            ? 'This goal has expired and cannot be extended'
+            : 'Only active goals can change deadline',
+        ),
         {statusCode: 400},
       );
     }
     const today = istToday();
+    // Deadline more than 2 days behind: expired for good, no change allowed.
+    if (this.isPastGrace(this.asIsoDate(goal.end_date ?? goal.endDate), today)) {
+      throw Object.assign(
+        new Error('This goal has expired and cannot be extended'),
+        {statusCode: 400},
+      );
+    }
     const day = String(endDate || '').slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < today) {
       throw Object.assign(
@@ -1088,6 +1116,18 @@ class JapaGoalRepository {
     );
     const completedCount = Number(sumRows?.[0]?.total || 0);
     const currentTarget = Number(goal.target_count ?? goal.targetCount ?? 0);
+    // An unfinished goal that is expired (or more than 2 days past its
+    // deadline) cannot be extended. A goal that reached its target can.
+    if (completedCount < currentTarget) {
+      const prevStatus = String(goal.status || '').toUpperCase();
+      const prevEnd = this.asIsoDate(goal.end_date ?? goal.endDate);
+      if (prevStatus === 'EXPIRED' || this.isPastGrace(prevEnd, istToday())) {
+        throw Object.assign(
+          new Error('This goal has expired and cannot be extended'),
+          {statusCode: 400},
+        );
+      }
+    }
     const requested = Math.floor(Number(newTargetCount) || 0);
     const targetCount = Math.max(
       currentTarget,

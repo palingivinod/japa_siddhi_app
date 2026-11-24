@@ -7,6 +7,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -34,6 +35,12 @@ import OutlineButton from '../common/OutlineButton';
 import ScreenLayout from '../common/ScreenLayout';
 
 type JapaSourceType = 'PERSONAL' | 'COMMUNITY' | 'CHALLENGE' | 'CATALOG';
+
+/** YYYY-MM-DD minus `days` days (calendar math, no time-zone drift). */
+const isoDaysBefore = (iso: string, days: number) => {
+  const [y, m, d] = String(iso).slice(0, 10).split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d - days)).toISOString().slice(0, 10);
+};
 
 export type ActiveJapaItem = {
   id: string;
@@ -285,7 +292,15 @@ const YourJapasScreen = () => {
             remainingDays,
             progressPercent,
             isChallenge: false,
-            isExpired: String(goal.status || '').toUpperCase() === 'EXPIRED',
+            // Expired = status EXPIRED, or deadline is more than 2 days back
+            // with japas left (deadline D → expired from D+2). Display only.
+            isExpired:
+              String(goal.status || '').toUpperCase() === 'EXPIRED' ||
+              (!isSamuhikaCampaign &&
+                remainingCount > 0 &&
+                String(goal.endDate || '').slice(0, 10) !== '' &&
+                String(goal.endDate || '').slice(0, 10) <
+                  isoDaysBefore(todayIso, 1)),
             isSamuhikaCampaign,
             deadlineAt: isSamuhikaCampaign
               ? goal.endDate || null
@@ -748,10 +763,10 @@ const YourJapasScreen = () => {
                     ) : null}
                     <Text style={styles.deadlinePassedText}>
                       {item.isExpired
-                        ? 'This goal has expired. Change the deadline to continue chanting it. Your japas are saved.'
+                        ? 'This goal has expired. Your japas are saved.'
                         : 'Today is the deadline. Extend it or choose a new date, otherwise this goal expires.'}
                     </Text>
-                    {deadlineEditId === item.id ? (
+                    {item.isExpired ? null : deadlineEditId === item.id ? (
                       <>
                         <TextInput
                           style={styles.deadlineInput}
