@@ -41,8 +41,6 @@ const GeneralAnnadanamScreen = () => {
   const [profileHasSpouse, setProfileHasSpouse] = useState(false);
   const [preferDate, setPreferDate] = useState('');
   const [showDate, setShowDate] = useState(false);
-  const [gothram, setGothram] = useState('');
-  const [nakshatram, setNakshatram] = useState('');
   const [comments, setComments] = useState('');
   const [persons, setPersons] = useState(0);
   const [enabled, setEnabled] = useState(true);
@@ -55,17 +53,25 @@ const GeneralAnnadanamScreen = () => {
   const anniversaryForWhom =
     anniversaryRelation ||
     (forWhom === 'Husband' || forWhom === 'Wife' ? forWhom : '');
-  const needsPersonName = forWhom.length > 0 && forWhom !== 'Self' && occasion !== 'Anniversary';
+  // Puja related / Others: no "For whom" question (and no person name).
+  const noForWhom = occasion === 'Puja related' || occasion === 'Others';
+  const needsPersonName =
+    !noForWhom &&
+    forWhom.length > 0 &&
+    forWhom !== 'Self' &&
+    occasion !== 'Anniversary';
   const personReady =
     occasion === 'Anniversary'
       ? anniversaryForWhom.length > 0 && spouseName.trim().length >= 2
-      : forWhom === 'Self' || (needsPersonName && personName.trim().length >= 2);
+      : noForWhom ||
+        forWhom === 'Self' ||
+        (needsPersonName && personName.trim().length >= 2);
   const detailsReady =
     fullName.trim().length >= 2 &&
     isMobile(cleanMobileReady) &&
     !/^0+$/.test(cleanMobileReady) &&
     occasion.length > 0 &&
-    forWhom.length > 0 &&
+    (noForWhom || forWhom.length > 0) &&
     personReady &&
     /^\d{4}-\d{2}-\d{2}$/.test(preferDate) &&
     persons > 0 &&
@@ -123,11 +129,6 @@ const GeneralAnnadanamScreen = () => {
           } else {
             setProfileHasSpouse(false);
           }
-          setGothram(current => current || String(profile?.gothram || stored?.gothram || ''));
-          setNakshatram(
-            current =>
-              current || String(profile?.nakshatram || stored?.nakshatram || ''),
-          );
         } catch {
           // ignore profile load error
         }
@@ -188,6 +189,8 @@ const GeneralAnnadanamScreen = () => {
         Alert.alert(t('validationTitle'), t('selectForWhom'));
         return;
       }
+    } else if (noForWhom) {
+      // Puja related / Others: nothing to ask about "for whom".
     } else if (!forWhom) {
       Alert.alert(t('validationTitle'), t('selectForWhom'));
       return;
@@ -216,19 +219,22 @@ const GeneralAnnadanamScreen = () => {
       purpose: occasion,
       occasion,
       preferDate,
-      forWhom: occasion === 'Anniversary' ? anniversaryForWhom : forWhom,
-      personName:
-        (occasion === 'Anniversary'
-          ? spouseName
-          : forWhom === 'Self'
-            ? fullName
-            : personName
-        ).trim(),
+      forWhom: noForWhom
+        ? ''
+        : occasion === 'Anniversary'
+          ? anniversaryForWhom
+          : forWhom,
+      personName: noForWhom
+        ? ''
+        : (occasion === 'Anniversary'
+            ? spouseName
+            : forWhom === 'Self'
+              ? fullName
+              : personName
+          ).trim(),
       seva: 'Annadanam',
       name: fullName.trim(),
       phone: cleanMobile,
-      gothram: gothram.trim(),
-      nakshatram: nakshatram.trim(),
       comments: trimmedComments,
     });
   };
@@ -373,7 +379,7 @@ const GeneralAnnadanamScreen = () => {
                 </>
               ) : null}
             </>
-          ) : occasion ? (
+          ) : occasion && !noForWhom ? (
             <>
               <Text style={styles.label}>{t('forWhom')} *</Text>
               <SelectField
@@ -436,18 +442,6 @@ const GeneralAnnadanamScreen = () => {
             persons={persons}
             onChangePersons={setPersons}
             title={t('selectNoOfPersons')}
-          />
-          <FormField
-            label={t('gothramOptional') || 'Gothram (Optional)'}
-            placeholder={t('gothram') || 'Enter Gothram'}
-            value={gothram}
-            onChangeText={setGothram}
-          />
-          <FormField
-            label={t('nakshatramOptional') || 'Nakshatram / Star (Optional)'}
-            placeholder={t('nakshatram') || 'Enter Nakshatram / Star'}
-            value={nakshatram}
-            onChangeText={setNakshatram}
           />
           <FormField
             label={`${t('comments')} *`}

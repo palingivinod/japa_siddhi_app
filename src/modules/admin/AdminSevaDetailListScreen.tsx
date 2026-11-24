@@ -923,7 +923,8 @@ const AdminSevaDetailListScreen = () => {
                 </View>
               ) : null}
 
-              {gothram ? (
+              {/* Anna Santharpana does not use Gothram / Nakshatram. */}
+              {gothram && sevaType !== 'ANNADANAM' ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Gothram:</Text>
                   <Text selectable style={styles.detailValue}>
@@ -931,7 +932,7 @@ const AdminSevaDetailListScreen = () => {
                   </Text>
                 </View>
               ) : null}
-              {nakshatram ? (
+              {nakshatram && sevaType !== 'ANNADANAM' ? (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Nakshatram / Star:</Text>
                   <Text selectable style={styles.detailValue}>

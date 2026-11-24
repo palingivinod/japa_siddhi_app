@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   dropdownBtn: {
-    width: 95,
+    width: 105,
     height: 52,
     backgroundColor: Colors.white,
     borderWidth: 1,
@@ -236,7 +236,8 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
   },
   dropdownArrow: {
-    fontSize: 15,
+    fontSize: 26,
+    lineHeight: 30,
     color: Colors.templeGold,
     fontWeight: '800',
     marginLeft: 4,

@@ -190,9 +190,9 @@ const styles = StyleSheet.create({
   },
   cardSubtext: {
     color: Colors.sacredBrown,
-    fontWeight: '600',
-    fontSize: 10,
-    lineHeight: 13,
+    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 15,
     includeFontPadding: false,
     textAlign: 'center',
     width: '100%',

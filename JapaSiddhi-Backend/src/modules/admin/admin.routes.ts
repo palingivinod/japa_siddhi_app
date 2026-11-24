@@ -1008,6 +1008,16 @@ const ensureAdminUserProfileColumns = async () => {
   }
 };
 
+let adminProfileColumnsEnsured = false;
+/** Same as ensureAdminUserProfileColumns, but only runs once per process. */
+const ensureAdminUserProfileColumnsOnce = async () => {
+  if (adminProfileColumnsEnsured) {
+    return;
+  }
+  await ensureAdminUserProfileColumns();
+  adminProfileColumnsEnsured = true;
+};
+
 const enrolledOnValue = (value: unknown) => {
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     const year = String(value.getFullYear());
@@ -8571,6 +8581,8 @@ router.delete('/autopay-requests/:id', async (req: Request, res: Response) => {
 router.get('/seva-donations', async (req: Request, res: Response) => {
   try {
     await ensureDonationColumns();
+    // users.postal_code is read below for the city fallback.
+    await ensureAdminUserProfileColumnsOnce();
     const type = String(req.query.type || 'ALL').toUpperCase();
     const scope = String(req.query.scope || 'all').toLowerCase();
     const preferDate = String(req.query.preferDate || '').trim();
@@ -8649,7 +8661,8 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     const sql = `
       SELECT
         base.*,
-        IFNULL(ci.name, '') AS cityName
+        IFNULL(ci.name, '') AS cityName,
+        IFNULL(u.postal_code, '') AS postalCode
       FROM (
         SELECT
           id,
@@ -8687,6 +8700,47 @@ router.get('/seva-donations', async (req: Request, res: Response) => {
     `;
 
     const rows = await mysql.query<any[]>(sql, params);
+
+    // City: profile city first. If the devotee has none but has a 6-digit
+    // profile PIN, derive the city from the PIN (read-only, cached, and
+    // time-boxed so a slow lookup service can never block this list).
+    try {
+      const needCity = (rows || []).filter(
+        row =>
+          !String(row.cityName || '').trim() &&
+          /^\d{6}$/.test(String(row.postalCode || '').trim()),
+      );
+      if (needCity.length) {
+        const pins = Array.from(
+          new Set(needCity.map(row => String(row.postalCode).trim())),
+        ).slice(0, 25);
+        const masterService = (await import('../master/master.service'))
+          .default;
+        const pairs = await Promise.race([
+          Promise.all(
+            pins.map(
+              async pin =>
+                [pin, await masterService.peekPincodeCity(pin)] as const,
+            ),
+          ),
+          new Promise<null>(resolve => setTimeout(() => resolve(null), 6000)),
+        ]);
+        if (pairs) {
+          const cityByPin = new Map<string, string>(pairs);
+          for (const row of needCity) {
+            const city = cityByPin.get(String(row.postalCode).trim());
+            if (city) {
+              row.cityName = city;
+            }
+          }
+        }
+      }
+    } catch (cityErr) {
+      console.warn('Seva donation city lookup skipped:', cityErr);
+    }
+    for (const row of rows || []) {
+      delete row.postalCode;
+    }
 
     // Compute counts for tabs
     const countWhereClauses: string[] = ["UPPER(IFNULL(payment_status, 'SUCCESS')) = 'SUCCESS'"];

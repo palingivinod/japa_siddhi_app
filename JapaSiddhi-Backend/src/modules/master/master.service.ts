@@ -116,7 +116,34 @@ const lookupFromDharunFallback = async (
   }
 };
 
+/** In-memory pincode → city cache for read-only admin display lookups. */
+const pinCityCache = new Map<string, {city: string; at: number}>();
+const PIN_MISS_TTL_MS = 10 * 60 * 1000;
+
 class MasterService {
+  /**
+   * Read-only pincode → city name for display (e.g. admin cards).
+   * Unlike lookupPincode it never creates states/cities rows.
+   * Successful results are cached for the life of the process; misses are
+   * cached for 10 minutes. Returns '' when the PIN cannot be resolved.
+   */
+  async peekPincodeCity(pin: string): Promise<string> {
+    const code = String(pin || '').replace(/\D/g, '');
+    if (!/^[0-9]{6}$/.test(code)) {
+      return '';
+    }
+    const hit = pinCityCache.get(code);
+    if (hit && (hit.city || Date.now() - hit.at < PIN_MISS_TTL_MS)) {
+      return hit.city;
+    }
+    const resolved =
+      (await lookupFromPostalPincodeIn(code)) ||
+      (await lookupFromDharunFallback(code));
+    const city = resolved?.cityName || '';
+    pinCityCache.set(code, {city, at: Date.now()});
+    return city;
+  }
+
   async getCountries() {
     return masterRepository.getCountries();
   }
