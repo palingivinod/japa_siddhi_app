@@ -6,6 +6,7 @@ import authRepository, {isPlaceholderMobile} from './auth.repository';
 import otpRepository from './otp.repository';
 import emailOtpService from '../../services/emailOtp.service';
 import environment from '../../config/environment';
+import {getAppReleaseNotes} from '../../config/appReleaseNotes';
 import Constants from '../../config/constants';
 
 import jwtService from '../../utils/jwt';
@@ -1762,9 +1763,11 @@ class AuthService {
     };
   }
 
-  latestAppRelease() {
+  latestAppRelease(lang?: string) {
+    const latestVersion = environment.LATEST_APP_VERSION || '1.1.3';
     return {
-      latestVersion: environment.LATEST_APP_VERSION || '1.1.3',
+      latestVersion,
+      releaseNotes: getAppReleaseNotes(latestVersion, lang),
     };
   }
 

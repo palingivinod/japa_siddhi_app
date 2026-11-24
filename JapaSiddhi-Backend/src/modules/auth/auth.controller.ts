@@ -341,11 +341,11 @@ class AuthController {
     }
   }
 
-  async appRelease(_req: Request, res: Response, _next: NextFunction) {
+  async appRelease(req: Request, res: Response, _next: NextFunction) {
     return apiResponse.success(
       res,
       'App release',
-      authService.latestAppRelease(),
+      authService.latestAppRelease(String(req.query.lang || '')),
     );
   }
 
