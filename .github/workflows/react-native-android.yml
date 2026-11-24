@@ -42,6 +42,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      # Caches ~/.gradle (dependencies, wrapper) between runs so we hit
+      # Maven Central far less often and avoid HTTP 429 rate limits.
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
@@ -104,13 +111,35 @@ jobs:
       - name: Build Release APK
         working-directory: android
         run: |
-          set -o pipefail
-          ./gradlew assembleRelease \
-            --no-daemon \
-            --stacktrace \
-            --warning-mode all \
-            -PreactNativeArchitectures=arm64-v8a \
-            2>&1 | tee ../android-release-build.log
+          # Retry only on transient network / rate-limit errors (e.g. Maven
+          # Central HTTP 429). Real compile or config errors fail immediately.
+          set +e
+          : > ../android-release-build.log
+          for attempt in 1 2 3 4; do
+            echo "::group::Gradle assembleRelease (attempt ${attempt}/4)"
+            ./gradlew assembleRelease \
+              --no-daemon \
+              --stacktrace \
+              --warning-mode all \
+              -PreactNativeArchitectures=arm64-v8a \
+              2>&1 | tee ../gradle-attempt.log
+            status=${PIPESTATUS[0]}
+            echo "::endgroup::"
+            cat ../gradle-attempt.log >> ../android-release-build.log
+            if [ "$status" -eq 0 ]; then
+              exit 0
+            fi
+            if grep -qE "Too Many Requests|status code 429|Could not GET|Could not HEAD|Could not resolve|Read timed out|Connection reset|Connection timed out|Premature end of Content-Length|Received status code 5[0-9][0-9]" ../gradle-attempt.log; then
+              wait_s=$((attempt * 60))
+              echo "::warning::Transient dependency download error. Retrying in ${wait_s}s (attempt ${attempt}/4 failed)."
+              sleep "$wait_s"
+            else
+              echo "Build failed with a non-network error; not retrying."
+              exit "$status"
+            fi
+          done
+          echo "::error::Gradle build still failing after 4 attempts due to dependency download errors."
+          exit 1
 
       - name: Locate built APK
         id: find_apk
