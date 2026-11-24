@@ -470,7 +470,7 @@ class OrderRepository {
       engine === 'mysql'
         ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)`
         : engine === 'postgres'
-          ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '30 days'`
+          ? `created_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '30 days'`
           : `created_at >= datetime('now', '-30 days')`;
     const bhasmamMatchSql = `(
       upper(IFNULL(order_type, '')) IN ('GOU_MAYA_BHASMA', 'HOMA_BHASMA')
@@ -799,7 +799,7 @@ class OrderRepository {
       engine === 'mysql'
         ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`
         : engine === 'postgres'
-          ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '${days} days'`
+          ? `created_at::timestamptz >= CURRENT_TIMESTAMP - INTERVAL '${days} days'`
           : `created_at >= datetime('now', '-${days} days')`;
 
     let rows: any[] = [];
