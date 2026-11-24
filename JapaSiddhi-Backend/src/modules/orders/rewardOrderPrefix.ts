@@ -79,6 +79,14 @@ export const codeFromRewardName = (rewardName: string): string => {
   return code;
 };
 
+/** Normalize admin-entered / stored prefix to 2–3 letters. */
+export const normalizeOrderPrefix = (raw: string): string => {
+  const letters = String(raw || '')
+    .toUpperCase()
+    .replace(/[^A-Z]/g, '');
+  return letters.slice(0, 3);
+};
+
 export const rewardOrderPrefix = (rewardName: string): string => {
   const lower = String(rewardName || '')
     .trim()
@@ -163,6 +171,21 @@ export const rewardOrderPrefix = (rewardName: string): string => {
 
   // Admin-added / unknown reward → derive from name.
   return codeFromRewardName(rewardName);
+};
+
+/** Prefer stored admin ID; otherwise derive from reward name. */
+export const resolveRewardOrderPrefix = (reward: {
+  name?: string;
+  orderPrefix?: string | null;
+  order_prefix?: string | null;
+}): string => {
+  const stored = normalizeOrderPrefix(
+    String(reward.orderPrefix ?? reward.order_prefix ?? ''),
+  );
+  if (stored.length >= 2) {
+    return stored;
+  }
+  return rewardOrderPrefix(String(reward.name || ''));
 };
 
 export default rewardOrderPrefix;

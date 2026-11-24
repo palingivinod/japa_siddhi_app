@@ -54,6 +54,20 @@ const JapaProgressScreen = () => {
   const [mantraLabel, setMantraLabel] = useState(
     String(route.params?.mantraName || '').trim(),
   );
+  /** Mid-session draft only — Resume shows after Save Session / View Progress mid-way. */
+  const [canResume, setCanResume] = useState(false);
+  const [resumeTarget, setResumeTarget] = useState<{
+    japaGoalId?: number;
+    mantraId?: number;
+    personalMantraId?: number;
+    privateMantra?: string;
+    mode: 'private' | 'community';
+    lifetimeGoal: number;
+    initialCount: number;
+    postedCount: number;
+    dailyTarget: number;
+    todayCompletedCount: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(hasSeed);
   const [weekReady, setWeekReady] = useState(false);
@@ -201,6 +215,100 @@ const JapaProgressScreen = () => {
             0,
         ),
       );
+      // Resume CTA only when an unfinished draft exists (Save Session / left mid-chant).
+      const isPersonalGoal =
+        !!activeGoal &&
+        (String(activeGoal.mantraType || '').toUpperCase() === 'PERSONAL' ||
+          Boolean(activeGoal.personalMantraId));
+      const goalMantraId = activeGoal
+        ? isPersonalGoal
+          ? undefined
+          : Number(activeGoal.mantraId || 0) || undefined
+        : undefined;
+      const goalPersonalId = activeGoal
+        ? isPersonalGoal
+          ? Number(activeGoal.personalMantraId || 0) || undefined
+          : undefined
+        : undefined;
+      const goalMode: 'private' | 'community' = isPersonalGoal
+        ? 'private'
+        : 'community';
+      const goalName = activeGoal
+        ? String(
+            activeGoal.mantraName || activeGoal.goalName || label || '',
+          ).trim()
+        : label;
+
+      let draft = null as Awaited<ReturnType<typeof getJapaDraft>>;
+      if (activeGoal) {
+        draft = await getJapaDraft(
+          goalMode,
+          goalMantraId,
+          undefined,
+          goalPersonalId,
+        );
+        if (
+          draft &&
+          Number(draft.japaGoalId || 0) > 0 &&
+          Number(draft.japaGoalId) !== Number(activeGoal.id)
+        ) {
+          draft = null;
+        }
+      }
+      if (!draft) {
+        draft = await getJapaDraft();
+        if (
+          draft &&
+          seededGoalId > 0 &&
+          Number(draft.japaGoalId || 0) > 0 &&
+          Number(draft.japaGoalId) !== seededGoalId
+        ) {
+          draft = null;
+        }
+      }
+
+      if (draft) {
+        const draftPersonal = Number(draft.personalMantraId || 0) > 0;
+        const draftCount = Math.max(0, Number(draft.count || 0));
+        const draftPosted = Math.max(0, Number(draft.postedCount || 0));
+        const serverDone = Math.max(
+          0,
+          Number(activeGoal?.completedCount || 0),
+        );
+        setCanResume(true);
+        setResumeTarget({
+          japaGoalId:
+            Number(draft.japaGoalId || 0) ||
+            Number(activeGoal?.id || 0) ||
+            seededGoalId ||
+            undefined,
+          mantraId: draftPersonal
+            ? undefined
+            : Number(draft.mantraId || 0) || goalMantraId,
+          personalMantraId: draftPersonal
+            ? Number(draft.personalMantraId || 0) || undefined
+            : goalPersonalId,
+          privateMantra:
+            draft.privateMantra ||
+            (draftPersonal || isPersonalGoal ? goalName || undefined : undefined),
+          mode: draft.mode || goalMode,
+          lifetimeGoal: Math.max(
+            0,
+            Number(draft.goal || activeGoal?.targetCount || 0),
+          ),
+          // Prefer mid-session draft count so Chant does not flash 0 / server-only total.
+          initialCount: Math.max(draftCount, serverDone),
+          postedCount: Math.min(
+            Math.max(draftPosted, serverDone),
+            Math.max(draftCount, serverDone),
+          ),
+          dailyTarget: dailyGoal || seededGoal,
+          todayCompletedCount: todayCount,
+        });
+      } else {
+        setCanResume(false);
+        setResumeTarget(null);
+      }
     },
     [route.params?.mantraName, seededGoal, seededGoalId, seededLifetime, seededToday],
   );
@@ -255,30 +363,48 @@ const JapaProgressScreen = () => {
   );
 
   const resumeJapa = async () => {
-    if (lifetime >= 5000) {
-      navigation.navigate('JapaAnnadanam', {
-        persons: 2,
-        suggestPersons: true,
-      });
-      return;
-    }
-    // Normal / Antharanga resume only — never open a challenge draft here.
-    const draft = await getJapaDraft();
-    if (draft && !Number(draft.challengeId || 0)) {
+    // Only mid-session drafts — button is hidden otherwise.
+    if (resumeTarget) {
       navigation.navigate('Chant', {
-        mode: draft.mode,
-        mantraId: draft.mantraId,
-        privateMantra: draft.privateMantra,
-        personalMantraId: draft.personalMantraId,
-        goal: draft.goal || goal,
-        japaGoalId: draft.japaGoalId,
+        mode: resumeTarget.mode,
+        mantraId: resumeTarget.mantraId,
+        privateMantra: resumeTarget.privateMantra || mantraLabel || undefined,
+        personalMantraId: resumeTarget.personalMantraId,
+        goal: resumeTarget.lifetimeGoal || goal,
+        initialCount: resumeTarget.initialCount,
+        postedCount: resumeTarget.postedCount,
+        todayCompletedCount: resumeTarget.todayCompletedCount || today,
+        dailyTarget: resumeTarget.dailyTarget || goal,
+        japaGoalId: resumeTarget.japaGoalId,
         resume: true,
       });
       return;
     }
+    const draft = await getJapaDraft();
+    if (!draft || Number(draft.challengeId || 0)) {
+      return;
+    }
+    const draftCount = Math.max(0, Number(draft.count || 0));
+    const draftPosted = Math.max(0, Number(draft.postedCount || 0));
     navigation.navigate('Chant', {
-      goal,
+      mode: draft.mode,
+      mantraId: draft.mantraId,
+      privateMantra: draft.privateMantra,
+      personalMantraId: draft.personalMantraId,
+      goal: draft.goal || goal,
+      japaGoalId: draft.japaGoalId || seededGoalId || undefined,
+      dailyTarget: goal,
+      todayCompletedCount: today,
+      initialCount: draftCount,
+      postedCount: Math.min(draftPosted, draftCount),
       resume: true,
+    });
+  };
+
+  const openAnnadanam = () => {
+    navigation.navigate('JapaAnnadanam', {
+      persons: 2,
+      suggestPersons: true,
     });
   };
 
@@ -336,6 +462,25 @@ const JapaProgressScreen = () => {
             </View>
             <Text style={styles.percent}>{percent}%</Text>
           </View>
+          {canResume || lifetime >= 5000 ? (
+            <View style={styles.resumeRow}>
+              {canResume ? (
+                <PrimaryButton
+                  title={t('resumeJapa') || 'RESUME JAPA'}
+                  onPress={resumeJapa}
+                />
+              ) : null}
+              {lifetime >= 5000 ? (
+                <>
+                  {canResume ? <View style={styles.gap} /> : null}
+                  <OutlineButton
+                    title={t('donateNowAction') || 'SUPPORT NOW'}
+                    onPress={openAnnadanam}
+                  />
+                </>
+              ) : null}
+            </View>
+          ) : null}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>{t('thisWeek')}</Text>
             {weekPending ? (
@@ -436,14 +581,9 @@ const JapaProgressScreen = () => {
             )}
           </View>
           <View style={styles.gap} />
-          <PrimaryButton
+          <OutlineButton
             title={t('japaAnalytics').toUpperCase()}
             onPress={() => navigation.navigate('AnalyticsHub')}
-          />
-          <View style={styles.gap} />
-          <OutlineButton
-            title={lifetime >= 5000 ? t('donateNowAction') : t('resumeJapa')}
-            onPress={resumeJapa}
           />
         </>
       )}
@@ -514,6 +654,10 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   barRow: {flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16},
+  resumeRow: {
+    marginTop: 4,
+    marginBottom: 14,
+  },
   track: {
     flex: 1,
     height: 10,

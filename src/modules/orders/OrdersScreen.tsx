@@ -125,7 +125,11 @@ const OrdersScreen = () => {
     apiService
       .get('/orders')
       .then(response => {
-        const rows = response.data.data ?? [];
+        const raw = response.data.data ?? [];
+        // Soft-deleted bhasmam may be included for 30-day gate — hide from My Orders.
+        const rows = (Array.isArray(raw) ? raw : []).filter(
+          (row: any) => !Number(row?.deletedByUser ?? row?.deleted_by_user ?? 0),
+        );
         setOrders(rows);
         hasOrdersRef.current = rows.length > 0;
         setReadCache('orders:list', rows, READ_TTL_MS);

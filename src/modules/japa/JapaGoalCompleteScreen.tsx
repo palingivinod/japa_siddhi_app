@@ -39,6 +39,7 @@ const JapaGoalCompleteScreen = () => {
   const [feedback, setFeedback] = useState('');
   const [extendBy, setExtendBy] = useState(108);
   const [customExtend, setCustomExtend] = useState('');
+  const [newDeadline, setNewDeadline] = useState('');
   const [busy, setBusy] = useState(false);
   const extendedRef = useRef(false);
   const retiredRef = useRef(false);
@@ -81,6 +82,13 @@ const JapaGoalCompleteScreen = () => {
 
   const nextGoal = Math.max(completedGoal, completedCount) + extra;
 
+  // Optional new deadline (YYYY-MM-DD). Blank = keep the goal's current deadline.
+  const deadlineInput = newDeadline.trim();
+  const deadlineValid =
+    !deadlineInput ||
+    (/^\d{4}-\d{2}-\d{2}$/.test(deadlineInput) &&
+      deadlineInput >= istIsoDate());
+
   const goProgress = async () => {
     await retireOwnMantra();
     navigation.replace('JapaProgress', {
@@ -99,26 +107,43 @@ const JapaGoalCompleteScreen = () => {
     extendedRef.current = true;
     try {
       let japaGoalId = Number(route.params?.japaGoalId || 0) || undefined;
+      const extendNote = feedback
+        ? `Extended after ${completedCount}; rating ${rating}. ${feedback}`
+        : `Extended after ${completedCount}; rating ${rating}.`;
       try {
-        const response = await apiService.post('/japa-goals', {
-          // Antharanga japa can also run on a listed mantra, so the type
-          // follows the mantra that was chanted, not the screen mode.
-          mantraType: usingOwnMantra ? 'PERSONAL' : 'DEFAULT',
-          mantraId,
-          personalMantraId,
-          goalName: usingOwnMantra
-            ? ownMantra.slice(0, 80) || 'My Japa'
-            : 'Extended Japa',
-          targetCount: nextGoal,
-          days: 1,
-          startDate: istIsoDate(),
-          notes: feedback
-            ? `Extended after ${completedCount}; rating ${rating}. ${feedback}`
-            : `Extended after ${completedCount}; rating ${rating}.`,
-        });
-        japaGoalId = Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
+        if (japaGoalId) {
+          // Same goal row: raise target, keep counts — do not create/cancel.
+          const response = await apiService.put(
+            `/japa-goals/${japaGoalId}/extend`,
+            {
+              targetCount: nextGoal,
+              // Blank → server keeps the existing deadline.
+              endDate: deadlineInput || undefined,
+              notes: extendNote,
+            },
+          );
+          japaGoalId =
+            Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
+        } else {
+          // No goal id (rare): create once; prefer extend path above.
+          const response = await apiService.post('/japa-goals', {
+            mantraType: usingOwnMantra ? 'PERSONAL' : 'DEFAULT',
+            mantraId: usingOwnMantra ? undefined : mantraId,
+            personalMantraId: usingOwnMantra ? personalMantraId : undefined,
+            goalName: usingOwnMantra
+              ? ownMantra.slice(0, 80) || 'My Japa'
+              : 'Extended Japa',
+            targetCount: nextGoal,
+            days: 1,
+            startDate: istIsoDate(),
+            endDate: deadlineInput || undefined,
+            notes: extendNote,
+          });
+          japaGoalId =
+            Number(response.data?.data?.goalId || japaGoalId) || japaGoalId;
+        }
       } catch {
-        // Offline: continue with local extended goal.
+        // Offline: continue with local extended goal on same id.
       }
 
       await saveJapaDraft({
@@ -196,10 +221,26 @@ const JapaGoalCompleteScreen = () => {
         placeholderTextColor={Colors.leafGreen}
       />
 
+      <Text style={styles.hint}>
+        New deadline (YYYY-MM-DD). Leave blank to keep the current deadline.
+      </Text>
+      <TextInput
+        style={styles.input}
+        value={newDeadline}
+        onChangeText={setNewDeadline}
+        keyboardType="numbers-and-punctuation"
+        autoCapitalize="none"
+        placeholder="YYYY-MM-DD"
+        placeholderTextColor={Colors.leafGreen}
+      />
+      {!deadlineValid ? (
+        <Text style={styles.hint}>Deadline must be today or later.</Text>
+      ) : null}
+
       <PrimaryButton
         title={busy ? t('extendingGoal') : t('extendJapaGoalBtn')}
         onPress={extendGoal}
-        disabled={busy || extra < 1}
+        disabled={busy || extra < 1 || !deadlineValid}
       />
       <View style={styles.gap} />
       <OutlineButton title={t('doneViewProgress')} onPress={goProgress} />

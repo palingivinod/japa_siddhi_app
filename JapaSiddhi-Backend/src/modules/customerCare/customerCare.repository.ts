@@ -109,6 +109,7 @@ class CustomerCareRepository {
         cc.created_at AS createdAt,
         cc.updated_at AS updatedAt,
         u.full_name AS userName,
+        u.mobile_country_code AS mobileCountryCode,
         u.mobile_number AS userMobile,
         u.email AS userEmail
       FROM customer_care cc

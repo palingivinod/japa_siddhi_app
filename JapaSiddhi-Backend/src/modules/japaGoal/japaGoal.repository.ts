@@ -266,10 +266,18 @@ class JapaGoalRepository {
 
 
   /**
-   * Personal goals must not keep a catalog mantra_id. That id made Home show
-   * Om Namah Shivaya / Panchakshari over the devotee's typed mantra name.
+   * Personal / typed goals must not keep a catalog mantra_id. That id made
+   * Home / Your Japas show Om Namah Shivaya over the devotee's typed name.
    */
   async repairPersonalGoalCatalogIds(userId?: number): Promise<void> {
+    // Clear catalog mantra_id on Antharanga rows only — never touch Samuhika/Daily DEFAULT.
+    const personalClause = `
+      mantra_id IS NOT NULL
+      AND (
+        UPPER(IFNULL(mantra_type, '')) = 'PERSONAL'
+        OR personal_mantra_id IS NOT NULL
+      )
+    `;
     try {
       if (userId) {
         await mysql.query(
@@ -277,11 +285,7 @@ class JapaGoalRepository {
           UPDATE japa_goals
           SET mantra_id = NULL, updated_at = CURRENT_TIMESTAMP
           WHERE user_id = ?
-            AND (
-              UPPER(IFNULL(mantra_type, '')) = 'PERSONAL'
-              OR personal_mantra_id IS NOT NULL
-            )
-            AND mantra_id IS NOT NULL
+            AND ${personalClause}
           `,
           [userId],
         );
@@ -291,11 +295,7 @@ class JapaGoalRepository {
         `
         UPDATE japa_goals
         SET mantra_id = NULL, updated_at = CURRENT_TIMESTAMP
-        WHERE (
-          UPPER(IFNULL(mantra_type, '')) = 'PERSONAL'
-          OR personal_mantra_id IS NOT NULL
-        )
-          AND mantra_id IS NOT NULL
+        WHERE ${personalClause}
         `,
       );
     } catch {
@@ -321,6 +321,7 @@ class JapaGoalRepository {
 
 
     await this.ensurePlanDateColumn();
+    await this.repairPersonalGoalCatalogIds(data.userId);
     const isPersonal =
       data.mantraType === 'PERSONAL' || Boolean(data.personalMantraId);
     const catalogMantraId = isPersonal ? null : data.mantraId ?? null;
@@ -470,10 +471,48 @@ class JapaGoalRepository {
 
 
 
+  /**
+   * Reuse an existing DEFAULT catalog goal. Does NOT invent Om Namah Shivaya
+   * when mantraId is missing (that caused empty / wrong Namah Shivaya goals).
+   */
   async findOrCreateActiveGoal(
     userId: number,
     mantraId?: number | null,
-  ): Promise<number> {
+  ): Promise<number | undefined> {
+    const catalogId = Number(mantraId || 0) || 0;
+    if (catalogId > 0) {
+      const forMantra = await mysql.query<any[]>(
+        `
+        SELECT id
+        FROM japa_goals
+        WHERE user_id = ?
+          AND status = 'ACTIVE'
+          AND mantra_type = 'DEFAULT'
+          AND mantra_id = ?
+          AND personal_mantra_id IS NULL
+        ORDER BY created_at DESC
+        LIMIT 1
+        `,
+        [userId, catalogId],
+      );
+      if (forMantra?.length) {
+        return Number(forMantra[0].id);
+      }
+      return this.createGoal({
+        userId,
+        mantraType: 'DEFAULT',
+        mantraId: catalogId,
+        personalMantraId: null,
+        goalName: 'Daily Japa',
+        targetCount: 10800,
+        remainingCount: 10800,
+        dailyTarget: 108,
+        startDate: istToday(),
+        endDate: '2026-12-31',
+        notes: 'Personal sadhana',
+      });
+    }
+
     const rows = await mysql.query<any[]>(
       `
       SELECT id
@@ -481,6 +520,7 @@ class JapaGoalRepository {
       WHERE user_id = ?
       AND status = 'ACTIVE'
       AND mantra_type = 'DEFAULT'
+      AND personal_mantra_id IS NULL
       ORDER BY created_at DESC
       LIMIT 1
       `,
@@ -491,19 +531,8 @@ class JapaGoalRepository {
       return Number(rows[0].id);
     }
 
-    return this.createGoal({
-      userId,
-      mantraType: 'DEFAULT',
-      mantraId: mantraId ?? 1,
-      personalMantraId: null,
-      goalName: 'Daily Japa',
-      targetCount: 10800,
-      remainingCount: 10800,
-      dailyTarget: 108,
-      startDate: istToday(),
-      endDate: '2026-12-31',
-      notes: 'Personal sadhana',
-    });
+    // No catalog id → do not auto-create Om Namah Shivaya (mantra id 1).
+    return undefined;
   }
 
   /**
@@ -547,6 +576,32 @@ class JapaGoalRepository {
     });
   }
 
+  /**
+   * Link a chant to the devotee's existing ACTIVE goal for this catalog mantra.
+   * Never creates a goal — auto "Samuhika Japa" / "Daily Japa" defaults were
+   * being minted on first chant and mislabelled devotees as Samuhika.
+   */
+  async findActiveGoalForMantra(
+    userId: number,
+    mantraId: number,
+  ): Promise<number | undefined> {
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id
+      FROM japa_goals
+      WHERE user_id = ?
+      AND status = 'ACTIVE'
+      AND mantra_type = 'DEFAULT'
+      AND mantra_id = ?
+      AND personal_mantra_id IS NULL
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+      [userId, mantraId],
+    );
+    return rows?.length ? Number(rows[0].id) : undefined;
+  }
+
   async findActiveGoalForPersonalMantra(
     userId: number,
     personalMantraId: number,
@@ -579,20 +634,49 @@ class JapaGoalRepository {
       await this.ensurePlanDateColumn();
       await this.repairUtcGoalDates();
       await this.repairPersonalGoalCatalogIds(userId);
-      const isMysql = mysql.getEngineName() === 'mysql';
-      const expiredBeforeToday = isMysql
-        ? `end_date < DATE(DATE_ADD(UTC_TIMESTAMP(), INTERVAL 330 MINUTE))`
-        : `end_date < DATE('now', '+5 hours', '30 minutes')`;
+      await this.ensureDeadlinePromptColumn();
+      const todayIst = istToday();
+      // Step 1: deadline passed and goal not finished → ask the devotee once.
+      const newlyPassed = await mysql.query<any[]>(
+        `
+        SELECT
+          id,
+          goal_name AS goalName,
+          target_count AS targetCount,
+          completed_count AS completedCount,
+          daily_target AS dailyTarget,
+          mantra_type AS mantraType,
+          mantra_id AS mantraId,
+          personal_mantra_id AS personalMantraId
+        FROM japa_goals
+        WHERE user_id = ?
+          AND status = 'ACTIVE'
+          AND end_date < ?
+          AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
+          AND deadline_prompt_at IS NULL
+        `,
+        [userId, todayIst],
+      );
+      for (const goal of newlyPassed || []) {
+        await mysql.query(
+          `UPDATE japa_goals SET deadline_prompt_at = ? WHERE id = ? AND user_id = ?`,
+          [todayIst, goal.id, userId],
+        );
+        await this.notifyDeadlinePassed(userId, goal);
+      }
+      // Step 2: prompt was sent on an earlier day and not answered → expire.
+      // Sessions and counts are never changed here.
       await mysql.query(
         `
         UPDATE japa_goals
         SET status = 'EXPIRED', updated_at = CURRENT_TIMESTAMP
         WHERE user_id = ?
           AND status = 'ACTIVE'
-          AND ${expiredBeforeToday}
+          AND deadline_prompt_at IS NOT NULL
+          AND deadline_prompt_at < ?
           AND COALESCE(completed_count, 0) < COALESCE(target_count, 0)
         `,
-        [userId],
+        [userId, todayIst],
       );
       await mysql.query(
         `
@@ -658,12 +742,13 @@ class JapaGoalRepository {
         j.personal_mantra_id AS personalMantraId,
 
         CASE
+          -- Personal/typed: never fall back to catalog (Om Namah Shivaya).
           WHEN UPPER(IFNULL(j.mantra_type, '')) = 'PERSONAL'
             OR j.personal_mantra_id IS NOT NULL
           THEN COALESCE(
             NULLIF(upm.mantra_name, ''),
             NULLIF(j.goal_name, ''),
-            m.mantra_name
+            'My Japa'
           )
           ELSE COALESCE(
             NULLIF(m.mantra_name, ''),
@@ -801,8 +886,286 @@ class JapaGoalRepository {
 
   }
 
+  private deadlinePromptReady = false;
+
+  /** In-app + push: deadline reached, devotee can extend or change it. */
+  private async notifyDeadlinePassed(userId: number, goal: any) {
+    const goalId = Number(goal.id);
+    const name = String(goal.goalName || 'your japa').trim().slice(0, 60);
+    const title = 'Japa deadline reached';
+    const message = `Today is the deadline for "${name}". Do you want to extend the deadline? If you ignore it, the goal will expire.`;
+    try {
+      const notificationService = (
+        await import('../notification/notification.service')
+      ).default;
+      await notificationService.create({
+        userId,
+        title,
+        message,
+        notificationType: 'SYSTEM',
+        actionType: 'GOAL_DEADLINE_EXTEND',
+        actionId: goalId,
+        extraData: {
+          goalId,
+          mantraName: name,
+          mantraType: goal.mantraType,
+          mantraId: goal.mantraId,
+          personalMantraId: goal.personalMantraId,
+          targetCount: goal.targetCount,
+          completedCount: goal.completedCount,
+          dailyTarget: goal.dailyTarget,
+        },
+      });
+    } catch (err) {
+      console.warn('Deadline in-app notification failed:', err);
+    }
+    try {
+      const tokenRows = await mysql.query<any[]>(
+        `SELECT fcm_token AS fcmToken FROM users WHERE id = ? AND deleted_at IS NULL LIMIT 1`,
+        [userId],
+      );
+      const token = String(tokenRows?.[0]?.fcmToken || '').trim();
+      if (token) {
+        const {sendPushToTokens} = await import(
+          '../admin/adminNotification.service'
+        );
+        await sendPushToTokens([token], title, message, 'GOAL_DEADLINE_EXTEND');
+      }
+    } catch (err) {
+      console.warn('Deadline push failed:', err);
+    }
+  }
+
+  private async ensureDeadlinePromptColumn() {
+    if (this.deadlinePromptReady) {
+      return;
+    }
+    try {
+      await mysql.query(
+        `ALTER TABLE japa_goals ADD COLUMN deadline_prompt_at TEXT NULL`,
+      );
+    } catch {
+      // Column already present.
+    }
+    this.deadlinePromptReady = true;
+  }
+
+  /**
+   * Deadline rule: devotee's picked date (today or later) → existing deadline
+   * (today or later) → today. Daily goal is then extra ÷ days from today.
+   */
+  private resolveDeadline(
+    picked: string | null | undefined,
+    existing: string,
+    today: string,
+  ): string {
+    const isIso = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v);
+    const pickedDay = String(picked || '').slice(0, 10);
+    if (isIso(pickedDay) && pickedDay >= today) {
+      return pickedDay;
+    }
+    if (isIso(existing) && existing >= today) {
+      return existing;
+    }
+    return today;
+  }
+
+  /** Devotee picks a new deadline for a goal whose deadline has passed. */
+  async changeDeadline(
+    id: number,
+    userId: number,
+    endDate: string,
+  ): Promise<{
+    goalId: number;
+    endDate: string;
+    dailyTarget: number;
+    remainingCount: number;
+    status: string;
+  }> {
+    await this.ensurePlanDateColumn();
+    await this.ensureDeadlinePromptColumn();
+    const goal = await this.getGoalById(id, userId);
+    if (!goal) {
+      throw Object.assign(new Error('Japa goal not found'), {statusCode: 404});
+    }
+    const status = String(goal.status || '').toUpperCase();
+    if (status !== 'ACTIVE' && status !== 'EXPIRED') {
+      throw Object.assign(
+        new Error('Only active or expired goals can change deadline'),
+        {statusCode: 400},
+      );
+    }
+    const today = istToday();
+    const day = String(endDate || '').slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < today) {
+      throw Object.assign(
+        new Error('Choose a deadline today or later'),
+        {statusCode: 400},
+      );
+    }
+    const sumRows = await mysql.query<any[]>(
+      `
+      SELECT COALESCE(SUM(session_count), 0) AS total
+      FROM japa_sessions
+      WHERE user_id = ?
+        AND japa_goal_id = ?
+      `,
+      [userId, id],
+    );
+    const completedCount = Number(sumRows?.[0]?.total || 0);
+    const targetCount = Number(goal.target_count ?? goal.targetCount ?? 0);
+    const remainingCount = Math.max(0, targetCount - completedCount);
+    if (remainingCount <= 0) {
+      throw Object.assign(
+        new Error('This goal is already completed'),
+        {statusCode: 400},
+      );
+    }
+    const days = Math.max(1, this.inclusiveDays(today, day));
+    const dailyTarget = Math.max(1, Math.ceil(remainingCount / days));
+
+    await mysql.query(
+      `
+      UPDATE japa_goals
+      SET
+        end_date = ?,
+        completed_count = ?,
+        remaining_count = ?,
+        daily_target = ?,
+        daily_plan_date = ?,
+        deadline_prompt_at = NULL,
+        status = 'ACTIVE',
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND user_id = ?
+      `,
+      [day, completedCount, remainingCount, dailyTarget, today, id, userId],
+    );
+
+    return {
+      goalId: id,
+      endDate: day,
+      dailyTarget,
+      remainingCount,
+      status: 'ACTIVE',
+    };
+  }
+
+  /**
+   * Extend an existing goal in place: higher target, keep sessions + completed.
+   * Reactivates COMPLETED/EXPIRED. Never cancels the row or siblings.
+   */
+  async extendGoal(
+    id: number,
+    userId: number,
+    newTargetCount: number,
+    options?: {endDate?: string | null; notes?: string | null},
+  ): Promise<{
+    goalId: number;
+    targetCount: number;
+    completedCount: number;
+    remainingCount: number;
+    status: string;
+    endDate: string;
+    dailyTarget: number;
+    days: number;
+  }> {
+    await this.ensurePlanDateColumn();
+    await this.ensureDeadlinePromptColumn();
+    const goal = await this.getGoalById(id, userId);
+    if (!goal) {
+      throw Object.assign(new Error('Japa goal not found'), {statusCode: 404});
+    }
+
+    const sumRows = await mysql.query<any[]>(
+      `
+      SELECT COALESCE(SUM(session_count), 0) AS total
+      FROM japa_sessions
+      WHERE user_id = ?
+        AND japa_goal_id = ?
+      `,
+      [userId, id],
+    );
+    const completedCount = Number(sumRows?.[0]?.total || 0);
+    const currentTarget = Number(goal.target_count ?? goal.targetCount ?? 0);
+    const requested = Math.floor(Number(newTargetCount) || 0);
+    const targetCount = Math.max(
+      currentTarget,
+      requested,
+      completedCount + 1,
+    );
+    const remainingCount = Math.max(0, targetCount - completedCount);
+    const status = completedCount >= targetCount ? 'COMPLETED' : 'ACTIVE';
+
+    const today = istToday();
+    const existingEnd = this.asIsoDate(goal.end_date ?? goal.endDate);
+    const endDate = this.resolveDeadline(
+      options?.endDate,
+      existingEnd,
+      today,
+    );
+    const days = Math.max(1, this.inclusiveDays(today, endDate));
+    // Daily goal = the extra count only, spread from the extension day.
+    const extra = Math.max(1, targetCount - completedCount);
+    const dailyTarget = Math.max(1, Math.ceil(extra / days));
+
+    const prevNotes = String(goal.notes || '').trim();
+    const extraNote = String(options?.notes || '').trim();
+    const notes = extraNote
+      ? prevNotes
+        ? `${prevNotes}\n${extraNote}`
+        : extraNote
+      : prevNotes || null;
+
+    await mysql.query(
+      `
+      UPDATE japa_goals
+      SET
+        target_count = ?,
+        completed_count = ?,
+        remaining_count = ?,
+        end_date = ?,
+        daily_target = ?,
+        daily_plan_date = ?,
+        deadline_prompt_at = NULL,
+        status = ?,
+        notes = ?,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND user_id = ?
+      `,
+      [
+        targetCount,
+        completedCount,
+        remainingCount,
+        endDate,
+        dailyTarget,
+        today,
+        status,
+        notes,
+        id,
+        userId,
+      ],
+    );
+
+    return {
+      goalId: id,
+      targetCount,
+      completedCount,
+      remainingCount,
+      endDate,
+      dailyTarget,
+      days,
+      status,
+    };
+  }
 
 
+
+  /**
+   * Hide a goal from Your Japas without deleting rows or session counts.
+   * Sets status = CANCELLED (list UI only shows ACTIVE).
+   */
   async deleteGoal(
     id: number,
     userId: number,
@@ -832,6 +1195,7 @@ class JapaGoalRepository {
       SELECT id
       FROM japa_goals
       WHERE user_id = ?
+        AND status = 'ACTIVE'
         AND mantra_type = ?
         AND target_count = ?
         AND end_date = ?
@@ -860,26 +1224,15 @@ class JapaGoalRepository {
     const ids = (twins?.length ? twins : [{id}]).map(row => Number(row.id));
     for (const goalId of ids) {
       await mysql.query(
-        `DELETE FROM japa_sessions WHERE japa_goal_id = ? AND user_id = ?`,
-        [goalId, userId],
-      );
-      await mysql.query(
-        `DELETE FROM japa_goals WHERE id = ? AND user_id = ?`,
-        [goalId, userId],
-      );
-    }
-    try {
-      await mysql.query(
         `
-        UPDATE global_japa_counter
-        SET total_japa_count = (
-          SELECT COALESCE(SUM(session_count), 0) FROM japa_sessions
-        )
-        WHERE id = 1
+        UPDATE japa_goals
+        SET status = 'CANCELLED', updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+          AND user_id = ?
+          AND status = 'ACTIVE'
         `,
+        [goalId, userId],
       );
-    } catch {
-      // The goal and its sessions are already removed.
     }
   }
 

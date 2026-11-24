@@ -1,5 +1,6 @@
 import {
   CreateJapaGoalRequest,
+  ExtendJapaGoalRequest,
 } from './japaGoal.types';
 
 import japaGoalRepository from './japaGoal.repository';
@@ -162,22 +163,44 @@ class JapaGoalService {
 
 
 
+  /** Hide from Your Japas; keep goal row + all session counts. */
   async cancelGoal(
     id: number,
     userId: number,
   ) {
-
-
     await japaGoalRepository.deleteGoal(
       id,
       userId,
     );
 
-
     return {
       success: true,
     };
+  }
 
+  /** Same goal row, higher target — no cancel / no new id. */
+  async extendGoal(
+    id: number,
+    userId: number,
+    data: ExtendJapaGoalRequest,
+  ) {
+    return japaGoalRepository.extendGoal(
+      id,
+      userId,
+      Number(data.targetCount),
+      {
+        endDate: data.endDate ?? null,
+        notes: data.notes ?? null,
+      },
+    );
+  }
+
+  async changeDeadline(
+    id: number,
+    userId: number,
+    endDate: string,
+  ) {
+    return japaGoalRepository.changeDeadline(id, userId, endDate);
   }
 
 

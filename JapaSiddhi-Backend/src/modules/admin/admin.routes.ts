@@ -3825,6 +3825,91 @@ const cleanTimestamp = (raw: any): string | null => {
   return str.replace(/\.\d+.*$/, '').replace('T', ' ').slice(0, 16) || null;
 };
 
+/** Admin timeline: every status change with when it was set. */
+const loadOrderStatusHistory = async (
+  orderId: number,
+): Promise<Array<{status: string; statusCode: string; at: string}>> => {
+  try {
+    const orderRepository = (await import('../orders/order.repository'))
+      .default;
+    await orderRepository.ensureStatusEventsTable();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT status, created_at AS createdAt
+      FROM order_status_events
+      WHERE order_id = ?
+      ORDER BY id ASC
+      `,
+      [orderId],
+    );
+    return (rows || []).map(row => {
+      const code = String(row.status || '')
+        .trim()
+        .toUpperCase();
+      return {
+        statusCode: code,
+        status: toAdminOrderStatus(code),
+        at: cleanTimestamp(row.createdAt) || '',
+      };
+    });
+  } catch {
+    return [];
+  }
+};
+
+const attachStatusHistoryToOrders = async (
+  orders: any[],
+): Promise<any[]> => {
+  const ids = orders
+    .map(o => Number(o?.id || 0))
+    .filter(id => id > 0);
+  if (!ids.length) {
+    return orders;
+  }
+  try {
+    const orderRepository = (await import('../orders/order.repository'))
+      .default;
+    await orderRepository.ensureStatusEventsTable();
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT order_id AS orderId, status, created_at AS createdAt
+      FROM order_status_events
+      WHERE order_id IN (${placeholders})
+      ORDER BY id ASC
+      `,
+      ids,
+    );
+    const byOrder: Record<
+      number,
+      Array<{status: string; statusCode: string; at: string}>
+    > = {};
+    for (const row of rows || []) {
+      const oid = Number(row.orderId || 0);
+      if (!oid) {
+        continue;
+      }
+      const code = String(row.status || '')
+        .trim()
+        .toUpperCase();
+      if (!byOrder[oid]) {
+        byOrder[oid] = [];
+      }
+      byOrder[oid].push({
+        statusCode: code,
+        status: toAdminOrderStatus(code),
+        at: cleanTimestamp(row.createdAt) || '',
+      });
+    }
+    return orders.map(o => ({
+      ...o,
+      statusHistory: byOrder[Number(o.id)] || [],
+    }));
+  } catch {
+    return orders.map(o => ({...o, statusHistory: []}));
+  }
+};
+
 const mapOrderRow = (row: any) => {
   const orderNo = String(row.orderNumber || `#${row.id}`);
   const rewardName = String(
@@ -4239,9 +4324,12 @@ router.get('/orders', async (req: Request, res: Response) => {
         `,
         params,
       );
+      const mapped = await attachStatusHistoryToOrders(
+        (rows || []).map(mapOrderRow),
+      );
       return res.json({
         success: true,
-        data: (rows || []).map(mapOrderRow),
+        data: mapped,
       });
     }
 
@@ -4264,7 +4352,9 @@ router.get('/orders', async (req: Request, res: Response) => {
       `,
       [...params, limit, offset],
     );
-    const mapped = (rows || []).map(mapOrderRow);
+    const mapped = await attachStatusHistoryToOrders(
+      (rows || []).map(mapOrderRow),
+    );
     return res.json({
       success: true,
       data: mapped,
@@ -4321,9 +4411,11 @@ router.get('/orders/:id', async (req: Request, res: Response) => {
     if (!rows?.length) {
       return res.status(404).json({success: false, message: 'Order not found.'});
     }
+    const detail = mapOrderDetail(rows[0]);
+    const statusHistory = await loadOrderStatusHistory(id);
     return res.json({
       success: true,
-      data: mapOrderDetail(rows[0]),
+      data: {...detail, statusHistory},
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -4506,6 +4598,7 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
       [id],
     );
     const detail = mapOrderDetail(rows[0]);
+    const statusHistory = await loadOrderStatusHistory(id);
     await notifyUserOrderStatus({
       orderId: detail.id,
       userId: detail.userId,
@@ -4519,7 +4612,7 @@ router.put('/orders/:id/status', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       message: 'Order status updated.',
-      data: detail,
+      data: {...detail, statusHistory},
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -4865,6 +4958,7 @@ router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
       [id],
     );
     const detail = mapOrderDetail(rows[0]);
+    const statusHistory = await loadOrderStatusHistory(id);
     await notifyUserOrderStatus({
       orderId: detail.id,
       userId: detail.userId,
@@ -4876,7 +4970,7 @@ router.put('/orders/:id/confirm', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       message: 'Order confirmed successfully.',
-      data: detail,
+      data: {...detail, statusHistory},
     });
   } catch (error: any) {
     return res.status(500).json({
@@ -7036,6 +7130,40 @@ const ensureRewardColumns = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    await mysql.query(
+      'ALTER TABLE challenge_rewards ADD COLUMN order_prefix TEXT NULL',
+    );
+  } catch {
+    // Column already exists.
+  }
+  // Backfill missing order prefixes from reward names (once).
+  try {
+    const {rewardOrderPrefix, normalizeOrderPrefix} = await import(
+      '../orders/rewardOrderPrefix'
+    );
+    const missing = await mysql.query<any[]>(
+      `
+      SELECT id, name, IFNULL(order_prefix, '') AS orderPrefix
+      FROM challenge_rewards
+      WHERE order_prefix IS NULL OR TRIM(IFNULL(order_prefix, '')) = ''
+      `,
+    );
+    for (const row of missing || []) {
+      const prefix = normalizeOrderPrefix(
+        rewardOrderPrefix(String(row.name || '')),
+      );
+      if (prefix.length < 2) {
+        continue;
+      }
+      await mysql.query(
+        `UPDATE challenge_rewards SET order_prefix = ? WHERE id = ?`,
+        [prefix, row.id],
+      );
+    }
+  } catch {
+    // Non-fatal.
+  }
   // Heal Marakata Shivling to absolute 8,000 Japas (no present+).
   try {
     await mysql.query(
@@ -7135,6 +7263,9 @@ const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
   const unlockMode = normalizeUnlockMode(
     row.unlockMode ?? row.unlock_mode ?? 'fixed',
   );
+  const rawPrefix = String(
+    row.orderPrefix ?? row.order_prefix ?? '',
+  ).trim();
   // Availability = admin toggle only. Stock qty is informational.
   return {
     id: String(row.id),
@@ -7143,6 +7274,7 @@ const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
     description: String(row.description || ''),
     eligibilityCriteria: Number(row.eligibilityCriteria ?? row.eligibility_criteria ?? 0),
     unlockMode,
+    orderPrefix: rawPrefix || null,
     stock,
     inStock: !adminMarkedOos,
     adminMarkedOos,
@@ -7150,6 +7282,42 @@ const mapRewardRow = (row: any, absoluteUrl?: string | null) => {
     imageUrl: absoluteUrl || path || null,
     imagePath: path || null,
   };
+};
+
+const findRewardPrefixConflict = async (
+  prefix: string,
+  excludeId?: number,
+): Promise<{id: string; name: string} | null> => {
+  const {
+    normalizeOrderPrefix,
+    resolveRewardOrderPrefix,
+  } = await import('../orders/rewardOrderPrefix');
+  const wanted = normalizeOrderPrefix(prefix);
+  if (wanted.length < 2) {
+    return null;
+  }
+  const rows = await mysql.query<any[]>(
+    `
+    SELECT
+      id,
+      name,
+      IFNULL(order_prefix, '') AS orderPrefix
+    FROM challenge_rewards
+    `,
+  );
+  for (const row of rows || []) {
+    if (excludeId && Number(row.id) === Number(excludeId)) {
+      continue;
+    }
+    const resolved = resolveRewardOrderPrefix({
+      name: row.name,
+      orderPrefix: row.orderPrefix,
+    });
+    if (resolved === wanted) {
+      return {id: String(row.id), name: String(row.name || '')};
+    }
+  }
+  return null;
 };
 
 const isMarakataShivlingRewardName = (name: string) => {
@@ -7303,6 +7471,7 @@ router.get('/rewards', async (req: Request, res: Response) => {
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(order_prefix, '') AS orderPrefix,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -7388,6 +7557,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(order_prefix, '') AS orderPrefix,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -7436,6 +7606,34 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
       unlockMode !== undefined
         ? unlockMode
         : normalizeUnlockMode(current[0].unlockMode);
+    const {
+      normalizeOrderPrefix,
+      rewardOrderPrefix,
+    } = await import('../orders/rewardOrderPrefix');
+    const prefixRaw =
+      req.body?.orderPrefix ?? req.body?.order_prefix;
+    const nextOrderPrefix = normalizeOrderPrefix(
+      prefixRaw !== undefined
+        ? String(prefixRaw || '')
+        : String(current[0].orderPrefix || '') ||
+            rewardOrderPrefix(String(nextName || '')),
+    );
+    if (prefixRaw !== undefined && nextOrderPrefix.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order ID must be at least 2 letters (A–Z).',
+      });
+    }
+    if (nextOrderPrefix.length >= 2) {
+      const conflict = await findRewardPrefixConflict(nextOrderPrefix, id);
+      if (conflict) {
+        return res.status(400).json({
+          success: false,
+          message: `Already this ID (${nextOrderPrefix}) is for "${conflict.name}". Please choose a new ID.`,
+          data: {conflict},
+        });
+      }
+    }
 
     await mysql.query(
       `
@@ -7445,6 +7643,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         description = ?,
         eligibility_criteria = ?,
         unlock_mode = ?,
+        order_prefix = ?,
         stock = ?,
         admin_marked_oos = ?,
         is_active = ?,
@@ -7456,6 +7655,9 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         nextDescription,
         nextEligibility,
         nextUnlockMode,
+        nextOrderPrefix.length >= 2
+          ? nextOrderPrefix
+          : String(current[0].orderPrefix || '') || null,
         nextStock,
         nextAdminOos,
         active === undefined
@@ -7521,6 +7723,7 @@ router.put('/rewards/:id', async (req: Request, res: Response) => {
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(order_prefix, '') AS orderPrefix,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -7661,12 +7864,37 @@ router.post('/rewards', async (req: Request, res: Response) => {
       });
     }
     const stock = Math.max(0, Number(req.body?.stock || 0) || 0);
+    const {
+      normalizeOrderPrefix,
+      rewardOrderPrefix,
+    } = await import('../orders/rewardOrderPrefix');
+    const orderPrefix = normalizeOrderPrefix(
+      String(
+        req.body?.orderPrefix ??
+          req.body?.order_prefix ??
+          rewardOrderPrefix(name),
+      ),
+    );
+    if (orderPrefix.length < 2) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order ID must be at least 2 letters (A–Z).',
+      });
+    }
+    const conflict = await findRewardPrefixConflict(orderPrefix);
+    if (conflict) {
+      return res.status(400).json({
+        success: false,
+        message: `Already this ID (${orderPrefix}) is for "${conflict.name}". Please choose a new ID.`,
+        data: {conflict},
+      });
+    }
     // New rewards start In Stock (admin_marked_oos=0). Qty label may be 0.
     await mysql.query(
       `
       INSERT INTO challenge_rewards
-        (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode, admin_marked_oos)
-      VALUES (?, ?, 1, ?, ?, ?, ?, 0)
+        (name, stock, is_active, display_order, description, eligibility_criteria, unlock_mode, order_prefix, admin_marked_oos)
+      VALUES (?, ?, 1, ?, ?, ?, ?, ?, 0)
       `,
       [
         name,
@@ -7675,6 +7903,7 @@ router.post('/rewards', async (req: Request, res: Response) => {
         description || null,
         eligibilityCriteria,
         unlockMode,
+        orderPrefix,
       ],
     );
     const {absoluteMediaUrl} = await import('../../utils/mediaUrl');
@@ -7687,6 +7916,7 @@ router.post('/rewards', async (req: Request, res: Response) => {
         IFNULL(description, '') AS description,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(order_prefix, '') AS orderPrefix,
         IFNULL(image_url, '') AS imageUrl,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
@@ -8149,21 +8379,35 @@ router.get('/support-tickets', async (req: Request, res: Response) => {
     const rows = await customerCareService.getAll();
     return res.json({
       success: true,
-      data: (rows || []).map((row: any) => ({
-        id: String(row.id),
-        code: `TK${row.id}`,
-        userId: row.userId || null,
-        userName:
-          String(row.userName || '').trim() ||
-          (row.userId ? `User #${row.userId}` : 'Unknown'),
-        subject: row.subject || '',
-        message: row.message || '',
-        screenshotUrl: absoluteMediaUrl(req, row.screenshotUrl),
-        adminReply: row.adminReply || null,
-        status: String(row.status || 'OPEN').toUpperCase(),
-        createdAt: row.createdAt,
-        updatedAt: row.updatedAt,
-      })),
+      data: (rows || []).map((row: any) => {
+        const country = String(row.mobileCountryCode || '91').replace(
+          /\D/g,
+          '',
+        );
+        const number = String(row.userMobile || '').replace(/\D/g, '');
+        const mobile =
+          number.length > 0
+            ? `+${country || '91'}${number.replace(/^0+/, '')}`
+            : '';
+        return {
+          id: String(row.id),
+          code: `TK${row.id}`,
+          userId: row.userId || null,
+          userName:
+            String(row.userName || '').trim() ||
+            (row.userId ? `User #${row.userId}` : 'Unknown'),
+          mobile,
+          mobileCountryCode: country || '91',
+          mobileNumber: number,
+          subject: row.subject || '',
+          message: row.message || '',
+          screenshotUrl: absoluteMediaUrl(req, row.screenshotUrl),
+          adminReply: row.adminReply || null,
+          status: String(row.status || 'OPEN').toUpperCase(),
+          createdAt: row.createdAt,
+          updatedAt: row.updatedAt,
+        };
+      }),
     });
   } catch (error: any) {
     return res.status(500).json({

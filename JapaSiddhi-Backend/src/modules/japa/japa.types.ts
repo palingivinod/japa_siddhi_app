@@ -24,6 +24,9 @@ export interface CreateJapaSessionRequest {
 
   challengeId?: number;
 
+  /** Client-generated id — same id must never credit japas twice. */
+  clientSaveId?: string;
+
 }
 
 

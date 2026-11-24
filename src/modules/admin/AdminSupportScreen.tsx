@@ -2,6 +2,7 @@ import React, {useCallback, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   StyleSheet,
   Text,
   TextInput,
@@ -20,12 +21,32 @@ type TicketRow = {
   code: string;
   userId?: string | number | null;
   userName?: string;
+  mobile?: string;
   subject: string;
   message?: string;
   screenshotUrl?: string | null;
   adminReply?: string | null;
   status: string;
   createdAt?: string | null;
+};
+
+const handleCall = (mobile?: string) => {
+  if (!mobile) return;
+  const clean = mobile.replace(/[^\d+]/g, '');
+  Linking.openURL(`tel:${clean}`).catch(() => {
+    Alert.alert('Call Error', 'Unable to open phone dialer.');
+  });
+};
+
+const handleWhatsApp = (mobile?: string) => {
+  if (!mobile) return;
+  let clean = mobile.replace(/[^\d]/g, '');
+  if (clean.length === 10) {
+    clean = `91${clean}`;
+  }
+  Linking.openURL(`https://wa.me/${clean}`).catch(() => {
+    Alert.alert('WhatsApp Error', 'Unable to open WhatsApp.');
+  });
 };
 
 const statusLabel = (status: string) => {
@@ -75,18 +96,33 @@ const AdminSupportScreen = () => {
         ? response.data.data
         : [];
       setTickets(
-        rows.map((row: any) => ({
-          id: String(row.id),
-          code: row.code || `TK${row.id}`,
-          userId: row.userId ?? null,
-          userName: String(row.userName || '').trim(),
-          subject: row.subject || '',
-          message: row.message || '',
-          screenshotUrl: row.screenshotUrl || null,
-          adminReply: row.adminReply || null,
-          status: String(row.status || 'OPEN').toUpperCase(),
-          createdAt: row.createdAt || row.created_at || null,
-        })),
+        rows.map((row: any) => {
+          const country = String(row.mobileCountryCode || '91').replace(
+            /\D/g,
+            '',
+          );
+          const number = String(
+            row.mobileNumber || row.userMobile || '',
+          ).replace(/\D/g, '');
+          const mobile =
+            String(row.mobile || '').trim() ||
+            (number
+              ? `+${country || '91'}${number.replace(/^0+/, '')}`
+              : '');
+          return {
+            id: String(row.id),
+            code: row.code || `TK${row.id}`,
+            userId: row.userId ?? null,
+            userName: String(row.userName || '').trim(),
+            mobile,
+            subject: row.subject || '',
+            message: row.message || '',
+            screenshotUrl: row.screenshotUrl || null,
+            adminReply: row.adminReply || null,
+            status: String(row.status || 'OPEN').toUpperCase(),
+            createdAt: row.createdAt || row.created_at || null,
+          };
+        }),
       );
       setDrafts(prev => {
         const next = {...prev};
@@ -233,6 +269,33 @@ const AdminSupportScreen = () => {
               {item.userName ||
                 (item.userId != null ? `User #${item.userId}` : '—')}
             </Text>
+            {item.mobile ? (
+              <View style={styles.contactRow}>
+                <Text selectable style={styles.phoneText}>
+                  📞 {item.mobile}
+                </Text>
+                <View style={styles.contactActions}>
+                  <TouchableOpacity
+                    style={[styles.contactBtn, styles.phoneBtn]}
+                    onPress={() => handleCall(item.mobile)}
+                    activeOpacity={0.7}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    <Text style={styles.contactBtnIcon}>📞</Text>
+                    <Text style={styles.contactBtnText}>Call</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.contactBtn, styles.whatsappBtn]}
+                    onPress={() => handleWhatsApp(item.mobile)}
+                    activeOpacity={0.7}
+                    hitSlop={{top: 8, bottom: 8, left: 8, right: 8}}>
+                    <Text style={styles.contactBtnIcon}>💬</Text>
+                    <Text style={styles.contactBtnText}>WhatsApp</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ) : (
+              <Text style={styles.meta}>Phone: —</Text>
+            )}
             <Text style={styles.meta}>{item.subject}</Text>
             {item.message ? (
               <Text style={styles.message}>{item.message}</Text>
@@ -353,6 +416,49 @@ const styles = StyleSheet.create({
     marginTop: 4,
     color: Colors.textSecondary,
     fontWeight: '600',
+  },
+  contactRow: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  phoneText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+    flexShrink: 1,
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  contactBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  phoneBtn: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#93C5FD',
+  },
+  whatsappBtn: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  contactBtnIcon: {
+    fontSize: 12,
+  },
+  contactBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
   },
   message: {
     marginTop: 8,

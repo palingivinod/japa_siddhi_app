@@ -201,6 +201,7 @@ const ChallengeRewardDeliveryScreen = () => {
       placeDelivery();
       return;
     }
+    // Change stays on this delivery form so the devotee can edit.
     promptRewardAddressDisclaimer(t, () => {
       placeDelivery();
     });

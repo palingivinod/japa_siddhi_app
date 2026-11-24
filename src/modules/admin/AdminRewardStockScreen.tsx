@@ -21,6 +21,11 @@ import {
 } from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import {getRewardRequirement} from '../../utils/rewardContent';
+import {
+  normalizeOrderPrefix,
+  resolveRewardOrderPrefix,
+  rewardOrderPrefix,
+} from '../../utils/rewardOrderPrefix';
 
 const resolveEligibilityField = (rewardName: string, apiValue?: number | string) => {
   const parsed = Number(apiValue || 0);
@@ -37,6 +42,18 @@ const AdminRewardStockScreen = () => {
   const rewardId = String(route.params?.id || '').trim();
 
   const [name, setName] = useState(String(route.params?.name || ''));
+  const [orderId, setOrderId] = useState(
+    String(route.params?.orderPrefix || '').trim() ||
+      (route.params?.name
+        ? rewardOrderPrefix(String(route.params.name))
+        : ''),
+  );
+  const [orderIdTouched, setOrderIdTouched] = useState(
+    Boolean(String(route.params?.orderPrefix || '').trim()),
+  );
+  const [allRewards, setAllRewards] = useState<
+    Array<{id: string; name: string; orderPrefix?: string | null}>
+  >([]);
   const [description, setDescription] = useState(
     String(route.params?.description || ''),
   );
@@ -89,6 +106,14 @@ const AdminRewardStockScreen = () => {
         const rows = Array.isArray(response.data?.data)
           ? response.data.data
           : [];
+        setAllRewards(
+          rows.map((row: any) => ({
+            id: String(row.id),
+            name: String(row.name || row.title || ''),
+            orderPrefix:
+              String(row.orderPrefix || row.order_prefix || '').trim() || null,
+          })),
+        );
         const match = rows.find((row: any) => String(row.id) === rewardId);
         if (!match) {
           Alert.alert('Not found', 'Reward could not be loaded.');
@@ -96,6 +121,13 @@ const AdminRewardStockScreen = () => {
         }
         const rewardName = String(match.name || match.title || '');
         setName(rewardName);
+        const storedPrefix = String(
+          match.orderPrefix || match.order_prefix || '',
+        ).trim();
+        setOrderId(
+          storedPrefix || resolveRewardOrderPrefix({name: rewardName}),
+        );
+        setOrderIdTouched(Boolean(storedPrefix));
         setDescription(String(match.description || ''));
         setEligibilityCriteria(
           resolveEligibilityField(
@@ -194,6 +226,23 @@ const AdminRewardStockScreen = () => {
     }
   };
 
+  const prefixConflict = (() => {
+    const prefix = normalizeOrderPrefix(orderId);
+    if (prefix.length < 2) {
+      return null;
+    }
+    return (
+      allRewards.find(
+        item =>
+          item.id !== rewardId &&
+          resolveRewardOrderPrefix({
+            name: item.name,
+            orderPrefix: item.orderPrefix,
+          }) === prefix,
+      ) || null
+    );
+  })();
+
   const save = async () => {
     if (!rewardId) {
       Alert.alert('Missing reward', 'Reward id is required.');
@@ -201,11 +250,25 @@ const AdminRewardStockScreen = () => {
     }
     const title = name.trim();
     const desc = description.trim();
+    const orderPrefix = normalizeOrderPrefix(
+      orderId || rewardOrderPrefix(title),
+    );
     const rawElig = eligibilityCriteria.replace(/\D/g, '');
     const parsed = rawElig ? parseInt(rawElig, 10) : 0;
     const fromName = title ? getRewardRequirement(title).count : 0;
     const eligibility =
       Number.isFinite(parsed) && parsed > 0 ? parsed : fromName > 0 ? fromName : 0;
+    if (orderPrefix.length < 2) {
+      Alert.alert('Rewards', 'Order ID must be at least 2 letters (A–Z).');
+      return;
+    }
+    if (prefixConflict) {
+      Alert.alert(
+        'Duplicate Order ID',
+        `Already this ID (${orderPrefix}) is for "${prefixConflict.name}". Please choose a new ID.`,
+      );
+      return;
+    }
 
     setSaving(true);
     try {
@@ -215,6 +278,7 @@ const AdminRewardStockScreen = () => {
         description: desc,
         eligibilityCriteria: eligibility,
         unlockMode,
+        orderPrefix,
         stock,
         // Keep availability as the toggle — do not let qty=0 flip OOS on save.
         inStock: !adminMarkedOos,
@@ -288,10 +352,39 @@ const AdminRewardStockScreen = () => {
             <TextInput
               style={styles.input}
               value={name}
-              onChangeText={setName}
+              onChangeText={text => {
+                setName(text);
+                if (!orderIdTouched) {
+                  setOrderId(text.trim() ? rewardOrderPrefix(text) : '');
+                }
+              }}
               placeholder="Enter reward title"
               placeholderTextColor={Colors.placeholder}
             />
+          </View>
+
+          <View style={styles.field}>
+            <Text style={styles.label}>Order ID (auto — editable)</Text>
+            <TextInput
+              style={styles.input}
+              value={orderId}
+              onChangeText={text => {
+                setOrderIdTouched(true);
+                setOrderId(normalizeOrderPrefix(text));
+              }}
+              autoCapitalize="characters"
+              maxLength={3}
+              placeholder="e.g. CM"
+              placeholderTextColor={Colors.placeholder}
+            />
+            <Text style={styles.stockHint}>
+              Used on claim orders (e.g. CM00001). Change if needed.
+            </Text>
+            {prefixConflict ? (
+              <Text style={styles.prefixWarn}>
+                {`Already this ID (${normalizeOrderPrefix(orderId)}) is for "${prefixConflict.name}". Please choose a new ID.`}
+              </Text>
+            ) : null}
           </View>
 
           <View style={styles.field}>
@@ -388,7 +481,7 @@ const AdminRewardStockScreen = () => {
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={save}
-            disabled={saving || loading || stockBusy}
+            disabled={saving || loading || stockBusy || Boolean(prefixConflict)}
           />
         </>
       )}
@@ -479,6 +572,14 @@ const styles = StyleSheet.create({
     lineHeight: 18,
     color: Colors.textSecondary,
     marginBottom: 10,
+  },
+  prefixWarn: {
+    color: '#B45309',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+    marginTop: -4,
+    marginBottom: 4,
   },
   stockRow: {
     flexDirection: 'row',

@@ -25,6 +25,11 @@ import {
   checkRewardEligibility,
   getRewardRequirement,
 } from '../../utils/rewardContent';
+import {
+  normalizeOrderPrefix,
+  resolveRewardOrderPrefix,
+  rewardOrderPrefix,
+} from '../../utils/rewardOrderPrefix';
 
 type RewardTab = 'fixed' | 'relative';
 
@@ -60,6 +65,8 @@ const AdminRewardsScreen = () => {
   const [busyId, setBusyId] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newTitle, setNewTitle] = useState('');
+  const [newOrderId, setNewOrderId] = useState('');
+  const [orderIdTouched, setOrderIdTouched] = useState(false);
   const [newDescription, setNewDescription] = useState('');
   const [newEligibility, setNewEligibility] = useState('');
   const [notifyUsers, setNotifyUsers] = useState(false);
@@ -89,6 +96,7 @@ const AdminRewardsScreen = () => {
             row.eligibilityCriteria ?? row.eligibility_criteria ?? 0,
           ),
           unlockMode: unlockMode as 'fixed' | 'relative',
+          orderPrefix: String(row.orderPrefix || row.order_prefix || '').trim() || null,
           stock: Number(row.stock || 0),
           inStock: row.inStock !== false && !row.adminMarkedOos,
           adminMarkedOos: Boolean(row.adminMarkedOos),
@@ -135,9 +143,35 @@ const AdminRewardsScreen = () => {
     }
   };
 
+  const prefixConflict = (() => {
+    const prefix = normalizeOrderPrefix(newOrderId);
+    if (prefix.length < 2) {
+      return null;
+    }
+    return (
+      rewards.find(
+        item =>
+          resolveRewardOrderPrefix({
+            name: item.name,
+            orderPrefix: item.orderPrefix,
+          }) === prefix,
+      ) || null
+    );
+  })();
+
+  const onTitleChange = (text: string) => {
+    setNewTitle(text);
+    if (!orderIdTouched) {
+      setNewOrderId(text.trim() ? rewardOrderPrefix(text) : '');
+    }
+  };
+
   const addReward = async () => {
     const title = newTitle.trim();
     const desc = newDescription.trim();
+    const orderPrefix = normalizeOrderPrefix(
+      newOrderId || rewardOrderPrefix(title),
+    );
     const rawElig = newEligibility.replace(/\D/g, '');
     const parsed = rawElig ? parseInt(rawElig, 10) : 0;
     const fromName = title ? getRewardRequirement(title).count : 0;
@@ -151,6 +185,17 @@ const AdminRewardsScreen = () => {
             : 0;
     if (!title || !desc) {
       Alert.alert('Rewards', 'Title and description are required.');
+      return;
+    }
+    if (orderPrefix.length < 2) {
+      Alert.alert('Rewards', 'Order ID must be at least 2 letters (A–Z).');
+      return;
+    }
+    if (prefixConflict) {
+      Alert.alert(
+        'Duplicate Order ID',
+        `Already this ID (${orderPrefix}) is for "${prefixConflict.name}". Please choose a new ID.`,
+      );
       return;
     }
     if (tab === 'relative' && eligibility <= 0) {
@@ -169,6 +214,7 @@ const AdminRewardsScreen = () => {
         description: desc,
         eligibilityCriteria: eligibility,
         unlockMode: tab,
+        orderPrefix,
         // Off by default so test creates do not push all users.
         notifyUsers,
       });
@@ -189,6 +235,8 @@ const AdminRewardsScreen = () => {
       }
 
       setNewTitle('');
+      setNewOrderId('');
+      setOrderIdTouched(false);
       setNewDescription('');
       setNewEligibility('');
       setNotifyUsers(false);
@@ -357,10 +405,32 @@ const AdminRewardsScreen = () => {
           <TextInput
             style={styles.input}
             value={newTitle}
-            onChangeText={setNewTitle}
+            onChangeText={onTitleChange}
             placeholder="e.g. Consecrated Mala"
             placeholderTextColor={Colors.placeholder}
           />
+
+          <Text style={styles.label}>Order ID (auto — editable)</Text>
+          <TextInput
+            style={styles.input}
+            value={newOrderId}
+            onChangeText={text => {
+              setOrderIdTouched(true);
+              setNewOrderId(normalizeOrderPrefix(text));
+            }}
+            autoCapitalize="characters"
+            maxLength={3}
+            placeholder="e.g. CM"
+            placeholderTextColor={Colors.placeholder}
+          />
+          <Text style={styles.relativeHint}>
+            Used on claim orders (e.g. CM00001). Change if needed.
+          </Text>
+          {prefixConflict ? (
+            <Text style={styles.prefixWarn}>
+              {`Already this ID (${normalizeOrderPrefix(newOrderId)}) is for "${prefixConflict.name}". Please choose a new ID.`}
+            </Text>
+          ) : null}
 
           <Text style={styles.label}>Description</Text>
           <TextInput
@@ -412,7 +482,7 @@ const AdminRewardsScreen = () => {
           <PrimaryButton
             title={saving ? 'SAVING...' : 'SAVE REWARD'}
             onPress={addReward}
-            disabled={saving}
+            disabled={saving || Boolean(prefixConflict)}
           />
         </View>
       ) : null}
@@ -433,6 +503,13 @@ const AdminRewardsScreen = () => {
             )}
             <View style={styles.copy}>
               <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.orderIdLine}>
+                Order ID:{' '}
+                {resolveRewardOrderPrefix({
+                  name: item.name,
+                  orderPrefix: item.orderPrefix,
+                })}
+              </Text>
               <View style={styles.eligibilityRow}>
                 <Text style={styles.eligibilityLabel}>
                   {tab === 'relative' ? 'Unlock:' : 'Eligibility:'}
@@ -483,6 +560,7 @@ const AdminRewardsScreen = () => {
                       imageUrl: item.imageUrl,
                       stock: item.stock,
                       unlockMode: item.unlockMode,
+                      orderPrefix: item.orderPrefix,
                       adminMarkedOos: item.adminMarkedOos,
                       inStock: item.inStock,
                     });
@@ -577,6 +655,20 @@ const styles = StyleSheet.create({
     lineHeight: 17,
     marginBottom: 12,
     marginTop: -4,
+  },
+  prefixWarn: {
+    color: '#B45309',
+    fontSize: 12,
+    lineHeight: 17,
+    fontWeight: '700',
+    marginBottom: 12,
+    marginTop: -6,
+  },
+  orderIdLine: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '700',
+    marginBottom: 4,
   },
   notifyRow: {
     flexDirection: 'row',

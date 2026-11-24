@@ -86,7 +86,7 @@ const RamakotiBooksReviewScreen = () => {
       submitOrder();
       return;
     }
-    promptRewardAddressDisclaimer(t, submitOrder);
+    promptRewardAddressDisclaimer(t, submitOrder, () => navigation.goBack());
   };
 
   return (

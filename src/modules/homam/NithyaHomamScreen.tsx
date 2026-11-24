@@ -1,15 +1,30 @@
 import React, {useCallback, useRef, useState} from 'react';
-import {ActivityIndicator, StyleSheet, Text, View} from 'react-native';
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
 import {TranslationKey} from '../../i18n';
 import apiService from '../../services/apiService';
+import {playIntroVideo} from '../../services/introVideos';
 import {getReadCache, READ_TTL_MS, setReadCache} from '../../services/readCache';
 import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+
+/** Bundled at android/app/src/main/res/raw/homam_video.mp4 */
+const HOMAM_VIDEO_URI =
+  Platform.OS === 'android'
+    ? 'android.resource://com.japasiddhi/raw/homam_video'
+    : '';
 
 const BENEFITS: {emoji: string; key: TranslationKey}[] = [
   {emoji: '📜', key: 'benefitDailySankalpam'},
@@ -28,7 +43,30 @@ const NithyaHomamScreen = () => {
   const {t} = useLanguage();
   const [loading, setLoading] = useState(true);
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
+  const [videoPlaying, setVideoPlaying] = useState(false);
   const hasEnrollmentRef = useRef(false);
+
+  const playHomamVideo = async () => {
+    if (videoPlaying) {
+      return;
+    }
+    if (!HOMAM_VIDEO_URI) {
+      Alert.alert(
+        t('nithyaHomam'),
+        t('introVideoPlayError') || 'Could not play this video.',
+      );
+      return;
+    }
+    setVideoPlaying(true);
+    const ok = await playIntroVideo(HOMAM_VIDEO_URI);
+    setVideoPlaying(false);
+    if (!ok) {
+      Alert.alert(
+        t('nithyaHomam'),
+        t('introVideoPlayError') || 'Could not play this video.',
+      );
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -145,7 +183,7 @@ const NithyaHomamScreen = () => {
         </View>
       ) : null}
 
-      {!loading && (!enrollment || enrollment.status === 'Inactive') ? (
+      {!loading ? (
         <>
           {!enrollment ? (
             <>
@@ -158,6 +196,33 @@ const NithyaHomamScreen = () => {
               ))}
             </>
           ) : null}
+
+          <Text style={styles.howTitle}>
+            {t('howWeDoHomam') || 'How we do homam'}
+          </Text>
+          <TouchableOpacity
+            style={styles.videoCard}
+            activeOpacity={0.9}
+            onPress={() => void playHomamVideo()}
+            disabled={videoPlaying}>
+            <View style={styles.videoInner}>
+              {videoPlaying ? (
+                <ActivityIndicator size="small" color={Colors.templeGold} />
+              ) : (
+                <Text style={styles.videoPlayIcon}>▶</Text>
+              )}
+              <Text style={styles.videoPlayLabel}>
+                {videoPlaying
+                  ? t('openingVideo') || 'Opening video…'
+                  : t('tapToPlayHomamVideo') || 'Tap to play video'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </>
+      ) : null}
+
+      {!loading && (!enrollment || enrollment.status === 'Inactive') ? (
+        <>
           <View style={styles.gap} />
           <PrimaryButton
             title={enrollment ? 'ENROLL AGAIN' : 'ENROLL NOW'}
@@ -201,6 +266,43 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   gap: {height: 20},
+  howTitle: {
+    color: Colors.templeGold,
+    fontWeight: '800',
+    fontSize: 16,
+    lineHeight: 24,
+    marginTop: 18,
+    marginBottom: 10,
+    includeFontPadding: true,
+  },
+  videoCard: {
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: Colors.cardBorder,
+    backgroundColor: '#2A2118',
+    overflow: 'hidden',
+    minHeight: 168,
+    justifyContent: 'center',
+  },
+  videoInner: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 36,
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  videoPlayIcon: {
+    color: Colors.templeGold,
+    fontSize: 36,
+    lineHeight: 42,
+    fontWeight: '700',
+  },
+  videoPlayLabel: {
+    color: '#F5EFE4',
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
+  },
   statusCard: {
     marginTop: 12,
     marginBottom: 8,

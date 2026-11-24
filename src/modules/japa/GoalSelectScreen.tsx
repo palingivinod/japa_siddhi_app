@@ -52,7 +52,17 @@ const getDateFromDays = (days: number) => {
   return d;
 };
 
-const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
+const PRESET_GOALS = [
+  108,
+  1008,
+  10116,
+  50116,
+  100116,
+  200116,
+  300116,
+  400116,
+  500116,
+];
 const DAILY_PRESET_GOALS = [108, 216, 324, 1008, 2016];
 const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineToday' as const, days: 1},
@@ -63,6 +73,7 @@ const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineDays61' as const, days: 61},
   {labelKey: 'deadlineDays91' as const, days: 91},
   {labelKey: 'deadlineDays108' as const, days: 108},
+  {labelKey: 'deadlineDays216' as const, days: 216},
 ];
 
 type GoalMode = 'total' | 'daily';
@@ -246,9 +257,11 @@ const GoalSelectScreen = () => {
       setSaving(false);
       navigation.navigate('Chant', {
         mode: route.params?.mode || 'community',
-        mantraId: route.params?.mantraId,
+        mantraId: isPersonal ? undefined : route.params?.mantraId,
         privateMantra: route.params?.privateMantra,
-        personalMantraId: route.params?.personalMantraId,
+        personalMantraId: isPersonal
+          ? route.params?.personalMantraId
+          : undefined,
         goal: finalGoal,
         totalGoal: finalGoal,
         goalType: 'date',

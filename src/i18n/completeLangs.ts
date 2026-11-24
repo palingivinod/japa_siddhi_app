@@ -818,6 +818,7 @@ export const kn: TranslationDict = {
   deadlineDays61: '61 ದಿನಗಳು',
   deadlineDays91: '91 ದಿನಗಳು',
   deadlineDays108: '108 ದಿನಗಳು',
+  deadlineDays216: '216 ದಿನಗಳು',
   challengeMahashivaratri: 'ಮಹಾಶಿವರಾತ್ರಿ ಜಪ',
   challenge10000Japa: '10,000 ಜಪ',
   challenge108Daily: 'ದೈನಂದಿನ 108 ಜಪ',

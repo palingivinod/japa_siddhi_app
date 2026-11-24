@@ -830,7 +830,8 @@ export const hi: TranslationDict = {
   goalWithCount: 'लक्ष्य {{count}}',
   goalWithLifetime: 'लक्ष्य {{count}} · कुल {{lifetime}}',
   deleteJapaTitle: 'यह जप हटाएँ?',
-  deleteJapaMessage: 'यह आपके जप से हट जाएगा।',
+  deleteJapaMessage:
+    'यह Your Japas से हट जाएगा। आपकी जप संख्या सुरक्षित रहेगी, डिलीट नहीं होगी।',
   deleteJapaFailed: 'यह जप नहीं हट सका।',
   challengeGoalWithCount: 'चुनौती लक्ष्य {{count}}',
   challengeCountingHint: 'केवल इस चुनौती के लिए गिनती — अंतरंग जप से अलग।',
@@ -881,6 +882,7 @@ export const hi: TranslationDict = {
   deadlineDays61: '61 दिन',
   deadlineDays91: '91 दिन',
   deadlineDays108: '108 दिन',
+  deadlineDays216: '216 दिन',
   challengeMahashivaratri: 'महाशिवरात्रि जप',
   challenge10000Japa: '10,000 जप',
   challenge108Daily: 'दैनिक 108 जप',
@@ -1950,7 +1952,8 @@ export const te: TranslationDict = {
   goalWithCount: 'లక్ష్యం {{count}}',
   goalWithLifetime: 'లక్ష్యం {{count}} · మొత్తం {{lifetime}}',
   deleteJapaTitle: 'ఈ జపను తొలగించాలా?',
-  deleteJapaMessage: 'ఇది మీ జపల నుండి తొలగించబడుతుంది.',
+  deleteJapaMessage:
+    'ఇది Your Japas నుండి తొలగుతుంది. మీ జప సంఖ్య సేవ్‌గా ఉంటుంది, డిలీట్ కాదు.',
   deleteJapaFailed: 'ఈ జపను తొలగించలేకపోయాం.',
   challengeGoalWithCount: 'సవాలు లక్ష్యం {{count}}',
   challengeCountingHint:
@@ -2001,6 +2004,7 @@ export const te: TranslationDict = {
   deadlineDays61: '61 రోజులు',
   deadlineDays91: '91 రోజులు',
   deadlineDays108: '108 రోజులు',
+  deadlineDays216: '216 రోజులు',
   challengeMahashivaratri: 'మహాశివరాత్రి జపం',
   challenge10000Japa: '10,000 జపం',
   challenge108Daily: 'రోజువారీ 108 జపం',
@@ -2359,6 +2363,7 @@ export const TITLE_TO_KEY: Record<string, TranslationKey> = {
   '61 Days': 'deadlineDays61',
   '91 Days': 'deadlineDays91',
   '108 Days': 'deadlineDays108',
+  '216 Days': 'deadlineDays216',
   'Mahashivaratri Japa': 'challengeMahashivaratri',
   '10,000 Japa': 'challenge10000Japa',
   '108 Japa Daily': 'challenge108Daily',

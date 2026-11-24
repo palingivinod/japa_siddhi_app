@@ -41,6 +41,35 @@ class JapaService {
     }
     data = {...data, sessionCount};
 
+    const clientSaveId = String(data.clientSaveId || '')
+      .trim()
+      .slice(0, 80);
+    // Idempotency: same clientSaveId must never insert / credit twice.
+    if (clientSaveId) {
+      const existing = await japaRepository.findSessionByClientSaveId(
+        userId,
+        clientSaveId,
+      );
+      if (existing) {
+        const [userTotal, milestoneTotal, globalCount] = await Promise.all([
+          japaRepository.getUserTotalJapa(userId),
+          japaRepository.getUserMilestoneJapa(userId),
+          japaRepository.getGlobalJapaCount(),
+        ]);
+        return {
+          sessionId: existing.id,
+          count: existing.sessionCount,
+          globalCount,
+          userTotal,
+          milestoneTotal,
+          challengeUpdates: [],
+          milestonesReached: [],
+          annadanamMilestone: null,
+          duplicate: true,
+        };
+      }
+    }
+
     const previousTotal = await japaRepository.getUserMilestoneJapa(userId);
 
     let japaGoalId = data.japaGoalId;
@@ -66,16 +95,15 @@ class JapaService {
         Number(data.personalMantraId),
       );
     } else if (data.mantraType !== 'PERSONAL' && data.mantraId) {
-      japaGoalId = await japaGoalRepository.findOrCreateActiveGoalForMantra(
+      // Reuse a goal the devotee already has; never auto-create one.
+      // (Auto "Samuhika Japa" defaults mislabelled Antharanga chants.)
+      japaGoalId = await japaGoalRepository.findActiveGoalForMantra(
         userId,
         Number(data.mantraId),
       );
-    } else if (data.mantraType !== 'PERSONAL') {
-      japaGoalId = await japaGoalRepository.findOrCreateActiveGoal(
-        userId,
-        data.mantraId,
-      );
     }
+    // No goal → session still saves (japa_goal_id null); totals/today/summary
+    // sum sessions, so counts are unaffected.
 
     const userRows = await mysql.query<any[]>(
       `
@@ -102,251 +130,335 @@ class JapaService {
     const userMobile =
       country && mobile ? `+${country}${mobile}` : mobile || null;
 
-    const sessionId =
-      await japaRepository.createSession({
-
+    let sessionId: number;
+    try {
+      sessionId = await japaRepository.createSession({
         userId,
-
         japaGoalId,
-
-        mantraType:
-          data.mantraType,
-
+        mantraType: data.mantraType,
+        // Personal / Antharanga must never carry catalog mantra_id (Om Namah Shivaya).
         mantraId:
-          data.mantraId,
-
-        personalMantraId:
-          data.personalMantraId,
-
-        chantMode:
-          data.chantMode,
-
-        sessionCount:
-          data.sessionCount,
-
-        durationSeconds:
-          data.durationSeconds ?? 0,
-
+          data.mantraType === 'PERSONAL' || data.personalMantraId
+            ? null
+            : data.mantraId,
+        personalMantraId: data.personalMantraId,
+        chantMode: data.chantMode,
+        sessionCount: data.sessionCount,
+        durationSeconds: data.durationSeconds ?? 0,
         remarks,
-
         userName: userName || null,
         userEmail: userEmail || null,
         userMobile,
-
+        clientSaveId: clientSaveId || null,
       });
-
-
-    if (japaGoalId && !challengeId) {
-      await japaRepository.updateJapaGoalProgress(
-        japaGoalId,
-        data.sessionCount,
-        userId,
-      );
-      try {
-        const japaGoalRepository = (
-          await import('../japaGoal/japaGoal.repository')
-        ).default;
-        await japaGoalRepository.syncDailyPlans(userId);
-      } catch {
-        // The chant is saved. The daily goal stays at this morning's number.
-      }
-      try {
-        const japaGoalRepository = (
-          await import('../japaGoal/japaGoal.repository')
-        ).default;
-        const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
-        if (
-          goal &&
-          (goal.status === 'COMPLETED' ||
-            Number(goal.completed_count || 0) >= Number(goal.target_count || 0))
-        ) {
-          const {notifyGoalCompleted} = await import(
-            '../notification/notificationReminder.service'
-          );
-          await notifyGoalCompleted({
-            userId,
-            goalId: japaGoalId,
-            goalName:
-              goal.goal_name ||
-              goal.goalName ||
-              goal.mantra_name ||
-              'Japa',
-            completedCount: Number(goal.completed_count || 0),
-            targetCount: Number(goal.target_count || 0),
-            mantraId: Number(goal.mantra_id || goal.mantraId || 0) || null,
-            personalMantraId:
-              Number(goal.personal_mantra_id || goal.personalMantraId || 0) ||
-              null,
-            isSamuhika: String(goal.goal_name || goal.goalName || '')
-              .toLowerCase()
-              .includes('samuhika'),
-          });
+    } catch (insertErr: any) {
+      // Unique (user_id, client_save_id) race — treat as already saved.
+      if (clientSaveId) {
+        const existing = await japaRepository.findSessionByClientSaveId(
+          userId,
+          clientSaveId,
+        );
+        if (existing) {
+          const [userTotal, milestoneTotal, globalCount] = await Promise.all([
+            japaRepository.getUserTotalJapa(userId),
+            japaRepository.getUserMilestoneJapa(userId),
+            japaRepository.getGlobalJapaCount(),
+          ]);
+          return {
+            sessionId: existing.id,
+            count: existing.sessionCount,
+            globalCount,
+            userTotal,
+            milestoneTotal,
+            challengeUpdates: [],
+            milestonesReached: [],
+            annadanamMilestone: null,
+            duplicate: true,
+          };
         }
-      } catch (err) {
-        console.warn('Goal completion check error:', err);
       }
+      throw insertErr;
     }
 
-    // Daily goal completion notification check
-    if (!challengeId) {
-      try {
-        const todayAfter = await japaRepository.getTodayJapa(userId);
-        const todayBefore = todayAfter - Number(data.sessionCount || 0);
+    // Session row is committed. Side-effect failures must NOT fail the request
+    // (that caused clients to retry and double-save the same taps).
+    let globalCount = 0;
+    let userTotal = 0;
+    let milestoneTotal = previousTotal;
+    let challengeUpdates: any[] = [];
+    let milestonesReached: any[] = [];
+    let annadanamMilestone: number | null = null;
 
-        let targetDaily = 108;
-        let goalName: string | undefined;
-
-        if (japaGoalId) {
+    try {
+      if (japaGoalId && !challengeId) {
+        try {
+          await japaRepository.updateJapaGoalProgress(
+            japaGoalId,
+            data.sessionCount,
+            userId,
+          );
+        } catch (err) {
+          console.warn('updateJapaGoalProgress error:', err);
+        }
+        try {
+          const japaGoalRepository = (
+            await import('../japaGoal/japaGoal.repository')
+          ).default;
+          await japaGoalRepository.syncDailyPlans(userId);
+        } catch {
+          // The chant is saved. The daily goal stays at this morning's number.
+        }
+        try {
           const japaGoalRepository = (
             await import('../japaGoal/japaGoal.repository')
           ).default;
           const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
-          if (goal) {
-            goalName = goal.goal_name || goal.goalName;
-            const targetCount = Number(goal.target_count || goal.targetCount || 0);
-            const completedCount = Number(
-              goal.completed_count || goal.completedCount || 0,
+          if (
+            goal &&
+            (goal.status === 'COMPLETED' ||
+              Number(goal.completed_count || 0) >=
+                Number(goal.target_count || 0))
+          ) {
+            const {notifyGoalCompleted} = await import(
+              '../notification/notificationReminder.service'
             );
-            // Remaining before this session — so crossing today's plan still notifies.
-            const remainingCount = Math.max(
-              0,
-              targetCount -
-                (completedCount - Number(data.sessionCount || 0)),
+            await notifyGoalCompleted({
+              userId,
+              goalId: japaGoalId,
+              goalName:
+                goal.goal_name ||
+                goal.goalName ||
+                goal.mantra_name ||
+                'Japa',
+              completedCount: Number(goal.completed_count || 0),
+              targetCount: Number(goal.target_count || 0),
+              mantraId: Number(goal.mantra_id || goal.mantraId || 0) || null,
+              personalMantraId:
+                Number(goal.personal_mantra_id || goal.personalMantraId || 0) ||
+                null,
+              isSamuhika: String(goal.goal_name || goal.goalName || '')
+                .toLowerCase()
+                .includes('samuhika'),
+            });
+          }
+        } catch (err) {
+          console.warn('Goal completion check error:', err);
+        }
+      }
+
+      // Daily goal completion notification check
+      if (!challengeId) {
+        try {
+          const todayAfter = await japaRepository.getTodayJapa(userId);
+          const todayBefore = todayAfter - Number(data.sessionCount || 0);
+
+          let targetDaily = 108;
+          let goalName: string | undefined;
+
+          if (japaGoalId) {
+            const japaGoalRepository = (
+              await import('../japaGoal/japaGoal.repository')
+            ).default;
+            const goal = await japaGoalRepository.getGoalById(
+              japaGoalId,
+              userId,
             );
-            const endRaw = String(goal.end_date || goal.endDate || '').slice(0, 10);
-            let remDays = 1;
-            if (/^\d{4}-\d{2}-\d{2}$/.test(endRaw)) {
-              const endMs = Date.parse(`${endRaw}T00:00:00`);
-              const ist = new Date(Date.now() + 330 * 60 * 1000);
-              const todayStr = ist.toISOString().slice(0, 10);
-              const todayMs = Date.parse(`${todayStr}T00:00:00`);
-              if (!Number.isNaN(endMs) && !Number.isNaN(todayMs)) {
-                remDays = Math.max(
-                  1,
-                  Math.round((endMs - todayMs) / 86400000) + 1,
+            if (goal) {
+              goalName = goal.goal_name || goal.goalName;
+              const targetCount = Number(
+                goal.target_count || goal.targetCount || 0,
+              );
+              const completedCount = Number(
+                goal.completed_count || goal.completedCount || 0,
+              );
+              const remainingCount = Math.max(
+                0,
+                targetCount -
+                  (completedCount - Number(data.sessionCount || 0)),
+              );
+              const endRaw = String(
+                goal.end_date || goal.endDate || '',
+              ).slice(0, 10);
+              let remDays = 1;
+              if (/^\d{4}-\d{2}-\d{2}$/.test(endRaw)) {
+                const endMs = Date.parse(`${endRaw}T00:00:00`);
+                const ist = new Date(Date.now() + 330 * 60 * 1000);
+                const todayStr = ist.toISOString().slice(0, 10);
+                const todayMs = Date.parse(`${todayStr}T00:00:00`);
+                if (!Number.isNaN(endMs) && !Number.isNaN(todayMs)) {
+                  remDays = Math.max(
+                    1,
+                    Math.round((endMs - todayMs) / 86400000) + 1,
+                  );
+                }
+              }
+              targetDaily =
+                remainingCount <= 0
+                  ? 0
+                  : Math.max(1, Math.ceil(remainingCount / remDays));
+            }
+          }
+
+          if (todayBefore < targetDaily && todayAfter >= targetDaily) {
+            const {notifyDailyGoalCompleted} = await import(
+              '../notification/notificationReminder.service'
+            );
+            let mantraId: number | null = null;
+            let personalMantraId: number | null = null;
+            if (japaGoalId) {
+              try {
+                const japaGoalRepository = (
+                  await import('../japaGoal/japaGoal.repository')
+                ).default;
+                const goal = await japaGoalRepository.getGoalById(
+                  japaGoalId,
+                  userId,
                 );
+                mantraId =
+                  Number(goal?.mantra_id || goal?.mantraId || 0) || null;
+                personalMantraId =
+                  Number(
+                    goal?.personal_mantra_id || goal?.personalMantraId || 0,
+                  ) || null;
+              } catch {
+                // optional
               }
             }
-            targetDaily =
-              remainingCount <= 0
-                ? 0
-                : Math.max(1, Math.ceil(remainingCount / remDays));
+            await notifyDailyGoalCompleted({
+              userId,
+              todayCount: todayAfter,
+              dailyTarget: targetDaily,
+              goalName,
+              goalId: japaGoalId || undefined,
+              mantraId,
+              personalMantraId,
+              isSamuhika: String(goalName || '')
+                .toLowerCase()
+                .includes('samuhika'),
+            });
           }
+        } catch (err) {
+          console.warn('Daily goal completion check error:', err);
+        }
+      }
+
+      try {
+        const side = await Promise.all([
+          japaRepository.updateGlobalJapaCount(data.sessionCount),
+          japaRepository.getUserTotalJapa(userId),
+          japaRepository.getUserMilestoneJapa(userId),
+          challengeId
+            ? this.applySessionToChallenge(
+                userId,
+                challengeId,
+                data.sessionCount,
+              )
+            : Promise.resolve([]),
+        ]);
+        globalCount = side[0];
+        userTotal = side[1];
+        milestoneTotal = side[2];
+        challengeUpdates = side[3] as any[];
+      } catch (err) {
+        console.warn('Post-session totals/challenge error:', err);
+        try {
+          userTotal = await japaRepository.getUserTotalJapa(userId);
+          milestoneTotal = await japaRepository.getUserMilestoneJapa(userId);
+          globalCount = await japaRepository.getGlobalJapaCount();
+        } catch {
+          // Session already saved — return success with best-effort totals.
+        }
+      }
+
+      try {
+        milestonesReached = challengeId
+          ? []
+          : await this.notifyMilestonesReached(
+              userId,
+              previousTotal,
+              milestoneTotal,
+            );
+      } catch (err) {
+        console.warn('Milestone notify error:', err);
+      }
+
+      if (!challengeId) {
+        try {
+          await ensureLingamAdviceNotifications(
+            userId,
+            previousTotal,
+            milestoneTotal,
+          );
+        } catch (lingamAdviceErr) {
+          console.warn('Lingam advice notification error:', lingamAdviceErr);
+        }
+      }
+
+      try {
+        await japaRepository.ensureMilestoneTable();
+        const milestoneRows = await mysql.query<any[]>(
+          `SELECT * FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
+          [userId],
+        );
+        let target = 5000;
+        let popupShown = 0;
+        let isCustom = false;
+        if (milestoneRows && milestoneRows.length > 0) {
+          target = Number(
+            milestoneRows[0].next_target ??
+              milestoneRows[0].nextTarget ??
+              5000,
+          );
+          popupShown = Number(
+            milestoneRows[0].popup_shown_for_target ??
+              milestoneRows[0].popupShownForTarget ??
+              0,
+          );
+          isCustom = Boolean(
+            Number(
+              milestoneRows[0].custom_target_set ??
+                milestoneRows[0].customTargetSet ??
+                0,
+            ),
+          );
+        } else {
+          await mysql
+            .query(
+              `INSERT INTO user_annadanam_milestones (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target)
+             VALUES (?, 5000, 0, 0, 0)`,
+              [userId],
+            )
+            .catch(() => {});
         }
 
-        if (todayBefore < targetDaily && todayAfter >= targetDaily) {
-          const {notifyDailyGoalCompleted} = await import(
-            '../notification/notificationReminder.service'
+        if (
+          previousTotal < target &&
+          milestoneTotal >= target &&
+          popupShown < target
+        ) {
+          annadanamMilestone = target;
+          await mysql.query(
+            `UPDATE user_annadanam_milestones SET popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+            [target, userId],
           );
-          let mantraId: number | null = null;
-          let personalMantraId: number | null = null;
-          if (japaGoalId) {
-            try {
-              const japaGoalRepository = (
-                await import('../japaGoal/japaGoal.repository')
-              ).default;
-              const goal = await japaGoalRepository.getGoalById(japaGoalId, userId);
-              mantraId = Number(goal?.mantra_id || goal?.mantraId || 0) || null;
-              personalMantraId =
-                Number(goal?.personal_mantra_id || goal?.personalMantraId || 0) ||
-                null;
-            } catch {
-              // optional
+        } else if (!isCustom) {
+          const next5k = Math.floor(milestoneTotal / 5000) * 5000;
+          if (next5k > target && next5k >= 5000 && popupShown < next5k) {
+            const prev5k = Math.floor(previousTotal / 5000) * 5000;
+            if (prev5k < next5k) {
+              annadanamMilestone = next5k;
+              await mysql.query(
+                `UPDATE user_annadanam_milestones SET next_target = ?, popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
+                [next5k, next5k, userId],
+              );
             }
           }
-          await notifyDailyGoalCompleted({
-            userId,
-            todayCount: todayAfter,
-            dailyTarget: targetDaily,
-            goalName,
-            goalId: japaGoalId || undefined,
-            mantraId,
-            personalMantraId,
-            isSamuhika: String(goalName || '')
-              .toLowerCase()
-              .includes('samuhika'),
-          });
         }
-      } catch (err) {
-        console.warn('Daily goal completion check error:', err);
+      } catch (annadanamErr) {
+        console.warn('Annadanam milestone check error:', annadanamErr);
       }
-    }
-
-
-    const [globalCount, userTotal, milestoneTotal, challengeUpdates] =
-      await Promise.all([
-      japaRepository.updateGlobalJapaCount(data.sessionCount),
-      japaRepository.getUserTotalJapa(userId),
-        japaRepository.getUserMilestoneJapa(userId),
-        challengeId
-          ? this.applySessionToChallenge(userId, challengeId, data.sessionCount)
-          : Promise.resolve([]),
-      ]);
-
-    const milestonesReached = challengeId
-      ? []
-      : await this.notifyMilestonesReached(
-          userId,
-          previousTotal,
-          milestoneTotal,
-        );
-
-    if (!challengeId) {
-      try {
-        await ensureLingamAdviceNotifications(
-          userId,
-          previousTotal,
-          milestoneTotal,
-        );
-      } catch (lingamAdviceErr) {
-        console.warn('Lingam advice notification error:', lingamAdviceErr);
-      }
-    }
-
-    // Annadanam milestone popup check
-    let annadanamMilestone: number | null = null;
-    try {
-      await japaRepository.ensureMilestoneTable();
-      const milestoneRows = await mysql.query<any[]>(
-        `SELECT * FROM user_annadanam_milestones WHERE user_id = ? LIMIT 1`,
-        [userId],
-      );
-      let target = 5000;
-      let popupShown = 0;
-      let isCustom = false;
-      if (milestoneRows && milestoneRows.length > 0) {
-        target = Number(milestoneRows[0].next_target ?? milestoneRows[0].nextTarget ?? 5000);
-        popupShown = Number(milestoneRows[0].popup_shown_for_target ?? milestoneRows[0].popupShownForTarget ?? 0);
-        isCustom = Boolean(Number(milestoneRows[0].custom_target_set ?? milestoneRows[0].customTargetSet ?? 0));
-      } else {
-        await mysql.query(
-          `INSERT INTO user_annadanam_milestones (user_id, next_target, last_paid_target, custom_target_set, popup_shown_for_target)
-           VALUES (?, 5000, 0, 0, 0)`,
-          [userId],
-        ).catch(() => {});
-      }
-
-      if (previousTotal < target && milestoneTotal >= target && popupShown < target) {
-        annadanamMilestone = target;
-        await mysql.query(
-          `UPDATE user_annadanam_milestones SET popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
-          [target, userId],
-        );
-      } else if (!isCustom) {
-        const next5k = Math.floor(milestoneTotal / 5000) * 5000;
-        if (next5k > target && next5k >= 5000 && popupShown < next5k) {
-          const prev5k = Math.floor(previousTotal / 5000) * 5000;
-          if (prev5k < next5k) {
-            annadanamMilestone = next5k;
-            await mysql.query(
-              `UPDATE user_annadanam_milestones SET next_target = ?, popup_shown_for_target = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
-              [next5k, next5k, userId],
-            );
-          }
-        }
-      }
-    } catch (annadanamErr) {
-      console.warn('Annadanam milestone check error:', annadanamErr);
+    } catch (postErr) {
+      console.warn('Post-session side effects error (session kept):', postErr);
     }
 
     return {
@@ -1367,8 +1479,12 @@ class JapaService {
   }
 
   async getProgress(userId: number, preferredGoalId?: number) {
-    const [summary, goals, recentGoalId] = await Promise.all([
-      this.getSummary(userId),
+    // Slim path: do NOT call full getSummary (week/month/streak/mantra totals).
+    // Progress screen only needs goals + week bars + lifetime + today fallback.
+    // Response shape stays identical so the app UI is unchanged.
+    const [lifetime, todayFallback, goals, recentGoalId] = await Promise.all([
+      japaRepository.getUserTotalJapa(userId),
+      japaRepository.getTodayJapa(userId),
       japaGoalRepository.getUserGoals(userId),
       japaRepository.getMostRecentGoalId(userId),
     ]);
@@ -1417,8 +1533,9 @@ class JapaService {
     );
     const dailyGoal =
       Number(active?.dailyTarget ?? goals?.[0]?.dailyTarget ?? 0) || 0;
+    // Prefer goal-scoped today (same as before); fall back to all-mantra today.
     const today = Number(
-      active?.todayCompletedCount ?? summary.todayJapaCount ?? 0,
+      active?.todayCompletedCount ?? todayFallback ?? 0,
     );
     return {
       todayCount: today,
@@ -1430,8 +1547,8 @@ class JapaService {
         Math.round((today / Math.max(dailyGoal, 1)) * 100),
       ),
       weekly,
-      lifetime: summary.totalJapaCount,
-      totalJapaCount: summary.totalJapaCount,
+      lifetime,
+      totalJapaCount: lifetime,
       activeGoalId: active ? Number(active.id) : null,
       mantraName: active?.mantraName || active?.goalName || null,
       // Include goals so the app can pick the last-chanted mantra in one round-trip

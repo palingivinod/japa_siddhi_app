@@ -65,6 +65,11 @@ type OrderDetail = {
   };
   userReceived?: boolean;
   userReceivedAt?: string;
+  statusHistory?: Array<{
+    status: string;
+    statusCode?: string;
+    at: string;
+  }>;
 };
 
 const formatWhen = (raw?: string | null): string => {
@@ -285,6 +290,13 @@ const AdminOrderDetailsScreen = () => {
     userReceived: Boolean(data.userReceived ?? data.user_received),
     userReceivedAt: data.userReceivedAt || data.user_received_at || '',
     delivery: data.delivery || {},
+    statusHistory: Array.isArray(data.statusHistory)
+      ? data.statusHistory.map((row: any) => ({
+          status: String(row.status || row.statusCode || ''),
+          statusCode: String(row.statusCode || ''),
+          at: String(row.at || ''),
+        }))
+      : [],
   });
 
   const loadOrder = useCallback(async () => {
@@ -627,6 +639,24 @@ const AdminOrderDetailsScreen = () => {
           </View>
 
           <View style={styles.card}>
+            <Text style={styles.cardLabel}>Status history</Text>
+            <Text style={styles.historyHint}>
+              When each status was set (admin updates + devotee receipt).
+            </Text>
+            {(order.statusHistory || []).length === 0 ? (
+              <DetailRow label="Placed" value={formatWhen(order.createdAt)} />
+            ) : (
+              (order.statusHistory || []).map((row, index) => (
+                <DetailRow
+                  key={`${row.statusCode || row.status}-${row.at}-${index}`}
+                  label={row.status || row.statusCode || 'Status'}
+                  value={formatWhen(row.at)}
+                />
+              ))
+            )}
+          </View>
+
+          <View style={styles.card}>
             <Text style={styles.cardLabel}>Devotee</Text>
             <View style={styles.row}>
               <Text selectable={true} style={styles.customer}>{order.customer}</Text>
@@ -763,6 +793,13 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '800',
     marginBottom: 10,
+  },
+  historyHint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 10,
+    lineHeight: 17,
   },
   cardHeaderRow: {
     flexDirection: 'row',

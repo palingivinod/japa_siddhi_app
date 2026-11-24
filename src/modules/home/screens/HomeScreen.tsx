@@ -1034,6 +1034,9 @@ const HomeScreen = () => {
             }}
             onPress={handleBannerStartJapa}
             secondaryButtonText={t('whyJapaSiddhiApp')}
+            secondaryButtonSubtext={
+              t('whyJapaSiddhiAppHint') || '(click to see videos)'
+            }
             onSecondaryPress={() => navigation.navigate('IntroVideos')}
             announcements={homeBanners.map(item => ({
               id: item.id,

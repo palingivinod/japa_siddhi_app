@@ -74,6 +74,9 @@ const SevaRequestScreen = () => {
     orderedOnIso: string;
     availableOnIso: string;
   } | null>(null);
+  const [gatesReady, setGatesReady] = useState(false);
+  const [gatesError, setGatesError] = useState(false);
+  const [gatesReloadKey, setGatesReloadKey] = useState(0);
   const photos = photosForRequest(request.kind);
   const pendingTitle =
     t(request.pendingTitleKey) ||
@@ -127,80 +130,99 @@ const SevaRequestScreen = () => {
     useCallback(() => {
       let active = true;
       const load = async () => {
-        const [stored, profile, addresses, ordersRes] = await Promise.all([
+        setGatesReady(false);
+        setGatesError(false);
+        const [stored, profile, addresses, ordersSettled] = await Promise.all([
           getStoredUser(),
           ProfileApi.getProfile().catch(() => null),
           loadSavedAddresses(),
-          apiService.get('/orders').catch(() => null),
+          apiService
+            .get('/orders')
+            .then(res => ({ok: true as const, res}))
+            .catch(() => ({ok: false as const, res: null})),
         ]);
         if (!active) {
           return;
         }
 
-        const allOrders = ordersRes?.data?.data || [];
-        const {findOpenProductOrder} = await import(
-          '../../utils/openProductOrderGate'
-        );
-        // Any undelivered product order blocks every new product order.
-        const undeliveredOrder = findOpenProductOrder(allOrders);
-
-        if (undeliveredOrder) {
-          setHasActiveOrder(true);
-          setActiveOrder(undeliveredOrder);
-          setReorderCooldown(null);
-          Alert.alert(
-            t('openOrderBlockTitle') || pendingTitle,
-            t('openOrderBlockMessage') || pendingMessage,
-            [
-              {
-                text: t('myOrders') || 'My Orders',
-                onPress: () => navigation.navigate('Orders'),
-              },
-              {
-                text: t('ok') || 'OK',
-                style: 'cancel',
-              },
-            ],
-          );
-        } else {
+        if (!ordersSettled.ok) {
+          setGatesError(true);
           setHasActiveOrder(false);
           setActiveOrder(null);
-
-          const {findBhasmamReorderCooldown, isBhasmamCooldownKind} = await import(
-            '../../utils/bhasmamReorderCooldown'
+          setReorderCooldown(null);
+          setGatesReady(true);
+          Alert.alert(
+            t(request.titleKey),
+            t('couldNotLoadOrders') ||
+              'Could not verify your existing orders. Please try again.',
+            [{text: t('ok') || 'OK'}],
           );
-          if (isBhasmamCooldownKind(request.kind)) {
-            const formatDay = (iso: string) => shortMonthDayYear(t, iso);
-            const cooldown = findBhasmamReorderCooldown(
-              allOrders,
-              request.matchOrder,
-              new Date(),
-              formatDay,
+        } else {
+          const {ordersFromApiResponse, findOpenProductOrder} = await import(
+            '../../utils/openProductOrderGate'
+          );
+          const allOrders = ordersFromApiResponse(ordersSettled.res);
+          // Any undelivered product order blocks every new product order.
+          const undeliveredOrder = findOpenProductOrder(allOrders);
+
+          if (undeliveredOrder) {
+            setHasActiveOrder(true);
+            setActiveOrder(undeliveredOrder);
+            setReorderCooldown(null);
+            Alert.alert(
+              t('openOrderBlockTitle') || pendingTitle,
+              t('openOrderBlockMessage') || pendingMessage,
+              [
+                {
+                  text: t('myOrders') || 'My Orders',
+                  onPress: () => navigation.navigate('Orders'),
+                },
+                {
+                  text: t('ok') || 'OK',
+                  style: 'cancel',
+                },
+              ],
             );
-            if (cooldown) {
-              setReorderCooldown({
-                orderedOnIso: cooldown.orderedOnIso,
-                availableOnIso: cooldown.availableOnIso,
-              });
-              const label = t(request.titleKey) || 'this item';
-              const orderedOn = cooldown.orderedOnLabel;
-              const availableOn = cooldown.availableOnLabel;
-              Alert.alert(
-                t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
-                t('bhasmamReorderCooldownMessage', {
-                  item: label,
-                  orderedOn,
-                  availableOn,
-                }) ||
-                  `You ordered ${label} on ${orderedOn}. You can order again after 30 days, on ${availableOn}.`,
-                [{text: t('ok') || 'OK'}],
+          } else {
+            setHasActiveOrder(false);
+            setActiveOrder(null);
+
+            const {findBhasmamReorderCooldown, isBhasmamCooldownKind} =
+              await import('../../utils/bhasmamReorderCooldown');
+            if (isBhasmamCooldownKind(request.kind)) {
+              const formatDay = (iso: string) => shortMonthDayYear(t, iso);
+              const cooldown = findBhasmamReorderCooldown(
+                allOrders,
+                request.matchOrder,
+                new Date(),
+                formatDay,
               );
+              if (cooldown) {
+                setReorderCooldown({
+                  orderedOnIso: cooldown.orderedOnIso,
+                  availableOnIso: cooldown.availableOnIso,
+                });
+                const label = t(request.titleKey) || 'this item';
+                const orderedOn = cooldown.orderedOnLabel;
+                const availableOn = cooldown.availableOnLabel;
+                Alert.alert(
+                  t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
+                  t('bhasmamReorderCooldownMessage', {
+                    item: label,
+                    orderedOn,
+                    availableOn,
+                  }) ||
+                    `You ordered ${label} on ${orderedOn}. You can order again after 30 days, on ${availableOn}.`,
+                  [{text: t('ok') || 'OK'}],
+                );
+              } else {
+                setReorderCooldown(null);
+              }
             } else {
               setReorderCooldown(null);
             }
-          } else {
-            setReorderCooldown(null);
           }
+          setGatesReady(true);
         }
 
         const name = profile?.fullName || stored?.fullName || stored?.full_name || '';
@@ -240,10 +262,23 @@ const SevaRequestScreen = () => {
       return () => {
         active = false;
       };
-    }, [route.params?.selectedAddress, request.kind, request.matchOrder, t]),
+    }, [
+      route.params?.selectedAddress,
+      request.kind,
+      request.matchOrder,
+      t,
+      gatesReloadKey,
+    ]),
   );
 
   const submit = async () => {
+    if (gatesError) {
+      setGatesReloadKey(k => k + 1);
+      return;
+    }
+    if (!gatesReady) {
+      return;
+    }
     if (hasActiveOrder) {
       Alert.alert(
         t('openOrderBlockTitle') || pendingTitle,
@@ -303,7 +338,9 @@ const SevaRequestScreen = () => {
   };
 
   const ready = Boolean(
-    fullName.trim() &&
+    gatesReady &&
+      !gatesError &&
+      fullName.trim() &&
       isMobile(mobile) &&
       address.trim() &&
       !hasActiveOrder &&
@@ -464,7 +501,7 @@ const SevaRequestScreen = () => {
         numberOfLines={3}
         style={styles.commentsInput}
       />
-      {hasActiveOrder ? (
+      {hasActiveOrder || reorderCooldown ? (
         <TouchableOpacity
           style={styles.viewOrdersBtn}
           activeOpacity={0.85}
@@ -474,12 +511,16 @@ const SevaRequestScreen = () => {
       ) : (
         <PrimaryButton
           title={
-            ready
-              ? t('overviewBtn') || 'OVERVIEW'
-              : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
+            !gatesReady
+              ? t('loading') || 'Loading…'
+              : gatesError
+                ? t('tryAgain') || 'TRY AGAIN'
+                : ready
+                  ? t('overviewBtn') || 'OVERVIEW'
+                  : t('enterRequiredDetails') || 'ENTER REQUIRED DETAILS'
           }
           onPress={submit}
-          disabled={!ready}
+          disabled={!ready && !gatesError}
         />
       )}
       <SavedAddressSelectorModal

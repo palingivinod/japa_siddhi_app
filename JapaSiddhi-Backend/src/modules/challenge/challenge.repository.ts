@@ -689,6 +689,13 @@ class ChallengeRepository {
   }
 
   async getRewardById(id: number) {
+    try {
+      await mysql.query(
+        'ALTER TABLE challenge_rewards ADD COLUMN order_prefix TEXT NULL',
+      );
+    } catch {
+      // Column already exists.
+    }
     const rows = await mysql.query<any[]>(
       `
       SELECT
@@ -698,6 +705,7 @@ class ChallengeRepository {
         is_active AS isActive,
         IFNULL(eligibility_criteria, 0) AS eligibilityCriteria,
         IFNULL(unlock_mode, 'fixed') AS unlockMode,
+        IFNULL(order_prefix, '') AS orderPrefix,
         IFNULL(admin_marked_oos, 0) AS adminMarkedOos
       FROM challenge_rewards
       WHERE id = ?

@@ -16,14 +16,27 @@ export const isProductOrderRow = (ord: any) => {
   return type !== 'NITHYA_HOMAM' && type !== 'ANNADANAM';
 };
 
+export const isSoftDeletedOrder = (ord: any) =>
+  Boolean(Number(ord?.deletedByUser ?? ord?.deleted_by_user ?? 0));
+
+/** Normalize GET /orders payload shapes. */
+export const ordersFromApiResponse = (ordersRes: any): any[] => {
+  const raw = ordersRes?.data?.data ?? ordersRes?.data ?? ordersRes;
+  return Array.isArray(raw) ? raw : [];
+};
+
 /**
  * Any undelivered product order — blocks placing another product order
- * until admin/user marks the open one Delivered (user confirm → DELIVERED).
+ * until the open one is Delivered (or cancelled). Soft-deleted rows are ignored
+ * here (delete is only allowed after deliver/cancel).
  */
 export const findOpenProductOrder = (orders: any[] | null | undefined) => {
   const list = Array.isArray(orders) ? orders : [];
   return (
     list.find(ord => {
+      if (isSoftDeletedOrder(ord)) {
+        return false;
+      }
       if (!isProductOrderRow(ord)) {
         return false;
       }

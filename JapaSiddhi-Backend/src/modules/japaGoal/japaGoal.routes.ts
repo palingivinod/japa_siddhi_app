@@ -35,6 +35,18 @@ router.put(
   japaGoalController.updateStatus,
 );
 
+router.put(
+  '/:id/extend',
+  authenticate,
+  japaGoalController.extendGoal,
+);
+
+router.put(
+  '/:id/deadline',
+  authenticate,
+  japaGoalController.changeDeadline,
+);
+
 
 router.delete(
   '/:id',

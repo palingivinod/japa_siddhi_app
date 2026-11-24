@@ -212,6 +212,7 @@ const MilestoneRewardAddressScreen = () => {
       goOverview();
       return;
     }
+    // Change stays on this address form so the devotee can edit.
     promptRewardAddressDisclaimer(t, goOverview);
   };
 

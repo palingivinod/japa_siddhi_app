@@ -59,6 +59,8 @@ export type ActiveJapaItem = {
   isCompleted?: boolean;
   /** New Samuhika campaign (admin start/deadline) — no daily-goal flow. */
   isSamuhikaCampaign?: boolean;
+  /** Deadline ended with japas left — shown at the bottom, extend/change only. */
+  isExpired?: boolean;
   deadlineAt?: string | null;
 };
 
@@ -145,6 +147,20 @@ const YourJapasScreen = () => {
         const todayIso = istIsoDate();
         const validGoals = rawGoals.filter((goal: any) => {
           const status = String(goal.status || 'ACTIVE').toUpperCase();
+          if (status === 'EXPIRED') {
+            // Keep expired goals that still have japas left, so the devotee
+            // can change the deadline and continue them.
+            const expiredNotes = String(goal.notes || '').toLowerCase();
+            const isSamuhikaGoal =
+              expiredNotes.includes('samuhika') ||
+              String(goal.goalName || '').toLowerCase().includes('samuhika');
+            // Samuhika deadlines are set by admin, so never revive those here.
+            return (
+              Boolean(goal.id) &&
+              !isSamuhikaGoal &&
+              Number(goal.targetCount) > Number(goal.completedCount || 0)
+            );
+          }
           if (status !== 'ACTIVE') return false;
           // Hide unused signup auto-seed ("Daily Japa" / 10800 / 108) until user sets a real goal
           if (
@@ -269,6 +285,7 @@ const YourJapasScreen = () => {
             remainingDays,
             progressPercent,
             isChallenge: false,
+            isExpired: String(goal.status || '').toUpperCase() === 'EXPIRED',
             isSamuhikaCampaign,
             deadlineAt: isSamuhikaCampaign
               ? goal.endDate || null
@@ -331,6 +348,10 @@ const YourJapasScreen = () => {
 
       // Sort by earliest deadline (cards expiring soonest e.g. 2, 3, 4 days left come first)
       items.sort((a, b) => {
+        // Expired goals always go to the bottom.
+        if (Boolean(a.isExpired) !== Boolean(b.isExpired)) {
+          return a.isExpired ? 1 : -1;
+        }
         if (a.remainingDays !== b.remainingDays) {
           return a.remainingDays - b.remainingDays;
         }
@@ -409,11 +430,14 @@ const YourJapasScreen = () => {
       return;
     }
 
+    const isPersonalResume =
+      item.sourceType === 'PERSONAL' || Boolean(item.personalMantraId);
     navigation.navigate('Chant', {
-      mode: item.sourceType === 'PERSONAL' ? 'private' : 'community',
-      mantraId: item.mantraId,
+      mode: isPersonalResume ? 'private' : 'community',
+      // Never pass catalog mantraId for Antharanga — avoids Om Namah Shivaya label.
+      mantraId: isPersonalResume ? undefined : item.mantraId,
       personalMantraId: item.personalMantraId,
-      privateMantra: item.sourceType === 'PERSONAL' ? item.mantraName : undefined,
+      privateMantra: isPersonalResume ? item.mantraName : undefined,
       mantraName: item.mantraName,
       goal: item.targetCount,
       initialCount: item.completedCount,
@@ -433,6 +457,49 @@ const YourJapasScreen = () => {
           }
         : {}),
     });
+  };
+
+  const [deadlineEditId, setDeadlineEditId] = useState<string | null>(null);
+  const [deadlineDraft, setDeadlineDraft] = useState('');
+  const [savingDeadlineId, setSavingDeadlineId] = useState<string | null>(null);
+
+  /** Goal still ACTIVE but its deadline day is already over, with japas left. */
+  const isDeadlinePassed = (item: ActiveJapaItem) =>
+    !item.isChallenge &&
+    !item.isSamuhikaCampaign &&
+    Boolean(item.goalId) &&
+    item.remainingCount > 0 &&
+    String(item.endDate || '').slice(0, 10) !== '' &&
+    String(item.endDate || '').slice(0, 10) < istIsoDate();
+
+  const showDeadlineBox = (item: ActiveJapaItem) =>
+    Boolean(item.isExpired) || isDeadlinePassed(item);
+
+  const saveDeadline = async (item: ActiveJapaItem) => {
+    const day = deadlineDraft.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < istIsoDate()) {
+      Alert.alert(
+        t('deadlineLabel') || 'Deadline',
+        'Enter a date today or later (YYYY-MM-DD).',
+      );
+      return;
+    }
+    setSavingDeadlineId(item.id);
+    try {
+      await apiService.put(`/japa-goals/${item.goalId}/deadline`, {
+        endDate: day,
+      });
+      setDeadlineEditId(null);
+      setDeadlineDraft('');
+      await loadActiveJapas();
+    } catch (error) {
+      Alert.alert(
+        t('deadlineLabel') || 'Deadline',
+        getApiError(error, 'Could not change the deadline.'),
+      );
+    } finally {
+      setSavingDeadlineId(null);
+    }
   };
 
   const deleteJapa = async (item: ActiveJapaItem) => {
@@ -610,7 +677,7 @@ const YourJapasScreen = () => {
 
                   <View style={styles.daysLeftBadge}>
                     <Text style={styles.daysLeftText}>
-                      ⏳ {item.remainingDays === 1
+                      ⏳ {item.isExpired ? 'Expired' : item.remainingDays === 1
                         ? (t('oneDayLeft') || '1 Day Left')
                         : item.remainingDays >= 900
                           ? (tt('Ongoing') || 'Ongoing')
@@ -665,6 +732,62 @@ const YourJapasScreen = () => {
                   </View>
                 )}
 
+                {showDeadlineBox(item) ? (
+                  <View style={styles.deadlinePassedBox}>
+                    {item.isExpired ? (
+                      <View style={styles.expiredInfo}>
+                        <Text style={styles.expiredInfoText}>
+                          Expired on: {formatDate(item.endDate) || '—'}
+                        </Text>
+                        <Text style={styles.expiredInfoText}>
+                          Chanted before deadline:{' '}
+                          {item.completedCount.toLocaleString('en-IN')} of{' '}
+                          {item.targetCount.toLocaleString('en-IN')} japas
+                        </Text>
+                      </View>
+                    ) : null}
+                    <Text style={styles.deadlinePassedText}>
+                      {item.isExpired
+                        ? 'This goal has expired. Change the deadline to continue chanting it. Your japas are saved.'
+                        : 'Today is the deadline. Extend it or choose a new date, otherwise this goal expires.'}
+                    </Text>
+                    {deadlineEditId === item.id ? (
+                      <>
+                        <TextInput
+                          style={styles.deadlineInput}
+                          value={deadlineDraft}
+                          onChangeText={setDeadlineDraft}
+                          placeholder="YYYY-MM-DD"
+                          placeholderTextColor={Colors.leafGreen}
+                          autoCapitalize="none"
+                          keyboardType="numbers-and-punctuation"
+                        />
+                        <TouchableOpacity
+                          style={styles.deadlineSaveBtn}
+                          disabled={savingDeadlineId === item.id}
+                          onPress={() => saveDeadline(item)}>
+                          <Text style={styles.deadlineSaveText}>
+                            {savingDeadlineId === item.id
+                              ? t('loading')
+                              : 'Save deadline'}
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.deadlineSaveBtn}
+                        onPress={() => {
+                          setDeadlineEditId(item.id);
+                          setDeadlineDraft('');
+                        }}>
+                        <Text style={styles.deadlineSaveText}>
+                          Change deadline
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ) : null}
+
                 {/* Total Progress */}
                 <View style={styles.progressSection}>
                   <View style={styles.progressLabelRow}>
@@ -696,7 +819,7 @@ const YourJapasScreen = () => {
                   </View>
                 </View>
 
-                {item.isCompleted ? (
+                {item.isExpired ? null : item.isCompleted ? (
                   <TouchableOpacity
                     style={[styles.chantBtn, styles.completedBtn]}
                     activeOpacity={0.85}
@@ -762,6 +885,49 @@ const YourJapasScreen = () => {
 export default YourJapasScreen;
 
 const styles = StyleSheet.create({
+  deadlinePassedBox: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+  },
+  deadlinePassedText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  expiredInfo: {
+    marginBottom: 8,
+    gap: 2,
+  },
+  expiredInfoText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+  },
+  deadlineInput: {
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: Colors.white,
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  deadlineSaveBtn: {
+    borderRadius: 10,
+    backgroundColor: Colors.templeGold,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  deadlineSaveText: {
+    color: Colors.white,
+    fontWeight: '800',
+  },
   flex: {flex: 1},
   scrollContent: {paddingBottom: 36},
   lingamAdviceBanner: {

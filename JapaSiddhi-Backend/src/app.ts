@@ -231,31 +231,9 @@ app.get('/.well-known/assetlinks.json', (_req, res) => {
 });
 
 app.get('/api/v1/health', async (_, res) => {
+  // Lightweight liveness only — no full-table COUNTs.
+  // Heavy diagnostics were competing with real japa/home/progress traffic.
   await database.query('SELECT 1');
-  let usersActive = 0;
-  let usersDeleted = 0;
-  let donations = 0;
-  let japaSessions = 0;
-  try {
-    const active = await database.query<any[]>(
-      `SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NULL`,
-    );
-    const deleted = await database.query<any[]>(
-      `SELECT COUNT(*) AS total FROM users WHERE deleted_at IS NOT NULL`,
-    );
-    const don = await database.query<any[]>(
-      `SELECT COUNT(*) AS total FROM donations`,
-    );
-    const japa = await database.query<any[]>(
-      `SELECT COUNT(*) AS total FROM japa_sessions`,
-    );
-    usersActive = Number(active?.[0]?.total || 0);
-    usersDeleted = Number(deleted?.[0]?.total || 0);
-    donations = Number(don?.[0]?.total || 0);
-    japaSessions = Number(japa?.[0]?.total || 0);
-  } catch {
-    // Counts are diagnostic only.
-  }
   res.status(200).json({
     success: true,
     message: 'API and database are healthy',
@@ -265,10 +243,11 @@ app.get('/api/v1/health', async (_, res) => {
         database.getEngineName() === 'sqlite'
           ? getSqlitePath()
           : process.env.SQLITE_PATH || null,
-      usersActive,
-      usersDeleted,
-      donations,
-      japaSessions,
+      // Kept for older clients; always 0 (not scanned on health).
+      usersActive: 0,
+      usersDeleted: 0,
+      donations: 0,
+      japaSessions: 0,
     },
   });
 });

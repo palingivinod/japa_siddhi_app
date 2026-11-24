@@ -226,6 +226,12 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     return;
   }
 
+  // Deadline reached → Your Japas, where the devotee extends or changes it.
+  if (action === 'GOAL_DEADLINE_EXTEND') {
+    navigateTo('YourJapas');
+    return;
+  }
+
   if (action === 'DAILY_JAPA_PENDING' || action === 'GOAL_DEADLINE') {
     const mantraId = num(data.mantraId);
     const personalMantraId = num(data.personalMantraId);

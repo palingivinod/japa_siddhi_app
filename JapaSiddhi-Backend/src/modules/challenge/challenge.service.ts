@@ -4,7 +4,7 @@ import {
 
 import challengeRepository from './challenge.repository';
 import orderService from '../orders/order.service';
-import rewardOrderPrefix from '../orders/rewardOrderPrefix';
+import {resolveRewardOrderPrefix} from '../orders/rewardOrderPrefix';
 import mysql from '../../database/mysql';
 import emailOtpService from '../../services/emailOtp.service';
 import authRepository from '../auth/auth.repository';
@@ -724,6 +724,10 @@ class ChallengeService {
     ].join('\n');
 
     const rewardName = String(claim.rewardName || 'Challenge reward');
+    const claimRewardId = Number(claim.rewardId || 0);
+    const rewardRow = claimRewardId
+      ? await challengeRepository.getRewardById(claimRewardId)
+      : null;
     const created = await orderService.create({
       userId,
       orderType: 'SPIRITUAL_PRODUCT',
@@ -732,7 +736,10 @@ class ChallengeService {
       quantity: 1,
       paymentId: null,
       remarks,
-      numberPrefix: rewardOrderPrefix(rewardName),
+      numberPrefix: resolveRewardOrderPrefix({
+        name: rewardName,
+        orderPrefix: rewardRow?.orderPrefix,
+      }),
     });
 
     const orderNumber = String(created.orderNumber || '');

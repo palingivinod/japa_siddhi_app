@@ -71,6 +71,7 @@ class JapaRepository {
       'ALTER TABLE japa_sessions ADD COLUMN user_name TEXT',
       'ALTER TABLE japa_sessions ADD COLUMN user_email TEXT',
       'ALTER TABLE japa_sessions ADD COLUMN user_mobile TEXT',
+      'ALTER TABLE japa_sessions ADD COLUMN client_save_id TEXT',
     ];
     for (const sql of alters) {
       try {
@@ -79,7 +80,51 @@ class JapaRepository {
         // Column already exists (MySQL/SQLite).
       }
     }
+    try {
+      await mysql.query(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_japa_sessions_user_client_save
+         ON japa_sessions (user_id, client_save_id)`,
+      );
+    } catch {
+      // MySQL may not support IF NOT EXISTS on indexes — try plain create.
+      try {
+        await mysql.query(
+          `CREATE UNIQUE INDEX idx_japa_sessions_user_client_save
+           ON japa_sessions (user_id, client_save_id)`,
+        );
+      } catch {
+        // Index already exists or engine limitation (multiple NULLs still OK).
+      }
+    }
     this.sessionUserColumnsReady = true;
+  }
+
+  async findSessionByClientSaveId(
+    userId: number,
+    clientSaveId: string,
+  ): Promise<{id: number; sessionCount: number} | null> {
+    const id = String(clientSaveId || '').trim();
+    if (!id) {
+      return null;
+    }
+    await this.ensureSessionUserColumns();
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT id, session_count AS sessionCount
+      FROM japa_sessions
+      WHERE user_id = ?
+        AND client_save_id = ?
+      LIMIT 1
+      `,
+      [userId, id],
+    );
+    if (!rows?.[0]?.id) {
+      return null;
+    }
+    return {
+      id: Number(rows[0].id),
+      sessionCount: this.toCount(rows[0].sessionCount),
+    };
   }
 
   async createSession(
@@ -96,6 +141,7 @@ class JapaRepository {
       userName?: string | null;
       userEmail?: string | null;
       userMobile?: string | null;
+      clientSaveId?: string | null;
     },
   ): Promise<number> {
     await this.ensureSessionUserColumns();
@@ -118,7 +164,8 @@ class JapaRepository {
           remarks,
           user_name,
           user_email,
-          user_mobile
+          user_mobile,
+          client_save_id
         )
         VALUES
         (
@@ -132,6 +179,7 @@ class JapaRepository {
           ?,
           NOW(),
           NOW(),
+          ?,
           ?,
           ?,
           ?,
@@ -151,6 +199,7 @@ class JapaRepository {
           data.userName ?? null,
           data.userEmail ?? null,
           data.userMobile ?? null,
+          data.clientSaveId ? String(data.clientSaveId).trim() : null,
         ],
       );
 
@@ -210,6 +259,7 @@ class JapaRepository {
     );
   }
 
+  /** Expensive full-table SUM — only for rare admin reconcile, never on hot paths. */
   async getExactGlobalJapaCount(): Promise<number> {
     const rows = await mysql.query<any[]>(
       `
@@ -220,11 +270,24 @@ class JapaRepository {
     return this.toCount(rows[0]?.totalJapaCount);
   }
 
-  async updateGlobalJapaCount(
-    _count: number,
-  ): Promise<number> {
-    const totalCount = await this.getExactGlobalJapaCount();
+  private async ensureGlobalCounterRow(): Promise<void> {
+    try {
+      // postgresEngine rewrites INSERT OR IGNORE → ON CONFLICT DO NOTHING.
+      await mysql.query(
+        `
+        INSERT OR IGNORE INTO global_japa_counter (id, total_japa_count)
+        VALUES (1, 0)
+        `,
+      );
+    } catch {
+      // Row may already exist.
+    }
+  }
 
+  /** Rebuild scoreboard from sessions (admin / repair only). */
+  async reconcileGlobalJapaCount(): Promise<number> {
+    const totalCount = await this.getExactGlobalJapaCount();
+    await this.ensureGlobalCounterRow();
     await mysql.query(
       `
       UPDATE global_japa_counter
@@ -233,7 +296,38 @@ class JapaRepository {
       `,
       [totalCount],
     );
+    socketEmitter.emitGlobalCount(totalCount);
+    return totalCount;
+  }
 
+  /**
+   * Hot path: bump world total by this session's japas.
+   * Pass 0 (or negative) to force a full reconcile (admin cleanup).
+   * Does NOT change per-user / per-goal session math.
+   */
+  async updateGlobalJapaCount(sessionCount: number): Promise<number> {
+    const delta = Math.floor(Number(sessionCount) || 0);
+    if (delta <= 0) {
+      return this.reconcileGlobalJapaCount();
+    }
+    await this.ensureGlobalCounterRow();
+    await mysql.query(
+      `
+      UPDATE global_japa_counter
+      SET total_japa_count = total_japa_count + ?
+      WHERE id = 1
+      `,
+      [delta],
+    );
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT COALESCE(total_japa_count, 0) AS totalJapaCount
+      FROM global_japa_counter
+      WHERE id = 1
+      LIMIT 1
+      `,
+    );
+    const totalCount = this.toCount(rows?.[0]?.totalJapaCount);
     socketEmitter.emitGlobalCount(totalCount);
     return totalCount;
   }
@@ -299,7 +393,6 @@ class JapaRepository {
             OR j.personal_mantra_id IS NOT NULL
           THEN COALESCE(
             MAX(upm.mantra_name),
-            MAX(m.mantra_name),
             'My Mantra'
           )
           ELSE COALESCE(
@@ -436,8 +529,25 @@ class JapaRepository {
     return this.toCount(rows[0]?.total);
   }
 
+  /** Hot path: read scoreboard row — never full-table SUM. */
   async getGlobalJapaCount() {
-    return this.getExactGlobalJapaCount();
+    try {
+      const rows = await mysql.query<any[]>(
+        `
+        SELECT COALESCE(total_japa_count, 0) AS totalJapaCount
+        FROM global_japa_counter
+        WHERE id = 1
+        LIMIT 1
+        `,
+      );
+      if (rows?.[0]) {
+        return this.toCount(rows[0].totalJapaCount);
+      }
+    } catch {
+      // Fall through to seed.
+    }
+    // First boot / missing row: one-time seed from sessions, then use counter.
+    return this.reconcileGlobalJapaCount();
   }
 
   async getDevoteeCount() {

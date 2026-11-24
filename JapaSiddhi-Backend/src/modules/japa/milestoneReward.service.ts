@@ -2,7 +2,7 @@ import mysql from '../../database/mysql';
 import authRepository from '../auth/auth.repository';
 import challengeRepository from '../challenge/challenge.repository';
 import orderService from '../orders/order.service';
-import rewardOrderPrefix from '../orders/rewardOrderPrefix';
+import {resolveRewardOrderPrefix} from '../orders/rewardOrderPrefix';
 import emailOtpService from '../../services/emailOtp.service';
 import masterService from '../master/master.service';
 import japaRepository from './japa.repository';
@@ -866,7 +866,9 @@ class MilestoneRewardService {
 
     const stockRows = await mysql.query<any[]>(
       `
-      SELECT IFNULL(admin_marked_oos, 0) AS adminMarkedOos
+      SELECT
+        IFNULL(admin_marked_oos, 0) AS adminMarkedOos,
+        IFNULL(order_prefix, '') AS orderPrefix
       FROM challenge_rewards
       WHERE id = ?
       LIMIT 1
@@ -938,7 +940,10 @@ class MilestoneRewardService {
       paymentId: null,
       orderStatus: 'UNDER_REVIEW',
       remarks,
-      numberPrefix: rewardOrderPrefix(rewardName),
+      numberPrefix: resolveRewardOrderPrefix({
+        name: rewardName,
+        orderPrefix: stockRows?.[0]?.orderPrefix,
+      }),
     });
     const orderNumber = String(created.orderNumber || '');
 
@@ -1267,7 +1272,10 @@ class MilestoneRewardService {
       paymentId: null,
       orderStatus: 'UNDER_REVIEW',
       remarks,
-      numberPrefix: rewardOrderPrefix(rewardName),
+      numberPrefix: resolveRewardOrderPrefix({
+        name: rewardName,
+        orderPrefix: (reward as any)?.orderPrefix,
+      }),
     });
     const orderNumber = String(created.orderNumber || '');
 

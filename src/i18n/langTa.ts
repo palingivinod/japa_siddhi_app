@@ -821,6 +821,7 @@ export const ta: TranslationDict = {
   deadlineDays61: '61 நாட்கள்',
   deadlineDays91: '91 நாட்கள்',
   deadlineDays108: '108 நாட்கள்',
+  deadlineDays216: '216 நாட்கள்',
   challengeMahashivaratri: 'மகாசிவராத்திரி ஜபம்',
   challenge10000Japa: '10,000 ஜபம்',
   challenge108Daily: 'தினசரி 108 ஜபம்',

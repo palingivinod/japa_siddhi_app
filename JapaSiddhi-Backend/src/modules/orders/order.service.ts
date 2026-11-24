@@ -10,6 +10,7 @@ import {
 
 import orderRepository from './order.repository';
 import AppError from '../../utils/appError';
+import {parseOrderCreatedMs} from '../../utils/orderCreatedMs';
 
 class OrderService {
 
@@ -35,18 +36,19 @@ class OrderService {
         );
       }
 
-      // Homa / Pooja Bhasmam: block reorder for 30 days from last non-cancelled order.
+      // Homa / Pooja Bhasmam: block reorder for 30 days from last non-cancelled
+      // order (includes soft-deleted — hide from My Orders must not clear cooldown).
       if (orderType === 'HOMA_BHASMA' || orderType === 'GOU_MAYA_BHASMA') {
         const recent = await orderRepository.findRecentBhasmamOrder(
           order.userId,
           orderType as 'HOMA_BHASMA' | 'GOU_MAYA_BHASMA',
           30,
         );
-        if (recent?.createdAt) {
-          const orderedMs = new Date(
-            String(recent.createdAt).replace(' ', 'T'),
-          ).getTime();
-          if (Number.isFinite(orderedMs)) {
+        if (recent) {
+          const orderedMs = parseOrderCreatedMs(recent.createdAt);
+          const item =
+            orderType === 'GOU_MAYA_BHASMA' ? 'Pooja Bhasmam' : 'Homa Bhasmam';
+          if (orderedMs > 0) {
             const available = new Date(orderedMs + 30 * 24 * 60 * 60 * 1000);
             const orderedLabel = new Date(orderedMs).toLocaleDateString('en-IN', {
               day: 'numeric',
@@ -60,13 +62,15 @@ class OrderService {
               year: 'numeric',
               timeZone: 'Asia/Kolkata',
             });
-            const item =
-              orderType === 'GOU_MAYA_BHASMA' ? 'Pooja Bhasmam' : 'Homa Bhasmam';
             throw new AppError(
               `You ordered ${item} on ${orderedLabel}. You can order again after 30 days, on ${availableLabel}.`,
               400,
             );
           }
+          throw new AppError(
+            `You ordered ${item} recently. You can order again after 30 days.`,
+            400,
+          );
         }
       }
     }

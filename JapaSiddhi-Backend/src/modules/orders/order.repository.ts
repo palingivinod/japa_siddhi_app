@@ -463,6 +463,25 @@ class OrderRepository {
     await this.ensureCancelColumns();
     await this.ensureUserDeletedColumn();
     await this.ensureUserReceivedColumn();
+    const engine = mysql.getEngineName();
+    // Soft-deleted bhasmam within 30 days stay in the payload (deletedByUser=1)
+    // so the app can still show the reorder cooldown after hide-from-list.
+    const since30Sql =
+      engine === 'mysql'
+        ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)`
+        : engine === 'postgres'
+          ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '30 days'`
+          : `created_at >= datetime('now', '-30 days')`;
+    const bhasmamMatchSql = `(
+      upper(IFNULL(order_type, '')) IN ('GOU_MAYA_BHASMA', 'HOMA_BHASMA')
+      OR lower(IFNULL(item_name, '')) LIKE '%bhasma%'
+      OR IFNULL(order_number, '') LIKE 'PB%'
+      OR IFNULL(order_number, '') LIKE '#PB%'
+      OR IFNULL(order_number, '') LIKE 'GM%'
+      OR IFNULL(order_number, '') LIKE '#GM%'
+      OR IFNULL(order_number, '') LIKE 'HB%'
+      OR IFNULL(order_number, '') LIKE '#HB%'
+    )`;
     return mysql.query<any[]>(
       `
       SELECT
@@ -493,13 +512,24 @@ class OrderRepository {
 
         user_received_at AS userReceivedAt,
 
+        COALESCE(deleted_by_user, 0) AS deletedByUser,
+
         created_at AS createdAt
 
       FROM orders
 
       WHERE user_id = ?
         AND order_type <> 'NITHYA_HOMAM'
-        AND COALESCE(deleted_by_user, 0) = 0
+        AND (
+          COALESCE(deleted_by_user, 0) = 0
+          OR (
+            COALESCE(deleted_by_user, 0) = 1
+            AND ${bhasmamMatchSql}
+            AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+                NOT IN ('CANCELLED', 'CANCELED')
+            AND ${since30Sql}
+          )
+        )
       ORDER BY created_at DESC
       `,
       [
@@ -712,7 +742,7 @@ class OrderRepository {
 
   /**
    * Latest non-cancelled Homa / Pooja Bhasmam order within the last `withinDays`.
-   * Used for the 30-day reorder cooldown.
+   * Soft-deleted rows still count — deleting from My Orders must not clear cooldown.
    */
   async findRecentBhasmamOrder(
     userId: number,
@@ -764,48 +794,38 @@ class OrderRepository {
           )
         )`;
 
-    const selectRecentSql = async (withDeletedFilter: boolean) => {
-      const deletedSql = withDeletedFilter
-        ? 'AND COALESCE(deleted_by_user, 0) = 0'
-        : '';
-      const engine = mysql.getEngineName();
-      const sinceSql =
-        engine === 'mysql'
-          ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`
-          : engine === 'postgres'
-            ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '${days} days'`
-            : `created_at >= datetime('now', '-${days} days')`;
-      return mysql.query<any[]>(
-        `
-        SELECT
-          id,
-          order_number AS orderNumber,
-          order_type AS orderType,
-          item_name AS itemName,
-          created_at AS createdAt
-        FROM orders
-        WHERE user_id = ?
-          AND ${typeMatch}
-          ${deletedSql}
-          AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
-              NOT IN ('CANCELLED', 'CANCELED')
-          AND ${sinceSql}
-        ORDER BY id DESC
-        LIMIT 1
-        `,
-        [userId],
-      );
-    };
+    const engine = mysql.getEngineName();
+    const sinceSql =
+      engine === 'mysql'
+        ? `created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`
+        : engine === 'postgres'
+          ? `created_at::timestamptz >= (NOW() AT TIME ZONE 'UTC') - INTERVAL '${days} days'`
+          : `created_at >= datetime('now', '-${days} days')`;
 
     let rows: any[] = [];
     try {
-      rows = (await selectRecentSql(true)) || [];
+      rows =
+        (await mysql.query<any[]>(
+          `
+          SELECT
+            id,
+            order_number AS orderNumber,
+            order_type AS orderType,
+            item_name AS itemName,
+            created_at AS createdAt
+          FROM orders
+          WHERE user_id = ?
+            AND ${typeMatch}
+            AND upper(REPLACE(REPLACE(IFNULL(order_status, ''), '-', '_'), ' ', '_'))
+                NOT IN ('CANCELLED', 'CANCELED')
+            AND ${sinceSql}
+          ORDER BY id DESC
+          LIMIT 1
+          `,
+          [userId],
+        )) || [];
     } catch {
-      try {
-        rows = (await selectRecentSql(false)) || [];
-      } catch {
-        return null;
-      }
+      return null;
     }
     const row = rows[0];
     if (!row) {

@@ -783,6 +783,7 @@ export const ml: TranslationDict = {
   deadlineDays61: '61 ദിവസം',
   deadlineDays91: '91 ദിവസം',
   deadlineDays108: '108 ദിവസം',
+  deadlineDays216: '216 ദിവസം',
   challengeMahashivaratri: 'മഹാശിവരാത്രി ജപം',
   challenge10000Japa: '10,000 ജപം',
   challenge108Daily: 'ദൈനംദിന 108 ജപം',

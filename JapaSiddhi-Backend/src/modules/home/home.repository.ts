@@ -66,11 +66,14 @@ class HomeRepository {
 
 
   async getGlobalJapaCount(userId: number): Promise<GlobalJapaCount> {
+    // World total from scoreboard (fast). User total still scoped to this devotee.
     const [globalRows, userRows] = await Promise.all([
       mysql.query<any[]>(
         `
-        SELECT COALESCE(SUM(session_count), 0) AS totalJapaCount
-        FROM japa_sessions
+        SELECT COALESCE(total_japa_count, 0) AS totalJapaCount
+        FROM global_japa_counter
+        WHERE id = 1
+        LIMIT 1
         `,
       ),
       mysql.query<any[]>(
@@ -83,8 +86,19 @@ class HomeRepository {
       ),
     ]);
 
+    let totalJapaCount = Number(globalRows[0]?.totalJapaCount ?? 0) || 0;
+    if (!globalRows?.[0]) {
+      // Missing counter row — seed once (rare).
+      try {
+        const japaRepository = (await import('../japa/japa.repository')).default;
+        totalJapaCount = await japaRepository.reconcileGlobalJapaCount();
+      } catch {
+        // Keep 0; next save will ensure the row.
+      }
+    }
+
     return {
-      totalJapaCount: Number(globalRows[0]?.totalJapaCount ?? 0) || 0,
+      totalJapaCount,
       userJapaCount: Number(userRows[0]?.userJapaCount ?? 0) || 0,
     };
   }

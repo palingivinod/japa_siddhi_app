@@ -20,6 +20,7 @@ interface Props {
   banner?: HomeBannerModel;
   onPress?: () => void;
   secondaryButtonText?: string;
+  secondaryButtonSubtext?: string;
   onSecondaryPress?: () => void;
   announcements?: AnnouncementItem[] | string[] | string | null;
   announcementText?: string | null;
@@ -29,6 +30,7 @@ const HomeBanner: React.FC<Props> = ({
   banner,
   onPress,
   secondaryButtonText,
+  secondaryButtonSubtext,
   onSecondaryPress,
   announcements,
   announcementText,
@@ -74,12 +76,21 @@ const HomeBanner: React.FC<Props> = ({
         {/* Top — near Om */}
         {secondaryButtonText ? (
           <TouchableOpacity
-            style={[styles.card, styles.cardTop]}
+            style={[
+              styles.card,
+              styles.cardTop,
+              secondaryButtonSubtext ? styles.cardTopTall : null,
+            ]}
             activeOpacity={0.85}
             onPress={onSecondaryPress}>
-            <Text style={styles.cardText} numberOfLines={2}>
+            <Text style={styles.cardText} numberOfLines={1}>
               {secondaryButtonText}
             </Text>
+            {secondaryButtonSubtext ? (
+              <Text style={styles.cardSubtext} numberOfLines={1}>
+                {secondaryButtonSubtext}
+              </Text>
+            ) : null}
           </TouchableOpacity>
         ) : null}
 
@@ -157,6 +168,10 @@ const styles = StyleSheet.create({
   cardTop: {
     top: '4%',
   },
+  cardTopTall: {
+    height: 46,
+    paddingVertical: 4,
+  },
   cardMid: {
     top: '42%',
   },
@@ -172,5 +187,16 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     textAlign: 'center',
     width: '100%',
+  },
+  cardSubtext: {
+    color: Colors.sacredBrown,
+    fontWeight: '600',
+    fontSize: 10,
+    lineHeight: 13,
+    includeFontPadding: false,
+    textAlign: 'center',
+    width: '100%',
+    marginTop: 1,
+    opacity: 0.85,
   },
 });

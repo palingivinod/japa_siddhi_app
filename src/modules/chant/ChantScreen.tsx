@@ -90,7 +90,25 @@ const ChantScreen = () => {
   const [personalTotals, setPersonalTotals] = useState<Record<number, number>>(
     {},
   );
-  const [count, setCount] = useState(0);
+  // Seed from Resume / Continue params so the circle never flashes 0 while draft loads.
+  const seededBootCount = Math.max(
+    0,
+    Number(route.params?.initialCount || route.params?.count || 0),
+  );
+  const seededPostedCount = Math.max(
+    0,
+    Number(
+      route.params?.postedCount ??
+        (route.params?.resume || route.params?.fromHome
+          ? seededBootCount
+          : 0),
+    ),
+  );
+  const seededTodayCount = Math.max(
+    0,
+    Number(route.params?.todayCompletedCount || 0),
+  );
+  const [count, setCount] = useState(seededBootCount);
   const [goal, setGoal] = useState(() => {
     if (isSamuhikaCampaign || route.params?.skipGoalSelect) {
       return Math.max(0, Number(route.params?.goal || 0));
@@ -104,7 +122,7 @@ const ChantScreen = () => {
       : Number(route.params?.dailyTarget || 0) || 0,
   );
   /** Japas saved for this goal today, including taps saved during this visit. */
-  const [todaySaved, setTodaySaved] = useState(0);
+  const [todaySaved, setTodaySaved] = useState(seededTodayCount);
   const [extraBase, setExtraBase] = useState(0);
   const [dailyGoalCompletedShown, setDailyGoalCompletedShown] = useState(false);
   const [showDailyGoalModal, setShowDailyGoalModal] = useState(false);
@@ -123,10 +141,14 @@ const ChantScreen = () => {
     Number(route.params?.personalMantraId || 0) || undefined;
   const lastTap = useRef(0);
   const intervals = useRef<number[]>([]);
-  const countRef = useRef(0);
+  const countRef = useRef(seededBootCount);
   const goalRef = useRef(goal);
-  const postedCountRef = useRef(0);
+  const postedCountRef = useRef(
+    Math.min(seededPostedCount, seededBootCount),
+  );
   const saveChainRef = useRef<Promise<void>>(Promise.resolve());
+  /** Reuse the same clientSaveId until this delta is acknowledged (blocks double credit). */
+  const pendingSaveRef = useRef<{key: string; id: string} | null>(null);
   /** Blocks taps/autosave until draft/resume baseline is applied (stops 1.3.0 inflate race). */
   const chantReadyRef = useRef(false);
   const [chantReady, setChantReady] = useState(false);
@@ -135,7 +157,7 @@ const ChantScreen = () => {
   const completingRef = useRef(false);
   /** Max japas in one POST — larger deltas are treated as corrupt baseline, not uploaded. */
   const MAX_SESSION_POST = 500;
-  const todaySavedRef = useRef(0);
+  const todaySavedRef = useRef(seededTodayCount);
   /** Today's japas already on the account when this visit's extras began. */
   const extraBaseRef = useRef(0);
   const circleReadyRef = useRef(false);
@@ -154,16 +176,21 @@ const ChantScreen = () => {
   const goalReached = count >= goal && goal > 0;
   const unsavedTaps = Math.max(0, count - postedCountRef.current);
   const todayTotal = todaySaved + unsavedTaps;
-  // Until the daily plan is done, the circle shows today's japas.
-  // After that, it counts only extras chanted in this sitting: 1, 2, 3.
-  // Leaving the screen and coming back starts those extras from 0 again.
-  // Samuhika campaigns / challenges show total progress toward the target.
+  // Extras for the calendar day (resets next day when todayTotal resets).
+  const extrasToday =
+    dailyTarget > 0 ? Math.max(0, todayTotal - dailyTarget) : 0;
+  const pastDailyGoal =
+    !challengeId &&
+    !isSamuhikaCampaign &&
+    dailyTarget > 0 &&
+    todayTotal >= dailyTarget;
+  // Until daily plan is done: circle = today's japas.
+  // After: UI shows "dailyTarget + extrasToday" (not extras alone).
+  // Samuhika / challenges: total progress toward the target.
   const circleCount =
     challengeId || isSamuhikaCampaign
       ? count
-      : dailyTarget > 0 && todayTotal >= dailyTarget
-        ? Math.max(0, todayTotal - Math.max(dailyTarget, extraBase))
-        : todayTotal;
+      : todayTotal;
 
   const applyMantraTotals = (rows: any[]) => {
     const next: Record<number, number> = {};
@@ -234,8 +261,18 @@ const ChantScreen = () => {
     }
     const visitToday =
       done + Math.max(0, countRef.current - postedCountRef.current);
-    extraBaseRef.current = visitToday;
-    setExtraBase(visitToday);
+    // Extras-circle watermark only. Do NOT raise it to visitToday after the
+    // daily goal is met — a late goals/summary refresh was zeroing the extras
+    // display mid-sitting even though counts/saves were fine.
+    if (plan > 0 && visitToday >= plan) {
+      if (extraBaseRef.current < plan) {
+        extraBaseRef.current = plan;
+        setExtraBase(plan);
+      }
+    } else {
+      extraBaseRef.current = visitToday;
+      setExtraBase(visitToday);
+    }
     circleReadyRef.current = true;
   };
 
@@ -1147,6 +1184,18 @@ const ChantScreen = () => {
     );
   };
 
+  const makeClientSaveId = (posted: number, delta: number) => {
+    const key = `${posted}:${delta}`;
+    if (pendingSaveRef.current?.key === key) {
+      return pendingSaveRef.current.id;
+    }
+    const id = `cs_${posted}_${delta}_${Date.now().toString(36)}_${Math.random()
+      .toString(36)
+      .slice(2, 10)}`;
+    pendingSaveRef.current = {key, id};
+    return id;
+  };
+
   const flushUnsavedTaps = async () => {
     if (!chantReadyRef.current) {
       return;
@@ -1167,6 +1216,7 @@ const ChantScreen = () => {
       return;
     }
     const delta = rawDelta;
+    const clientSaveId = makeClientSaveId(posted, delta);
     try {
       const response = await apiService.post('/japa/session', {
         ...sessionMantraFields(),
@@ -1180,11 +1230,17 @@ const ChantScreen = () => {
             undefined,
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
+        clientSaveId,
       });
       // Never move postedCount backwards if resume/draft advanced it during await.
       postedCountRef.current = Math.max(postedCountRef.current, posted + delta);
+      if (pendingSaveRef.current?.id === clientSaveId) {
+        pendingSaveRef.current = null;
+      }
       await persistDraft(countRef.current, postedCountRef.current);
-      rememberAutoSave(response.data?.data, delta);
+      // Duplicate ACK = already credited — do not bump local today again.
+      const credited = response.data?.data?.duplicate ? 0 : delta;
+      rememberAutoSave(response.data?.data, credited);
       // Clear rare offline warning once auto-save works again.
       setMessage(current =>
         /auto-save could not save/i.test(current) ? '' : current,
@@ -1243,18 +1299,32 @@ const ChantScreen = () => {
         );
         return;
       }
+      const postedBefore = Math.max(0, sessionCount - remaining);
+      const clientSaveId = makeClientSaveId(postedBefore, remaining);
       const response = await apiService.post('/japa/session', {
         ...sessionMantraFields(),
         chantMode: 'TAP',
         sessionCount: remaining,
         durationSeconds: Math.max(remaining * 2, 1),
-        japaGoalId: challengeId ? undefined : route.params?.japaGoalId,
+        japaGoalId: challengeId
+          ? undefined
+          : matchedGoalIdRef.current ||
+            Number(route.params?.japaGoalId || 0) ||
+            undefined,
         challengeId: challengeId || undefined,
         remarks: sessionRemarks(),
+        clientSaveId,
       });
       postedCountRef.current = Math.max(postedCountRef.current, sessionCount);
+      if (pendingSaveRef.current?.id === clientSaveId) {
+        pendingSaveRef.current = null;
+      }
       await clearDraftFor(selectedRef.current);
-      afterSessionSaved(response.data.data, remaining, {completed: true});
+      afterSessionSaved(
+        response.data.data,
+        response.data?.data?.duplicate ? 0 : remaining,
+        {completed: true},
+      );
     } catch (err: any) {
       completingRef.current = false;
       await persistDraft(countRef.current, postedCountRef.current);
@@ -1387,6 +1457,7 @@ const ChantScreen = () => {
           }
           const delta = rawDelta;
           if (delta > 0) {
+            const clientSaveId = makeClientSaveId(posted, delta);
             const response = await apiService.post('/japa/session', {
               ...sessionMantraFields(),
               chantMode: 'TAP',
@@ -1399,14 +1470,21 @@ const ChantScreen = () => {
                   undefined,
               challengeId: challengeId || undefined,
               remarks: sessionRemarks(),
+              clientSaveId,
             });
             postedCountRef.current = Math.max(
               postedCountRef.current,
               posted + delta,
             );
+            if (pendingSaveRef.current?.id === clientSaveId) {
+              pendingSaveRef.current = null;
+            }
             // todaySaved / totals bump happens inside afterSessionSaved (single place).
             await persistDraft(countRef.current, postedCountRef.current);
-            afterSessionSaved(response.data.data, delta);
+            afterSessionSaved(
+              response.data.data,
+              response.data?.data?.duplicate ? 0 : delta,
+            );
           } else {
             await persistDraft(countRef.current, postedCountRef.current);
             afterSessionSaved(
@@ -1603,10 +1681,32 @@ const ChantScreen = () => {
             goalReached && styles.ringPaused,
           ]}>
           <View style={styles.innerRing}>
-            <Text style={styles.count}>
-              {circleCount.toLocaleString()}
-            </Text>
-            <Text style={styles.japas}>{t('japasLabel')}</Text>
+            {!chantReady ? (
+              <>
+                <ActivityIndicator size="large" color={Colors.templeGold} />
+                <Text style={styles.japas}>
+                  {t('pleaseWait') || 'Please wait…'}
+                </Text>
+              </>
+            ) : pastDailyGoal && !challengeId && !isSamuhikaCampaign ? (
+              <>
+                <Text
+                  style={[styles.count, styles.countDailyExtra]}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.55}>
+                  {`${dailyTarget.toLocaleString()} + ${extrasToday.toLocaleString()}`}
+                </Text>
+                <Text style={styles.japas}>{t('japasLabel')}</Text>
+              </>
+            ) : (
+              <>
+                <Text style={styles.count}>
+                  {circleCount.toLocaleString()}
+                </Text>
+                <Text style={styles.japas}>{t('japasLabel')}</Text>
+              </>
+            )}
           </View>
         </View>
         <Text style={styles.goal}>
@@ -1627,12 +1727,29 @@ const ChantScreen = () => {
           </Text>
         ) : null}
         {!challengeId && !isSamuhikaCampaign && dailyTarget > 0 ? (
-          <Text style={styles.dailyGoalLine}>
-            {t('dailyGoalLabel') || 'Daily Goal'}:{' '}
-            {todayTotal.toLocaleString()}
-            {' / '}
-            {dailyTarget.toLocaleString()}
-          </Text>
+          pastDailyGoal ? (
+            <View style={styles.dailyExtraBox}>
+              <Text style={styles.dailyGoalDoneLine}>
+                {t('dailyGoalCompletedLine', {
+                  count: dailyTarget.toLocaleString(),
+                }) ||
+                  `You completed daily goal ${dailyTarget.toLocaleString()}`}
+              </Text>
+              <Text style={styles.extraTodayLine}>
+                {t('extraJapasTodayLine', {
+                  count: extrasToday.toLocaleString(),
+                }) ||
+                  `You chanted extra ${extrasToday.toLocaleString()}`}
+              </Text>
+            </View>
+          ) : (
+            <Text style={styles.dailyGoalLine}>
+              {t('dailyGoalLabel') || 'Daily Goal'}:{' '}
+              {todayTotal.toLocaleString()}
+              {' / '}
+              {dailyTarget.toLocaleString()}
+            </Text>
+          )
         ) : null}
         <View
           style={[
@@ -1676,6 +1793,7 @@ const ChantScreen = () => {
           style={styles.progressBtn}
           onPress={() => {
             if (challengeId) {
+              void persistDraft(countRef.current, postedCountRef.current);
               navigation.navigate('ChallengeProgress', {id: challengeId});
               return;
             }
@@ -1686,19 +1804,24 @@ const ChantScreen = () => {
               matchedGoalIdRef.current ||
               Number(route.params?.japaGoalId || 0) ||
               undefined;
-            navigation.navigate('JapaProgress', {
-              count: savedTotal + count,
-              goal: progressDaily,
-              dailyTarget: progressDaily,
-              todayCount: todaySavedRef.current,
-              sessionCount: count,
-              // Lock Progress to THIS mantra — do not fall back to last-chanted other goal.
-              japaGoalId: lockedGoalId,
-              mantraName:
-                chip?.name ||
-                route.params?.privateMantra ||
-                route.params?.challengeMantra,
-            });
+            // Keep mid-session draft so Progress can show Resume.
+            void persistDraft(countRef.current, postedCountRef.current).then(
+              () => {
+                navigation.navigate('JapaProgress', {
+                  count: savedTotal + countRef.current,
+                  goal: progressDaily,
+                  dailyTarget: progressDaily,
+                  todayCount: todaySavedRef.current,
+                  sessionCount: countRef.current,
+                  // Lock Progress to THIS mantra — do not fall back to last-chanted other goal.
+                  japaGoalId: lockedGoalId,
+                  mantraName:
+                    chip?.name ||
+                    route.params?.privateMantra ||
+                    route.params?.challengeMantra,
+                });
+              },
+            );
           }}>
           <Text style={styles.progressBtnText}>
             {challengeId ? t('viewChallengeProgress') : t('viewProgress')}
@@ -1957,6 +2080,24 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     textAlign: 'center',
   },
+  dailyExtraBox: {
+    marginTop: 8,
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 12,
+  },
+  dailyGoalDoneLine: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+    textAlign: 'center',
+  },
+  extraTodayLine: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+    textAlign: 'center',
+  },
   countZone: {
     width: '100%',
     minHeight: 390,
@@ -2012,6 +2153,13 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.sacredBrown,
     includeFontPadding: true,
+  },
+  /** Daily + extras (e.g. 1223 + 10) — slightly tighter to fit the ring. */
+  countDailyExtra: {
+    fontSize: 28,
+    lineHeight: 34,
+    paddingHorizontal: 8,
+    textAlign: 'center',
   },
   japas: {
     marginTop: 2,

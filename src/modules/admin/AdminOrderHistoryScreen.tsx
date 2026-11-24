@@ -422,6 +422,13 @@ const AdminOrderHistoryScreen = () => {
               : null,
           userReceived: Boolean(row.userReceived ?? row.user_received),
           userReceivedAt: row.userReceivedAt || row.user_received_at || '',
+          statusHistory: Array.isArray(row.statusHistory)
+            ? row.statusHistory.map((ev: any) => ({
+                status: String(ev.status || ev.statusCode || ''),
+                statusCode: String(ev.statusCode || ''),
+                at: String(ev.at || ''),
+              }))
+            : [],
         }))
         // Shipped and delivered orders belong in Order History
         .filter(
@@ -735,6 +742,34 @@ const AdminOrderHistoryScreen = () => {
                     )}
                   </Text>
                 ) : null}
+                {(order.statusHistory || [])
+                  .filter(ev => {
+                    const code = String(ev.statusCode || ev.status || '')
+                      .toUpperCase()
+                      .replace(/\s+/g, '_');
+                    return [
+                      'CONFIRMED',
+                      'PROCESSING',
+                      'READY',
+                      'PACKING',
+                      'SHIPPED',
+                      'DELIVERED',
+                      'CALLED_TALKED',
+                      'CALLED_DEVOTEE',
+                      'SANKALP_TAKEN',
+                    ].includes(code) ||
+                      ['Confirmed', 'Packing', 'Shipped', 'Delivered', 'Called Devotee', 'Sankalp Taken'].includes(
+                        String(ev.status || ''),
+                      );
+                  })
+                  .map((ev, idx) => (
+                    <Text
+                      key={`${order.id}-${ev.statusCode || ev.status}-${idx}`}
+                      selectable={true}
+                      style={styles.dateText}>
+                      {ev.status}:{ev.at ? ` ${formatOrderWhen(ev.at)}` : ' —'}
+                    </Text>
+                  ))}
               </View>
 
               <View style={styles.statusCol}>

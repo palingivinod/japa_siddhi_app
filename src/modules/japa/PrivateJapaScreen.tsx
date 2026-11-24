@@ -21,7 +21,17 @@ import OutlineButton from '../common/OutlineButton';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
 
-const PRESET_GOALS = [108, 1008, 10116, 50116, 100116];
+const PRESET_GOALS = [
+  108,
+  1008,
+  10116,
+  50116,
+  100116,
+  200116,
+  300116,
+  400116,
+  500116,
+];
 const DAILY_PRESET_GOALS = [108, 216, 324, 1008, 2016];
 const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineToday' as const, days: 1},
@@ -32,6 +42,7 @@ const QUICK_DEADLINE_DAYS = [
   {labelKey: 'deadlineDays61' as const, days: 61},
   {labelKey: 'deadlineDays91' as const, days: 91},
   {labelKey: 'deadlineDays108' as const, days: 108},
+  {labelKey: 'deadlineDays216' as const, days: 216},
 ];
 
 type GoalMode = 'total' | 'daily';

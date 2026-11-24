@@ -242,6 +242,8 @@ export type RootStackParamList = {
     durationMs?: number;
     resume?: boolean;
     initialCount?: number;
+    /** Already-posted watermark for resume — avoids 0 flash before draft load. */
+    postedCount?: number;
     /** Today's saved count for this goal — lets Chant unlock without waiting on APIs. */
     todayCompletedCount?: number;
     dailyTarget?: number;

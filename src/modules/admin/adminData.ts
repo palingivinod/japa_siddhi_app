@@ -59,6 +59,8 @@ export type AdminReward = {
   description?: string;
   eligibilityCriteria?: number;
   unlockMode?: 'fixed' | 'relative';
+  /** Claim order ID prefix (e.g. BL, MSC) — editable by admin. */
+  orderPrefix?: string | null;
   stock?: number;
   inStock?: boolean;
   adminMarkedOos?: boolean;
@@ -173,6 +175,12 @@ export type AdminOrder = {
   userCode?: string;
   userReceived?: boolean;
   userReceivedAt?: string;
+  /** Admin status timeline from order_status_events. */
+  statusHistory?: Array<{
+    status: string;
+    statusCode?: string;
+    at: string;
+  }>;
 };
 
 export type AdminPaymentRow = {

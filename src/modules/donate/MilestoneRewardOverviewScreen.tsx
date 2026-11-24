@@ -113,7 +113,7 @@ const MilestoneRewardOverviewScreen = () => {
       placeOrder();
       return;
     }
-    promptRewardAddressDisclaimer(t, placeOrder);
+    promptRewardAddressDisclaimer(t, placeOrder, () => navigation.goBack());
   };
 
   return (

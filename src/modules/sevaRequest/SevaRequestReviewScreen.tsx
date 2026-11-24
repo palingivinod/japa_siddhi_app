@@ -24,6 +24,82 @@ const SevaRequestReviewScreen = () => {
   const address = String(params.address || '').trim();
   const hasAddress = address.length > 0;
 
+  const blockOpenOrder = (msg?: string) => {
+    Alert.alert(
+      t('openOrderBlockTitle') ||
+        t('banaLingamPendingOrderTitle') ||
+        'Order In Review',
+      msg ||
+        t('openOrderBlockMessage') ||
+        'Already one order is in review. You can order another once your previous order is delivered.',
+      [
+        {
+          text: t('myOrders') || 'My Orders',
+          onPress: () => navigation.navigate('Orders'),
+        },
+        {
+          text: t('ok') || 'OK',
+          style: 'cancel',
+        },
+      ],
+    );
+  };
+
+  const blockCooldown = (message: string) => {
+    Alert.alert(
+      t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
+      message,
+      [{text: t('ok') || 'OK'}],
+    );
+  };
+
+  const preflightGates = async (): Promise<boolean> => {
+    try {
+      const ordersRes = await apiService.get('/orders');
+      const {ordersFromApiResponse, findOpenProductOrder} = await import(
+        '../../utils/openProductOrderGate'
+      );
+      const allOrders = ordersFromApiResponse(ordersRes);
+      const open = findOpenProductOrder(allOrders);
+      if (open) {
+        blockOpenOrder();
+        return false;
+      }
+      const {findBhasmamReorderCooldown, isBhasmamCooldownKind} = await import(
+        '../../utils/bhasmamReorderCooldown'
+      );
+      if (isBhasmamCooldownKind(request.kind)) {
+        const cooldown = findBhasmamReorderCooldown(
+          allOrders,
+          request.matchOrder,
+          new Date(),
+          iso => shortMonthDayYear(t, iso),
+        );
+        if (cooldown) {
+          const label = t(request.titleKey) || 'this item';
+          blockCooldown(
+            t('bhasmamReorderCooldownMessage', {
+              item: label,
+              orderedOn: cooldown.orderedOnLabel,
+              availableOn: cooldown.availableOnLabel,
+            }) ||
+              `You ordered ${label} on ${cooldown.orderedOnLabel}. You can order again after 30 days, on ${cooldown.availableOnLabel}.`,
+          );
+          return false;
+        }
+      }
+      return true;
+    } catch {
+      Alert.alert(
+        t(request.titleKey),
+        t('couldNotLoadOrders') ||
+          'Could not verify your existing orders. Please try again.',
+        [{text: t('ok') || 'OK'}],
+      );
+      return false;
+    }
+  };
+
   const submitOrder = async () => {
     if (!hasAddress) {
       Alert.alert(t(request.titleKey), t('addAddressBeforeApplication'));
@@ -32,6 +108,10 @@ const SevaRequestReviewScreen = () => {
     setDisclaimerAccepted(true);
     setSaving(true);
     try {
+      const allowed = await preflightGates();
+      if (!allowed) {
+        return;
+      }
       await saveDeliveryAddress(address);
       const response = await apiService.post('/donations/checkout', {
         kind: request.kind,
@@ -61,20 +141,7 @@ const SevaRequestReviewScreen = () => {
         lower.includes('in progress') ||
         lower.includes('in review')
       ) {
-        Alert.alert(
-          t('banaLingamPendingOrderTitle') || 'Order In Review',
-          msg,
-          [
-            {
-              text: t('myOrders') || 'My Orders',
-              onPress: () => navigation.navigate('Orders'),
-            },
-            {
-              text: t('ok') || 'OK',
-              style: 'cancel',
-            },
-          ],
-        );
+        blockOpenOrder(msg);
       } else if (
         lower.includes('30 days') ||
         lower.includes('order again after')
@@ -87,7 +154,10 @@ const SevaRequestReviewScreen = () => {
           } = await import('../../utils/bhasmamReorderCooldown');
           if (isBhasmamCooldownKind(request.kind)) {
             const ordersRes = await apiService.get('/orders').catch(() => null);
-            const allOrders = ordersRes?.data?.data || [];
+            const {ordersFromApiResponse} = await import(
+              '../../utils/openProductOrderGate'
+            );
+            const allOrders = ordersFromApiResponse(ordersRes);
             const cooldown = findBhasmamReorderCooldown(
               allOrders,
               request.matchOrder,
@@ -108,11 +178,7 @@ const SevaRequestReviewScreen = () => {
         } catch {
           // Keep API message if local rebuild fails.
         }
-        Alert.alert(
-          t('bhasmamReorderCooldownTitle') || 'Please wait 30 days',
-          cooldownMessage,
-          [{text: t('ok') || 'OK'}],
-        );
+        blockCooldown(cooldownMessage);
       } else {
         Alert.alert(t('applicationOverview'), msg);
       }
@@ -126,7 +192,7 @@ const SevaRequestReviewScreen = () => {
       submitOrder();
       return;
     }
-    promptRewardAddressDisclaimer(t, submitOrder);
+    promptRewardAddressDisclaimer(t, submitOrder, () => navigation.goBack());
   };
 
   return (

@@ -1,5 +1,6 @@
 import {istIsoDate, shiftIsoDate} from './dateUtils';
 import type {SevaRequestConfig} from '../modules/sevaRequest/sevaRequestConfig';
+import {parseOrderCreatedMs} from './orderCreatedMs';
 
 export const BHASMAM_REORDER_COOLDOWN_DAYS = 30;
 
@@ -17,8 +18,7 @@ const orderCreatedMs = (ord: any): number => {
     ord?.orderDate ||
     ord?.orderedAt ||
     '';
-  const ms = new Date(String(raw).replace(' ', 'T')).getTime();
-  return Number.isFinite(ms) ? ms : 0;
+  return parseOrderCreatedMs(raw);
 };
 
 const matchesSevaOrder = (ord: any, matchOrder: SevaRequestConfig['matchOrder']) => {

@@ -66,3 +66,16 @@ export interface UpdateJapaGoalRequest {
     | 'CANCELLED';
 
 }
+
+/** Raise target on the same goal row (do not create / cancel). */
+export interface ExtendJapaGoalRequest {
+  targetCount: number;
+  days?: number;
+  /** Optional new deadline (YYYY-MM-DD). Blank = keep existing deadline. */
+  endDate?: string | null;
+  notes?: string | null;
+}
+
+export interface ChangeJapaGoalDeadlineRequest {
+  endDate: string;
+}
