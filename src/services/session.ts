@@ -193,6 +193,8 @@ export const clearSession = async () => {
     userScopedKey('japa_goal_drafts'),
     userScopedKey('saved_delivery_addresses'),
     userScopedKey('last_chanted_japa'),
+    // Offline copy of Your Japas cards (display only).
+    userScopedKey('japa_cards_offline_v1'),
   ]);
   memoryUser = null;
   notify(null);

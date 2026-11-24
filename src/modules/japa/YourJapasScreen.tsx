@@ -16,6 +16,11 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../services/apiService';
 import {getStoredUser} from '../../services/session';
+import {
+  formatSavedAt,
+  readOfflineJapaCards,
+  saveOfflineJapaCards,
+} from '../../services/offlineJapaCards';
 import Colors from '../../theme/colors';
 import {calcDaysRemaining} from '../../utils/dailyGoal';
 import {istIsoDate} from '../../utils/dateUtils';
@@ -44,6 +49,8 @@ const isoDaysBefore = (iso: string, days: number) => {
 
 export type ActiveJapaItem = {
   id: string;
+  /** Shown from the offline copy (no internet). Read-only: no chant, deadline or delete. */
+  fromSaved?: boolean;
   goalId?: number;
   challengeId?: number;
   mantraId?: number;
@@ -83,6 +90,10 @@ const YourJapasScreen = () => {
   const {t, tt, language} = useLanguage();
   const [japas, setJapas] = useState<ActiveJapaItem[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Time of the saved copy shown because there is no internet (null = live data). */
+  const [savedAsOf, setSavedAsOf] = useState<number | null>(null);
+  /** No internet and no saved copy yet, so say so instead of "no japas". */
+  const [noInternetNoSaved, setNoInternetNoSaved] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [lingamBanner, setLingamBanner] = useState<{
@@ -147,9 +158,36 @@ const YourJapasScreen = () => {
 
       const items: ActiveJapaItem[] = [];
 
+      // Live responses win. The saved copy is used only for a request that failed.
+      const goalsOnline = goalsRes.status === 'fulfilled';
+      const challengesOnline = challengesRes.status === 'fulfilled';
+      const saved = !goalsOnline || !challengesOnline ? await readOfflineJapaCards() : null;
+      if (goalsOnline && Array.isArray(goalsRes.value.data?.data)) {
+        void saveOfflineJapaCards({goals: goalsRes.value.data.data});
+      }
+      if (challengesOnline && Array.isArray(challengesRes.value.data?.data)) {
+        void saveOfflineJapaCards({challenges: challengesRes.value.data.data});
+      }
+      const goalsPayload: any[] | null = goalsOnline
+        ? goalsRes.value.data?.data ?? []
+        : saved?.goals ?? null;
+      const challengesPayload: any[] | null = challengesOnline
+        ? challengesRes.value.data?.data ?? []
+        : saved?.challenges ?? null;
+      const goalsFromSaved = !goalsOnline && goalsPayload !== null;
+      const challengesFromSaved = !challengesOnline && challengesPayload !== null;
+      const showingSaved = goalsFromSaved || challengesFromSaved;
+      const savedTimes = [
+        goalsFromSaved ? saved?.goalsSavedAt : undefined,
+        challengesFromSaved ? saved?.challengesSavedAt : undefined,
+      ].filter((value): value is number => typeof value === 'number');
+      setSavedAsOf(showingSaved && savedTimes.length ? Math.min(...savedTimes) : null);
+      setNoInternetNoSaved(!goalsOnline && !challengesOnline && !showingSaved);
+
       // 1. Process Japa Goals (Own / Antharanga & Community Goals)
-      if (goalsRes.status === 'fulfilled') {
-        const rawGoals = goalsRes.value.data?.data ?? [];
+      if (goalsPayload !== null) {
+        const rawGoals = goalsPayload;
+        // Saved copy: read only. Do not write plan snapshots from stale numbers.
         const planSnaps = await readDailyPlanSnaps();
         const todayIso = istIsoDate();
         const validGoals = rawGoals.filter((goal: any) => {
@@ -244,7 +282,9 @@ const YourJapasScreen = () => {
               saved: planSnaps[String(goal.id)] || null,
             });
             dailyTarget = plan.target;
-            void writeDailyPlanSnap(Number(goal.id), plan.snap);
+            if (!goalsFromSaved) {
+              void writeDailyPlanSnap(Number(goal.id), plan.snap);
+            }
           }
 
           let sourceType: JapaSourceType = 'CATALOG';
@@ -273,6 +313,7 @@ const YourJapasScreen = () => {
 
           items.push({
             id: `goal-${goal.id}`,
+            fromSaved: goalsFromSaved,
             goalId: Number(goal.id),
             mantraId: goal.mantraId ? Number(goal.mantraId) : undefined,
             personalMantraId: goal.personalMantraId
@@ -310,8 +351,8 @@ const YourJapasScreen = () => {
       }
 
       // 2. Process Joined Challenges
-      if (challengesRes.status === 'fulfilled') {
-        const rawChallenges = challengesRes.value.data?.data ?? [];
+      if (challengesPayload !== null) {
+        const rawChallenges = challengesPayload;
         rawChallenges.forEach((ch: any) => {
           if (!ch.joined) return;
 
@@ -342,6 +383,7 @@ const YourJapasScreen = () => {
 
           items.push({
             id: `challenge-${ch.id}`,
+            fromSaved: challengesFromSaved,
             challengeId: Number(ch.id),
             mantraName: String(ch.title || ch.mantra || 'Challenge Mantra').trim(),
             sourceType: 'CHALLENGE',
@@ -382,6 +424,11 @@ const YourJapasScreen = () => {
       setLoading(false);
 
       // Blinking banner for unread lingam-advice notification (5k / 8k).
+      if (!goalsOnline || !challengesOnline) {
+        // Offline: skip the inbox check and keep the banner off.
+        setLingamBanner(null);
+        return;
+      }
       try {
         const stored = await getStoredUser();
         const userId = stored?.id || stored?.userId || 'anon';
@@ -428,6 +475,10 @@ const YourJapasScreen = () => {
   };
 
   const handleChantPress = (item: ActiveJapaItem) => {
+    // Saved (offline) cards must never open chant: their counts may be old.
+    if (item.fromSaved) {
+      return;
+    }
     if (item.isChallenge && item.challengeId) {
       if (item.isCompleted) {
         navigation.navigate('ChallengeProgress', {id: item.challengeId});
@@ -491,6 +542,9 @@ const YourJapasScreen = () => {
     Boolean(item.isExpired) || isDeadlinePassed(item);
 
   const saveDeadline = async (item: ActiveJapaItem) => {
+    if (item.fromSaved) {
+      return;
+    }
     const day = deadlineDraft.trim();
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day < istIsoDate()) {
       Alert.alert(
@@ -539,6 +593,9 @@ const YourJapasScreen = () => {
   };
 
   const confirmDelete = (item: ActiveJapaItem) => {
+    if (item.fromSaved) {
+      return;
+    }
     if (!item.goalId && !item.challengeId) {
       return;
     }
@@ -619,9 +676,25 @@ const YourJapasScreen = () => {
           </TouchableOpacity>
         </View>
 
+        {savedAsOf ? (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineBannerText}>
+              {t('japaOfflineSavedBanner', {time: formatSavedAt(savedAsOf)})}
+            </Text>
+          </View>
+        ) : null}
+
         {loading ? (
           <View style={styles.loadingBox}>
             <ActivityIndicator size="large" color={Colors.templeGold} />
+          </View>
+        ) : japas.length === 0 && noInternetNoSaved ? (
+          /* No internet and nothing saved on this phone yet */
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyTitle}>
+              {t('japaNoInternetTitle')}
+            </Text>
+            <Text style={styles.emptyDesc}>{t('japaNoInternetDesc')}</Text>
           </View>
         ) : japas.length === 0 ? (
           /* Empty State */
@@ -766,7 +839,7 @@ const YourJapasScreen = () => {
                         ? 'This goal has expired. Your japas are saved.'
                         : 'Today is the deadline. Extend it or choose a new date, otherwise this goal expires.'}
                     </Text>
-                    {item.isExpired ? null : deadlineEditId === item.id ? (
+                    {item.isExpired || item.fromSaved ? null : deadlineEditId === item.id ? (
                       <>
                         <TextInput
                           style={styles.deadlineInput}
@@ -834,7 +907,11 @@ const YourJapasScreen = () => {
                   </View>
                 </View>
 
-                {item.isExpired ? null : item.isCompleted ? (
+                {item.fromSaved ? (
+                  <Text style={styles.offlineNote}>
+                    {t('japaOfflineActionsDisabled')}
+                  </Text>
+                ) : item.isExpired ? null : item.isCompleted ? (
                   <TouchableOpacity
                     style={[styles.chantBtn, styles.completedBtn]}
                     activeOpacity={0.85}
@@ -853,15 +930,17 @@ const YourJapasScreen = () => {
                     </Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity
-                  style={styles.deleteBtn}
-                  activeOpacity={0.85}
-                  disabled={deletingId === item.id}
-                  onPress={() => confirmDelete(item)}>
-                  <Text style={styles.deleteBtnText}>
-                    {deletingId === item.id ? t('loading') : t('delete')}
-                  </Text>
-                </TouchableOpacity>
+                {item.fromSaved ? null : (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    activeOpacity={0.85}
+                    disabled={deletingId === item.id}
+                    onPress={() => confirmDelete(item)}>
+                    <Text style={styles.deleteBtnText}>
+                      {deletingId === item.id ? t('loading') : t('delete')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             );
           })
@@ -912,6 +991,28 @@ const styles = StyleSheet.create({
     color: Colors.sacredBrown,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  offlineBanner: {
+    marginBottom: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E0C58A',
+    backgroundColor: '#FFF4DC',
+  },
+  offlineBannerText: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+  },
+  offlineNote: {
+    color: Colors.sacredBrown,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginVertical: 12,
   },
   expiredInfo: {
     marginBottom: 8,

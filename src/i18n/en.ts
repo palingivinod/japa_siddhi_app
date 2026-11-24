@@ -1406,6 +1406,10 @@ const en = {
   pickDate: '📅 Calendar',
   deadlineInvalid: 'Enter a valid date as YYYY-MM-DD (today or later).',
   rateUsOnPlayStore: 'Rate us on Play Store',
+  japaOfflineSavedBanner: 'Offline. Showing your japas as of {{time}}. Counts may be older.',
+  japaOfflineActionsDisabled: 'Connect to the internet to chant or change this japa.',
+  japaNoInternetTitle: 'No internet connection',
+  japaNoInternetDesc: 'Your japas will show here when you are online.',
   privacyUpdated: 'Last updated: 16 August 2026',
   privacyIntro:
     'Japa Siddhi is operated by Bilva Patra Trust. This policy explains what we collect and how we use it when you use the Japa Siddhi app.',
