@@ -11,6 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import {useFocusEffect, useNavigation} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
@@ -94,6 +95,13 @@ const YourJapasScreen = () => {
   const [savedAsOf, setSavedAsOf] = useState<number | null>(null);
   /** No internet and no saved copy yet, so say so instead of "no japas". */
   const [noInternetNoSaved, setNoInternetNoSaved] = useState(false);
+  /** Counts every load; only the newest load may update the screen. */
+  const loadSeqRef = useRef(0);
+  /** True while the list is the saved copy (or empty because offline). */
+  const needsReloadRef = useRef(false);
+  const reconnectBusyRef = useRef(false);
+  /** The phone reported "offline" while this screen was open. */
+  const offlineSeenRef = useRef(false);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [lingamBanner, setLingamBanner] = useState<{
@@ -150,6 +158,9 @@ const YourJapasScreen = () => {
   };
 
   const loadActiveJapas = useCallback(async () => {
+    // A slow, older load must never overwrite a newer one (e.g. an offline
+    // attempt finishing after the connection came back).
+    const seq = ++loadSeqRef.current;
     try {
       const [goalsRes, challengesRes] = await Promise.allSettled([
         apiService.get('/japa-goals'),
@@ -162,6 +173,9 @@ const YourJapasScreen = () => {
       const goalsOnline = goalsRes.status === 'fulfilled';
       const challengesOnline = challengesRes.status === 'fulfilled';
       const saved = !goalsOnline || !challengesOnline ? await readOfflineJapaCards() : null;
+      if (seq !== loadSeqRef.current) {
+        return;
+      }
       if (goalsOnline && Array.isArray(goalsRes.value.data?.data)) {
         void saveOfflineJapaCards({goals: goalsRes.value.data.data});
       }
@@ -418,6 +432,9 @@ const YourJapasScreen = () => {
         return a.mantraName.localeCompare(b.mantraName);
       });
 
+      if (seq !== loadSeqRef.current) {
+        return;
+      }
       setJapas(items);
       // Show the list as soon as goals/challenges are ready — do not wait on
       // the lingam-advice inbox fetch (that was keeping the spinner up).
@@ -438,6 +455,9 @@ const YourJapasScreen = () => {
         const notes = Array.isArray(notesRes?.data?.data)
           ? notesRes.data.data
           : [];
+        if (seq !== loadSeqRef.current) {
+          return;
+        }
         const advice = notes.find((row: any) => isLingamAdviceNotification(row));
         if (advice) {
           const milestone = lingamAdviceMilestone(advice) || 5000;
@@ -458,13 +478,54 @@ const YourJapasScreen = () => {
       }
     } catch (error) {
       console.log('Error loading active japas', error);
-      setLoading(false);
+      if (seq === loadSeqRef.current) {
+        setLoading(false);
+      }
     }
   }, [t, language]);
 
   useFocusEffect(
     useCallback(() => {
       loadActiveJapas();
+    }, [loadActiveJapas]),
+  );
+
+  needsReloadRef.current = savedAsOf !== null || noInternetNoSaved;
+
+  // When the connection returns while this screen is open, reload the live list
+  // (only if we are currently showing the saved copy / "no internet"). This is a
+  // read-only reload: the same GETs as pull-to-refresh.
+  useFocusEffect(
+    useCallback(() => {
+      let unsubscribe: (() => void) | undefined;
+      try {
+        unsubscribe = NetInfo.addEventListener(state => {
+          const online =
+            state.isConnected === true && state.isInternetReachable !== false;
+          if (!online) {
+            offlineSeenRef.current = true;
+            return;
+          }
+          // Reload when we are showing the saved copy, or when the phone was
+          // offline while a load was still waiting (it may end on the saved copy).
+          if (
+            !(needsReloadRef.current || offlineSeenRef.current) ||
+            reconnectBusyRef.current
+          ) {
+            return;
+          }
+          offlineSeenRef.current = false;
+          reconnectBusyRef.current = true;
+          loadActiveJapas().finally(() => {
+            reconnectBusyRef.current = false;
+          });
+        });
+      } catch {
+        // No network listener available: pull-to-refresh and re-opening still work.
+      }
+      return () => {
+        unsubscribe?.();
+      };
     }, [loadActiveJapas]),
   );
 
