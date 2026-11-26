@@ -7823,7 +7823,31 @@ router.post(
             message: 'Reward not found.',
           });
         }
-        const path = publicRewardPath(file.filename);
+        // Prefer Firebase Storage (survives Render redeploys). Fall back to the
+        // local path only if Firebase is unavailable or the upload fails.
+        let path = publicRewardPath(file.filename);
+        try {
+          const {
+            deleteLocalUploadQuietly,
+            isFirebaseStorageReady,
+            uploadFileToFirebase,
+          } = await import('../../firebase/firebaseStorage');
+          if (isFirebaseStorageReady() && file.path) {
+            const cloudUrl = await uploadFileToFirebase({
+              localPath: file.path,
+              filename: file.filename,
+              folder: 'rewards',
+              contentType: file.mimetype,
+            });
+            deleteLocalUploadQuietly(file.path);
+            path = cloudUrl;
+          }
+        } catch (firebaseError: any) {
+          console.warn(
+            'Firebase Storage reward image upload failed; keeping local copy:',
+            firebaseError?.message || firebaseError,
+          );
+        }
         await mysql.query(
           `UPDATE challenge_rewards SET image_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
           [path, id],
