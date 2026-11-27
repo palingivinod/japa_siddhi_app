@@ -650,6 +650,8 @@ const TABLES_WITHOUT_ID_SERIAL = new Set([
   'annadanam_features',
   'mantra_category_seed',
   'user_annadanam_milestones',
+  // Keyed by `slug` (no id column): without this, INSERT gets ", RETURNING id" and fails.
+  'admin_shared_notification',
 ]);
 
 const ALL_TABLES_IN_COPY_ORDER = [
