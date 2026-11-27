@@ -73,12 +73,19 @@ export type CreateSharedNotificationInput = {
  * Save a notification's content and return its share link.
  * Never throws: a failure here must not block the admin send itself.
  */
+let lastSharedError = '';
+
+/** Reason the last share-link creation failed (empty when it worked). Shown to admins. */
+export const getLastSharedNotificationError = () => lastSharedError;
+
 export const createSharedNotification = async (
   input: CreateSharedNotificationInput,
 ): Promise<{slug: string; url: string} | null> => {
+  lastSharedError = '';
   try {
     await ensureSharedTable();
   } catch (err) {
+    lastSharedError = `table: ${(err as any)?.message || String(err)}`.slice(0, 300);
     console.warn('[shared-notify] table ensure failed:', (err as any)?.message || err);
     return null;
   }
@@ -104,6 +111,7 @@ export const createSharedNotification = async (
       );
       return {slug, url: sharedNotificationUrl(slug)};
     } catch (err) {
+      lastSharedError = `insert: ${(err as any)?.message || String(err)}`.slice(0, 300);
       console.warn('[shared-notify] insert attempt failed:', (err as any)?.message || err);
     }
   }

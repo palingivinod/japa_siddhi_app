@@ -122,6 +122,8 @@ app.get('/', async (_, res) => {
     version: '1.0.0',
     status: 'Running',
     database: database.getEngineName(),
+    // Render sets this on every deploy: shows which commit is actually live.
+    commit: String(process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || undefined,
   });
 });
 

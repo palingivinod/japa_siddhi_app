@@ -5,7 +5,10 @@ import {admin, isFirebaseReady} from '../../firebase/firebase';
 import notificationRepository from '../notification/notification.repository';
 import notificationService from '../notification/notification.service';
 
-import {createSharedNotification} from './sharedNotification.service';
+import {
+  createSharedNotification,
+  getLastSharedNotificationError,
+} from './sharedNotification.service';
 
 export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked' | 'selected_users';
 
@@ -1397,6 +1400,7 @@ export const sendAdminNotification = async (input: {
       queueId: insert.insertId,
       shareId: sharedScheduled?.slug || null,
       shareUrl: sharedScheduled?.url || null,
+      shareError: sharedScheduled ? null : getLastSharedNotificationError() || null,
       target: userIds.length ? 'selected_users' : target,
       userIds,
       testUser: testUserLabel || undefined,
@@ -1531,6 +1535,7 @@ export const sendAdminNotification = async (input: {
     queueId,
     shareId: sharedNow?.slug || null,
     shareUrl: sharedNow?.url || null,
+    shareError: sharedNow ? null : getLastSharedNotificationError() || null,
     sendAt: localDateTime(),
     recipientCount: userIds.length,
     inboxCreated: 0,
