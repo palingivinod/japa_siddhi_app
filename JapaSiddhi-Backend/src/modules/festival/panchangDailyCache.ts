@@ -26,8 +26,10 @@ const settingKeyFor = (isoDate: string) => `panchang_daily_${isoDate}`;
 const claimKeyFor = (isoDate: string) => `panchang_fetch_claim_${isoDate}`;
 /** After a failed Prokerala attempt, skip external calls for this long (saves quota). */
 const FAIL_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+// Navamsha has its own cooldown key so an old Prokerala/VedicOrbit failure
+// cooldown never blocks the first Navamsha attempt for the day.
 const failCooldownKeyFor = (isoDate: string) =>
-  `panchang_fetch_cooldown_${isoDate}`;
+  `panchang_fetch_cooldown_${isNavamshaConfigured() ? 'nav_' : ''}${isoDate}`;
 
 /** IST calendar YYYY-MM-DD. */
 export const istCalendarDate = (value?: Date | null) =>
@@ -331,9 +333,16 @@ export const ensureDailyPanchang = async (
     localUpgradeAttempted.add(isoDate);
     upgradeFromLocal = true;
     console.log(
-      `[panchang-daily] Upgrading local cache for ${isoDate} via Prokerala`,
+      `[panchang-daily] Upgrading local cache for ${isoDate} via ${
+        isNavamshaConfigured() ? 'Navamsha' : 'Prokerala'
+      }`,
     );
-    // Keep serving the old local row to other requests — do NOT clear DB first.
+    // The claim row written by the earlier (local) fetch is never removed, so
+    // without this the upgrade could never take the claim and silently stayed local.
+    // Safe: localUpgradeAttempted allows only one upgrade try per process per day,
+    // and the failure cooldown still limits retries after a provider error.
+    await clearPanchangFetchClaim(isoDate);
+    // Keep serving the old local row to other requests — do NOT clear the stored payload.
   }
 
   const pending = inflight.get(isoDate);
