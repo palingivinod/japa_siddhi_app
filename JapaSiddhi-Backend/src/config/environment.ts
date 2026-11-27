@@ -140,6 +140,13 @@ const environment = {
 
   PROKERALA_AYANAMSA: Number(process.env.PROKERALA_AYANAMSA || 1),
 
+  // Navamsha astrology API (primary panchang source; server-side only).
+  // Set NAVAMSHA_API_KEY on Render. Never put the key in code or chat.
+  NAVAMSHA_API_KEY: String(process.env.NAVAMSHA_API_KEY || '').trim(),
+  NAVAMSHA_LAT: Number(process.env.NAVAMSHA_LAT || 19.076),
+  NAVAMSHA_LON: Number(process.env.NAVAMSHA_LON || 72.8777),
+  NAVAMSHA_TIMEZONE: Number(process.env.NAVAMSHA_TIMEZONE || 5.5),
+
   DEV_LOGIN_EMAIL:
     process.env.DEV_LOGIN_EMAIL || 'test@japasiddhi.local',
 

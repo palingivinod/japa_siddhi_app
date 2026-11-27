@@ -3,6 +3,10 @@ import appSettingsService from '../admin/appSettings.service';
 import {getPanchang} from './panchang';
 import {PanchangResult} from './panchang';
 import {
+  fetchNavamshaPanchang,
+  isNavamshaConfigured,
+} from './navamshaPanchang';
+import {
   fetchProkeralaPanchang,
   isProkeralaConfigured,
 } from './prokeralaPanchang';
@@ -110,7 +114,20 @@ const fetchOnceForDate = async (
   let loaded: PanchangResult | null = null;
   let usedExternal = false;
 
-  if (isProkeralaConfigured()) {
+  // Navamsha first (one 4-credit call per IST day, then cached), then the older sources.
+  if (isNavamshaConfigured()) {
+    try {
+      loaded = await fetchNavamshaPanchang({date: isoDate});
+      usedExternal = true;
+    } catch (error) {
+      console.error(
+        '[panchang-daily] Navamsha failed, trying Prokerala:',
+        errorDetail(error),
+      );
+    }
+  }
+
+  if (!loaded && isProkeralaConfigured()) {
     try {
       loaded = await fetchProkeralaPanchang({date: isoDate, lang: 'en'});
       usedExternal = true;
@@ -305,7 +322,7 @@ export const ensureDailyPanchang = async (
     const inCooldown = cooldownUntil > Date.now();
     const shouldUpgrade =
       isWeakPanchangSource(source) &&
-      isProkeralaConfigured() &&
+      (isNavamshaConfigured() || isProkeralaConfigured()) &&
       !localUpgradeAttempted.has(isoDate) &&
       !inCooldown;
     if (!shouldUpgrade) {
@@ -337,7 +354,7 @@ export const ensureDailyPanchang = async (
 
     try {
       const {payload, usedExternal} = await fetchOnceForDate(isoDate);
-      if (!usedExternal && isProkeralaConfigured()) {
+      if (!usedExternal && (isNavamshaConfigured() || isProkeralaConfigured())) {
         // Don't burn quota every minute when Prokerala is down/misconfigured.
         await writeFailCooldown(isoDate);
       } else if (usedExternal) {
@@ -378,7 +395,7 @@ export const refreshDailyPanchang = async (dateInput?: string) => {
     }
     try {
       const {payload, usedExternal} = await fetchOnceForDate(isoDate);
-      if (!usedExternal && isProkeralaConfigured()) {
+      if (!usedExternal && (isNavamshaConfigured() || isProkeralaConfigured())) {
         await writeFailCooldown(isoDate);
       } else if (usedExternal) {
         await clearFailCooldown(isoDate);
