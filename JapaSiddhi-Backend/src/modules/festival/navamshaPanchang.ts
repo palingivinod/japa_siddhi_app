@@ -1,4 +1,5 @@
 import environment from '../../config/environment';
+import {ChoghadiyaPeriod, ChoghadiyaResult} from './panchang';
 import {ExternalPanchangResult} from './vedicOrbitPanchang';
 
 /**
@@ -109,6 +110,98 @@ const displayDateFor = (isoDate: string) => {
   }).format(new Date(Date.UTC(year, month - 1, day, 12)));
 };
 
+const NAVAMSHA_CHOGHADIYA_PATH = '/api/v1/panchang/choghadiya';
+
+type NavamshaChoghadiyaSlot = {
+  name?: string;
+  slot?: number;
+  start?: string;
+  end?: string;
+};
+
+type NavamshaChoghadiyaOutput = {
+  day?: NavamshaChoghadiyaSlot[];
+  night?: NavamshaChoghadiyaSlot[];
+};
+
+/** Standard Choghadiya meaning, in the values the app card understands. */
+const CHOGHADIYA_EFFECT: Record<string, 'good' | 'neutral' | 'bad'> = {
+  amrit: 'good',
+  shubh: 'good',
+  labh: 'good',
+  char: 'neutral',
+  rog: 'bad',
+  kaal: 'bad',
+  udveg: 'bad',
+};
+
+const mapChoghadiya = (
+  out: NavamshaChoghadiyaOutput | undefined,
+): ChoghadiyaResult | undefined => {
+  if (!out) {
+    return undefined;
+  }
+  const toPeriods = (
+    slots: NavamshaChoghadiyaSlot[] | undefined,
+    period: 'day' | 'night',
+  ): ChoghadiyaPeriod[] =>
+    (Array.isArray(slots) ? slots : [])
+      .filter(slot => slot?.name && slot.start && slot.end)
+      .map(slot => ({
+        name: String(slot.name),
+        period,
+        effect: CHOGHADIYA_EFFECT[String(slot.name).toLowerCase()] || 'neutral',
+        startLocal: formatIstTime(slot.start) || '',
+        endLocal: formatIstTime(slot.end) || '',
+        startIso: String(slot.start),
+        endIso: String(slot.end),
+      }));
+  const periods = [
+    ...toPeriods(out.day, 'day'),
+    ...toPeriods(out.night, 'night'),
+  ];
+  if (!periods.length) {
+    return undefined;
+  }
+  // `current` stays null on purpose: this payload is cached for the whole day
+  // (or permanently for other dates), and the app picks the live slot from
+  // `periods` using the phone's clock.
+  return {current: null, periods};
+};
+
+/** One Navamsha POST. Throws on HTTP errors (402 = out of credits, 429 = rate limited). */
+const postNavamsha = async <T>(
+  path: string,
+  payload: Record<string, unknown>,
+  key: string,
+): Promise<{output?: T}> => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(`${NAVAMSHA_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'X-API-Key': key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+    const body = (await response.json().catch(() => ({}))) as {
+      output?: T;
+      message?: string;
+    };
+    if (!response.ok) {
+      throw new Error(
+        `Navamsha HTTP ${response.status}${body?.message ? `: ${body.message}` : ''}`,
+      );
+    }
+    return body;
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
 export const fetchNavamshaPanchang = async (options: {
   date: string;
 }): Promise<ExternalPanchangResult> => {
@@ -126,40 +219,36 @@ export const fetchNavamshaPanchang = async (options: {
     throw new Error(`Invalid Panchang date: ${options.date}`);
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-  let body: {statusCode?: number; output?: NavamshaOutput; message?: string};
-  try {
-    const response = await fetch(`${NAVAMSHA_BASE_URL}${NAVAMSHA_PATH}`, {
-      method: 'POST',
-      headers: {
-        'X-API-Key': key,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        year,
-        month,
-        date: day,
-        hours: SAMPLE_HOUR_IST,
-        minutes: 0,
-        latitude: environment.NAVAMSHA_LAT,
-        longitude: environment.NAVAMSHA_LON,
-        timezone: environment.NAVAMSHA_TIMEZONE,
-      }),
-      signal: controller.signal,
-    });
-    body = (await response.json().catch(() => ({}))) as typeof body;
-    if (!response.ok) {
-      // 402 = out of credits, 429 = rate limited. Caller falls back to the next source.
-      throw new Error(
-        `Navamsha HTTP ${response.status}${body?.message ? `: ${body.message}` : ''}`,
-      );
-    }
-  } finally {
-    clearTimeout(timer);
-  }
+  const requestBody = {
+    year,
+    month,
+    date: day,
+    hours: SAMPLE_HOUR_IST,
+    minutes: 0,
+    latitude: environment.NAVAMSHA_LAT,
+    longitude: environment.NAVAMSHA_LON,
+    timezone: environment.NAVAMSHA_TIMEZONE,
+  };
 
-  const out = body?.output;
+  // Panchang (4 credits) + Choghadiya (2 credits). If the Panchang call fails the
+  // caller falls back to the next source. A Choghadiya failure must not lose the
+  // rest of the day, so it is logged and skipped.
+  const [panchangBody, choghadiyaBody] = await Promise.all([
+    postNavamsha<NavamshaOutput>(NAVAMSHA_PATH, requestBody, key),
+    postNavamsha<NavamshaChoghadiyaOutput>(
+      NAVAMSHA_CHOGHADIYA_PATH,
+      requestBody,
+      key,
+    ).catch(error => {
+      console.warn(
+        '[navamsha] Choghadiya route failed; Panchang saved without it:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return null;
+    }),
+  ]);
+
+  const out = panchangBody?.output;
   if (!out) {
     throw new Error('Navamsha panchang response missing output');
   }
@@ -205,6 +294,7 @@ export const fetchNavamshaPanchang = async (options: {
     rahuKalam: formatWindow(rahu),
     gulikaKalam: formatWindow(gulika),
     yamagandam: formatWindow(yamaganda),
+    choghadiya: mapChoghadiya(choghadiyaBody?.output),
     auspiciousTimings: {amruthaGadiyalu: []},
   };
 };
