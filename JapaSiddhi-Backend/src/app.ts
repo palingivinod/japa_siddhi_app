@@ -188,6 +188,45 @@ app.get(['/ms', '/ms/:slug'], (req, res) => {
   );
 });
 
+// Shared admin notification link: opens the app on that notification,
+// or shows an Install button with the Play Store link when the app is missing.
+app.get('/n/:slug', async (req, res) => {
+  const lang = pickLandingLang({
+    queryLang: String(req.query.lang || req.query.hl || ''),
+    acceptLanguage: String(req.headers['accept-language'] || ''),
+  });
+  const slug = String(req.params.slug || '').trim();
+  const {getSharedNotification} = await import(
+    './modules/admin/sharedNotification.service'
+  );
+  const row = await getSharedNotification(slug).catch(() => null);
+  if (!row) {
+    return res.status(404).send(
+      renderDeepLinkLanding({
+        title: 'Japa Siddhi',
+        subtitle: 'This notification is no longer available.',
+        appDeepLink: 'japasiddhi://shared-notification/unavailable',
+        icon: '🔔',
+        lang,
+      }),
+    );
+  }
+  const localized = row.translations?.[lang];
+  const title = String(localized?.title || row.title || 'Japa Siddhi');
+  const body = String(localized?.message || row.message || '');
+  const subtitle =
+    body.length > 160 ? `${body.slice(0, 157).trimEnd()}…` : body;
+  res.status(200).send(
+    renderDeepLinkLanding({
+      title,
+      subtitle: subtitle || 'Open Japa Siddhi to read this notification.',
+      appDeepLink: `japasiddhi://shared-notification/${slug}`,
+      icon: '🔔',
+      lang,
+    }),
+  );
+});
+
 // Booking / seva flyer links
 app.get(['/book', '/book/:slug', '/booking', '/booking/:slug'], (req, res) => {
   const lang = pickLandingLang({

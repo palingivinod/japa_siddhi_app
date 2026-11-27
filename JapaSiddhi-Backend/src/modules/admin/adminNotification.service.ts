@@ -5,6 +5,8 @@ import {admin, isFirebaseReady} from '../../firebase/firebase';
 import notificationRepository from '../notification/notification.repository';
 import notificationService from '../notification/notification.service';
 
+import {createSharedNotification} from './sharedNotification.service';
+
 export type AdminNotifyTarget = 'all' | 'active_japa' | 'blocked' | 'selected_users';
 
 let queueReady = false;
@@ -1379,9 +1381,22 @@ export const sendAdminNotification = async (input: {
       ],
     );
 
+    const sharedScheduled = await createSharedNotification({
+      queueId: insert.insertId,
+      title,
+      message,
+      translations,
+      imageUrl,
+      videoUrl,
+      linkUrl:
+        String(input.url || input.link || input.linkUrl || '').trim() || null,
+    });
+
     return {
       mode: 'scheduled' as const,
       queueId: insert.insertId,
+      shareId: sharedScheduled?.slug || null,
+      shareUrl: sharedScheduled?.url || null,
       target: userIds.length ? 'selected_users' : target,
       userIds,
       testUser: testUserLabel || undefined,
@@ -1474,6 +1489,17 @@ export const sendAdminNotification = async (input: {
     }
   };
 
+  // Share link is saved before delivery starts, so the admin can copy it right away.
+  const sharedNow = await createSharedNotification({
+    queueId,
+    title,
+    message,
+    translations,
+    imageUrl,
+    videoUrl,
+    linkUrl: String(input.url || input.link || input.linkUrl || '').trim() || null,
+  });
+
   setImmediate(() => {
     deliverAdminNotification(deliveryInput)
       .then(async delivered => {
@@ -1503,6 +1529,8 @@ export const sendAdminNotification = async (input: {
     userIds,
     testUser: testUserLabel || undefined,
     queueId,
+    shareId: sharedNow?.slug || null,
+    shareUrl: sharedNow?.url || null,
     sendAt: localDateTime(),
     recipientCount: userIds.length,
     inboxCreated: 0,
