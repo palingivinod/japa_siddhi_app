@@ -9,6 +9,12 @@ import {APP_LANGUAGES, getLanguage} from '../../services/language';
 import ScreenLayout from '../common/ScreenLayout';
 import ProfileApi from '../auth/services/profileApi';
 import {logoutToLogin} from '../../services/logout';
+import {
+  disableQuickLogin,
+  enableQuickLogin,
+  getBiometryType,
+  isQuickLoginOn,
+} from '../../services/biometricLogin';
 import apiService, {getApiError} from '../../services/apiService';
 import {
   getChantBeepEnabled,
@@ -22,6 +28,9 @@ const SettingsScreen = () => {
   const [notifications, setNotifications] = useState('On');
   const [autoLock, setAutoLock] = useState('On');
   const [chantBeep, setChantBeep] = useState('On');
+  const [quickLogin, setQuickLogin] = useState<'On' | 'Off'>('Off');
+  const [biometryAvailable, setBiometryAvailable] = useState(true);
+  const [quickBusy, setQuickBusy] = useState(false);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -46,6 +55,8 @@ const SettingsScreen = () => {
       getChantBeepEnabled().then(on => {
         setChantBeep(on ? 'On' : 'Off');
       });
+      isQuickLoginOn().then(on => setQuickLogin(on ? 'On' : 'Off'));
+      getBiometryType().then(type => setBiometryAvailable(Boolean(type)));
     }, [language]),
   );
 
@@ -67,6 +78,41 @@ const SettingsScreen = () => {
       });
     } catch {
       undefined;
+    }
+  };
+
+  const toggleQuickLogin = async () => {
+    if (quickBusy) {
+      return;
+    }
+    if (quickLogin === 'On') {
+      setQuickBusy(true);
+      try {
+        await disableQuickLogin();
+        setQuickLogin('Off');
+      } finally {
+        setQuickBusy(false);
+      }
+      return;
+    }
+    if (!biometryAvailable) {
+      Alert.alert(t('quickLoginTitle'), t('quickLoginNotAvailable'));
+      return;
+    }
+    setQuickBusy(true);
+    try {
+      const result = await enableQuickLogin();
+      if (result === 'ok') {
+        setQuickLogin('On');
+        Alert.alert(t('quickLoginTitle'), t('quickLoginOn'));
+      } else if (result === 'unavailable') {
+        setBiometryAvailable(false);
+        Alert.alert(t('quickLoginTitle'), t('quickLoginNotAvailable'));
+      } else if (result === 'failed') {
+        Alert.alert(t('quickLoginTitle'), t('quickLoginFailed'));
+      }
+    } finally {
+      setQuickBusy(false);
     }
   };
 
@@ -118,6 +164,15 @@ const SettingsScreen = () => {
           {t('chantBeepSound') || 'Chant beep sound'}
         </Text>
         <Text style={styles.value}>{onLabel(chantBeep)}</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.row}
+        disabled={quickBusy}
+        onPress={toggleQuickLogin}>
+        <Text style={styles.label}>{t('quickLoginRow')}</Text>
+        <Text style={styles.value}>
+          {biometryAvailable ? onLabel(quickLogin) : t('quickLoginNotSet')}
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.row}

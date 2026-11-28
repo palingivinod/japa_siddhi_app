@@ -2,6 +2,7 @@ import {randomUUID} from 'crypto';
 import { ResultSetHeader } from 'mysql2';
 import mysql from '../../database/mysql';
 import { AuthUser } from './auth.types';
+import biometricLoginRepository from '../biometricLogin/biometricLogin.repository';
 
 interface CreateUserData {
   firebaseUid?: string;
@@ -496,6 +497,8 @@ class AuthRepository {
       `,
       [passwordHash, userId],
     );
+    // A new password means every fingerprint / face login must sign in again.
+    await biometricLoginRepository.deleteAllForUser(userId);
   }
 
   async ensureDevUser(data: {
@@ -709,6 +712,7 @@ class AuthRepository {
     anonymizedEmail: string,
     anonymizedMobile: string,
   ): Promise<void> {
+    await biometricLoginRepository.deleteAllForUser(userId);
     await mysql.query<ResultSetHeader>(
       `
       UPDATE users

@@ -33,6 +33,7 @@ import {BODY_PAD} from '../../utils/layoutSpacing';
 import {resetToHomeAfterAuth} from '../../navigation/goHomeAfterAuth';
 import {signInWithGoogle, explainGoogleSignInError} from './services/googleAuthService';
 import ProfileApi from './services/profileApi';
+import {hasQuickLogin, loginWithQuickLogin} from '../../services/biometricLogin';
 import {getAppVersionName} from '../../utils/appVersion';
 import AuthLoadingOverlay, {
   waitForLoadingPaint,
@@ -67,6 +68,7 @@ const LoginScreen = () => {
   const [otpEmail, setOtpEmail] = useState('');
   const [otpMobile, setOtpMobile] = useState('');
   const [hasValidSession, setHasValidSession] = useState(false);
+  const [quickLoginReady, setQuickLoginReady] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -74,6 +76,11 @@ const LoginScreen = () => {
       const forceForm = Boolean(route.params?.forceLoginForm);
 
       setCheckingSession(true);
+      hasQuickLogin().then(ready => {
+        if (alive) {
+          setQuickLoginReady(ready);
+        }
+      });
       getValidSession().then(session => {
         if (!alive) {
           return;
@@ -201,6 +208,32 @@ const LoginScreen = () => {
             ? t('noAccountFound')
             : error?.message || t('unableToLogin')),
       );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Fingerprint / face: no OTP. The phone proves the user, the server issues a session.
+  const handleQuickLogin = async () => {
+    if (submitting) {
+      return;
+    }
+    setSubmitting(true);
+    await waitForLoadingPaint();
+    try {
+      const result = await loginWithQuickLogin();
+      if (result.status === 'ok') {
+        await saveSession(result.token, result.user);
+        resetAuthGate();
+        await resetToHomeAfterAuth(navigation);
+        return;
+      }
+      if (result.status === 'expired') {
+        setQuickLoginReady(false);
+        Alert.alert(t('quickLoginTitle'), t('quickLoginExpired'));
+      } else if (result.status === 'retry') {
+        Alert.alert(t('quickLoginTitle'), t('quickLoginRetry'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -482,6 +515,16 @@ const LoginScreen = () => {
           </View>
         ) : (
           <>
+            {quickLoginReady ? (
+              <TouchableOpacity
+                style={styles.quickBtn}
+                disabled={submitting}
+                onPress={handleQuickLogin}>
+                <Text style={styles.quickBtnText}>
+                  {t('quickLoginButton')}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
             <Text style={styles.quickLogin}>{t('forQuickLogin')}</Text>
             <TouchableOpacity
               style={styles.social}
@@ -678,6 +721,21 @@ const LoginScreen = () => {
 export default LoginScreen;
 
 const styles = StyleSheet.create({
+  quickBtn: {
+    marginTop: 8,
+    marginBottom: 14,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: Colors.templeGold,
+    backgroundColor: Colors.white,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  quickBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.background,

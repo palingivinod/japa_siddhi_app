@@ -10,6 +10,7 @@ import homeRoutes from './modules/home/home.routes';
 import japaRoutes from './modules/japa/japa.routes';
 import japaGoalRoutes from './modules/japaGoal/japaGoal.routes';
 import personalMantraRoutes from './modules/personalMantra/personalMantra.routes';
+import biometricLoginRoutes from './modules/biometricLogin/biometricLogin.routes';
 import festivalRoutes from './modules/festival/festival.routes';
 import notificationRoutes from './modules/notification/notification.routes';
 import donationRoutes from './modules/donation/donation.routes';
@@ -296,6 +297,7 @@ app.get('/api/v1/health', async (_, res) => {
 
 
 
+app.use('/api/v1/auth/biometric', biometricLoginRoutes);
 app.use(
   '/api/v1/auth',
   authRoutes,

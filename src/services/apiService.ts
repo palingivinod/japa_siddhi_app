@@ -61,7 +61,8 @@ apiService.interceptors.response.use(
       url.includes('/auth/otp') ||
       url.includes('/admin/auth/login') ||
       url.includes('/admin/auth/forgot') ||
-      url.includes('/auth/refresh');
+      url.includes('/auth/refresh') ||
+      url.includes('/auth/biometric/exchange');
 
     const config = error?.config || {};
 
