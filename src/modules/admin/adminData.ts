@@ -135,7 +135,15 @@ export type AdminBanner = {
   status: AdminBannerStatus;
   startsAt?: string;
   expiresAt?: string;
-  translations?: Record<string, {title?: string; subtitle?: string}>;
+  description?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  linkUrl?: string;
+  translations?: Record<
+    string,
+    {title?: string; subtitle?: string; description?: string}
+  >;
 };
 
 export type AdminOrderStatus =

@@ -24,6 +24,8 @@ interface Props {
   onSecondaryPress?: () => void;
   announcements?: AnnouncementItem[] | string[] | string | null;
   announcementText?: string | null;
+  /** Tapping the announcement strip (admin banner) opens its detail screen. */
+  onAnnouncementPress?: () => void;
 }
 
 const HomeBanner: React.FC<Props> = ({
@@ -34,6 +36,7 @@ const HomeBanner: React.FC<Props> = ({
   onSecondaryPress,
   announcements,
   announcementText,
+  onAnnouncementPress,
 }) => {
   const bannerSource =
     banner?.imageUrl && banner.imageUrl.trim() !== ''
@@ -106,13 +109,23 @@ const HomeBanner: React.FC<Props> = ({
 
         {/* Bottom — announcement */}
         {hasAnnouncements ? (
-          <View
-            style={[styles.card, styles.cardBot]}
-            pointerEvents="none">
-            <Text style={styles.cardText} numberOfLines={2}>
-              {announcementTextLine}
-            </Text>
-          </View>
+          onAnnouncementPress ? (
+            <TouchableOpacity
+              style={[styles.card, styles.cardBot]}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              onPress={onAnnouncementPress}>
+              <Text style={styles.cardText} numberOfLines={2}>
+                {announcementTextLine}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={[styles.card, styles.cardBot]} pointerEvents="none">
+              <Text style={styles.cardText} numberOfLines={2}>
+                {announcementTextLine}
+              </Text>
+            </View>
+          )
         ) : null}
       </View>
     </View>

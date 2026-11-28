@@ -1043,6 +1043,14 @@ const HomeScreen = () => {
               title: tt(item.title),
               subtitle: item.subtitle ? tt(item.subtitle) : '',
             }))}
+            onAnnouncementPress={
+              homeBanners[0]?.id
+                ? () =>
+                    navigation.navigate('BannerDetail', {
+                      bannerId: homeBanners[0].id,
+                    })
+                : undefined
+            }
           />
 
           <TouchableOpacity

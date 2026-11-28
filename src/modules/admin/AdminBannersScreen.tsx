@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -18,6 +19,8 @@ import PrimaryButton from '../common/PrimaryButton';
 import DatePickerModal from '../common/DatePickerModal';
 import apiService, {getApiError} from '../../services/apiService';
 import {autoTranslateFields} from '../../services/translationService';
+import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
+import {pickProfilePhoto, resolveMediaUrl} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
 import {AdminBanner, AdminBannerStatus} from './adminData';
 import AdminLanguageTabs, {
@@ -30,11 +33,37 @@ const MODULES = ['Home', 'Challenges', 'Annadanam', 'Japa', 'Donate'];
 interface BannerLangFields {
   title: string;
   subtitle: string;
+  description: string;
 }
 
 const emptyFields = (): BannerLangFields => ({
   title: '',
   subtitle: '',
+  description: '',
+});
+
+/**
+ * Default title of a new banner. `{date}` becomes the banner's upload date
+ * (India time) when users see it. Written out per language so the date
+ * placeholder is never garbled by machine translation.
+ */
+const DEFAULT_TITLES: Record<AdminSupportedLang, string> = {
+  en: 'Click to see {date} Homam videos and photos',
+  te: '{date} హోమం వీడియోలు మరియు ఫోటోలు చూడటానికి క్లిక్ చేయండి',
+  hi: '{date} के होम के वीडियो और फोटो देखने के लिए क्लिक करें',
+  ta: '{date} ஹோமம் வீடியோக்கள் மற்றும் புகைப்படங்களைக் காண கிளிக் செய்யவும்',
+  kn: '{date} ಹೋಮದ ವೀಡಿಯೊಗಳು ಮತ್ತು ಫೋಟೋಗಳನ್ನು ನೋಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ',
+};
+
+const newBannerTranslations = (): Record<
+  AdminSupportedLang,
+  BannerLangFields
+> => ({
+  en: {...emptyFields(), title: DEFAULT_TITLES.en},
+  te: {...emptyFields(), title: DEFAULT_TITLES.te},
+  hi: {...emptyFields(), title: DEFAULT_TITLES.hi},
+  ta: {...emptyFields(), title: DEFAULT_TITLES.ta},
+  kn: {...emptyFields(), title: DEFAULT_TITLES.kn},
 });
 
 const defaultTranslations = (): Record<
@@ -128,7 +157,16 @@ const AdminBannersScreen = () => {
     null,
   );
 
-  const latestEnRef = useRef({title: '', subtitle: ''});
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const uploading = uploadingImage || uploadingVideo || uploadingAudio;
+
+  const latestEnRef = useRef({title: '', subtitle: '', description: ''});
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const load = useCallback(async () => {
@@ -150,6 +188,11 @@ const AdminBannersScreen = () => {
               : 'Active',
           startsAt: String(row.startsAt || ''),
           expiresAt: String(row.expiresAt || ''),
+          description: String(row.description || ''),
+          imageUrl: String(row.imageUrl || ''),
+          videoUrl: String(row.videoUrl || ''),
+          audioUrl: String(row.audioUrl || ''),
+          linkUrl: String(row.linkUrl || ''),
           translations:
             row.translations && typeof row.translations === 'object'
               ? row.translations
@@ -173,40 +216,75 @@ const AdminBannersScreen = () => {
   const currentFields = translations[activeLang] || emptyFields();
   const enTitle = translations.en.title;
   const enSubtitle = translations.en.subtitle;
+  const enDescription = translations.en.description;
 
   useEffect(() => {
     const trimmedTitle = enTitle.trim();
     const trimmedSubtitle = enSubtitle.trim();
+    const trimmedDescription = enDescription.trim();
     if (
       trimmedTitle === latestEnRef.current.title &&
-      trimmedSubtitle === latestEnRef.current.subtitle
+      trimmedSubtitle === latestEnRef.current.subtitle &&
+      trimmedDescription === latestEnRef.current.description
     ) {
       return;
     }
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
-    if (!trimmedTitle && !trimmedSubtitle) {
+    if (!trimmedTitle && !trimmedSubtitle && !trimmedDescription) {
       return;
     }
     debounceTimerRef.current = setTimeout(async () => {
-      latestEnRef.current = {title: trimmedTitle, subtitle: trimmedSubtitle};
+      latestEnRef.current = {
+        title: trimmedTitle,
+        subtitle: trimmedSubtitle,
+        description: trimmedDescription,
+      };
       setTranslating(true);
       try {
         const targetCodes = ADMIN_LANGUAGES.filter(l => l.code !== 'en').map(
           l => l.code,
         );
-        const translatedMap = await autoTranslateFields(
-          {title: trimmedTitle, subtitle: trimmedSubtitle},
-          targetCodes,
-        );
+        // The default title already has hand-written translations. For any
+        // other title, translate the text around `{date}` piece by piece so
+        // the placeholder itself is never translated.
+        const isDefaultTitle = trimmedTitle === DEFAULT_TITLES.en;
+        const titleParts = trimmedTitle.split(/\{date\}/i);
+        const fields: Record<string, string> = {
+          subtitle: trimmedSubtitle,
+          description: trimmedDescription,
+        };
+        if (!isDefaultTitle) {
+          titleParts.forEach((part, index) => {
+            fields[`title_${index}`] = part.trim();
+          });
+        }
+        const translatedMap = await autoTranslateFields(fields, targetCodes);
+        const buildTitle = (code: string) => {
+          if (isDefaultTitle) {
+            return DEFAULT_TITLES[code as AdminSupportedLang] || trimmedTitle;
+          }
+          const pieces: string[] = [];
+          titleParts.forEach((_part, index) => {
+            const piece = translatedMap[code]?.[`title_${index}`] || '';
+            if (piece) {
+              pieces.push(piece);
+            }
+            if (index < titleParts.length - 1) {
+              pieces.push('{date}');
+            }
+          });
+          return pieces.join(' ');
+        };
         setTranslations(prev => {
           const next = {...prev};
           targetCodes.forEach(code => {
             if (translatedMap[code]) {
               next[code as AdminSupportedLang] = {
-                title: translatedMap[code].title || '',
+                title: buildTitle(code),
                 subtitle: translatedMap[code].subtitle || '',
+                description: translatedMap[code].description || '',
               };
             }
           });
@@ -224,7 +302,7 @@ const AdminBannersScreen = () => {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [enTitle, enSubtitle]);
+  }, [enTitle, enSubtitle, enDescription]);
 
   const completedMap = useMemo(() => {
     const map: Partial<Record<AdminSupportedLang, boolean>> = {};
@@ -256,13 +334,142 @@ const AdminBannersScreen = () => {
       [activeLang]: {
         title: prev[activeLang].title || en.title,
         subtitle: prev[activeLang].subtitle || en.subtitle,
+        description: prev[activeLang].description || en.description,
       },
     }));
   };
 
+  const clearMedia = () => {
+    setImageUrl('');
+    setVideoUrl('');
+    setAudioUrl('');
+    setLinkUrl('');
+  };
+
+  const pickAndUploadImage = async () => {
+    try {
+      const picked = await pickProfilePhoto({
+        title: 'Banner photo',
+        camera: 'Camera',
+        gallery: 'Gallery',
+        cancel: 'Cancel',
+      });
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append('image', {
+        uri: picked.uri,
+        type: picked.type || 'image/jpeg',
+        name: picked.fileName || 'banner.jpg',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-image',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.imageUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No image URL returned');
+      }
+      setImageUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Photo picker unavailable',
+          'Rebuild the app so the image picker native module is linked.',
+        );
+        return;
+      }
+      Alert.alert('Upload failed', getApiError(err, 'Could not upload photo.'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const pickAndUploadVideo = async () => {
+    try {
+      const picked = await pickFeedbackVideo();
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingVideo(true);
+      const formData = new FormData();
+      formData.append('video', {
+        uri: picked.uri,
+        type: picked.type || 'video/mp4',
+        name: picked.fileName || 'banner.mp4',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-video',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.videoUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No video URL returned');
+      }
+      setVideoUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'native_module_missing') {
+        Alert.alert(
+          'Video picker unavailable',
+          'Rebuild the app so the media picker native module is linked.',
+        );
+        return;
+      }
+      if (String(err?.message || '') === 'permission') {
+        Alert.alert(
+          'Permission needed',
+          'Please allow gallery access to attach a video.',
+        );
+        return;
+      }
+      Alert.alert('Upload failed', getApiError(err, 'Could not upload video.'));
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const pickAndUploadAudio = async () => {
+    try {
+      const picked = await pickAudioFile();
+      if (!picked?.uri) {
+        return;
+      }
+      setUploadingAudio(true);
+      const formData = new FormData();
+      formData.append('audio', {
+        uri: picked.uri,
+        type: picked.type || 'audio/mpeg',
+        name: picked.fileName || 'banner.mp3',
+      } as any);
+      const response = await apiService.post(
+        '/admin/notifications/upload-audio',
+        formData,
+      );
+      const uploaded =
+        response.data?.data?.audioUrl || response.data?.data?.path || '';
+      if (!uploaded) {
+        throw new Error('No audio URL returned');
+      }
+      setAudioUrl(String(uploaded));
+    } catch (err: any) {
+      if (String(err?.message || '') === 'not_audio') {
+        Alert.alert('Audio only', 'Please select an audio file (MP3, M4A, WAV).');
+        return;
+      }
+      Alert.alert('Upload failed', getApiError(err, 'Could not upload audio.'));
+    } finally {
+      setUploadingAudio(false);
+    }
+  };
+
   const resetForm = () => {
     setTranslations(defaultTranslations());
-    latestEnRef.current = {title: '', subtitle: ''};
+    latestEnRef.current = {title: '', subtitle: '', description: ''};
+    clearMedia();
     setLastAutoTranslatedAt(null);
     setModuleName('Home');
     setScheduleOn(false);
@@ -304,6 +511,11 @@ const AdminBannersScreen = () => {
         subtitle: String(
           fields.subtitle || (lang.code === 'en' ? item.subtitle : '') || '',
         ).trim(),
+        description: String(
+          fields.description ||
+            (lang.code === 'en' ? item.description : '') ||
+            '',
+        ).trim(),
       };
     });
     if (!next.en.title.trim()) {
@@ -316,7 +528,12 @@ const AdminBannersScreen = () => {
     latestEnRef.current = {
       title: next.en.title.trim(),
       subtitle: next.en.subtitle.trim(),
+      description: next.en.description.trim(),
     };
+    setImageUrl(item.imageUrl || '');
+    setVideoUrl(item.videoUrl || '');
+    setAudioUrl(item.audioUrl || '');
+    setLinkUrl(item.linkUrl || '');
     setModuleName(item.module || 'Home');
     const scheduled = item.status === 'Scheduled' || Boolean(item.startsAt);
     setScheduleOn(scheduled);
@@ -395,11 +612,22 @@ const AdminBannersScreen = () => {
       return;
     }
     const existing = banners.find(row => row.id === editingId);
+    let link = linkUrl.trim();
+    if (link && !/^https?:\/\//i.test(link)) {
+      link = `https://${link}`;
+    }
     const payload = {
       title: primaryTitle,
       subtitle:
         translations.en.subtitle.trim() ||
         translations[activeLang].subtitle.trim(),
+      description:
+        translations.en.description.trim() ||
+        translations[activeLang].description.trim(),
+      imageUrl,
+      videoUrl,
+      audioUrl,
+      linkUrl: link,
       module: moduleName,
       status: scheduleOn
         ? 'Scheduled'
@@ -497,6 +725,14 @@ const AdminBannersScreen = () => {
         title="ADD BANNER"
         onPress={() => {
           setEditingId('');
+          // New banners start with the default "{date}" title.
+          setTranslations(newBannerTranslations());
+          latestEnRef.current = {
+            title: DEFAULT_TITLES.en,
+            subtitle: '',
+            description: '',
+          };
+          clearMedia();
           setShowForm(true);
         }}
       />
@@ -572,6 +808,11 @@ const AdminBannersScreen = () => {
                 }
                 placeholderTextColor={Colors.placeholder}
               />
+              <Text style={styles.hint}>
+                {'{date}'} becomes the date this banner was uploaded (for
+                example 28 Nov 2026). Change the title any time; keep {'{date}'}
+                if you want the date shown.
+              </Text>
               <Text style={styles.label}>
                 Subtitle ({activeLangOption?.nativeName || 'Subtitle'})
               </Text>
@@ -586,6 +827,126 @@ const AdminBannersScreen = () => {
                 }
                 placeholderTextColor={Colors.placeholder}
               />
+
+              <Text style={styles.sectionHeading}>
+                Details (shown when users tap the banner)
+              </Text>
+              <Text style={styles.hint}>
+                Everything below is optional. Users see only what you add.
+              </Text>
+              <Text style={styles.label}>
+                Description ({activeLangOption?.nativeName || 'Description'})
+              </Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={currentFields.description}
+                onChangeText={v => updateField('description', v)}
+                multiline
+                textAlignVertical="top"
+                placeholder={
+                  activeLang === 'en'
+                    ? 'Description (optional)'
+                    : `Description in ${activeLangOption?.nativeName}`
+                }
+                placeholderTextColor={Colors.placeholder}
+              />
+
+              <Text style={styles.label}>Photo, video and audio</Text>
+              {imageUrl ? (
+                <Image
+                  source={{uri: resolveMediaUrl(imageUrl) || undefined}}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+              ) : null}
+              {imageUrl ? (
+                <Text style={styles.attached}>Photo attached ✓</Text>
+              ) : null}
+              {videoUrl ? (
+                <Text style={styles.attached}>Video attached ✓</Text>
+              ) : null}
+              {audioUrl ? (
+                <Text style={styles.attached}>Audio attached ✓</Text>
+              ) : null}
+              <View style={styles.mediaRow}>
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => void pickAndUploadImage()}
+                  disabled={uploading || saving}>
+                  <Text style={styles.mediaBtnText}>
+                    {uploadingImage
+                      ? 'UPLOADING...'
+                      : imageUrl
+                        ? 'CHANGE PHOTO'
+                        : 'UPLOAD PHOTO'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => void pickAndUploadVideo()}
+                  disabled={uploading || saving}>
+                  <Text style={styles.mediaBtnText}>
+                    {uploadingVideo
+                      ? 'UPLOADING...'
+                      : videoUrl
+                        ? 'CHANGE VIDEO'
+                        : 'UPLOAD VIDEO'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.mediaBtn}
+                  onPress={() => void pickAndUploadAudio()}
+                  disabled={uploading || saving}>
+                  <Text style={styles.mediaBtnText}>
+                    {uploadingAudio
+                      ? 'UPLOADING...'
+                      : audioUrl
+                        ? 'CHANGE AUDIO'
+                        : 'UPLOAD AUDIO'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+              {imageUrl || videoUrl || audioUrl ? (
+                <View style={styles.mediaRow}>
+                  {imageUrl ? (
+                    <TouchableOpacity
+                      style={styles.mediaClearBtn}
+                      onPress={() => setImageUrl('')}
+                      disabled={uploading || saving}>
+                      <Text style={styles.mediaClearText}>REMOVE PHOTO</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {videoUrl ? (
+                    <TouchableOpacity
+                      style={styles.mediaClearBtn}
+                      onPress={() => setVideoUrl('')}
+                      disabled={uploading || saving}>
+                      <Text style={styles.mediaClearText}>REMOVE VIDEO</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {audioUrl ? (
+                    <TouchableOpacity
+                      style={styles.mediaClearBtn}
+                      onPress={() => setAudioUrl('')}
+                      disabled={uploading || saving}>
+                      <Text style={styles.mediaClearText}>REMOVE AUDIO</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+              ) : null}
+
+              <Text style={styles.label}>Link</Text>
+              <TextInput
+                style={styles.input}
+                value={linkUrl}
+                onChangeText={setLinkUrl}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                placeholder="https://example.com (optional)"
+                placeholderTextColor={Colors.placeholder}
+              />
+
               <Text style={styles.label}>Module</Text>
               <View style={styles.moduleRow}>
                 {MODULES.map(option => {
@@ -691,7 +1052,7 @@ const AdminBannersScreen = () => {
                       : 'SAVE BANNER'
                 }
                 onPress={saveBanner}
-                disabled={saving || translating}
+                disabled={saving || translating || uploading}
               />
               <TouchableOpacity style={styles.cancelBtn} onPress={resetForm}>
                 <Text style={styles.cancelText}>Cancel</Text>
@@ -951,6 +1312,74 @@ const styles = StyleSheet.create({
     color: Colors.leafGreen,
     fontWeight: '700',
     marginBottom: 8,
+  },
+  hint: {
+    color: Colors.textSecondary,
+    fontSize: 12,
+    lineHeight: 17,
+    marginTop: -4,
+    marginBottom: 12,
+  },
+  sectionHeading: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
+    marginTop: 6,
+    marginBottom: 4,
+  },
+  inputMultiline: {
+    height: 110,
+    paddingTop: 12,
+  },
+  imagePreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: 14,
+    backgroundColor: Colors.background,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  attached: {
+    color: Colors.leafGreen,
+    fontWeight: '700',
+    marginBottom: 6,
+  },
+  mediaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 10,
+  },
+  mediaBtn: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: Colors.sacredBrown,
+    paddingVertical: 11,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  mediaBtnText: {
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 11,
+    letterSpacing: 0.2,
+    textAlign: 'center',
+  },
+  mediaClearBtn: {
+    flex: 1,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.error,
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  mediaClearText: {
+    color: Colors.error,
+    fontWeight: '800',
+    fontSize: 11,
+    textAlign: 'center',
   },
   moduleRow: {flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8},
   chip: {

@@ -102,6 +102,20 @@ const ensureBannersTable = async () => {
     }
   }
 
+  // Rich banner content (shown on the banner detail screen). All optional.
+  for (const column of [
+    'description',
+    'video_url',
+    'audio_url',
+    'link_url',
+  ]) {
+    try {
+      await mysql.query(`ALTER TABLE app_banners ADD COLUMN ${column} TEXT`);
+    } catch {
+      // column already exists
+    }
+  }
+
   // One-time seed only. If admin deletes all banners, do not recreate demos.
   if (engine === 'mysql') {
     await mysql.query(`
@@ -181,6 +195,66 @@ const isLiveForUsers = (row: any) => {
   return now >= starts;
 };
 
+const BANNER_COLUMNS = `
+  id,
+  title,
+  subtitle,
+  description,
+  module_name AS moduleName,
+  image_url AS imageUrl,
+  video_url AS videoUrl,
+  audio_url AS audioUrl,
+  link_url AS linkUrl,
+  button_text AS buttonText,
+  status,
+  sort_order AS sortOrder,
+  starts_at AS startsAt,
+  expires_at AS expiresAt,
+  created_at AS createdAt,
+  translations
+`;
+
+const MONTHS_SHORT = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** Upload date of a banner in India time, e.g. "28 Nov 2026". */
+const formatUploadDate = (createdAt: unknown): string => {
+  if (!createdAt) {
+    return '';
+  }
+  let ms: number;
+  if (createdAt instanceof Date) {
+    ms = createdAt.getTime();
+  } else {
+    const raw = String(createdAt).trim();
+    // DB timestamps are stored in UTC without a zone marker.
+    const iso = /[zZ]$|[+-]\d{2}(:?\d{2})?$/.test(raw)
+      ? raw
+      : `${raw.replace(' ', 'T')}Z`;
+    ms = Date.parse(iso);
+  }
+  if (Number.isNaN(ms)) {
+    return '';
+  }
+  const ist = new Date(ms + 5.5 * 60 * 60 * 1000);
+  return `${ist.getUTCDate()} ${MONTHS_SHORT[ist.getUTCMonth()]} ${ist.getUTCFullYear()}`;
+};
+
+const fillDate = (text: string, dateLabel: string) =>
+  String(text || '').replace(/\{date\}/gi, dateLabel);
+
 const localizeBanner = (row: any, lang?: string) => {
   const statusRaw = String(row.status || 'Active');
   const status: BannerStatus =
@@ -192,12 +266,23 @@ const localizeBanner = (row: any, lang?: string) => {
   );
   const code = String(lang || 'en').toLowerCase().slice(0, 2);
   const pack = translations[code] || translations.en || {};
+  const createdAt = row.createdAt ?? row.created_at ?? null;
+  const uploadDate = formatUploadDate(createdAt);
   return {
     id: String(row.id),
-    title: String(pack.title || row.title || ''),
-    subtitle: String(pack.subtitle || row.subtitle || ''),
+    // `{date}` in the title/subtitle/description becomes the upload date.
+    title: fillDate(String(pack.title || row.title || ''), uploadDate),
+    subtitle: fillDate(String(pack.subtitle || row.subtitle || ''), uploadDate),
+    description: fillDate(
+      String(pack.description || row.description || ''),
+      uploadDate,
+    ),
+    uploadDate,
     module: row.moduleName || row.module_name || 'Home',
     imageUrl: row.imageUrl || row.image_url || '',
+    videoUrl: row.videoUrl || row.video_url || '',
+    audioUrl: row.audioUrl || row.audio_url || '',
+    linkUrl: row.linkUrl || row.link_url || '',
     buttonText: row.buttonText || row.button_text || 'Explore',
     status,
     sortOrder: Number(row.sortOrder ?? row.sort_order ?? 0),
@@ -215,18 +300,7 @@ export const listBanners = async (
   await ensureBannersTable();
   const params: any[] = [];
   let sql = `
-    SELECT
-      id,
-      title,
-      subtitle,
-      module_name AS moduleName,
-      image_url AS imageUrl,
-      button_text AS buttonText,
-      status,
-      sort_order AS sortOrder,
-      starts_at AS startsAt,
-      expires_at AS expiresAt,
-      translations
+    SELECT ${BANNER_COLUMNS}
     FROM app_banners
     WHERE 1 = 1
   `;
@@ -255,8 +329,12 @@ export const listBanners = async (
 export const createBanner = async (input: {
   title: string;
   subtitle?: string;
+  description?: string;
   module?: string;
   imageUrl?: string;
+  videoUrl?: string;
+  audioUrl?: string;
+  linkUrl?: string;
   buttonText?: string;
   status?: string;
   startsAt?: string | null;
@@ -286,8 +364,9 @@ export const createBanner = async (input: {
   const result = await mysql.query<ResultSetHeader>(
     `
     INSERT INTO app_banners (
-      title, subtitle, module_name, image_url, button_text, status, sort_order, translations, starts_at, expires_at
-    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)
+      title, subtitle, module_name, image_url, button_text, status, sort_order, translations, starts_at, expires_at,
+      description, video_url, audio_url, link_url
+    ) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       title,
@@ -299,15 +378,16 @@ export const createBanner = async (input: {
       translations,
       String(input.startsAt || '').trim() || null,
       String(input.expiresAt || '').trim() || null,
+      String(input.description || '').trim() || null,
+      String(input.videoUrl || '').trim() || null,
+      String(input.audioUrl || '').trim() || null,
+      String(input.linkUrl || '').trim() || null,
     ],
   );
 
   const rows = await mysql.query<any[]>(
     `
-    SELECT
-      id, title, subtitle, module_name AS moduleName,
-      image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, starts_at AS startsAt, expires_at AS expiresAt, translations
+    SELECT ${BANNER_COLUMNS}
     FROM app_banners
     WHERE id = ?
     LIMIT 1
@@ -322,8 +402,12 @@ export const updateBanner = async (
   input: {
     title?: string;
     subtitle?: string;
+    description?: string;
     module?: string;
     imageUrl?: string;
+    videoUrl?: string;
+    audioUrl?: string;
+    linkUrl?: string;
     buttonText?: string;
     status?: string;
     startsAt?: string | null;
@@ -373,6 +457,10 @@ export const updateBanner = async (
       translations = COALESCE(?, translations),
       starts_at = CASE WHEN ? = 1 THEN ? ELSE starts_at END,
       expires_at = CASE WHEN ? = 1 THEN ? ELSE expires_at END,
+      description = COALESCE(?, description),
+      video_url = COALESCE(?, video_url),
+      audio_url = COALESCE(?, audio_url),
+      link_url = COALESCE(?, link_url),
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
     `,
@@ -392,16 +480,18 @@ export const updateBanner = async (
       input.expiresAt !== undefined
         ? String(input.expiresAt || '').trim() || null
         : null,
+      // An empty string clears the value; undefined leaves it unchanged.
+      input.description !== undefined ? String(input.description).trim() : null,
+      input.videoUrl !== undefined ? String(input.videoUrl).trim() : null,
+      input.audioUrl !== undefined ? String(input.audioUrl).trim() : null,
+      input.linkUrl !== undefined ? String(input.linkUrl).trim() : null,
       id,
     ],
   );
 
   const rows = await mysql.query<any[]>(
     `
-    SELECT
-      id, title, subtitle, module_name AS moduleName,
-      image_url AS imageUrl, button_text AS buttonText, status,
-      sort_order AS sortOrder, starts_at AS startsAt, expires_at AS expiresAt, translations
+    SELECT ${BANNER_COLUMNS}
     FROM app_banners
     WHERE id = ?
     LIMIT 1
@@ -409,6 +499,31 @@ export const updateBanner = async (
     [id],
   );
   return localizeBanner(rows[0]);
+};
+
+/** One banner for the detail screen. Returns null if missing or not live. */
+export const getLiveBannerById = async (id: number, lang?: string) => {
+  await ensureBannersTable();
+  const rows = await mysql.query<any[]>(
+    `
+    SELECT ${BANNER_COLUMNS}
+    FROM app_banners
+    WHERE id = ?
+    LIMIT 1
+    `,
+    [id],
+  );
+  if (!rows?.length) {
+    return null;
+  }
+  const banner = localizeBanner(rows[0], lang);
+  return isLiveForUsers({
+    status: banner.status,
+    startsAt: banner.startsAt,
+    expiresAt: banner.expiresAt,
+  })
+    ? banner
+    : null;
 };
 
 export const deleteBanner = async (id: number) => {
@@ -421,4 +536,5 @@ export default {
   createBanner,
   updateBanner,
   deleteBanner,
+  getLiveBannerById,
 };
