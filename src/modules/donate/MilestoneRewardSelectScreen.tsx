@@ -18,6 +18,7 @@ import ScreenLayout from '../common/ScreenLayout';
 import {
   checkRewardEligibility,
   getLocalizedReward,
+  isBaanalingamRewardName,
   isCanonicalReward,
   isMarakataShivlingName,
   sortRewardsCanonical,
@@ -43,6 +44,8 @@ const MilestoneRewardSelectScreen = () => {
   const [claimed, setClaimed] = useState(false);
   const [reached, setReached] = useState(false);
   const [isRetry, setIsRetry] = useState(false);
+  const [hasBaanalingamOrder, setHasBaanalingamOrder] = useState(false);
+  const [hasMarakataOrder, setHasMarakataOrder] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
@@ -91,6 +94,8 @@ const MilestoneRewardSelectScreen = () => {
         setClaimed(Boolean(data.claimed));
         setReached(Boolean(data.reached));
         setIsRetry(Boolean(data.isRetry));
+        setHasBaanalingamOrder(Boolean(data.hasBaanalingamOrder));
+        setHasMarakataOrder(Boolean(data.hasMarakataOrder));
       })
       .catch(err => {
         Alert.alert(t('rewards'), getApiError(err, t('couldNotLoadRewards')));
@@ -106,8 +111,29 @@ const MilestoneRewardSelectScreen = () => {
 
   const selected = rewards.find(item => item.id === selectedId);
 
+  const showGharGharPopup = (rewardName: string) => {
+    if (
+      !isBaanalingamRewardName(rewardName) ||
+      (!hasBaanalingamOrder && !hasMarakataOrder)
+    ) {
+      return false;
+    }
+    const item = hasBaanalingamOrder
+      ? t('baanalingamItemName') || 'Baanalingam'
+      : t('marakataShivlingItemName') || 'Marakata Shivling';
+    Alert.alert(
+      t('shivaLingaNotEligibleTitle') || 'Not eligible',
+      t('shivaLingaAlreadyOrderedMessage', {item}) ||
+        `You have already ordered/received ${item}. The concept of Ghar Ghar Mahadev is only one Shiva Linga for each home, so you are not eligible to order this.`,
+    );
+    return true;
+  };
+
   const handleRewardPress = (item: RewardItem) => {
     if (claimed || !reached) {
+      return;
+    }
+    if (showGharGharPopup(item.name)) {
       return;
     }
     if (item.inStock === false) {
@@ -143,6 +169,10 @@ const MilestoneRewardSelectScreen = () => {
     }
     if (!selected) {
       Alert.alert(t('selectRewardTitle'), t('chooseRewardToContinue'));
+      return;
+    }
+    if (showGharGharPopup(selected.name)) {
+      setSelectedId(null);
       return;
     }
     navigation.navigate('MilestoneRewardAddress', {

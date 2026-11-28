@@ -1,0 +1,28 @@
+// CI-only Gradle init script (copied to ~/.gradle/init.d by the GitHub Actions
+// workflow). It makes Gradle try Google's public Maven Central mirror BEFORE
+// repo.maven.apache.org, because shared GitHub runner IPs are often rate-limited
+// by Maven Central (HTTP 429). Artifacts missing on the mirror still fall back
+// to the normal repositories declared by the project / libraries.
+//
+// Not used for local builds.
+
+def centralMirror = 'https://maven-central.storage-download.googleapis.com/maven2/'
+
+def addMirror = { RepositoryHandler repos ->
+  repos.maven {
+    name = 'CentralMirrorGoogle'
+    url = centralMirror
+  }
+}
+
+// NOTE: do not touch settings.pluginManagement here. Adding a repository there
+// replaces Gradle's default plugin portal and breaks plugins such as
+// io.invertase.gradle.build (react-native-notifee).
+
+// Build-script classpath (e.g. react-native-keychain's own buildscript block)
+// and normal dependencies. Runs before each project's own build.gradle, so the
+// mirror is first in the repository list.
+allprojects {
+  buildscript.repositories { addMirror(delegate) }
+  repositories { addMirror(delegate) }
+}

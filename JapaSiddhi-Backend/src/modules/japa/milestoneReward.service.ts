@@ -338,6 +338,17 @@ class MilestoneRewardService {
       String(claimRows[0].orderStatus || '').toUpperCase() === 'CANCELLED' &&
       Number(claimRows[0].retryCount || 0) === 0
     );
+    const {
+      default: shivaLingaEligibilityService,
+    } = await import('../orders/shivaLingaEligibility.service');
+    const allowLingamReorder =
+      await shivaLingaEligibilityService.isReorderAllowed(userId);
+    const hasBaanalingamOrder = allowLingamReorder
+      ? false
+      : await shivaLingaEligibilityService.hasActiveBaanalingam(userId);
+    const hasMarakataOrder = allowLingamReorder
+      ? false
+      : await shivaLingaEligibilityService.hasActiveMarakata(userId);
     const mappedRewards = (rewards || [])
       .filter((row: any) => {
         const name = String(row.name || '');
@@ -373,6 +384,8 @@ class MilestoneRewardService {
       reached: total >= milestone.target,
       claimed: claimed.includes(milestone.target),
       isRetry,
+      hasBaanalingamOrder,
+      hasMarakataOrder,
       rewards: rewardsOut,
     };
   }
@@ -1220,6 +1233,12 @@ class MilestoneRewardService {
       throw new Error(
         `This reward is available after ${required.toLocaleString()} Japas. You need ${remaining.toLocaleString()} more Japas.`,
       );
+    }
+    if (isBaanalingamRewardName(String(reward.name || ''))) {
+      const {
+        default: shivaLingaEligibilityService,
+      } = await import('../orders/shivaLingaEligibility.service');
+      await shivaLingaEligibilityService.assertHomeHasNoShivaLinga(userId);
     }
 
     const fullName = String(delivery.fullName || '').trim();

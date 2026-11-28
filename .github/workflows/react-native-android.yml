@@ -49,6 +49,15 @@ jobs:
         with:
           cache-read-only: false
 
+      # Maven Central rate-limits shared GitHub runner IPs (HTTP 429, e.g. while
+      # resolving react-native-keychain's kotlin-stdlib). Try Google's Maven
+      # Central mirror first; Maven Central stays as the fallback.
+      - name: Use Maven Central mirror for Gradle
+        run: |
+          mkdir -p "$HOME/.gradle/init.d"
+          cp android/ci/maven-mirror.init.gradle "$HOME/.gradle/init.d/maven-mirror.init.gradle"
+          ls -l "$HOME/.gradle/init.d"
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:

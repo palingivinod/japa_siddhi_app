@@ -119,6 +119,23 @@ class ShivaLingaEligibilityService {
     }
   }
 
+  /**
+   * One Shiva Linga per home. Throws the Ghar Ghar Mahadev message when this
+   * account already has a non-cancelled Baanalingam or Marakata order.
+   * An admin reorder flag skips the block. Does not check other in-progress orders.
+   */
+  async assertHomeHasNoShivaLinga(userId: number) {
+    if (await this.isReorderAllowed(userId)) {
+      return;
+    }
+    if (await this.hasActiveBaanalingam(userId)) {
+      throw new Error(gharGharMessage(BAANALINGAM_LABEL));
+    }
+    if (await this.hasActiveMarakata(userId)) {
+      throw new Error(gharGharMessage(MARAKATA_SHIVLING_LABEL));
+    }
+  }
+
   async assertCanOrderBaanalingam(userId: number) {
     const activeAny = await orderRepository.findAnyActiveProductOrder(userId);
     if (activeAny) {
