@@ -47,6 +47,12 @@ router.get(
   japaController.getCommunityStats,
 );
 
+router.get(
+  '/top-chanters',
+  authenticate,
+  japaController.getTopChanters,
+);
+
 router.post(
   '/community/join',
   authenticate,

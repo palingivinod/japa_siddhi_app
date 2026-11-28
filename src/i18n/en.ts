@@ -256,6 +256,12 @@ const en = {
   beginYourJapa: 'Begin your Japa',
   joinWhatsAppGroup: 'Join our WhatsApp group',
   monthlyAutoPayLinkButton: 'Monthly Auto-Pay Link for small offerings',
+  topChantersButton: 'Top 10 Chanters of {{date}}',
+  topChantersTitle: 'Top 10 Chanters',
+  topChantersToday: 'Today',
+  topChantersEmpty: 'No chants recorded for this day yet.',
+  topChantersChants: '{{count}} chants',
+  topChantersLoadError: 'Could not load the list. Please try again.',
   couldNotOpenLink: 'Could not open WhatsApp. Please try again.',
   bannerSubtitle:
     'A digital space for Japa, Anna Santharpana and spiritual participation.',

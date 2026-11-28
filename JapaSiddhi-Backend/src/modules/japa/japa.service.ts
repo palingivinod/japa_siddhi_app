@@ -1300,6 +1300,30 @@ class JapaService {
     return japaRepository.getCommunityMantraStats(mantraIds);
   }
 
+  /** Top 10 chanters of one IST day. `date` is YYYY-MM-DD; defaults to today (IST). */
+  async getTopChanters(date?: string) {
+    const todayIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
+    const requested = String(date || '').trim();
+    const valid =
+      /^\d{4}-\d{2}-\d{2}$/.test(requested) &&
+      !Number.isNaN(Date.parse(`${requested}T00:00:00Z`));
+    // Future days have no chants; clamp to today.
+    const day = valid && requested <= todayIst ? requested : todayIst;
+    const chanters = await japaRepository.getTopChantersForDay(day, 10);
+    return {
+      date: day,
+      isToday: day === todayIst,
+      chanters: chanters.map((row, index) => ({
+        rank: index + 1,
+        userId: row.userId,
+        name: row.name,
+        total: row.total,
+      })),
+    };
+  }
+
   async joinCommunity(userId: number, mantraId?: number) {
     const id = Number(mantraId) || 0;
     const mantraRepository = (await import('../mantra/mantra.repository')).default;

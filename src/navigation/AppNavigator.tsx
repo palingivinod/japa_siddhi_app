@@ -20,6 +20,7 @@ import CompleteProfileScreen from '../modules/auth/CompleteProfileScreen';
 import HomeScreen from '../modules/home/screens/HomeScreen';
 import IntroVideosScreen from '../modules/home/screens/IntroVideosScreen';
 import BannerDetailScreen from '../modules/home/screens/BannerDetailScreen';
+import TopChantersScreen from '../modules/home/screens/TopChantersScreen';
 import IntroVideoPlayerScreen from '../modules/home/screens/IntroVideoPlayerScreen';
 import JapaHubScreen from '../modules/japa/JapaHubScreen';
 import CommunityJapaScreen from '../modules/japa/CommunityJapaScreen';
@@ -342,6 +343,7 @@ export type RootStackParamList = {
   Festivals: undefined;
   IntroVideos: undefined;
   BannerDetail: {bannerId: number | string};
+  TopChanters: undefined;
   IntroVideoPlayer:
     | {videoId?: string; fromAuth?: boolean}
     | undefined;
@@ -523,6 +525,7 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 const ProtectedHome = withAuth(HomeScreen);
 const ProtectedIntroVideos = withAuth(IntroVideosScreen);
 const ProtectedBannerDetail = withAuth(BannerDetailScreen);
+const ProtectedTopChanters = withAuth(TopChantersScreen);
 const ProtectedIntroVideoPlayer = withAuth(IntroVideoPlayerScreen);
 const ProtectedJapaHub = withAuth(JapaHubScreen);
 const ProtectedCommunity = withAuth(CommunityJapaScreen);
@@ -722,6 +725,7 @@ const AppNavigator = () => {
         <Stack.Screen name="Home" component={ProtectedHome} />
         <Stack.Screen name="IntroVideos" component={ProtectedIntroVideos} />
         <Stack.Screen name="BannerDetail" component={ProtectedBannerDetail} />
+        <Stack.Screen name="TopChanters" component={ProtectedTopChanters} />
         <Stack.Screen
           name="IntroVideoPlayer"
           component={ProtectedIntroVideoPlayer}

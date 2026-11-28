@@ -442,6 +442,41 @@ class JapaRepository {
     }));
   }
 
+  /**
+   * Top chanters for one IST day (read-only; never changes any count).
+   * Challenge chant sessions are excluded, like the other japa analytics.
+   */
+  async getTopChantersForDay(isoDate: string, limit = 10) {
+    const isMysql = mysql.getEngineName() === 'mysql';
+    const dayExpr = isMysql
+      ? `DATE(DATE_ADD(js.created_at, INTERVAL 330 MINUTE))`
+      : `DATE(js.created_at, '+5 hours', '30 minutes')`;
+    const rows = await mysql.query<any[]>(
+      `
+      SELECT
+        js.user_id AS userId,
+        MAX(u.full_name) AS fullName,
+        COALESCE(SUM(js.session_count), 0) AS total
+      FROM japa_sessions js
+      INNER JOIN users u
+        ON u.id = js.user_id
+      WHERE ${dayExpr} = ?
+      ${EXCLUDE_CHALLENGE_REMARKS_JS}
+      AND UPPER(COALESCE(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
+      GROUP BY js.user_id
+      HAVING COALESCE(SUM(js.session_count), 0) > 0
+      ORDER BY total DESC, js.user_id ASC
+      LIMIT ?
+      `,
+      [isoDate, limit],
+    );
+    return (rows || []).map(item => ({
+      userId: Number(item.userId || item.user_id || 0) || 0,
+      name: String(item.fullName || item.full_name || '').trim() || 'Devotee',
+      total: this.toCount(item.total),
+    }));
+  }
+
   /** One row per IST day — much cheaper than pulling every session for charts/streaks. */
   async getDailyCountRows(userId: number) {
     const isMysql = mysql.getEngineName() === 'mysql';

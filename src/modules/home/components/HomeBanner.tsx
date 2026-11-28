@@ -115,13 +115,13 @@ const HomeBanner: React.FC<Props> = ({
               activeOpacity={0.85}
               accessibilityRole="button"
               onPress={onAnnouncementPress}>
-              <Text style={styles.cardText} numberOfLines={2}>
+              <Text style={styles.cardText}>
                 {announcementTextLine}
               </Text>
             </TouchableOpacity>
           ) : (
             <View style={[styles.card, styles.cardBot]} pointerEvents="none">
-              <Text style={styles.cardText} numberOfLines={2}>
+              <Text style={styles.cardText}>
                 {announcementTextLine}
               </Text>
             </View>
@@ -186,10 +186,14 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   cardMid: {
-    top: '42%',
+    top: '45%',
   },
+  // Admin banner: same width as the buttons above, grows to show the full text.
   cardBot: {
-    top: '78%',
+    bottom: '5%',
+    height: undefined,
+    minHeight: 36,
+    paddingVertical: 5,
     backgroundColor: '#FFFFFF',
   },
   cardText: {

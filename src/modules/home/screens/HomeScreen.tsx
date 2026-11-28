@@ -43,6 +43,7 @@ import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
+import {formatIsoDateLabel, istTodayIso} from '../../../utils/istDate';
 import {istIsoDate} from '../../../utils/dateUtils';
 import {
   readDailyPlanSnaps,
@@ -190,6 +191,11 @@ const HomeScreen = () => {
       t('couldNotOpenLink') || 'Could not open the link. Please try again.',
     );
   };
+
+  // "Top 10 Chanters of 28 Nov 2026" — the date is today's (India) date.
+  const topChantersLabel = t('topChantersButton', {
+    date: formatIsoDateLabel(istTodayIso()),
+  });
 
   const meetingBorderColor = meetingBorderAnim.interpolate({
     inputRange: [0, 1],
@@ -1022,8 +1028,6 @@ const HomeScreen = () => {
             />
           }>
           <Text style={styles.greet}>{t('namaste', {name})}</Text>
-          <Text style={styles.wish}>{t('peacefulDay')}</Text>
-
           <HomeBanner
             banner={{
               id: 1,
@@ -1053,6 +1057,31 @@ const HomeScreen = () => {
             }
           />
 
+          {/* India-flag colours: saffron, white (Ashoka Chakra blue text), green */}
+          <TouchableOpacity
+            style={styles.topChantersBtn}
+            onPress={() => navigation.navigate('TopChanters')}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={topChantersLabel}>
+            <Text style={styles.topChantersBtnText}>{topChantersLabel}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.monthlyAutopayBtn}
+            onPress={() => void openMonthlyAutopayForm()}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={
+              t('monthlyAutoPayLinkButton') ||
+              'Monthly Auto-Pay Link for small offerings'
+            }>
+            <Text style={styles.monthlyAutopayBtnText}>
+              {t('monthlyAutoPayLinkButton') ||
+                'Monthly Auto-Pay Link for small offerings'}
+            </Text>
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.whatsappGroupBtn}
             onPress={() => void openWhatsAppGroup()}
@@ -1068,21 +1097,6 @@ const HomeScreen = () => {
             />
             <Text style={styles.whatsappGroupText}>
               {t('joinWhatsAppGroup') || 'Join our WhatsApp group'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.monthlyAutopayBtn}
-            onPress={() => void openMonthlyAutopayForm()}
-            activeOpacity={0.85}
-            accessibilityRole="button"
-            accessibilityLabel={
-              t('monthlyAutoPayLinkButton') ||
-              'Monthly Auto-Pay Link for small offerings'
-            }>
-            <Text style={styles.monthlyAutopayBtnText}>
-              {t('monthlyAutoPayLinkButton') ||
-                'Monthly Auto-Pay Link for small offerings'}
             </Text>
           </TouchableOpacity>
 
@@ -1446,6 +1460,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Colors.leafGreen,
     includeFontPadding: true,
+    marginBottom: 8,
   },
   wish: {
     marginTop: 4,
@@ -1543,8 +1558,8 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginTop: 4,
-    marginBottom: 8,
+    marginTop: 0,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#1EBE57',
   },
@@ -1558,7 +1573,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
-  monthlyAutopayBtn: {
+  // Saffron (top of the India flag).
+  topChantersBtn: {
     alignSelf: 'stretch',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1566,12 +1582,31 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    marginBottom: 14,
+    marginBottom: 8,
     borderWidth: 1,
     borderColor: '#A66B1E',
   },
-  monthlyAutopayBtnText: {
+  topChantersBtnText: {
     color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  // White with Ashoka Chakra blue text (middle of the India flag).
+  monthlyAutopayBtn: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#06038D',
+  },
+  monthlyAutopayBtnText: {
+    color: '#06038D',
     fontWeight: '800',
     fontSize: 14,
     textAlign: 'center',

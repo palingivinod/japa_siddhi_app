@@ -211,6 +211,20 @@ class JapaController {
     }
   }
 
+  async getTopChanters(req: Request, res: Response, next: NextFunction) {
+    try {
+      if (!req.user?.id) {
+        return apiResponse.error(res, 'User not authenticated', 401);
+      }
+      const result = await japaService.getTopChanters(
+        String(req.query?.date || ''),
+      );
+      return apiResponse.success(res, 'Top chanters fetched', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async joinCommunity(
     req: Request,
     res: Response,
