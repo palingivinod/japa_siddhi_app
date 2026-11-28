@@ -27,6 +27,14 @@ import {
 } from '../../utils/profilePhone';
 import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import {CountryItem} from '../../constants/countries';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  alternatePhonePayload,
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
 
 const ChallengeRewardDeliveryScreen = () => {
@@ -41,7 +49,9 @@ const ChallengeRewardDeliveryScreen = () => {
     resolveCallingCountry('91'),
   );
   const [mobile, setMobile] = useState('');
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
   const [address, setAddress] = useState('');
+  useAlternatePhonePrefill(address, setAlternate);
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pinCode, setPinCode] = useState('');
@@ -157,6 +167,10 @@ const ChallengeRewardDeliveryScreen = () => {
       );
       return;
     }
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(t('required'), t('alternatePhoneInvalid'));
+      return;
+    }
     if (!isValidPin(pinCode)) {
       Alert.alert(t('required'), t('pinCodeMandatory'));
       return;
@@ -175,12 +189,14 @@ const ChallengeRewardDeliveryScreen = () => {
             fullName: fullName.trim(),
             mobile: mobile.trim(),
             mobileCountryCode: countryCode,
+            ...alternatePhonePayload(alternate),
             address: address.trim(),
             city: city.trim(),
             state: state.trim(),
             pinCode: pinCode.trim(),
           },
         );
+        await saveAlternatePhoneForAddress(address.trim(), alternate);
         const data = response.data?.data || {};
         navigation.replace('ChallengeRewardOrderCreated', {
           id: challengeId,
@@ -234,6 +250,7 @@ const ChallengeRewardDeliveryScreen = () => {
           }}
           onMobileChange={setMobile}
         />
+        <AlternatePhoneField value={alternate} onChange={setAlternate} />
         <FormField
           label={t('address')}
           placeholder={t('enterHere')}

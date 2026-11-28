@@ -373,6 +373,10 @@ class JapaController {
           mobileCountryCode: String(
             req.body?.mobileCountryCode || req.body?.countryCode || '91',
           ),
+          alternateMobile: String(req.body?.alternateMobile || ''),
+          alternateMobileCountryCode: String(
+            req.body?.alternateMobileCountryCode || '91',
+          ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),
           state: String(req.body?.state || ''),
@@ -466,6 +470,10 @@ class JapaController {
           mobileCountryCode: String(
             req.body?.mobileCountryCode || req.body?.countryCode || '91',
           ),
+          alternateMobile: String(req.body?.alternateMobile || ''),
+          alternateMobileCountryCode: String(
+            req.body?.alternateMobileCountryCode || '91',
+          ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),
           state: String(req.body?.state || ''),
@@ -499,6 +507,10 @@ class JapaController {
           mobile: String(req.body?.mobile || req.body?.mobileNumber || ''),
           mobileCountryCode: String(
             req.body?.mobileCountryCode || req.body?.countryCode || '91',
+          ),
+          alternateMobile: String(req.body?.alternateMobile || ''),
+          alternateMobileCountryCode: String(
+            req.body?.alternateMobileCountryCode || '91',
           ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),

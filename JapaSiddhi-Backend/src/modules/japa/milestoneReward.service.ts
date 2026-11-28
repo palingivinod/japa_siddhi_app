@@ -7,11 +7,17 @@ import emailOtpService from '../../services/emailOtp.service';
 import masterService from '../master/master.service';
 import japaRepository from './japa.repository';
 import {isRewardEligibleTarget, milestoneByTarget} from './japa.milestones';
+import {
+  alternateMobileRemarkLine,
+  normalizeAlternateMobile,
+} from '../../utils/alternateMobile';
 
 export type MilestoneDelivery = {
   fullName: string;
   mobile: string;
   mobileCountryCode?: string;
+  alternateMobile?: string;
+  alternateMobileCountryCode?: string;
   address: string;
   city: string;
   state: string;
@@ -919,17 +925,23 @@ class MilestoneRewardService {
       throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
     }
 
+    const alternateLine = alternateMobileRemarkLine(
+      normalizeAlternateMobile(delivery.alternateMobile, delivery.alternateMobileCountryCode),
+    );
     const remarks = [
       'Relative reward',
       `Reward track: ${title}`,
       `Reward: ${rewardName}`,
       `Name: ${fullName}`,
       `Mobile: +${mobileCountryCode}${mobile}`,
+      alternateLine,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
       `PIN: ${pinCode}`,
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const created = await orderService.create({
       userId,
@@ -1251,17 +1263,23 @@ class MilestoneRewardService {
     }
 
     const rewardName = String(reward.name || 'Milestone reward');
+    const alternateLine = alternateMobileRemarkLine(
+      normalizeAlternateMobile(delivery.alternateMobile, delivery.alternateMobileCountryCode),
+    );
     const remarks = [
       'Milestone reward',
       `Milestone: ${milestone.title} (${milestone.target})`,
       `Reward: ${rewardName}`,
       `Name: ${fullName}`,
       `Mobile: +${mobileCountryCode}${mobile}`,
+      alternateLine,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
       `PIN: ${pinCode}`,
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const created = await orderService.create({
       userId,

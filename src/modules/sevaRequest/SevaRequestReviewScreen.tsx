@@ -117,6 +117,8 @@ const SevaRequestReviewScreen = () => {
         kind: request.kind,
         fullName: params.fullName,
         mobile: params.mobile,
+        alternateMobile: params.alternateMobile || undefined,
+        alternateMobileCountryCode: params.alternateMobileCountryCode || undefined,
         address,
         city: params.city || undefined,
         state: params.state || undefined,
@@ -213,6 +215,17 @@ const SevaRequestReviewScreen = () => {
           <Text style={styles.label}>{t('mobileLabel')}</Text>
           <Text style={styles.value}>{params.mobile || '—'}</Text>
         </View>
+        {params.alternateMobile ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('alternatePhoneRowLabel')}</Text>
+              <Text style={styles.value}>
+                {`+${params.alternateMobileCountryCode || '91'} ${params.alternateMobile}`}
+              </Text>
+            </View>
+          </>
+        ) : null}
         <View style={styles.divider} />
         <View style={styles.row}>
           <Text style={styles.label}>{t('address')}</Text>

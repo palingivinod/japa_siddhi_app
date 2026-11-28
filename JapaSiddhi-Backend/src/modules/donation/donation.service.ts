@@ -12,6 +12,10 @@ import banaLingamService from '../banaLingam/banaLingam.service';
 import profileRepository from '../profile/profile.repository';
 import masterService from '../master/master.service';
 import AppError from '../../utils/appError';
+import {
+  alternateMobileRemarkLine,
+  normalizeAlternateMobile,
+} from '../../utils/alternateMobile';
 import mysql from '../../database/mysql';
 
 const extractPinFromText = (text: string) => {
@@ -309,6 +313,8 @@ class DonationService {
       comments?: string;
       transactionId?: string;
       utr?: string;
+      alternateMobile?: string;
+      alternateMobileCountryCode?: string;
     },
   ) {
     const kind = String(data.kind || 'ANNADANAM').toUpperCase();
@@ -336,6 +342,10 @@ class DonationService {
     if (rawMobile && mobile.length !== 10) {
       throw new AppError('Enter a valid 10-digit mobile number.', 400);
     }
+    // Optional "Alternative phone number" (empty = not given).
+    const alternateMobileLine = alternateMobileRemarkLine(
+      normalizeAlternateMobile(data.alternateMobile, data.alternateMobileCountryCode),
+    );
 
     const needsDeliveryAddress =
       kind === 'BANA_LINGAM' ||
@@ -387,6 +397,7 @@ class DonationService {
     const remarks = [
       data.fullName ? `Name: ${data.fullName}` : '',
       mobile ? `Mobile: ${mobile}` : '',
+      alternateMobileLine,
       data.gothram ? `Gothram: ${data.gothram}` : '',
       data.nakshatram ? `Nakshatram: ${data.nakshatram}` : '',
       data.occasion ? `Occasion: ${data.occasion}` : '',
@@ -520,6 +531,7 @@ class DonationService {
     const deliveryLines = [
       `Name: ${data.fullName || 'Devotee'}`,
       `Mobile: ${mobile || '-'}`,
+      alternateMobileLine,
       `Address: ${addressText}`,
       deliveryCity ? `City: ${deliveryCity}` : '',
       deliveryState ? `State: ${deliveryState}` : '',

@@ -54,6 +54,7 @@ type OrderDetail = {
   delivery?: {
     fullName?: string;
     mobile?: string;
+    alternateMobile?: string;
     email?: string;
     address?: string;
     city?: string;
@@ -724,6 +725,12 @@ const AdminOrderDetailsScreen = () => {
               label="Mobile"
               value={delivery.mobile}
             />
+            {delivery.alternateMobile ? (
+              <MobileDetailRow
+                label="Alternative mobile"
+                value={delivery.alternateMobile}
+              />
+            ) : null}
             <EmailDetailRow label="Email" value={delivery.email} />
             <DetailRow label="Address" value={delivery.address} />
             <DetailRow label="Region" value={delivery.region} />

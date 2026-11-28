@@ -27,6 +27,14 @@ import {
 import MobileWithCountryField from '../auth/components/MobileWithCountryField';
 import {CountryItem} from '../../constants/countries';
 import {promptRewardAddressDisclaimer} from '../../utils/rewardAddressDisclaimer';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  alternatePhonePayload,
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 
 const Field = ({
   label,
@@ -75,7 +83,9 @@ const MilestoneRewardAddressScreen = () => {
     resolveCallingCountry('91'),
   );
   const [mobile, setMobile] = useState('');
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
   const [address, setAddress] = useState('');
+  useAlternatePhonePrefill(address, setAlternate);
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
   const [pinCode, setPinCode] = useState('');
@@ -187,12 +197,17 @@ const MilestoneRewardAddressScreen = () => {
       );
       return;
     }
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(t('required'), t('alternatePhoneInvalid'));
+      return;
+    }
     if (!isValidPin(pinCode)) {
       Alert.alert(t('required'), t('pinCodeMandatory'));
       return;
     }
     const goOverview = () => {
       setDisclaimerAccepted(true);
+      void saveAlternatePhoneForAddress(address.trim(), alternate);
       navigation.navigate('MilestoneRewardOverview', {
         target,
         rewardId,
@@ -202,6 +217,7 @@ const MilestoneRewardAddressScreen = () => {
         fullName: fullName.trim(),
         mobile: mobile.trim(),
         mobileCountryCode: countryCode,
+        ...alternatePhonePayload(alternate),
         address: address.trim(),
         city: city.trim(),
         state: stateName.trim(),
@@ -236,6 +252,7 @@ const MilestoneRewardAddressScreen = () => {
           }}
           onMobileChange={setMobile}
         />
+        <AlternatePhoneField value={alternate} onChange={setAlternate} />
         <Field label={t('address')} value={address} onChangeText={setAddress} />
         <Field
           label={`${t('pinCode')} *`}

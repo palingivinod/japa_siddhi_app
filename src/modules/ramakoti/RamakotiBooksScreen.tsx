@@ -33,6 +33,14 @@ import {
   parseDeliveryAddress,
 } from '../../utils/deliveryAddress';
 import {ensureAddressHasPinOrEdit} from '../../utils/promptAddressPin';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  alternatePhonePayload,
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 
 const RAMAKOTI_POSTER = require('../../assets/images/ramakoti_poster.jpg');
 
@@ -42,7 +50,9 @@ const RamakotiBooksScreen = () => {
   const {t} = useLanguage();
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
   const [address, setAddress] = useState('');
+  useAlternatePhonePrefill(address, setAlternate);
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [comments, setComments] = useState('');
@@ -163,6 +173,10 @@ const RamakotiBooksScreen = () => {
       Alert.alert(t('ramakotiSeva'), t('baanalingamFieldsRequired'));
       return;
     }
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(t('ramakotiSeva'), t('alternatePhoneInvalid'));
+      return;
+    }
     if (!address.trim()) {
       Alert.alert(
         t('ramakotiSeva'),
@@ -183,9 +197,11 @@ const RamakotiBooksScreen = () => {
     const parsed = parseDeliveryAddress(address.trim());
     await saveDeliveryAddress(address.trim());
     await setLatestSelectedAddress(address.trim());
+    await saveAlternatePhoneForAddress(address.trim(), alternate);
     navigation.navigate('RamakotiBooksReview', {
       fullName: fullName.trim(),
       mobile,
+      ...alternatePhonePayload(alternate),
       address: address.trim(),
       city: parsed.city,
       state: parsed.state,
@@ -253,6 +269,7 @@ const RamakotiBooksScreen = () => {
         value={mobile}
         onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
+      <AlternatePhoneField value={alternate} onChange={setAlternate} />
       <View style={styles.deliverySection}>
         <Text style={styles.deliveryLabel}>{t('deliveryAddress')}</Text>
 

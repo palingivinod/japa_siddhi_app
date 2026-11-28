@@ -10,6 +10,10 @@ import emailOtpService from '../../services/emailOtp.service';
 import authRepository from '../auth/auth.repository';
 import japaRepository from '../japa/japa.repository';
 import masterService from '../master/master.service';
+import {
+  alternateMobileRemarkLine,
+  normalizeAlternateMobile,
+} from '../../utils/alternateMobile';
 
 class ChallengeService {
   private async userSummary(userId: number) {
@@ -661,6 +665,8 @@ class ChallengeService {
       fullName: string;
       mobile: string;
       mobileCountryCode?: string;
+      alternateMobile?: string;
+      alternateMobileCountryCode?: string;
       address: string;
       city: string;
       state: string;
@@ -711,17 +717,23 @@ class ChallengeService {
       throw new Error('Could not find that PIN code. Enter a valid 6-digit PIN.');
     }
 
+    const alternateLine = alternateMobileRemarkLine(
+      normalizeAlternateMobile(delivery.alternateMobile, delivery.alternateMobileCountryCode),
+    );
     const remarks = [
       'Challenge reward delivery',
       `Name: ${fullName}`,
       `Mobile: +${mobileCountryCode}${mobile}`,
+      alternateLine,
       `Address: ${address}`,
       `City: ${city}`,
       `State: ${state}`,
       `PIN: ${pinCode}`,
       `ChallengeId: ${challengeId}`,
       `Reward: ${claim.rewardName}`,
-    ].join('\n');
+    ]
+      .filter(Boolean)
+      .join('\n');
 
     const rewardName = String(claim.rewardName || 'Challenge reward');
     const claimRewardId = Number(claim.rewardId || 0);

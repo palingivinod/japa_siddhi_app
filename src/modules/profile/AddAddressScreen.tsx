@@ -25,6 +25,13 @@ import {
   updateDeliveryAddress,
 } from '../../services/savedAddresses';
 import {parseDeliveryAddress} from '../../utils/deliveryAddress';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 
 const AddAddressScreen = () => {
   const navigation = useNavigation<any>();
@@ -40,6 +47,8 @@ const AddAddressScreen = () => {
   const [city, setCity] = useState('');
   const [stateName, setStateName] = useState('');
   const [editingOriginal, setEditingOriginal] = useState<string | null>(null);
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
+  useAlternatePhonePrefill(editingOriginal || '', setAlternate);
 
   const [detectingPin, setDetectingPin] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,6 +62,7 @@ const AddAddressScreen = () => {
     setCity('');
     setStateName('');
     setEditingOriginal(null);
+    setAlternate(emptyAlternatePhone());
   };
 
   const loadList = useCallback(async () => {
@@ -150,6 +160,14 @@ const AddAddressScreen = () => {
       return;
     }
 
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(
+        t('addNewAddress') || 'Add New Address',
+        t('alternatePhoneInvalid'),
+      );
+      return;
+    }
+
     const pinClean = pinCode.replace(/\D/g, '');
     if (!pinClean || pinClean.length !== 6) {
       Alert.alert(
@@ -188,6 +206,7 @@ const AddAddressScreen = () => {
 
       if (editingOriginal) {
         const nextList = await updateDeliveryAddress(editingOriginal, fullAddress);
+        await saveAlternatePhoneForAddress(fullAddress, alternate);
         setSavedList(nextList);
         await setLatestSelectedAddress(fullAddress);
         if (returnTo) {
@@ -201,6 +220,7 @@ const AddAddressScreen = () => {
         }
       } else {
         await saveDeliveryAddress(fullAddress);
+        await saveAlternatePhoneForAddress(fullAddress, alternate);
         await setLatestSelectedAddress(fullAddress);
 
         if (returnTo) {
@@ -323,6 +343,8 @@ const AddAddressScreen = () => {
               placeholder={t('pinCodeAutoDetect') || 'Auto-fetching from PIN...'}
               placeholderTextColor={Colors.placeholder}
             />
+
+            <AlternatePhoneField value={alternate} onChange={setAlternate} />
 
             <View style={styles.btnWrap}>
               <PrimaryButton

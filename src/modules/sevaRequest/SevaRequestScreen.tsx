@@ -38,6 +38,14 @@ import {
 } from '../../utils/deliveryAddress';
 import {ensureAddressHasPinOrEdit} from '../../utils/promptAddressPin';
 import {sevaRequestFromRoute} from './sevaRequestConfig';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  alternatePhonePayload,
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 
 const BIRAVA_PHOTOS = [
   require('../../assets/images/birava_pendant.jpg'),
@@ -62,7 +70,9 @@ const SevaRequestScreen = () => {
   const request = sevaRequestFromRoute(String(route.name || ''));
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
   const [address, setAddress] = useState('');
+  useAlternatePhonePrefill(address, setAlternate);
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [comments, setComments] = useState('');
@@ -313,6 +323,10 @@ const SevaRequestScreen = () => {
       );
       return;
     }
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(t(request.titleKey), t('alternatePhoneInvalid'));
+      return;
+    }
     if (
       !ensureAddressHasPinOrEdit(address, {
         t,
@@ -325,10 +339,12 @@ const SevaRequestScreen = () => {
     const parsed = parseDeliveryAddress(address.trim());
     const nextAddresses = await saveDeliveryAddress(address);
     await setLatestSelectedAddress(address.trim());
+    await saveAlternatePhoneForAddress(address.trim(), alternate);
     setSavedAddresses(nextAddresses);
     navigation.navigate(request.reviewRoute, {
       fullName,
       mobile,
+      ...alternatePhonePayload(alternate),
       address: address.trim(),
       city: parsed.city,
       state: parsed.state,
@@ -443,6 +459,7 @@ const SevaRequestScreen = () => {
         value={mobile}
         onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
+      <AlternatePhoneField value={alternate} onChange={setAlternate} />
       <View style={styles.deliverySection}>
         <Text style={styles.deliveryLabel}>{t('deliveryAddress')}</Text>
 

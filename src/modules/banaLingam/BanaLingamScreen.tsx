@@ -12,6 +12,14 @@ import {useFocusEffect, useNavigation, useRoute} from '@react-navigation/native'
 import {useLanguage} from '../../i18n/LanguageContext';
 import ProfileApi from '../auth/services/profileApi';
 import apiService from '../../services/apiService';
+import AlternatePhoneField from '../common/AlternatePhoneField';
+import {
+  alternatePhonePayload,
+  emptyAlternatePhone,
+  isAlternatePhoneValid,
+  saveAlternatePhoneForAddress,
+  useAlternatePhonePrefill,
+} from '../../utils/alternatePhone';
 import {
   getLatestSelectedAddress,
   loadSavedAddresses,
@@ -39,7 +47,9 @@ const BanaLingamScreen = () => {
   const {t} = useLanguage();
   const [fullName, setFullName] = useState('');
   const [mobile, setMobile] = useState('');
+  const [alternate, setAlternate] = useState(emptyAlternatePhone);
   const [address, setAddress] = useState('');
+  useAlternatePhonePrefill(address, setAlternate);
   const [savedAddresses, setSavedAddresses] = useState<string[]>([]);
   const [savedModalVisible, setSavedModalVisible] = useState(false);
   const [purpose, setPurpose] = useState('For Home pooja');
@@ -257,6 +267,10 @@ const BanaLingamScreen = () => {
       );
       return;
     }
+    if (!isAlternatePhoneValid(alternate)) {
+      Alert.alert(t('baanalingamSeva'), t('alternatePhoneInvalid'));
+      return;
+    }
     if (!purpose) {
       Alert.alert(t('baanalingamSeva'), t('purposeRequiredBaanalingam'));
       return;
@@ -277,10 +291,12 @@ const BanaLingamScreen = () => {
     const parsed = parseDeliveryAddress(address.trim());
     const nextAddresses = await saveDeliveryAddress(address);
     await setLatestSelectedAddress(address.trim());
+    await saveAlternatePhoneForAddress(address.trim(), alternate);
     setSavedAddresses(nextAddresses);
     navigation.navigate('BanaLingamReview', {
       fullName,
       mobile,
+      ...alternatePhonePayload(alternate),
       address: address.trim(),
       city: parsed.city,
       state: parsed.state,
@@ -337,6 +353,7 @@ const BanaLingamScreen = () => {
         value={mobile}
         onChangeText={text => setMobile(digitsOnly(text).slice(0, MOBILE_DIGITS))}
       />
+      <AlternatePhoneField value={alternate} onChange={setAlternate} />
       <View style={styles.deliverySection}>
         <Text style={styles.deliveryLabel}>{t('deliveryAddress')}</Text>
 

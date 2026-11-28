@@ -50,6 +50,8 @@ const MilestoneRewardOverviewScreen = () => {
           fullName: params.fullName,
           mobile: params.mobile,
           mobileCountryCode: params.mobileCountryCode || '91',
+          alternateMobile: params.alternateMobile || undefined,
+          alternateMobileCountryCode: params.alternateMobileCountryCode || undefined,
           address: params.address,
           city: params.city,
           state: params.state,
@@ -126,6 +128,12 @@ const MilestoneRewardOverviewScreen = () => {
           label={t('mobile')}
           value={`${params.mobileCountryCode ? `+${String(params.mobileCountryCode).replace(/\D/g, '')} ` : '+91 '}${params.mobile || ''}`.trim()}
         />
+        {params.alternateMobile ? (
+          <Row
+            label={t('alternatePhoneRowLabel')}
+            value={`+${params.alternateMobileCountryCode || '91'} ${params.alternateMobile}`}
+          />
+        ) : null}
         <Row label={t('address')} value={String(params.address || '')} />
         <Row label={t('city')} value={String(params.city || '')} />
         <Row label={t('state')} value={String(params.state || '')} />

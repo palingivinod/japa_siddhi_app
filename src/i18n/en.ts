@@ -925,6 +925,10 @@ const en = {
   // Extra UI coverage
   submit: 'SUBMIT',
   optional: 'Optional',
+  alternatePhoneLabel: 'Alternative phone number',
+  alternatePhoneNote: 'Optional. Add a second number we can reach you on for this delivery.',
+  alternatePhoneInvalid: 'Enter a valid alternative phone number, or leave it empty.',
+  alternatePhoneRowLabel: 'Alternative mobile',
   comments: 'Comments',
   tellUsMore: 'Tell us more',
   howWasExperience: 'How was your experience?',

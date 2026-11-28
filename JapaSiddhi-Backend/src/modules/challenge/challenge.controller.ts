@@ -366,6 +366,10 @@ class ChallengeController {
           mobileCountryCode: String(
             req.body?.mobileCountryCode || req.body?.countryCode || '91',
           ),
+          alternateMobile: String(req.body?.alternateMobile || ''),
+          alternateMobileCountryCode: String(
+            req.body?.alternateMobileCountryCode || '91',
+          ),
           address: String(req.body?.address || ''),
           city: String(req.body?.city || ''),
           state: String(req.body?.state || ''),

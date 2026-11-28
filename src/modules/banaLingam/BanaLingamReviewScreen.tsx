@@ -42,6 +42,8 @@ const BanaLingamReviewScreen = () => {
         kind: 'BANA_LINGAM',
         fullName: params.fullName,
         mobile: params.mobile,
+        alternateMobile: params.alternateMobile || undefined,
+        alternateMobileCountryCode: params.alternateMobileCountryCode || undefined,
         address,
         city: params.city || undefined,
         state: params.state || undefined,
@@ -137,6 +139,18 @@ const BanaLingamReviewScreen = () => {
           <Text style={styles.label}>{t('mobileLabel')}</Text>
           <Text style={styles.value}>{params.mobile || '—'}</Text>
         </View>
+
+        {params.alternateMobile ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.row}>
+              <Text style={styles.label}>{t('alternatePhoneRowLabel')}</Text>
+              <Text style={styles.value}>
+                {`+${params.alternateMobileCountryCode || '91'} ${params.alternateMobile}`}
+              </Text>
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.divider} />
 

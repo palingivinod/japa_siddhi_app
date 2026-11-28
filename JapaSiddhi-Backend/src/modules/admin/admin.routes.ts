@@ -4082,6 +4082,7 @@ const mapOrderDetail = (row: any) => {
     delivery: {
       fullName: deliveryName,
       mobile: deliveryMobile || mobile,
+      alternateMobile: parseRemarkLine(remarks, 'Alternate Mobile'),
       email,
       address: deliveryAddress,
       city: deliveryCity,
