@@ -443,24 +443,25 @@ class JapaRepository {
   }
 
   /**
-   * Top chanters for one IST day (read-only; never changes any count).
-   * Challenge chant sessions are excluded, like the other japa analytics.
+   * Top chanters between two UTC moments (read-only; never changes any count).
+   * `fromUtc` / `toUtc` are 'YYYY-MM-DD HH:MM:SS' (UTC, `toUtc` exclusive).
+   * Challenge chant sessions and blocked users are excluded.
    */
-  async getTopChantersForDay(isoDate: string, limit = 10) {
-    const isMysql = mysql.getEngineName() === 'mysql';
-    const dayExpr = isMysql
-      ? `DATE(DATE_ADD(js.created_at, INTERVAL 330 MINUTE))`
-      : `DATE(js.created_at, '+5 hours', '30 minutes')`;
+  async getTopChantersBetween(fromUtc: string, toUtc: string, limit = 10) {
     const rows = await mysql.query<any[]>(
       `
       SELECT
         js.user_id AS userId,
         MAX(u.full_name) AS fullName,
+        MAX(ci.name) AS cityName,
         COALESCE(SUM(js.session_count), 0) AS total
       FROM japa_sessions js
       INNER JOIN users u
         ON u.id = js.user_id
-      WHERE ${dayExpr} = ?
+      LEFT JOIN cities ci
+        ON ci.id = u.city_id
+      WHERE js.created_at >= ?
+        AND js.created_at < ?
       ${EXCLUDE_CHALLENGE_REMARKS_JS}
       AND UPPER(COALESCE(u.account_status, 'ACTIVE')) NOT IN ('BLOCKED', 'SUSPENDED')
       GROUP BY js.user_id
@@ -468,11 +469,12 @@ class JapaRepository {
       ORDER BY total DESC, js.user_id ASC
       LIMIT ?
       `,
-      [isoDate, limit],
+      [fromUtc, toUtc, limit],
     );
     return (rows || []).map(item => ({
       userId: Number(item.userId || item.user_id || 0) || 0,
       name: String(item.fullName || item.full_name || '').trim() || 'Devotee',
+      city: String(item.cityName || item.city_name || '').trim(),
       total: this.toCount(item.total),
     }));
   }

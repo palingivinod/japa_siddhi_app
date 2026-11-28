@@ -19,6 +19,24 @@ const MONTHS_SHORT = [
 export const istTodayIso = (): string =>
   new Date(Date.now() + IST_OFFSET_MS).toISOString().slice(0, 10);
 
+/** The Top 10 Chanters report is picked every day at this India hour (9 PM). */
+export const TOP_CHANTERS_PICK_HOUR_IST = 21;
+
+/**
+ * Date of the Top 10 Chanters report users see right now (India time):
+ * yesterday until 9 PM, then today. Must match the backend rule.
+ */
+export const topChantersReportIso = (): string => {
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
+  const today = ist.toISOString().slice(0, 10);
+  if (ist.getUTCHours() >= TOP_CHANTERS_PICK_HOUR_IST) {
+    return today;
+  }
+  return new Date(Date.parse(`${today}T00:00:00Z`) - 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10);
+};
+
 /** "2026-11-28" -> "28 Nov 2026". */
 export const formatIsoDateLabel = (iso: string): string => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));

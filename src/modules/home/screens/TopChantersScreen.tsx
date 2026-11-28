@@ -10,89 +10,84 @@ import {
 import {useLanguage} from '../../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../../services/apiService';
 import Colors from '../../../theme/colors';
-import {
-  formatIsoDateLabel,
-  istTodayIso,
-  shiftIsoDate,
-} from '../../../utils/istDate';
+import {formatIsoDateLabel, topChantersReportIso} from '../../../utils/istDate';
 import ScreenLayout from '../../common/ScreenLayout';
 
 type Chanter = {
   rank: number;
   userId: number;
   name: string;
+  city: string;
   total: number;
 };
 
 const MEDALS: Record<number, string> = {1: '🥇', 2: '🥈', 3: '🥉'};
 
-/** Top 10 chanters of one day (India time). Opens from the Home button. */
+/** Card colours by rank: gold, silver, bronze, then India-flag and festive tones. */
+const CARD_COLORS = [
+  '#E3A410',
+  '#A9B2BD',
+  '#C27A3A',
+  '#C9852E',
+  '#4E6B21',
+  '#1F4E9C',
+  '#8B2635',
+  '#0F766E',
+  '#6B3FA0',
+  '#B83280',
+];
+
+/** Gold and silver cards use dark text; the rest use white. */
+const DARK_TEXT_RANKS = new Set([1, 2]);
+
+/**
+ * Top 10 chanters report. The backend picks the list every day at 9 PM (India
+ * time): until then everyone sees yesterday's report, after that today's.
+ */
 const TopChantersScreen = () => {
   const {t} = useLanguage();
-  const [date, setDate] = useState(istTodayIso());
+  const [date, setDate] = useState(topChantersReportIso());
   const [chanters, setChanters] = useState<Chanter[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const load = useCallback(
-    async (day: string) => {
-      setLoading(true);
-      setError('');
-      try {
-        const response = await apiService.get('/japa/top-chanters', {
-          params: {date: day},
-        });
-        const data = response.data?.data || {};
-        const rows: any[] = Array.isArray(data.chanters) ? data.chanters : [];
-        setChanters(
-          rows.map(row => ({
-            rank: Number(row.rank) || 0,
-            userId: Number(row.userId) || 0,
-            name: String(row.name || '').trim() || '—',
-            total: Number(row.total) || 0,
-          })),
-        );
-      } catch (err) {
-        setChanters([]);
-        setError(getApiError(err, t('topChantersLoadError')));
-      } finally {
-        setLoading(false);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await apiService.get('/japa/top-chanters');
+      const data = response.data?.data || {};
+      const rows: any[] = Array.isArray(data.chanters) ? data.chanters : [];
+      if (data.date) {
+        setDate(String(data.date));
       }
-    },
-    [t],
-  );
+      setChanters(
+        rows.map(row => ({
+          rank: Number(row.rank) || 0,
+          userId: Number(row.userId) || 0,
+          name: String(row.name || '').trim() || '—',
+          city: String(row.city || '').trim(),
+          total: Number(row.total) || 0,
+        })),
+      );
+    } catch (err) {
+      setChanters([]);
+      setError(getApiError(err, t('topChantersLoadError')));
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
   useEffect(() => {
-    void load(date);
-  }, [date, load]);
-
-  const today = istTodayIso();
-  const isToday = date >= today;
+    void load();
+  }, [load]);
 
   return (
     <ScreenLayout title={t('topChantersTitle')} showBack>
-      <View style={styles.dateRow}>
-        <TouchableOpacity
-          style={styles.arrowBtn}
-          onPress={() => setDate(prev => shiftIsoDate(prev, -1))}
-          accessibilityRole="button"
-          accessibilityLabel="Previous day">
-          <Text style={styles.arrowText}>‹</Text>
-        </TouchableOpacity>
-        <View style={styles.dateCenter}>
-          <Text style={styles.dateText}>{formatIsoDateLabel(date)}</Text>
-          {isToday ? (
-            <Text style={styles.todayText}>{t('topChantersToday')}</Text>
-          ) : null}
-        </View>
-        <TouchableOpacity
-          style={[styles.arrowBtn, isToday && styles.arrowDisabled]}
-          disabled={isToday}
-          onPress={() => setDate(prev => shiftIsoDate(prev, 1))}
-          accessibilityRole="button"
-          accessibilityLabel="Next day">
-          <Text style={styles.arrowText}>›</Text>
-        </TouchableOpacity>
+      <View style={styles.head}>
+        <Text style={styles.headTitle}>🏆 {t('topChantersTitle')}</Text>
+        <Text style={styles.headDate}>{formatIsoDateLabel(date)}</Text>
+        <Text style={styles.headNote}>{t('topChantersNote')}</Text>
       </View>
 
       {loading ? (
@@ -106,7 +101,8 @@ const TopChantersScreen = () => {
           <Text style={styles.messageText}>{error}</Text>
           <TouchableOpacity
             style={styles.retryBtn}
-            onPress={() => void load(date)}>
+            onPress={() => void load()}
+            accessibilityRole="button">
             <Text style={styles.retryText}>↻</Text>
           </TouchableOpacity>
         </View>
@@ -119,23 +115,54 @@ const TopChantersScreen = () => {
       ) : null}
 
       {!loading && !error
-        ? chanters.map(item => (
-            <View
-              key={`${item.rank}-${item.userId}`}
-              style={[styles.row, item.rank <= 3 && styles.rowTop]}>
-              <View style={styles.rankBox}>
-                <Text style={styles.rankText}>
-                  {MEDALS[item.rank] || String(item.rank)}
-                </Text>
+        ? chanters.map(item => {
+            const dark = DARK_TEXT_RANKS.has(item.rank);
+            const textColor = dark ? '#3B2506' : '#FFFFFF';
+            const medal = MEDALS[item.rank];
+            return (
+              <View
+                key={`${item.rank}-${item.userId}`}
+                style={[
+                  styles.card,
+                  {
+                    backgroundColor:
+                      CARD_COLORS[(item.rank - 1) % CARD_COLORS.length],
+                  },
+                ]}>
+                <View style={[styles.rankBox, medal ? styles.rankMedal : null]}>
+                  <Text
+                    style={[
+                      styles.rankText,
+                      medal ? styles.rankTextMedal : {color: textColor},
+                    ]}>
+                    {medal || String(item.rank)}
+                  </Text>
+                </View>
+                <View style={styles.who}>
+                  <Text
+                    style={[styles.nameText, {color: textColor}]}
+                    numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  {item.city ? (
+                    <Text
+                      style={[styles.cityText, {color: textColor}]}
+                      numberOfLines={1}>
+                      📍 {item.city}
+                    </Text>
+                  ) : null}
+                </View>
+                <View style={styles.countBox}>
+                  <Text style={[styles.countText, {color: textColor}]}>
+                    {item.total.toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={[styles.countLabel, {color: textColor}]}>
+                    {t('topChantersChantsLabel')}
+                  </Text>
+                </View>
               </View>
-              <Text style={styles.nameText} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <Text style={styles.countText}>
-                {t('topChantersChants', {count: item.total.toLocaleString('en-IN')})}
-              </Text>
-            </View>
-          ))
+            );
+          })
         : null}
     </ScreenLayout>
   );
@@ -144,40 +171,23 @@ const TopChantersScreen = () => {
 export default TopChantersScreen;
 
 const styles = StyleSheet.create({
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  arrowBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: Colors.sacredBrown,
-    backgroundColor: Colors.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  arrowDisabled: {opacity: 0.3},
-  arrowText: {
-    fontSize: 26,
-    lineHeight: 30,
-    color: Colors.sacredBrown,
-    fontWeight: '800',
-  },
-  dateCenter: {alignItems: 'center'},
-  dateText: {
-    fontSize: 18,
+  head: {alignItems: 'center', marginBottom: 14},
+  headTitle: {
+    fontSize: 20,
     fontWeight: '800',
     color: Colors.sacredBrown,
   },
-  todayText: {
+  headDate: {
+    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '800',
+    color: Colors.leafGreen,
+  },
+  headNote: {
     marginTop: 2,
     fontSize: 12,
-    fontWeight: '700',
-    color: Colors.leafGreen,
+    color: Colors.textSecondary,
+    textAlign: 'center',
   },
   center: {paddingVertical: 36, alignItems: 'center'},
   messageText: {
@@ -194,37 +204,36 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   retryText: {color: Colors.sacredBrown, fontWeight: '800', fontSize: 18},
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: Colors.cardBorder,
-    paddingVertical: 12,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     marginBottom: 8,
+    elevation: 3,
+    shadowColor: '#000000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.18,
+    shadowRadius: 3,
   },
-  rowTop: {
-    borderColor: Colors.templeGold,
-    backgroundColor: '#FFFDF7',
+  rankBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: 'rgba(255,255,255,0.28)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  rankBox: {width: 38, alignItems: 'center'},
-  rankText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: Colors.sacredBrown,
-  },
-  nameText: {
-    flex: 1,
-    marginHorizontal: 8,
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.sacredBrown,
-  },
-  countText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.leafGreen,
-  },
+  rankMedal: {backgroundColor: 'rgba(255,255,255,0.45)'},
+  rankText: {fontSize: 16, fontWeight: '800'},
+  rankTextMedal: {fontSize: 20},
+  who: {flex: 1, marginHorizontal: 12},
+  nameText: {fontSize: 16, fontWeight: '800'},
+  cityText: {fontSize: 12, marginTop: 1, opacity: 0.92},
+  countBox: {alignItems: 'flex-end'},
+  countText: {fontSize: 17, fontWeight: '800'},
+  countLabel: {fontSize: 11, opacity: 0.92},
 });

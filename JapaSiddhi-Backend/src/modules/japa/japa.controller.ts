@@ -216,9 +216,8 @@ class JapaController {
       if (!req.user?.id) {
         return apiResponse.error(res, 'User not authenticated', 401);
       }
-      const result = await japaService.getTopChanters(
-        String(req.query?.date || ''),
-      );
+      const {getTopChantersReport} = await import('./topChanters.service');
+      const result = await getTopChantersReport();
       return apiResponse.success(res, 'Top chanters fetched', result);
     } catch (error) {
       next(error);

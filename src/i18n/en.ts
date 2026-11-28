@@ -258,9 +258,9 @@ const en = {
   monthlyAutoPayLinkButton: 'Monthly Auto-Pay Link for small offerings',
   topChantersButton: 'Top 10 Chanters of {{date}}',
   topChantersTitle: 'Top 10 Chanters',
-  topChantersToday: 'Today',
+  topChantersNote: 'Picked every day at 9 PM',
   topChantersEmpty: 'No chants recorded for this day yet.',
-  topChantersChants: '{{count}} chants',
+  topChantersChantsLabel: 'chants',
   topChantersLoadError: 'Could not load the list. Please try again.',
   couldNotOpenLink: 'Could not open WhatsApp. Please try again.',
   bannerSubtitle:

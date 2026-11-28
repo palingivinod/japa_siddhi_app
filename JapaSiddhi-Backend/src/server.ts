@@ -9,6 +9,7 @@ import { initializeFirebase } from './firebase/firebase';
 import { purgeDemoData } from './utils/demoData';
 import { startNotificationReminderScheduler } from './modules/notification/notificationReminder.service';
 import { startPanchangDailyScheduler } from './modules/festival/panchangDailyCache';
+import { startTopChantersScheduler } from './modules/japa/topChanters.service';
 import { syncRecentRazorpayDonations, startRazorpayCatchUpScheduler } from './modules/payments/razorpay.service';
 
 // ✅ Initialize Firebase Admin BEFORE starting the server
@@ -31,6 +32,7 @@ server.listen(PORT, '0.0.0.0', async () => {
     startRazorpayCatchUpScheduler();
     startNotificationReminderScheduler();
     startPanchangDailyScheduler();
+    startTopChantersScheduler();
     console.log('========================================');
     console.log(`🚀 Japa Siddhi Backend Started`);
     console.log(`🌐 Port : ${PORT}`);

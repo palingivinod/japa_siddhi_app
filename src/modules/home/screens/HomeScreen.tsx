@@ -43,7 +43,7 @@ import AppHeader from '../../common/AppHeader';
 import BottomTabs from '../../common/BottomTabs';
 import PanchangDetails from '../../common/PanchangDetails';
 import HomeBanner from '../components/HomeBanner';
-import {formatIsoDateLabel, istTodayIso} from '../../../utils/istDate';
+import {formatIsoDateLabel, topChantersReportIso} from '../../../utils/istDate';
 import {istIsoDate} from '../../../utils/dateUtils';
 import {
   readDailyPlanSnaps,
@@ -192,9 +192,10 @@ const HomeScreen = () => {
     );
   };
 
-  // "Top 10 Chanters of 28 Nov 2026" — the date is today's (India) date.
+  // "Top 10 Chanters of 27 Nov 2026" — yesterday's report until 9 PM IST,
+  // then today's (the backend picks the list every day at 9 PM).
   const topChantersLabel = t('topChantersButton', {
-    date: formatIsoDateLabel(istTodayIso()),
+    date: formatIsoDateLabel(topChantersReportIso()),
   });
 
   const meetingBorderColor = meetingBorderAnim.interpolate({
