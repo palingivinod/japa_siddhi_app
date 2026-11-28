@@ -126,8 +126,16 @@ const resolveStartMs = (meeting: MeetingLike): number | null => {
 const scheduleFingerprint = (meeting: MeetingLike) => {
   const title = String(meeting.title || '').trim();
   const link = String(meeting.link || '').trim();
+  // Compare the class time as a real moment. The weekday auto-on stores
+  // "...T19:30:00+05:30" while the admin app saves "...T14:00:00.000Z" for the
+  // same instant; as plain text those differ and caused a second push.
+  const scheduledMs = meeting.scheduledAt
+    ? new Date(String(meeting.scheduledAt)).getTime()
+    : NaN;
   const scheduledAt = meeting.scheduledAt
-    ? String(meeting.scheduledAt)
+    ? Number.isFinite(scheduledMs)
+      ? `t${scheduledMs}`
+      : String(meeting.scheduledAt)
     : '';
   const time = String(meeting.time || '').trim();
   return [
@@ -156,7 +164,17 @@ const liveFingerprint = (meeting: MeetingLike) => {
  * After admin saves an enabled meeting: notify all users once per schedule change.
  * Future start → "scheduled" message. Already live / no clock → "live" message.
  */
-export const notifyMeetingSaved = async (meeting: MeetingLike) => {
+// Calls run one after another, so two overlapping triggers (devotee opening
+// Home, admin screen, 60s poller) can never both pass the "already sent" check.
+let notifyChain: Promise<unknown> = Promise.resolve();
+
+export const notifyMeetingSaved = (meeting: MeetingLike) => {
+  const run = notifyChain.then(() => notifyMeetingSavedOnce(meeting));
+  notifyChain = run.catch(() => undefined);
+  return run;
+};
+
+const notifyMeetingSavedOnce = async (meeting: MeetingLike) => {
   if (!meeting?.enabled || !String(meeting.link || '').trim()) {
     return {sent: false, reason: 'disabled_or_no_link'};
   }
@@ -166,6 +184,8 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
   if (prev === fp) {
     return {sent: false, reason: 'already_notified'};
   }
+  // Claim before sending (delivery takes a while); undone below if it fails.
+  await appSettingsService.setSetting(SCHEDULE_FP_KEY, fp);
 
   const title = String(meeting.title || '').trim() || 'Online Class';
   const startMs = resolveStartMs(meeting);
@@ -201,9 +221,12 @@ export const notifyMeetingSaved = async (meeting: MeetingLike) => {
         bypassHours: true,
       });
     }
-    await appSettingsService.setSetting(SCHEDULE_FP_KEY, fp);
     return {sent: true, kind: isFuture ? 'scheduled' : 'live'};
   } catch (error) {
+    // Allow a retry later since nothing was delivered.
+    await appSettingsService
+      .setSetting(SCHEDULE_FP_KEY, prev)
+      .catch(() => undefined);
     console.warn('Meeting schedule notify failed:', error);
     return {sent: false, reason: 'error'};
   }

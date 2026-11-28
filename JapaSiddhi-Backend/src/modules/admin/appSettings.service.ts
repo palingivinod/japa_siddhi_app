@@ -295,25 +295,45 @@ class AppSettingsService {
     }
 
     const ymd = getIstYmd(date);
-    const already = await this.getSetting(MEETING_WEEKDAY_AUTO_ON_YMD_KEY, '');
-    if (already === ymd) {
+    // Only one caller per day may run this (Home opens, admin screen and the
+    // 60s poller all call it at 6:30 PM and used to overlap).
+    if (this.weekdayAutoOnBusy || this.weekdayAutoOnClaimedYmd === ymd) {
       return {toggledOn: false};
     }
+    this.weekdayAutoOnBusy = true;
+    try {
+      const already = await this.getSetting(
+        MEETING_WEEKDAY_AUTO_ON_YMD_KEY,
+        '',
+      );
+      if (already === ymd) {
+        this.weekdayAutoOnClaimedYmd = ymd;
+        return {toggledOn: false};
+      }
 
-    const current = await this.getMeetingConfig();
-    if (!String(current.link || '').trim()) {
-      return {toggledOn: false};
+      const current = await this.getMeetingConfig();
+      if (!String(current.link || '').trim()) {
+        return {toggledOn: false};
+      }
+
+      // Claim the day before changing anything.
+      await this.setSetting(MEETING_WEEKDAY_AUTO_ON_YMD_KEY, ymd);
+      this.weekdayAutoOnClaimedYmd = ymd;
+
+      const scheduledAt = buildIstJoinScheduledAt(date);
+      const updated = await this.setMeetingConfig({
+        enabled: true,
+        time: '7:30 PM',
+        scheduledAt,
+      });
+      return {toggledOn: true, meeting: updated};
+    } finally {
+      this.weekdayAutoOnBusy = false;
     }
-
-    const scheduledAt = buildIstJoinScheduledAt(date);
-    const updated = await this.setMeetingConfig({
-      enabled: true,
-      time: '7:30 PM',
-      scheduledAt,
-    });
-    await this.setSetting(MEETING_WEEKDAY_AUTO_ON_YMD_KEY, ymd);
-    return {toggledOn: true, meeting: updated};
   }
+
+  private weekdayAutoOnBusy = false;
+  private weekdayAutoOnClaimedYmd = '';
 
   /** Public Home/Classes payload — never exposes join link after 8:30 PM IST. */
   async getPublicMeetingConfig(date = new Date()) {
