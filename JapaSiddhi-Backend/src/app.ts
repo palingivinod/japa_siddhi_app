@@ -24,6 +24,7 @@ import challengeRoutes from './modules/challenge/challenge.routes';
 import reportRoutes from './modules/report/report.routes';
 import adminRoutes from './modules/admin/admin.routes';
 import bannerRoutes from './modules/banner/banner.routes';
+import engagementRoutes from './modules/engagement/engagement.routes';
 import annadanamRoutes from './modules/annadanam/annadanam.routes';
 import mantraRoutes from './modules/mantra/mantra.routes';
 import screensRoutes from './modules/screens/screens.routes';
@@ -374,6 +375,10 @@ app.use(
 app.use(
   '/api/v1/banners',
   bannerRoutes,
+);
+app.use(
+  '/api/v1/engagement',
+  engagementRoutes,
 );
 app.use(
   '/api/v1/annadanam',

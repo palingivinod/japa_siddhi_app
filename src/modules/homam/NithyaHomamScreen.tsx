@@ -163,7 +163,9 @@ const NithyaHomamScreen = () => {
             updatesUnread > 0 && styles.updatesStripNew,
           ]}
           activeOpacity={0.85}
-          onPress={() => navigation.navigate('HomamUpdates')}>
+          onPress={() =>
+            navigation.navigate('HomamUpdates', {source: 'services'})
+          }>
           <Text style={styles.updatesStripText}>
             🔔{' '}
             {updatesUnread > 0

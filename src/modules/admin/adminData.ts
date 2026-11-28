@@ -80,6 +80,7 @@ const ADMIN_CONTROL_ITEMS_RAW: Array<{
 }> = [
   {title: 'Analytics Dashboard', route: 'AdminAnalyticsDashboard'},
   {title: 'Autopay Requests', route: 'AdminAutopayRequests'},
+  {title: 'Banner Analytics', route: 'AdminBannerAnalytics'},
   {title: 'Banner Management', route: 'AdminBanners'},
   {title: 'Cancelled Orders', route: 'AdminCancelledOrders'},
   {title: 'Challenge Analytics', route: 'AdminChallengeAnalytics'},
@@ -93,6 +94,7 @@ const ADMIN_CONTROL_ITEMS_RAW: Array<{
   {title: 'Japa Management', route: 'AdminJapa'},
   {title: 'Samuhika Japa Analytics', route: 'AdminSamuhikaAnalytics'},
   {title: 'Meeting Management', route: 'AdminMeeting'},
+  {title: 'Nithya Homam Analytics', route: 'AdminHomamAnalytics'},
   {title: 'Notification Analytics', route: 'AdminNotificationAnalytics'},
   {title: 'Notification Management', route: 'AdminNotifications'},
   {title: 'Order History', route: 'AdminOrderHistory'},

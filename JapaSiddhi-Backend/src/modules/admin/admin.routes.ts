@@ -9592,4 +9592,44 @@ router.post('/japa/repair-inflate', async (req: Request, res: Response) => {
   }
 });
 
+// ---- Engagement analytics (banner taps, Nithya Homam messages, Top 10 opens) ----
+const engagementHandler =
+  (loader: () => Promise<any>, failure: string) =>
+  async (_req: Request, res: Response) => {
+    try {
+      return res.json({success: true, data: await loader()});
+    } catch (error: any) {
+      return res.status(500).json({
+        success: false,
+        message: error?.message || failure,
+      });
+    }
+  };
+
+router.get(
+  '/analytics/banners',
+  engagementHandler(async () => {
+    const {getBannerAnalytics} = await import('./engagementAnalytics.service');
+    return getBannerAnalytics();
+  }, 'Could not load banner analytics.'),
+);
+
+router.get(
+  '/analytics/nithya-homam',
+  engagementHandler(async () => {
+    const {getHomamAnalytics} = await import('./engagementAnalytics.service');
+    return getHomamAnalytics();
+  }, 'Could not load Nithya Homam analytics.'),
+);
+
+router.get(
+  '/analytics/top-chanters',
+  engagementHandler(async () => {
+    const {getTopChantersOpenAnalytics} = await import(
+      './engagementAnalytics.service'
+    );
+    return getTopChantersOpenAnalytics();
+  }, 'Could not load Top 10 analytics.'),
+);
+
 export default router;

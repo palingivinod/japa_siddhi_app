@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -7,8 +7,11 @@ import {
   View,
 } from 'react-native';
 
+import {useRoute} from '@react-navigation/native';
+
 import {useLanguage} from '../../../i18n/LanguageContext';
 import apiService, {getApiError} from '../../../services/apiService';
+import {logEngagement} from '../../../services/engagement';
 import Colors from '../../../theme/colors';
 import {formatIsoDateLabel, topChantersReportIso} from '../../../utils/istDate';
 import ScreenLayout from '../../common/ScreenLayout';
@@ -46,6 +49,8 @@ const DARK_TEXT_RANKS = new Set([1, 2]);
  */
 const TopChantersScreen = () => {
   const {t} = useLanguage();
+  const route = useRoute<any>();
+  const openLogged = useRef(false);
   const [date, setDate] = useState(topChantersReportIso());
   const [chanters, setChanters] = useState<Chanter[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +65,15 @@ const TopChantersScreen = () => {
       const rows: any[] = Array.isArray(data.chanters) ? data.chanters : [];
       if (data.date) {
         setDate(String(data.date));
+      }
+      // Counted once per visit, after the list actually loaded (admin analytics).
+      if (!openLogged.current) {
+        openLogged.current = true;
+        logEngagement(
+          'TOP10_OPEN',
+          data.date || topChantersReportIso(),
+          route.params?.source === 'notification' ? 'notification' : 'home',
+        );
       }
       setChanters(
         rows.map(row => ({

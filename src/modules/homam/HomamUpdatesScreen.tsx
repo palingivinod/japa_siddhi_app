@@ -1,4 +1,4 @@
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useRef, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -9,9 +9,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect, useRoute} from '@react-navigation/native';
 
 import {useLanguage} from '../../i18n/LanguageContext';
+import {logEngagement} from '../../services/engagement';
 import {playIntroVideo} from '../../services/introVideos';
 import {resolveMediaUrl} from '../../services/profilePhoto';
 import Colors from '../../theme/colors';
@@ -58,6 +59,8 @@ const formatIst = (raw: string) => {
  */
 const HomamUpdatesScreen = () => {
   const {t} = useLanguage();
+  const route = useRoute<any>();
+  const openLogged = useRef(false);
   const [items, setItems] = useState<HomamUpdate[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -69,6 +72,15 @@ const HomamUpdatesScreen = () => {
     try {
       const rows = await fetchHomamUpdates();
       setItems(rows);
+      // Admin analytics: opened from the Services card or from a notification.
+      if (!openLogged.current) {
+        openLogged.current = true;
+        logEngagement(
+          'HOMAM_UPDATES_OPEN',
+          null,
+          route.params?.source === 'notification' ? 'notification' : 'services',
+        );
+      }
       // Mark read only after they are on screen; unread dots stay for this visit.
       if (rows.some(row => !row.isRead)) {
         void markHomamUpdatesRead();

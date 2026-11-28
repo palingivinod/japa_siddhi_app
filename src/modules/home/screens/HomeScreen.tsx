@@ -23,6 +23,7 @@ import {useLanguage} from '../../../i18n/LanguageContext';
 import AppIcon, {AppIconName} from '../../../components/icons/AppIcon';
 import apiService from '../../../services/apiService';
 import {fetchHomamUnreadCount} from '../../homam/homamUpdates';
+import {logEngagement} from '../../../services/engagement';
 import {
   buildPanchangShareText,
   emptyPanchang,
@@ -1067,10 +1068,12 @@ const HomeScreen = () => {
             }))}
             onAnnouncementPress={
               homeBanners[0]?.id
-                ? () =>
+                ? () => {
+                    logEngagement('BANNER_TAP', homeBanners[0].id, 'home');
                     navigation.navigate('BannerDetail', {
                       bannerId: homeBanners[0].id,
-                    })
+                    });
+                  }
                 : undefined
             }
           />
@@ -1078,7 +1081,7 @@ const HomeScreen = () => {
           {/* India-flag colours: saffron, white (Ashoka Chakra blue text), green */}
           <TouchableOpacity
             style={styles.topChantersBtn}
-            onPress={() => navigation.navigate('TopChanters')}
+            onPress={() => navigation.navigate('TopChanters', {source: 'home'})}
             activeOpacity={0.85}
             accessibilityRole="button"
             accessibilityLabel={topChantersLabel}>

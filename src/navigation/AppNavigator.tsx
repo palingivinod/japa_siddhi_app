@@ -134,6 +134,8 @@ import AdminOrderHistoryScreen from '../modules/admin/AdminOrderHistoryScreen';
 import AdminOrderDetailsScreen from '../modules/admin/AdminOrderDetailsScreen';
 import AdminProductsScreen from '../modules/admin/AdminProductsScreen';
 import AdminBannersScreen from '../modules/admin/AdminBannersScreen';
+import AdminBannerAnalyticsScreen from '../modules/admin/AdminBannerAnalyticsScreen';
+import AdminHomamAnalyticsScreen from '../modules/admin/AdminHomamAnalyticsScreen';
 import AdminPaymentsScreen from '../modules/admin/AdminPaymentsScreen';
 import AdminPaymentDetailScreen from '../modules/admin/AdminPaymentDetailScreen';
 import AdminAnnadanamScreen from '../modules/admin/AdminAnnadanamScreen';
@@ -344,7 +346,7 @@ export type RootStackParamList = {
   Festivals: undefined;
   IntroVideos: undefined;
   BannerDetail: {bannerId: number | string};
-  TopChanters: undefined;
+  TopChanters: {source?: 'home' | 'notification'} | undefined;
   IntroVideoPlayer:
     | {videoId?: string; fromAuth?: boolean}
     | undefined;
@@ -373,7 +375,7 @@ export type RootStackParamList = {
   MonthlySupportThankYou: any;
   PaymentReceiptView: any;
   NithyaHomam: undefined;
-  HomamUpdates: undefined;
+  HomamUpdates: {source?: 'services' | 'notification'} | undefined;
   HomamEnroll: undefined;
   HomamPayment: any;
   HomamConfirmation: any;
@@ -483,6 +485,8 @@ export type RootStackParamList = {
   AdminOrderDetails: {orderId?: string} | undefined;
   AdminProducts: undefined;
   AdminBanners: undefined;
+  AdminBannerAnalytics: undefined;
+  AdminHomamAnalytics: undefined;
   AdminPayments: undefined;
   AdminPaymentDetail:
     | {
@@ -646,6 +650,8 @@ const ProtectedAdminMeeting = withAdminAuth(AdminMeetingScreen);
 const ProtectedAdminOrderDetails = withAdminAuth(AdminOrderDetailsScreen);
 const ProtectedAdminProducts = withAdminAuth(AdminProductsScreen);
 const ProtectedAdminBanners = withAdminAuth(AdminBannersScreen);
+const ProtectedAdminBannerAnalytics = withAdminAuth(AdminBannerAnalyticsScreen);
+const ProtectedAdminHomamAnalytics = withAdminAuth(AdminHomamAnalyticsScreen);
 const ProtectedAdminPayments = withAdminAuth(AdminPaymentsScreen);
 const ProtectedAdminPaymentDetail = withAdminAuth(AdminPaymentDetailScreen);
 const ProtectedAdminAnnadanam = withAdminAuth(AdminAnnadanamScreen);
@@ -1004,6 +1010,14 @@ const AppNavigator = () => {
         />
         <Stack.Screen name="AdminProducts" component={ProtectedAdminProducts} />
         <Stack.Screen name="AdminBanners" component={ProtectedAdminBanners} />
+        <Stack.Screen
+          name="AdminBannerAnalytics"
+          component={ProtectedAdminBannerAnalytics}
+        />
+        <Stack.Screen
+          name="AdminHomamAnalytics"
+          component={ProtectedAdminHomamAnalytics}
+        />
         <Stack.Screen name="AdminPayments" component={ProtectedAdminPayments} />
         <Stack.Screen
           name="AdminPaymentDetail"

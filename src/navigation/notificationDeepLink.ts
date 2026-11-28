@@ -88,7 +88,13 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
 
   // Admin message about Nithya Homam → the homam updates (photo/video/audio/link).
   if (action === 'NITHYA_HOMAM_ANNOUNCEMENT') {
-    navigateTo('HomamUpdates' as any);
+    navigateTo('HomamUpdates' as any, {source: 'notification'} as any);
+    return;
+  }
+
+  // "You are Top N in yesterday's japa" → the Top 10 list.
+  if (action === 'TOP_CHANTERS_RANK') {
+    navigateTo('TopChanters' as any, {source: 'notification'} as any);
     return;
   }
 

@@ -156,6 +156,10 @@ const AdminDashboardScreen = () => {
                 ? 'All devotee and admin cancelled orders archive & search'
                 : item.title === 'Notification Analytics'
                 ? 'Sent & read counts for broadcast notifications'
+                : item.title === 'Banner Analytics'
+                ? 'How many members tapped each Home banner'
+                : item.title === 'Nithya Homam Analytics'
+                ? 'Who got homam messages and who opened them'
                 : 'Central management'}
             </Text>
           </View>

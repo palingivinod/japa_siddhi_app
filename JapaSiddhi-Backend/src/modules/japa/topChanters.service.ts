@@ -135,6 +135,150 @@ export const ensureTopChantersReport = async (
 export const getTopChantersReport = () =>
   ensureTopChantersReport(publishedReportDate());
 
+/** Next morning at this hour (IST) each Top 10 chanter gets their rank push. */
+export const TOP_CHANTERS_PUSH_HOUR_IST = 7;
+/** Not sent after this hour, so a late server restart never pushes in the evening. */
+const TOP_CHANTERS_PUSH_LAST_HOUR_IST = 20;
+const PUSH_KEY_PREFIX = 'top_chanters_push_';
+const PUSH_START_KEY = 'top_chanters_push_start';
+let pushRunning = false;
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+const dateLabel = (iso: string) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return `${d} ${MONTHS[(m || 1) - 1]} ${y}`;
+};
+
+const rankMessage = (rank: number, total: number, label: string) => {
+  const n = String(rank);
+  const c = Number(total).toLocaleString('en-IN');
+  return {
+    en: {
+      title: `You are Top ${n} in yesterday's japa 🙏`,
+      message: `Congratulations! You were #${n} among the Top 10 chanters of ${label} with ${c} chants. Keep continuing like this!`,
+    },
+    hi: {
+      title: `कल के जप में आप टॉप ${n} में हैं 🙏`,
+      message: `बधाई! ${label} के टॉप 10 जापकों में आप #${n} रहे (${c} जप)। इसी तरह जारी रखें!`,
+    },
+    te: {
+      title: `నిన్నటి జపంలో మీరు టాప్ ${n} 🙏`,
+      message: `అభినందనలు! ${label} టాప్ 10 జపకుల్లో మీరు #${n} (${c} జపాలు). ఇలాగే కొనసాగించండి!`,
+    },
+    ta: {
+      title: `நேற்றைய ஜபத்தில் நீங்கள் முதல் ${n} இடம் 🙏`,
+      message: `வாழ்த்துகள்! ${label} முதல் 10 ஜபகர்களில் நீங்கள் #${n} (${c} ஜபம்). இதேபோல் தொடருங்கள்!`,
+    },
+    kn: {
+      title: `ನಿನ್ನೆಯ ಜಪದಲ್ಲಿ ನೀವು ಟಾಪ್ ${n} 🙏`,
+      message: `ಅಭಿನಂದನೆಗಳು! ${label} ಟಾಪ್ 10 ಜಪಕರಲ್ಲಿ ನೀವು #${n} (${c} ಜಪ). ಹೀಗೆಯೇ ಮುಂದುವರಿಸಿ!`,
+    },
+  };
+};
+
+/**
+ * From 7 AM IST, sends each of yesterday's Top 10 chanters their own push
+ * ("You are Top N in yesterday's japa"). Once per day: the day is claimed
+ * before sending. It only reads japa counts.
+ */
+export const sendTopChantersRankPushes = async () => {
+  if (pushRunning) {
+    return;
+  }
+  const ist = new Date(Date.now() + IST_OFFSET_MS);
+  const hour = ist.getUTCHours();
+  if (
+    hour < TOP_CHANTERS_PUSH_HOUR_IST ||
+    hour >= TOP_CHANTERS_PUSH_LAST_HOUR_IST
+  ) {
+    return;
+  }
+  const today = ist.toISOString().slice(0, 10);
+
+  pushRunning = true;
+  try {
+    // The first run only records today's date, so deploying this never sends
+    // a push for a day that happened before the feature existed.
+    let startDay = await appSettingsService.getSetting(PUSH_START_KEY, '');
+    if (!startDay) {
+      startDay = today;
+      await appSettingsService.setSetting(PUSH_START_KEY, startDay);
+    }
+    const reportDate = shiftIso(today, -1);
+    if (reportDate < startDay) {
+      return;
+    }
+
+    const key = `${PUSH_KEY_PREFIX}${reportDate}`;
+    if (await appSettingsService.getSetting(key, '')) {
+      return;
+    }
+    // Claim the day before sending anything.
+    await appSettingsService.setSetting(
+      key,
+      JSON.stringify({status: 'sending', sent: 0}),
+    );
+
+    const report = await ensureTopChantersReport(reportDate);
+    const {deliverAdminNotification} = await import(
+      '../admin/adminNotification.service'
+    );
+    const label = dateLabel(reportDate);
+    let sent = 0;
+    for (const chanter of report.chanters) {
+      try {
+        const copy = rankMessage(chanter.rank, chanter.total, label);
+        await deliverAdminNotification({
+          title: copy.en.title,
+          message: copy.en.message,
+          translations: copy,
+          target: 'all',
+          userIds: [chanter.userId],
+          actionType: 'TOP_CHANTERS_RANK',
+          bypassHours: true,
+          extraData: {
+            screen: 'TopChanters',
+            topRank: chanter.rank,
+            reportDate,
+          },
+        });
+        sent += 1;
+      } catch (error) {
+        console.warn(
+          '[top-chanters] Rank push failed for user',
+          chanter.userId,
+          error instanceof Error ? error.message : error,
+        );
+      }
+    }
+    await appSettingsService.setSetting(
+      key,
+      JSON.stringify({
+        status: 'done',
+        sent,
+        total: report.chanters.length,
+        at: new Date().toISOString(),
+      }),
+    );
+  } finally {
+    pushRunning = false;
+  }
+};
+
 /**
  * Takes each day's snapshot soon after 9 PM IST. A request also builds it if
  * the server was asleep or restarting at that time, so the list is never lost.
@@ -147,6 +291,12 @@ export const startTopChantersScheduler = () => {
     getTopChantersReport().catch(error =>
       console.warn(
         '[top-chanters] Snapshot failed:',
+        error instanceof Error ? error.message : error,
+      ),
+    );
+    sendTopChantersRankPushes().catch(error =>
+      console.warn(
+        '[top-chanters] Rank push failed:',
         error instanceof Error ? error.message : error,
       ),
     );

@@ -22,6 +22,7 @@ import {autoTranslateFields} from '../../services/translationService';
 import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
 import {pickProfilePhoto, resolveMediaUrl} from '../../services/profilePhoto';
 import AdminScreenLayout from './AdminScreenLayout';
+import AdminTop10OpensPanel from './AdminTop10OpensPanel';
 import {AdminBanner, AdminBannerStatus} from './adminData';
 import AdminLanguageTabs, {
   ADMIN_LANGUAGES,
@@ -135,6 +136,7 @@ const statusStyle = (status: AdminBannerStatus) => {
 };
 
 const AdminBannersScreen = () => {
+  const [pageTab, setPageTab] = useState<'banners' | 'top10'>('banners');
   const insets = useSafeAreaInsets();
   const [banners, setBanners] = useState<AdminBanner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -665,6 +667,31 @@ const AdminBannersScreen = () => {
   return (
     <AdminScreenLayout title="Banner Management" tab="AdminDashboard" showBack>
       <Text style={styles.heading}>Banner Management</Text>
+      <View style={styles.pageTabs}>
+        {(
+          [
+            ['banners', 'Banners'],
+            ['top10', 'Top 10 Opens'],
+          ] as const
+        ).map(([key, label]) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.pageTab, pageTab === key && styles.pageTabActive]}
+            onPress={() => setPageTab(key)}
+            activeOpacity={0.85}>
+            <Text
+              style={[
+                styles.pageTabText,
+                pageTab === key && styles.pageTabTextActive,
+              ]}>
+              {label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      {pageTab === 'top10' ? <AdminTop10OpensPanel /> : null}
+      {pageTab === 'banners' ? (
+      <>
       <Text style={styles.sub}>
         Type in English, and it automatically translates into Telugu, Hindi,
         Tamil, and Kannada. Active Home banners appear on the user home screen.
@@ -1111,6 +1138,8 @@ const AdminBannersScreen = () => {
           }}
         />
       </Modal>
+      </>
+      ) : null}
     </AdminScreenLayout>
   );
 };
@@ -1122,6 +1151,32 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: '800',
     color: Colors.sacredBrown,
+  },
+  pageTabs: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 12,
+  },
+  pageTab: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.white,
+  },
+  pageTabActive: {
+    backgroundColor: Colors.sacredBrown,
+    borderColor: Colors.sacredBrown,
+  },
+  pageTabText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: Colors.sacredBrown,
+  },
+  pageTabTextActive: {
+    color: Colors.white,
   },
   sub: {
     marginTop: 6,
