@@ -80,6 +80,7 @@ import AvailableRewardsScreen from '../modules/profile/AvailableRewardsScreen';
 import TransactionHistoryScreen from '../modules/profile/TransactionHistoryScreen';
 import BanaLingamScreen from '../modules/banaLingam/BanaLingamScreen';
 import NithyaHomamScreen from '../modules/homam/NithyaHomamScreen';
+import HomamUpdatesScreen from '../modules/homam/HomamUpdatesScreen';
 import HomamEnrollScreen from '../modules/homam/HomamEnrollScreen';
 import HomamConfirmationScreen from '../modules/homam/HomamConfirmationScreen';
 import CheckoutScreen from '../modules/payments/CheckoutScreen';
@@ -372,6 +373,7 @@ export type RootStackParamList = {
   MonthlySupportThankYou: any;
   PaymentReceiptView: any;
   NithyaHomam: undefined;
+  HomamUpdates: undefined;
   HomamEnroll: undefined;
   HomamPayment: any;
   HomamConfirmation: any;
@@ -589,6 +591,7 @@ const ProtectedAboutApp = withAuth(AboutAppScreen);
 const ProtectedAvailableRewards = withAuth(AvailableRewardsScreen);
 const ProtectedBanaLingam = withAuth(BanaLingamScreen);
 const ProtectedHomam = withAuth(NithyaHomamScreen);
+const ProtectedHomamUpdates = withAuth(HomamUpdatesScreen);
 const ProtectedHomamEnroll = withAuth(HomamEnrollScreen);
 const ProtectedHomamConfirmation = withAuth(HomamConfirmationScreen);
 const ProtectedOrders = withAuth(OrdersScreen);
@@ -891,6 +894,7 @@ const AppNavigator = () => {
           component={ProtectedPaymentReceiptView}
         />
         <Stack.Screen name="NithyaHomam" component={ProtectedHomam} />
+        <Stack.Screen name="HomamUpdates" component={ProtectedHomamUpdates} />
         <Stack.Screen name="HomamEnroll" component={ProtectedHomamEnroll} />
         <Stack.Screen name="HomamPayment" component={ProtectedCheckout} />
         <Stack.Screen

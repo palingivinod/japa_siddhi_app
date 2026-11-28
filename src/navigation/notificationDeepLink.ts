@@ -64,6 +64,7 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
     extractedUrl &&
     /^https?:\/\//i.test(extractedUrl) &&
     action !== 'ORDER_STATUS' &&
+    action !== 'NITHYA_HOMAM_ANNOUNCEMENT' &&
     action !== 'CHALLENGE_DEADLINE' &&
     action !== 'DAILY_JAPA_PENDING'
   ) {
@@ -82,6 +83,12 @@ export const openFromNotificationPayload = async (raw: PushLike) => {
 
   if (action === 'JAPA_MILESTONE') {
     navigateTo('MilestoneNotifications');
+    return;
+  }
+
+  // Admin message about Nithya Homam → the homam updates (photo/video/audio/link).
+  if (action === 'NITHYA_HOMAM_ANNOUNCEMENT') {
+    navigateTo('HomamUpdates' as any);
     return;
   }
 

@@ -262,6 +262,13 @@ const en = {
   topChantersEmpty: 'No chants recorded for this day yet.',
   topChantersChantsLabel: 'chants',
   topChantersLoadError: 'Could not load the list. Please try again.',
+  homamNewNotifications: 'You have {{count}} new notification(s)',
+  homamUpdatesTitle: 'Homam Updates',
+  homamUpdatesStrip: 'Homam updates',
+  homamUpdatesStripNew: 'Homam updates ({{count}} new)',
+  homamUpdatesEmpty: 'No homam updates yet.',
+  homamUpdatesLoadError: 'Could not load homam updates.',
+  homamUpdateNew: 'NEW',
   couldNotOpenLink: 'Could not open WhatsApp. Please try again.',
   bannerSubtitle:
     'A digital space for Japa, Anna Santharpana and spiritual participation.',

@@ -19,6 +19,7 @@ import Colors from '../../theme/colors';
 import MenuCard from '../common/MenuCard';
 import PrimaryButton from '../common/PrimaryButton';
 import ScreenLayout from '../common/ScreenLayout';
+import {fetchHomamUpdates} from './homamUpdates';
 
 /** Bundled at android/app/src/main/res/raw/homam_video.mp4 */
 const HOMAM_VIDEO_URI =
@@ -45,6 +46,9 @@ const NithyaHomamScreen = () => {
   const [enrollment, setEnrollment] = useState<EnrollmentState | null>(null);
   const [videoPlaying, setVideoPlaying] = useState(false);
   const hasEnrollmentRef = useRef(false);
+  // Admin messages for this devotee. Both stay 0 for everyone never messaged.
+  const [updatesTotal, setUpdatesTotal] = useState(0);
+  const [updatesUnread, setUpdatesUnread] = useState(0);
 
   const playHomamVideo = async () => {
     if (videoPlaying) {
@@ -83,6 +87,14 @@ const NithyaHomamScreen = () => {
       } else {
         setLoading(true);
       }
+      fetchHomamUpdates()
+        .then(rows => {
+          if (active) {
+            setUpdatesTotal(rows.length);
+            setUpdatesUnread(rows.filter(row => !row.isRead).length);
+          }
+        })
+        .catch(() => undefined);
       apiService
         .get('/donations/homam-status')
         .then(response => {
@@ -143,6 +155,24 @@ const NithyaHomamScreen = () => {
         title={t('dailySacredHomam')}
         subtitle={t('enrollNithyaHomam')}
       />
+
+      {updatesTotal > 0 ? (
+        <TouchableOpacity
+          style={[
+            styles.updatesStrip,
+            updatesUnread > 0 && styles.updatesStripNew,
+          ]}
+          activeOpacity={0.85}
+          onPress={() => navigation.navigate('HomamUpdates')}>
+          <Text style={styles.updatesStripText}>
+            🔔{' '}
+            {updatesUnread > 0
+              ? t('homamUpdatesStripNew', {count: updatesUnread})
+              : t('homamUpdatesStrip')}
+          </Text>
+          <Text style={styles.updatesStripArrow}>›</Text>
+        </TouchableOpacity>
+      ) : null}
 
       {loading ? (
         <View style={styles.center}>
@@ -302,6 +332,35 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 14,
     lineHeight: 20,
+  },
+  updatesStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 12,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  updatesStripNew: {
+    borderColor: '#D32F2F',
+    borderWidth: 1.5,
+    backgroundColor: '#FDECEA',
+  },
+  updatesStripText: {
+    flex: 1,
+    color: Colors.sacredBrown,
+    fontWeight: '800',
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  updatesStripArrow: {
+    color: Colors.sacredBrown,
+    fontSize: 24,
+    fontWeight: '700',
+    lineHeight: 26,
   },
   statusCard: {
     marginTop: 12,

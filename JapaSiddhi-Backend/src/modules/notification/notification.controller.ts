@@ -40,6 +40,7 @@ class NotificationController {
         await notificationService.getUserNotifications(
           userId,
           Number.isFinite(limitRaw) && limitRaw > 0 ? limitRaw : 15,
+          String(req.query?.actionType || '').trim() || undefined,
         );
 
       return apiResponse.success(
@@ -198,6 +199,7 @@ class NotificationController {
       const result =
         await notificationService.getUnreadCount(
           userId,
+          String(req.query?.actionType || '').trim() || undefined,
         );
 
       return apiResponse.success(

@@ -9132,6 +9132,11 @@ router.post('/seva-donations/notify', async (req: Request, res: Response) => {
     const message = String(req.body?.message || '').trim();
     const scheduleRaw = String(req.body?.schedule || 'Now');
     const scheduledAt = req.body?.scheduledAt ? String(req.body.scheduledAt) : undefined;
+    // Optional media / link (Nithya Homam updates).
+    const imageUrl = String(req.body?.imageUrl || '').trim();
+    const videoUrl = String(req.body?.videoUrl || '').trim();
+    const audioUrl = String(req.body?.audioUrl || '').trim();
+    const linkUrl = String(req.body?.linkUrl || req.body?.url || '').trim();
     const userIds: number[] = Array.isArray(req.body?.userIds)
       ? Array.from<number>(
           new Set(
@@ -9165,6 +9170,11 @@ router.post('/seva-donations/notify', async (req: Request, res: Response) => {
       userIds,
       bypassHours: true,
       actionType: sevaType === 'NITHYA_HOMAM' ? 'NITHYA_HOMAM_ANNOUNCEMENT' : 'SEVA_ANNOUNCEMENT',
+      imageUrl: imageUrl || undefined,
+      videoUrl: videoUrl || undefined,
+      url: linkUrl || undefined,
+      link: linkUrl || undefined,
+      extraData: audioUrl ? {audioUrl} : undefined,
     });
 
     let whatsappResult: any = null;

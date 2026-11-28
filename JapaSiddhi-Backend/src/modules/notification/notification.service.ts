@@ -57,12 +57,14 @@ class NotificationService {
   async getUserNotifications(
     userId: number,
     limit?: number,
+    actionType?: string,
   ) {
 
 
     return notificationRepository.getUserNotifications(
       userId,
       limit,
+      actionType,
     );
 
   }
@@ -97,12 +99,14 @@ class NotificationService {
 
   async getUnreadCount(
     userId: number,
+    actionType?: string,
   ) {
 
 
     const unreadCount =
       await notificationRepository.getUnreadCount(
         userId,
+        actionType,
       );
 
 

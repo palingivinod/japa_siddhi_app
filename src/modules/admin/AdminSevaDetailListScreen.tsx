@@ -2,6 +2,7 @@ import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   Linking,
   Modal,
   RefreshControl,
@@ -20,6 +21,8 @@ import AdminScreenLayout from './AdminScreenLayout';
 import DatePickerModal from '../common/DatePickerModal';
 import {alertExcelError, downloadAdminExcel} from './adminExcelDownload';
 import {useLanguage} from '../../i18n/LanguageContext';
+import {pickAudioFile, pickFeedbackVideo} from '../../services/mediaPick';
+import {pickProfilePhoto, resolveMediaUrl} from '../../services/profilePhoto';
 
 export type SevaDonationItem = {
   id: string;
@@ -242,6 +245,14 @@ const AdminSevaDetailListScreen = () => {
   const [showBroadcastDate, setShowBroadcastDate] = useState(false);
   const [showBroadcastTime, setShowBroadcastTime] = useState(false);
   const [broadcasting, setBroadcasting] = useState(false);
+  // Optional photo / video / audio / link sent with a Nithya Homam message.
+  const [homamImageUrl, setHomamImageUrl] = useState('');
+  const [homamVideoUrl, setHomamVideoUrl] = useState('');
+  const [homamAudioUrl, setHomamAudioUrl] = useState('');
+  const [homamLinkUrl, setHomamLinkUrl] = useState('');
+  const [homamUploading, setHomamUploading] = useState<
+    '' | 'image' | 'video' | 'audio'
+  >('');
 
   const handleExportExcel = async () => {
     setExporting(true);
@@ -526,6 +537,95 @@ const AdminSevaDetailListScreen = () => {
     setSelectedIds(prev => ({...prev, [id]: !prev[id]}));
   };
 
+  const uploadHomamMedia = async (kind: 'image' | 'video' | 'audio') => {
+    try {
+      const formData = new FormData();
+      let endpoint = '';
+      if (kind === 'image') {
+        const picked = await pickProfilePhoto({
+          title: 'Homam photo',
+          camera: 'Camera',
+          gallery: 'Gallery',
+          cancel: 'Cancel',
+        });
+        if (!picked?.uri) {
+          return;
+        }
+        setHomamUploading('image');
+        formData.append('image', {
+          uri: picked.uri,
+          type: picked.type || 'image/jpeg',
+          name: picked.fileName || 'homam.jpg',
+        } as any);
+        endpoint = '/admin/notifications/upload-image';
+      } else if (kind === 'video') {
+        const picked = await pickFeedbackVideo();
+        if (!picked?.uri) {
+          return;
+        }
+        setHomamUploading('video');
+        formData.append('video', {
+          uri: picked.uri,
+          type: picked.type || 'video/mp4',
+          name: picked.fileName || 'homam.mp4',
+        } as any);
+        endpoint = '/admin/notifications/upload-video';
+      } else {
+        const picked = await pickAudioFile();
+        if (!picked?.uri) {
+          return;
+        }
+        setHomamUploading('audio');
+        formData.append('audio', {
+          uri: picked.uri,
+          type: picked.type || 'audio/mpeg',
+          name: picked.fileName || 'homam.mp3',
+        } as any);
+        endpoint = '/admin/notifications/upload-audio';
+      }
+      const response = await apiService.post(endpoint, formData);
+      const data = response.data?.data || {};
+      const uploaded = String(
+        (kind === 'image'
+          ? data.imageUrl
+          : kind === 'video'
+            ? data.videoUrl
+            : data.audioUrl) ||
+          data.path ||
+          '',
+      );
+      if (!uploaded) {
+        throw new Error('Upload returned no file URL');
+      }
+      if (kind === 'image') {
+        setHomamImageUrl(uploaded);
+      } else if (kind === 'video') {
+        setHomamVideoUrl(uploaded);
+      } else {
+        setHomamAudioUrl(uploaded);
+      }
+    } catch (err: any) {
+      const code = String(err?.message || '');
+      if (code === 'native_module_missing') {
+        Alert.alert(
+          'Picker unavailable',
+          'Rebuild the app so the media picker is linked.',
+        );
+      } else if (code === 'permission') {
+        Alert.alert(
+          'Permission needed',
+          'Please allow gallery access to attach a file.',
+        );
+      } else if (code === 'not_audio') {
+        Alert.alert('Audio only', 'Please select an audio file (MP3, M4A, WAV).');
+      } else {
+        Alert.alert('Upload failed', getApiError(err, 'Could not upload the file.'));
+      }
+    } finally {
+      setHomamUploading('');
+    }
+  };
+
   const sendBroadcastMessage = async () => {
     const userIds = Array.from(
       new Set(
@@ -576,6 +676,18 @@ const AdminSevaDetailListScreen = () => {
         userIds,
         title: finalTitle,
         message: cleanMsg,
+        ...(sevaType === 'NITHYA_HOMAM'
+          ? {
+              imageUrl: homamImageUrl || undefined,
+              videoUrl: homamVideoUrl || undefined,
+              audioUrl: homamAudioUrl || undefined,
+              linkUrl: homamLinkUrl.trim()
+                ? /^https?:\/\//i.test(homamLinkUrl.trim())
+                  ? homamLinkUrl.trim()
+                  : `https://${homamLinkUrl.trim()}`
+                : undefined,
+            }
+          : {}),
         schedule: broadcastSchedule,
         scheduledAt:
           broadcastSchedule === 'Later'
@@ -600,6 +712,10 @@ const AdminSevaDetailListScreen = () => {
       );
 
       setBroadcastMessage('');
+      setHomamImageUrl('');
+      setHomamVideoUrl('');
+      setHomamAudioUrl('');
+      setHomamLinkUrl('');
       setBroadcastSchedule('Now');
       setBroadcastScheduledAt(defaultLater());
       setSelectedIds({});
@@ -1091,6 +1207,73 @@ const AdminSevaDetailListScreen = () => {
               ))}
             </ScrollView>
 
+            {sevaType === 'NITHYA_HOMAM' ? (
+              <>
+                <Text
+                  style={[
+                    styles.broadcastInputLabel,
+                    styles.broadcastInputLabelSpaced,
+                  ]}>
+                  Photo, Video, Audio & Link (optional)
+                </Text>
+                {homamImageUrl ? (
+                  <Image
+                    source={{uri: resolveMediaUrl(homamImageUrl) || undefined}}
+                    style={styles.homamImagePreview}
+                    resizeMode="cover"
+                  />
+                ) : null}
+                <View style={styles.homamMediaRow}>
+                  {(
+                    [
+                      ['image', '📷 Photo', homamImageUrl, setHomamImageUrl],
+                      ['video', '🎬 Video', homamVideoUrl, setHomamVideoUrl],
+                      ['audio', '🎵 Audio', homamAudioUrl, setHomamAudioUrl],
+                    ] as const
+                  ).map(([kind, label, value, setValue]) => (
+                    <View key={kind} style={styles.homamMediaItem}>
+                      <TouchableOpacity
+                        style={[
+                          styles.homamMediaBtn,
+                          value ? styles.homamMediaBtnDone : null,
+                        ]}
+                        disabled={homamUploading !== '' || broadcasting}
+                        onPress={() => void uploadHomamMedia(kind)}
+                        activeOpacity={0.8}>
+                        {homamUploading === kind ? (
+                          <ActivityIndicator
+                            size="small"
+                            color={Colors.sacredBrown}
+                          />
+                        ) : (
+                          <Text style={styles.homamMediaBtnText}>
+                            {value ? `${label} ✓` : label}
+                          </Text>
+                        )}
+                      </TouchableOpacity>
+                      {value ? (
+                        <TouchableOpacity
+                          onPress={() => setValue('')}
+                          disabled={broadcasting}>
+                          <Text style={styles.homamMediaRemove}>Remove</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ))}
+                </View>
+                <TextInput
+                  style={[styles.broadcastInput, styles.homamLinkInput]}
+                  value={homamLinkUrl}
+                  onChangeText={setHomamLinkUrl}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  placeholder="Link, e.g. https://example.com (optional)"
+                  placeholderTextColor={Colors.placeholder}
+                />
+              </>
+            ) : null}
+
             <Text style={[styles.broadcastInputLabel, styles.broadcastInputLabelSpaced]}>
               When to Send
             </Text>
@@ -1142,10 +1325,12 @@ const AdminSevaDetailListScreen = () => {
             <TouchableOpacity
               style={[
                 styles.broadcastSendBtn,
-                (broadcasting || !selectedItems.length) &&
+                (broadcasting || homamUploading !== '' || !selectedItems.length) &&
                   styles.broadcastSendBtnDisabled,
               ]}
-              disabled={broadcasting || !selectedItems.length}
+              disabled={
+                broadcasting || homamUploading !== '' || !selectedItems.length
+              }
               onPress={sendBroadcastMessage}
               activeOpacity={0.85}>
               {broadcasting ? (
@@ -2177,6 +2362,50 @@ const styles = StyleSheet.create({
   broadcastInputMultiline: {
     minHeight: 85,
     textAlignVertical: 'top',
+  },
+  homamImagePreview: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: Colors.background,
+  },
+  homamMediaRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  homamMediaItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  homamMediaBtn: {
+    width: '100%',
+    minHeight: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    backgroundColor: Colors.background,
+    paddingHorizontal: 4,
+  },
+  homamMediaBtnDone: {
+    borderColor: '#4E6B21',
+    backgroundColor: '#EEF4E3',
+  },
+  homamMediaBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.sacredBrown,
+  },
+  homamMediaRemove: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B3261E',
+  },
+  homamLinkInput: {
+    marginTop: 10,
   },
   templateScroll: {
     gap: 8,

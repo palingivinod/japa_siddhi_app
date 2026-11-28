@@ -315,7 +315,8 @@ class NotificationRepository {
           'ADVANCE_BIRTHDAY',
           'DOB_WISH',
           'MEETING_LIVE',
-          'MEETING_SCHEDULED'
+          'MEETING_SCHEDULED',
+          'NITHYA_HOMAM_ANNOUNCEMENT'
         )
         ${userFilter}
       `,
@@ -403,9 +404,15 @@ class NotificationRepository {
     return result.insertId;
   }
 
-  async getUserNotifications(userId: number, limit = 15) {
+  async getUserNotifications(
+    userId: number,
+    limit = 15,
+    actionType?: string,
+  ) {
     await this.purgeExpired(userId);
     const take = Math.max(1, Math.min(50, Number(limit) || 15));
+    const actionFilter = actionType ? 'AND action_type = ?' : '';
+    const listParams: any[] = actionType ? [userId, actionType] : [userId];
 
     const rows = await mysql.query<any[]>(
       `
@@ -425,6 +432,7 @@ class NotificationRepository {
         expires_at AS expiresAt
       FROM notifications
       WHERE user_id = ?
+        ${actionFilter}
         AND (
           expires_at IS NULL
           OR expires_at = ''
@@ -437,7 +445,7 @@ class NotificationRepository {
       ORDER BY created_at DESC
       LIMIT ${take}
       `,
-      [userId],
+      listParams,
     );
 
     return (rows || []).map(notification => {
@@ -561,13 +569,14 @@ class NotificationRepository {
     }
   }
 
-  async getUnreadCount(userId: number) {
+  async getUnreadCount(userId: number, actionType?: string) {
     await this.purgeExpired(userId);
     const rows = await mysql.query<any[]>(
       `
       SELECT COUNT(*) AS unreadCount
       FROM notifications
       WHERE user_id = ?
+        ${actionType ? 'AND action_type = ?' : ''}
         AND is_read = 0
         AND (
           expires_at IS NULL
@@ -579,7 +588,7 @@ class NotificationRepository {
           }
         )
       `,
-      [userId],
+      actionType ? [userId, actionType] : [userId],
     );
     return rows[0]?.unreadCount ?? 0;
   }

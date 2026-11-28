@@ -112,6 +112,15 @@ const ensureQueueTable = async () => {
   } catch {
     // Column already exists.
   }
+  try {
+    // Video / audio / link of a scheduled message (JSON). Without this they
+    // were dropped when a "Later" notification was finally delivered.
+    await mysql.query(
+      `ALTER TABLE admin_notification_queue ADD COLUMN extra_json TEXT NULL`,
+    );
+  } catch {
+    // Column already exists.
+  }
   queueReady = true;
 };
 
@@ -1094,7 +1103,9 @@ export const flushDueAdminNotifications = async () => {
         target_group AS targetGroup,
         recipient_ids AS recipientIds,
         IFNULL(bypass_hours, 0) AS bypassHours,
-        image_url AS imageUrl
+        image_url AS imageUrl,
+        action_type AS actionType,
+        extra_json AS extraJson
       FROM admin_notification_queue
       WHERE status = 'PENDING'
         AND send_at <= ?
@@ -1131,6 +1142,18 @@ export const flushDueAdminNotifications = async () => {
       }
 
       const userIds = parseRecipientIds(job.recipientIds);
+      let queuedExtra: {videoUrl?: string; audioUrl?: string; url?: string} = {};
+      try {
+        queuedExtra = job.extraJson ? JSON.parse(String(job.extraJson)) : {};
+      } catch {
+        queuedExtra = {};
+      }
+      // Only Nithya Homam / Seva messages keep their own type when delayed.
+      const queuedActionType = ['NITHYA_HOMAM_ANNOUNCEMENT', 'SEVA_ANNOUNCEMENT'].includes(
+        String(job.actionType || ''),
+      )
+        ? String(job.actionType)
+        : '';
       const result = await deliverAdminNotification({
         title: job.title,
         message: job.message,
@@ -1139,7 +1162,14 @@ export const flushDueAdminNotifications = async () => {
         userIds: userIds.length ? userIds : undefined,
         bypassHours: bypass,
         imageUrl: job.imageUrl || null,
-        extraData: {broadcastId: job.id, queuedId: job.id},
+        videoUrl: queuedExtra.videoUrl || null,
+        url: queuedExtra.url || null,
+        ...(queuedActionType ? {actionType: queuedActionType} : {}),
+        extraData: {
+          ...(queuedExtra.audioUrl ? {audioUrl: queuedExtra.audioUrl} : {}),
+          broadcastId: job.id,
+          queuedId: job.id,
+        },
       });
       await mysql.query(
         `
@@ -1363,12 +1393,24 @@ export const sendAdminNotification = async (input: {
 
     const category = resolveAnalyticsCategory(actionType, title);
 
+    const queuedAudioUrl = String(input.extraData?.audioUrl || '').trim();
+    const queuedLinkUrl =
+      String(input.url || input.link || input.linkUrl || '').trim();
+    const queuedExtraJson =
+      videoUrl || queuedAudioUrl || queuedLinkUrl
+        ? JSON.stringify({
+            ...(videoUrl ? {videoUrl} : {}),
+            ...(queuedAudioUrl ? {audioUrl: queuedAudioUrl} : {}),
+            ...(queuedLinkUrl ? {url: queuedLinkUrl} : {}),
+          })
+        : null;
+
     const insert = await mysql.query<ResultSetHeader>(
       `
       INSERT INTO admin_notification_queue (
         title, message, translations, target_group, category, action_type, send_at, status,
-        recipient_ids, bypass_hours, image_url
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)
+        recipient_ids, bypass_hours, image_url, extra_json
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?)
       `,
       [
         title,
@@ -1381,6 +1423,7 @@ export const sendAdminNotification = async (input: {
         userIds.length ? JSON.stringify(userIds) : null,
         bypassHours ? 1 : 0,
         imageUrl,
+        queuedExtraJson,
       ],
     );
 

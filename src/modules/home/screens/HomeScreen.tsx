@@ -22,6 +22,7 @@ import {useFocusEffect, useNavigation} from '@react-navigation/native';
 import {useLanguage} from '../../../i18n/LanguageContext';
 import AppIcon, {AppIconName} from '../../../components/icons/AppIcon';
 import apiService from '../../../services/apiService';
+import {fetchHomamUnreadCount} from '../../homam/homamUpdates';
 import {
   buildPanchangShareText,
   emptyPanchang,
@@ -98,6 +99,8 @@ const HomeScreen = () => {
   const [panchang, setPanchang] = useState<PanchangPayload>(emptyPanchang());
   const [panchangModalVisible, setPanchangModalVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Unread Nithya Homam messages from the admin (0 for everyone else).
+  const [homamUnread, setHomamUnread] = useState(0);
 
   // Slow border blink so Panchangam / Meeting cards are easy to notice
   const cardBorderAnim = useRef(new Animated.Value(0)).current;
@@ -759,6 +762,20 @@ const HomeScreen = () => {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      fetchHomamUnreadCount().then(count => {
+        if (active) {
+          setHomamUnread(count);
+        }
+      });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
       const askForRegion = async () => {
         const session = await hydrateSession();
         if (!active || !session.token) {
@@ -1352,10 +1369,14 @@ const HomeScreen = () => {
               const outOfStock =
                 isSevaStockRoute(item.route) &&
                 !isSevaOfferingInStock(sevaStock, item.route);
+              const homamNotice =
+                item.route === 'NithyaHomam' && homamUnread > 0
+                  ? homamUnread
+                  : 0;
               return (
                 <TouchableOpacity
                   key={item.route}
-                  style={styles.tile}
+                  style={[styles.tile, homamNotice > 0 && styles.tileNotice]}
                   activeOpacity={0.85}
                   onPress={() => {
                     if (outOfStock) {
@@ -1391,8 +1412,19 @@ const HomeScreen = () => {
                       color={Colors.sacredBrown}
                     />
                   </View>
+                  {homamNotice > 0 ? (
+                    <View style={styles.tileBadge}>
+                      <Text style={styles.tileBadgeText}>
+                        {homamNotice > 99 ? '99+' : homamNotice}
+                      </Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.tileTitle}>{item.title}</Text>
-                  {outOfStock ? (
+                  {homamNotice > 0 ? (
+                    <Text style={styles.tileNoticeText}>
+                      🔔 {t('homamNewNotifications', {count: homamNotice})}
+                    </Text>
+                  ) : outOfStock ? (
                     <Text style={styles.tileOos}>
                       {t('outOfStockTitle') || 'Out of Stock'}
                     </Text>
@@ -2126,6 +2158,37 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     fontSize: 14.5,
     lineHeight: 22,
+    includeFontPadding: false,
+    paddingBottom: 2,
+  },
+  tileNotice: {
+    borderColor: '#D32F2F',
+    borderWidth: 1.5,
+  },
+  tileBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    minWidth: 26,
+    height: 26,
+    borderRadius: 13,
+    paddingHorizontal: 6,
+    backgroundColor: '#D32F2F',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    includeFontPadding: false,
+  },
+  tileNoticeText: {
+    marginTop: 4,
+    color: '#B3261E',
+    fontSize: 14.5,
+    lineHeight: 22,
+    fontWeight: '700',
     includeFontPadding: false,
     paddingBottom: 2,
   },
